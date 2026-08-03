@@ -18,4 +18,12 @@ public class OtpExceptionHandler {
         );
         return ResponseEntity.status(exception.getStatus()).body(body);
     }
+
+    @ExceptionHandler(AuthException.class)
+    ResponseEntity<Map<String, Object>> handle(AuthException exception) {
+        return ResponseEntity.status(exception.getStatus()).body(Map.of(
+                "code", exception.getCode(),
+                "message", exception.getMessage()
+        ));
+    }
 }
