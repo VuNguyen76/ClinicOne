@@ -65,16 +65,24 @@ Không làm việc trực tiếp trên `main`. Mỗi task phải có branch riê
 ```powershell
 git switch main
 git pull --ff-only
-git switch -c codex/<ten-task-ngan-gon>
+git switch -c feat/<ten-task-ngan-gon>
 ```
+
+Quy ước tên branch:
+
+- `feat/<ten-task-ngan-gon>` cho tính năng mới.
+- `fix/<ten-task-ngan-gon>` cho sửa lỗi.
+- `refactor/<ten-task-ngan-gon>` cho thay đổi cấu trúc nhưng không đổi nghiệp vụ.
+- `chore/<ten-task-ngan-gon>` cho công việc kỹ thuật hoặc cấu hình.
 
 Ví dụ:
 
 ```text
-codex/be-identity-account
-codex/be-appointment-booking
-codex/fe-app-shell
-codex/fe-appointment-screen
+feat/be-identity-account
+feat/be-appointment-booking
+feat/fe-app-shell
+feat/fe-appointment-screen
+fix/fe-login-validation
 ```
 
 Quy trình hoàn thành task:
@@ -87,7 +95,7 @@ Quy trình hoàn thành task:
 6. Push branch riêng nếu cần review:
 
 ```powershell
-git push -u origin codex/<ten-task-ngan-gon>
+git push -u origin feat/<ten-task-ngan-gon>
 ```
 
 7. Chỉ merge vào `main` sau khi task đạt tiêu chí hoàn thành và đã kiểm tra phần BE/UI liên quan.
