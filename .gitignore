@@ -6,6 +6,16 @@
 !src/
 !src/**
 
+# Angular frontend
+!frontend/
+!frontend/**
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+
 # File cần để build/chạy project
 !pom.xml
 !mvnw

@@ -12,7 +12,7 @@ spring:
         jdbc:
           time_zone: UTC
   jackson:
-    time-zone: UTC
+    time-zone: Asia/Ho_Chi_Minh
   mvc:
     problemdetails:
       enabled: true
@@ -30,3 +30,6 @@ management:
   endpoint:
     health:
       show-details: never
+
+app:
+  timezone: Asia/Ho_Chi_Minh
