@@ -35,7 +35,6 @@
                 maxlength="10"
               />
             </div>
-            <p class="text-xs text-slate-500">10 chữ số, bắt đầu bằng 0</p>
             @if (form.controls.phone.hasError('required') && form.controls.phone.touched) {
               <p class="text-sm text-[#b42318]" role="alert">Số điện thoại là thông tin bắt buộc.</p>
             } @else if (form.controls.phone.hasError('pattern') && form.controls.phone.touched) {
