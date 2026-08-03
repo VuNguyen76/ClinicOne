@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: ClinicOne
+  profiles:
+    default: local
+  config:
+    import: optional:file:.env[.properties]
+  jpa:
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  jackson:
+    time-zone: UTC
+  mvc:
+    problemdetails:
+      enabled: true
+
+server:
+  error:
+    include-message: never
+    include-stacktrace: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
