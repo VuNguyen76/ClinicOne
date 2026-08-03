@@ -92,6 +92,13 @@ public class OtpService {
         return new VerifyOtpResponse(true);
     }
 
+    public boolean isRecentlyVerified(String email, OtpPurpose purpose) {
+        Instant now = Instant.now(clock);
+        return repository.findTopByEmailAndPurposeOrderByCreatedAtDesc(normalizeEmail(email), purpose)
+                .map(challenge -> challenge.isVerified() && !challenge.isExpired(now))
+                .orElse(false);
+    }
+
     private OtpException invalidOtp() {
         return new OtpException(HttpStatus.BAD_REQUEST, "OTP_INVALID", "Mã xác thực không hợp lệ hoặc đã hết hạn.");
     }
