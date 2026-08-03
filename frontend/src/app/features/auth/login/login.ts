@@ -10,7 +10,6 @@ import {
   Validators,
 } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 
@@ -18,25 +17,20 @@ import { MatInputModule } from '@angular/material/input';
   selector: 'app-login',
   imports: [
     MatButtonModule,
-    MatCheckboxModule,
     MatFormFieldModule,
     MatInputModule,
     ReactiveFormsModule,
   ],
   templateUrl: './login.html',
-  styleUrl: './login.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Login {
   private readonly formBuilder = inject(FormBuilder);
 
-  protected readonly showPassword = signal(false);
   protected readonly notice = signal('');
 
   readonly form = this.formBuilder.nonNullable.group({
-    email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(8)]],
-    remember: [false],
+    phone: ['', [Validators.required, Validators.pattern(/^0\d{9}$/)]],
   });
 
   protected submit(): void {
@@ -48,15 +42,11 @@ export class Login {
     }
 
     this.notice.set(
-      'Thông tin hợp lệ. Giao diện sẽ kết nối API đăng nhập khi phần máy chủ hoàn tất.',
+      'Số điện thoại hợp lệ. Bước tiếp theo sẽ được kết nối với dịch vụ xác thực của ClinicOne.',
     );
   }
 
-  protected togglePassword(): void {
-    this.showPassword.update((value) => !value);
-  }
-
   protected showNotReadyMessage(action: string): void {
-    this.notice.set(`${action} sẽ được bổ sung trong bước xác thực tài khoản.`);
+    this.notice.set(`${action} sẽ được bổ sung trong phiên bản tiếp theo.`);
   }
 }

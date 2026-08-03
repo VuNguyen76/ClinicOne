@@ -19,11 +19,10 @@ describe('Login', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should keep the form invalid until email and password are valid', () => {
+  it('should keep the form invalid until a valid phone number is entered', () => {
     expect(component.form.invalid).toBe(true);
 
-    component.form.controls.email.setValue('patient@example.com');
-    component.form.controls.password.setValue('safe-password');
+    component.form.controls.phone.setValue('0912345678');
 
     expect(component.form.valid).toBe(true);
   });

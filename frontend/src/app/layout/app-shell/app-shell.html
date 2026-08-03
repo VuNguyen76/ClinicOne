@@ -1,0 +1,126 @@
+<mat-sidenav-container class="h-screen bg-slate-50">
+  <!-- Sidebar -->
+  <mat-sidenav
+    mode="side"
+    opened
+    class="border-r border-slate-200 bg-[#103f4c] text-white transition-all duration-300 ease-in-out"
+    [class.w-64]="!isCollapsed()"
+    [class.w-16]="isCollapsed()"
+  >
+    <div class="flex h-14 items-center px-4" [class.justify-between]="!isCollapsed()" [class.justify-center]="isCollapsed()">
+      @if (!isCollapsed()) {
+        <div class="flex items-center gap-3 overflow-hidden whitespace-nowrap">
+          <div class="grid h-8 w-8 shrink-0 place-items-center rounded bg-white text-sm font-bold text-[#103f4c]">
+            C
+          </div>
+          <span class="text-lg font-bold tracking-tight text-white">ClinicOne</span>
+        </div>
+      } @else {
+        <div class="grid h-8 w-8 shrink-0 place-items-center rounded bg-white text-sm font-bold text-[#103f4c]">
+          C
+        </div>
+      }
+    </div>
+
+    <mat-nav-list class="mt-4 px-2">
+      @for (item of navItems; track item.route) {
+        <a
+          mat-list-item
+          [routerLink]="item.route"
+          routerLinkActive="bg-[#0e6872] text-white font-semibold"
+          [routerLinkActiveOptions]="{ exact: false }"
+          class="mb-1 rounded text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
+          [matTooltip]="isCollapsed() ? item.label : ''"
+          matTooltipPosition="right"
+        >
+          <div class="flex items-center gap-3">
+            <mat-icon [class.text-white]="true" matListItemIcon>{{ item.icon }}</mat-icon>
+            @if (!isCollapsed()) {
+              <span class="text-sm">{{ item.label }}</span>
+            }
+          </div>
+        </a>
+      }
+    </mat-nav-list>
+
+    <!-- Bottom sidebar settings / logout placeholder -->
+    <div class="absolute bottom-4 left-0 w-full px-2">
+      <a
+        mat-list-item
+        routerLink="/login"
+        class="rounded text-red-300 transition-colors hover:bg-red-500/20"
+        [matTooltip]="isCollapsed() ? 'Đăng xuất' : ''"
+        matTooltipPosition="right"
+      >
+        <div class="flex items-center gap-3">
+          <mat-icon matListItemIcon>logout</mat-icon>
+          @if (!isCollapsed()) {
+            <span class="text-sm">Đăng xuất</span>
+          }
+        </div>
+      </a>
+    </div>
+  </mat-sidenav>
+
+  <!-- Main Content -->
+  <mat-sidenav-content class="flex flex-col">
+    <!-- Topbar (Solid, professional) -->
+    <header class="sticky top-0 z-10 flex h-14 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 shadow-sm">
+      <div class="flex items-center gap-2">
+        <button mat-icon-button (click)="toggleSidebar()" class="text-slate-600 hover:text-slate-900 focus-visible:outline-none">
+          <mat-icon>menu</mat-icon>
+        </button>
+        
+        <!-- Breadcrumbs placeholder -->
+        <div class="hidden items-center text-sm font-medium text-slate-500 sm:flex">
+          <span class="cursor-pointer hover:text-slate-900">Trang chủ</span>
+          <mat-icon class="mx-1 h-4 w-4 text-[16px] leading-[16px] text-slate-400">chevron_right</mat-icon>
+          <span class="text-slate-900">Tổng quan</span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <!-- Search, Notifications, Profile -->
+        <div class="relative mr-2 hidden text-slate-400 focus-within:text-slate-700 md:block">
+           <mat-icon class="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[16px] leading-[16px]">search</mat-icon>
+           <input type="text" placeholder="Tìm kiếm bệnh nhân (F2)..." class="h-8 w-64 rounded border border-slate-300 bg-white pl-8 pr-3 text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-[#103f4c] focus:ring-1 focus:ring-[#103f4c]" />
+        </div>
+        
+        <button mat-icon-button class="text-slate-500 hover:text-slate-900 focus-visible:outline-none">
+          <mat-icon>notifications_none</mat-icon>
+        </button>
+        
+        <button mat-icon-button [matMenuTriggerFor]="userMenu" class="ml-1 h-8 w-8 overflow-hidden rounded-full border border-slate-300 transition-colors hover:border-slate-500 focus-visible:outline-none">
+          <img src="https://ui-avatars.com/api/?name=Admin+User&background=103f4c&color=fff" alt="Avatar" class="h-full w-full object-cover" />
+        </button>
+        <mat-menu #userMenu="matMenu" class="mt-1 min-w-[200px] rounded border border-slate-200 p-1 shadow-md">
+          <div class="px-3 py-2">
+            <p class="text-sm font-medium text-slate-900">Admin User</p>
+            <p class="text-xs text-slate-500">Quản trị viên</p>
+          </div>
+          <mat-divider class="my-1"></mat-divider>
+          <button mat-menu-item class="rounded-sm hover:bg-slate-50">
+            <mat-icon class="text-[20px]">person_outline</mat-icon>
+            <span class="text-sm">Hồ sơ cá nhân</span>
+          </button>
+          <button mat-menu-item class="rounded-sm hover:bg-slate-50">
+            <mat-icon class="text-[20px]">settings</mat-icon>
+            <span class="text-sm">Cấu hình</span>
+          </button>
+          <mat-divider class="my-1"></mat-divider>
+          <button mat-menu-item routerLink="/login" class="rounded-sm text-red-600 hover:bg-red-50">
+            <mat-icon class="text-[20px] text-red-600">logout</mat-icon>
+            <span class="text-sm">Đăng xuất</span>
+          </button>
+        </mat-menu>
+      </div>
+    </header>
+
+    <!-- Main Router Outlet -->
+    <main class="flex-1 overflow-auto bg-slate-50 p-4 sm:p-6 lg:p-8">
+      <div class="mx-auto max-w-7xl">
+        <router-outlet></router-outlet>
+      </div>
+    </main>
+  </mat-sidenav-content>
+</mat-sidenav-container>
