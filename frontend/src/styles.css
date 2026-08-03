@@ -1,0 +1,36 @@
+:root {
+  color-scheme: light;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+  --clinic-primary: #103f4c;
+  --clinic-accent: #0e6872;
+  --mat-sys-primary: #0e6872;
+  --mat-sys-on-primary: #ffffff;
+  --mat-sys-surface: #ffffff;
+  --mat-sys-on-surface: #153438;
+  --mat-sys-on-surface-variant: #3f484a;
+  --mat-sys-outline: #6b7e80;
+  --mat-sys-outline-variant: #c5d2d2;
+  --mat-sys-error: #ba1a1a;
+}
+
+html,
+body {
+  min-height: 100%;
+  margin: 0;
+  background: #eef5f4;
+}
+
+body {
+  font-family: inherit;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+button,
+input {
+  font: inherit;
+}
