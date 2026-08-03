@@ -1,0 +1,32 @@
+# Chỉ đưa mã nguồn và các file build tối thiểu lên repository.
+*
+!*/
+
+# Mã nguồn ứng dụng
+!src/
+!src/**
+
+# File cần để build/chạy project
+!pom.xml
+!mvnw
+!mvnw.cmd
+!.mvn/
+!.mvn/**
+!README.md
+!.gitignore
+
+# Tài liệu, cấu hình công cụ và output cục bộ
+/.kiro/
+/.playwright-mcp/
+/docs/
+/output/
+/scripts/
+/target/
+/tmp/
+/tools/
+/edits.sed
+
+# Cấu hình cục bộ và secret
+.env
+.env.*
+!.env.example
