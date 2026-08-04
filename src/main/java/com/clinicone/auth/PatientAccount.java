@@ -41,6 +41,36 @@ public class PatientAccount {
     @Column(length = 500)
     private String address;
 
+    @Column(name = "identity_number", length = 12)
+    private String identityNumber;
+
+    @Column(length = 100)
+    private String nationality;
+
+    @Column(length = 100)
+    private String ethnicity;
+
+    @Column(name = "province_code", length = 10)
+    private String provinceCode;
+
+    @Column(name = "province_name", length = 120)
+    private String provinceName;
+
+    @Column(name = "district_code", length = 10)
+    private String districtCode;
+
+    @Column(name = "district_name", length = 120)
+    private String districtName;
+
+    @Column(name = "ward_code", length = 10)
+    private String wardCode;
+
+    @Column(name = "ward_name", length = 120)
+    private String wardName;
+
+    @Column(name = "street_address", length = 500)
+    private String streetAddress;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private AccountStatus status;
@@ -100,6 +130,35 @@ public class PatientAccount {
         }
     }
 
+    public void updateIdentityAndAddress(String identityNumber, String nationality, String ethnicity,
+                                         String provinceCode, String provinceName, String districtCode,
+                                         String districtName, String wardCode, String wardName, String streetAddress) {
+        this.identityNumber = identityNumber;
+        this.nationality = nationality;
+        this.ethnicity = ethnicity;
+        this.provinceCode = provinceCode;
+        this.provinceName = provinceName;
+        this.districtCode = districtCode;
+        this.districtName = districtName;
+        this.wardCode = wardCode;
+        this.wardName = wardName;
+        this.streetAddress = streetAddress;
+        if (hasValue(streetAddress) || hasValue(wardName) || hasValue(districtName) || hasValue(provinceName)) {
+            this.address = joinAddress(streetAddress, wardName, districtName, provinceName);
+        }
+    }
+
+    private boolean hasValue(String value) {
+        return value != null && !value.isBlank();
+    }
+
+    private String joinAddress(String street, String ward, String district, String province) {
+        return java.util.stream.Stream.of(street, ward, district, province)
+                .filter(value -> value != null && !value.isBlank())
+                .reduce((left, right) -> left + ", " + right)
+                .orElse(null);
+    }
+
     public UUID getId() { return id; }
     public String getPhone() { return phone; }
     public String getPasswordHash() { return passwordHash; }
@@ -107,6 +166,16 @@ public class PatientAccount {
     public LocalDate getDateOfBirth() { return dateOfBirth; }
     public String getGender() { return gender; }
     public String getAddress() { return address; }
+    public String getIdentityNumber() { return identityNumber; }
+    public String getNationality() { return nationality; }
+    public String getEthnicity() { return ethnicity; }
+    public String getProvinceCode() { return provinceCode; }
+    public String getProvinceName() { return provinceName; }
+    public String getDistrictCode() { return districtCode; }
+    public String getDistrictName() { return districtName; }
+    public String getWardCode() { return wardCode; }
+    public String getWardName() { return wardName; }
+    public String getStreetAddress() { return streetAddress; }
     public AccountStatus getStatus() { return status; }
     public boolean isMustChangePassword() { return mustChangePassword; }
 }

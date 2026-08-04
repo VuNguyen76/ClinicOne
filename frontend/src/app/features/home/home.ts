@@ -50,6 +50,7 @@ export class Home {
   private readonly destroyRef = inject(DestroyRef);
   readonly mobileMenuOpen = signal(false);
   readonly heroImageIndex = signal(0);
+  readonly loggedIn = signal(typeof sessionStorage !== 'undefined' && Boolean(sessionStorage.getItem('clinicOneAccessToken')));
 
   readonly heroImages = [
     'https://images.unsplash.com/photo-1586773860418-d37222d8fce3?auto=format&fit=crop&w=1400&q=88',

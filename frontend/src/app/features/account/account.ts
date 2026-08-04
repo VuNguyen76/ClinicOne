@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { finalize } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
 import { apiErrorMessage, AuthApiService, PatientProfileResponse } from '../../core/auth/auth-api.service';
+import { VietnamAddressService, VietnamAddressUnit } from '../../core/address/vietnam-address.service';
 
 function passwordsMatch(control: AbstractControl): ValidationErrors | null {
   const group = control as AbstractControl & { value: { newPassword?: string; confirmPassword?: string } };
@@ -23,6 +24,7 @@ export class Account implements OnInit {
   private readonly authApi = inject(AuthApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly addressApi = inject(VietnamAddressService);
 
   protected readonly profile = signal<PatientProfileResponse | null>(null);
   protected readonly loading = signal(true);
@@ -31,12 +33,26 @@ export class Account implements OnInit {
   protected readonly error = signal('');
   protected readonly notice = signal('');
   protected readonly today = new Date().toISOString().slice(0, 10);
+  protected readonly provinces = signal<VietnamAddressUnit[]>([]);
+  protected readonly districts = signal<VietnamAddressUnit[]>([]);
+  protected readonly wards = signal<VietnamAddressUnit[]>([]);
+  protected readonly addressLoading = signal(false);
 
   readonly profileForm = this.formBuilder.nonNullable.group({
     fullName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
     dateOfBirth: ['', [Validators.required]],
     gender: ['', [Validators.required]],
     address: ['', [Validators.maxLength(500)]],
+    identityNumber: ['', [Validators.pattern(/^(|\d{9}|\d{12})$/)]],
+    nationality: ['Việt Nam', [Validators.maxLength(100)]],
+    ethnicity: ['Kinh', [Validators.maxLength(100)]],
+    provinceCode: [''],
+    provinceName: [''],
+    districtCode: [''],
+    districtName: [''],
+    wardCode: [''],
+    wardName: [''],
+    streetAddress: ['', [Validators.maxLength(500)]],
   });
 
   readonly passwordForm = this.formBuilder.nonNullable.group({
@@ -47,6 +63,7 @@ export class Account implements OnInit {
 
   ngOnInit(): void {
     this.passwordOpen.set(this.route.snapshot.queryParamMap.get('changePassword') === '1');
+    this.loadProvinces();
     this.loadProfile();
   }
 
@@ -58,8 +75,13 @@ export class Account implements OnInit {
     }
 
     this.busy.set(true);
-    const { fullName, dateOfBirth, gender, address } = this.profileForm.getRawValue();
-    this.authApi.updateProfile(fullName.trim(), dateOfBirth || null, gender || null, address.trim())
+    const values = this.profileForm.getRawValue();
+    this.authApi.updateProfile(
+      values.fullName.trim(), values.dateOfBirth || null, values.gender || null, values.address.trim(),
+      values.identityNumber.trim(), values.nationality.trim(), values.ethnicity.trim(), values.provinceCode,
+      values.provinceName, values.districtCode, values.districtName, values.wardCode, values.wardName,
+      values.streetAddress.trim(),
+    )
       .pipe(finalize(() => this.busy.set(false)))
       .subscribe({
         next: (profile) => {
@@ -114,6 +136,41 @@ export class Account implements OnInit {
     return new Intl.DateTimeFormat('vi-VN').format(new Date(year, month - 1, day));
   }
 
+  protected provinceChanged(): void {
+    const provinceCode = this.profileForm.controls.provinceCode.value;
+    const province = this.provinces().find((item) => String(item.code) === provinceCode);
+    this.profileForm.patchValue({ provinceName: province?.name ?? '', districtCode: '', districtName: '', wardCode: '', wardName: '' });
+    this.districts.set([]);
+    this.wards.set([]);
+    if (provinceCode) {
+      this.addressLoading.set(true);
+      this.addressApi.getDistricts(provinceCode).pipe(finalize(() => this.addressLoading.set(false))).subscribe({
+        next: (items) => this.districts.set(items),
+        error: () => this.error.set('Không tải được danh sách quận/huyện. Vui lòng thử lại.'),
+      });
+    }
+  }
+
+  protected districtChanged(): void {
+    const districtCode = this.profileForm.controls.districtCode.value;
+    const district = this.districts().find((item) => String(item.code) === districtCode);
+    this.profileForm.patchValue({ districtName: district?.name ?? '', wardCode: '', wardName: '' });
+    this.wards.set([]);
+    if (districtCode) {
+      this.addressLoading.set(true);
+      this.addressApi.getWards(districtCode).pipe(finalize(() => this.addressLoading.set(false))).subscribe({
+        next: (items) => this.wards.set(items),
+        error: () => this.error.set('Không tải được danh sách xã/phường. Vui lòng thử lại.'),
+      });
+    }
+  }
+
+  protected wardChanged(): void {
+    const wardCode = this.profileForm.controls.wardCode.value;
+    const ward = this.wards().find((item) => String(item.code) === wardCode);
+    this.profileForm.controls.wardName.setValue(ward?.name ?? '');
+  }
+
   private loadProfile(): void {
     this.authApi.getProfile()
       .pipe(finalize(() => this.loading.set(false)))
@@ -129,6 +186,13 @@ export class Account implements OnInit {
       });
   }
 
+  private loadProvinces(): void {
+    this.addressApi.getProvinces().subscribe({
+      next: (items) => this.provinces.set(items),
+      error: () => this.error.set('Không tải được danh sách tỉnh/thành. Bạn vẫn có thể cập nhật thông tin khác.'),
+    });
+  }
+
   private clearMessages(): void {
     this.error.set('');
     this.notice.set('');
@@ -140,7 +204,23 @@ export class Account implements OnInit {
       dateOfBirth: profile.dateOfBirth ?? '',
       gender: profile.gender ?? '',
       address: profile.address ?? '',
+      identityNumber: profile.identityNumber ?? '',
+      nationality: profile.nationality ?? 'Việt Nam',
+      ethnicity: profile.ethnicity ?? 'Kinh',
+      provinceCode: profile.provinceCode ?? '',
+      provinceName: profile.provinceName ?? '',
+      districtCode: profile.districtCode ?? '',
+      districtName: profile.districtName ?? '',
+      wardCode: profile.wardCode ?? '',
+      wardName: profile.wardName ?? '',
+      streetAddress: profile.streetAddress ?? '',
     });
+    if (profile.provinceCode) {
+      this.addressApi.getDistricts(profile.provinceCode).subscribe((items) => this.districts.set(items));
+    }
+    if (profile.districtCode) {
+      this.addressApi.getWards(profile.districtCode).subscribe((items) => this.wards.set(items));
+    }
   }
 
   private showError(response: { status?: number; error?: { message?: string; detail?: string; title?: string } | string; message?: string; detail?: string }): void {

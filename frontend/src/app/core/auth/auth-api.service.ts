@@ -35,6 +35,16 @@ export interface PatientProfileResponse {
   dateOfBirth: string | null;
   gender: string | null;
   address: string | null;
+  identityNumber: string | null;
+  nationality: string | null;
+  ethnicity: string | null;
+  provinceCode: string | null;
+  provinceName: string | null;
+  districtCode: string | null;
+  districtName: string | null;
+  wardCode: string | null;
+  wardName: string | null;
+  streetAddress: string | null;
   status: string;
   mustChangePassword: boolean;
 }
@@ -87,8 +97,14 @@ export class AuthApiService {
     return this.http.get<PatientProfileResponse>(`${this.apiRoot}/me`);
   }
 
-  updateProfile(fullName: string, dateOfBirth: string | null, gender: string | null, address: string): Observable<PatientProfileResponse> {
-    return this.http.patch<PatientProfileResponse>(`${this.apiRoot}/me`, { fullName, dateOfBirth, gender, address });
+  updateProfile(fullName: string, dateOfBirth: string | null, gender: string | null, address: string,
+               identityNumber: string, nationality: string, ethnicity: string, provinceCode: string,
+               provinceName: string, districtCode: string, districtName: string, wardCode: string,
+               wardName: string, streetAddress: string): Observable<PatientProfileResponse> {
+    return this.http.patch<PatientProfileResponse>(`${this.apiRoot}/me`, {
+      fullName, dateOfBirth, gender, address, identityNumber, nationality, ethnicity,
+      provinceCode, provinceName, districtCode, districtName, wardCode, wardName, streetAddress,
+    });
   }
 
   changePassword(currentPassword: string, newPassword: string): Observable<void> {
