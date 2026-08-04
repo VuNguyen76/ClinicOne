@@ -1,0 +1,194 @@
+<div class="grid gap-6">
+  <!-- Greeting -->
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-xl font-bold tracking-tight text-slate-900">Bảng điều khiển</h1>
+      <p class="mt-1 text-sm text-slate-500">Tổng quan tình hình khám chữa bệnh trong ngày.</p>
+    </div>
+    <div class="flex gap-2">
+      <button mat-stroked-button class="!border-slate-300 !text-slate-700 hover:!bg-slate-50">
+        <mat-icon class="text-[18px]">file_download</mat-icon>
+        Xuất báo cáo
+      </button>
+      <button mat-flat-button class="!bg-[#103f4c] !text-white hover:!bg-[#0b303b]">
+        <mat-icon class="text-[18px]">add</mat-icon>
+        Lịch hẹn mới
+      </button>
+    </div>
+  </div>
+
+  <!-- Stats Grid -->
+  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <!-- Stat 1 -->
+    <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <div class="flex items-center justify-between">
+        <p class="text-xs font-semibold uppercase text-slate-500">Lượt khám hôm nay</p>
+        <mat-icon class="text-[#0e6872] text-[20px]">people</mat-icon>
+      </div>
+      <div class="mt-2 flex items-baseline gap-2">
+        <span class="text-2xl font-bold text-slate-900">124</span>
+        <span class="flex items-center text-xs font-medium text-emerald-600">
+          <mat-icon class="!h-4 !w-4 !text-[16px] !leading-[16px]">arrow_upward</mat-icon>
+          12%
+        </span>
+      </div>
+    </div>
+
+    <!-- Stat 2 -->
+    <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <div class="flex items-center justify-between">
+        <p class="text-xs font-semibold uppercase text-slate-500">Lịch hẹn sắp tới</p>
+        <mat-icon class="text-blue-600 text-[20px]">calendar_today</mat-icon>
+      </div>
+      <div class="mt-2 flex items-baseline gap-2">
+        <span class="text-2xl font-bold text-slate-900">42</span>
+        <span class="text-xs text-slate-500">so với 38 hôm qua</span>
+      </div>
+    </div>
+
+    <!-- Stat 3 -->
+    <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <div class="flex items-center justify-between">
+        <p class="text-xs font-semibold uppercase text-slate-500">Đang chờ khám</p>
+        <mat-icon class="text-amber-600 text-[20px]">hourglass_empty</mat-icon>
+      </div>
+      <div class="mt-2 flex items-baseline gap-2">
+        <span class="text-2xl font-bold text-slate-900">18</span>
+        <span class="flex items-center text-xs font-medium text-red-500">
+          <mat-icon class="!h-4 !w-4 !text-[16px] !leading-[16px]">arrow_upward</mat-icon>
+          +4
+        </span>
+      </div>
+    </div>
+
+    <!-- Stat 4 -->
+    <div class="rounded-lg border border-[#103f4c] bg-[#103f4c] p-5 shadow-sm">
+      <div class="flex items-center justify-between">
+        <p class="text-xs font-semibold uppercase text-white/80">Tỉ lệ hoàn thành</p>
+        <mat-icon class="text-white text-[20px]">check_circle</mat-icon>
+      </div>
+      <div class="mt-2 flex items-baseline gap-2">
+        <span class="text-2xl font-bold text-white">85%</span>
+        <span class="text-xs text-white/70">Mục tiêu 95%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tables Section -->
+  <div class="grid gap-6 lg:grid-cols-3">
+    <!-- Main Table -->
+    <div class="rounded-lg border border-slate-200 bg-white shadow-sm lg:col-span-2">
+      <div class="border-b border-slate-200 px-5 py-4">
+        <h2 class="text-sm font-semibold text-slate-900">Danh sách chờ khám</h2>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm text-slate-700">
+          <thead class="border-b border-slate-200 bg-slate-50 text-xs uppercase text-slate-500">
+            <tr>
+              <th class="px-5 py-3 font-medium">Bệnh nhân</th>
+              <th class="px-5 py-3 font-medium">Giờ hẹn</th>
+              <th class="px-5 py-3 font-medium">Dịch vụ</th>
+              <th class="px-5 py-3 font-medium">Trạng thái</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr class="hover:bg-slate-50">
+              <td class="px-5 py-3 font-medium text-slate-900">Nguyễn Văn A</td>
+              <td class="px-5 py-3">08:30</td>
+              <td class="px-5 py-3">Khám tổng quát</td>
+              <td class="px-5 py-3">
+                <span class="inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200">
+                  <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                  Đã tiếp nhận
+                </span>
+              </td>
+            </tr>
+            <tr class="hover:bg-slate-50">
+              <td class="px-5 py-3 font-medium text-slate-900">Trần Thị B</td>
+              <td class="px-5 py-3">09:00</td>
+              <td class="px-5 py-3">Nội soi dạ dày</td>
+              <td class="px-5 py-3">
+                <span class="inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200">
+                  <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
+                  Chờ khám
+                </span>
+              </td>
+            </tr>
+            <tr class="hover:bg-slate-50">
+              <td class="px-5 py-3 font-medium text-slate-900">Lê Văn C</td>
+              <td class="px-5 py-3">09:15</td>
+              <td class="px-5 py-3">Khám Mắt</td>
+              <td class="px-5 py-3">
+                <span class="inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-medium text-slate-700 bg-slate-100 border border-slate-300">
+                  <span class="h-1.5 w-1.5 rounded-full bg-slate-500"></span>
+                  Đã xong
+                </span>
+              </td>
+            </tr>
+             <tr class="hover:bg-slate-50">
+              <td class="px-5 py-3 font-medium text-slate-900">Phạm Thị D</td>
+              <td class="px-5 py-3">10:00</td>
+              <td class="px-5 py-3">Xét nghiệm máu</td>
+              <td class="px-5 py-3">
+                <span class="inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200">
+                  <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                  Đã tiếp nhận
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="border-t border-slate-200 px-5 py-3 text-center">
+        <a href="#" class="text-sm font-medium text-[#0e6872] hover:underline">Xem tất cả lịch hẹn</a>
+      </div>
+    </div>
+
+    <!-- Side Panel -->
+    <div class="rounded-lg border border-slate-200 bg-white shadow-sm lg:col-span-1">
+      <div class="border-b border-slate-200 px-5 py-4">
+        <h2 class="text-sm font-semibold text-slate-900">Bác sĩ trực</h2>
+      </div>
+      <div class="space-y-4 p-5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+             <div class="h-8 w-8 overflow-hidden rounded">
+                <img src="https://ui-avatars.com/api/?name=Thanh+Phong&background=0e6872&color=fff&size=64" alt="Avatar" class="h-full w-full object-cover" />
+             </div>
+             <div>
+                <p class="text-sm font-medium text-slate-900">Bs. Thanh Phong</p>
+                <p class="text-xs text-slate-500">Khoa Nội</p>
+             </div>
+          </div>
+          <span class="flex h-2 w-2 rounded-full bg-emerald-500"></span>
+        </div>
+        
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+             <div class="h-8 w-8 overflow-hidden rounded">
+                <img src="https://ui-avatars.com/api/?name=Huy+Hoang&background=103f4c&color=fff&size=64" alt="Avatar" class="h-full w-full object-cover" />
+             </div>
+             <div>
+                <p class="text-sm font-medium text-slate-900">Bs. Huy Hoàng</p>
+                <p class="text-xs text-slate-500">Khoa Mắt</p>
+             </div>
+          </div>
+          <span class="flex h-2 w-2 rounded-full bg-emerald-500"></span>
+        </div>
+
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+             <div class="h-8 w-8 overflow-hidden rounded opacity-60 grayscale">
+                <img src="https://ui-avatars.com/api/?name=Minh+Tam&background=slate&color=fff&size=64" alt="Avatar" class="h-full w-full object-cover" />
+             </div>
+             <div class="opacity-60">
+                <p class="text-sm font-medium text-slate-900">Bs. Minh Tâm</p>
+                <p class="text-xs text-slate-500">Nghỉ phép</p>
+             </div>
+          </div>
+          <span class="flex h-2 w-2 rounded-full bg-slate-300"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
