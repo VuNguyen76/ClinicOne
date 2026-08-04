@@ -77,7 +77,7 @@ export class Login {
       .login(this.phone(), password)
       .pipe(finalize(() => this.busy.set(false)))
       .subscribe({
-        next: (session) => this.router.navigateByUrl(session.mustChangePassword ? '/account?changePassword=1' : '/account'),
+        next: (session) => this.router.navigateByUrl(session.mustChangePassword ? '/account?changePassword=1' : '/dashboard'),
         error: (response) => this.showError(response),
       });
   }
