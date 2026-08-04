@@ -1,6 +1,5 @@
 import { Routes } from '@angular/router';
 import { Login } from './features/auth/login/login';
-import { AppShell } from './layout/app-shell/app-shell';
 import { Dashboard } from './features/dashboard/dashboard';
 import { Home } from './features/home/home';
 import { Register } from './features/auth/register/register';
@@ -19,12 +18,6 @@ export const routes: Routes = [
   { path: 'common-issues', component: PublicPage, data: { page: 'common-issues' } },
   { path: 'support', component: PublicPage, data: { page: 'support' } },
   { path: 'contact', component: PublicPage, data: { page: 'contact' } },
-  {
-    path: '',
-    component: AppShell,
-    children: [
-      { path: 'dashboard', component: Dashboard },
-    ]
-  },
+  { path: 'dashboard', component: Dashboard, canActivate: [authGuard] },
   { path: '**', redirectTo: 'home' },
 ];
