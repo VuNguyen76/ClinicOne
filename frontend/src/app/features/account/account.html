@@ -1,4 +1,4 @@
-<main class="min-h-screen bg-[#f7fafb] text-[#103f4c]">
+<main class="min-h-screen bg-white text-[#103f4c]">
   <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
     <div class="mx-auto flex h-[72px] max-w-[1200px] items-center justify-between gap-8 px-5 lg:px-0">
       <a routerLink="/home" class="flex items-center gap-3" aria-label="ClinicOne, trang chủ">
@@ -23,28 +23,36 @@
     </div>
   </header>
 
-  <div class="mx-auto max-w-[1040px] px-5 py-8 lg:px-0 lg:py-10">
+  <div class="mx-auto max-w-[1200px] px-5 py-8 lg:px-0 lg:py-10">
     <div class="flex items-center gap-3 text-sm"><a routerLink="/home" class="font-semibold text-[#103f4c] hover:text-[#0ea5e9]">Trang chủ</a><mat-icon class="!h-4 !w-4 !text-[16px] text-slate-400">chevron_right</mat-icon><span class="font-semibold text-[#0ea5e9]">Hồ sơ bệnh nhân</span></div>
 
-    <header class="mt-8 border-b border-slate-200 pb-6">
-      <p class="text-xs font-bold uppercase tracking-[0.16em] text-[#0ea5e9]">Hồ sơ bệnh nhân</p>
-      <h1 class="mt-2 text-3xl font-bold tracking-[-0.04em] text-slate-900">Thông tin cá nhân</h1>
-      <p class="mt-2 max-w-[620px] text-sm leading-6 text-slate-500">Kiểm tra và cập nhật thông tin để phòng khám hỗ trợ bạn chính xác hơn.</p>
-    </header>
+    <div class="mt-8 grid gap-8 lg:grid-cols-[230px_1fr] lg:gap-10">
+      <aside class="border-r border-slate-200 pr-6">
+        <button type="button" class="flex min-h-12 w-full items-center justify-center gap-2 rounded-[9px] bg-[#09c3e9] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#00add0]" (click)="notice.set('Tính năng thêm hồ sơ sẽ được bổ sung sau.')"><mat-icon>person_add</mat-icon>Thêm hồ sơ</button>
+        <nav class="mt-5 grid gap-2" aria-label="Khu vực tài khoản">
+          <a href="#profile" class="flex items-center gap-3 rounded-r-[8px] border-l-2 border-[#0ea5e9] bg-[#eafaff] px-4 py-3 text-sm font-semibold text-[#08aeda]"><mat-icon>badge</mat-icon>Hồ sơ bệnh nhân</a>
+          <button type="button" class="flex items-center gap-3 rounded-r-[8px] px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-[#0ea5e9]" (click)="togglePassword()"><mat-icon>lock</mat-icon>Đổi mật khẩu</button>
+          <a href="#appointments" class="flex items-center gap-3 rounded-r-[8px] px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-[#0ea5e9]"><mat-icon>receipt_long</mat-icon>Phiếu khám bệnh</a>
+          <a href="#notifications" class="flex items-center gap-3 rounded-r-[8px] px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-[#0ea5e9]"><mat-icon>notifications_none</mat-icon>Thông báo</a>
+        </nav>
+      </aside>
+
+      <section class="min-w-0" id="profile">
+        <h1 class="text-2xl font-bold tracking-[-0.03em] text-slate-900">Danh sách hồ sơ bệnh nhân</h1>
 
     @if (loading()) {
-      <div class="mt-8 grid min-h-48 place-items-center border-y border-slate-200 text-sm text-slate-500">Đang tải thông tin tài khoản...</div>
+      <div class="mt-6 grid min-h-48 place-items-center rounded-xl border border-slate-200 text-sm text-slate-500">Đang tải thông tin tài khoản...</div>
     } @else {
       @if (profile()?.mustChangePassword) {
-        <div class="mt-6 flex items-start gap-3 border-l-4 border-amber-400 bg-amber-50 p-4 text-sm text-amber-900">
+        <div class="mt-5 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
           <mat-icon class="text-amber-600">lock_reset</mat-icon>
           <div><p class="font-semibold">Bạn cần đổi mật khẩu tạm thời.</p><p class="mt-1">Mở phần đổi mật khẩu bên dưới để tiếp tục.</p></div>
         </div>
       }
 
-      <article id="profile" class="mt-8 border-y border-slate-200 bg-white">
-        <div class="px-0 py-7 sm:py-8">
-          <div class="grid gap-x-10 gap-y-5 sm:grid-cols-2">
+      <article class="mt-6 overflow-hidden rounded-[16px] border border-slate-200 bg-white shadow-[0_12px_35px_rgba(15,23,42,0.07)]">
+        <div class="space-y-6 px-6 py-7 sm:px-8">
+          <div class="grid gap-4 sm:grid-cols-2">
             <div class="flex items-center gap-3 text-[16px]"><mat-icon class="text-slate-300">person</mat-icon><span>Họ và tên:</span><strong class="text-orange-500">{{ profile()?.fullName }}</strong></div>
             <div class="flex items-center gap-3 text-[16px]"><mat-icon class="text-slate-300">phone</mat-icon><span>Số điện thoại:</span><strong>{{ maskedPhone() }}</strong></div>
             <div class="flex items-center gap-3 text-[16px]"><mat-icon class="text-slate-300">cake</mat-icon><span>Ngày sinh:</span><strong>{{ formatDateOfBirth(profile()?.dateOfBirth) }}</strong></div>
@@ -55,7 +63,7 @@
             <div class="flex items-start gap-3 text-[16px] sm:col-span-2"><mat-icon class="text-slate-300">location_on</mat-icon><span>Địa chỉ:</span><strong>{{ profile()?.address || 'Chưa cập nhật' }}</strong></div>
           </div>
 
-          <form class="mt-8 grid gap-5 border-t border-slate-100 pt-7" [formGroup]="profileForm" (ngSubmit)="saveProfile()" novalidate>
+          <form class="grid gap-5 border-t border-slate-100 pt-6" [formGroup]="profileForm" (ngSubmit)="saveProfile()" novalidate>
             <div><p class="text-sm font-semibold text-slate-700">Cập nhật thông tin cá nhân</p><p class="mt-1 text-xs text-slate-500">Các trường có dấu * giúp phòng khám xác định đúng hồ sơ.</p></div>
             <div class="grid gap-4 sm:grid-cols-2">
               <label class="text-sm font-semibold text-slate-700">Họ và tên *<input class="mt-2 min-h-11 w-full rounded-lg border border-slate-200 px-3 text-base font-normal outline-none focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/15" formControlName="fullName" autocomplete="name" /></label>
@@ -80,22 +88,24 @@
           </form>
         </div>
 
-        <div class="flex flex-wrap items-center justify-between gap-4 border-t border-slate-100 py-4 text-sm">
-          <span class="text-xs text-slate-400">Thông tin được bảo vệ trong tài khoản ClinicOne.</span>
-          <button type="button" class="font-semibold text-[#0284c7] hover:underline" (click)="togglePassword()">{{ passwordOpen() ? 'Đóng đổi mật khẩu' : 'Đổi mật khẩu' }}</button>
-        </div>
-
-        @if (passwordOpen()) {
-          <form class="grid max-w-[520px] gap-3 border-t border-slate-100 py-6" [formGroup]="passwordForm" (ngSubmit)="savePassword()" novalidate>
-            <label class="grid gap-2 text-sm font-semibold text-slate-700">Mật khẩu hiện tại<input class="min-h-11 rounded-lg border border-slate-200 px-3 font-normal outline-none focus:border-[#0ea5e9]" type="password" formControlName="currentPassword" autocomplete="current-password" /></label>
-            <label class="grid gap-2 text-sm font-semibold text-slate-700">Mật khẩu mới<input class="min-h-11 rounded-lg border border-slate-200 px-3 font-normal outline-none focus:border-[#0ea5e9]" type="password" formControlName="newPassword" autocomplete="new-password" placeholder="Tối thiểu 8 ký tự" /></label>
-            <label class="grid gap-2 text-sm font-semibold text-slate-700">Nhập lại mật khẩu mới<input class="min-h-11 rounded-lg border border-slate-200 px-3 font-normal outline-none focus:border-[#0ea5e9]" type="password" formControlName="confirmPassword" autocomplete="new-password" /></label>
-            @if (passwordForm.hasError('passwordMismatch') && passwordForm.controls.confirmPassword.touched) { <p class="text-sm text-red-600">Hai mật khẩu chưa giống nhau.</p> }
-            <button class="mt-2 min-h-11 rounded-lg border border-[#0ea5e9] px-5 text-sm font-semibold text-[#0284c7] transition hover:bg-[#e0f2fe] disabled:cursor-not-allowed disabled:opacity-60 sm:w-fit" type="submit" [disabled]="busy()">{{ busy() ? 'Đang cập nhật...' : 'Cập nhật mật khẩu' }}</button>
-          </form>
-        }
       </article>
     }
+    @if (passwordOpen()) {
+      <section id="security" class="mt-8 rounded-[16px] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+        <div class="flex items-start justify-between gap-4"><div><p class="text-xs font-bold uppercase tracking-[0.14em] text-[#0ea5e9]">Bảo mật</p><h2 class="mt-2 text-lg font-semibold text-slate-900">Đổi mật khẩu</h2><p class="mt-2 text-sm leading-6 text-slate-500">Dùng mật khẩu mới để bảo vệ thông tin khám bệnh.</p></div><mat-icon class="text-[#0ea5e9]">shield</mat-icon></div>
+        <form class="mt-5 grid max-w-[520px] gap-3 border-t border-slate-100 pt-5" [formGroup]="passwordForm" (ngSubmit)="savePassword()" novalidate>
+          <label class="grid gap-2 text-sm font-semibold text-slate-700">Mật khẩu hiện tại<input class="min-h-11 rounded-lg border border-slate-200 px-3 font-normal outline-none focus:border-[#0ea5e9]" type="password" formControlName="currentPassword" autocomplete="current-password" /></label>
+          <label class="grid gap-2 text-sm font-semibold text-slate-700">Mật khẩu mới<input class="min-h-11 rounded-lg border border-slate-200 px-3 font-normal outline-none focus:border-[#0ea5e9]" type="password" formControlName="newPassword" autocomplete="new-password" placeholder="Tối thiểu 8 ký tự" /></label>
+          <label class="grid gap-2 text-sm font-semibold text-slate-700">Nhập lại mật khẩu mới<input class="min-h-11 rounded-lg border border-slate-200 px-3 font-normal outline-none focus:border-[#0ea5e9]" type="password" formControlName="confirmPassword" autocomplete="new-password" /></label>
+          @if (passwordForm.hasError('passwordMismatch') && passwordForm.controls.confirmPassword.touched) { <p class="text-sm text-red-600">Hai mật khẩu chưa giống nhau.</p> }
+          <button class="mt-2 min-h-11 rounded-lg border border-[#0ea5e9] px-5 text-sm font-semibold text-[#0284c7] transition hover:bg-[#e0f2fe] disabled:cursor-not-allowed disabled:opacity-60 sm:w-fit" type="submit" [disabled]="busy()">{{ busy() ? 'Đang cập nhật...' : 'Cập nhật mật khẩu' }}</button>
+        </form>
+      </section>
+    }
+    <section id="appointments" class="mt-8 rounded-[16px] border border-dashed border-slate-300 bg-slate-50 px-6 py-8 text-center"><mat-icon class="text-slate-400">receipt_long</mat-icon><h2 class="mt-2 font-semibold text-slate-700">Phiếu khám bệnh</h2><p class="mt-1 text-sm text-slate-500">Lịch sử phiếu khám sẽ hiển thị tại đây.</p></section>
+    <section id="notifications" class="mt-4 rounded-[16px] border border-dashed border-slate-300 bg-slate-50 px-6 py-8 text-center"><mat-icon class="text-slate-400">notifications_none</mat-icon><h2 class="mt-2 font-semibold text-slate-700">Thông báo</h2><p class="mt-1 text-sm text-slate-500">Bạn chưa có thông báo mới.</p></section>
+      </section>
+    </div>
   </div>
 
   @if (error()) { <p class="fixed bottom-5 left-1/2 z-40 -translate-x-1/2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-lg" role="alert">{{ error() }}</p> }
