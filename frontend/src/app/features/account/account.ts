@@ -94,6 +94,11 @@ export class Account implements OnInit {
     this.clearMessages();
   }
 
+  protected maskedPhone(): string {
+    const phone = this.profile()?.phone ?? '';
+    return phone.length > 6 ? `${phone.slice(0, 3)}****${phone.slice(-3)}` : phone;
+  }
+
   private loadProfile(): void {
     this.authApi.getProfile()
       .pipe(finalize(() => this.loading.set(false)))

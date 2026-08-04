@@ -12,6 +12,7 @@ export const routes: Routes = [
   { path: 'home', component: Home },
   { path: 'login', component: Login },
   { path: 'register', component: Register },
+  { path: 'account', component: Account },
   { path: 'about', component: PublicPage, data: { page: 'about' } },
   { path: 'process', component: PublicPage, data: { page: 'process' } },
   { path: 'common-issues', component: PublicPage, data: { page: 'common-issues' } },
@@ -22,7 +23,6 @@ export const routes: Routes = [
     component: AppShell,
     children: [
       { path: 'dashboard', component: Dashboard },
-      { path: 'account', component: Account },
     ]
   },
   { path: '**', redirectTo: 'home' },

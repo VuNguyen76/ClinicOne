@@ -29,7 +29,7 @@ describe('Account', () => {
 
   it('loads the current patient profile', () => {
     expect(fixture.nativeElement.querySelector('[formControlName="fullName"]')?.value).toBe('Nguyen Van A');
-    expect(fixture.nativeElement.querySelector('input[readonly]')?.value).toBe('0912345678');
+    expect(fixture.nativeElement.textContent).toContain('091****678');
   });
 
   it('requires matching passwords before submitting a password change', () => {
