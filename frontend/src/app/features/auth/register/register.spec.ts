@@ -1,0 +1,61 @@
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
+import { Register } from './register';
+
+describe('Register', () => {
+  let component: Register;
+  let fixture: ComponentFixture<Register>;
+  let http: HttpTestingController;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [Register],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(Register);
+    component = fixture.componentInstance;
+    http = TestBed.inject(HttpTestingController);
+    fixture.detectChanges();
+  });
+
+  afterEach(() => http.verify());
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+
+  it('requires a valid phone before requesting registration OTP', () => {
+    expect(component.phoneForm.invalid).toBe(true);
+
+    component.phoneForm.controls.phone.setValue('0912345678');
+
+    expect(component.phoneForm.valid).toBe(true);
+  });
+
+  it('moves through SMS verification and account details', () => {
+    component.phoneForm.controls.phone.setValue('0912345678');
+    component['submitPhone']();
+    http.expectOne('/api/v1/auth/request-sms-otp').flush({ expiresInSeconds: 300, retryAfterSeconds: 60 });
+    expect((component as any).step()).toBe('otp');
+
+    component.otpForm.controls.code.setValue('123456');
+    component['submitOtp']();
+    http.expectOne('/api/v1/auth/verify-sms-otp').flush({ verified: true });
+    expect((component as any).step()).toBe('profile');
+
+    component.profileForm.setValue({ fullName: 'Nguyen Van A', dateOfBirth: '2005-06-07', gender: 'Nam', address: 'Tay Ninh', password: 'password123', confirmPassword: 'password123' });
+    component['submitProfile']();
+    http.expectOne('/api/v1/auth/register').flush({ accountId: 'account-1', phone: '0912345678', fullName: 'Nguyen Van A' });
+    expect((component as any).step()).toBe('done');
+  });
+
+  it('rejects mismatched passwords', () => {
+    component.profileForm.setValue({ fullName: 'Nguyen Van A', dateOfBirth: '2005-06-07', gender: 'Nam', address: '', password: 'password123', confirmPassword: 'password321' });
+
+    expect(component.profileForm.hasError('passwordMismatch')).toBe(true);
+    expect(component.profileForm.invalid).toBe(true);
+  });
+});

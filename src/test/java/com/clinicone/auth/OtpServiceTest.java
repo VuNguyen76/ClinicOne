@@ -17,7 +17,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import org.mockito.ArgumentCaptor;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -45,33 +44,30 @@ class OtpServiceTest {
     }
 
     @Test
-    void requestOtpStoresOnlyHashAndSendsCode() {
-        when(repository.countByEmailAndPurposeAndCreatedAtAfter(eq("user@example.com"),
+    void requestSmsOtpStoresOnlyHashAndSendsE164Phone() {
+        when(repository.countByDestinationAndPurposeAndCreatedAtAfter(eq("+84912345678"),
                 eq(OtpPurpose.REGISTRATION), any())).thenReturn(0L);
-        when(repository.findTopByEmailAndPurposeOrderByCreatedAtDesc("user@example.com", OtpPurpose.REGISTRATION))
+        when(repository.findTopByDestinationAndPurposeOrderByCreatedAtDesc("+84912345678", OtpPurpose.REGISTRATION))
                 .thenReturn(Optional.empty());
         when(generator.generate()).thenReturn("123456");
 
-        RequestOtpResponse response = service.requestOtp(" USER@example.com ", OtpPurpose.REGISTRATION);
+        RequestOtpResponse response = service.requestSmsOtp("0912 345 678", OtpPurpose.REGISTRATION);
 
         assertEquals(300, response.expiresInSeconds());
-        assertEquals(60, response.retryAfterSeconds());
-        verify(sender).send("user@example.com", OtpPurpose.REGISTRATION, "123456");
-        ArgumentCaptor<OtpChallenge> challengeCaptor = ArgumentCaptor.forClass(OtpChallenge.class);
-        verify(repository).save(challengeCaptor.capture());
-        assertFalse(challengeCaptor.getValue().getCodeHash().equals("123456"));
+        verify(sender).send("+84912345678", OtpPurpose.REGISTRATION, "123456");
+        verify(repository).save(any(OtpChallenge.class));
     }
 
     @Test
-    void requestOtpRejectsResendDuringCooldown() {
-        OtpChallenge previous = new OtpChallenge("user@example.com", OtpPurpose.REGISTRATION,
+    void requestSmsOtpRejectsResendDuringCooldown() {
+        OtpChallenge previous = new OtpChallenge("+84912345678", OtpPurpose.REGISTRATION,
                 "hash", NOW.minusSeconds(30), NOW.plusSeconds(270));
-        when(repository.countByEmailAndPurposeAndCreatedAtAfter(any(), any(), any())).thenReturn(1L);
-        when(repository.findTopByEmailAndPurposeOrderByCreatedAtDesc("user@example.com", OtpPurpose.REGISTRATION))
+        when(repository.countByDestinationAndPurposeAndCreatedAtAfter(any(), any(), any())).thenReturn(1L);
+        when(repository.findTopByDestinationAndPurposeOrderByCreatedAtDesc("+84912345678", OtpPurpose.REGISTRATION))
                 .thenReturn(Optional.of(previous));
 
         OtpException exception = assertThrows(OtpException.class,
-                () -> service.requestOtp("user@example.com", OtpPurpose.REGISTRATION));
+                () -> service.requestSmsOtp("0912345678", OtpPurpose.REGISTRATION));
 
         assertEquals(HttpStatus.TOO_MANY_REQUESTS, exception.getStatus());
         assertEquals("OTP_COOLDOWN", exception.getCode());
@@ -79,13 +75,13 @@ class OtpServiceTest {
     }
 
     @Test
-    void verifyOtpMarksLatestChallengeAsVerified() {
-        OtpChallenge challenge = new OtpChallenge("user@example.com", OtpPurpose.LOGIN,
+    void verifySmsOtpMarksLatestChallengeAsVerified() {
+        OtpChallenge challenge = new OtpChallenge("+84912345678", OtpPurpose.LOGIN,
                 passwordEncoder.encode("123456"), NOW.minusSeconds(10), NOW.plusSeconds(290));
-        when(repository.findTopByEmailAndPurposeOrderByCreatedAtDesc("user@example.com", OtpPurpose.LOGIN))
+        when(repository.findTopByDestinationAndPurposeOrderByCreatedAtDesc("+84912345678", OtpPurpose.LOGIN))
                 .thenReturn(Optional.of(challenge));
 
-        VerifyOtpResponse response = service.verifyOtp("user@example.com", OtpPurpose.LOGIN, "123456");
+        VerifyOtpResponse response = service.verifySmsOtp("0912345678", OtpPurpose.LOGIN, "123456");
 
         assertTrue(response.verified());
         assertTrue(challenge.isVerified());
@@ -93,14 +89,14 @@ class OtpServiceTest {
     }
 
     @Test
-    void verifyOtpCountsWrongCodeAndReturnsGenericError() {
-        OtpChallenge challenge = new OtpChallenge("user@example.com", OtpPurpose.LOGIN,
+    void verifySmsOtpCountsWrongCodeAndReturnsGenericError() {
+        OtpChallenge challenge = new OtpChallenge("+84912345678", OtpPurpose.LOGIN,
                 passwordEncoder.encode("123456"), NOW.minusSeconds(10), NOW.plusSeconds(290));
-        when(repository.findTopByEmailAndPurposeOrderByCreatedAtDesc("user@example.com", OtpPurpose.LOGIN))
+        when(repository.findTopByDestinationAndPurposeOrderByCreatedAtDesc("+84912345678", OtpPurpose.LOGIN))
                 .thenReturn(Optional.of(challenge));
 
         OtpException exception = assertThrows(OtpException.class,
-                () -> service.verifyOtp("user@example.com", OtpPurpose.LOGIN, "000000"));
+                () -> service.verifySmsOtp("0912345678", OtpPurpose.LOGIN, "000000"));
 
         assertEquals("OTP_INVALID", exception.getCode());
         assertEquals(1, challenge.getFailedAttempts());

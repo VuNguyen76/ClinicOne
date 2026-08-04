@@ -5,8 +5,13 @@ import org.springframework.stereotype.Service;
 @Service
 public class AuthService {
 
+    private final PatientAccountRepository accountRepository;
+
+    public AuthService(PatientAccountRepository accountRepository) {
+        this.accountRepository = accountRepository;
+    }
+
     public CheckPhoneResponse checkPhone(String phone) {
-        // Account lookup and OTP issuance will be added when the patient model is introduced.
-        return new CheckPhoneResponse("OTP");
+        return new CheckPhoneResponse(accountRepository.existsByPhone(phone.trim()));
     }
 }

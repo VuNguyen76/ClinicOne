@@ -1,0 +1,31 @@
+@if (loggedIn()) {
+  <div class="relative flex items-center gap-2">
+    <button type="button" class="relative grid h-10 w-10 place-items-center rounded-full text-slate-600 transition hover:bg-slate-50 hover:text-[#0ea5e9]" aria-label="Thông báo" title="Thông báo">
+      <mat-icon>notifications_none</mat-icon>
+    </button>
+    <button type="button" class="inline-flex min-h-10 max-w-[220px] items-center gap-2 rounded-[6px] border border-[#0ea5e9] bg-white px-3 text-sm font-semibold text-[#075985] transition hover:bg-[#f0f9ff]" aria-label="Mở menu tài khoản" [attr.aria-expanded]="menuOpen()" (click)="toggleMenu()">
+      <mat-icon class="!h-5 !w-5 !text-[20px] text-[#0ea5e9]">account_circle</mat-icon>
+      <span class="truncate">{{ fullName() }}</span>
+      <mat-icon class="!h-4 !w-4 !text-[17px] text-slate-400">expand_more</mat-icon>
+    </button>
+
+    @if (menuOpen()) {
+      <div class="absolute right-0 top-[calc(100%+10px)] z-50 w-[280px] overflow-hidden rounded-[8px] border border-slate-200 bg-white shadow-[0_16px_45px_rgba(15,23,42,0.16)]" role="menu">
+        <div class="flex items-center gap-3 border-b border-slate-100 px-5 py-4">
+          <span class="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#e0f2fe] text-[#0284c7]"><mat-icon>person</mat-icon></span>
+          <div class="min-w-0"><p class="text-xs text-slate-500">Xin chào!</p><p class="truncate text-sm font-bold text-slate-900">{{ fullName() }}</p></div>
+        </div>
+        <nav class="py-2" aria-label="Menu tài khoản">
+          <a routerLink="/dashboard" class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#f0f9ff] hover:text-[#0284c7]" role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">dashboard</mat-icon>Tổng quan</a>
+          <a routerLink="/appointments/new" class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#f0f9ff] hover:text-[#0284c7]" role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">event_available</mat-icon>Đặt lịch khám</a>
+          <a routerLink="/account" class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#f0f9ff] hover:text-[#0284c7]" role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">badge</mat-icon>Hồ sơ bệnh nhân</a>
+          <a routerLink="/account" class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#f0f9ff] hover:text-[#0284c7]" role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">description</mat-icon>Phiếu khám bệnh</a>
+          <a routerLink="/account" class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#f0f9ff] hover:text-[#0284c7]" role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">notifications_none</mat-icon>Thông báo</a>
+          <button type="button" class="flex w-full items-center gap-3 border-t border-slate-100 px-5 py-3 text-left text-sm text-slate-700 transition hover:bg-slate-50 hover:text-rose-600" role="menuitem" (click)="logout()"><mat-icon class="!text-[20px]">logout</mat-icon>Đăng xuất</button>
+        </nav>
+      </div>
+    }
+  </div>
+} @else {
+  <a routerLink="/login" class="inline-flex items-center gap-2 px-2 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:text-[#0ea5e9]"><mat-icon class="!h-4 !w-4 !text-[16px]">account_circle</mat-icon>Đăng nhập</a>
+}

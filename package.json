@@ -1,0 +1,12 @@
+{
+  "name": "clinicone",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "start": "npm --prefix frontend run start",
+    "start:frontend": "npm --prefix frontend run start:frontend",
+    "start:backend": "npm --prefix frontend run start:backend",
+    "build": "npm --prefix frontend run build",
+    "test": "npm --prefix frontend run test"
+  }
+}

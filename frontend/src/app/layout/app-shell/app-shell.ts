@@ -35,6 +35,7 @@ export class AppShell {
     { icon: 'people', label: 'Bệnh nhân', route: '/patient' },
     { icon: 'queue_play_next', label: 'Hàng đợi', route: '/queue' },
     { icon: 'medical_services', label: 'Phiếu khám', route: '/examination' },
+    { icon: 'account_circle', label: 'Tài khoản', route: '/account' },
   ];
 
   toggleSidebar() {

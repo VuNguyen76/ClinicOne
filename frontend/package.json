@@ -3,7 +3,9 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
+    "start": "concurrently -k -n BE,FE -c blue,green \"npm run start:backend\" \"npm run start:frontend\"",
+    "start:backend": "cd .. && mvnw.cmd spring-boot:run -Dspring-boot.run.arguments=--server.port=8081",
+    "start:frontend": "ng serve --configuration development",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
@@ -27,6 +29,7 @@
     "@angular/cli": "^21.2.19",
     "@angular/compiler-cli": "^21.2.0",
     "@tailwindcss/postcss": "^4.1.12",
+    "concurrently": "^10.0.4",
     "jsdom": "^28.0.0",
     "postcss": "^8.5.3",
     "prettier": "^3.8.1",
