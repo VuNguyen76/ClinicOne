@@ -81,9 +81,10 @@ class AccountAuthServiceTest {
         when(otpService.verifySmsOtp("0912345678", OtpPurpose.LOGIN, "123456"))
                 .thenReturn(new VerifyOtpResponse(true));
         when(accountRepository.findByPhone("0912345678")).thenReturn(Optional.of(account));
+        when(passwordEncoder.matches("password123", "password-hash")).thenReturn(true);
         when(tokenGenerator.generate()).thenReturn("raw-session-token");
 
-        LoginResponse response = service.loginBySmsOtp(new SmsLoginRequest("0912345678", "123456"));
+        LoginResponse response = service.loginBySmsOtp(new SmsLoginRequest("0912345678", "password123", "123456"));
 
         assertEquals("raw-session-token", response.accessToken());
         assertEquals("Bearer", response.tokenType());
@@ -100,7 +101,7 @@ class AccountAuthServiceTest {
         when(accountRepository.findByPhone("0912345678")).thenReturn(Optional.of(account));
 
         AuthException exception = assertThrows(AuthException.class,
-                () -> service.loginBySmsOtp(new SmsLoginRequest("0912345678", "123456")));
+                () -> service.loginBySmsOtp(new SmsLoginRequest("0912345678", "password123", "123456")));
 
         assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatus());
         assertEquals("AUTH_INVALID_CREDENTIALS", exception.getCode());

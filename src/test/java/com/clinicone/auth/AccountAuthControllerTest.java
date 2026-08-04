@@ -49,7 +49,7 @@ class AccountAuthControllerTest {
 
         mockMvc.perform(post("/api/v1/auth/login-sms")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"phone\":\"0912345678\",\"code\":\"123456\"}"))
+                        .content("{\"phone\":\"0912345678\",\"password\":\"password123\",\"code\":\"123456\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").value("token"))
                 .andExpect(jsonPath("$.tokenType").value("Bearer"));

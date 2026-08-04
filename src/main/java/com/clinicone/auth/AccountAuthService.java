@@ -60,6 +60,9 @@ public class AccountAuthService {
         if (account.getStatus() != AccountStatus.ACTIVE) {
             throw invalidCredentials();
         }
+        if (!passwordEncoder.matches(request.password(), account.getPasswordHash())) {
+            throw invalidCredentials();
+        }
         return createSession(account);
     }
 
@@ -86,7 +89,7 @@ public class AccountAuthService {
 
     private AuthException invalidCredentials() {
         return new AuthException(HttpStatus.UNAUTHORIZED, "AUTH_INVALID_CREDENTIALS",
-                "Số điện thoại hoặc mã OTP không đúng.");
+                "Số điện thoại, mật khẩu hoặc mã OTP không đúng.");
     }
 
     private LoginResponse createSession(PatientAccount account) {

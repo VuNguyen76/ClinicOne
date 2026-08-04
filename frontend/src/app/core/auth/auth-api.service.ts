@@ -33,9 +33,9 @@ export class AuthApiService {
     return this.http.post<OtpResponse>(`${this.apiRoot}/request-sms-otp`, { phone, purpose });
   }
 
-  loginBySmsOtp(phone: string, code: string): Observable<SmsLoginResponse> {
+  loginBySmsOtp(phone: string, password: string, code: string): Observable<SmsLoginResponse> {
     return this.http
-      .post<SmsLoginResponse>(`${this.apiRoot}/login-sms`, { phone, code })
+      .post<SmsLoginResponse>(`${this.apiRoot}/login-sms`, { phone, password, code })
       .pipe(tap((session) => sessionStorage.setItem('clinicOneAccessToken', session.accessToken)));
   }
 
