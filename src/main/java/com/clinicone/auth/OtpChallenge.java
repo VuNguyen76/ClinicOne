@@ -16,7 +16,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "otp_challenges", indexes = {
-        @Index(name = "idx_otp_email_purpose_created", columnList = "email,purpose,created_at")
+        @Index(name = "idx_otp_destination_purpose_created", columnList = "destination,purpose,created_at")
 })
 public class OtpChallenge {
 
@@ -25,7 +25,7 @@ public class OtpChallenge {
     private UUID id;
 
     @Column(nullable = false, length = 320)
-    private String email;
+    private String destination;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -49,8 +49,8 @@ public class OtpChallenge {
     protected OtpChallenge() {
     }
 
-    public OtpChallenge(String email, OtpPurpose purpose, String codeHash, Instant createdAt, Instant expiresAt) {
-        this.email = email;
+    public OtpChallenge(String destination, OtpPurpose purpose, String codeHash, Instant createdAt, Instant expiresAt) {
+        this.destination = destination;
         this.purpose = purpose;
         this.codeHash = codeHash;
         this.createdAt = createdAt;
@@ -81,7 +81,7 @@ public class OtpChallenge {
     }
 
     public UUID getId() { return id; }
-    public String getEmail() { return email; }
+    public String getDestination() { return destination; }
     public OtpPurpose getPurpose() { return purpose; }
     public String getCodeHash() { return codeHash; }
     public Instant getCreatedAt() { return createdAt; }

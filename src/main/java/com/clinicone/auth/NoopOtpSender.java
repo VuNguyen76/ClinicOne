@@ -5,7 +5,7 @@ import org.springframework.stereotype.Component;
 
 /** Used by tests and local profiles that do not configure an email provider. */
 @Component
-@ConditionalOnProperty(prefix = "spring.mail", name = "host", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "app.otp", name = "provider", havingValue = "noop", matchIfMissing = true)
 public class NoopOtpSender implements OtpSender {
 
     @Override

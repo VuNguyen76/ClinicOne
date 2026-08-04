@@ -48,7 +48,7 @@ class AccountAuthServiceTest {
 
     @Test
     void registersOnlyAfterRegistrationEmailWasVerified() {
-        when(otpService.isRecentlyVerified("user@example.com", OtpPurpose.REGISTRATION)).thenReturn(true);
+        when(otpService.isPhoneRecentlyVerified("0912345678", OtpPurpose.REGISTRATION)).thenReturn(true);
         when(accountRepository.existsByEmail("user@example.com")).thenReturn(false);
         when(accountRepository.existsByPhone("0912345678")).thenReturn(false);
         when(passwordEncoder.encode("password123")).thenReturn("password-hash");
@@ -67,7 +67,7 @@ class AccountAuthServiceTest {
 
     @Test
     void rejectsRegistrationWithoutVerifiedOtp() {
-        when(otpService.isRecentlyVerified("user@example.com", OtpPurpose.REGISTRATION)).thenReturn(false);
+        when(otpService.isPhoneRecentlyVerified("0912345678", OtpPurpose.REGISTRATION)).thenReturn(false);
 
         AuthException exception = assertThrows(AuthException.class, () -> service.register(new RegistrationRequest(
                 "user@example.com", "0912345678", "Nguyen Van A", "password123")));
@@ -105,6 +105,22 @@ class AccountAuthServiceTest {
 
         assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatus());
         assertEquals("AUTH_INVALID_CREDENTIALS", exception.getCode());
+    }
+
+    @Test
+    void loginBySmsOtpCreatesSessionForVerifiedPhone() {
+        PatientAccount account = new PatientAccount("user@example.com", "0912345678", "password-hash",
+                "Nguyen Van A", NOW, AccountStatus.ACTIVE, false);
+        setId(account, ACCOUNT_ID);
+        when(otpService.verifySmsOtp("0912345678", OtpPurpose.LOGIN, "123456"))
+                .thenReturn(new VerifyOtpResponse(true));
+        when(accountRepository.findByPhone("0912345678")).thenReturn(Optional.of(account));
+        when(tokenGenerator.generate()).thenReturn("sms-session-token");
+
+        LoginResponse response = service.loginBySmsOtp(new SmsLoginRequest("0912345678", "123456"));
+
+        assertEquals("sms-session-token", response.accessToken());
+        verify(sessionRepository).save(any(LoginSession.class));
     }
 
     @Test

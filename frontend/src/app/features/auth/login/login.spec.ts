@@ -1,4 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideRouter } from '@angular/router';
 import { Login } from './login';
 
 describe('Login', () => {
@@ -8,6 +10,7 @@ describe('Login', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [Login],
+      providers: [provideHttpClient(), provideRouter([])],
     }).compileComponents();
 
     fixture = TestBed.createComponent(Login);
@@ -20,10 +23,10 @@ describe('Login', () => {
   });
 
   it('should keep the form invalid until a valid phone number is entered', () => {
-    expect(component.form.invalid).toBe(true);
+    expect(component.phoneForm.invalid).toBe(true);
 
-    component.form.controls.phone.setValue('0912345678');
+    component.phoneForm.controls.phone.setValue('0912345678');
 
-    expect(component.form.valid).toBe(true);
+    expect(component.phoneForm.valid).toBe(true);
   });
 });

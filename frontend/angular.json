@@ -63,7 +63,8 @@
               "buildTarget": "clinic-one-frontend:build:production"
             },
             "development": {
-              "buildTarget": "clinic-one-frontend:build:development"
+              "buildTarget": "clinic-one-frontend:build:development",
+              "proxyConfig": "proxy.conf.json"
             }
           },
           "defaultConfiguration": "development"

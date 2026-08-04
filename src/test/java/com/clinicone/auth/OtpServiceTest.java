@@ -46,9 +46,9 @@ class OtpServiceTest {
 
     @Test
     void requestOtpStoresOnlyHashAndSendsCode() {
-        when(repository.countByEmailAndPurposeAndCreatedAtAfter(eq("user@example.com"),
+        when(repository.countByDestinationAndPurposeAndCreatedAtAfter(eq("user@example.com"),
                 eq(OtpPurpose.REGISTRATION), any())).thenReturn(0L);
-        when(repository.findTopByEmailAndPurposeOrderByCreatedAtDesc("user@example.com", OtpPurpose.REGISTRATION))
+        when(repository.findTopByDestinationAndPurposeOrderByCreatedAtDesc("user@example.com", OtpPurpose.REGISTRATION))
                 .thenReturn(Optional.empty());
         when(generator.generate()).thenReturn("123456");
 
@@ -66,8 +66,8 @@ class OtpServiceTest {
     void requestOtpRejectsResendDuringCooldown() {
         OtpChallenge previous = new OtpChallenge("user@example.com", OtpPurpose.REGISTRATION,
                 "hash", NOW.minusSeconds(30), NOW.plusSeconds(270));
-        when(repository.countByEmailAndPurposeAndCreatedAtAfter(any(), any(), any())).thenReturn(1L);
-        when(repository.findTopByEmailAndPurposeOrderByCreatedAtDesc("user@example.com", OtpPurpose.REGISTRATION))
+        when(repository.countByDestinationAndPurposeAndCreatedAtAfter(any(), any(), any())).thenReturn(1L);
+        when(repository.findTopByDestinationAndPurposeOrderByCreatedAtDesc("user@example.com", OtpPurpose.REGISTRATION))
                 .thenReturn(Optional.of(previous));
 
         OtpException exception = assertThrows(OtpException.class,
@@ -82,7 +82,7 @@ class OtpServiceTest {
     void verifyOtpMarksLatestChallengeAsVerified() {
         OtpChallenge challenge = new OtpChallenge("user@example.com", OtpPurpose.LOGIN,
                 passwordEncoder.encode("123456"), NOW.minusSeconds(10), NOW.plusSeconds(290));
-        when(repository.findTopByEmailAndPurposeOrderByCreatedAtDesc("user@example.com", OtpPurpose.LOGIN))
+        when(repository.findTopByDestinationAndPurposeOrderByCreatedAtDesc("user@example.com", OtpPurpose.LOGIN))
                 .thenReturn(Optional.of(challenge));
 
         VerifyOtpResponse response = service.verifyOtp("user@example.com", OtpPurpose.LOGIN, "123456");
@@ -96,7 +96,7 @@ class OtpServiceTest {
     void verifyOtpCountsWrongCodeAndReturnsGenericError() {
         OtpChallenge challenge = new OtpChallenge("user@example.com", OtpPurpose.LOGIN,
                 passwordEncoder.encode("123456"), NOW.minusSeconds(10), NOW.plusSeconds(290));
-        when(repository.findTopByEmailAndPurposeOrderByCreatedAtDesc("user@example.com", OtpPurpose.LOGIN))
+        when(repository.findTopByDestinationAndPurposeOrderByCreatedAtDesc("user@example.com", OtpPurpose.LOGIN))
                 .thenReturn(Optional.of(challenge));
 
         OtpException exception = assertThrows(OtpException.class,
@@ -106,5 +106,18 @@ class OtpServiceTest {
         assertEquals(1, challenge.getFailedAttempts());
         assertFalse(challenge.isVerified());
         verify(repository).save(challenge);
+    }
+
+    @Test
+    void requestSmsOtpConvertsVietnamesePhoneToE164() {
+        when(repository.countByDestinationAndPurposeAndCreatedAtAfter(eq("+84912345678"),
+                eq(OtpPurpose.REGISTRATION), any())).thenReturn(0L);
+        when(repository.findTopByDestinationAndPurposeOrderByCreatedAtDesc("+84912345678", OtpPurpose.REGISTRATION))
+                .thenReturn(Optional.empty());
+        when(generator.generate()).thenReturn("654321");
+
+        service.requestSmsOtp("0912 345 678", OtpPurpose.REGISTRATION);
+
+        verify(sender).send("+84912345678", OtpPurpose.REGISTRATION, "654321");
     }
 }

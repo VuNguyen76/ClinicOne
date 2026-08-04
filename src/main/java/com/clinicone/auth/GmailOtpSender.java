@@ -7,7 +7,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Component;
 
 @Component
-@ConditionalOnProperty(prefix = "spring.mail", name = "host")
+@ConditionalOnProperty(prefix = "app.otp", name = "provider", havingValue = "gmail")
 public class GmailOtpSender implements OtpSender {
 
     private final JavaMailSender mailSender;
