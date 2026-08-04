@@ -1,6 +1,8 @@
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterLink, RouterLinkActive } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { interval } from 'rxjs';
 
 type Service = {
   icon: string;
@@ -45,7 +47,16 @@ type NewsItem = {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Home {
+  private readonly destroyRef = inject(DestroyRef);
   readonly mobileMenuOpen = signal(false);
+  readonly heroImageIndex = signal(0);
+
+  readonly heroImages = [
+    'https://images.unsplash.com/photo-1586773860418-d37222d8fce3?auto=format&fit=crop&w=1400&q=88',
+    'https://images.unsplash.com/photo-1538108149393-fbbd81895907?auto=format&fit=crop&w=1400&q=88',
+    'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=1400&q=88',
+    'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1400&q=88',
+  ];
 
   readonly services: Service[] = [
     { icon: 'person_search', title: 'Đặt khám theo bác sĩ', description: 'Tìm bác sĩ phù hợp với nhu cầu.', route: '/login' },
@@ -105,6 +116,20 @@ export class Home {
     { label: 'Thắc mắc', route: '/support' },
     { label: 'Liên hệ', route: '/contact' },
   ];
+
+  constructor() {
+    interval(10000)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.nextHeroImage());
+  }
+
+  nextHeroImage(): void {
+    this.heroImageIndex.update((index) => (index + 1) % this.heroImages.length);
+  }
+
+  selectHeroImage(index: number): void {
+    this.heroImageIndex.set(index);
+  }
 
   toggleMenu(): void {
     this.mobileMenuOpen.update((open) => !open);
