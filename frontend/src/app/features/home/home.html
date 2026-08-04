@@ -49,6 +49,17 @@
             <mat-icon class="!h-5 !w-5 !text-[19px] !leading-5">near_me</mat-icon>
           </a>
         </div>
+        <div id="booking" class="mt-8 max-w-[530px] rounded-[18px] border border-white/80 bg-white/90 p-2 shadow-[0_16px_40px_rgba(16,63,76,0.1)] backdrop-blur">
+          <div class="grid gap-2 sm:grid-cols-[1fr_0.72fr_auto]">
+            <label class="flex items-center gap-2 rounded-xl bg-[#f2f8f7] px-3.5 py-3 text-sm text-slate-500 focus-within:ring-2 focus-within:ring-[#1592c5]/20">
+              <mat-icon class="!h-5 !w-5 !text-[18px] text-[#0e6872]">local_hospital</mat-icon>
+              <span class="sr-only">Cơ sở hoặc chuyên khoa</span>
+              <input class="w-full min-w-0 bg-transparent outline-none placeholder:text-slate-400" type="text" placeholder="Tìm cơ sở, chuyên khoa" (input)="setSearchTerm($any($event.target).value)" />
+            </label>
+            <a href="#facilities" class="flex items-center justify-between rounded-xl bg-[#f2f8f7] px-3.5 py-3 text-sm text-slate-500 transition hover:bg-[#eaf3f1]"><span>Ngày khám</span><mat-icon class="!h-5 !w-5 !text-[18px] text-[#0e6872]">calendar_today</mat-icon></a>
+            <a href="#facilities" class="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#1592c5] px-5 text-sm font-semibold text-white transition hover:bg-[#0f7fae]">Tìm lịch</a>
+          </div>
+        </div>
         <div class="mt-12 flex items-center gap-7 border-t border-[#b4d7d4] pt-5 text-sm text-[#496267]">
           <span><strong class="text-lg font-semibold text-[#103f4c]">24/7</strong><br />Tra cứu lịch hẹn</span>
           <span class="h-8 w-px bg-[#b4d7d4]"></span>
@@ -61,36 +72,7 @@
           <img class="h-full w-full object-cover object-center" src="https://images.unsplash.com/photo-1550831107-1553da8c8464?auto=format&fit=crop&w=1400&q=88" alt="Bác sĩ tư vấn cho người bệnh" />
           <div class="absolute inset-0 bg-gradient-to-tr from-[#103f4c]/35 via-transparent to-white/10"></div>
         </div>
-        <div class="absolute bottom-0 left-0 z-10 max-w-[280px] rounded-[22px] bg-white/95 p-4 shadow-[0_20px_45px_rgba(16,63,76,0.16)] backdrop-blur sm:left-8">
-          <div class="flex items-center gap-3">
-            <span class="grid h-11 w-11 place-items-center rounded-2xl bg-[#e5f4f2] text-[#0e6872]"><mat-icon>verified</mat-icon></span>
-            <div>
-              <p class="text-sm font-semibold text-[#103f4c]">Thông tin rõ ràng</p>
-              <p class="mt-0.5 text-xs text-slate-500">Chủ động trước khi đến khám</p>
-            </div>
-          </div>
-        </div>
-        <div class="absolute right-[2%] top-[14%] z-10 hidden items-center gap-2 rounded-full bg-[#103f4c] px-4 py-2.5 text-xs font-semibold text-white shadow-lg sm:flex">
-          <span class="h-2 w-2 rounded-full bg-[#7ee2ba]"></span>
-          Lịch hẹn đã sẵn sàng
-        </div>
       </div>
-    </div>
-  </section>
-
-  <section id="booking" class="relative z-10 mx-auto -mt-8 max-w-[1190px] px-5 sm:px-8 lg:px-10">
-    <div class="grid gap-4 rounded-[24px] border border-[#d7e5e3] bg-white p-4 shadow-[0_18px_50px_rgba(16,63,76,0.1)] sm:grid-cols-[1.1fr_1fr_1fr_auto] sm:items-center sm:p-5">
-      <div class="flex items-center gap-3 px-2">
-        <span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#103f4c] text-white"><mat-icon>search</mat-icon></span>
-        <div><p class="text-xs font-medium text-slate-500">Bạn muốn tìm gì?</p><p class="text-sm font-semibold text-[#103f4c]">Cơ sở hoặc chuyên khoa</p></div>
-      </div>
-      <label class="flex items-center gap-2 rounded-xl bg-[#f4f8f7] px-4 py-3 text-sm text-slate-500 transition focus-within:bg-[#eef6f4] focus-within:ring-2 focus-within:ring-[#1592c5]/20">
-        <mat-icon class="!h-5 !w-5 !text-[19px]">local_hospital</mat-icon>
-        <span class="sr-only">Cơ sở</span>
-        <input class="w-full bg-transparent outline-none placeholder:text-slate-400" type="text" placeholder="Ví dụ: ClinicOne Trung tâm" (input)="setSearchTerm($any($event.target).value)" />
-      </label>
-      <a href="#facilities" class="flex items-center justify-between rounded-xl bg-[#f4f8f7] px-4 py-3 text-sm text-slate-600 transition hover:bg-[#eaf3f1]"><span>Chuyên khoa</span><mat-icon class="!h-5 !w-5 !text-[19px] text-[#0e6872]">expand_more</mat-icon></a>
-      <a href="#facilities" class="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#1592c5] px-6 text-sm font-semibold text-white transition hover:bg-[#0f7fae]">Tìm kiếm</a>
     </div>
   </section>
 
@@ -102,7 +84,7 @@
     <div class="mt-10 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
       @for (service of services; track service.title) {
         <a href="#booking" class="group border-t border-[#d7e5e3] py-6 transition hover:-translate-y-1 hover:border-[#1592c5]">
-          <span class="grid h-12 w-12 place-items-center rounded-2xl {{ service.tone }} transition group-hover:scale-105"><mat-icon>{{ service.icon }}</mat-icon></span>
+          <span class="grid h-12 w-12 place-items-center rounded-2xl bg-[#e5f4f2] text-[#0e6872] transition group-hover:scale-105"><mat-icon>{{ service.icon }}</mat-icon></span>
           <h3 class="mt-5 text-base font-semibold text-[#103f4c]">{{ service.title }}</h3>
           <p class="mt-2 max-w-[235px] text-sm leading-6 text-slate-500">{{ service.description }}</p>
           <span class="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-[#0e6872]">Xem thêm <mat-icon class="!h-4 !w-4 !text-[16px]">arrow_forward</mat-icon></span>
