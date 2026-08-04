@@ -17,18 +17,24 @@ describe('Home', () => {
     fixture.detectChanges();
   });
 
-  it('should create the patient homepage', () => {
+  it('renders the patient portal with six booking services', () => {
     expect(component).toBeTruthy();
-    expect(fixture.nativeElement.querySelector('h1')?.textContent).toContain('Đặt lịch khám');
+    expect(component.services).toHaveLength(6);
+    expect(fixture.nativeElement.querySelector('h1')?.textContent).toContain('Chăm sóc sức khỏe');
   });
 
-  it('opens the first FAQ by default and toggles questions', () => {
-    expect(component.activeFaq()).toBe(0);
+  it('toggles the mobile navigation state', () => {
+    expect(component.mobileMenuOpen()).toBe(false);
 
-    component.toggleFaq(0);
-    expect(component.activeFaq()).toBeNull();
+    component.toggleMenu();
+    expect(component.mobileMenuOpen()).toBe(true);
 
-    component.toggleFaq(2);
-    expect(component.activeFaq()).toBe(2);
+    component.closeMenu();
+    expect(component.mobileMenuOpen()).toBe(false);
+  });
+
+  it('contains four process steps and four support channels', () => {
+    expect(component.processSteps).toHaveLength(4);
+    expect(component.supportChannels).toHaveLength(4);
   });
 });
