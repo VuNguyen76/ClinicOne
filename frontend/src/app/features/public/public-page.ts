@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink, RouterLinkActive } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 
@@ -15,6 +15,15 @@ export class PublicPage {
   private readonly route = inject(ActivatedRoute);
 
   readonly page = this.route.snapshot.data['page'] as PublicPageKey;
+  readonly mobileMenuOpen = signal(false);
+  readonly publicLinks = [
+    { label: 'Trang chủ', route: '/home' },
+    { label: 'Giới thiệu', route: '/about' },
+    { label: 'Quy trình', route: '/process' },
+    { label: 'Hướng dẫn', route: '/common-issues' },
+    { label: 'Thắc mắc', route: '/support' },
+    { label: 'Liên hệ', route: '/contact' },
+  ];
 
   readonly pageContent: Record<PublicPageKey, { eyebrow: string; title: string; description: string; image: string }> = {
     about: {
@@ -76,5 +85,13 @@ export class PublicPage {
 
   get content() {
     return this.pageContent[this.page];
+  }
+
+  toggleMenu(): void {
+    this.mobileMenuOpen.update((open) => !open);
+  }
+
+  closeMenu(): void {
+    this.mobileMenuOpen.set(false);
   }
 }
