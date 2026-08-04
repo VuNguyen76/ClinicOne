@@ -55,6 +55,19 @@ class AccountAuthControllerTest {
                 .andExpect(jsonPath("$.tokenType").value("Bearer"));
     }
 
+    @Test
+    void logsInWithPhoneAndPassword() throws Exception {
+        when(authService.login(any())).thenReturn(new LoginResponse(
+                "token", "Bearer", Instant.parse("2026-08-04T00:00:00Z"),
+                UUID.fromString("7d9e3fb4-1045-4ca4-86d2-7d1fca4c1a13"), "Nguyen Van A", false));
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"phone\":\"0912345678\",\"password\":\"password123\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").value("token"));
+    }
+
     @TestConfiguration
     static class MockBeans {
         @Bean
