@@ -8,7 +8,7 @@ import java.util.UUID;
 
 public interface OtpChallengeRepository extends JpaRepository<OtpChallenge, UUID> {
 
-    Optional<OtpChallenge> findTopByEmailAndPurposeOrderByCreatedAtDesc(String email, OtpPurpose purpose);
+    Optional<OtpChallenge> findTopByDestinationAndPurposeOrderByCreatedAtDesc(String destination, OtpPurpose purpose);
 
-    long countByEmailAndPurposeAndCreatedAtAfter(String email, OtpPurpose purpose, Instant createdAfter);
+    long countByDestinationAndPurposeAndCreatedAtAfter(String destination, OtpPurpose purpose, Instant createdAfter);
 }

@@ -8,7 +8,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Locale;
 
 @Service
 public class OtpService {
@@ -35,47 +34,18 @@ public class OtpService {
     }
 
     @Transactional
-    public RequestOtpResponse requestOtp(String email, OtpPurpose purpose) {
-        String normalizedEmail = normalizeEmail(email);
-        Instant now = Instant.now(clock);
-        Instant windowStart = now.minusSeconds(RATE_WINDOW_SECONDS);
-
-        if (repository.countByEmailAndPurposeAndCreatedAtAfter(normalizedEmail, purpose, windowStart)
-                >= MAX_REQUESTS_PER_WINDOW) {
-            throw new OtpException(HttpStatus.TOO_MANY_REQUESTS, "OTP_RATE_LIMITED",
-                    "Bạn đã yêu cầu quá nhiều mã. Vui lòng thử lại sau.", RATE_WINDOW_SECONDS);
-        }
-
-        var latest = repository.findTopByEmailAndPurposeOrderByCreatedAtDesc(normalizedEmail, purpose);
-        if (latest.isPresent() && Duration.between(latest.get().getCreatedAt(), now).getSeconds() < RESEND_COOLDOWN_SECONDS) {
-            long elapsed = Math.max(0, Duration.between(latest.get().getCreatedAt(), now).getSeconds());
-            throw new OtpException(HttpStatus.TOO_MANY_REQUESTS, "OTP_COOLDOWN",
-                    "Vui lòng chờ trước khi yêu cầu mã mới.", RESEND_COOLDOWN_SECONDS - elapsed);
-        }
-
-        String code = codeGenerator.generate();
-        OtpChallenge challenge = new OtpChallenge(
-                normalizedEmail,
-                purpose,
-                passwordEncoder.encode(code),
-                now,
-                now.plusSeconds(OTP_TTL_SECONDS)
-        );
-        repository.save(challenge);
-        try {
-            sender.send(normalizedEmail, purpose, code);
-        } catch (RuntimeException ex) {
-            throw new OtpException(HttpStatus.SERVICE_UNAVAILABLE, "OTP_DELIVERY_FAILED",
-                    "Không thể gửi mã xác thực lúc này. Vui lòng thử lại sau.", 60);
-        }
-        return new RequestOtpResponse(OTP_TTL_SECONDS, RESEND_COOLDOWN_SECONDS);
+    public RequestOtpResponse requestSmsOtp(String phone, OtpPurpose purpose) {
+        return issueOtp(normalizePhone(phone), purpose);
     }
 
     @Transactional
-    public VerifyOtpResponse verifyOtp(String email, OtpPurpose purpose, String code) {
-        String normalizedEmail = normalizeEmail(email);
+    public VerifyOtpResponse verifySmsOtp(String phone, OtpPurpose purpose, String code) {
+        return verifyForDestination(normalizePhone(phone), purpose, code);
+    }
+
+    private VerifyOtpResponse verifyForDestination(String destination, OtpPurpose purpose, String code) {
         Instant now = Instant.now(clock);
-        OtpChallenge challenge = repository.findTopByEmailAndPurposeOrderByCreatedAtDesc(normalizedEmail, purpose)
+        OtpChallenge challenge = repository.findTopByDestinationAndPurposeOrderByCreatedAtDesc(destination, purpose)
                 .orElseThrow(this::invalidOtp);
 
         if (challenge.isExpired(now) || challenge.isVerified() || challenge.getFailedAttempts() >= MAX_FAILED_ATTEMPTS
@@ -92,9 +62,9 @@ public class OtpService {
         return new VerifyOtpResponse(true);
     }
 
-    public boolean isRecentlyVerified(String email, OtpPurpose purpose) {
+    public boolean isPhoneRecentlyVerified(String phone, OtpPurpose purpose) {
         Instant now = Instant.now(clock);
-        return repository.findTopByEmailAndPurposeOrderByCreatedAtDesc(normalizeEmail(email), purpose)
+        return repository.findTopByDestinationAndPurposeOrderByCreatedAtDesc(normalizePhone(phone), purpose)
                 .map(challenge -> challenge.isVerified() && !challenge.isExpired(now))
                 .orElse(false);
     }
@@ -103,7 +73,38 @@ public class OtpService {
         return new OtpException(HttpStatus.BAD_REQUEST, "OTP_INVALID", "Mã xác thực không hợp lệ hoặc đã hết hạn.");
     }
 
-    static String normalizeEmail(String email) {
-        return email.trim().toLowerCase(Locale.ROOT);
+    static String normalizePhone(String phone) {
+        String compact = phone.trim().replaceAll("[\\s().-]", "");
+        if (compact.matches("^0\\d{9}$")) {
+            return "+84" + compact.substring(1);
+        }
+        return compact;
+    }
+
+    private RequestOtpResponse issueOtp(String destination, OtpPurpose purpose) {
+        Instant now = Instant.now(clock);
+        Instant windowStart = now.minusSeconds(RATE_WINDOW_SECONDS);
+        if (repository.countByDestinationAndPurposeAndCreatedAtAfter(destination, purpose, windowStart)
+                >= MAX_REQUESTS_PER_WINDOW) {
+            throw new OtpException(HttpStatus.TOO_MANY_REQUESTS, "OTP_RATE_LIMITED",
+                    "Bạn đã yêu cầu quá nhiều mã. Vui lòng thử lại sau.", RATE_WINDOW_SECONDS);
+        }
+        var latest = repository.findTopByDestinationAndPurposeOrderByCreatedAtDesc(destination, purpose);
+        if (latest.isPresent() && Duration.between(latest.get().getCreatedAt(), now).getSeconds() < RESEND_COOLDOWN_SECONDS) {
+            long elapsed = Math.max(0, Duration.between(latest.get().getCreatedAt(), now).getSeconds());
+            throw new OtpException(HttpStatus.TOO_MANY_REQUESTS, "OTP_COOLDOWN",
+                    "Vui lòng chờ trước khi yêu cầu mã mới.", RESEND_COOLDOWN_SECONDS - elapsed);
+        }
+        String code = codeGenerator.generate();
+        OtpChallenge challenge = new OtpChallenge(destination, purpose, passwordEncoder.encode(code), now,
+                now.plusSeconds(OTP_TTL_SECONDS));
+        repository.save(challenge);
+        try {
+            sender.send(destination, purpose, code);
+        } catch (RuntimeException ex) {
+            throw new OtpException(HttpStatus.SERVICE_UNAVAILABLE, "OTP_DELIVERY_FAILED",
+                    "Không thể gửi mã xác thực lúc này. Vui lòng thử lại sau.", 60);
+        }
+        return new RequestOtpResponse(OTP_TTL_SECONDS, RESEND_COOLDOWN_SECONDS);
     }
 }

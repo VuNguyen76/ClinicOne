@@ -1,15 +1,24 @@
 :root {
   color-scheme: light;
   font-family: "Be Vietnam Pro", Roboto, "Helvetica Neue", sans-serif;
-  --clinic-primary: #103f4c;
-  --clinic-accent: #0e6872;
-  --mat-sys-primary: #0e6872;
+  --color-primary: #0ea5e9;
+  --color-primary-dark: #0284c7;
+  --color-primary-soft: #e0f2fe;
+  --color-surface: #ffffff;
+  --color-background: #f8fafc;
+  --color-text: #0f172a;
+  --color-text-muted: #64748b;
+  --color-hotline: #e11d48;
+  --color-border: #e2e8f0;
+  --clinic-primary: var(--color-text);
+  --clinic-accent: var(--color-primary);
+  --mat-sys-primary: var(--color-primary);
   --mat-sys-on-primary: #ffffff;
-  --mat-sys-surface: #ffffff;
-  --mat-sys-on-surface: #153438;
-  --mat-sys-on-surface-variant: #3f484a;
-  --mat-sys-outline: #6b7e80;
-  --mat-sys-outline-variant: #c5d2d2;
+  --mat-sys-surface: var(--color-surface);
+  --mat-sys-on-surface: var(--color-text);
+  --mat-sys-on-surface-variant: var(--color-text-muted);
+  --mat-sys-outline: #94a3b8;
+  --mat-sys-outline-variant: var(--color-border);
   --mat-sys-error: #ba1a1a;
 }
 
@@ -17,7 +26,8 @@ html,
 body {
   min-height: 100%;
   margin: 0;
-  background: #eef5f4;
+  background: var(--color-background);
+  scroll-behavior: smooth;
 }
 
 body {
@@ -33,4 +43,36 @@ body {
 button,
 input {
   font: inherit;
+}
+
+@keyframes co-reveal {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes co-image-drift {
+  from { transform: scale(1.03) translate3d(-0.5%, -0.5%, 0); }
+  to { transform: scale(1.09) translate3d(0.5%, 0.5%, 0); }
+}
+
+@keyframes co-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}
+
+.co-reveal { animation: co-reveal 720ms cubic-bezier(.22, 1, .36, 1) both; }
+.co-delay-1 { animation-delay: 120ms; }
+.co-delay-2 { animation-delay: 220ms; }
+.co-delay-3 { animation-delay: 320ms; }
+.co-image-drift { animation: co-image-drift 15s ease-in-out infinite alternate; }
+.co-float { animation: co-float 5s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
 }

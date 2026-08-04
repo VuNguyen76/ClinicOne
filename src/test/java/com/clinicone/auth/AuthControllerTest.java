@@ -13,7 +13,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(AuthController.class)
-@Import({AuthService.class, SecurityConfig.class})
+@Import({AuthService.class, SecurityConfig.class, AuthControllerTest.MockBeans.class})
 class AuthControllerTest {
 
     @Autowired
@@ -25,7 +25,7 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"phone\":\"0912345678\"}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.nextStep").value("OTP"));
+                .andExpect(jsonPath("$.accountExists").value(false));
     }
 
     @Test
@@ -42,5 +42,13 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @org.springframework.boot.test.context.TestConfiguration
+    static class MockBeans {
+        @org.springframework.context.annotation.Bean
+        PatientAccountRepository patientAccountRepository() {
+            return org.mockito.Mockito.mock(PatientAccountRepository.class);
+        }
     }
 }
