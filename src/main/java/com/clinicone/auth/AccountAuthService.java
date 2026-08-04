@@ -96,6 +96,10 @@ public class AccountAuthService {
         validateProfileDetails(request.dateOfBirth(), request.gender());
         account.updateProfile(request.fullName().trim(), request.dateOfBirth(), normalizeGender(request.gender()),
                 normalizeAddress(request.address()));
+        account.updateIdentityAndAddress(normalize(request.identityNumber()), normalize(request.nationality()),
+                normalize(request.ethnicity()), normalize(request.provinceCode()), normalize(request.provinceName()),
+                normalize(request.districtCode()), normalize(request.districtName()), normalize(request.wardCode()),
+                normalize(request.wardName()), normalize(request.streetAddress()));
         accountRepository.save(account);
         return toProfile(account);
     }
@@ -139,8 +143,10 @@ public class AccountAuthService {
 
     private PatientProfileResponse toProfile(PatientAccount account) {
         return new PatientProfileResponse(account.getId(), account.getPhone(), account.getFullName(),
-                account.getDateOfBirth(), account.getGender(), account.getAddress(), account.getStatus(),
-                account.isMustChangePassword());
+                account.getDateOfBirth(), account.getGender(), account.getAddress(),
+                account.getIdentityNumber(), account.getNationality(), account.getEthnicity(), account.getProvinceCode(),
+                account.getProvinceName(), account.getDistrictCode(), account.getDistrictName(), account.getWardCode(),
+                account.getWardName(), account.getStreetAddress(), account.getStatus(), account.isMustChangePassword());
     }
 
     private void validateProfileDetails(LocalDate dateOfBirth, String gender) {
@@ -160,6 +166,10 @@ public class AccountAuthService {
 
     private String normalizeAddress(String address) {
         return address == null || address.isBlank() ? null : address.trim();
+    }
+
+    private String normalize(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 
     private LoginResponse createSession(PatientAccount account) {

@@ -1,4 +1,5 @@
 <main class="min-h-screen bg-[var(--color-background)] text-[var(--color-text)]">
+  @if (loggedIn()) { <div class="border-b border-[#bae6fd] bg-[#e9f7fb] px-5 py-2 text-center text-sm font-semibold text-[#0369a1]"><a routerLink="/account" class="hover:underline">Bạn đã đăng nhập · Mở hồ sơ bệnh nhân</a></div> }
   <header class="sticky top-0 z-30 border-b border-[var(--color-border)] bg-white/95 backdrop-blur">
     <div class="mx-auto flex h-[72px] max-w-[1200px] items-center justify-between gap-8 px-5 lg:px-0">
       <a routerLink="/home" class="flex items-center gap-3" aria-label="ClinicOne, trang chủ" (click)="closeMenu()">
