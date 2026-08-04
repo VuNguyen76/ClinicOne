@@ -19,7 +19,7 @@ describe('Account', () => {
     component = fixture.componentInstance;
     http = TestBed.inject(HttpTestingController);
     fixture.detectChanges();
-    http.expectOne('https://provinces.open-api.vn/api/v1/?depth=1').flush([]);
+    http.expectOne('https://tinhthanhpho.com/api/v1/provinces?page=1&limit=100').flush({ success: true, message: 'Success', data: [] });
     http.expectOne('/api/v1/auth/me').flush({
       accountId: 'account-1', phone: '0912345678', fullName: 'Nguyen Van A', dateOfBirth: '2005-06-07', gender: 'Nam', address: 'Tây Ninh', identityNumber: '012345678901', nationality: 'Việt Nam', ethnicity: 'Kinh', provinceCode: null, provinceName: null, districtCode: null, districtName: null, wardCode: null, wardName: null, streetAddress: null, status: 'ACTIVE', mustChangePassword: false,
     });

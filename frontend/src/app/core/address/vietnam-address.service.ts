@@ -4,26 +4,27 @@ import { map, Observable, shareReplay } from 'rxjs';
 
 export interface VietnamAddressUnit {
   name: string;
-  code: number;
-  division_type: string;
-  codename: string;
-  province_code?: number;
-  district_code?: number;
+  code: string;
+  type?: string;
+  division_type?: string;
+  codename?: string;
+  province_code?: string;
+  district_code?: string;
 }
 
-interface ProvinceResponse extends VietnamAddressUnit {
-  districts?: VietnamAddressUnit[];
-}
-
-interface DistrictResponse extends VietnamAddressUnit {
-  wards?: VietnamAddressUnit[];
+interface AddressListResponse {
+  success: boolean;
+  data: VietnamAddressUnit[];
 }
 
 @Injectable({ providedIn: 'root' })
 export class VietnamAddressService {
   private readonly http = inject(HttpClient);
-  private readonly apiRoot = 'https://provinces.open-api.vn/api/v1';
-  private readonly provinceRequest = this.http.get<VietnamAddressUnit[]>(`${this.apiRoot}/?depth=1`).pipe(
+  // API này công khai CORS và trả mã dạng chuỗi (giữ được 01, 001, 00001).
+  // Dùng API v1 để khớp dữ liệu địa chỉ cũ 63 tỉnh/thành của hồ sơ hiện tại.
+  private readonly apiRoot = 'https://tinhthanhpho.com/api/v1';
+  private readonly provinceRequest = this.http.get<AddressListResponse>(`${this.apiRoot}/provinces?page=1&limit=100`).pipe(
+    map((response) => response.data ?? []),
     shareReplay({ bufferSize: 1, refCount: true }),
   );
   private readonly districtRequests = new Map<string, Observable<VietnamAddressUnit[]>>();
@@ -35,14 +36,14 @@ export class VietnamAddressService {
 
   getDistricts(provinceCode: string): Observable<VietnamAddressUnit[]> {
     return this.cachedRequest(this.districtRequests, provinceCode, () => this.http
-      .get<ProvinceResponse>(`${this.apiRoot}/p/${provinceCode}?depth=2`)
-      .pipe(map((province) => province.districts ?? [])));
+      .get<AddressListResponse>(`${this.apiRoot}/provinces/${provinceCode}/districts?page=1&limit=100`)
+      .pipe(map((response) => response.data ?? [])));
   }
 
   getWards(districtCode: string): Observable<VietnamAddressUnit[]> {
     return this.cachedRequest(this.wardRequests, districtCode, () => this.http
-      .get<DistrictResponse>(`${this.apiRoot}/d/${districtCode}?depth=2`)
-      .pipe(map((district) => district.wards ?? [])));
+      .get<AddressListResponse>(`${this.apiRoot}/districts/${districtCode}/wards?page=1&limit=100`)
+      .pipe(map((response) => response.data ?? [])));
   }
 
   private cachedRequest(cache: Map<string, Observable<VietnamAddressUnit[]>>, key: string,
