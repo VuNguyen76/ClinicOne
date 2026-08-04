@@ -16,31 +16,36 @@ export class PublicPage {
 
   readonly page = this.route.snapshot.data['page'] as PublicPageKey;
 
-  readonly pageContent: Record<PublicPageKey, { eyebrow: string; title: string; description: string }> = {
+  readonly pageContent: Record<PublicPageKey, { eyebrow: string; title: string; description: string; image: string }> = {
     about: {
       eyebrow: 'Giới thiệu ClinicOne',
       title: 'Một hành trình khám bệnh rõ ràng hơn.',
       description: 'ClinicOne kết nối lịch hẹn, tiếp nhận và theo dõi lượt khám trong một hành trình dễ hiểu cho người bệnh và nhân viên y tế.',
+      image: 'https://images.unsplash.com/photo-1538108149393-fbbd81895907?auto=format&fit=crop&w=1200&q=84',
     },
     process: {
       eyebrow: 'Quy trình khám',
       title: 'Biết mình cần làm gì ở mỗi bước.',
       description: 'Từ lúc chọn dịch vụ đến khi nhận kết quả, mọi mốc quan trọng đều được hiển thị rõ ràng.',
+      image: 'https://images.unsplash.com/photo-1559757175-0eb30cd8c063?auto=format&fit=crop&w=1200&q=84',
     },
     'common-issues': {
       eyebrow: 'Hướng dẫn',
       title: 'Giải đáp những việc thường gặp.',
       description: 'Các hướng dẫn ngắn giúp bạn chuẩn bị tốt hơn trước, trong và sau buổi khám.',
+      image: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=1200&q=84',
     },
     support: {
       eyebrow: 'Thắc mắc',
       title: 'Cần hỗ trợ? ClinicOne luôn sẵn sàng.',
       description: 'Chọn kênh phù hợp để được giải đáp về lịch hẹn, hồ sơ và quy trình khám.',
+      image: 'https://images.unsplash.com/photo-1551076805-e1869033e561?auto=format&fit=crop&w=1200&q=84',
     },
     contact: {
       eyebrow: 'Liên hệ',
       title: 'Kết nối với ClinicOne.',
       description: 'Gửi câu hỏi hoặc gọi cho chúng tôi trong giờ làm việc để được hỗ trợ nhanh nhất.',
+      image: 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=1200&q=84',
     },
   };
 

@@ -34,6 +34,7 @@ type NewsItem = {
   date: string;
   title: string;
   summary: string;
+  image: string;
 };
 
 @Component({
@@ -91,9 +92,9 @@ export class Home {
   ];
 
   readonly news: NewsItem[] = [
-    { category: 'Thông tin ClinicOne', date: '04.08.2026', title: 'ClinicOne sẵn sàng đồng hành cùng lịch khám của bạn', summary: 'Tin tức mô phỏng — nội dung chính thức sẽ được cập nhật trong phiên bản tiếp theo.' },
-    { category: 'Hướng dẫn', date: '01.08.2026', title: 'Ba việc nên chuẩn bị trước khi đến phòng khám', summary: 'Kiểm tra lịch hẹn, giấy tờ cần thiết và thời gian di chuyển.' },
-    { category: 'Sức khỏe', date: '28.07.2026', title: 'Chủ động theo dõi lịch tái khám', summary: 'Lưu lại hướng dẫn của bác sĩ để chuẩn bị tốt cho lần khám tiếp theo.' },
+    { category: 'Thông tin ClinicOne', date: '04.08.2026', title: 'ClinicOne sẵn sàng đồng hành cùng lịch khám của bạn', summary: 'Tin tức mô phỏng — nội dung chính thức sẽ được cập nhật trong phiên bản tiếp theo.', image: 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&w=900&q=82' },
+    { category: 'Hướng dẫn', date: '01.08.2026', title: 'Ba việc nên chuẩn bị trước khi đến phòng khám', summary: 'Kiểm tra lịch hẹn, giấy tờ cần thiết và thời gian di chuyển.', image: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=900&q=82' },
+    { category: 'Sức khỏe', date: '28.07.2026', title: 'Chủ động theo dõi lịch tái khám', summary: 'Lưu lại hướng dẫn của bác sĩ để chuẩn bị tốt cho lần khám tiếp theo.', image: 'https://images.unsplash.com/photo-1559757175-0eb30cd8c063?auto=format&fit=crop&w=900&q=82' },
   ];
 
   readonly publicLinks = [

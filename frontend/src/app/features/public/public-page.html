@@ -18,10 +18,9 @@
   </header>
 
   <section class="border-b border-[var(--color-border)] bg-white">
-    <div class="mx-auto max-w-[1200px] px-5 py-16 lg:px-0 lg:py-24">
-      <p class="text-xs font-bold uppercase tracking-[0.18em] text-[#0ea5e9]">{{ content.eyebrow }}</p>
-      <h1 class="mt-4 max-w-[760px] text-4xl font-bold leading-[1.08] tracking-[-0.05em] text-[#103f4c] sm:text-6xl">{{ content.title }}</h1>
-      <p class="mt-5 max-w-[620px] text-base leading-7 text-slate-600">{{ content.description }}</p>
+    <div class="mx-auto grid max-w-[1200px] items-stretch lg:grid-cols-[1fr_0.8fr]">
+      <div class="co-reveal px-5 py-16 lg:px-0 lg:py-24"><p class="text-xs font-bold uppercase tracking-[0.18em] text-[#0ea5e9]">{{ content.eyebrow }}</p><h1 class="mt-4 max-w-[760px] text-4xl font-bold leading-[1.08] tracking-[-0.05em] text-[#103f4c] sm:text-6xl">{{ content.title }}</h1><p class="mt-5 max-w-[620px] text-base leading-7 text-slate-600">{{ content.description }}</p></div>
+      <div class="relative min-h-[280px] overflow-hidden lg:min-h-[420px]"><img class="co-image-drift absolute inset-0 h-full w-full object-cover" [src]="content.image" [alt]="content.title" /><div class="absolute inset-0 bg-gradient-to-t from-[#103f4c]/70 to-transparent"></div><span class="co-float absolute bottom-6 left-6 rounded-full bg-white/90 px-4 py-2 text-xs font-semibold text-[#103f4c] shadow-lg">ClinicOne · Chăm sóc chủ động</span></div>
     </div>
   </section>
 
@@ -34,7 +33,7 @@
   }
 
   @if (page === 'process') {
-    <section class="mx-auto max-w-[1200px] px-5 py-14 lg:px-0 lg:py-20"><div class="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">@for (step of processSteps; track step.order) {<article class="border-t-2 border-[#0ea5e9] pt-5"><div class="flex items-center justify-between"><span class="text-4xl font-bold text-[#0ea5e9]/30">{{ step.order }}</span><mat-icon class="text-[#0ea5e9]">{{ step.icon }}</mat-icon></div><h2 class="mt-6 text-lg font-bold text-[#103f4c]">{{ step.title }}</h2><p class="mt-2 text-sm leading-6 text-slate-600">{{ step.description }}</p></article>}</div></section>
+    <section class="mx-auto max-w-[1200px] px-5 py-14 lg:px-0 lg:py-20"><div class="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">@for (step of processSteps; track step.order; let stepIndex = $index) {<article class="co-reveal border-t-2 border-[#0ea5e9] pt-5" [class.co-delay-1]="stepIndex === 1" [class.co-delay-2]="stepIndex === 2" [class.co-delay-3]="stepIndex === 3"><div class="flex items-center justify-between"><span class="text-4xl font-bold text-[#0ea5e9]/30">{{ step.order }}</span><mat-icon class="text-[#0ea5e9]">{{ step.icon }}</mat-icon></div><h2 class="mt-6 text-lg font-bold text-[#103f4c]">{{ step.title }}</h2><p class="mt-2 text-sm leading-6 text-slate-600">{{ step.description }}</p></article>}</div></section>
   }
 
   @if (page === 'common-issues') {

@@ -44,3 +44,35 @@ button,
 input {
   font: inherit;
 }
+
+@keyframes co-reveal {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes co-image-drift {
+  from { transform: scale(1.03) translate3d(-0.5%, -0.5%, 0); }
+  to { transform: scale(1.09) translate3d(0.5%, 0.5%, 0); }
+}
+
+@keyframes co-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}
+
+.co-reveal { animation: co-reveal 720ms cubic-bezier(.22, 1, .36, 1) both; }
+.co-delay-1 { animation-delay: 120ms; }
+.co-delay-2 { animation-delay: 220ms; }
+.co-delay-3 { animation-delay: 320ms; }
+.co-image-drift { animation: co-image-drift 15s ease-in-out infinite alternate; }
+.co-float { animation: co-float 5s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}
