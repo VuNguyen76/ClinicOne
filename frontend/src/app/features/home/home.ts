@@ -3,6 +3,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { interval } from 'rxjs';
+import { AccountMenu } from '../../shared/account-menu/account-menu';
 
 type Service = {
   icon: string;
@@ -42,7 +43,7 @@ type NewsItem = {
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, MatIconModule],
+  imports: [RouterLink, RouterLinkActive, MatIconModule, AccountMenu],
   templateUrl: './home.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -50,7 +51,6 @@ export class Home {
   private readonly destroyRef = inject(DestroyRef);
   readonly mobileMenuOpen = signal(false);
   readonly heroImageIndex = signal(0);
-  readonly loggedIn = signal(typeof sessionStorage !== 'undefined' && Boolean(sessionStorage.getItem('clinicOneAccessToken')));
 
   readonly heroImages = [
     'https://images.unsplash.com/photo-1586773860418-d37222d8fce3?auto=format&fit=crop&w=1400&q=88',
