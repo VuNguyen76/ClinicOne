@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { finalize } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
 import { apiErrorMessage, AuthApiService, PatientProfileResponse } from '../../core/auth/auth-api.service';
@@ -21,6 +22,7 @@ export class Account implements OnInit {
   private readonly formBuilder = inject(FormBuilder);
   private readonly authApi = inject(AuthApiService);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
 
   protected readonly profile = signal<PatientProfileResponse | null>(null);
   protected readonly loading = signal(true);
@@ -141,7 +143,12 @@ export class Account implements OnInit {
     });
   }
 
-  private showError(response: { error?: { message?: string; detail?: string; title?: string } | string; message?: string; detail?: string }): void {
+  private showError(response: { status?: number; error?: { message?: string; detail?: string; title?: string } | string; message?: string; detail?: string }): void {
+    if (response.status === 401 || response.status === 403) {
+      sessionStorage.removeItem('clinicOneAccessToken');
+      void this.router.navigateByUrl('/login');
+      return;
+    }
     this.error.set(apiErrorMessage(response));
   }
 }
