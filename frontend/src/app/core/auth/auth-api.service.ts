@@ -18,6 +18,12 @@ export interface SmsLoginResponse {
   mustChangePassword: boolean;
 }
 
+export interface RegistrationResponse {
+  accountId: string;
+  phone: string;
+  fullName: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AuthApiService {
   private readonly http = inject(HttpClient);
@@ -31,5 +37,13 @@ export class AuthApiService {
     return this.http
       .post<SmsLoginResponse>(`${this.apiRoot}/login-sms`, { phone, code })
       .pipe(tap((session) => sessionStorage.setItem('clinicOneAccessToken', session.accessToken)));
+  }
+
+  verifySmsOtp(phone: string, purpose: OtpPurpose, code: string): Observable<{ verified: boolean }> {
+    return this.http.post<{ verified: boolean }>(`${this.apiRoot}/verify-sms-otp`, { phone, purpose, code });
+  }
+
+  register(phone: string, fullName: string, password: string): Observable<RegistrationResponse> {
+    return this.http.post<RegistrationResponse>(`${this.apiRoot}/register`, { phone, fullName, password });
   }
 }

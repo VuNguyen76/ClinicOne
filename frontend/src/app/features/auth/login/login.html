@@ -56,7 +56,7 @@
           @if (notice()) {
             <p class="mt-4 border-l-4 border-[#0e6872] bg-[#e5f1f0] px-3 py-2.5 text-sm leading-5 text-[#164f55]" role="status">{{ notice() }}</p>
           }
-          <p class="mt-8 text-sm text-slate-500">Chưa có tài khoản? <button class="ml-1 font-semibold text-[#0e6872] hover:underline" type="button" (click)="showNotReadyMessage('Đăng ký tài khoản')">Đăng ký</button></p>
+          <p class="mt-8 text-sm text-slate-500">Chưa có tài khoản? <a class="ml-1 font-semibold text-[#0e6872] hover:underline" routerLink="/register">Đăng ký</a></p>
         </div>
       </div>
 
