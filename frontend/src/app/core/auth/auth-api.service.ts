@@ -49,6 +49,26 @@ export interface PatientProfileResponse {
   mustChangePassword: boolean;
 }
 
+export interface AppointmentResponse {
+  id: string;
+  appointmentCode: string;
+  specialty: string;
+  doctorName: string;
+  appointmentDate: string;
+  startTime: string;
+  reason: string;
+  status: string;
+  statusLabel: string;
+}
+
+export interface CreateAppointmentRequest {
+  specialty: string;
+  doctorName: string;
+  appointmentDate: string;
+  startTime: string;
+  reason: string;
+}
+
 export type ApiErrorResponse = {
   error?: { message?: string; detail?: string; title?: string } | string;
   message?: string;
@@ -64,6 +84,7 @@ export function apiErrorMessage(response: ApiErrorResponse): string {
 export class AuthApiService {
   private readonly http = inject(HttpClient);
   private readonly apiRoot = '/api/v1/auth';
+  private readonly appointmentsRoot = '/api/v1/appointments';
 
   requestSmsOtp(phone: string, purpose: OtpPurpose): Observable<OtpResponse> {
     return this.http.post<OtpResponse>(`${this.apiRoot}/request-sms-otp`, { phone, purpose });
@@ -115,5 +136,13 @@ export class AuthApiService {
 
   changePassword(currentPassword: string, newPassword: string): Observable<void> {
     return this.http.post<void>(`${this.apiRoot}/me/password`, { currentPassword, newPassword });
+  }
+
+  getAppointments(): Observable<AppointmentResponse[]> {
+    return this.http.get<AppointmentResponse[]>(this.appointmentsRoot);
+  }
+
+  createAppointment(request: CreateAppointmentRequest): Observable<AppointmentResponse> {
+    return this.http.post<AppointmentResponse>(this.appointmentsRoot, request);
   }
 }
