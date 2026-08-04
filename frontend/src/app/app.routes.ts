@@ -5,6 +5,7 @@ import { Dashboard } from './features/dashboard/dashboard';
 import { Home } from './features/home/home';
 import { Register } from './features/auth/register/register';
 import { PublicPage } from './features/public/public-page';
+import { Account } from './features/account/account';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'home' },
@@ -20,7 +21,8 @@ export const routes: Routes = [
     path: '',
     component: AppShell,
     children: [
-      { path: 'dashboard', component: Dashboard }
+      { path: 'dashboard', component: Dashboard },
+      { path: 'account', component: Account },
     ]
   },
   { path: '**', redirectTo: 'home' },

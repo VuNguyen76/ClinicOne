@@ -73,6 +73,10 @@ public class PatientAccount {
         this.mustChangePassword = false;
     }
 
+    public void updateFullName(String fullName) {
+        this.fullName = fullName;
+    }
+
     public UUID getId() { return id; }
     public String getPhone() { return phone; }
     public String getPasswordHash() { return passwordHash; }

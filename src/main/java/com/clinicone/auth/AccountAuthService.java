@@ -77,6 +77,20 @@ public class AccountAuthService {
         return createSession(account);
     }
 
+    @Transactional(readOnly = true)
+    public PatientProfileResponse getProfile(String accountId) {
+        PatientAccount account = findAccount(accountId);
+        return toProfile(account);
+    }
+
+    @Transactional
+    public PatientProfileResponse updateProfile(String accountId, UpdateProfileRequest request) {
+        PatientAccount account = findAccount(accountId);
+        account.updateFullName(request.fullName().trim());
+        accountRepository.save(account);
+        return toProfile(account);
+    }
+
     @Transactional
     public void changePassword(String accountId, ChangePasswordRequest request) {
         PatientAccount account = accountRepository.findById(java.util.UUID.fromString(accountId))
@@ -101,6 +115,22 @@ public class AccountAuthService {
     private AuthException invalidCredentials() {
         return new AuthException(HttpStatus.UNAUTHORIZED, "AUTH_INVALID_CREDENTIALS",
                 "Số điện thoại hoặc mật khẩu không đúng.");
+    }
+
+    private PatientAccount findAccount(String accountId) {
+        try {
+            return accountRepository.findById(java.util.UUID.fromString(accountId))
+                    .orElseThrow(() -> new AuthException(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_REQUIRED",
+                            "Phiên đăng nhập không hợp lệ."));
+        } catch (IllegalArgumentException exception) {
+            throw new AuthException(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_REQUIRED",
+                    "Phiên đăng nhập không hợp lệ.");
+        }
+    }
+
+    private PatientProfileResponse toProfile(PatientAccount account) {
+        return new PatientProfileResponse(account.getId(), account.getPhone(), account.getFullName(),
+                account.getStatus(), account.isMustChangePassword());
     }
 
     private LoginResponse createSession(PatientAccount account) {

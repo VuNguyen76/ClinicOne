@@ -9,20 +9,27 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 
 import java.time.Instant;
 import java.util.UUID;
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(AccountAuthController.class)
 @Import({SecurityConfig.class, AccountAuthControllerTest.MockBeans.class})
 class AccountAuthControllerTest {
+
+    private static final UUID ACCOUNT_ID = UUID.fromString("7d9e3fb4-1045-4ca4-86d2-7d1fca4c1a13");
 
     @Autowired
     private MockMvc mockMvc;
@@ -66,6 +73,33 @@ class AccountAuthControllerTest {
                         .content("{\"phone\":\"0912345678\",\"password\":\"password123\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").value("token"));
+    }
+
+    @Test
+    void returnsCurrentPatientProfile() throws Exception {
+        when(authService.getProfile(ACCOUNT_ID.toString())).thenReturn(new PatientProfileResponse(
+                ACCOUNT_ID, "0912345678", "Nguyen Van A", AccountStatus.ACTIVE, false));
+
+        mockMvc.perform(get("/api/v1/auth/me")
+                        .with(authentication(UsernamePasswordAuthenticationToken.authenticated(
+                                ACCOUNT_ID.toString(), null, List.of()))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.phone").value("0912345678"))
+                .andExpect(jsonPath("$.fullName").value("Nguyen Van A"));
+    }
+
+    @Test
+    void updatesPatientProfile() throws Exception {
+        when(authService.updateProfile(org.mockito.ArgumentMatchers.eq(ACCOUNT_ID.toString()), any()))
+                .thenReturn(new PatientProfileResponse(ACCOUNT_ID, "0912345678", "Nguyen Thi B", AccountStatus.ACTIVE, false));
+
+        mockMvc.perform(patch("/api/v1/auth/me")
+                        .with(authentication(UsernamePasswordAuthenticationToken.authenticated(
+                                ACCOUNT_ID.toString(), null, List.of())))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"fullName\":\"Nguyen Thi B\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.fullName").value("Nguyen Thi B"));
     }
 
     @TestConfiguration
