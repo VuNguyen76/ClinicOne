@@ -41,7 +41,7 @@ public class AccountAuthService {
     public RegistrationResponse register(RegistrationRequest request) {
         String email = normalizeEmail(request.email());
         String phone = request.phone().trim();
-        if (!otpService.isRecentlyVerified(email, OtpPurpose.REGISTRATION)) {
+        if (!otpService.isPhoneRecentlyVerified(phone, OtpPurpose.REGISTRATION)) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "EMAIL_NOT_VERIFIED",
                     "Email chưa được xác thực OTP.");
         }
@@ -65,12 +65,18 @@ public class AccountAuthService {
         if (account.getStatus() != AccountStatus.ACTIVE || !passwordEncoder.matches(request.password(), account.getPasswordHash())) {
             throw invalidCredentials();
         }
-        Instant now = Instant.now(clock);
-        Instant expiresAt = now.plus(SESSION_LIFETIME);
-        String accessToken = tokenGenerator.generate();
-        sessionRepository.save(new LoginSession(account.getId(), hashToken(accessToken), now, expiresAt));
-        return new LoginResponse(accessToken, "Bearer", expiresAt, account.getId(), account.getFullName(),
-                account.isMustChangePassword());
+        return createSession(account);
+    }
+
+    @Transactional
+    public LoginResponse loginBySmsOtp(SmsLoginRequest request) {
+        otpService.verifySmsOtp(request.phone(), OtpPurpose.LOGIN, request.code());
+        PatientAccount account = accountRepository.findByPhone(request.phone().trim())
+                .orElseThrow(this::invalidCredentials);
+        if (account.getStatus() != AccountStatus.ACTIVE) {
+            throw invalidCredentials();
+        }
+        return createSession(account);
     }
 
     @Transactional
@@ -101,6 +107,15 @@ public class AccountAuthService {
     private AuthException invalidCredentials() {
         return new AuthException(HttpStatus.UNAUTHORIZED, "AUTH_INVALID_CREDENTIALS",
                 "Email hoặc mật khẩu không đúng.");
+    }
+
+    private LoginResponse createSession(PatientAccount account) {
+        Instant now = Instant.now(clock);
+        Instant expiresAt = now.plus(SESSION_LIFETIME);
+        String accessToken = tokenGenerator.generate();
+        sessionRepository.save(new LoginSession(account.getId(), hashToken(accessToken), now, expiresAt));
+        return new LoginResponse(accessToken, "Bearer", expiresAt, account.getId(), account.getFullName(),
+                account.isMustChangePassword());
     }
 
 }

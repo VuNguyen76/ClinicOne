@@ -26,4 +26,14 @@ public class OtpController {
     public ResponseEntity<VerifyOtpResponse> verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
         return ResponseEntity.ok(otpService.verifyOtp(request.email(), request.purpose(), request.code()));
     }
+
+    @PostMapping("/request-sms-otp")
+    public ResponseEntity<RequestOtpResponse> requestSmsOtp(@Valid @RequestBody RequestSmsOtpRequest request) {
+        return ResponseEntity.ok(otpService.requestSmsOtp(request.phone(), request.purpose()));
+    }
+
+    @PostMapping("/verify-sms-otp")
+    public ResponseEntity<VerifyOtpResponse> verifySmsOtp(@Valid @RequestBody VerifySmsOtpRequest request) {
+        return ResponseEntity.ok(otpService.verifySmsOtp(request.phone(), request.purpose(), request.code()));
+    }
 }
