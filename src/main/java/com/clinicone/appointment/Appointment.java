@@ -14,6 +14,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -23,6 +24,8 @@ import java.util.UUID;
 @Entity
 @Table(name = "appointments", indexes = {
         @Index(name = "idx_appointments_patient_date", columnList = "patient_account_id,appointment_date,start_time")
+}, uniqueConstraints = {
+        @UniqueConstraint(name = "uk_appointments_patient_slot", columnNames = {"patient_account_id", "appointment_date", "start_time"})
 })
 public class Appointment {
     @Id
