@@ -76,13 +76,19 @@ export class AuthApiService {
   login(phone: string, password: string): Observable<SmsLoginResponse> {
     return this.http
       .post<SmsLoginResponse>(`${this.apiRoot}/login`, { phone, password })
-      .pipe(tap((session) => sessionStorage.setItem('clinicOneAccessToken', session.accessToken)));
+      .pipe(tap((session) => {
+        sessionStorage.setItem('clinicOneAccessToken', session.accessToken);
+        sessionStorage.setItem('clinicOnePatientName', session.fullName);
+      }));
   }
 
   loginBySmsOtp(phone: string, password: string, code: string): Observable<SmsLoginResponse> {
     return this.http
       .post<SmsLoginResponse>(`${this.apiRoot}/login-sms`, { phone, password, code })
-      .pipe(tap((session) => sessionStorage.setItem('clinicOneAccessToken', session.accessToken)));
+      .pipe(tap((session) => {
+        sessionStorage.setItem('clinicOneAccessToken', session.accessToken);
+        sessionStorage.setItem('clinicOnePatientName', session.fullName);
+      }));
   }
 
   verifySmsOtp(phone: string, purpose: OtpPurpose, code: string): Observable<{ verified: boolean }> {

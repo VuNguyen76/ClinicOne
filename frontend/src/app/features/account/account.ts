@@ -6,6 +6,7 @@ import { finalize } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
 import { apiErrorMessage, AuthApiService, PatientProfileResponse } from '../../core/auth/auth-api.service';
 import { VietnamAddressService, VietnamAddressUnit } from '../../core/address/vietnam-address.service';
+import { AccountMenu } from '../../shared/account-menu/account-menu';
 
 function passwordsMatch(control: AbstractControl): ValidationErrors | null {
   const group = control as AbstractControl & { value: { newPassword?: string; confirmPassword?: string } };
@@ -15,7 +16,7 @@ function passwordsMatch(control: AbstractControl): ValidationErrors | null {
 @Component({
   selector: 'app-account',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, MatIconModule],
+  imports: [ReactiveFormsModule, RouterLink, MatIconModule, AccountMenu],
   templateUrl: './account.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -226,6 +227,7 @@ export class Account implements OnInit {
   private showError(response: { status?: number; error?: { message?: string; detail?: string; title?: string } | string; message?: string; detail?: string }): void {
     if (response.status === 401 || response.status === 403) {
       sessionStorage.removeItem('clinicOneAccessToken');
+      sessionStorage.removeItem('clinicOnePatientName');
       void this.router.navigateByUrl('/login');
       return;
     }

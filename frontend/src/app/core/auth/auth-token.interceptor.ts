@@ -23,6 +23,7 @@ export const authTokenInterceptor: HttpInterceptorFn = (request, next) => {
       const isCurrentSessionRequest = request.url.includes('/auth/me');
       if (error instanceof HttpErrorResponse && (error.status === 401 || (error.status === 403 && isCurrentSessionRequest))) {
         sessionStorage.removeItem('clinicOneAccessToken');
+        sessionStorage.removeItem('clinicOnePatientName');
         if (!router.url.startsWith('/login')) {
           void router.navigate(['/login'], { queryParams: { returnUrl: router.url } });
         }

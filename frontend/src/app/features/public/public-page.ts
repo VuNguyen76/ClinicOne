@@ -1,13 +1,14 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink, RouterLinkActive } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
+import { AccountMenu } from '../../shared/account-menu/account-menu';
 
 export type PublicPageKey = 'about' | 'process' | 'common-issues' | 'support' | 'contact';
 
 @Component({
   selector: 'app-public-page',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, MatIconModule],
+  imports: [RouterLink, RouterLinkActive, MatIconModule, AccountMenu],
   templateUrl: './public-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
