@@ -2,9 +2,7 @@
   <header class="sticky top-0 z-50 border-b border-[var(--color-border)] bg-white/95 backdrop-blur">
     <div class="mx-auto flex h-[72px] max-w-[1200px] items-center justify-between px-5 lg:px-0">
       <a routerLink="/home" class="flex items-center gap-3" aria-label="ClinicOne, trang chủ" (click)="closeMenu()">
-        <span class="grid h-10 w-10 place-items-center rounded-md bg-[var(--color-primary-soft)]">
-          <img class="h-8 w-8 object-contain" src="clinicone-mark.png" alt="" aria-hidden="true" />
-        </span>
+        <img class="h-11 w-11 object-contain" src="clinicone-mark.png" alt="" aria-hidden="true" />
         <span class="text-[21px] font-bold tracking-[-0.04em] text-[var(--color-text)]">Clinic<span class="text-[var(--color-primary)]">One</span></span>
       </a>
 
@@ -18,11 +16,11 @@
       </nav>
 
       <div class="flex items-center gap-2">
-        <a href="tel:19002115" class="hidden items-center gap-2 text-right sm:flex">
+        <a href="tel:1900000" class="hidden items-center gap-2 text-right sm:flex">
           <mat-icon class="!h-5 !w-5 !text-[19px] text-[var(--color-hotline)]">phone_in_talk</mat-icon>
-          <span class="hidden text-xs text-[var(--color-text-muted)] xl:block"><strong class="block text-[var(--color-text)]">Tổng đài đặt lịch khám</strong><span class="font-semibold tracking-[0.08em] text-[var(--color-hotline)]">1900 2115</span></span>
+          <span class="hidden text-xs text-[var(--color-text-muted)] xl:block"><strong class="block text-[var(--color-text)]">Tổng đài đặt lịch khám</strong><span class="font-semibold tracking-[0.08em] text-[var(--color-hotline)]">1900000</span></span>
         </a>
-        <a routerLink="/login" class="inline-flex items-center gap-2 rounded-[6px] bg-[var(--color-primary)] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-primary-dark)]">
+        <a routerLink="/login" class="inline-flex items-center gap-2 px-2 py-2.5 text-sm font-medium text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-primary)]">
           <mat-icon class="!h-4 !w-4 !text-[16px]">account_circle</mat-icon>
           Đăng nhập
         </a>
@@ -126,13 +124,13 @@
 
   <footer id="footer" class="bg-[var(--color-text)] text-white/70">
     <div class="mx-auto grid max-w-[1200px] gap-10 px-5 py-12 lg:grid-cols-[1.2fr_1fr_1fr_1fr] lg:px-0">
-      <div><div class="flex items-center gap-3 text-white"><span class="grid h-9 w-9 place-items-center rounded-[6px] bg-white"><img class="h-7 w-7 object-contain" src="clinicone-mark.png" alt="" aria-hidden="true" /></span><span class="text-lg font-bold">ClinicOne</span></div><p class="mt-4 max-w-[290px] text-sm leading-6">Cổng đặt lịch khám trực tuyến, giúp bạn chủ động trước khi đến bệnh viện.</p></div>
+      <div><div class="flex items-center gap-3 text-white"><img class="h-10 w-10 object-contain brightness-0 invert" src="clinicone-mark.png" alt="" aria-hidden="true" /><span class="text-lg font-bold">ClinicOne</span></div><p class="mt-4 max-w-[290px] text-sm leading-6">Cổng đặt lịch khám trực tuyến, giúp bạn chủ động trước khi đến bệnh viện.</p></div>
       <div><h2 class="text-sm font-bold text-white">Liên kết nhanh</h2><ul class="mt-4 space-y-2 text-sm">@for (link of quickLinks; track link.label) {<li><a [href]="link.href" class="transition-colors hover:text-white">{{ link.label }}</a></li>}</ul></div>
-      <div><h2 class="text-sm font-bold text-white">Thông tin ClinicOne</h2><ul class="mt-4 space-y-2 text-sm"><li>123 Nguyễn Huệ, Quận 1</li><li>TP. Hồ Chí Minh</li><li><a href="mailto:hello@clinicone.vn" class="hover:text-white">hello@clinicone.vn</a></li><li><a href="tel:19002115" class="text-[var(--color-primary-soft)] hover:text-white">1900 2115</a></li></ul></div>
+      <div><h2 class="text-sm font-bold text-white">Thông tin ClinicOne</h2><ul class="mt-4 space-y-2 text-sm"><li>123 Nguyễn Huệ, Quận 1</li><li>TP. Hồ Chí Minh</li><li><a href="mailto:hello@clinicone.vn" class="hover:text-white">hello@clinicone.vn</a></li><li><a href="tel:1900000" class="text-[var(--color-primary-soft)] hover:text-white">1900000</a></li></ul></div>
       <div><h2 class="text-sm font-bold text-white">Pháp lý</h2><ul class="mt-4 space-y-2 text-sm">@for (link of legalLinks; track link.label) {<li><a [href]="link.href" class="transition-colors hover:text-white">{{ link.label }}</a></li>}</ul></div>
     </div>
     <div class="border-t border-white/15"><div class="mx-auto max-w-[1200px] px-5 py-5 text-xs lg:px-0">© 2026 ClinicOne. Bảo lưu mọi quyền.</div></div>
   </footer>
 
-  <a href="tel:19002115" class="fixed bottom-5 right-5 z-40 grid h-14 w-14 place-items-center rounded-full bg-[var(--color-primary)] text-white shadow-[0_10px_30px_rgba(14,165,233,0.35)] transition hover:scale-105 hover:bg-[var(--color-primary-dark)]" aria-label="Gọi tổng đài ClinicOne"><mat-icon>phone</mat-icon><span class="absolute inset-0 -z-10 animate-ping rounded-full bg-[var(--color-primary)]/30"></span></a>
+  <a href="tel:1900000" class="fixed bottom-5 right-5 z-40 grid h-14 w-14 place-items-center rounded-full bg-[var(--color-primary)] text-white shadow-[0_10px_30px_rgba(14,165,233,0.35)] transition hover:scale-105 hover:bg-[var(--color-primary-dark)]" aria-label="Gọi tổng đài ClinicOne"><mat-icon>phone</mat-icon><span class="absolute inset-0 -z-10 animate-ping rounded-full bg-[var(--color-primary)]/30"></span></a>
 </main>
