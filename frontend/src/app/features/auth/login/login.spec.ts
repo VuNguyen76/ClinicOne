@@ -54,4 +54,13 @@ describe('Login', () => {
     expect((component as any).step()).toBe('password');
     expect((component as any).showRegister()).toBe(false);
   });
+
+  it('shows the server detail instead of a generic error', () => {
+    component.phoneForm.setValue({ phone: '0912345678' });
+    component['submitPhone']();
+
+    http.expectOne('/api/v1/auth/check-phone').flush({ detail: 'Dịch vụ SMS đang tạm thời không khả dụng.' }, { status: 503, statusText: 'Service Unavailable' });
+
+    expect((component as any).error()).toBe('Dịch vụ SMS đang tạm thời không khả dụng.');
+  });
 });

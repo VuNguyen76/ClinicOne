@@ -39,6 +39,17 @@ export interface PatientProfileResponse {
   mustChangePassword: boolean;
 }
 
+export type ApiErrorResponse = {
+  error?: { message?: string; detail?: string; title?: string } | string;
+  message?: string;
+  detail?: string;
+};
+
+export function apiErrorMessage(response: ApiErrorResponse): string {
+  const payload = typeof response.error === 'object' && response.error !== null ? response.error : undefined;
+  return payload?.message ?? payload?.detail ?? response.message ?? response.detail ?? (typeof response.error === 'string' ? response.error : undefined) ?? 'Không thể xử lý yêu cầu. Vui lòng thử lại.';
+}
+
 @Injectable({ providedIn: 'root' })
 export class AuthApiService {
   private readonly http = inject(HttpClient);
