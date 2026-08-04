@@ -25,12 +25,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/api/v1/auth/check-phone",
-                                "/api/v1/auth/request-otp",
-                                "/api/v1/auth/verify-otp",
                                 "/api/v1/auth/request-sms-otp",
                                 "/api/v1/auth/verify-sms-otp",
                                 "/api/v1/auth/register",
-                                "/api/v1/auth/login",
                                 "/api/v1/auth/login-sms",
                                 "/actuator/health"
                         ).permitAll()

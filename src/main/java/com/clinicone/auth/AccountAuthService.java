@@ -11,7 +11,6 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.Duration;
-import java.util.Locale;
 import java.util.HexFormat;
 
 @Service
@@ -39,33 +38,18 @@ public class AccountAuthService {
 
     @Transactional
     public RegistrationResponse register(RegistrationRequest request) {
-        String email = normalizeEmail(request.email());
         String phone = request.phone().trim();
         if (!otpService.isPhoneRecentlyVerified(phone, OtpPurpose.REGISTRATION)) {
-            throw new AuthException(HttpStatus.BAD_REQUEST, "EMAIL_NOT_VERIFIED",
-                    "Email chưa được xác thực OTP.");
-        }
-        if (accountRepository.existsByEmail(email)) {
-            throw new AuthException(HttpStatus.CONFLICT, "EMAIL_ALREADY_USED", "Email đã được sử dụng.");
+            throw new AuthException(HttpStatus.BAD_REQUEST, "PHONE_NOT_VERIFIED",
+                    "Số điện thoại chưa được xác thực OTP.");
         }
         if (accountRepository.existsByPhone(phone)) {
             throw new AuthException(HttpStatus.CONFLICT, "PHONE_ALREADY_USED", "Số điện thoại đã được sử dụng.");
         }
-        PatientAccount account = new PatientAccount(email, phone, passwordEncoder.encode(request.password()),
-                request.fullName().trim(), Instant.now(clock), AccountStatus.ACTIVE, false);
+        PatientAccount account = new PatientAccount(phone, passwordEncoder.encode(request.password()),
+                request.fullName().trim(), AccountStatus.ACTIVE, false);
         PatientAccount saved = accountRepository.save(account);
-        return new RegistrationResponse(saved.getId(), saved.getEmail(), saved.getFullName());
-    }
-
-    @Transactional
-    public LoginResponse login(LoginRequest request) {
-        String email = normalizeEmail(request.email());
-        PatientAccount account = accountRepository.findByEmail(email)
-                .orElseThrow(this::invalidCredentials);
-        if (account.getStatus() != AccountStatus.ACTIVE || !passwordEncoder.matches(request.password(), account.getPasswordHash())) {
-            throw invalidCredentials();
-        }
-        return createSession(account);
+        return new RegistrationResponse(saved.getId(), saved.getPhone(), saved.getFullName());
     }
 
     @Transactional
@@ -91,10 +75,6 @@ public class AccountAuthService {
         accountRepository.save(account);
     }
 
-    static String normalizeEmail(String email) {
-        return email.trim().toLowerCase(Locale.ROOT);
-    }
-
     static String hashToken(String token) {
         try {
             return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
@@ -106,7 +86,7 @@ public class AccountAuthService {
 
     private AuthException invalidCredentials() {
         return new AuthException(HttpStatus.UNAUTHORIZED, "AUTH_INVALID_CREDENTIALS",
-                "Email hoặc mật khẩu không đúng.");
+                "Số điện thoại hoặc mã OTP không đúng.");
     }
 
     private LoginResponse createSession(PatientAccount account) {

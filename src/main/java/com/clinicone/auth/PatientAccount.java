@@ -22,9 +22,6 @@ public class PatientAccount {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(nullable = false, unique = true, length = 320)
-    private String email;
-
     @Column(nullable = false, unique = true, length = 10)
     private String phone;
 
@@ -33,9 +30,6 @@ public class PatientAccount {
 
     @Column(name = "full_name", nullable = false, length = 200)
     private String fullName;
-
-    @Column(name = "email_verified_at", nullable = false)
-    private Instant emailVerifiedAt;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -53,13 +47,11 @@ public class PatientAccount {
     protected PatientAccount() {
     }
 
-    public PatientAccount(String email, String phone, String passwordHash, String fullName,
-                          Instant emailVerifiedAt, AccountStatus status, boolean mustChangePassword) {
-        this.email = email;
+    public PatientAccount(String phone, String passwordHash, String fullName,
+                          AccountStatus status, boolean mustChangePassword) {
         this.phone = phone;
         this.passwordHash = passwordHash;
         this.fullName = fullName;
-        this.emailVerifiedAt = emailVerifiedAt;
         this.status = status;
         this.mustChangePassword = mustChangePassword;
     }
@@ -82,11 +74,9 @@ public class PatientAccount {
     }
 
     public UUID getId() { return id; }
-    public String getEmail() { return email; }
     public String getPhone() { return phone; }
     public String getPasswordHash() { return passwordHash; }
     public String getFullName() { return fullName; }
-    public Instant getEmailVerifiedAt() { return emailVerifiedAt; }
     public AccountStatus getStatus() { return status; }
     public boolean isMustChangePassword() { return mustChangePassword; }
 }

@@ -8,7 +8,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Locale;
 
 @Service
 public class OtpService {
@@ -32,16 +31,6 @@ public class OtpService {
         this.passwordEncoder = passwordEncoder;
         this.codeGenerator = codeGenerator;
         this.clock = clock;
-    }
-
-    @Transactional
-    public RequestOtpResponse requestOtp(String email, OtpPurpose purpose) {
-        return issueOtp(normalizeEmail(email), purpose);
-    }
-
-    @Transactional
-    public VerifyOtpResponse verifyOtp(String email, OtpPurpose purpose, String code) {
-        return verifyForDestination(normalizeEmail(email), purpose, code);
     }
 
     @Transactional
@@ -73,13 +62,6 @@ public class OtpService {
         return new VerifyOtpResponse(true);
     }
 
-    public boolean isRecentlyVerified(String email, OtpPurpose purpose) {
-        Instant now = Instant.now(clock);
-        return repository.findTopByDestinationAndPurposeOrderByCreatedAtDesc(normalizeEmail(email), purpose)
-                .map(challenge -> challenge.isVerified() && !challenge.isExpired(now))
-                .orElse(false);
-    }
-
     public boolean isPhoneRecentlyVerified(String phone, OtpPurpose purpose) {
         Instant now = Instant.now(clock);
         return repository.findTopByDestinationAndPurposeOrderByCreatedAtDesc(normalizePhone(phone), purpose)
@@ -89,10 +71,6 @@ public class OtpService {
 
     private OtpException invalidOtp() {
         return new OtpException(HttpStatus.BAD_REQUEST, "OTP_INVALID", "Mã xác thực không hợp lệ hoặc đã hết hạn.");
-    }
-
-    static String normalizeEmail(String email) {
-        return email.trim().toLowerCase(Locale.ROOT);
     }
 
     static String normalizePhone(String phone) {
