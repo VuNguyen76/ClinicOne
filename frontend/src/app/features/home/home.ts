@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
-import { RouterLink } from '@angular/router';
+import { RouterLink, RouterLinkActive } from '@angular/router';
 
 type Service = {
   icon: string;
@@ -29,10 +29,17 @@ type FooterLink = {
   href: string;
 };
 
+type NewsItem = {
+  category: string;
+  date: string;
+  title: string;
+  summary: string;
+};
+
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [RouterLink, MatIconModule],
+  imports: [RouterLink, RouterLinkActive, MatIconModule],
   templateUrl: './home.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -81,6 +88,21 @@ export class Home {
     { label: 'Điều khoản dịch vụ', href: '#legal' },
     { label: 'Chính sách bảo mật', href: '#legal' },
     { label: 'Quy định sử dụng', href: '#legal' },
+  ];
+
+  readonly news: NewsItem[] = [
+    { category: 'Thông tin ClinicOne', date: '04.08.2026', title: 'ClinicOne sẵn sàng đồng hành cùng lịch khám của bạn', summary: 'Tin tức mô phỏng — nội dung chính thức sẽ được cập nhật trong phiên bản tiếp theo.' },
+    { category: 'Hướng dẫn', date: '01.08.2026', title: 'Ba việc nên chuẩn bị trước khi đến phòng khám', summary: 'Kiểm tra lịch hẹn, giấy tờ cần thiết và thời gian di chuyển.' },
+    { category: 'Sức khỏe', date: '28.07.2026', title: 'Chủ động theo dõi lịch tái khám', summary: 'Lưu lại hướng dẫn của bác sĩ để chuẩn bị tốt cho lần khám tiếp theo.' },
+  ];
+
+  readonly publicLinks = [
+    { label: 'Trang chủ', route: '/home' },
+    { label: 'Giới thiệu', route: '/about' },
+    { label: 'Quy trình', route: '/process' },
+    { label: 'Hướng dẫn', route: '/common-issues' },
+    { label: 'Thắc mắc', route: '/support' },
+    { label: 'Liên hệ', route: '/contact' },
   ];
 
   toggleMenu(): void {

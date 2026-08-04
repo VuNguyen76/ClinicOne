@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { AuthApiService } from '../../../core/auth/auth-api.service';
 
@@ -20,6 +20,7 @@ export class Register {
   private readonly formBuilder = inject(FormBuilder);
   private readonly authApi = inject(AuthApiService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   protected readonly step = signal<RegisterStep>('phone');
   protected readonly phone = signal('');
@@ -28,7 +29,7 @@ export class Register {
   protected readonly busy = signal(false);
 
   readonly phoneForm = this.formBuilder.nonNullable.group({
-    phone: ['', [Validators.required, Validators.pattern(/^0\d{9}$/)]],
+    phone: [this.route.snapshot.queryParamMap.get('phone') ?? '', [Validators.required, Validators.pattern(/^0\d{9}$/)]],
   });
 
   readonly otpForm = this.formBuilder.nonNullable.group({

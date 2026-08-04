@@ -28,6 +28,11 @@ public class AccountAuthController {
         return ResponseEntity.ok(authService.loginBySmsOtp(request));
     }
 
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody PasswordLoginRequest request) {
+        return ResponseEntity.ok(authService.login(request));
+    }
+
     @PostMapping("/me/password")
     public ResponseEntity<Void> changePassword(Authentication authentication,
                                                @Valid @RequestBody ChangePasswordRequest request) {

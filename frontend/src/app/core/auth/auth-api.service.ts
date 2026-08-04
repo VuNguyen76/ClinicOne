@@ -9,6 +9,10 @@ export interface OtpResponse {
   retryAfterSeconds: number;
 }
 
+export interface CheckPhoneResponse {
+  accountExists: boolean;
+}
+
 export interface SmsLoginResponse {
   accessToken: string;
   tokenType: string;
@@ -31,6 +35,16 @@ export class AuthApiService {
 
   requestSmsOtp(phone: string, purpose: OtpPurpose): Observable<OtpResponse> {
     return this.http.post<OtpResponse>(`${this.apiRoot}/request-sms-otp`, { phone, purpose });
+  }
+
+  checkPhone(phone: string): Observable<CheckPhoneResponse> {
+    return this.http.post<CheckPhoneResponse>(`${this.apiRoot}/check-phone`, { phone });
+  }
+
+  login(phone: string, password: string): Observable<SmsLoginResponse> {
+    return this.http
+      .post<SmsLoginResponse>(`${this.apiRoot}/login`, { phone, password })
+      .pipe(tap((session) => sessionStorage.setItem('clinicOneAccessToken', session.accessToken)));
   }
 
   loginBySmsOtp(phone: string, password: string, code: string): Observable<SmsLoginResponse> {

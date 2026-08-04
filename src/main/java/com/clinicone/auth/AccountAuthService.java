@@ -67,6 +67,17 @@ public class AccountAuthService {
     }
 
     @Transactional
+    public LoginResponse login(PasswordLoginRequest request) {
+        PatientAccount account = accountRepository.findByPhone(request.phone().trim())
+                .orElseThrow(this::invalidCredentials);
+        if (account.getStatus() != AccountStatus.ACTIVE
+                || !passwordEncoder.matches(request.password(), account.getPasswordHash())) {
+            throw invalidCredentials();
+        }
+        return createSession(account);
+    }
+
+    @Transactional
     public void changePassword(String accountId, ChangePasswordRequest request) {
         PatientAccount account = accountRepository.findById(java.util.UUID.fromString(accountId))
                 .orElseThrow(() -> new AuthException(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_REQUIRED",
@@ -89,7 +100,7 @@ public class AccountAuthService {
 
     private AuthException invalidCredentials() {
         return new AuthException(HttpStatus.UNAUTHORIZED, "AUTH_INVALID_CREDENTIALS",
-                "Số điện thoại, mật khẩu hoặc mã OTP không đúng.");
+                "Số điện thoại hoặc mật khẩu không đúng.");
     }
 
     private LoginResponse createSession(PatientAccount account) {

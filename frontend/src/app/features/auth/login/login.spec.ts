@@ -27,23 +27,31 @@ describe('Login', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should keep the form invalid until valid credentials are entered', () => {
+  it('should keep the phone form invalid until a valid phone is entered', () => {
     expect(component.phoneForm.invalid).toBe(true);
 
     component.phoneForm.controls.phone.setValue('0912345678');
-    component.phoneForm.controls.password.setValue('password123');
 
     expect(component.phoneForm.valid).toBe(true);
   });
 
-  it('moves to OTP immediately without waiting for SMS request response', () => {
-    component.phoneForm.setValue({ phone: '0912345678', password: 'password123' });
-    component['submitCredentials']();
+  it('shows the registration action when the phone has no account', () => {
+    component.phoneForm.setValue({ phone: '0912345678' });
+    component['submitPhone']();
 
-    expect((component as any).step()).toBe('otp');
-    expect((component as any).sendingOtp()).toBe(true);
+    http.expectOne('/api/v1/auth/check-phone').flush({ accountExists: false });
 
-    http.expectOne('/api/v1/auth/request-sms-otp').flush({ expiresInSeconds: 300, retryAfterSeconds: 60 });
-    expect((component as any).sendingOtp()).toBe(false);
+    expect((component as any).showRegister()).toBe(true);
+    expect((component as any).step()).toBe('phone');
+  });
+
+  it('shows the password step when the phone has an account', () => {
+    component.phoneForm.setValue({ phone: '0912345678' });
+    component['submitPhone']();
+
+    http.expectOne('/api/v1/auth/check-phone').flush({ accountExists: true });
+
+    expect((component as any).step()).toBe('password');
+    expect((component as any).showRegister()).toBe(false);
   });
 });
