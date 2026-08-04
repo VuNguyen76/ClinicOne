@@ -23,11 +23,6 @@ public class AccountAuthController {
         return ResponseEntity.status(201).body(authService.register(request));
     }
 
-    @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
-        return ResponseEntity.ok(authService.login(request));
-    }
-
     @PostMapping("/login-sms")
     public ResponseEntity<LoginResponse> loginBySmsOtp(@Valid @RequestBody SmsLoginRequest request) {
         return ResponseEntity.ok(authService.loginBySmsOtp(request));

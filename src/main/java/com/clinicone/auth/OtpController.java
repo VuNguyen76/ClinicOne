@@ -17,16 +17,6 @@ public class OtpController {
         this.otpService = otpService;
     }
 
-    @PostMapping("/request-otp")
-    public ResponseEntity<RequestOtpResponse> requestOtp(@Valid @RequestBody RequestOtpRequest request) {
-        return ResponseEntity.ok(otpService.requestOtp(request.email(), request.purpose()));
-    }
-
-    @PostMapping("/verify-otp")
-    public ResponseEntity<VerifyOtpResponse> verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
-        return ResponseEntity.ok(otpService.verifyOtp(request.email(), request.purpose(), request.code()));
-    }
-
     @PostMapping("/request-sms-otp")
     public ResponseEntity<RequestOtpResponse> requestSmsOtp(@Valid @RequestBody RequestSmsOtpRequest request) {
         return ResponseEntity.ok(otpService.requestSmsOtp(request.phone(), request.purpose()));
