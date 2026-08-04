@@ -18,6 +18,7 @@ frontend/.env.*
 
 # File cần để build/chạy project
 !pom.xml
+!package.json
 !mvnw
 !mvnw.cmd
 !.mvn/
