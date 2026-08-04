@@ -27,6 +27,7 @@ export class Register {
   protected readonly notice = signal('');
   protected readonly error = signal('');
   protected readonly busy = signal(false);
+  protected readonly today = new Date().toISOString().slice(0, 10);
 
   readonly phoneForm = this.formBuilder.nonNullable.group({
     phone: [this.route.snapshot.queryParamMap.get('phone') ?? '', [Validators.required, Validators.pattern(/^0\d{9}$/)]],
@@ -38,7 +39,10 @@ export class Register {
 
   readonly profileForm = this.formBuilder.nonNullable.group(
     {
-      fullName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(200)]],
+      fullName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
+      dateOfBirth: ['', [Validators.required]],
+      gender: ['', [Validators.required]],
+      address: ['', [Validators.maxLength(500)]],
       password: ['', [Validators.required, Validators.minLength(8), Validators.maxLength(72)]],
       confirmPassword: ['', [Validators.required]],
     },
@@ -94,10 +98,10 @@ export class Register {
       return;
     }
 
-    const { fullName, password } = this.profileForm.getRawValue();
+    const { fullName, password, dateOfBirth, gender, address } = this.profileForm.getRawValue();
     this.busy.set(true);
     this.authApi
-      .register(this.phone(), fullName.trim(), password)
+      .register(this.phone(), fullName.trim(), password, dateOfBirth, gender, address.trim())
       .pipe(finalize(() => this.busy.set(false)))
       .subscribe({
         next: () => {

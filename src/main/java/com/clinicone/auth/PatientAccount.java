@@ -12,6 +12,7 @@ import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
@@ -30,6 +31,15 @@ public class PatientAccount {
 
     @Column(name = "full_name", nullable = false, length = 200)
     private String fullName;
+
+    @Column(name = "date_of_birth")
+    private LocalDate dateOfBirth;
+
+    @Column(length = 20)
+    private String gender;
+
+    @Column(length = 500)
+    private String address;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -77,10 +87,26 @@ public class PatientAccount {
         this.fullName = fullName;
     }
 
+    public void updateProfile(String fullName, LocalDate dateOfBirth, String gender, String address) {
+        this.fullName = fullName;
+        if (dateOfBirth != null) {
+            this.dateOfBirth = dateOfBirth;
+        }
+        if (gender != null) {
+            this.gender = gender;
+        }
+        if (address != null) {
+            this.address = address;
+        }
+    }
+
     public UUID getId() { return id; }
     public String getPhone() { return phone; }
     public String getPasswordHash() { return passwordHash; }
     public String getFullName() { return fullName; }
+    public LocalDate getDateOfBirth() { return dateOfBirth; }
+    public String getGender() { return gender; }
+    public String getAddress() { return address; }
     public AccountStatus getStatus() { return status; }
     public boolean isMustChangePassword() { return mustChangePassword; }
 }

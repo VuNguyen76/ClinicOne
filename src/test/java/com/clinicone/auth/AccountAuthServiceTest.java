@@ -8,6 +8,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.lang.reflect.Field;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.UUID;
@@ -128,11 +129,27 @@ class AccountAuthServiceTest {
         setId(account, ACCOUNT_ID);
         when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
 
-        PatientProfileResponse response = service.updateProfile(ACCOUNT_ID.toString(), new UpdateProfileRequest("Nguyen Thi B"));
+        PatientProfileResponse response = service.updateProfile(ACCOUNT_ID.toString(), new UpdateProfileRequest("Nguyen Thi B", LocalDate.of(2005, 6, 7), "Nam", "Tay Ninh"));
 
         assertEquals("Nguyen Thi B", response.fullName());
         assertEquals("0912345678", response.phone());
+        assertEquals(LocalDate.of(2005, 6, 7), response.dateOfBirth());
+        assertEquals("Nam", response.gender());
+        assertEquals("Tay Ninh", response.address());
         verify(accountRepository).save(account);
+    }
+
+    @Test
+    void rejectsProfileDetailsOutsideTheClinicCatalog() {
+        PatientAccount account = new PatientAccount("0912345678", "password-hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
+        setId(account, ACCOUNT_ID);
+        when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
+
+        AuthException exception = assertThrows(AuthException.class, () -> service.updateProfile(ACCOUNT_ID.toString(),
+                new UpdateProfileRequest("Nguyen Van A", LocalDate.of(1899, 12, 31), "Unknown", "Tay Ninh")));
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        verify(accountRepository, org.mockito.Mockito.never()).save(any(PatientAccount.class));
     }
 
     private static void setId(PatientAccount account, UUID id) {

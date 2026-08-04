@@ -28,9 +28,13 @@ export class Account implements OnInit {
   protected readonly passwordOpen = signal(false);
   protected readonly error = signal('');
   protected readonly notice = signal('');
+  protected readonly today = new Date().toISOString().slice(0, 10);
 
   readonly profileForm = this.formBuilder.nonNullable.group({
-    fullName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(200)]],
+    fullName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
+    dateOfBirth: ['', [Validators.required]],
+    gender: ['', [Validators.required]],
+    address: ['', [Validators.maxLength(500)]],
   });
 
   readonly passwordForm = this.formBuilder.nonNullable.group({
@@ -52,12 +56,13 @@ export class Account implements OnInit {
     }
 
     this.busy.set(true);
-    this.authApi.updateProfile(this.profileForm.controls.fullName.value.trim())
+    const { fullName, dateOfBirth, gender, address } = this.profileForm.getRawValue();
+    this.authApi.updateProfile(fullName.trim(), dateOfBirth || null, gender || null, address.trim())
       .pipe(finalize(() => this.busy.set(false)))
       .subscribe({
         next: (profile) => {
           this.profile.set(profile);
-          this.profileForm.controls.fullName.setValue(profile.fullName);
+          this.setProfileForm(profile);
           this.notice.set('Thông tin cá nhân đã được cập nhật.');
         },
         error: (response) => this.showError(response),
@@ -99,13 +104,21 @@ export class Account implements OnInit {
     return phone.length > 6 ? `${phone.slice(0, 3)}****${phone.slice(-3)}` : phone;
   }
 
+  protected formatDateOfBirth(value: string | null | undefined): string {
+    if (!value) {
+      return 'Chưa cập nhật';
+    }
+    const [year, month, day] = value.split('-').map(Number);
+    return new Intl.DateTimeFormat('vi-VN').format(new Date(year, month - 1, day));
+  }
+
   private loadProfile(): void {
     this.authApi.getProfile()
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
         next: (profile) => {
           this.profile.set(profile);
-          this.profileForm.controls.fullName.setValue(profile.fullName);
+          this.setProfileForm(profile);
           if (profile.mustChangePassword) {
             this.passwordOpen.set(true);
           }
@@ -117,6 +130,15 @@ export class Account implements OnInit {
   private clearMessages(): void {
     this.error.set('');
     this.notice.set('');
+  }
+
+  private setProfileForm(profile: PatientProfileResponse): void {
+    this.profileForm.setValue({
+      fullName: profile.fullName,
+      dateOfBirth: profile.dateOfBirth ?? '',
+      gender: profile.gender ?? '',
+      address: profile.address ?? '',
+    });
   }
 
   private showError(response: { error?: { message?: string } }): void {

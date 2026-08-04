@@ -11,12 +11,16 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.Duration;
+import java.time.LocalDate;
+import java.util.Set;
 import java.util.HexFormat;
 
 @Service
 public class AccountAuthService {
 
     private static final Duration SESSION_LIFETIME = Duration.ofHours(12);
+    private static final LocalDate MIN_DATE_OF_BIRTH = LocalDate.of(1900, 1, 1);
+    private static final Set<String> ALLOWED_GENDERS = Set.of("Nam", "Nữ", "Khác");
 
     private final PatientAccountRepository accountRepository;
     private final LoginSessionRepository sessionRepository;
@@ -48,6 +52,9 @@ public class AccountAuthService {
         }
         PatientAccount account = new PatientAccount(phone, passwordEncoder.encode(request.password()),
                 request.fullName().trim(), AccountStatus.ACTIVE, false);
+        validateProfileDetails(request.dateOfBirth(), request.gender());
+        account.updateProfile(request.fullName().trim(), request.dateOfBirth(), normalizeGender(request.gender()),
+                normalizeAddress(request.address()));
         PatientAccount saved = accountRepository.save(account);
         return new RegistrationResponse(saved.getId(), saved.getPhone(), saved.getFullName());
     }
@@ -86,7 +93,9 @@ public class AccountAuthService {
     @Transactional
     public PatientProfileResponse updateProfile(String accountId, UpdateProfileRequest request) {
         PatientAccount account = findAccount(accountId);
-        account.updateFullName(request.fullName().trim());
+        validateProfileDetails(request.dateOfBirth(), request.gender());
+        account.updateProfile(request.fullName().trim(), request.dateOfBirth(), normalizeGender(request.gender()),
+                normalizeAddress(request.address()));
         accountRepository.save(account);
         return toProfile(account);
     }
@@ -130,7 +139,27 @@ public class AccountAuthService {
 
     private PatientProfileResponse toProfile(PatientAccount account) {
         return new PatientProfileResponse(account.getId(), account.getPhone(), account.getFullName(),
-                account.getStatus(), account.isMustChangePassword());
+                account.getDateOfBirth(), account.getGender(), account.getAddress(), account.getStatus(),
+                account.isMustChangePassword());
+    }
+
+    private void validateProfileDetails(LocalDate dateOfBirth, String gender) {
+        if (dateOfBirth != null && dateOfBirth.isBefore(MIN_DATE_OF_BIRTH)) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "DATE_OF_BIRTH_INVALID",
+                    "Ngày sinh phải từ 01/01/1900 đến hôm nay.");
+        }
+        if (gender != null && !ALLOWED_GENDERS.contains(gender.trim())) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "GENDER_INVALID",
+                    "Vui lòng chọn một giới tính trong danh sách.");
+        }
+    }
+
+    private String normalizeGender(String gender) {
+        return gender == null || gender.isBlank() ? null : gender.trim();
+    }
+
+    private String normalizeAddress(String address) {
+        return address == null || address.isBlank() ? null : address.trim();
     }
 
     private LoginResponse createSession(PatientAccount account) {
