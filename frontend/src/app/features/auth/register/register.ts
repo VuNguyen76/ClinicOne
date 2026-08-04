@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
-import { AuthApiService } from '../../../core/auth/auth-api.service';
+import { apiErrorMessage, AuthApiService } from '../../../core/auth/auth-api.service';
 
 type RegisterStep = 'phone' | 'otp' | 'profile' | 'done';
 
@@ -133,7 +133,7 @@ export class Register {
     this.error.set('');
   }
 
-  private showError(response: { error?: { message?: string } }): void {
-    this.error.set(response.error?.message ?? 'Không thể xử lý yêu cầu. Vui lòng thử lại.');
+  private showError(response: { error?: { message?: string; detail?: string; title?: string } | string; message?: string; detail?: string }): void {
+    this.error.set(apiErrorMessage(response));
   }
 }

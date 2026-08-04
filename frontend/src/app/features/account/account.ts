@@ -3,7 +3,7 @@ import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Va
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
-import { AuthApiService, PatientProfileResponse } from '../../core/auth/auth-api.service';
+import { apiErrorMessage, AuthApiService, PatientProfileResponse } from '../../core/auth/auth-api.service';
 
 function passwordsMatch(control: AbstractControl): ValidationErrors | null {
   const group = control as AbstractControl & { value: { newPassword?: string; confirmPassword?: string } };
@@ -141,7 +141,7 @@ export class Account implements OnInit {
     });
   }
 
-  private showError(response: { error?: { message?: string } }): void {
-    this.error.set(response.error?.message ?? 'Không thể xử lý yêu cầu. Vui lòng thử lại.');
+  private showError(response: { error?: { message?: string; detail?: string; title?: string } | string; message?: string; detail?: string }): void {
+    this.error.set(apiErrorMessage(response));
   }
 }
