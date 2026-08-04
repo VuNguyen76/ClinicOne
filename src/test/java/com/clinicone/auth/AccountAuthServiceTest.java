@@ -122,6 +122,19 @@ class AccountAuthServiceTest {
         verify(accountRepository).save(account);
     }
 
+    @Test
+    void updatesFullNameWithoutChangingPhone() {
+        PatientAccount account = new PatientAccount("0912345678", "password-hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
+        setId(account, ACCOUNT_ID);
+        when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
+
+        PatientProfileResponse response = service.updateProfile(ACCOUNT_ID.toString(), new UpdateProfileRequest("Nguyen Thi B"));
+
+        assertEquals("Nguyen Thi B", response.fullName());
+        assertEquals("0912345678", response.phone());
+        verify(accountRepository).save(account);
+    }
+
     private static void setId(PatientAccount account, UUID id) {
         try {
             Field field = PatientAccount.class.getDeclaredField("id");

@@ -28,6 +28,14 @@ export interface RegistrationResponse {
   fullName: string;
 }
 
+export interface PatientProfileResponse {
+  accountId: string;
+  phone: string;
+  fullName: string;
+  status: string;
+  mustChangePassword: boolean;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AuthApiService {
   private readonly http = inject(HttpClient);
@@ -59,5 +67,17 @@ export class AuthApiService {
 
   register(phone: string, fullName: string, password: string): Observable<RegistrationResponse> {
     return this.http.post<RegistrationResponse>(`${this.apiRoot}/register`, { phone, fullName, password });
+  }
+
+  getProfile(): Observable<PatientProfileResponse> {
+    return this.http.get<PatientProfileResponse>(`${this.apiRoot}/me`);
+  }
+
+  updateProfile(fullName: string): Observable<PatientProfileResponse> {
+    return this.http.patch<PatientProfileResponse>(`${this.apiRoot}/me`, { fullName });
+  }
+
+  changePassword(currentPassword: string, newPassword: string): Observable<void> {
+    return this.http.post<void>(`${this.apiRoot}/me/password`, { currentPassword, newPassword });
   }
 }
