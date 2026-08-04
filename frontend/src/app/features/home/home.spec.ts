@@ -19,13 +19,16 @@ describe('Home', () => {
 
   it('should create the patient homepage', () => {
     expect(component).toBeTruthy();
-    expect(fixture.nativeElement.querySelector('h1')?.textContent).toContain('nhẹ nhàng hơn');
+    expect(fixture.nativeElement.querySelector('h1')?.textContent).toContain('Đặt lịch khám');
   });
 
-  it('filters facilities by the search term', () => {
-    component.setSearchTerm('Bình Thạnh');
+  it('opens the first FAQ by default and toggles questions', () => {
+    expect(component.activeFaq()).toBe(0);
 
-    expect(component.filteredFacilities().length).toBe(1);
-    expect(component.filteredFacilities()[0].name).toContain('Bình Thạnh');
+    component.toggleFaq(0);
+    expect(component.activeFaq()).toBeNull();
+
+    component.toggleFaq(2);
+    expect(component.activeFaq()).toBe(2);
   });
 });
