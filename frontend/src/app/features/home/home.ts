@@ -2,17 +2,31 @@ import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
 
-type BookingService = {
+type Service = {
+  icon: string;
+  title: string;
+  description: string;
+  route: string;
+};
+
+type ProcessStep = {
+  order: string;
   icon: string;
   title: string;
   description: string;
 };
 
-type Facility = {
-  name: string;
-  location: string;
-  specialty: string;
-  rating: string;
+type SupportItem = {
+  icon: string;
+  title: string;
+  value: string;
+  href: string;
+  type: string;
+};
+
+type FooterLink = {
+  label: string;
+  href: string;
 };
 
 @Component({
@@ -23,29 +37,57 @@ type Facility = {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Home {
-  readonly bookingServices: BookingService[] = [
-    { icon: 'medical_services', title: 'Theo chuyên khoa', description: 'Chọn chuyên khoa và khung giờ phù hợp.' },
-    { icon: 'person_search', title: 'Theo bác sĩ', description: 'Tìm bác sĩ bạn muốn đăng ký khám.' },
-    { icon: 'confirmation_number', title: 'Lấy số hẹn trước', description: 'Đến đúng lúc, giảm thời gian chờ.' },
-    { icon: 'history', title: 'Tái khám', description: 'Tiếp tục từ lịch sử khám của bạn.' },
+  readonly mobileMenuOpen = signal(false);
+
+  readonly services: Service[] = [
+    { icon: 'person_search', title: 'Đặt khám theo bác sĩ', description: 'Tìm bác sĩ phù hợp với nhu cầu.', route: '/login' },
+    { icon: 'medical_services', title: 'Đặt khám theo chuyên khoa', description: 'Chọn chuyên khoa và lịch trống.', route: '/login' },
+    { icon: 'calendar_month', title: 'Đặt khám theo ngày', description: 'Chọn ngày thuận tiện để đi khám.', route: '/login' },
+    { icon: 'videocam', title: 'Tư vấn khám online', description: 'Trao đổi với bác sĩ từ xa.', route: '/login' },
+    { icon: 'home_health', title: 'Xét nghiệm tại nhà', description: 'Lấy mẫu nhanh tại nơi bạn ở.', route: '/login' },
+    { icon: 'vaccines', title: 'Tiêm chủng – vắc-xin', description: 'Đăng ký tiêm chủng chủ động.', route: '/login' },
   ];
 
-  readonly facilities: Facility[] = [
-    { name: 'ClinicOne Trung tâm', location: 'Quận 1, TP. Hồ Chí Minh', specialty: 'Nội tổng quát · Tai mũi họng · Da liễu', rating: '4.9' },
-    { name: 'ClinicOne Bình Thạnh', location: 'Quận Bình Thạnh, TP. Hồ Chí Minh', specialty: 'Nhi khoa · Sản phụ khoa · Tim mạch', rating: '4.8' },
-    { name: 'ClinicOne Cầu Giấy', location: 'Cầu Giấy, Hà Nội', specialty: 'Nội tổng quát · Cơ xương khớp · Mắt', rating: '4.8' },
+  readonly commonIssues = [
+    'Quản lý thông tin bệnh nhân',
+    'Quy trình khám và nhận phiếu',
+    'Hoàn tất thanh toán',
   ];
 
-  readonly faqs = [
-    'Tôi cần chuẩn bị gì trước khi đến khám?',
-    'Làm sao để đổi hoặc hủy lịch hẹn?',
-    'Tôi có thể đặt lịch cho người thân không?',
-    'Nếu đến muộn thì lịch hẹn được xử lý thế nào?',
+  readonly processSteps: ProcessStep[] = [
+    { order: '01', icon: 'touch_app', title: 'Chọn dịch vụ', description: 'Chọn hình thức khám phù hợp với nhu cầu của bạn.' },
+    { order: '02', icon: 'schedule', title: 'Chọn bác sĩ & thời gian', description: 'Xem lịch trống và giữ khung giờ thuận tiện.' },
+    { order: '03', icon: 'payments', title: 'Thanh toán', description: 'Hoàn tất phí khám theo hướng dẫn trên hệ thống.' },
+    { order: '04', icon: 'confirmation_number', title: 'Nhận phiếu khám', description: 'Lưu mã lịch hẹn để check-in và theo dõi lượt khám.' },
   ];
 
-  readonly activeFaq = signal<number | null>(0);
+  readonly supportChannels: SupportItem[] = [
+    { icon: 'phone_in_talk', title: 'Tổng đài đặt lịch khám', value: '1900 2115', href: 'tel:19002115', type: 'Gọi ngay' },
+    { icon: 'public', title: 'Fanpage Facebook', value: 'ClinicOne Official', href: 'https://facebook.com', type: 'Bấm vào đây' },
+    { icon: 'chat', title: 'Hỗ trợ Zalo', value: 'ClinicOne Support', href: 'https://zalo.me', type: 'Bấm vào đây' },
+    { icon: 'forum', title: 'Chat trực tuyến', value: 'Hỗ trợ trong giờ làm việc', href: '#support', type: 'Bắt đầu chat' },
+  ];
 
-  toggleFaq(index: number): void {
-    this.activeFaq.update((active) => (active === index ? null : index));
+  readonly quickLinks: FooterLink[] = [
+    { label: 'Trang chủ', href: '#home' },
+    { label: 'Hướng dẫn', href: '#process' },
+    { label: 'Phiếu khám', href: '#lookup' },
+    { label: 'Thông báo', href: '#support' },
+    { label: 'Đăng nhập', href: '/login' },
+  ];
+
+  readonly legalLinks: FooterLink[] = [
+    { label: 'Liên hệ', href: '#support' },
+    { label: 'Điều khoản dịch vụ', href: '#legal' },
+    { label: 'Chính sách bảo mật', href: '#legal' },
+    { label: 'Quy định sử dụng', href: '#legal' },
+  ];
+
+  toggleMenu(): void {
+    this.mobileMenuOpen.update((open) => !open);
+  }
+
+  closeMenu(): void {
+    this.mobileMenuOpen.set(false);
   }
 }

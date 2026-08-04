@@ -1,96 +1,138 @@
-<main class="min-h-screen bg-[#f7fafb] text-[#173b43]">
-  <header class="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur">
-    <div class="mx-auto flex h-[74px] max-w-[1440px] items-center justify-between px-5 sm:px-8 lg:px-14">
-      <a routerLink="/home" class="flex items-center gap-3" aria-label="ClinicOne, trang chủ">
-        <span class="grid h-10 w-10 place-items-center rounded-lg bg-[#f0f8f7]">
+<main class="min-h-screen bg-[var(--color-background)] text-[var(--color-text)]">
+  <header class="sticky top-0 z-50 border-b border-[var(--color-border)] bg-white/95 backdrop-blur">
+    <div class="mx-auto flex h-[72px] max-w-[1200px] items-center justify-between px-5 lg:px-0">
+      <a routerLink="/home" class="flex items-center gap-3" aria-label="ClinicOne, trang chủ" (click)="closeMenu()">
+        <span class="grid h-10 w-10 place-items-center rounded-md bg-[var(--color-primary-soft)]">
           <img class="h-8 w-8 object-contain" src="clinicone-mark.png" alt="" aria-hidden="true" />
         </span>
-        <span class="text-[21px] font-semibold tracking-[-0.05em] text-[#103f4c]">Clinic<span class="text-[#1495c7]">One</span></span>
+        <span class="text-[21px] font-bold tracking-[-0.04em] text-[var(--color-text)]">Clinic<span class="text-[var(--color-primary)]">One</span></span>
       </a>
 
-      <nav class="hidden items-center gap-7 text-[13px] font-medium text-slate-600 lg:flex" aria-label="Điều hướng chính">
-        <a href="#home" class="text-[#0e6872]">Trang chủ</a>
-        <a href="#about" class="transition hover:text-[#0e6872]">Giới thiệu</a>
-        <a href="#process" class="transition hover:text-[#0e6872]">Quy trình</a>
-        <a href="#faq" class="transition hover:text-[#0e6872]">Hướng dẫn</a>
-        <a href="#facilities" class="transition hover:text-[#0e6872]">Cơ sở y tế</a>
+      <nav class="hidden items-center gap-7 text-sm font-medium text-[var(--color-text-muted)] lg:flex" aria-label="Điều hướng chính">
+        <a href="#home" class="text-[var(--color-primary)] transition-colors hover:text-[var(--color-primary-dark)]">Trang chủ</a>
+        <a href="#about" class="transition-colors hover:text-[var(--color-primary)]">Giới thiệu</a>
+        <a href="#process" class="transition-colors hover:text-[var(--color-primary)]">Quy trình</a>
+        <a href="#common-issues" class="transition-colors hover:text-[var(--color-primary)]">Hướng dẫn</a>
+        <a href="#support" class="transition-colors hover:text-[var(--color-primary)]">Thắc mắc</a>
+        <a href="#footer" class="transition-colors hover:text-[var(--color-primary)]">Liên hệ</a>
       </nav>
 
-      <div class="flex items-center gap-2 sm:gap-3">
-        <a href="tel:19002115" class="hidden items-center gap-2 text-right text-xs text-slate-500 xl:flex">
-          <mat-icon class="!h-5 !w-5 !text-[18px] text-[#1592c5]">phone_in_talk</mat-icon>
-          <span><strong class="block text-[#103f4c]">Hỗ trợ đặt khám</strong><span>1900 2115</span></span>
+      <div class="flex items-center gap-2">
+        <a href="tel:19002115" class="hidden items-center gap-2 text-right sm:flex">
+          <mat-icon class="!h-5 !w-5 !text-[19px] text-[var(--color-hotline)]">phone_in_talk</mat-icon>
+          <span class="hidden text-xs text-[var(--color-text-muted)] xl:block"><strong class="block text-[var(--color-text)]">Tổng đài đặt lịch khám</strong><span class="font-semibold tracking-[0.08em] text-[var(--color-hotline)]">1900 2115</span></span>
         </a>
-        <a routerLink="/login" class="inline-flex items-center gap-2 rounded-md border border-[#1678a0] px-4 py-2.5 text-sm font-semibold text-[#1678a0] transition hover:bg-[#edf8f7]">
+        <a routerLink="/login" class="inline-flex items-center gap-2 rounded-[6px] bg-[var(--color-primary)] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-primary-dark)]">
           <mat-icon class="!h-4 !w-4 !text-[16px]">account_circle</mat-icon>
           Đăng nhập
         </a>
+        <button type="button" class="grid h-10 w-10 place-items-center rounded-[6px] border border-[var(--color-border)] text-[var(--color-text)] lg:hidden" aria-label="Mở menu" [attr.aria-expanded]="mobileMenuOpen()" (click)="toggleMenu()">
+          <mat-icon>{{ mobileMenuOpen() ? 'close' : 'menu' }}</mat-icon>
+        </button>
       </div>
     </div>
+
+    @if (mobileMenuOpen()) {
+      <nav class="border-t border-[var(--color-border)] bg-white px-5 py-4 shadow-lg lg:hidden" aria-label="Menu trên điện thoại">
+        <div class="mx-auto flex max-w-[1200px] flex-col gap-1">
+          <a href="#home" class="rounded-[6px] px-3 py-3 text-sm font-medium hover:bg-[var(--color-primary-soft)]" (click)="closeMenu()">Trang chủ</a>
+          <a href="#about" class="rounded-[6px] px-3 py-3 text-sm font-medium hover:bg-[var(--color-primary-soft)]" (click)="closeMenu()">Giới thiệu</a>
+          <a href="#process" class="rounded-[6px] px-3 py-3 text-sm font-medium hover:bg-[var(--color-primary-soft)]" (click)="closeMenu()">Quy trình</a>
+          <a href="#common-issues" class="rounded-[6px] px-3 py-3 text-sm font-medium hover:bg-[var(--color-primary-soft)]" (click)="closeMenu()">Hướng dẫn</a>
+          <a href="#support" class="rounded-[6px] px-3 py-3 text-sm font-medium hover:bg-[var(--color-primary-soft)]" (click)="closeMenu()">Thắc mắc</a>
+          <a href="#footer" class="rounded-[6px] px-3 py-3 text-sm font-medium hover:bg-[var(--color-primary-soft)]" (click)="closeMenu()">Liên hệ</a>
+        </div>
+      </nav>
+    }
   </header>
 
-  <section id="home" class="relative isolate min-h-[590px] overflow-hidden bg-[#cfe9e8]">
-    <img class="absolute inset-0 -z-20 h-full w-full object-cover object-center" src="https://images.unsplash.com/photo-1550831107-1553da8c8464?auto=format&fit=crop&w=1800&q=88" alt="Không gian tư vấn y tế" />
-    <div class="absolute inset-0 -z-10 bg-gradient-to-r from-[#103f4c]/85 via-[#103f4c]/58 to-[#103f4c]/20"></div>
-    <div class="mx-auto grid min-h-[590px] max-w-[1440px] items-center gap-10 px-5 py-14 sm:px-8 lg:grid-cols-[1fr_500px] lg:px-14">
-      <div class="max-w-[550px] animate-[fadeUp_.65s_ease-out_both] text-white">
-        <p class="mb-5 text-xs font-bold uppercase tracking-[0.2em] text-[#a7e5df]">Cổng người bệnh ClinicOne</p>
-        <h1 class="max-w-[560px] text-[clamp(2.35rem,4.2vw,4.5rem)] font-semibold leading-[1.08] tracking-[-0.06em]">Đặt lịch khám<br /><span class="text-[#8de0d6]">chủ động hơn.</span></h1>
-        <p class="mt-5 max-w-[450px] text-base leading-7 text-white/80">Chọn dịch vụ, nhận mã lịch hẹn và theo dõi lượt khám trước khi đến phòng khám.</p>
-        <div class="mt-8 flex flex-wrap gap-5 text-sm text-white/80">
-          <span class="flex items-center gap-2"><mat-icon class="!h-5 !w-5 !text-[18px] text-[#a7e5df]">event_available</mat-icon>Chọn giờ khám</span>
-          <span class="flex items-center gap-2"><mat-icon class="!h-5 !w-5 !text-[18px] text-[#a7e5df]">confirmation_number</mat-icon>Một mã tra cứu</span>
+  <section id="home" class="border-b border-[var(--color-border)] bg-white">
+    <div class="mx-auto grid max-w-[1200px] lg:grid-cols-2">
+      <div class="relative min-h-[410px] overflow-hidden lg:min-h-[540px]">
+        <img class="absolute inset-0 h-full w-full object-cover" src="https://images.unsplash.com/photo-1586773860418-d37222d8fce3?auto=format&fit=crop&w=1200&q=88" alt="Mặt tiền cơ sở y tế ClinicOne" />
+        <div class="absolute inset-0 bg-gradient-to-t from-[var(--color-text)]/85 via-[var(--color-text)]/20 to-transparent"></div>
+        <div class="absolute inset-x-0 bottom-0 p-7 text-white sm:p-10">
+          <p class="text-xs font-bold uppercase tracking-[0.16em] text-[var(--color-primary-soft)]">ClinicOne Medical Center</p>
+          <h1 class="mt-3 max-w-[450px] text-3xl font-bold leading-tight tracking-[-0.04em] sm:text-5xl">Chăm sóc sức khỏe bắt đầu từ một lịch hẹn rõ ràng.</h1>
+          <p class="mt-4 max-w-[430px] text-sm leading-6 text-white/80">Chọn dịch vụ phù hợp, đặt lịch trước và đến khám chủ động hơn.</p>
         </div>
       </div>
 
-      <div class="rounded-[20px] bg-white p-5 shadow-[0_24px_70px_rgba(6,43,53,0.24)] animate-[fadeIn_.8s_.1s_ease-out_both] sm:p-7">
-        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
-          <div><p class="text-xs font-semibold uppercase tracking-[0.16em] text-[#1592c5]">Bắt đầu tại đây</p><h2 class="mt-1 text-2xl font-semibold tracking-[-0.04em] text-[#103f4c]">Chọn dịch vụ</h2></div>
-          <span class="grid h-10 w-10 place-items-center rounded-xl bg-[#edf8f7] text-[#0e6872]"><mat-icon>calendar_month</mat-icon></span>
+      <div class="flex flex-col justify-center bg-white p-6 sm:p-10">
+        <div class="border-b border-[var(--color-border)] pb-5 text-center">
+          <p class="text-xs font-bold uppercase tracking-[0.16em] text-[var(--color-primary)]">Bắt đầu tại đây</p>
+          <h2 class="mt-2 text-2xl font-bold tracking-[0.02em] text-[var(--color-primary)]">CHỌN DỊCH VỤ</h2>
+          <p class="mx-auto mt-2 max-w-[380px] text-sm text-[var(--color-text-muted)]">Chọn hình thức khám phù hợp với nhu cầu của bạn.</p>
         </div>
-        <div class="mt-5 grid grid-cols-2 gap-3">
-          @for (service of bookingServices; track service.title) {
-            <a routerLink="/login" class="group rounded-xl border border-slate-200 px-3.5 py-4 transition hover:-translate-y-0.5 hover:border-[#1592c5] hover:bg-[#f4fbfa]">
-              <mat-icon class="!h-7 !w-7 !text-[25px] text-[#157fac] transition group-hover:scale-105">{{ service.icon }}</mat-icon>
-              <h3 class="mt-3 text-sm font-semibold leading-5 text-[#173b43]">{{ service.title }}</h3>
-              <p class="mt-1 text-xs leading-5 text-slate-500">{{ service.description }}</p>
+        <div class="mt-6 grid grid-cols-2 gap-3">
+          @for (service of services; track service.title) {
+            <a [routerLink]="service.route" class="group rounded-[8px] border border-[var(--color-border)] bg-white p-4 shadow-[0_1px_3px_rgba(15,23,42,0.06)] transition duration-200 ease-out hover:-translate-y-[3px] hover:border-[var(--color-primary)] hover:shadow-[0_6px_20px_rgba(14,165,233,0.12)]">
+              <span class="grid h-10 w-10 place-items-center rounded-[6px] bg-[var(--color-primary-soft)] text-[var(--color-primary)] transition-colors group-hover:bg-[var(--color-primary)] group-hover:text-white"><mat-icon>{{ service.icon }}</mat-icon></span>
+              <h3 class="mt-3 text-xs font-bold uppercase leading-5 tracking-[0.02em] text-[var(--color-primary)]">{{ service.title }}</h3>
+              <p class="mt-1 text-xs leading-5 text-[var(--color-text-muted)]">{{ service.description }}</p>
             </a>
           }
         </div>
-        <div class="mt-5 flex items-center justify-between border-t border-slate-100 pt-4 text-xs text-slate-500"><span>Đã có lịch hẹn?</span><a href="#lookup" class="font-semibold text-[#0e6872] hover:underline">Tra cứu mã lịch hẹn →</a></div>
       </div>
     </div>
   </section>
 
-  <section id="lookup" class="border-b border-slate-200 bg-white">
-    <div class="mx-auto flex max-w-[1190px] flex-col gap-4 px-5 py-6 sm:flex-row sm:items-center sm:justify-between sm:px-8 lg:px-10">
-      <div class="flex items-center gap-3"><span class="grid h-10 w-10 place-items-center rounded-full bg-[#edf8f7] text-[#0e6872]"><mat-icon>search</mat-icon></span><div><p class="text-sm font-semibold text-[#103f4c]">Tra cứu thông tin</p><p class="text-xs text-slate-500">Xem lịch hẹn, mã đặt lịch và số thứ tự của bạn.</p></div></div>
-      <div class="flex w-full max-w-[430px] gap-2"><input class="min-w-0 flex-1 rounded-md border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm outline-none transition focus:border-[#1592c5] focus:ring-2 focus:ring-[#1592c5]/15" type="text" placeholder="Nhập mã lịch hẹn" /><a routerLink="/login" class="inline-flex items-center rounded-md bg-[#1592c5] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0e7fac]">Đăng nhập để tra cứu</a></div>
+  <section id="lookup" class="mx-auto grid max-w-[1200px] gap-5 px-5 py-10 lg:grid-cols-2 lg:px-0 lg:py-16">
+    <article class="rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[0_1px_3px_rgba(15,23,42,0.06)] sm:p-8">
+      <div class="flex items-start justify-between gap-4"><div><span class="grid h-11 w-11 place-items-center rounded-[6px] bg-[var(--color-primary-soft)] text-[var(--color-primary)]"><mat-icon>search</mat-icon></span><h2 class="mt-5 text-lg font-bold uppercase tracking-[0.02em] text-[var(--color-primary)]">Tra cứu thông tin</h2></div><mat-icon class="text-[var(--color-primary)]">arrow_outward</mat-icon></div>
+      <p class="mt-3 max-w-[450px] text-[15px] leading-6 text-[var(--color-text-muted)]">Tra cứu thông tin đặt chỗ, thông tin bệnh nhân, lịch khám và mã lịch hẹn.</p>
+      <div class="mt-6 flex flex-col gap-2 sm:flex-row"><input class="min-h-11 flex-1 rounded-[6px] border border-[var(--color-border)] bg-[var(--color-background)] px-3 text-sm outline-none transition focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/15" type="text" placeholder="Nhập mã lịch hẹn" aria-label="Mã lịch hẹn" /><a routerLink="/login" class="inline-flex min-h-11 items-center justify-center rounded-[6px] bg-[var(--color-primary)] px-5 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-primary-dark)]">Tra cứu</a></div>
+    </article>
+
+    <article id="common-issues" class="rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[0_1px_3px_rgba(15,23,42,0.06)] sm:p-8">
+      <div class="flex items-start justify-between gap-4"><div><span class="grid h-11 w-11 place-items-center rounded-[6px] bg-[var(--color-primary-soft)] text-[var(--color-primary)]"><mat-icon>help_outline</mat-icon></span><h2 class="mt-5 text-lg font-bold uppercase tracking-[0.02em] text-[var(--color-primary)]">Những vấn đề thường gặp</h2></div><a href="#support" class="text-sm font-semibold text-[var(--color-primary)] hover:underline">Xem thêm</a></div>
+      <p class="mt-3 text-[15px] leading-6 text-[var(--color-text-muted)]">Tìm nhanh hướng dẫn cho các bước thường gặp khi đặt lịch.</p>
+      <ul class="mt-5 space-y-3 text-sm text-[var(--color-text)]">
+        @for (issue of commonIssues; track issue) {<li class="flex items-center gap-3"><span class="h-1.5 w-1.5 rounded-full bg-[var(--color-primary)]"></span>{{ issue }}</li>}
+      </ul>
+    </article>
+  </section>
+
+  <section id="about" class="border-y border-[var(--color-border)] bg-white">
+    <div class="mx-auto max-w-[1200px] px-5 py-12 lg:px-0 lg:py-16">
+      <p class="text-xs font-bold uppercase tracking-[0.16em] text-[var(--color-primary)]">ClinicOne</p>
+      <div class="mt-3 grid gap-5 lg:grid-cols-[0.8fr_1.2fr] lg:items-end"><h2 class="text-3xl font-bold leading-tight tracking-[-0.04em] text-[var(--color-text)] sm:text-4xl">Một hành trình khám bệnh<br class="hidden sm:block" /> rõ ràng hơn cho mọi người.</h2><p class="max-w-[560px] text-[15px] leading-7 text-[var(--color-text-muted)]">Từ lúc chọn dịch vụ đến khi nhận phiếu khám, ClinicOne giúp bạn chuẩn bị trước và giảm những lần chờ không cần thiết.</p></div>
     </div>
   </section>
 
-  <section id="about" class="mx-auto max-w-[1440px] px-5 py-20 sm:px-8 lg:px-14 lg:py-24">
-    <div class="grid gap-10 lg:grid-cols-[0.75fr_1.25fr] lg:items-end"><div><p class="text-xs font-bold uppercase tracking-[0.18em] text-[#0e6872]">ClinicOne giúp bạn</p><h2 class="mt-3 max-w-[430px] text-3xl font-semibold leading-tight tracking-[-0.05em] text-[#103f4c] sm:text-4xl">Không phải xếp hàng để bắt đầu một buổi khám.</h2></div><p class="max-w-[560px] text-sm leading-7 text-slate-500">Mọi thông tin cần thiết được chuẩn bị trước. Khi đến phòng khám, nhân viên chỉ cần tra cứu mã và bạn có thể tiếp tục theo số thứ tự của mình.</p></div>
-    <div class="mt-12 grid border-y border-slate-200 md:grid-cols-3">
-      <div class="border-b border-slate-200 py-7 md:border-b-0 md:border-r md:pr-8"><span class="text-3xl font-semibold tracking-[-0.05em] text-[#1592c5]">01</span><h3 class="mt-4 text-base font-semibold text-[#103f4c]">Đặt trước ở bất cứ đâu</h3><p class="mt-2 text-sm leading-6 text-slate-500">Chọn cơ sở và khung giờ phù hợp trên điện thoại.</p></div>
-      <div class="border-b border-slate-200 py-7 md:border-b-0 md:px-8 md:border-r"><span class="text-3xl font-semibold tracking-[-0.05em] text-[#1592c5]">02</span><h3 class="mt-4 text-base font-semibold text-[#103f4c]">Đến đúng thời điểm</h3><p class="mt-2 text-sm leading-6 text-slate-500">Quét mã trước phòng khám để nhận số thứ tự.</p></div>
-      <div class="py-7 md:pl-8"><span class="text-3xl font-semibold tracking-[-0.05em] text-[#1592c5]">03</span><h3 class="mt-4 text-base font-semibold text-[#103f4c]">Theo dõi đến khi hoàn tất</h3><p class="mt-2 text-sm leading-6 text-slate-500">Lịch sử và phiếu khám đã ký luôn ở đúng nơi.</p></div>
-    </div>
-  </section>
-
-  <section id="process" class="bg-[#eff7f6]">
-    <div class="mx-auto max-w-[1440px] px-5 py-20 sm:px-8 lg:px-14 lg:py-24"><div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p class="text-xs font-bold uppercase tracking-[0.18em] text-[#0e6872]">Quy trình</p><h2 class="mt-3 text-3xl font-semibold tracking-[-0.05em] text-[#103f4c] sm:text-4xl">Một lần chuẩn bị, ba bước rõ ràng.</h2></div><a href="#faq" class="text-sm font-semibold text-[#0e6872] hover:underline">Xem hướng dẫn chi tiết →</a></div>
-      <div class="mt-12 grid gap-6 lg:grid-cols-3">
-        <div class="relative border-l-2 border-[#a8d9d4] pl-6"><span class="absolute -left-[13px] grid h-6 w-6 place-items-center rounded-full bg-[#1592c5] text-xs font-bold text-white">1</span><p class="text-xs font-semibold uppercase tracking-[0.14em] text-[#1592c5]">Trước khi đến</p><h3 class="mt-3 text-lg font-semibold text-[#103f4c]">Chọn lịch và nhận mã</h3><p class="mt-2 text-sm leading-6 text-slate-500">Điền thông tin người đi khám, chọn giờ còn trống và lưu mã lịch hẹn.</p></div>
-        <div class="relative border-l-2 border-[#a8d9d4] pl-6"><span class="absolute -left-[13px] grid h-6 w-6 place-items-center rounded-full bg-[#1592c5] text-xs font-bold text-white">2</span><p class="text-xs font-semibold uppercase tracking-[0.14em] text-[#1592c5]">Khi đến nơi</p><h3 class="mt-3 text-lg font-semibold text-[#103f4c]">Check-in trước phòng khám</h3><p class="mt-2 text-sm leading-6 text-slate-500">Quét mã QR của phòng để nhận số thứ tự và theo dõi lượt gọi.</p></div>
-        <div class="relative border-l-2 border-[#a8d9d4] pl-6"><span class="absolute -left-[13px] grid h-6 w-6 place-items-center rounded-full bg-[#1592c5] text-xs font-bold text-white">3</span><p class="text-xs font-semibold uppercase tracking-[0.14em] text-[#1592c5]">Sau khi khám</p><h3 class="mt-3 text-lg font-semibold text-[#103f4c]">Xem lại kết quả</h3><p class="mt-2 text-sm leading-6 text-slate-500">Phiếu khám đã ký và lịch tái khám sẽ được lưu trong hồ sơ.</p></div>
+  <section id="process" class="bg-[var(--color-primary-soft)]">
+    <div class="mx-auto max-w-[1200px] px-5 py-12 lg:px-0 lg:py-16">
+      <div class="flex flex-col justify-between gap-3 sm:flex-row sm:items-end"><div><p class="text-xs font-bold uppercase tracking-[0.16em] text-[var(--color-primary)]">Quy trình</p><h2 class="mt-2 text-3xl font-bold tracking-[-0.04em] text-[var(--color-text)]">Bốn bước để bắt đầu buổi khám.</h2></div><a href="#lookup" class="text-sm font-semibold text-[var(--color-primary-dark)] hover:underline">Xem hướng dẫn →</a></div>
+      <div class="mt-10 grid gap-8 lg:grid-cols-4 lg:gap-0">
+        @for (step of processSteps; track step.order; let last = $last) {
+          <div class="relative lg:pr-8">
+            <div class="flex items-start gap-4"><span class="text-4xl font-bold leading-none text-[var(--color-primary)]/20">{{ step.order }}</span><span class="grid h-11 w-11 shrink-0 place-items-center rounded-[6px] bg-white text-[var(--color-primary)] shadow-sm"><mat-icon>{{ step.icon }}</mat-icon></span></div>
+            <h3 class="mt-5 text-base font-bold text-[var(--color-text)]">{{ step.title }}</h3><p class="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">{{ step.description }}</p>
+            @if (!last) {<span class="absolute right-4 top-5 hidden h-px w-10 bg-[var(--color-primary)]/25 lg:block"></span>}
+          </div>
+        }
       </div>
     </div>
   </section>
 
-  <section id="facilities" class="mx-auto max-w-[1440px] px-5 py-20 sm:px-8 lg:px-14 lg:py-24"><div class="flex items-end justify-between gap-4"><div><p class="text-xs font-bold uppercase tracking-[0.18em] text-[#0e6872]">Cơ sở y tế</p><h2 class="mt-3 text-3xl font-semibold tracking-[-0.05em] text-[#103f4c] sm:text-4xl">Chọn nơi bạn muốn khám</h2></div><a href="#home" class="hidden text-sm font-semibold text-[#0e6872] hover:underline sm:block">Xem tất cả →</a></div><div class="mt-10 divide-y divide-slate-200 border-y border-slate-200">@for (facility of facilities; track facility.name) {<a routerLink="/login" class="group flex flex-col gap-4 py-6 transition hover:bg-[#f7fbfa] sm:flex-row sm:items-center sm:justify-between"><div class="flex items-start gap-4"><span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#edf8f7] text-[#0e6872]"><mat-icon>local_hospital</mat-icon></span><div><h3 class="text-base font-semibold text-[#103f4c]">{{ facility.name }}</h3><p class="mt-1 text-sm text-slate-500">{{ facility.location }}</p><p class="mt-2 text-xs text-slate-400">{{ facility.specialty }}</p></div></div><div class="flex items-center gap-5 pl-[60px] sm:pl-0"><span class="flex items-center gap-1 text-sm font-semibold text-[#b46723]"><mat-icon class="!h-4 !w-4 !text-[15px]">star</mat-icon>{{ facility.rating }}</span><span class="inline-flex items-center gap-1 text-sm font-semibold text-[#0e6872]">Đặt lịch <mat-icon class="!h-4 !w-4 !text-[15px] transition group-hover:translate-x-1">arrow_forward</mat-icon></span></div></a>}</div></section>
+  <section id="support" class="mx-auto max-w-[1200px] px-5 py-12 lg:px-0 lg:py-16">
+    <div class="text-center"><p class="text-xs font-bold uppercase tracking-[0.16em] text-[var(--color-primary)]">Hỗ trợ</p><h2 class="mt-2 text-3xl font-bold tracking-[-0.04em] text-[var(--color-text)]">Các hình thức hỗ trợ</h2><p class="mx-auto mt-3 max-w-[550px] text-[15px] leading-6 text-[var(--color-text-muted)]">Chọn kênh bạn thấy thuận tiện nhất để được ClinicOne hỗ trợ.</p></div>
+    <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      @for (channel of supportChannels; track channel.title) {
+        <a [href]="channel.href" class="group rounded-[8px] border border-[var(--color-border)] bg-white p-5 shadow-[0_1px_3px_rgba(15,23,42,0.06)] transition duration-200 hover:-translate-y-[3px] hover:shadow-[0_6px_20px_rgba(14,165,233,0.12)]"><span class="grid h-11 w-11 place-items-center rounded-[6px] bg-[var(--color-primary-soft)] text-[var(--color-primary)] transition-colors group-hover:bg-[var(--color-primary)] group-hover:text-white"><mat-icon>{{ channel.icon }}</mat-icon></span><h3 class="mt-5 text-sm font-bold text-[var(--color-text)]">{{ channel.title }}</h3><p class="mt-2 text-sm text-[var(--color-text-muted)]">{{ channel.value }}</p><span class="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-[var(--color-primary)]">{{ channel.type }} <mat-icon class="!h-4 !w-4 !text-[15px]">arrow_forward</mat-icon></span></a>
+      }
+    </div>
+  </section>
 
-  <section id="faq" class="bg-[#103f4c] text-white"><div class="mx-auto grid max-w-[1440px] gap-12 px-5 py-20 sm:px-8 lg:grid-cols-[0.7fr_1.3fr] lg:px-14 lg:py-24"><div><p class="text-xs font-bold uppercase tracking-[0.18em] text-[#8bd8d0]">Hỏi đáp</p><h2 class="mt-3 max-w-[350px] text-3xl font-semibold leading-tight tracking-[-0.05em] sm:text-4xl">Những điều người bệnh thường hỏi.</h2><p class="mt-5 max-w-[340px] text-sm leading-6 text-white/65">Nếu bạn chưa tìm thấy câu trả lời, gọi 1900 2115 để được hỗ trợ.</p><a href="tel:19002115" class="mt-7 inline-flex items-center gap-2 rounded-md bg-white px-5 py-3 text-sm font-semibold text-[#103f4c] transition hover:bg-[#e8f5f3]"><mat-icon class="!h-5 !w-5 !text-[18px]">phone</mat-icon>Gọi hỗ trợ</a></div><div class="divide-y divide-white/15 border-y border-white/15">@for (faq of faqs; track faq; let i = $index) {<div><button class="flex w-full items-center justify-between gap-5 py-5 text-left text-sm font-medium text-white" type="button" (click)="toggleFaq(i)"><span>{{ faq }}</span><mat-icon class="!h-5 !w-5 !text-[18px] text-[#8bd8d0]">{{ activeFaq() === i ? 'remove' : 'add' }}</mat-icon></button>@if (activeFaq() === i) {<p class="-mt-1 pb-5 pr-10 text-sm leading-6 text-white/65">ClinicOne sẽ hiển thị hướng dẫn cụ thể theo lịch hẹn và trạng thái lượt khám của bạn.</p>}</div>}</div></div></section>
+  <footer id="footer" class="bg-[var(--color-text)] text-white/70">
+    <div class="mx-auto grid max-w-[1200px] gap-10 px-5 py-12 lg:grid-cols-[1.2fr_1fr_1fr_1fr] lg:px-0">
+      <div><div class="flex items-center gap-3 text-white"><span class="grid h-9 w-9 place-items-center rounded-[6px] bg-white"><img class="h-7 w-7 object-contain" src="clinicone-mark.png" alt="" aria-hidden="true" /></span><span class="text-lg font-bold">ClinicOne</span></div><p class="mt-4 max-w-[290px] text-sm leading-6">Cổng đặt lịch khám trực tuyến, giúp bạn chủ động trước khi đến bệnh viện.</p></div>
+      <div><h2 class="text-sm font-bold text-white">Liên kết nhanh</h2><ul class="mt-4 space-y-2 text-sm">@for (link of quickLinks; track link.label) {<li><a [href]="link.href" class="transition-colors hover:text-white">{{ link.label }}</a></li>}</ul></div>
+      <div><h2 class="text-sm font-bold text-white">Thông tin ClinicOne</h2><ul class="mt-4 space-y-2 text-sm"><li>123 Nguyễn Huệ, Quận 1</li><li>TP. Hồ Chí Minh</li><li><a href="mailto:hello@clinicone.vn" class="hover:text-white">hello@clinicone.vn</a></li><li><a href="tel:19002115" class="text-[var(--color-primary-soft)] hover:text-white">1900 2115</a></li></ul></div>
+      <div><h2 class="text-sm font-bold text-white">Pháp lý</h2><ul class="mt-4 space-y-2 text-sm">@for (link of legalLinks; track link.label) {<li><a [href]="link.href" class="transition-colors hover:text-white">{{ link.label }}</a></li>}</ul></div>
+    </div>
+    <div class="border-t border-white/15"><div class="mx-auto max-w-[1200px] px-5 py-5 text-xs lg:px-0">© 2026 ClinicOne. Bảo lưu mọi quyền.</div></div>
+  </footer>
 
-  <footer class="bg-[#0b303b] text-white/65"><div class="mx-auto flex max-w-[1440px] flex-col gap-7 px-5 py-10 sm:px-8 lg:flex-row lg:items-end lg:justify-between lg:px-14"><div><div class="flex items-center gap-3 text-white"><span class="grid h-9 w-9 place-items-center rounded-lg bg-white"><img class="h-7 w-7 object-contain" src="clinicone-mark.png" alt="" aria-hidden="true" /></span><span class="text-lg font-semibold">ClinicOne</span></div><p class="mt-4 max-w-[350px] text-sm leading-6">Đặt lịch khám, check-in và theo dõi hồ sơ trong một hành trình rõ ràng.</p></div><div class="text-sm lg:text-right"><p class="font-semibold text-white">Hỗ trợ đặt khám</p><a class="mt-2 inline-block text-[#8bd8d0]" href="tel:19002115">1900 2115</a><p class="mt-1 text-xs">Thứ 2 – Chủ nhật · 07:00 – 21:00</p></div></div><div class="mx-auto max-w-[1440px] border-t border-white/10 px-5 py-5 text-xs sm:px-8 lg:px-14">© 2026 ClinicOne</div></footer>
+  <a href="tel:19002115" class="fixed bottom-5 right-5 z-40 grid h-14 w-14 place-items-center rounded-full bg-[var(--color-primary)] text-white shadow-[0_10px_30px_rgba(14,165,233,0.35)] transition hover:scale-105 hover:bg-[var(--color-primary-dark)]" aria-label="Gọi tổng đài ClinicOne"><mat-icon>phone</mat-icon><span class="absolute inset-0 -z-10 animate-ping rounded-full bg-[var(--color-primary)]/30"></span></a>
 </main>
