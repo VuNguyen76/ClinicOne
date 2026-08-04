@@ -62,7 +62,7 @@ export class Home {
   ];
 
   readonly supportChannels: SupportItem[] = [
-    { icon: 'phone_in_talk', title: 'Tổng đài đặt lịch khám', value: '1900 2115', href: 'tel:19002115', type: 'Gọi ngay' },
+    { icon: 'phone_in_talk', title: 'Tổng đài đặt lịch khám', value: '1900000', href: 'tel:1900000', type: 'Gọi ngay' },
     { icon: 'public', title: 'Fanpage Facebook', value: 'ClinicOne Official', href: 'https://facebook.com', type: 'Bấm vào đây' },
     { icon: 'chat', title: 'Hỗ trợ Zalo', value: 'ClinicOne Support', href: 'https://zalo.me', type: 'Bấm vào đây' },
     { icon: 'forum', title: 'Chat trực tuyến', value: 'Hỗ trợ trong giờ làm việc', href: '#support', type: 'Bắt đầu chat' },
