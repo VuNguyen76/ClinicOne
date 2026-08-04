@@ -20,7 +20,7 @@ describe('Account', () => {
     http = TestBed.inject(HttpTestingController);
     fixture.detectChanges();
     http.expectOne('/api/v1/auth/me').flush({
-      accountId: 'account-1', phone: '0912345678', fullName: 'Nguyen Van A', status: 'ACTIVE', mustChangePassword: false,
+      accountId: 'account-1', phone: '0912345678', fullName: 'Nguyen Van A', dateOfBirth: '2005-06-07', gender: 'Nam', address: 'Tây Ninh', status: 'ACTIVE', mustChangePassword: false,
     });
     fixture.detectChanges();
   });
@@ -29,6 +29,8 @@ describe('Account', () => {
 
   it('loads the current patient profile', () => {
     expect(fixture.nativeElement.querySelector('[formControlName="fullName"]')?.value).toBe('Nguyen Van A');
+    expect(fixture.nativeElement.querySelector('[formControlName="dateOfBirth"]')?.value).toBe('2005-06-07');
+    expect(fixture.nativeElement.querySelector('[formControlName="gender"]')?.value).toBe('Nam');
     expect(fixture.nativeElement.textContent).toContain('091****678');
   });
 

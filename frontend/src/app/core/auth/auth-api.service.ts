@@ -32,6 +32,9 @@ export interface PatientProfileResponse {
   accountId: string;
   phone: string;
   fullName: string;
+  dateOfBirth: string | null;
+  gender: string | null;
+  address: string | null;
   status: string;
   mustChangePassword: boolean;
 }
@@ -65,16 +68,16 @@ export class AuthApiService {
     return this.http.post<{ verified: boolean }>(`${this.apiRoot}/verify-sms-otp`, { phone, purpose, code });
   }
 
-  register(phone: string, fullName: string, password: string): Observable<RegistrationResponse> {
-    return this.http.post<RegistrationResponse>(`${this.apiRoot}/register`, { phone, fullName, password });
+  register(phone: string, fullName: string, password: string, dateOfBirth: string, gender: string, address: string): Observable<RegistrationResponse> {
+    return this.http.post<RegistrationResponse>(`${this.apiRoot}/register`, { phone, fullName, password, dateOfBirth, gender, address });
   }
 
   getProfile(): Observable<PatientProfileResponse> {
     return this.http.get<PatientProfileResponse>(`${this.apiRoot}/me`);
   }
 
-  updateProfile(fullName: string): Observable<PatientProfileResponse> {
-    return this.http.patch<PatientProfileResponse>(`${this.apiRoot}/me`, { fullName });
+  updateProfile(fullName: string, dateOfBirth: string | null, gender: string | null, address: string): Observable<PatientProfileResponse> {
+    return this.http.patch<PatientProfileResponse>(`${this.apiRoot}/me`, { fullName, dateOfBirth, gender, address });
   }
 
   changePassword(currentPassword: string, newPassword: string): Observable<void> {

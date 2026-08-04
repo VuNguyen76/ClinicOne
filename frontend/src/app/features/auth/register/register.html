@@ -61,8 +61,16 @@
               <label for="full-name" class="text-sm font-semibold text-[#143b43]">Họ và tên</label>
               <input class="rounded-[10px] border border-[#b9cacc] bg-white px-4 py-3.5 text-base outline-none focus:border-[#0e6872] focus:ring-4 focus:ring-[#0e6872]/10" type="text" id="full-name" formControlName="fullName" autocomplete="name" placeholder="Nguyễn Văn A" />
               @if (profileForm.controls.fullName.invalid && profileForm.controls.fullName.touched) {
-                <p class="text-sm text-[#b42318]" role="alert">Nhập họ tên từ 2 đến 200 ký tự.</p>
+                <p class="text-sm text-[#b42318]" role="alert">Nhập họ tên từ 2 đến 100 ký tự.</p>
               }
+              <label for="date-of-birth" class="mt-2 text-sm font-semibold text-[#143b43]">Ngày sinh</label>
+              <input class="rounded-[10px] border border-[#b9cacc] bg-white px-4 py-3.5 text-base outline-none focus:border-[#0e6872] focus:ring-4 focus:ring-[#0e6872]/10" type="date" id="date-of-birth" formControlName="dateOfBirth" min="1900-01-01" [max]="today" autocomplete="bday" />
+              @if (profileForm.controls.dateOfBirth.invalid && profileForm.controls.dateOfBirth.touched) {<p class="text-sm text-[#b42318]" role="alert">Ngày sinh là thông tin bắt buộc.</p>}
+              <label for="gender" class="mt-2 text-sm font-semibold text-[#143b43]">Giới tính</label>
+              <select class="rounded-[10px] border border-[#b9cacc] bg-white px-4 py-3.5 text-base outline-none focus:border-[#0e6872] focus:ring-4 focus:ring-[#0e6872]/10" id="gender" formControlName="gender"><option value="">Chọn giới tính</option><option value="Nam">Nam</option><option value="Nữ">Nữ</option><option value="Khác">Khác</option></select>
+              @if (profileForm.controls.gender.invalid && profileForm.controls.gender.touched) {<p class="text-sm text-[#b42318]" role="alert">Giới tính là thông tin bắt buộc.</p>}
+              <label for="address" class="mt-2 text-sm font-semibold text-[#143b43]">Địa chỉ <span class="font-normal text-slate-500">(không bắt buộc)</span></label>
+              <textarea class="min-h-20 rounded-[10px] border border-[#b9cacc] bg-white px-4 py-3.5 text-base outline-none focus:border-[#0e6872] focus:ring-4 focus:ring-[#0e6872]/10" id="address" formControlName="address" maxlength="500" autocomplete="street-address"></textarea>
               <label for="password" class="mt-2 text-sm font-semibold text-[#143b43]">Mật khẩu</label>
               <input class="rounded-[10px] border border-[#b9cacc] bg-white px-4 py-3.5 text-base outline-none focus:border-[#0e6872] focus:ring-4 focus:ring-[#0e6872]/10" type="password" id="password" formControlName="password" autocomplete="new-password" placeholder="Tối thiểu 8 ký tự" />
               <label for="confirm-password" class="mt-2 text-sm font-semibold text-[#143b43]">Nhập lại mật khẩu</label>

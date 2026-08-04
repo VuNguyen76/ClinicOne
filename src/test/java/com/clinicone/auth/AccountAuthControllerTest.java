@@ -12,6 +12,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 import java.util.List;
 
@@ -43,7 +44,7 @@ class AccountAuthControllerTest {
 
         mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"phone\":\"0912345678\",\"fullName\":\"Nguyen Van A\",\"password\":\"password123\"}"))
+                        .content("{\"phone\":\"0912345678\",\"fullName\":\"Nguyen Van A\",\"password\":\"password123\",\"dateOfBirth\":\"2005-06-07\",\"gender\":\"Nam\",\"address\":\"Tay Ninh\"}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.phone").value("0912345678"));
     }
@@ -78,7 +79,7 @@ class AccountAuthControllerTest {
     @Test
     void returnsCurrentPatientProfile() throws Exception {
         when(authService.getProfile(ACCOUNT_ID.toString())).thenReturn(new PatientProfileResponse(
-                ACCOUNT_ID, "0912345678", "Nguyen Van A", AccountStatus.ACTIVE, false));
+                ACCOUNT_ID, "0912345678", "Nguyen Van A", LocalDate.of(2005, 6, 7), "Nam", "Tay Ninh", AccountStatus.ACTIVE, false));
 
         mockMvc.perform(get("/api/v1/auth/me")
                         .with(authentication(UsernamePasswordAuthenticationToken.authenticated(
@@ -91,13 +92,13 @@ class AccountAuthControllerTest {
     @Test
     void updatesPatientProfile() throws Exception {
         when(authService.updateProfile(org.mockito.ArgumentMatchers.eq(ACCOUNT_ID.toString()), any()))
-                .thenReturn(new PatientProfileResponse(ACCOUNT_ID, "0912345678", "Nguyen Thi B", AccountStatus.ACTIVE, false));
+                .thenReturn(new PatientProfileResponse(ACCOUNT_ID, "0912345678", "Nguyen Thi B", LocalDate.of(2005, 6, 7), "Nam", "Tay Ninh", AccountStatus.ACTIVE, false));
 
         mockMvc.perform(patch("/api/v1/auth/me")
                         .with(authentication(UsernamePasswordAuthenticationToken.authenticated(
                                 ACCOUNT_ID.toString(), null, List.of())))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"fullName\":\"Nguyen Thi B\"}"))
+                        .content("{\"fullName\":\"Nguyen Thi B\",\"dateOfBirth\":\"2005-06-07\",\"gender\":\"Nam\",\"address\":\"Tay Ninh\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.fullName").value("Nguyen Thi B"));
     }
