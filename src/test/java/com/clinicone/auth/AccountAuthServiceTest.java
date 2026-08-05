@@ -1,5 +1,7 @@
 package com.clinicone.auth;
 
+import com.clinicone.patientprofile.PatientProfile;
+import com.clinicone.patientprofile.PatientProfileRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -32,6 +34,7 @@ class AccountAuthServiceTest {
     private OtpService otpService;
     private PasswordEncoder passwordEncoder;
     private SessionTokenGenerator tokenGenerator;
+    private PatientProfileRepository patientProfileRepository;
     private AccountAuthService service;
 
     @BeforeEach
@@ -41,8 +44,9 @@ class AccountAuthServiceTest {
         otpService = mock(OtpService.class);
         passwordEncoder = mock(PasswordEncoder.class);
         tokenGenerator = mock(SessionTokenGenerator.class);
+        patientProfileRepository = mock(PatientProfileRepository.class);
         service = new AccountAuthService(accountRepository, sessionRepository, otpService, passwordEncoder,
-                tokenGenerator, Clock.fixed(NOW, ZoneOffset.UTC));
+                tokenGenerator, Clock.fixed(NOW, ZoneOffset.UTC), patientProfileRepository);
         when(accountRepository.save(any(PatientAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(sessionRepository.save(any(LoginSession.class))).thenAnswer(invocation -> invocation.getArgument(0));
     }
@@ -62,6 +66,22 @@ class AccountAuthServiceTest {
         assertEquals(ACCOUNT_ID, response.accountId());
         assertEquals("0912345678", response.phone());
         verify(accountRepository).save(any(PatientAccount.class));
+    }
+
+    @Test
+    void registrationCreatesThePrimaryPatientProfile() {
+        when(otpService.isPhoneRecentlyVerified("0912345678", OtpPurpose.REGISTRATION)).thenReturn(true);
+        when(accountRepository.existsByPhone("0912345678")).thenReturn(false);
+        when(passwordEncoder.encode("password123")).thenReturn("password-hash");
+        PatientAccount saved = new PatientAccount("0912345678", "password-hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
+        setId(saved, ACCOUNT_ID);
+        saved.updateProfile("Nguyen Van A", LocalDate.of(2000, 1, 1), "Nam", "Tay Ninh");
+        when(accountRepository.save(any(PatientAccount.class))).thenReturn(saved);
+
+        service.register(new RegistrationRequest("0912345678", "Nguyen Van A", "password123",
+                LocalDate.of(2000, 1, 1), "Nam", "Tay Ninh"));
+
+        verify(patientProfileRepository).save(any(PatientProfile.class));
     }
 
     @Test
@@ -137,6 +157,7 @@ class AccountAuthServiceTest {
         assertEquals("Nam", response.gender());
         assertEquals("Tay Ninh", response.address());
         verify(accountRepository).save(account);
+        verify(patientProfileRepository).save(any(PatientProfile.class));
     }
 
     @Test

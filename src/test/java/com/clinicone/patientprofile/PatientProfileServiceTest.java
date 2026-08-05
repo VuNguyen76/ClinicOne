@@ -14,6 +14,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.any;
 
 class PatientProfileServiceTest {
     private static final UUID ACCOUNT_ID = UUID.randomUUID();
@@ -66,5 +68,26 @@ class PatientProfileServiceTest {
                 new PatientProfileService(accountRepository, profileRepository).delete(ACCOUNT_ID.toString(), PROFILE_ID.toString()));
 
         assertEquals("PRIMARY_PROFILE_CANNOT_DELETE", exception.getCode());
+    }
+
+    @Test
+    void updatingThePrimaryProfileUpdatesTheAccountSummary() {
+        PatientAccountRepository accountRepository = mock(PatientAccountRepository.class);
+        PatientProfileRepository profileRepository = mock(PatientProfileRepository.class);
+        PatientAccount account = new PatientAccount("0912345678", "hash", "Cũ", com.clinicone.auth.AccountStatus.ACTIVE, false);
+        PatientProfile profile = PatientProfile.forTest(PROFILE_ID, account, "Cũ", "Bản thân",
+                LocalDate.of(2000, 1, 1), "Nam", true);
+        when(profileRepository.findByIdAndOwnerIdAndActiveTrue(PROFILE_ID, ACCOUNT_ID)).thenReturn(Optional.of(profile));
+        when(profileRepository.save(any(PatientProfile.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        new PatientProfileService(accountRepository, profileRepository).update(ACCOUNT_ID.toString(), PROFILE_ID.toString(),
+                new UpdatePatientProfileRequest("Mới", "Bản thân", LocalDate.of(2001, 2, 2), "Nữ",
+                        null, null, "Việt Nam", "Kinh", "Địa chỉ mới"));
+
+        assertEquals("Mới", account.getFullName());
+        assertEquals(LocalDate.of(2001, 2, 2), account.getDateOfBirth());
+        assertEquals("Nữ", account.getGender());
+        assertEquals("Địa chỉ mới", account.getAddress());
+        verify(accountRepository).save(account);
     }
 }
