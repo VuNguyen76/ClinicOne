@@ -60,6 +60,13 @@ export interface PatientProfileItem {
   nationality: string | null;
   ethnicity: string | null;
   address: string | null;
+  provinceCode: string | null;
+  provinceName: string | null;
+  districtCode: string | null;
+  districtName: string | null;
+  wardCode: string | null;
+  wardName: string | null;
+  streetAddress: string | null;
   primaryProfile: boolean;
 }
 
@@ -123,6 +130,13 @@ export interface PatientProfileRequest {
   nationality?: string;
   ethnicity?: string;
   address?: string;
+  provinceCode?: string;
+  provinceName?: string;
+  districtCode?: string;
+  districtName?: string;
+  wardCode?: string;
+  wardName?: string;
+  streetAddress?: string;
 }
 
 export type ApiErrorResponse = {
@@ -175,8 +189,12 @@ export class AuthApiService {
     return this.http.post<{ verified: boolean }>(`${this.apiRoot}/verify-sms-otp`, { phone, purpose, code });
   }
 
-  register(phone: string, fullName: string, password: string, dateOfBirth: string, gender: string, address: string): Observable<RegistrationResponse> {
-    return this.http.post<RegistrationResponse>(`${this.apiRoot}/register`, { phone, fullName, password, dateOfBirth, gender, address });
+  register(phone: string, fullName: string, password: string, dateOfBirth: string, gender: string, address: string,
+           provinceCode = '', provinceName = '', districtCode = '', districtName = '', wardCode = '', wardName = '', streetAddress = ''): Observable<RegistrationResponse> {
+    return this.http.post<RegistrationResponse>(`${this.apiRoot}/register`, {
+      phone, fullName, password, dateOfBirth, gender, address,
+      provinceCode, provinceName, districtCode, districtName, wardCode, wardName, streetAddress,
+    });
   }
 
   getProfile(): Observable<PatientProfileResponse> {

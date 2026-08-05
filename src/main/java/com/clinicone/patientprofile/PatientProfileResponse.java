@@ -14,11 +14,20 @@ public record PatientProfileResponse(
         String nationality,
         String ethnicity,
         String address,
+        String provinceCode,
+        String provinceName,
+        String districtCode,
+        String districtName,
+        String wardCode,
+        String wardName,
+        String streetAddress,
         boolean primaryProfile
 ) {
     public static PatientProfileResponse from(PatientProfile profile) {
         return new PatientProfileResponse(profile.getId(), profile.getFullName(), profile.getRelationship(),
                 profile.getDateOfBirth(), profile.getGender(), profile.getPhone(), profile.getIdentityNumber(),
-                profile.getNationality(), profile.getEthnicity(), profile.getAddress(), profile.isPrimaryProfile());
+                profile.getNationality(), profile.getEthnicity(), profile.getAddress(), profile.getProvinceCode(),
+                profile.getProvinceName(), profile.getDistrictCode(), profile.getDistrictName(), profile.getWardCode(),
+                profile.getWardName(), profile.getStreetAddress(), profile.isPrimaryProfile());
     }
 }
