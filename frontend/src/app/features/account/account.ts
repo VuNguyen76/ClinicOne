@@ -63,7 +63,9 @@ export class Account implements OnInit {
   }, { validators: passwordsMatch });
 
   ngOnInit(): void {
-    this.passwordOpen.set(this.route.snapshot.queryParamMap.get('changePassword') === '1');
+    this.route.queryParamMap.subscribe((params) => {
+      this.passwordOpen.set(params.get('changePassword') === '1');
+    });
     this.loadProvinces();
     this.loadProfile();
   }
@@ -113,15 +115,16 @@ export class Account implements OnInit {
           if (currentProfile) {
             this.profile.set({ ...currentProfile, mustChangePassword: false });
           }
+          void this.router.navigate([], {
+            relativeTo: this.route,
+            queryParams: { changePassword: null },
+            queryParamsHandling: 'merge',
+            replaceUrl: true,
+          });
           this.notice.set('Mật khẩu đã được đổi thành công.');
         },
         error: (response) => this.showError(response),
       });
-  }
-
-  protected togglePassword(): void {
-    this.passwordOpen.update((open) => !open);
-    this.clearMessages();
   }
 
   protected maskedPhone(): string {
