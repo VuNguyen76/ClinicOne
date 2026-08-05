@@ -3,6 +3,8 @@ package com.clinicone.appointment;
 import com.clinicone.auth.AuthException;
 import com.clinicone.auth.PatientAccount;
 import com.clinicone.auth.PatientAccountRepository;
+import com.clinicone.patientprofile.PatientProfile;
+import com.clinicone.patientprofile.PatientProfileRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,10 +19,18 @@ import java.util.concurrent.ThreadLocalRandom;
 public class AppointmentService {
     private final PatientAccountRepository accountRepository;
     private final AppointmentRepository appointmentRepository;
+    private final PatientProfileRepository profileRepository;
 
     public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository) {
+        this(accountRepository, appointmentRepository, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
+                              PatientProfileRepository profileRepository) {
         this.accountRepository = accountRepository;
         this.appointmentRepository = appointmentRepository;
+        this.profileRepository = profileRepository;
     }
 
     @Transactional(readOnly = true)
@@ -51,9 +61,22 @@ public class AppointmentService {
                     "Bạn đã có lịch hẹn trong khung giờ này.");
         }
 
-        Appointment appointment = Appointment.create(patient, nextAppointmentCode(), request.specialty().trim(),
+        PatientProfile profile = resolveProfile(request.profileId(), patientId);
+        Appointment appointment = profile == null
+                ? Appointment.create(patient, nextAppointmentCode(), request.specialty().trim(), request.doctorName().trim(),
+                appointmentDate, startTime, request.reason().trim())
+                : Appointment.create(patient, profile, nextAppointmentCode(), request.specialty().trim(),
                 request.doctorName().trim(), appointmentDate, startTime, request.reason().trim());
         return AppointmentResponse.from(appointmentRepository.save(appointment));
+    }
+
+    private PatientProfile resolveProfile(UUID profileId, UUID patientId) {
+        if (profileId == null || profileRepository == null) {
+            return null;
+        }
+        return profileRepository.findByIdAndOwnerIdAndActiveTrue(profileId, patientId)
+                .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "PATIENT_PROFILE_NOT_FOUND",
+                        "Không tìm thấy hồ sơ được chọn."));
     }
 
     @Transactional

@@ -9,6 +9,7 @@ import { Booking } from './features/appointments/booking/booking';
 import { AppointmentDetail } from './features/appointments/detail/appointment-detail';
 import { MedicalRecords } from './features/medical-records/medical-records';
 import { MedicalRecordDetail } from './features/medical-records/medical-record-detail';
+import { PatientProfiles } from './features/patient-profiles/patient-profiles';
 import { authGuard } from './core/auth/auth.guard';
 
 export const routes: Routes = [
@@ -21,6 +22,7 @@ export const routes: Routes = [
   { path: 'appointments/:id', component: AppointmentDetail, canActivate: [authGuard] },
   { path: 'medical-records', component: MedicalRecords, canActivate: [authGuard] },
   { path: 'medical-records/:id', component: MedicalRecordDetail, canActivate: [authGuard] },
+  { path: 'patient-profiles', component: PatientProfiles, canActivate: [authGuard] },
   { path: 'about', component: PublicPage, data: { page: 'about' } },
   { path: 'process', component: PublicPage, data: { page: 'process' } },
   { path: 'common-issues', component: PublicPage, data: { page: 'common-issues' } },

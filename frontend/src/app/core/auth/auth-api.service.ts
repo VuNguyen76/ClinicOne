@@ -49,6 +49,20 @@ export interface PatientProfileResponse {
   mustChangePassword: boolean;
 }
 
+export interface PatientProfileItem {
+  id: string;
+  fullName: string;
+  relationship: string;
+  dateOfBirth: string;
+  gender: string;
+  phone: string | null;
+  identityNumber: string | null;
+  nationality: string | null;
+  ethnicity: string | null;
+  address: string | null;
+  primaryProfile: boolean;
+}
+
 export interface AppointmentResponse {
   id: string;
   appointmentCode: string;
@@ -59,6 +73,8 @@ export interface AppointmentResponse {
   reason: string;
   status: string;
   statusLabel: string;
+  profileId?: string | null;
+  profileName?: string | null;
 }
 
 export interface ExaminationSessionResponse {
@@ -94,6 +110,19 @@ export interface CreateAppointmentRequest {
   appointmentDate: string;
   startTime: string;
   reason: string;
+  profileId?: string;
+}
+
+export interface PatientProfileRequest {
+  fullName: string;
+  relationship: string;
+  dateOfBirth: string;
+  gender: string;
+  phone?: string;
+  identityNumber?: string;
+  nationality?: string;
+  ethnicity?: string;
+  address?: string;
 }
 
 export type ApiErrorResponse = {
@@ -114,6 +143,7 @@ export class AuthApiService {
   private readonly appointmentsRoot = '/api/v1/appointments';
   private readonly examinationsRoot = '/api/v1/examinations';
   private readonly medicalRecordsRoot = '/api/v1/medical-records';
+  private readonly patientProfilesRoot = '/api/v1/patient-profiles';
 
   requestSmsOtp(phone: string, purpose: OtpPurpose): Observable<OtpResponse> {
     return this.http.post<OtpResponse>(`${this.apiRoot}/request-sms-otp`, { phone, purpose });
@@ -151,6 +181,22 @@ export class AuthApiService {
 
   getProfile(): Observable<PatientProfileResponse> {
     return this.http.get<PatientProfileResponse>(`${this.apiRoot}/me`);
+  }
+
+  getPatientProfiles(): Observable<PatientProfileItem[]> {
+    return this.http.get<PatientProfileItem[]>(this.patientProfilesRoot);
+  }
+
+  createPatientProfile(request: PatientProfileRequest): Observable<PatientProfileItem> {
+    return this.http.post<PatientProfileItem>(this.patientProfilesRoot, request);
+  }
+
+  updatePatientProfile(id: string, request: PatientProfileRequest): Observable<PatientProfileItem> {
+    return this.http.patch<PatientProfileItem>(`${this.patientProfilesRoot}/${id}`, request);
+  }
+
+  deletePatientProfile(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.patientProfilesRoot}/${id}`);
   }
 
   updateProfile(fullName: string, dateOfBirth: string | null, gender: string | null, address: string,
