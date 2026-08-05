@@ -52,10 +52,8 @@ export class Login {
         next: (response) => {
           if (response.accountExists) {
             this.step.set('password');
-            this.notice.set('Nhập mật khẩu để đăng nhập.');
           } else {
             this.showRegister.set(true);
-            this.notice.set('Số điện thoại chưa có tài khoản. Bạn có thể đăng ký ngay.');
           }
         },
         error: (response) => this.showError(response),
@@ -77,7 +75,7 @@ export class Login {
       .login(this.phone(), password)
       .pipe(finalize(() => this.busy.set(false)))
       .subscribe({
-        next: (session) => this.router.navigateByUrl(session.mustChangePassword ? '/account?changePassword=1' : '/dashboard'),
+        next: (session) => this.router.navigateByUrl(session.mustChangePassword ? '/change-password?required=1' : '/dashboard'),
         error: (response) => this.showError(response),
       });
   }
