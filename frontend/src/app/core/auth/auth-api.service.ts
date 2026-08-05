@@ -61,6 +61,33 @@ export interface AppointmentResponse {
   statusLabel: string;
 }
 
+export interface ExaminationSessionResponse {
+  id: string;
+  appointmentId: string;
+  appointmentCode: string;
+  specialty: string;
+  doctorName: string;
+  appointmentDate: string;
+  startTime: string;
+  status: string;
+  statusLabel: string;
+}
+
+export interface MedicalRecordResponse {
+  id: string;
+  examinationId: string | null;
+  appointmentCode: string | null;
+  doctorName: string;
+  reason: string;
+  examinationNotes: string;
+  diagnosis: string;
+  conclusion: string;
+  treatmentPlan: string;
+  prescription: string | null;
+  followUpDate: string | null;
+  signedAt: string;
+}
+
 export interface CreateAppointmentRequest {
   specialty: string;
   doctorName: string;
@@ -85,6 +112,8 @@ export class AuthApiService {
   private readonly http = inject(HttpClient);
   private readonly apiRoot = '/api/v1/auth';
   private readonly appointmentsRoot = '/api/v1/appointments';
+  private readonly examinationsRoot = '/api/v1/examinations';
+  private readonly medicalRecordsRoot = '/api/v1/medical-records';
 
   requestSmsOtp(phone: string, purpose: OtpPurpose): Observable<OtpResponse> {
     return this.http.post<OtpResponse>(`${this.apiRoot}/request-sms-otp`, { phone, purpose });
@@ -156,5 +185,17 @@ export class AuthApiService {
 
   rescheduleAppointment(id: string, appointmentDate: string, startTime: string): Observable<AppointmentResponse> {
     return this.http.post<AppointmentResponse>(`${this.appointmentsRoot}/${id}/reschedule`, { appointmentDate, startTime });
+  }
+
+  getExaminations(): Observable<ExaminationSessionResponse[]> {
+    return this.http.get<ExaminationSessionResponse[]>(this.examinationsRoot);
+  }
+
+  getMedicalRecords(): Observable<MedicalRecordResponse[]> {
+    return this.http.get<MedicalRecordResponse[]>(this.medicalRecordsRoot);
+  }
+
+  getMedicalRecord(id: string): Observable<MedicalRecordResponse> {
+    return this.http.get<MedicalRecordResponse>(`${this.medicalRecordsRoot}/${id}`);
   }
 }
