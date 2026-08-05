@@ -12,6 +12,7 @@ interface DateOption {
   day: string;
   weekday: string;
   month: string;
+  inCurrentMonth: boolean;
 }
 
 interface TimeSlot {
@@ -39,7 +40,8 @@ export class Booking implements OnInit {
   protected readonly selectedSpecialty = signal('');
   protected readonly selectedDate = signal('');
   protected readonly selectedSlot = signal('');
-  protected readonly dates = this.buildDates();
+  protected readonly calendarMonth = signal(this.startOfMonth(new Date()));
+  protected readonly dates = signal(this.buildMonthDates(this.calendarMonth()));
   protected readonly specialties = signal<SpecialtyOption[]>([]);
   protected readonly specialtiesLoading = signal(true);
   protected readonly availableSlots = signal<TimeSlot[]>([]);
@@ -90,10 +92,38 @@ export class Booking implements OnInit {
     this.form.controls.startTime.reset('');
     this.selectedDate.set('');
     this.selectedSlot.set('');
+    this.monthSlots.set([]);
     this.step.set(2);
+    this.loadMonthAvailability();
+  }
+
+  protected readonly monthSlots = signal<AppointmentSlotResponse[]>([]);
+
+  protected monthLabel(): string {
+    return new Intl.DateTimeFormat('vi-VN', { month: 'long', year: 'numeric' }).format(this.calendarMonth());
+  }
+
+  protected isPreviousMonthDisabled(): boolean {
+    return this.calendarMonth().getTime() <= this.startOfMonth(new Date()).getTime();
+  }
+
+  protected previousMonth(): void {
+    if (this.isPreviousMonthDisabled()) return;
+    const month = this.calendarMonth();
+    this.setCalendarMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1));
+  }
+
+  protected nextMonth(): void {
+    const month = this.calendarMonth();
+    this.setCalendarMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1));
+  }
+
+  protected hasAvailability(date: DateOption): boolean {
+    return this.monthSlots().some((slot) => slot.appointmentDate === date.iso);
   }
 
   protected chooseDate(date: DateOption): void {
+    if (!date.inCurrentMonth || date.iso < this.today) return;
     this.clearError();
     this.selectedDate.set(date.iso);
     this.selectedSlot.set('');
@@ -192,21 +222,53 @@ export class Booking implements OnInit {
     this.error = apiErrorMessage(response);
   }
 
-  private buildDates(): DateOption[] {
+  private setCalendarMonth(month: Date): void {
+    this.calendarMonth.set(this.startOfMonth(month));
+    this.dates.set(this.buildMonthDates(this.calendarMonth()));
+    this.selectedDate.set('');
+    this.selectedSlot.set('');
+    this.availableSlots.set([]);
+    this.form.controls.appointmentDate.reset('');
+    this.form.controls.startTime.reset('');
+    this.monthSlots.set([]);
+    this.loadMonthAvailability();
+  }
+
+  private loadMonthAvailability(): void {
+    const specialty = this.form.controls.specialty.value;
+    if (!specialty) return;
+    const month = this.calendarMonth();
+    const monthStart = this.toIsoDate(month);
+    const monthEnd = this.toIsoDate(new Date(month.getFullYear(), month.getMonth() + 1, 0));
+    this.slotsLoading.set(true);
+    this.authApi.getAppointmentSlots(specialty, monthStart, monthEnd).subscribe({
+      next: (slots) => { this.monthSlots.set(slots); this.slotsLoading.set(false); },
+      error: (response) => { this.slotsLoading.set(false); this.handleAuthError(response); },
+    });
+  }
+
+  private buildMonthDates(month: Date): DateOption[] {
     const dates: DateOption[] = [];
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
-    for (let offset = 0; offset < 21; offset += 1) {
-      const date = new Date(start);
-      date.setDate(start.getDate() + offset);
+    const firstDay = this.startOfMonth(month);
+    const mondayOffset = (firstDay.getDay() + 6) % 7;
+    const gridStart = new Date(firstDay);
+    gridStart.setDate(firstDay.getDate() - mondayOffset);
+    for (let offset = 0; offset < 42; offset += 1) {
+      const date = new Date(gridStart);
+      date.setDate(gridStart.getDate() + offset);
       dates.push({
         iso: this.toIsoDate(date),
         day: String(date.getDate()).padStart(2, '0'),
         month: String(date.getMonth() + 1).padStart(2, '0'),
         weekday: new Intl.DateTimeFormat('vi-VN', { weekday: 'short' }).format(date).replace('.', ''),
+        inCurrentMonth: date.getMonth() === month.getMonth() && date.getFullYear() === month.getFullYear(),
       });
     }
     return dates;
+  }
+
+  private startOfMonth(date: Date): Date {
+    return new Date(date.getFullYear(), date.getMonth(), 1);
   }
 
   private toIsoDate(date: Date): string {
