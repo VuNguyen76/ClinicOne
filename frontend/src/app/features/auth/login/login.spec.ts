@@ -45,7 +45,7 @@ describe('Login', () => {
     expect((component as any).showRegister()).toBe(true);
     expect((component as any).step()).toBe('phone');
     expect(fixture.nativeElement.textContent).toContain('Đăng ký tài khoản');
-    expect(fixture.nativeElement.querySelector('form button[type="submit"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('form button[type="submit"]')).not.toBeNull();
   });
 
   it('shows the password step when the phone has an account', () => {
