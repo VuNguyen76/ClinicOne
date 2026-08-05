@@ -43,11 +43,18 @@ describe('Account', () => {
   });
 
   it('uses the outlined style for the add-profile action', () => {
-    const links = Array.from(fixture.nativeElement.querySelectorAll('aside a')) as HTMLAnchorElement[];
-    const addProfile = links.find((link) => link.textContent?.includes('Thêm hồ sơ'));
+    const addProfile = fixture.nativeElement.querySelector('[data-testid="add-profile-action"]') as HTMLAnchorElement | null;
 
     expect(addProfile?.className).toContain('border-[#0ea5e9]');
     expect(addProfile?.className).toContain('bg-white');
     expect(addProfile?.className).not.toContain('bg-[#09c3e9]');
+    expect(fixture.nativeElement.querySelector('aside')?.textContent).not.toContain('Thêm hồ sơ');
+  });
+
+  it('keeps the personal profile link on the account route', () => {
+    const links = Array.from(fixture.nativeElement.querySelectorAll('aside a')) as HTMLAnchorElement[];
+    const profileLink = links.find((link) => link.textContent?.includes('Hồ sơ bệnh nhân'));
+
+    expect(profileLink?.getAttribute('href')).toBe('/account');
   });
 });

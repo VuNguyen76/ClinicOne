@@ -28,9 +28,8 @@
 
     <div class="mt-8 grid gap-8 lg:grid-cols-[230px_1fr] lg:gap-10">
       <aside class="border-r border-slate-200 pr-6">
-        <a routerLink="/patient-profiles" class="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-lg border border-[#0ea5e9] bg-white px-4 text-sm font-semibold text-[#0284c7] transition hover:bg-[#e8f8fc]"><mat-icon class="!text-[19px]">add</mat-icon>Thêm hồ sơ</a>
-        <nav class="mt-5 grid gap-2" aria-label="Khu vực tài khoản">
-          <a href="#profile" class="flex items-center gap-3 rounded-r-[8px] border-l-2 border-[#0ea5e9] bg-[#eafaff] px-4 py-3 text-sm font-semibold text-[#08aeda]"><mat-icon>badge</mat-icon>Hồ sơ bệnh nhân</a>
+        <nav class="grid gap-2" aria-label="Khu vực tài khoản">
+          <a routerLink="/account" class="flex items-center gap-3 rounded-r-[8px] border-l-2 border-[#0ea5e9] bg-[#eafaff] px-4 py-3 text-sm font-semibold text-[#08aeda]"><mat-icon>badge</mat-icon>Hồ sơ bệnh nhân</a>
           <a routerLink="/appointments" class="flex items-center gap-3 rounded-r-[8px] px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-[#0ea5e9]"><mat-icon>event_available</mat-icon>Lịch hẹn của tôi</a>
           <a routerLink="/change-password" class="flex items-center gap-3 rounded-r-[8px] px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-[#0ea5e9]"><mat-icon>lock</mat-icon>Đổi mật khẩu</a>
           <a routerLink="/medical-records" class="flex items-center gap-3 rounded-r-[8px] px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-[#0ea5e9]"><mat-icon>receipt_long</mat-icon>Phiếu khám bệnh</a>
@@ -39,7 +38,7 @@
       </aside>
 
       <section class="min-w-0" id="profile">
-        <h1 class="text-2xl font-bold tracking-[-0.03em] text-slate-900">Danh sách hồ sơ bệnh nhân</h1>
+        <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center"><h1 class="text-2xl font-bold tracking-[-0.03em] text-slate-900">Danh sách hồ sơ bệnh nhân</h1><a data-testid="add-profile-action" routerLink="/patient-profiles" class="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-[#0ea5e9] bg-white px-4 text-sm font-semibold text-[#0284c7] transition hover:bg-[#e8f8fc]"><mat-icon class="!text-[19px]">add</mat-icon>Thêm hồ sơ</a></div>
 
     @if (loading()) {
       <div class="mt-6 grid min-h-48 place-items-center rounded-xl border border-slate-200 text-sm text-slate-500">Đang tải thông tin tài khoản...</div>
