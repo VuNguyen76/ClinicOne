@@ -55,6 +55,27 @@ public class PatientProfile {
     @Column(length = 500)
     private String address;
 
+    @Column(name = "province_code", length = 10)
+    private String provinceCode;
+
+    @Column(name = "province_name", length = 120)
+    private String provinceName;
+
+    @Column(name = "district_code", length = 10)
+    private String districtCode;
+
+    @Column(name = "district_name", length = 120)
+    private String districtName;
+
+    @Column(name = "ward_code", length = 10)
+    private String wardCode;
+
+    @Column(name = "ward_name", length = 120)
+    private String wardName;
+
+    @Column(name = "street_address", length = 500)
+    private String streetAddress;
+
     @Column(name = "primary_profile", nullable = false)
     private boolean primaryProfile;
 
@@ -72,7 +93,9 @@ public class PatientProfile {
 
     private PatientProfile(PatientAccount owner, String fullName, String relationship, LocalDate dateOfBirth,
                            String gender, String phone, String identityNumber, String nationality,
-                           String ethnicity, String address, boolean primaryProfile) {
+                           String ethnicity, String address, String provinceCode, String provinceName,
+                           String districtCode, String districtName, String wardCode, String wardName,
+                           String streetAddress, boolean primaryProfile) {
         this.owner = owner;
         this.fullName = fullName;
         this.relationship = relationship;
@@ -83,6 +106,13 @@ public class PatientProfile {
         this.nationality = nationality;
         this.ethnicity = ethnicity;
         this.address = address;
+        this.provinceCode = provinceCode;
+        this.provinceName = provinceName;
+        this.districtCode = districtCode;
+        this.districtName = districtName;
+        this.wardCode = wardCode;
+        this.wardName = wardName;
+        this.streetAddress = streetAddress;
         this.primaryProfile = primaryProfile;
         this.active = true;
     }
@@ -90,8 +120,18 @@ public class PatientProfile {
     public static PatientProfile create(PatientAccount owner, String fullName, String relationship,
                                          LocalDate dateOfBirth, String gender, String phone, String identityNumber,
                                          String nationality, String ethnicity, String address, boolean primaryProfile) {
+        return create(owner, fullName, relationship, dateOfBirth, gender, phone, identityNumber, nationality,
+                ethnicity, address, null, null, null, null, null, null, null, primaryProfile);
+    }
+
+    public static PatientProfile create(PatientAccount owner, String fullName, String relationship,
+                                         LocalDate dateOfBirth, String gender, String phone, String identityNumber,
+                                         String nationality, String ethnicity, String address, String provinceCode,
+                                         String provinceName, String districtCode, String districtName, String wardCode,
+                                         String wardName, String streetAddress, boolean primaryProfile) {
         return new PatientProfile(owner, fullName, relationship, dateOfBirth, gender, phone, identityNumber,
-                nationality, ethnicity, address, primaryProfile);
+                nationality, ethnicity, address, provinceCode, provinceName, districtCode, districtName, wardCode,
+                wardName, streetAddress, primaryProfile);
     }
 
     static PatientProfile forTest(UUID id, PatientAccount owner, String fullName, String relationship,
@@ -104,6 +144,14 @@ public class PatientProfile {
 
     public void update(String fullName, String relationship, LocalDate dateOfBirth, String gender, String phone,
                        String identityNumber, String nationality, String ethnicity, String address) {
+        update(fullName, relationship, dateOfBirth, gender, phone, identityNumber, nationality, ethnicity, address,
+                provinceCode, provinceName, districtCode, districtName, wardCode, wardName, streetAddress);
+    }
+
+    public void update(String fullName, String relationship, LocalDate dateOfBirth, String gender, String phone,
+                       String identityNumber, String nationality, String ethnicity, String address, String provinceCode,
+                       String provinceName, String districtCode, String districtName, String wardCode, String wardName,
+                       String streetAddress) {
         this.fullName = fullName;
         this.relationship = relationship;
         this.dateOfBirth = dateOfBirth;
@@ -113,6 +161,13 @@ public class PatientProfile {
         this.nationality = nationality;
         this.ethnicity = ethnicity;
         this.address = address;
+        this.provinceCode = provinceCode;
+        this.provinceName = provinceName;
+        this.districtCode = districtCode;
+        this.districtName = districtName;
+        this.wardCode = wardCode;
+        this.wardName = wardName;
+        this.streetAddress = streetAddress;
     }
 
     public void archive() {
@@ -142,6 +197,13 @@ public class PatientProfile {
     public String getNationality() { return nationality; }
     public String getEthnicity() { return ethnicity; }
     public String getAddress() { return address; }
+    public String getProvinceCode() { return provinceCode; }
+    public String getProvinceName() { return provinceName; }
+    public String getDistrictCode() { return districtCode; }
+    public String getDistrictName() { return districtName; }
+    public String getWardCode() { return wardCode; }
+    public String getWardName() { return wardName; }
+    public String getStreetAddress() { return streetAddress; }
     public boolean isPrimaryProfile() { return primaryProfile; }
     public boolean isActive() { return active; }
 }

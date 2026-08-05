@@ -17,6 +17,19 @@ public record UpdatePatientProfileRequest(
         @Pattern(regexp = "^$|\\d{9}|\\d{12}", message = "CMND/CCCD phải gồm 9 hoặc 12 chữ số") String identityNumber,
         @Size(max = 100) String nationality,
         @Size(max = 100) String ethnicity,
-        @Size(max = 500) String address
+        @Size(max = 500) String address,
+        @Size(max = 10) String provinceCode,
+        @Size(max = 120) String provinceName,
+        @Size(max = 10) String districtCode,
+        @Size(max = 120) String districtName,
+        @Size(max = 10) String wardCode,
+        @Size(max = 120) String wardName,
+        @Size(max = 500) String streetAddress
 ) {
+    public UpdatePatientProfileRequest(String fullName, String relationship, LocalDate dateOfBirth, String gender,
+                                       String phone, String identityNumber, String nationality, String ethnicity,
+                                       String address) {
+        this(fullName, relationship, dateOfBirth, gender, phone, identityNumber, nationality, ethnicity, address,
+                null, null, null, null, null, null, null);
+    }
 }

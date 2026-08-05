@@ -30,7 +30,9 @@ public class PatientProfileService {
         if (profiles.isEmpty()) {
             PatientProfile primary = PatientProfile.create(owner, owner.getFullName(), "Bản thân", owner.getDateOfBirth(),
                     owner.getGender(), owner.getPhone(), owner.getIdentityNumber(), owner.getNationality(),
-                    owner.getEthnicity(), owner.getAddress(), true);
+                    owner.getEthnicity(), owner.getAddress(), owner.getProvinceCode(), owner.getProvinceName(),
+                    owner.getDistrictCode(), owner.getDistrictName(), owner.getWardCode(), owner.getWardName(),
+                    owner.getStreetAddress(), true);
             profiles = List.of(profileRepository.save(primary));
         }
         return profiles.stream().map(PatientProfileResponse::from).toList();
@@ -46,7 +48,10 @@ public class PatientProfileService {
         }
         PatientProfile profile = PatientProfile.create(owner, normalize(request.fullName()), normalize(request.relationship()),
                 request.dateOfBirth(), normalize(request.gender()), normalize(request.phone()), normalize(request.identityNumber()),
-                normalize(request.nationality()), normalize(request.ethnicity()), normalize(request.address()), false);
+                normalize(request.nationality()), normalize(request.ethnicity()), composeAddress(request.address(), request.streetAddress(), request.wardName(), request.districtName(), request.provinceName()),
+                normalize(request.provinceCode()), normalize(request.provinceName()), normalize(request.districtCode()),
+                normalize(request.districtName()), normalize(request.wardCode()), normalize(request.wardName()),
+                normalize(request.streetAddress()), false);
         return PatientProfileResponse.from(profileRepository.save(profile));
     }
 
@@ -56,12 +61,16 @@ public class PatientProfileService {
         PatientProfile profile = findOwned(profileId, ownerId);
         profile.update(normalize(request.fullName()), normalize(request.relationship()), request.dateOfBirth(),
                 normalize(request.gender()), normalize(request.phone()), normalize(request.identityNumber()),
-                normalize(request.nationality()), normalize(request.ethnicity()), normalize(request.address()));
+                normalize(request.nationality()), normalize(request.ethnicity()), composeAddress(request.address(), request.streetAddress(), request.wardName(), request.districtName(), request.provinceName()),
+                normalize(request.provinceCode()), normalize(request.provinceName()), normalize(request.districtCode()),
+                normalize(request.districtName()), normalize(request.wardCode()), normalize(request.wardName()),
+                normalize(request.streetAddress()));
         if (profile.isPrimaryProfile()) {
             PatientAccount owner = profile.getOwner();
             owner.syncFromPrimaryProfile(profile.getFullName(), profile.getDateOfBirth(), profile.getGender(),
                     profile.getPhone(), profile.getIdentityNumber(), profile.getNationality(), profile.getEthnicity(),
-                    profile.getAddress());
+                    profile.getAddress(), profile.getProvinceCode(), profile.getProvinceName(), profile.getDistrictCode(),
+                    profile.getDistrictName(), profile.getWardCode(), profile.getWardName(), profile.getStreetAddress());
             accountRepository.save(owner);
         }
         return PatientProfileResponse.from(profileRepository.save(profile));
@@ -106,6 +115,15 @@ public class PatientProfileService {
 
     private String normalize(String value) {
         return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private String composeAddress(String fallback, String street, String ward, String district, String province) {
+        String composed = java.util.stream.Stream.of(street, ward, district, province)
+                .map(this::normalize)
+                .filter(value -> value != null)
+                .reduce((left, right) -> left + ", " + right)
+                .orElse(null);
+        return composed == null ? normalize(fallback) : composed;
     }
 
     private AuthException authenticationRequired() {

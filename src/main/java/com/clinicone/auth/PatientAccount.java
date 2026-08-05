@@ -149,7 +149,9 @@ public class PatientAccount {
     }
 
     public void syncFromPrimaryProfile(String fullName, LocalDate dateOfBirth, String gender, String phone,
-                                       String identityNumber, String nationality, String ethnicity, String address) {
+                                       String identityNumber, String nationality, String ethnicity, String address,
+                                       String provinceCode, String provinceName, String districtCode,
+                                       String districtName, String wardCode, String wardName, String streetAddress) {
         this.fullName = fullName;
         this.dateOfBirth = dateOfBirth;
         this.gender = gender;
@@ -157,6 +159,13 @@ public class PatientAccount {
         this.nationality = nationality;
         this.ethnicity = ethnicity;
         this.address = address;
+        this.provinceCode = provinceCode;
+        this.provinceName = provinceName;
+        this.districtCode = districtCode;
+        this.districtName = districtName;
+        this.wardCode = wardCode;
+        this.wardName = wardName;
+        this.streetAddress = streetAddress;
         // The account phone remains the login identifier; a profile phone is informational only.
     }
 

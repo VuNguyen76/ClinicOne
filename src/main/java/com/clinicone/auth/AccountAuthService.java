@@ -67,6 +67,9 @@ public class AccountAuthService {
         validateProfileDetails(request.dateOfBirth(), request.gender());
         account.updateProfile(request.fullName().trim(), request.dateOfBirth(), normalizeGender(request.gender()),
                 normalizeAddress(request.address()));
+        account.updateIdentityAndAddress(null, null, null, normalize(request.provinceCode()), normalize(request.provinceName()),
+                normalize(request.districtCode()), normalize(request.districtName()), normalize(request.wardCode()),
+                normalize(request.wardName()), normalize(request.streetAddress()));
         PatientAccount saved = accountRepository.save(account);
         syncPrimaryProfile(saved);
         return new RegistrationResponse(saved.getId(), saved.getPhone(), saved.getFullName());
@@ -130,11 +133,14 @@ public class AccountAuthService {
                 .findFirst()
                 .orElseGet(() -> PatientProfile.create(account, account.getFullName(), "Bản thân",
                         account.getDateOfBirth(), account.getGender(), account.getPhone(), account.getIdentityNumber(),
-                        account.getNationality(), account.getEthnicity(), account.getAddress(), true));
+                        account.getNationality(), account.getEthnicity(), account.getAddress(), account.getProvinceCode(),
+                        account.getProvinceName(), account.getDistrictCode(), account.getDistrictName(), account.getWardCode(),
+                        account.getWardName(), account.getStreetAddress(), true));
         if (primary.getId() != null) {
             primary.update(account.getFullName(), "Bản thân", account.getDateOfBirth(), account.getGender(),
                     account.getPhone(), account.getIdentityNumber(), account.getNationality(), account.getEthnicity(),
-                    account.getAddress());
+                    account.getAddress(), account.getProvinceCode(), account.getProvinceName(), account.getDistrictCode(),
+                    account.getDistrictName(), account.getWardCode(), account.getWardName(), account.getStreetAddress());
         }
         patientProfileRepository.save(primary);
     }
