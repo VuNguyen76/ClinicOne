@@ -122,8 +122,9 @@ export class Register implements OnInit {
       return;
     }
 
-    const { fullName, password, dateOfBirth, gender, address, provinceCode, provinceName, districtCode, districtName,
+    const { fullName, password, dateOfBirth, gender, provinceCode, provinceName, districtCode, districtName,
       wardCode, wardName, streetAddress } = this.profileForm.getRawValue();
+    const address = [streetAddress, wardName, districtName, provinceName].filter((value) => value.trim()).join(', ');
     this.busy.set(true);
     this.authApi
       .register(this.phone(), fullName.trim(), password, dateOfBirth, gender, address.trim(), provinceCode, provinceName,
