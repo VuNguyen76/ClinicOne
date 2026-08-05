@@ -1,0 +1,23 @@
+<main class="min-h-screen bg-[#f7fafb] text-[#103f4c]">
+  <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
+    <div class="mx-auto flex h-[72px] max-w-[1200px] items-center justify-between gap-8 px-5 lg:px-0">
+      <a routerLink="/home" class="flex items-center gap-3" aria-label="ClinicOne, trang chủ"><img class="h-11 w-11 object-contain" src="clinicone-mark.png" alt="" aria-hidden="true" /><span class="text-[21px] font-bold tracking-[-0.04em]">Clinic<span class="text-[#0ea5e9]">One</span></span></a>
+      <nav class="hidden items-center gap-7 text-sm font-medium text-slate-600 lg:flex" aria-label="Điều hướng chính"><a routerLink="/home" class="hover:text-[#0ea5e9]">Trang chủ</a><a routerLink="/about" class="hover:text-[#0ea5e9]">Giới thiệu</a><a routerLink="/process" class="hover:text-[#0ea5e9]">Quy trình</a><a routerLink="/common-issues" class="hover:text-[#0ea5e9]">Hướng dẫn</a><a routerLink="/support" class="hover:text-[#0ea5e9]">Thắc mắc</a><a routerLink="/contact" class="hover:text-[#0ea5e9]">Liên hệ</a></nav>
+      <div class="flex items-center gap-4"><a href="tel:1900000" class="hidden items-center gap-2 text-right sm:flex"><mat-icon class="!h-5 !w-5 !text-[19px] text-rose-500">phone_in_talk</mat-icon><span class="hidden text-xs text-slate-500 xl:block"><strong class="block text-[#103f4c]">Tổng đài</strong><span class="font-semibold tracking-[0.08em] text-rose-500">1900000</span></span></a><app-account-menu /></div>
+    </div>
+  </header>
+
+  <div class="mx-auto max-w-[1200px] px-5 py-8 lg:px-0 lg:py-10">
+    <div class="flex items-center gap-3 text-sm"><a routerLink="/home" class="font-semibold text-[#103f4c] hover:text-[#0ea5e9]">Trang chủ</a><mat-icon class="!h-4 !w-4 !text-[16px] text-slate-400">chevron_right</mat-icon><span class="font-semibold text-[#0ea5e9]">Phiếu khám bệnh</span></div>
+    <section class="mt-8 rounded-[18px] bg-[#e8f8fc] px-6 py-7 sm:px-8"><p class="text-xs font-bold uppercase tracking-[0.16em] text-[#0ea5e9]">Hồ sơ khám</p><h1 class="mt-2 text-2xl font-bold tracking-[-0.035em] text-slate-900 sm:text-3xl">Phiếu khám bệnh</h1><p class="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Chỉ những phiếu đã được bác sĩ ký mới hiển thị tại đây.</p></section>
+
+    @if (loading()) {
+      <div class="mt-8 grid min-h-48 place-items-center rounded-[16px] border border-slate-200 bg-white text-sm text-slate-500">Đang tải phiếu khám...</div>
+    } @else if (records().length === 0) {
+      <section class="mt-8 grid min-h-64 place-items-center rounded-[16px] border border-dashed border-slate-300 bg-white px-6 py-10 text-center"><div><span class="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[#e8f8fc] text-[#0ea5e9]"><mat-icon>description</mat-icon></span><h2 class="mt-4 font-semibold text-slate-800">Chưa có phiếu khám đã ký</h2><p class="mt-2 max-w-sm text-sm leading-6 text-slate-500">Sau khi hoàn tất buổi khám và bác sĩ ký phiếu, hồ sơ sẽ xuất hiện ở đây.</p><a routerLink="/dashboard" class="mt-5 inline-flex min-h-10 items-center justify-center rounded-lg border border-[#0ea5e9] px-4 text-sm font-semibold text-[#0284c7] transition hover:bg-[#e0f2fe]">Về tổng quan</a></div></section>
+    } @else {
+      <section class="mt-8 overflow-hidden rounded-[16px] border border-slate-200 bg-white shadow-sm"><div class="border-b border-slate-100 px-6 py-5"><h2 class="text-lg font-bold text-slate-900">Lịch sử khám</h2><p class="mt-1 text-sm text-slate-500">{{ records().length }} phiếu đã ký</p></div><div class="divide-y divide-slate-100">@for (record of records(); track record.id) {<a [routerLink]="['/medical-records', record.id]" class="flex flex-col gap-4 px-6 py-5 transition hover:bg-[#f8fcfd] sm:flex-row sm:items-center sm:justify-between"><div class="flex items-start gap-4"><span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#e8f8fc] text-[#0ea5e9]"><mat-icon>description</mat-icon></span><div><p class="font-semibold text-slate-900">{{ record.diagnosis || 'Phiếu khám tổng quát' }}</p><p class="mt-1 text-sm text-slate-500">{{ record.doctorName }} · {{ record.appointmentCode || 'Không có mã lịch' }}</p><p class="mt-2 text-sm text-slate-700">Đã ký {{ formatDateTime(record.signedAt) }}</p></div></div><span class="inline-flex w-fit items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">Đã ký <mat-icon class="!h-4 !w-4 !text-[15px]">verified</mat-icon></span></a>}</div></section>
+    }
+  </div>
+  @if (error()) { <p class="fixed bottom-5 left-1/2 z-40 -translate-x-1/2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-lg" role="alert">{{ error() }}</p> }
+</main>

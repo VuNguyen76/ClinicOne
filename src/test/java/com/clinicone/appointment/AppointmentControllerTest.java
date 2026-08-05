@@ -66,6 +66,48 @@ class AppointmentControllerTest {
                 .andExpect(jsonPath("$.appointmentCode").value("CL-20260810-1234"));
     }
 
+    @Test
+    void returnsAppointmentDetail() throws Exception {
+        UUID appointmentId = UUID.randomUUID();
+        when(appointmentService.get(eq(ACCOUNT_ID.toString()), eq(appointmentId.toString()))).thenReturn(new AppointmentResponse(
+                appointmentId, "CL-20260810-1234", "Nội khoa", "BS. Nguyễn An",
+                LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), "Đau đầu", "BOOKED", "Đã đặt"));
+
+        mockMvc.perform(get("/api/v1/appointments/" + appointmentId)
+                        .with(authentication(UsernamePasswordAuthenticationToken.authenticated(
+                                ACCOUNT_ID.toString(), null, List.of()))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.appointmentCode").value("CL-20260810-1234"));
+    }
+
+    @Test
+    void cancelsAppointment() throws Exception {
+        UUID appointmentId = UUID.randomUUID();
+
+        mockMvc.perform(post("/api/v1/appointments/" + appointmentId + "/cancel")
+                        .with(authentication(UsernamePasswordAuthenticationToken.authenticated(
+                                ACCOUNT_ID.toString(), null, List.of())))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"reason\":\"Bận việc\"}"))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void reschedulesAppointment() throws Exception {
+        UUID appointmentId = UUID.randomUUID();
+        when(appointmentService.reschedule(eq(ACCOUNT_ID.toString()), eq(appointmentId.toString()), any())).thenReturn(new AppointmentResponse(
+                appointmentId, "CL-20260810-1234", "Nội khoa", "BS. Nguyễn An",
+                LocalDate.of(2026, 8, 11), LocalTime.of(10, 0), "Đau đầu", "BOOKED", "Đã đặt"));
+
+        mockMvc.perform(post("/api/v1/appointments/" + appointmentId + "/reschedule")
+                        .with(authentication(UsernamePasswordAuthenticationToken.authenticated(
+                                ACCOUNT_ID.toString(), null, List.of())))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"appointmentDate\":\"2026-08-11\",\"startTime\":\"10:00\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.appointmentDate").value("2026-08-11"));
+    }
+
     @TestConfiguration
     static class MockBeans {
         @Bean

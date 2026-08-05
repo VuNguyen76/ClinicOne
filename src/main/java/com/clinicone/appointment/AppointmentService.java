@@ -31,6 +31,13 @@ public class AppointmentService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public AppointmentResponse get(String accountId, String appointmentId) {
+        UUID patientId = parseAccountId(accountId);
+        UUID id = parseAppointmentId(appointmentId);
+        return AppointmentResponse.from(findOwned(id, patientId));
+    }
+
     @Transactional
     public AppointmentResponse create(String accountId, CreateAppointmentRequest request) {
         UUID patientId = parseAccountId(accountId);
@@ -38,13 +45,38 @@ public class AppointmentService {
                 .orElseThrow(() -> authenticationRequired());
         LocalDate appointmentDate = request.appointmentDate();
         LocalTime startTime = request.startTime();
-        if (appointmentRepository.findByPatientIdAndAppointmentDateAndStartTime(patientId, appointmentDate, startTime).isPresent()) {
+        if (appointmentRepository.findByPatientIdAndAppointmentDateAndStartTimeAndStatus(
+                patientId, appointmentDate, startTime, AppointmentStatus.BOOKED).isPresent()) {
             throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_DUPLICATE",
                     "Bạn đã có lịch hẹn trong khung giờ này.");
         }
 
         Appointment appointment = Appointment.create(patient, nextAppointmentCode(), request.specialty().trim(),
                 request.doctorName().trim(), appointmentDate, startTime, request.reason().trim());
+        return AppointmentResponse.from(appointmentRepository.save(appointment));
+    }
+
+    @Transactional
+    public void cancel(String accountId, String appointmentId, CancelAppointmentRequest request) {
+        Appointment appointment = findOwned(parseAppointmentId(appointmentId), parseAccountId(accountId));
+        ensureBookable(appointment);
+        appointment.cancel(request == null ? null : request.reason());
+        appointmentRepository.save(appointment);
+    }
+
+    @Transactional
+    public AppointmentResponse reschedule(String accountId, String appointmentId, RescheduleAppointmentRequest request) {
+        UUID patientId = parseAccountId(accountId);
+        Appointment appointment = findOwned(parseAppointmentId(appointmentId), patientId);
+        ensureBookable(appointment);
+        boolean sameSlot = appointment.getAppointmentDate().equals(request.appointmentDate())
+                && appointment.getStartTime().equals(request.startTime());
+        if (!sameSlot && appointmentRepository.findByPatientIdAndAppointmentDateAndStartTimeAndStatus(
+                patientId, request.appointmentDate(), request.startTime(), AppointmentStatus.BOOKED).isPresent()) {
+            throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_DUPLICATE",
+                    "Bạn đã có lịch hẹn trong khung giờ này.");
+        }
+        appointment.reschedule(request.appointmentDate(), request.startTime());
         return AppointmentResponse.from(appointmentRepository.save(appointment));
     }
 
@@ -59,6 +91,30 @@ public class AppointmentService {
         } catch (IllegalArgumentException exception) {
             throw authenticationRequired();
         }
+    }
+
+    private UUID parseAppointmentId(String appointmentId) {
+        try {
+            return UUID.fromString(appointmentId);
+        } catch (IllegalArgumentException exception) {
+            throw appointmentNotFound();
+        }
+    }
+
+    private Appointment findOwned(UUID appointmentId, UUID patientId) {
+        return appointmentRepository.findByIdAndPatientId(appointmentId, patientId)
+                .orElseThrow(this::appointmentNotFound);
+    }
+
+    private void ensureBookable(Appointment appointment) {
+        if (appointment.getStatus() != AppointmentStatus.BOOKED) {
+            throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_NOT_ACTIONABLE",
+                    "Lịch hẹn này không còn cho phép thao tác.");
+        }
+    }
+
+    private AuthException appointmentNotFound() {
+        return new AuthException(HttpStatus.NOT_FOUND, "APPOINTMENT_NOT_FOUND", "Không tìm thấy lịch hẹn.");
     }
 
     private AuthException authenticationRequired() {
