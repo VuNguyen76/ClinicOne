@@ -10,6 +10,7 @@ import { AppointmentDetail } from './features/appointments/detail/appointment-de
 import { MedicalRecords } from './features/medical-records/medical-records';
 import { MedicalRecordDetail } from './features/medical-records/medical-record-detail';
 import { PatientProfiles } from './features/patient-profiles/patient-profiles';
+import { ChangePassword } from './features/auth/change-password/change-password';
 import { authGuard } from './core/auth/auth.guard';
 
 export const routes: Routes = [
@@ -18,6 +19,7 @@ export const routes: Routes = [
   { path: 'login', component: Login },
   { path: 'register', component: Register },
   { path: 'account', component: Account, canActivate: [authGuard] },
+  { path: 'change-password', component: ChangePassword, canActivate: [authGuard] },
   { path: 'appointments/new', component: Booking, canActivate: [authGuard] },
   { path: 'appointments/:id', component: AppointmentDetail, canActivate: [authGuard] },
   { path: 'medical-records', component: MedicalRecords, canActivate: [authGuard] },

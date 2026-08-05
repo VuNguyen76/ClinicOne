@@ -77,14 +77,15 @@ export class Register implements OnInit {
     }
 
     const phone = this.phoneForm.controls.phone.value;
+    this.phone.set(phone);
+    this.step.set('otp');
+    this.notice.set('Đang gửi mã OTP...');
     this.busy.set(true);
     this.authApi
       .requestSmsOtp(phone, 'REGISTRATION')
       .pipe(finalize(() => this.busy.set(false)))
       .subscribe({
         next: () => {
-          this.phone.set(phone);
-          this.step.set('otp');
           this.notice.set('Mã OTP đã được gửi đến số điện thoại của bạn.');
         },
         error: (response) => this.showError(response),

@@ -31,7 +31,7 @@
         <a routerLink="/patient-profiles" class="flex min-h-12 w-full items-center justify-center gap-2 rounded-[9px] bg-[#09c3e9] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#00add0]"><mat-icon>person_add</mat-icon>Thêm hồ sơ</a>
         <nav class="mt-5 grid gap-2" aria-label="Khu vực tài khoản">
           <a href="#profile" class="flex items-center gap-3 rounded-r-[8px] border-l-2 border-[#0ea5e9] bg-[#eafaff] px-4 py-3 text-sm font-semibold text-[#08aeda]"><mat-icon>badge</mat-icon>Hồ sơ bệnh nhân</a>
-          <a routerLink="/account" [queryParams]="{ changePassword: 1 }" class="flex items-center gap-3 rounded-r-[8px] px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-[#0ea5e9]"><mat-icon>lock</mat-icon>Đổi mật khẩu</a>
+          <a routerLink="/change-password" class="flex items-center gap-3 rounded-r-[8px] px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-[#0ea5e9]"><mat-icon>lock</mat-icon>Đổi mật khẩu</a>
           <a routerLink="/medical-records" class="flex items-center gap-3 rounded-r-[8px] px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-[#0ea5e9]"><mat-icon>receipt_long</mat-icon>Phiếu khám bệnh</a>
           <a href="#notifications" class="flex items-center gap-3 rounded-r-[8px] px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-[#0ea5e9]"><mat-icon>notifications_none</mat-icon>Thông báo</a>
         </nav>
@@ -46,7 +46,7 @@
       @if (profile()?.mustChangePassword) {
         <div class="mt-5 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
           <mat-icon class="text-amber-600">lock_reset</mat-icon>
-          <div><p class="font-semibold">Bạn cần đổi mật khẩu tạm thời.</p><p class="mt-1">Mở phần đổi mật khẩu bên dưới để tiếp tục.</p></div>
+          <div><p class="font-semibold">Bạn cần đổi mật khẩu tạm thời.</p><a routerLink="/change-password" [queryParams]="{ required: 1 }" class="mt-1 inline-flex font-semibold text-[#b45309] underline underline-offset-2">Đổi mật khẩu</a></div>
         </div>
       }
 
@@ -89,18 +89,6 @@
         </div>
 
       </article>
-    }
-    @if (passwordOpen()) {
-      <section id="security" class="mt-8 rounded-[16px] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-        <div class="flex items-start justify-between gap-4"><div><p class="text-xs font-bold uppercase tracking-[0.14em] text-[#0ea5e9]">Bảo mật</p><h2 class="mt-2 text-lg font-semibold text-slate-900">Đổi mật khẩu</h2><p class="mt-2 text-sm leading-6 text-slate-500">Dùng mật khẩu mới để bảo vệ thông tin khám bệnh.</p></div><mat-icon class="text-[#0ea5e9]">shield</mat-icon></div>
-        <form class="mt-5 grid max-w-[520px] gap-3 border-t border-slate-100 pt-5" [formGroup]="passwordForm" (ngSubmit)="savePassword()" novalidate>
-          <label class="grid gap-2 text-sm font-semibold text-slate-700">Mật khẩu hiện tại<input class="min-h-11 rounded-lg border border-slate-200 px-3 font-normal outline-none focus:border-[#0ea5e9]" type="password" formControlName="currentPassword" autocomplete="current-password" /></label>
-          <label class="grid gap-2 text-sm font-semibold text-slate-700">Mật khẩu mới<input class="min-h-11 rounded-lg border border-slate-200 px-3 font-normal outline-none focus:border-[#0ea5e9]" type="password" formControlName="newPassword" autocomplete="new-password" placeholder="Tối thiểu 8 ký tự" /></label>
-          <label class="grid gap-2 text-sm font-semibold text-slate-700">Nhập lại mật khẩu mới<input class="min-h-11 rounded-lg border border-slate-200 px-3 font-normal outline-none focus:border-[#0ea5e9]" type="password" formControlName="confirmPassword" autocomplete="new-password" /></label>
-          @if (passwordForm.hasError('passwordMismatch') && passwordForm.controls.confirmPassword.touched) { <p class="text-sm text-red-600">Hai mật khẩu chưa giống nhau.</p> }
-          <button class="mt-2 min-h-11 rounded-lg border border-[#0ea5e9] px-5 text-sm font-semibold text-[#0284c7] transition hover:bg-[#e0f2fe] disabled:cursor-not-allowed disabled:opacity-60 sm:w-fit" type="submit" [disabled]="busy()">{{ busy() ? 'Đang cập nhật...' : 'Cập nhật mật khẩu' }}</button>
-        </form>
-      </section>
     }
     <section id="notifications" class="mt-4 rounded-[16px] border border-dashed border-slate-300 bg-slate-50 px-6 py-8 text-center"><mat-icon class="text-slate-400">notifications_none</mat-icon><h2 class="mt-2 font-semibold text-slate-700">Thông báo</h2><p class="mt-1 text-sm text-slate-500">Bạn chưa có thông báo mới.</p></section>
       </section>

@@ -35,17 +35,10 @@ describe('Account', () => {
     expect(fixture.nativeElement.textContent).toContain('091****678');
   });
 
-  it('requires matching passwords before submitting a password change', () => {
-    component.passwordForm.setValue({ currentPassword: 'old-pass', newPassword: 'new-password', confirmPassword: 'different' });
-
-    expect(component.passwordForm.invalid).toBe(true);
-    expect(component.passwordForm.hasError('passwordMismatch')).toBe(true);
-  });
-
   it('links directly to the password change section', () => {
     const links = fixture.nativeElement.querySelectorAll('a') as NodeListOf<HTMLAnchorElement>;
     const link = Array.from(links).find((item) => item.textContent?.includes('Đổi mật khẩu'));
 
-    expect(link?.getAttribute('href')).toBe('/account?changePassword=1');
+    expect(link?.getAttribute('href')).toBe('/change-password');
   });
 });
