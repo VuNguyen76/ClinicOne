@@ -48,4 +48,11 @@ describe('AppointmentsList', () => {
     expect(fixture.nativeElement.textContent).toContain('Nội tổng quát');
     expect(fixture.nativeElement.textContent).not.toContain('Tai mũi họng');
   });
+
+  it('uses the account sidebar without a duplicate booking button', () => {
+    const sidebarLinks = Array.from(fixture.nativeElement.querySelectorAll('aside a')) as HTMLAnchorElement[];
+    expect(sidebarLinks.some((link) => link.textContent?.includes('Đặt lịch khám'))).toBe(false);
+    expect(fixture.nativeElement.textContent).toContain('Hồ sơ bệnh nhân');
+    expect(fixture.nativeElement.textContent).toContain('Đổi mật khẩu');
+  });
 });
