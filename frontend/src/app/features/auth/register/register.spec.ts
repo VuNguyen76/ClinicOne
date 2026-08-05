@@ -53,6 +53,17 @@ describe('Register', () => {
     expect((component as any).step()).toBe('done');
   });
 
+  it('does not request two OTP messages from repeated submit events', () => {
+    component.phoneForm.controls.phone.setValue('0912345678');
+
+    component['submitPhone']();
+    component['submitPhone']();
+
+    const requests = http.match('/api/v1/auth/request-sms-otp');
+    expect(requests).toHaveLength(1);
+    requests[0].flush({ expiresInSeconds: 300, retryAfterSeconds: 60 });
+  });
+
   it('rejects mismatched passwords', () => {
     component.profileForm.setValue({ fullName: 'Nguyen Van A', dateOfBirth: '2005-06-07', gender: 'Nam', address: '', provinceCode: '', provinceName: '', districtCode: '', districtName: '', wardCode: '', wardName: '', streetAddress: '', password: 'password123', confirmPassword: 'password321' });
 
