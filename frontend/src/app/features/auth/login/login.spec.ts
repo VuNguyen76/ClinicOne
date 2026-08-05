@@ -40,9 +40,12 @@ describe('Login', () => {
     component['submitPhone']();
 
     http.expectOne('/api/v1/auth/check-phone').flush({ accountExists: false });
+    fixture.detectChanges();
 
     expect((component as any).showRegister()).toBe(true);
     expect((component as any).step()).toBe('phone');
+    expect(fixture.nativeElement.textContent).toContain('Đăng ký tài khoản');
+    expect(fixture.nativeElement.textContent).not.toContain('Kiểm tra số điện thoại');
   });
 
   it('shows the password step when the phone has an account', () => {
