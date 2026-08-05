@@ -7,6 +7,7 @@ import { PublicPage } from './features/public/public-page';
 import { Account } from './features/account/account';
 import { Booking } from './features/appointments/booking/booking';
 import { AppointmentDetail } from './features/appointments/detail/appointment-detail';
+import { AppointmentsList } from './features/appointments/list/appointments-list';
 import { MedicalRecords } from './features/medical-records/medical-records';
 import { MedicalRecordDetail } from './features/medical-records/medical-record-detail';
 import { PatientProfiles } from './features/patient-profiles/patient-profiles';
@@ -22,6 +23,7 @@ export const routes: Routes = [
   { path: 'account', component: Account, canActivate: [authGuard] },
   { path: 'change-password', component: ChangePassword, canActivate: [authGuard] },
   { path: 'appointments/new', component: Booking, canActivate: [authGuard] },
+  { path: 'appointments', component: AppointmentsList, canActivate: [authGuard] },
   { path: 'appointments/:id', component: AppointmentDetail, canActivate: [authGuard] },
   { path: 'medical-records', component: MedicalRecords, canActivate: [authGuard] },
   { path: 'medical-records/:id', component: MedicalRecordDetail, canActivate: [authGuard] },
