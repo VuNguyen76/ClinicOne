@@ -70,6 +70,9 @@ export class Register implements OnInit {
   }
 
   protected submitPhone(): void {
+    if (this.busy()) {
+      return;
+    }
     this.clearMessages();
     if (this.phoneForm.invalid) {
       this.phoneForm.markAllAsTouched();
