@@ -41,4 +41,13 @@ describe('Account', () => {
 
     expect(link?.getAttribute('href')).toBe('/change-password');
   });
+
+  it('uses the outlined style for the add-profile action', () => {
+    const links = Array.from(fixture.nativeElement.querySelectorAll('aside a')) as HTMLAnchorElement[];
+    const addProfile = links.find((link) => link.textContent?.includes('Thêm hồ sơ'));
+
+    expect(addProfile?.className).toContain('border-[#0ea5e9]');
+    expect(addProfile?.className).toContain('bg-white');
+    expect(addProfile?.className).not.toContain('bg-[#09c3e9]');
+  });
 });
