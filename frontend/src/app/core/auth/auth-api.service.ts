@@ -139,6 +139,21 @@ export interface PatientProfileRequest {
   streetAddress?: string;
 }
 
+export interface SpecialtyOption {
+  code: string;
+  name: string;
+  description: string;
+}
+
+export interface AppointmentSlotResponse {
+  specialty: string;
+  appointmentDate: string;
+  startTime: string;
+  endTime: string;
+  doctorName: string;
+  remainingCapacity: number;
+}
+
 export type ApiErrorResponse = {
   error?: { message?: string; detail?: string; title?: string } | string;
   message?: string;
@@ -158,6 +173,8 @@ export class AuthApiService {
   private readonly examinationsRoot = '/api/v1/examinations';
   private readonly medicalRecordsRoot = '/api/v1/medical-records';
   private readonly patientProfilesRoot = '/api/v1/patient-profiles';
+  private readonly specialtiesRoot = '/api/v1/specialties';
+  private readonly appointmentSlotsRoot = '/api/v1/appointment-slots';
 
   requestSmsOtp(phone: string, purpose: OtpPurpose): Observable<OtpResponse> {
     return this.http.post<OtpResponse>(`${this.apiRoot}/request-sms-otp`, { phone, purpose });
@@ -203,6 +220,14 @@ export class AuthApiService {
 
   getPatientProfiles(): Observable<PatientProfileItem[]> {
     return this.http.get<PatientProfileItem[]>(this.patientProfilesRoot);
+  }
+
+  getSpecialties(query?: string): Observable<SpecialtyOption[]> {
+    return this.http.get<SpecialtyOption[]>(this.specialtiesRoot, query ? { params: { query } } : undefined);
+  }
+
+  getAppointmentSlots(specialty: string, from: string, to: string): Observable<AppointmentSlotResponse[]> {
+    return this.http.get<AppointmentSlotResponse[]>(this.appointmentSlotsRoot, { params: { specialty, from, to } });
   }
 
   createPatientProfile(request: PatientProfileRequest): Observable<PatientProfileItem> {

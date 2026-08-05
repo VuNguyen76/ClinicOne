@@ -2,15 +2,10 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@ang
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
-import { AuthApiService, apiErrorMessage, PatientProfileItem } from '../../../core/auth/auth-api.service';
+import { ApiErrorResponse, AppointmentSlotResponse, AuthApiService, apiErrorMessage, PatientProfileItem, SpecialtyOption } from '../../../core/auth/auth-api.service';
 import { AccountMenu } from '../../../shared/account-menu/account-menu';
 
 type BookingStep = 1 | 2 | 3;
-
-interface SpecialtyOption {
-  name: string;
-  description: string;
-}
 
 interface DateOption {
   iso: string;
@@ -23,6 +18,7 @@ interface TimeSlot {
   label: string;
   value: string;
   period: 'Buổi sáng' | 'Buổi chiều';
+  doctorName: string;
 }
 
 @Component({
@@ -44,29 +40,10 @@ export class Booking implements OnInit {
   protected readonly selectedDate = signal('');
   protected readonly selectedSlot = signal('');
   protected readonly dates = this.buildDates();
-  protected readonly specialties: SpecialtyOption[] = [
-    { name: 'Khám Tổng Quát', description: 'Khám và tầm soát tổng quát, được hướng dẫn tới đúng chuyên khoa khi cần.' },
-    { name: 'Khám Tiêu Hoá - Gan Mật', description: 'Đau bụng, ợ hơi, trào ngược, rối loạn tiêu hoá hoặc bệnh lý gan mật.' },
-    { name: 'Khám Thần Kinh', description: 'Đau đầu, chóng mặt, mất ngủ, tê bì hoặc đau cổ vai gáy.' },
-    { name: 'Khám Xương Khớp', description: 'Đau khớp, đau lưng, chấn thương thể thao hoặc hạn chế vận động.' },
-    { name: 'Khám Da Liễu', description: 'Mụn, ngứa, nổi mẩn, nấm da, rụng tóc hoặc bất thường trên da.' },
-    { name: 'Khám Phụ Khoa', description: 'Tư vấn và thăm khám các vấn đề phụ khoa thường gặp.' },
-    { name: 'Khám Hô Hấp', description: 'Ho kéo dài, khó thở, khò khè hoặc các vấn đề về phổi.' },
-    { name: 'Khám Mắt', description: 'Mờ mắt, đau mắt, đỏ mắt, cộm ngứa hoặc các bệnh lý về mắt.' },
-    { name: 'Khám Nhi', description: 'Dành cho người đi khám dưới 16 tuổi.' },
-    { name: 'Khám Tai Mũi Họng', description: 'Đau họng, nghẹt mũi, viêm xoang, ù tai hoặc nghe kém.' },
-    { name: 'Khám Nội Tiết', description: 'Theo dõi tiểu đường, tuyến giáp và các rối loạn nội tiết.' },
-    { name: 'Khám Tim Mạch', description: 'Đau ngực, hồi hộp, khó thở, huyết áp hoặc mỡ máu.' },
-  ];
-  protected readonly slots: TimeSlot[] = [
-    { label: '07:30 - 08:30', value: '07:30', period: 'Buổi sáng' },
-    { label: '08:30 - 09:30', value: '08:30', period: 'Buổi sáng' },
-    { label: '09:30 - 10:30', value: '09:30', period: 'Buổi sáng' },
-    { label: '10:30 - 11:30', value: '10:30', period: 'Buổi sáng' },
-    { label: '13:00 - 14:00', value: '13:00', period: 'Buổi chiều' },
-    { label: '14:00 - 15:00', value: '14:00', period: 'Buổi chiều' },
-    { label: '15:00 - 16:00', value: '15:00', period: 'Buổi chiều' },
-  ];
+  protected readonly specialties = signal<SpecialtyOption[]>([]);
+  protected readonly specialtiesLoading = signal(true);
+  protected readonly availableSlots = signal<TimeSlot[]>([]);
+  protected readonly slotsLoading = signal(false);
   protected profiles: PatientProfileItem[] = [];
   protected profilesLoading = true;
   protected busy = false;
@@ -82,6 +59,10 @@ export class Booking implements OnInit {
   });
 
   ngOnInit(): void {
+    this.authApi.getSpecialties().subscribe({
+      next: (specialties) => { this.specialties.set(specialties); this.specialtiesLoading.set(false); },
+      error: (response) => { this.specialtiesLoading.set(false); this.handleAuthError(response); },
+    });
     this.authApi.getPatientProfiles().subscribe({
       next: (profiles) => {
         this.profiles = profiles;
@@ -91,20 +72,14 @@ export class Booking implements OnInit {
       },
       error: (response) => {
         this.profilesLoading = false;
-        if (response.status === 401 || response.status === 403) {
-          sessionStorage.removeItem('clinicOneAccessToken');
-          sessionStorage.removeItem('clinicOnePatientName');
-          void this.router.navigateByUrl('/login');
-          return;
-        }
-        this.error = apiErrorMessage(response);
+        this.handleAuthError(response);
       },
     });
   }
 
   protected filteredSpecialties(): SpecialtyOption[] {
     const query = this.specialtySearch().trim().toLocaleLowerCase('vi-VN');
-    return query ? this.specialties.filter((item) => `${item.name} ${item.description}`.toLocaleLowerCase('vi-VN').includes(query)) : this.specialties;
+    return query ? this.specialties().filter((item) => `${item.name} ${item.description}`.toLocaleLowerCase('vi-VN').includes(query)) : this.specialties();
   }
 
   protected chooseSpecialty(specialty: SpecialtyOption): void {
@@ -122,18 +97,28 @@ export class Booking implements OnInit {
     this.clearError();
     this.selectedDate.set(date.iso);
     this.selectedSlot.set('');
+    this.availableSlots.set([]);
     this.form.controls.appointmentDate.setValue(date.iso);
     this.form.controls.startTime.reset('');
+    this.slotsLoading.set(true);
+    this.authApi.getAppointmentSlots(this.form.controls.specialty.value, date.iso, date.iso).subscribe({
+      next: (slots) => {
+        this.availableSlots.set(slots.map((slot) => this.toTimeSlot(slot)));
+        this.slotsLoading.set(false);
+      },
+      error: (response) => { this.slotsLoading.set(false); this.handleAuthError(response); },
+    });
   }
 
   protected chooseSlot(slot: TimeSlot): void {
     this.clearError();
     this.selectedSlot.set(slot.value);
     this.form.controls.startTime.setValue(slot.value);
+    this.form.controls.doctorName.setValue(slot.doctorName);
   }
 
   protected slotsFor(period: TimeSlot['period']): TimeSlot[] {
-    return this.slots.filter((slot) => slot.period === period);
+    return this.availableSlots().filter((slot) => slot.period === period);
   }
 
   protected continueToDetails(): void {
@@ -168,13 +153,7 @@ export class Booking implements OnInit {
       next: () => void this.router.navigateByUrl('/dashboard'),
       error: (response) => {
         this.busy = false;
-        if (response.status === 401 || response.status === 403) {
-          sessionStorage.removeItem('clinicOneAccessToken');
-          sessionStorage.removeItem('clinicOnePatientName');
-          void this.router.navigateByUrl('/login');
-          return;
-        }
-        this.error = apiErrorMessage(response);
+        this.handleAuthError(response);
       },
     });
   }
@@ -195,6 +174,22 @@ export class Booking implements OnInit {
 
   private clearError(): void {
     this.error = '';
+  }
+
+  private toTimeSlot(slot: AppointmentSlotResponse): TimeSlot {
+    const startTime = slot.startTime.slice(0, 5);
+    const endTime = slot.endTime.slice(0, 5);
+    return { label: `${startTime} - ${endTime}`, value: startTime, period: Number(startTime.slice(0, 2)) < 12 ? 'Buổi sáng' : 'Buổi chiều', doctorName: slot.doctorName };
+  }
+
+  private handleAuthError(response: { status?: number } & ApiErrorResponse): void {
+    if (response.status === 401 || response.status === 403) {
+      sessionStorage.removeItem('clinicOneAccessToken');
+      sessionStorage.removeItem('clinicOnePatientName');
+      void this.router.navigateByUrl('/login');
+      return;
+    }
+    this.error = apiErrorMessage(response);
   }
 
   private buildDates(): DateOption[] {
