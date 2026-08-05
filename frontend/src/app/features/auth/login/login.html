@@ -24,17 +24,10 @@
               } @else if (phoneForm.controls.phone.hasError('pattern') && phoneForm.controls.phone.touched) {
                 <p class="text-sm text-[#b42318]" role="alert">Vui lòng nhập đúng 10 chữ số.</p>
               }
-              @if (!showRegister()) {
-                <button class="mt-3 min-h-11 rounded-[10px] bg-[#0ea5e9] px-5 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(14,165,233,0.18)] transition hover:bg-[#0284c7] disabled:cursor-not-allowed disabled:opacity-60" type="submit" [disabled]="busy()">
-                  {{ busy() ? 'Đang đăng nhập...' : 'Đăng nhập' }}
-                </button>
-              }
+              <button class="mt-3 min-h-11 rounded-[10px] bg-[#0ea5e9] px-5 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(14,165,233,0.18)] transition hover:bg-[#0284c7] disabled:cursor-not-allowed disabled:opacity-60" type="submit" [disabled]="busy()">
+                {{ busy() ? 'Đang đăng nhập...' : 'Đăng nhập' }}
+              </button>
             </form>
-
-            @if (showRegister()) {
-              <a routerLink="/register" [queryParams]="{ phone: phone() }" class="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-[10px] bg-[#0ea5e9] px-5 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(14,165,233,0.18)] transition hover:bg-[#0284c7]">Nhận OTP</a>
-              <button class="mt-1 min-h-10 w-full text-sm font-semibold text-[#0e6872] hover:underline" type="button" (click)="backToPhone()">Đổi số điện thoại</button>
-            }
           } @else {
             <form class="mt-5 grid gap-2.5" [formGroup]="passwordForm" (ngSubmit)="submitPassword()" novalidate>
               <label for="password" class="text-sm font-semibold text-[#143b43]">Mật khẩu</label>
