@@ -16,6 +16,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -40,8 +41,8 @@ class AppointmentServiceTest {
         PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
         setId(account, ACCOUNT_ID);
         when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
-        when(appointmentRepository.findByPatientIdAndAppointmentDateAndStartTime(
-                ACCOUNT_ID, LocalDate.of(2026, 8, 10), LocalTime.of(8, 30))).thenReturn(Optional.empty());
+        when(appointmentRepository.findByPatientIdAndAppointmentDateAndStartTimeAndStatus(
+                ACCOUNT_ID, LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), AppointmentStatus.BOOKED)).thenReturn(Optional.empty());
 
         AppointmentResponse response = service.create(ACCOUNT_ID.toString(), new CreateAppointmentRequest(
                 "Nội khoa", "BS. Nguyễn An", LocalDate.of(2026, 8, 10), LocalTime.of(8, 30),
@@ -58,8 +59,8 @@ class AppointmentServiceTest {
         PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
         setId(account, ACCOUNT_ID);
         when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
-        when(appointmentRepository.findByPatientIdAndAppointmentDateAndStartTime(
-                ACCOUNT_ID, LocalDate.of(2026, 8, 10), LocalTime.of(8, 30)))
+        when(appointmentRepository.findByPatientIdAndAppointmentDateAndStartTimeAndStatus(
+                ACCOUNT_ID, LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), AppointmentStatus.BOOKED))
                 .thenReturn(Optional.of(Appointment.existing(account, "CL-20260810-AB12", "Nội khoa", "BS. Nguyễn An",
                         LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), "Đau đầu")));
 
@@ -79,11 +80,64 @@ class AppointmentServiceTest {
         verify(appointmentRepository).findByPatientIdOrderByAppointmentDateAscStartTimeAsc(ACCOUNT_ID);
     }
 
+    @Test
+    void returnsAppointmentDetailOnlyForItsPatient() {
+        PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
+        setId(account, ACCOUNT_ID);
+        UUID appointmentId = UUID.randomUUID();
+        Appointment appointment = Appointment.existing(account, "CL-20260810-AB12", "Nội khoa", "BS. Nguyễn An",
+                LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), "Đau đầu");
+        setId(appointment, appointmentId);
+        when(appointmentRepository.findByIdAndPatientId(appointmentId, ACCOUNT_ID)).thenReturn(Optional.of(appointment));
+
+        assertEquals(appointmentId, service.get(ACCOUNT_ID.toString(), appointmentId.toString()).id());
+    }
+
+    @Test
+    void cancelsBookedAppointment() {
+        PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
+        setId(account, ACCOUNT_ID);
+        Appointment appointment = Appointment.existing(account, "CL-20260810-AB12", "Nội khoa", "BS. Nguyễn An",
+                LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), "Đau đầu");
+        when(appointmentRepository.findByIdAndPatientId(any(), eq(ACCOUNT_ID))).thenReturn(Optional.of(appointment));
+
+        service.cancel(ACCOUNT_ID.toString(), UUID.randomUUID().toString(), new CancelAppointmentRequest("Bận việc"));
+
+        assertEquals(AppointmentStatus.CANCELLED, appointment.getStatus());
+    }
+
+    @Test
+    void reschedulesBookedAppointmentWhenNewSlotIsFree() {
+        PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
+        setId(account, ACCOUNT_ID);
+        Appointment appointment = Appointment.existing(account, "CL-20260810-AB12", "Nội khoa", "BS. Nguyễn An",
+                LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), "Đau đầu");
+        when(appointmentRepository.findByIdAndPatientId(any(), eq(ACCOUNT_ID))).thenReturn(Optional.of(appointment));
+        when(appointmentRepository.findByPatientIdAndAppointmentDateAndStartTimeAndStatus(
+                ACCOUNT_ID, LocalDate.of(2026, 8, 11), LocalTime.of(10, 0), AppointmentStatus.BOOKED)).thenReturn(Optional.empty());
+
+        AppointmentResponse response = service.reschedule(ACCOUNT_ID.toString(), UUID.randomUUID().toString(),
+                new RescheduleAppointmentRequest(LocalDate.of(2026, 8, 11), LocalTime.of(10, 0)));
+
+        assertEquals(LocalDate.of(2026, 8, 11), response.appointmentDate());
+        assertEquals(LocalTime.of(10, 0), response.startTime());
+    }
+
     private static void setId(PatientAccount account, UUID id) {
         try {
             var field = PatientAccount.class.getDeclaredField("id");
             field.setAccessible(true);
             field.set(account, id);
+        } catch (ReflectiveOperationException exception) {
+            throw new AssertionError(exception);
+        }
+    }
+
+    private static void setId(Appointment appointment, UUID id) {
+        try {
+            var field = Appointment.class.getDeclaredField("id");
+            field.setAccessible(true);
+            field.set(appointment, id);
         } catch (ReflectiveOperationException exception) {
             throw new AssertionError(exception);
         }
