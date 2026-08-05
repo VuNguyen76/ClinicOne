@@ -1,6 +1,6 @@
 <main class="min-h-[100dvh] bg-[#f5f7f8] text-[#143b43]">
   <div class="grid min-h-[100dvh] lg:grid-cols-[minmax(27rem,0.92fr)_minmax(34rem,1.08fr)]">
-    <section class="relative flex min-h-[100dvh] flex-col bg-[#f5f7f8] px-6 py-7 sm:px-12 lg:px-[clamp(3rem,7vw,7.5rem)]" aria-label="Đăng nhập ClinicOne">
+    <section class="relative flex min-h-[100dvh] flex-col bg-[#f5f7f8] px-5 py-5 sm:px-10 lg:px-[clamp(3rem,7vw,7.5rem)]" aria-label="Đăng nhập ClinicOne">
       <header class="flex items-center justify-between gap-4">
         <a routerLink="/home" class="flex items-center gap-3 text-[#103f4c]" aria-label="ClinicOne, về trang chủ">
           <img class="h-11 w-11 object-contain" src="clinicone-mark.png" alt="" aria-hidden="true" />
@@ -9,45 +9,41 @@
         <button class="text-sm font-medium text-[#0e6872] underline-offset-4 hover:underline" type="button" (click)="showNotReadyMessage('Hỗ trợ')">Cần hỗ trợ?</button>
       </header>
 
-      <div class="flex flex-1 items-center py-14 lg:py-20">
+      <div class="flex flex-1 items-center py-8 lg:py-12">
         <div class="w-full max-w-[27rem]">
-          <p class="text-xs font-semibold uppercase tracking-[0.16em] text-[#0ea5e9]">Cổng người bệnh</p>
-          <h1 class="mt-3 max-w-[22rem] text-[clamp(1.5rem,2vw,2rem)] font-semibold leading-[1.15] tracking-[-0.04em] text-[#103f4c]">
+          <h1 class="max-w-[22rem] text-[clamp(1.5rem,2vw,2rem)] font-semibold leading-[1.15] tracking-[-0.04em] text-[#103f4c]">
             {{ step() === 'phone' ? 'Nhập số điện thoại' : 'Nhập mật khẩu' }}
           </h1>
-          <p class="mt-3 max-w-[24rem] text-sm leading-6 text-slate-500">
-            {{ step() === 'phone' ? 'Nhập số điện thoại để tiếp tục.' : 'Số điện thoại đã có tài khoản ClinicOne.' }}
-          </p>
 
           @if (step() === 'phone') {
-            <form class="mt-7 grid gap-3" [formGroup]="phoneForm" (ngSubmit)="submitPhone()" novalidate>
+            <form class="mt-5 grid gap-2.5" [formGroup]="phoneForm" (ngSubmit)="submitPhone()" novalidate>
               <label for="phone" class="text-sm font-semibold text-[#143b43]">Số điện thoại</label>
-              <input class="rounded-[10px] border border-[#b9cacc] bg-white px-4 py-3.5 text-base outline-none focus:border-[#0ea5e9] focus:ring-4 focus:ring-[#0ea5e9]/10" type="tel" inputmode="numeric" id="phone" formControlName="phone" autocomplete="tel" placeholder="0912 345 678" maxlength="10" />
+              <input class="rounded-[10px] border border-[#b9cacc] bg-white px-3 py-3 text-sm outline-none focus:border-[#0ea5e9] focus:ring-4 focus:ring-[#0ea5e9]/10" type="tel" inputmode="numeric" id="phone" formControlName="phone" autocomplete="tel" placeholder="0912 345 678" maxlength="10" />
               @if (phoneForm.controls.phone.hasError('required') && phoneForm.controls.phone.touched) {
                 <p class="text-sm text-[#b42318]" role="alert">Số điện thoại là thông tin bắt buộc.</p>
               } @else if (phoneForm.controls.phone.hasError('pattern') && phoneForm.controls.phone.touched) {
                 <p class="text-sm text-[#b42318]" role="alert">Vui lòng nhập đúng 10 chữ số.</p>
               }
-              <button class="mt-4 min-h-12 rounded-[10px] bg-[#0ea5e9] px-5 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(14,165,233,0.18)] transition hover:bg-[#0284c7] disabled:cursor-not-allowed disabled:opacity-60" type="submit" [disabled]="busy()">
+              <button class="mt-3 min-h-11 rounded-[10px] bg-[#0ea5e9] px-5 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(14,165,233,0.18)] transition hover:bg-[#0284c7] disabled:cursor-not-allowed disabled:opacity-60" type="submit" [disabled]="busy()">
                 {{ busy() ? 'Đang kiểm tra...' : 'Tiếp tục' }}
               </button>
             </form>
 
             @if (showRegister()) {
-              <a routerLink="/register" [queryParams]="{ phone: phone() }" class="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-[10px] border border-[#0ea5e9] px-5 text-sm font-semibold text-[#0284c7] transition hover:bg-[#e0f2fe]">
+              <a routerLink="/register" [queryParams]="{ phone: phone() }" class="mt-3 inline-flex min-h-10 w-full items-center justify-center rounded-[10px] border border-[#0ea5e9] px-5 text-sm font-semibold text-[#0284c7] transition hover:bg-[#e0f2fe]">
                 Đăng ký tài khoản
               </a>
             }
           } @else {
-            <form class="mt-7 grid gap-3" [formGroup]="passwordForm" (ngSubmit)="submitPassword()" novalidate>
+            <form class="mt-5 grid gap-2.5" [formGroup]="passwordForm" (ngSubmit)="submitPassword()" novalidate>
               <label for="password" class="text-sm font-semibold text-[#143b43]">Mật khẩu</label>
-              <input class="rounded-[10px] border border-[#b9cacc] bg-white px-4 py-3.5 text-base outline-none focus:border-[#0ea5e9] focus:ring-4 focus:ring-[#0ea5e9]/10" type="password" id="password" formControlName="password" autocomplete="current-password" placeholder="Nhập mật khẩu" />
+              <input class="rounded-[10px] border border-[#b9cacc] bg-white px-3 py-3 text-sm outline-none focus:border-[#0ea5e9] focus:ring-4 focus:ring-[#0ea5e9]/10" type="password" id="password" formControlName="password" autocomplete="current-password" placeholder="Nhập mật khẩu" />
               @if (passwordForm.controls.password.hasError('required') && passwordForm.controls.password.touched) {
                 <p class="text-sm text-[#b42318]" role="alert">Mật khẩu là thông tin bắt buộc.</p>
               } @else if (passwordForm.controls.password.invalid && passwordForm.controls.password.touched) {
                 <p class="text-sm text-[#b42318]" role="alert">Mật khẩu phải có ít nhất 6 ký tự.</p>
               }
-              <button class="mt-4 min-h-12 rounded-[10px] bg-[#0ea5e9] px-5 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(14,165,233,0.18)] transition hover:bg-[#0284c7] disabled:cursor-not-allowed disabled:opacity-60" type="submit" [disabled]="busy()">
+              <button class="mt-3 min-h-11 rounded-[10px] bg-[#0ea5e9] px-5 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(14,165,233,0.18)] transition hover:bg-[#0284c7] disabled:cursor-not-allowed disabled:opacity-60" type="submit" [disabled]="busy()">
                 {{ busy() ? 'Đang đăng nhập...' : 'Đăng nhập' }}
               </button>
               <button class="text-sm font-semibold text-[#0e6872] hover:underline" type="button" (click)="backToPhone()">Đổi số điện thoại</button>
@@ -63,7 +59,6 @@
         </div>
       </div>
 
-      <p class="text-xs leading-5 text-slate-400">Thông tin được bảo vệ theo chính sách bảo mật của ClinicOne.</p>
     </section>
 
     <aside class="relative hidden min-h-[100dvh] overflow-hidden bg-[#103f4c] lg:block" aria-label="Thông tin ClinicOne">

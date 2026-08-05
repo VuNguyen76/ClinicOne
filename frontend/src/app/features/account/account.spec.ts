@@ -41,4 +41,11 @@ describe('Account', () => {
     expect(component.passwordForm.invalid).toBe(true);
     expect(component.passwordForm.hasError('passwordMismatch')).toBe(true);
   });
+
+  it('links directly to the password change section', () => {
+    const links = fixture.nativeElement.querySelectorAll('a') as NodeListOf<HTMLAnchorElement>;
+    const link = Array.from(links).find((item) => item.textContent?.includes('Đổi mật khẩu'));
+
+    expect(link?.getAttribute('href')).toBe('/account?changePassword=1');
+  });
 });
