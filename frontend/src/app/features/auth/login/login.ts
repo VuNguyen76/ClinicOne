@@ -21,7 +21,6 @@ export class Login {
   protected readonly notice = signal('');
   protected readonly error = signal('');
   protected readonly busy = signal(false);
-  protected readonly showRegister = signal(false);
   protected readonly phone = signal('');
   protected readonly password = signal('');
 
@@ -36,7 +35,6 @@ export class Login {
   protected submitPhone(): void {
     this.notice.set('');
     this.error.set('');
-    this.showRegister.set(false);
     if (this.phoneForm.invalid) {
       this.phoneForm.markAllAsTouched();
       return;
@@ -53,7 +51,7 @@ export class Login {
           if (response.accountExists) {
             this.step.set('password');
           } else {
-            this.showRegister.set(true);
+            void this.router.navigate(['/register'], { queryParams: { phone } });
           }
         },
         error: (response) => this.showError(response),
@@ -83,7 +81,6 @@ export class Login {
   protected backToPhone(): void {
     this.step.set('phone');
     this.passwordForm.reset();
-    this.showRegister.set(false);
     this.notice.set('');
     this.error.set('');
   }
