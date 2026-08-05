@@ -57,6 +57,13 @@ public class PatientProfileService {
         profile.update(normalize(request.fullName()), normalize(request.relationship()), request.dateOfBirth(),
                 normalize(request.gender()), normalize(request.phone()), normalize(request.identityNumber()),
                 normalize(request.nationality()), normalize(request.ethnicity()), normalize(request.address()));
+        if (profile.isPrimaryProfile()) {
+            PatientAccount owner = profile.getOwner();
+            owner.syncFromPrimaryProfile(profile.getFullName(), profile.getDateOfBirth(), profile.getGender(),
+                    profile.getPhone(), profile.getIdentityNumber(), profile.getNationality(), profile.getEthnicity(),
+                    profile.getAddress());
+            accountRepository.save(owner);
+        }
         return PatientProfileResponse.from(profileRepository.save(profile));
     }
 
