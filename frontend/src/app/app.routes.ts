@@ -11,6 +11,7 @@ import { MedicalRecords } from './features/medical-records/medical-records';
 import { MedicalRecordDetail } from './features/medical-records/medical-record-detail';
 import { PatientProfiles } from './features/patient-profiles/patient-profiles';
 import { ChangePassword } from './features/auth/change-password/change-password';
+import { Notifications } from './features/notifications/notifications';
 import { authGuard } from './core/auth/auth.guard';
 
 export const routes: Routes = [
@@ -25,6 +26,7 @@ export const routes: Routes = [
   { path: 'medical-records', component: MedicalRecords, canActivate: [authGuard] },
   { path: 'medical-records/:id', component: MedicalRecordDetail, canActivate: [authGuard] },
   { path: 'patient-profiles', component: PatientProfiles, canActivate: [authGuard] },
+  { path: 'notifications', component: Notifications, canActivate: [authGuard] },
   { path: 'about', component: PublicPage, data: { page: 'about' } },
   { path: 'process', component: PublicPage, data: { page: 'process' } },
   { path: 'common-issues', component: PublicPage, data: { page: 'common-issues' } },
