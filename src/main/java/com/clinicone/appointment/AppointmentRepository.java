@@ -14,5 +14,8 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
     Optional<Appointment> findByPatientIdAndAppointmentDateAndStartTimeAndStatus(UUID patientId, LocalDate appointmentDate,
                                                                                    LocalTime startTime, AppointmentStatus status);
 
+    long countBySpecialtyAndAppointmentDateAndStartTimeAndStatus(String specialty, LocalDate appointmentDate,
+                                                                  LocalTime startTime, AppointmentStatus status);
+
     Optional<Appointment> findByIdAndPatientId(UUID appointmentId, UUID patientId);
 }

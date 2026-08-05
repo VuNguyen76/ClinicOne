@@ -5,6 +5,7 @@ import com.clinicone.auth.PatientAccount;
 import com.clinicone.auth.PatientAccountRepository;
 import com.clinicone.patientprofile.PatientProfile;
 import com.clinicone.patientprofile.PatientProfileRepository;
+import com.clinicone.schedule.AppointmentAvailabilityService;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,17 +21,24 @@ public class AppointmentService {
     private final PatientAccountRepository accountRepository;
     private final AppointmentRepository appointmentRepository;
     private final PatientProfileRepository profileRepository;
+    private final AppointmentAvailabilityService availabilityService;
 
     public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository) {
-        this(accountRepository, appointmentRepository, null);
+        this(accountRepository, appointmentRepository, null, null);
+    }
+
+    public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
+                              PatientProfileRepository profileRepository) {
+        this(accountRepository, appointmentRepository, profileRepository, null);
     }
 
     @org.springframework.beans.factory.annotation.Autowired
     public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
-                              PatientProfileRepository profileRepository) {
+                              PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService) {
         this.accountRepository = accountRepository;
         this.appointmentRepository = appointmentRepository;
         this.profileRepository = profileRepository;
+        this.availabilityService = availabilityService;
     }
 
     @Transactional(readOnly = true)
@@ -55,6 +63,9 @@ public class AppointmentService {
                 .orElseThrow(() -> authenticationRequired());
         LocalDate appointmentDate = request.appointmentDate();
         LocalTime startTime = request.startTime();
+        if (availabilityService != null) {
+            availabilityService.ensureBookable(request.specialty(), appointmentDate, startTime);
+        }
         if (appointmentRepository.findByPatientIdAndAppointmentDateAndStartTimeAndStatus(
                 patientId, appointmentDate, startTime, AppointmentStatus.BOOKED).isPresent()) {
             throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_DUPLICATE",
@@ -94,6 +105,9 @@ public class AppointmentService {
         ensureBookable(appointment);
         boolean sameSlot = appointment.getAppointmentDate().equals(request.appointmentDate())
                 && appointment.getStartTime().equals(request.startTime());
+        if (availabilityService != null && !sameSlot) {
+            availabilityService.ensureBookable(appointment.getSpecialty(), request.appointmentDate(), request.startTime());
+        }
         if (!sameSlot && appointmentRepository.findByPatientIdAndAppointmentDateAndStartTimeAndStatus(
                 patientId, request.appointmentDate(), request.startTime(), AppointmentStatus.BOOKED).isPresent()) {
             throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_DUPLICATE",
