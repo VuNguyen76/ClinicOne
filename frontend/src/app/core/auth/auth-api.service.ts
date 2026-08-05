@@ -145,4 +145,16 @@ export class AuthApiService {
   createAppointment(request: CreateAppointmentRequest): Observable<AppointmentResponse> {
     return this.http.post<AppointmentResponse>(this.appointmentsRoot, request);
   }
+
+  getAppointment(id: string): Observable<AppointmentResponse> {
+    return this.http.get<AppointmentResponse>(`${this.appointmentsRoot}/${id}`);
+  }
+
+  cancelAppointment(id: string, reason?: string): Observable<void> {
+    return this.http.post<void>(`${this.appointmentsRoot}/${id}/cancel`, { reason: reason ?? '' });
+  }
+
+  rescheduleAppointment(id: string, appointmentDate: string, startTime: string): Observable<AppointmentResponse> {
+    return this.http.post<AppointmentResponse>(`${this.appointmentsRoot}/${id}/reschedule`, { appointmentDate, startTime });
+  }
 }

@@ -58,6 +58,12 @@ public class Appointment {
     @Column(nullable = false, length = 20)
     private AppointmentStatus status;
 
+    @Column(name = "cancelled_at")
+    private Instant cancelledAt;
+
+    @Column(name = "cancellation_reason", length = 500)
+    private String cancellationReason;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -82,6 +88,17 @@ public class Appointment {
         return new Appointment(patient, appointmentCode, specialty, doctorName, appointmentDate, startTime, reason);
     }
 
+    public void cancel(String reason) {
+        this.status = AppointmentStatus.CANCELLED;
+        this.cancelledAt = Instant.now();
+        this.cancellationReason = reason == null || reason.isBlank() ? null : reason.trim();
+    }
+
+    public void reschedule(LocalDate appointmentDate, LocalTime startTime) {
+        this.appointmentDate = appointmentDate;
+        this.startTime = startTime;
+    }
+
     static Appointment existing(PatientAccount patient, String appointmentCode, String specialty, String doctorName,
                                  LocalDate appointmentDate, LocalTime startTime, String reason) {
         return create(patient, appointmentCode, specialty, doctorName, appointmentDate, startTime, reason);
@@ -102,4 +119,6 @@ public class Appointment {
     public LocalTime getStartTime() { return startTime; }
     public String getReason() { return reason; }
     public AppointmentStatus getStatus() { return status; }
+    public Instant getCancelledAt() { return cancelledAt; }
+    public String getCancellationReason() { return cancellationReason; }
 }

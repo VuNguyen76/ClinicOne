@@ -6,6 +6,7 @@ import { Register } from './features/auth/register/register';
 import { PublicPage } from './features/public/public-page';
 import { Account } from './features/account/account';
 import { Booking } from './features/appointments/booking/booking';
+import { AppointmentDetail } from './features/appointments/detail/appointment-detail';
 import { authGuard } from './core/auth/auth.guard';
 
 export const routes: Routes = [
@@ -15,6 +16,7 @@ export const routes: Routes = [
   { path: 'register', component: Register },
   { path: 'account', component: Account, canActivate: [authGuard] },
   { path: 'appointments/new', component: Booking, canActivate: [authGuard] },
+  { path: 'appointments/:id', component: AppointmentDetail, canActivate: [authGuard] },
   { path: 'about', component: PublicPage, data: { page: 'about' } },
   { path: 'process', component: PublicPage, data: { page: 'process' } },
   { path: 'common-issues', component: PublicPage, data: { page: 'common-issues' } },
