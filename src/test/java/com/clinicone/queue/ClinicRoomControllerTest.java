@@ -48,6 +48,26 @@ class ClinicRoomControllerTest {
     }
 
     @Test
+    void doctorCanViewRoomsForQueueSelection() throws Exception {
+        when(service.list()).thenReturn(List.of(roomResponse(true)));
+
+        mockMvc.perform(get("/api/v1/rooms")
+                        .with(authentication(authenticated("ROLE_DOCTOR"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].code").value("NOI-01"));
+    }
+
+    @Test
+    void receptionistCanViewRoomsForQueueSelection() throws Exception {
+        when(service.list()).thenReturn(List.of(roomResponse(true)));
+
+        mockMvc.perform(get("/api/v1/rooms")
+                        .with(authentication(authenticated("ROLE_RECEPTIONIST"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].code").value("NOI-01"));
+    }
+
+    @Test
     void coordinatorCannotCreateRoom() throws Exception {
         mockMvc.perform(post("/api/v1/rooms")
                         .with(authentication(authenticated("ROLE_COORDINATOR")))

@@ -1,0 +1,154 @@
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { RouterLink, Router } from '@angular/router';
+import { MatIconModule } from '@angular/material/icon';
+import { AccountMenu } from '../../shared/account-menu/account-menu';
+import {
+  ApiErrorResponse,
+  AuthApiService,
+  ClinicRoomResponse,
+  QueueTicketResponse,
+  apiErrorMessage,
+} from '../../core/auth/auth-api.service';
+
+type QueueAction = 'call' | 'skip' | 'start' | 'complete';
+
+@Component({
+  selector: 'app-staff-dashboard',
+  standalone: true,
+  imports: [RouterLink, MatIconModule, AccountMenu],
+  templateUrl: './staff-dashboard.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class StaffDashboard implements OnInit {
+  private readonly authApi = inject(AuthApiService);
+  private readonly router = inject(Router);
+
+  protected readonly rooms = signal<ClinicRoomResponse[]>([]);
+  protected readonly selectedRoomCode = signal('');
+  protected readonly selectedDate = signal(this.toIsoDate(new Date()));
+  protected readonly queue = signal<QueueTicketResponse[]>([]);
+  protected readonly loadingRooms = signal(true);
+  protected readonly loadingQueue = signal(false);
+  protected readonly busyTicketId = signal('');
+  protected readonly error = signal('');
+  protected readonly role = signal(sessionStorage.getItem('clinicOneStaffRole') ?? '');
+  protected readonly activeRooms = computed(() => this.rooms().filter((room) => room.active));
+  protected readonly waitingCount = computed(() => this.queue().filter((ticket) => ticket.status === 'WAITING').length);
+  protected readonly calledCount = computed(() => this.queue().filter((ticket) => ticket.status === 'CALLED').length);
+  protected readonly inServiceCount = computed(() => this.queue().filter((ticket) => ticket.status === 'IN_SERVICE').length);
+  protected readonly completedCount = computed(() => this.queue().filter((ticket) => ticket.status === 'COMPLETED').length);
+
+  protected readonly isDispatcher = computed(() => ['ADMIN', 'COORDINATOR', 'RECEPTIONIST'].includes(this.role()));
+  protected readonly isDoctor = computed(() => ['ADMIN', 'COORDINATOR', 'DOCTOR'].includes(this.role()));
+  protected readonly canManageRooms = computed(() => ['ADMIN', 'COORDINATOR'].includes(this.role()));
+
+  ngOnInit(): void {
+    this.loadRooms();
+  }
+
+  protected loadRooms(): void {
+    this.loadingRooms.set(true);
+    this.error.set('');
+    this.authApi.getRooms().subscribe({
+      next: (rooms) => {
+        this.rooms.set(rooms);
+        const firstRoom = this.activeRooms()[0];
+        if (!this.activeRooms().some((room) => room.code === this.selectedRoomCode())) {
+          this.selectedRoomCode.set(firstRoom?.code ?? '');
+        }
+        this.loadingRooms.set(false);
+        if (this.selectedRoomCode()) this.loadQueue();
+      },
+      error: (response) => {
+        this.loadingRooms.set(false);
+        this.handleError(response);
+      },
+    });
+  }
+
+  protected loadQueue(): void {
+    const roomCode = this.selectedRoomCode();
+    if (!roomCode) {
+      this.queue.set([]);
+      return;
+    }
+    this.loadingQueue.set(true);
+    this.error.set('');
+    this.authApi.getRoomQueue(roomCode, this.selectedDate()).subscribe({
+      next: (tickets) => {
+        this.queue.set([...tickets].sort((a, b) => a.queueNumber - b.queueNumber));
+        this.loadingQueue.set(false);
+      },
+      error: (response) => {
+        this.loadingQueue.set(false);
+        this.handleError(response);
+      },
+    });
+  }
+
+  protected selectRoom(event: Event): void {
+    this.selectedRoomCode.set((event.target as HTMLSelectElement).value);
+    this.loadQueue();
+  }
+
+  protected selectDate(event: Event): void {
+    this.selectedDate.set((event.target as HTMLInputElement).value);
+    this.loadQueue();
+  }
+
+  protected act(ticket: QueueTicketResponse, action: QueueAction): void {
+    this.busyTicketId.set(ticket.id);
+    this.error.set('');
+    const request = action === 'call'
+      ? this.authApi.callQueueTicket(ticket.id)
+      : action === 'skip'
+        ? this.authApi.skipQueueTicket(ticket.id, 'Không có mặt khi được gọi')
+        : action === 'start'
+          ? this.authApi.startQueueTicket(ticket.id)
+          : this.authApi.completeQueueTicket(ticket.id);
+    request.subscribe({
+      next: (updated) => {
+        this.queue.update((items) => items.map((item) => item.id === updated.id ? updated : item));
+        this.busyTicketId.set('');
+      },
+      error: (response) => {
+        this.busyTicketId.set('');
+        this.handleError(response);
+      },
+    });
+  }
+
+  protected roomName(): string {
+    return this.rooms().find((room) => room.code === this.selectedRoomCode())?.name ?? 'Chưa chọn phòng';
+  }
+
+  protected formatTime(value: string): string {
+    return value?.slice(0, 5) ?? '';
+  }
+
+  protected statusClass(status: string): string {
+    if (status === 'CALLED') return 'bg-amber-50 text-amber-700';
+    if (status === 'IN_SERVICE') return 'bg-violet-50 text-violet-700';
+    if (status === 'COMPLETED') return 'bg-emerald-50 text-emerald-700';
+    if (status === 'SKIPPED') return 'bg-slate-100 text-slate-600';
+    return 'bg-sky-50 text-sky-700';
+  }
+
+  private handleError(response: { status?: number } & ApiErrorResponse): void {
+    if (response.status === 401) {
+      sessionStorage.removeItem('clinicOneAccessToken');
+      sessionStorage.removeItem('clinicOneStaffRole');
+      void this.router.navigateByUrl('/staff/login');
+      return;
+    }
+    if (response.status === 403) {
+      this.error.set('Tài khoản không có quyền xem hoặc điều phối phòng này.');
+      return;
+    }
+    this.error.set(apiErrorMessage(response));
+  }
+
+  private toIsoDate(date: Date): string {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  }
+}

@@ -34,7 +34,7 @@ export class StaffLogin {
     this.authApi.staffLogin(username, password).subscribe({
       next: (session) => {
         this.busy.set(false);
-        void this.router.navigateByUrl(session.role === 'ADMIN' ? '/admin/rooms' : '/dashboard');
+        void this.router.navigateByUrl('/staff');
       },
       error: (response) => {
         this.busy.set(false);
