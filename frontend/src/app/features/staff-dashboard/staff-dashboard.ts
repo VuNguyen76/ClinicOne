@@ -122,6 +122,16 @@ export class StaffDashboard implements OnInit {
     return this.rooms().find((room) => room.code === this.selectedRoomCode())?.name ?? 'Chưa chọn phòng';
   }
 
+  protected roleLabel(): string {
+    switch (this.role()) {
+      case 'ADMIN': return 'Quản trị viên';
+      case 'COORDINATOR': return 'Điều phối viên';
+      case 'RECEPTIONIST': return 'Tiếp nhận';
+      case 'DOCTOR': return 'Bác sĩ';
+      default: return 'Nhân viên';
+    }
+  }
+
   protected formatTime(value: string): string {
     return value?.slice(0, 5) ?? '';
   }
