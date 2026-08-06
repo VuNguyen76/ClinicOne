@@ -40,9 +40,9 @@
     } @else {
       <div class="mt-8 grid gap-6 lg:grid-cols-[1fr_330px]">
         <section class="rounded-[16px] border border-slate-200 bg-white shadow-sm" aria-labelledby="appointments-heading">
-          <div class="flex items-center justify-between border-b border-slate-100 px-6 py-5">
-            <div><h2 id="appointments-heading" class="text-lg font-bold text-slate-900">Lịch hẹn sắp tới</h2><p class="mt-1 text-sm text-slate-500">Các lịch đã đặt và đang chờ bạn đến khám.</p></div>
-            <mat-icon class="text-[#0ea5e9]">event_available</mat-icon>
+            <div data-testid="appointments-header" class="flex items-center justify-between gap-4 border-b border-slate-100 px-6 py-5">
+            <div class="min-w-0"><h2 id="appointments-heading" class="text-lg font-bold text-slate-900">Lịch hẹn sắp tới</h2><p class="mt-1 text-sm text-slate-500">Các lịch đã đặt và đang chờ bạn đến khám.</p></div>
+            <div data-testid="appointments-actions" class="flex shrink-0 items-center gap-4"><a routerLink="/appointments" class="hidden items-center gap-1 text-sm font-semibold text-[#0284c7] hover:underline sm:inline-flex">Xem tất cả<mat-icon class="!text-[18px]">arrow_forward</mat-icon></a><mat-icon class="text-[#0ea5e9]">event_available</mat-icon></div>
           </div>
           @if (appointmentsLoading()) {
             <div class="grid min-h-56 place-items-center px-6 py-10 text-sm text-slate-500">Đang tải lịch hẹn...</div>

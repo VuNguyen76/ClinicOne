@@ -1,6 +1,7 @@
 package com.clinicone.appointment;
 
 import com.clinicone.auth.PatientAccount;
+import com.clinicone.patientprofile.PatientProfile;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -23,7 +24,8 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "appointments", indexes = {
-        @Index(name = "idx_appointments_patient_date", columnList = "patient_account_id,appointment_date,start_time")
+        @Index(name = "idx_appointments_patient_date", columnList = "patient_account_id,appointment_date,start_time"),
+        @Index(name = "idx_appointments_slot_availability", columnList = "specialty,appointment_date,start_time,status")
 }, uniqueConstraints = {
         @UniqueConstraint(name = "uk_appointments_patient_slot", columnNames = {"patient_account_id", "appointment_date", "start_time"})
 })
@@ -35,6 +37,10 @@ public class Appointment {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "patient_account_id", nullable = false)
     private PatientAccount patient;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "patient_profile_id")
+    private PatientProfile patientProfile;
 
     @Column(name = "appointment_code", nullable = false, unique = true, length = 24)
     private String appointmentCode;
@@ -88,6 +94,15 @@ public class Appointment {
         return new Appointment(patient, appointmentCode, specialty, doctorName, appointmentDate, startTime, reason);
     }
 
+    public static Appointment create(PatientAccount patient, PatientProfile patientProfile, String appointmentCode,
+                                     String specialty, String doctorName, LocalDate appointmentDate,
+                                     LocalTime startTime, String reason) {
+        Appointment appointment = new Appointment(patient, appointmentCode, specialty, doctorName, appointmentDate,
+                startTime, reason);
+        appointment.patientProfile = patientProfile;
+        return appointment;
+    }
+
     public void cancel(String reason) {
         this.status = AppointmentStatus.CANCELLED;
         this.cancelledAt = Instant.now();
@@ -118,6 +133,7 @@ public class Appointment {
     public LocalDate getAppointmentDate() { return appointmentDate; }
     public LocalTime getStartTime() { return startTime; }
     public String getReason() { return reason; }
+    public PatientProfile getPatientProfile() { return patientProfile; }
     public AppointmentStatus getStatus() { return status; }
     public Instant getCancelledAt() { return cancelledAt; }
     public String getCancellationReason() { return cancellationReason; }

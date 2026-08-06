@@ -3,6 +3,9 @@ package com.clinicone.appointment;
 import com.clinicone.auth.AuthException;
 import com.clinicone.auth.PatientAccount;
 import com.clinicone.auth.PatientAccountRepository;
+import com.clinicone.patientprofile.PatientProfile;
+import com.clinicone.patientprofile.PatientProfileRepository;
+import com.clinicone.schedule.AppointmentAvailabilityService;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,10 +20,25 @@ import java.util.concurrent.ThreadLocalRandom;
 public class AppointmentService {
     private final PatientAccountRepository accountRepository;
     private final AppointmentRepository appointmentRepository;
+    private final PatientProfileRepository profileRepository;
+    private final AppointmentAvailabilityService availabilityService;
 
     public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository) {
+        this(accountRepository, appointmentRepository, null, null);
+    }
+
+    public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
+                              PatientProfileRepository profileRepository) {
+        this(accountRepository, appointmentRepository, profileRepository, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
+                              PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService) {
         this.accountRepository = accountRepository;
         this.appointmentRepository = appointmentRepository;
+        this.profileRepository = profileRepository;
+        this.availabilityService = availabilityService;
     }
 
     @Transactional(readOnly = true)
@@ -45,15 +63,31 @@ public class AppointmentService {
                 .orElseThrow(() -> authenticationRequired());
         LocalDate appointmentDate = request.appointmentDate();
         LocalTime startTime = request.startTime();
+        if (availabilityService != null) {
+            availabilityService.ensureBookable(request.specialty(), appointmentDate, startTime);
+        }
         if (appointmentRepository.findByPatientIdAndAppointmentDateAndStartTimeAndStatus(
                 patientId, appointmentDate, startTime, AppointmentStatus.BOOKED).isPresent()) {
             throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_DUPLICATE",
                     "Bạn đã có lịch hẹn trong khung giờ này.");
         }
 
-        Appointment appointment = Appointment.create(patient, nextAppointmentCode(), request.specialty().trim(),
+        PatientProfile profile = resolveProfile(request.profileId(), patientId);
+        Appointment appointment = profile == null
+                ? Appointment.create(patient, nextAppointmentCode(), request.specialty().trim(), request.doctorName().trim(),
+                appointmentDate, startTime, request.reason().trim())
+                : Appointment.create(patient, profile, nextAppointmentCode(), request.specialty().trim(),
                 request.doctorName().trim(), appointmentDate, startTime, request.reason().trim());
         return AppointmentResponse.from(appointmentRepository.save(appointment));
+    }
+
+    private PatientProfile resolveProfile(UUID profileId, UUID patientId) {
+        if (profileId == null || profileRepository == null) {
+            return null;
+        }
+        return profileRepository.findByIdAndOwnerIdAndActiveTrue(profileId, patientId)
+                .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "PATIENT_PROFILE_NOT_FOUND",
+                        "Không tìm thấy hồ sơ được chọn."));
     }
 
     @Transactional
@@ -71,6 +105,9 @@ public class AppointmentService {
         ensureBookable(appointment);
         boolean sameSlot = appointment.getAppointmentDate().equals(request.appointmentDate())
                 && appointment.getStartTime().equals(request.startTime());
+        if (availabilityService != null && !sameSlot) {
+            availabilityService.ensureBookable(appointment.getSpecialty(), request.appointmentDate(), request.startTime());
+        }
         if (!sameSlot && appointmentRepository.findByPatientIdAndAppointmentDateAndStartTimeAndStatus(
                 patientId, request.appointmentDate(), request.startTime(), AppointmentStatus.BOOKED).isPresent()) {
             throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_DUPLICATE",

@@ -21,7 +21,6 @@ export class Login {
   protected readonly notice = signal('');
   protected readonly error = signal('');
   protected readonly busy = signal(false);
-  protected readonly showRegister = signal(false);
   protected readonly phone = signal('');
   protected readonly password = signal('');
 
@@ -36,7 +35,6 @@ export class Login {
   protected submitPhone(): void {
     this.notice.set('');
     this.error.set('');
-    this.showRegister.set(false);
     if (this.phoneForm.invalid) {
       this.phoneForm.markAllAsTouched();
       return;
@@ -52,10 +50,8 @@ export class Login {
         next: (response) => {
           if (response.accountExists) {
             this.step.set('password');
-            this.notice.set('Nhập mật khẩu để đăng nhập.');
           } else {
-            this.showRegister.set(true);
-            this.notice.set('Số điện thoại chưa có tài khoản. Bạn có thể đăng ký ngay.');
+            void this.router.navigate(['/register'], { queryParams: { phone } });
           }
         },
         error: (response) => this.showError(response),
@@ -77,7 +73,7 @@ export class Login {
       .login(this.phone(), password)
       .pipe(finalize(() => this.busy.set(false)))
       .subscribe({
-        next: (session) => this.router.navigateByUrl(session.mustChangePassword ? '/account?changePassword=1' : '/dashboard'),
+        next: (session) => this.router.navigateByUrl(session.mustChangePassword ? '/change-password?required=1' : '/dashboard'),
         error: (response) => this.showError(response),
       });
   }
@@ -85,7 +81,6 @@ export class Login {
   protected backToPhone(): void {
     this.step.set('phone');
     this.passwordForm.reset();
-    this.showRegister.set(false);
     this.notice.set('');
     this.error.set('');
   }

@@ -35,10 +35,26 @@ describe('Account', () => {
     expect(fixture.nativeElement.textContent).toContain('091****678');
   });
 
-  it('requires matching passwords before submitting a password change', () => {
-    component.passwordForm.setValue({ currentPassword: 'old-pass', newPassword: 'new-password', confirmPassword: 'different' });
+  it('links directly to the password change section', () => {
+    const links = fixture.nativeElement.querySelectorAll('a') as NodeListOf<HTMLAnchorElement>;
+    const link = Array.from(links).find((item) => item.textContent?.includes('Đổi mật khẩu'));
 
-    expect(component.passwordForm.invalid).toBe(true);
-    expect(component.passwordForm.hasError('passwordMismatch')).toBe(true);
+    expect(link?.getAttribute('href')).toBe('/change-password');
+  });
+
+  it('uses the outlined style for the add-profile action', () => {
+    const addProfile = fixture.nativeElement.querySelector('[data-testid="add-profile-action"]') as HTMLAnchorElement | null;
+
+    expect(addProfile?.className).toContain('border-[#0ea5e9]');
+    expect(addProfile?.className).toContain('bg-white');
+    expect(addProfile?.className).not.toContain('bg-[#09c3e9]');
+    expect(fixture.nativeElement.querySelector('aside')?.textContent).not.toContain('Thêm hồ sơ');
+  });
+
+  it('keeps the personal profile link on the account route', () => {
+    const links = Array.from(fixture.nativeElement.querySelectorAll('aside a')) as HTMLAnchorElement[];
+    const profileLink = links.find((link) => link.textContent?.includes('Hồ sơ bệnh nhân'));
+
+    expect(profileLink?.getAttribute('href')).toBe('/account');
   });
 });
