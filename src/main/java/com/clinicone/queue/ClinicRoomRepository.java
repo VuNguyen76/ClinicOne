@@ -7,4 +7,10 @@ import java.util.UUID;
 
 public interface ClinicRoomRepository extends JpaRepository<ClinicRoom, UUID> {
     Optional<ClinicRoom> findByCodeAndActiveTrue(String code);
+
+    boolean existsByCodeIgnoreCase(String code);
+
+    boolean existsByCodeIgnoreCaseAndIdNot(String code, UUID id);
+
+    java.util.List<ClinicRoom> findAllByOrderByCodeAsc();
 }

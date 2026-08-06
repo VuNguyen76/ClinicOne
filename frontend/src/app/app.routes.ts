@@ -17,6 +17,7 @@ export const routes: Routes = [
   { path: 'medical-records/:id', loadComponent: () => import('./features/medical-records/medical-record-detail').then((m) => m.MedicalRecordDetail), canActivate: [authGuard] },
   { path: 'patient-profiles', loadComponent: () => import('./features/patient-profiles/patient-profiles').then((m) => m.PatientProfiles), canActivate: [authGuard] },
   { path: 'notifications', loadComponent: () => import('./features/notifications/notifications').then((m) => m.Notifications), canActivate: [authGuard] },
+  { path: 'admin/rooms', loadComponent: () => import('./features/room-management/room-management').then((m) => m.RoomManagement), canActivate: [authGuard] },
   { path: 'about', loadComponent: () => import('./features/public/public-page').then((m) => m.PublicPage), data: { page: 'about' } },
   { path: 'process', loadComponent: () => import('./features/public/public-page').then((m) => m.PublicPage), data: { page: 'process' } },
   { path: 'common-issues', loadComponent: () => import('./features/public/public-page').then((m) => m.PublicPage), data: { page: 'common-issues' } },

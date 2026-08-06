@@ -47,6 +47,16 @@ public class ClinicRoom {
         return new ClinicRoom(code, name, specialty);
     }
 
+    public void update(String code, String name, String specialty) {
+        this.code = code.trim();
+        this.name = name.trim();
+        this.specialty = specialty.trim();
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+    }
+
     @PrePersist
     void onCreate() {
         if (createdAt == null) {

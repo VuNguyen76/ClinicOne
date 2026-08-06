@@ -71,8 +71,14 @@ export class QueueBoard implements OnInit {
   }
 
   private handleError(response: { status?: number } & ApiErrorResponse): void {
-    if (response.status === 401 || response.status === 403) {
+    if (response.status === 401) {
+      sessionStorage.removeItem('clinicOneAccessToken');
+      sessionStorage.removeItem('clinicOnePatientName');
       void this.router.navigateByUrl('/login');
+      return;
+    }
+    if (response.status === 403) {
+      this.error.set('Bạn không có quyền điều phối hàng đợi.');
       return;
     }
     this.error.set(apiErrorMessage(response));
