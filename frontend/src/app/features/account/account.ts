@@ -7,11 +7,12 @@ import { MatIconModule } from '@angular/material/icon';
 import { apiErrorMessage, AuthApiService, PatientProfileResponse } from '../../core/auth/auth-api.service';
 import { VietnamAddressService, VietnamAddressUnit } from '../../core/address/vietnam-address.service';
 import { AccountMenu } from '../../shared/account-menu/account-menu';
+import { AccountNav } from '../../shared/account-nav/account-nav';
 
 @Component({
   selector: 'app-account',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, MatIconModule, AccountMenu],
+  imports: [ReactiveFormsModule, RouterLink, MatIconModule, AccountMenu, AccountNav],
   templateUrl: './account.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
