@@ -8,6 +8,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
@@ -44,7 +45,7 @@ class QueueControllerTest {
                 .thenReturn(response());
 
         mockMvc.perform(post("/api/v1/rooms/NOI-01/queue/check-in")
-                        .with(authentication(authenticated()))
+                        .with(authentication(authenticated("ROLE_PATIENT")))
                         .contentType("application/json")
                         .content("{\"appointmentId\":\"" + APPOINTMENT_ID + "\"}"))
                 .andExpect(status().isOk())
@@ -58,7 +59,7 @@ class QueueControllerTest {
                 .thenReturn(List.of(response()));
 
         mockMvc.perform(get("/api/v1/rooms/NOI-01/queue?date=2026-08-06")
-                        .with(authentication(authenticated())))
+                        .with(authentication(authenticated("ROLE_COORDINATOR"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].queueNumber").value(5));
     }
@@ -68,13 +69,14 @@ class QueueControllerTest {
         when(queueService.call(TICKET_ID)).thenReturn(response());
 
         mockMvc.perform(post("/api/v1/queue/" + TICKET_ID + "/call")
-                        .with(authentication(authenticated())))
+                        .with(authentication(authenticated("ROLE_RECEPTIONIST"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("CALLED"));
     }
 
-    private static UsernamePasswordAuthenticationToken authenticated() {
-        return UsernamePasswordAuthenticationToken.authenticated(ACCOUNT_ID.toString(), null, List.of());
+    private static UsernamePasswordAuthenticationToken authenticated(String role) {
+        return UsernamePasswordAuthenticationToken.authenticated(ACCOUNT_ID.toString(), null,
+                List.of(new SimpleGrantedAuthority(role)));
     }
 
     private static QueueTicketResponse response() {

@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -33,6 +34,7 @@ public class QueueController {
     }
 
     @GetMapping("/rooms/{roomCode}/queue")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR', 'DOCTOR', 'RECEPTIONIST')")
     public ResponseEntity<List<QueueTicketResponse>> list(
             @PathVariable String roomCode,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
@@ -40,22 +42,26 @@ public class QueueController {
     }
 
     @PostMapping("/queue/{ticketId}/call")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR', 'RECEPTIONIST')")
     public ResponseEntity<QueueTicketResponse> call(@PathVariable UUID ticketId) {
         return ResponseEntity.ok(queueService.call(ticketId));
     }
 
     @PostMapping("/queue/{ticketId}/skip")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR', 'RECEPTIONIST')")
     public ResponseEntity<QueueTicketResponse> skip(@PathVariable UUID ticketId,
                                                     @Valid @RequestBody(required = false) QueueSkipRequest request) {
         return ResponseEntity.ok(queueService.skip(ticketId, request == null ? null : request.reason()));
     }
 
     @PostMapping("/queue/{ticketId}/start")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR', 'DOCTOR')")
     public ResponseEntity<QueueTicketResponse> start(@PathVariable UUID ticketId) {
         return ResponseEntity.ok(queueService.start(ticketId));
     }
 
     @PostMapping("/queue/{ticketId}/complete")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR', 'DOCTOR')")
     public ResponseEntity<QueueTicketResponse> complete(@PathVariable UUID ticketId) {
         return ResponseEntity.ok(queueService.complete(ticketId));
     }

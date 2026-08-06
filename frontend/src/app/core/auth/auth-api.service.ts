@@ -168,6 +168,14 @@ export interface QueueTicketResponse {
   doctorName: string;
 }
 
+export interface ClinicRoomResponse {
+  id: string;
+  code: string;
+  name: string;
+  specialty: string;
+  active: boolean;
+}
+
 export type ApiErrorResponse = {
   error?: { message?: string; detail?: string; title?: string } | string;
   message?: string;
@@ -325,5 +333,21 @@ export class AuthApiService {
 
   completeQueueTicket(ticketId: string): Observable<QueueTicketResponse> {
     return this.http.post<QueueTicketResponse>(`${this.queueRoot}/${ticketId}/complete`, {});
+  }
+
+  getRooms(): Observable<ClinicRoomResponse[]> {
+    return this.http.get<ClinicRoomResponse[]>('/api/v1/rooms');
+  }
+
+  createRoom(request: Omit<ClinicRoomResponse, 'id' | 'active'>): Observable<ClinicRoomResponse> {
+    return this.http.post<ClinicRoomResponse>('/api/v1/rooms', request);
+  }
+
+  updateRoom(id: string, request: Omit<ClinicRoomResponse, 'id' | 'active'>): Observable<ClinicRoomResponse> {
+    return this.http.put<ClinicRoomResponse>(`/api/v1/rooms/${id}`, request);
+  }
+
+  setRoomActive(id: string, active: boolean): Observable<ClinicRoomResponse> {
+    return this.http.post<ClinicRoomResponse>(`/api/v1/rooms/${id}/${active ? 'activate' : 'deactivate'}`, {});
   }
 }
