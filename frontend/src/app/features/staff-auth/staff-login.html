@@ -1,0 +1,39 @@
+<main class="min-h-screen bg-[#f7fafb] text-[#103f4c]">
+    <header class="border-b border-slate-200 bg-white">
+        <div class="mx-auto flex h-[72px] max-w-[1200px] items-center justify-between px-5 lg:px-0"><a
+                routerLink="/home" class="flex items-center gap-3" aria-label="ClinicOne, trang chủ"><img
+                    class="h-11 w-11 object-contain" src="clinicone-mark.png" alt="" aria-hidden="true" /><span
+                    class="text-[21px] font-bold tracking-[-0.04em]">Clinic<span
+                        class="text-[#0ea5e9]">One</span></span></a><a routerLink="/login"
+                class="text-sm font-semibold text-[#0284c7] hover:underline">Cổng người bệnh</a></div>
+    </header>
+    <div
+        class="mx-auto grid min-h-[calc(100vh-72px)] max-w-[1200px] items-center gap-12 px-5 py-10 lg:grid-cols-[1fr_420px] lg:px-0">
+        <section class="hidden lg:block">
+            <p class="text-xs font-bold uppercase tracking-[0.18em] text-[#0ea5e9]">Khu vực nội bộ</p>
+            <h1 class="mt-4 max-w-lg text-5xl font-bold tracking-[-0.06em] text-slate-900">Điều phối khám bệnh rõ ràng
+                hơn.</h1>
+            <p class="mt-5 max-w-md text-sm leading-7 text-slate-500">Đăng nhập để quản lý phòng, hàng đợi và hoạt động
+                khám theo đúng vai trò.</p>
+            <div class="mt-10 flex items-center gap-3 text-sm text-slate-500"><span
+                    class="grid h-10 w-10 place-items-center rounded-full bg-[#e8f8fc] text-[#0ea5e9]"><mat-icon>verified_user</mat-icon></span>Phiên
+                làm việc được bảo vệ.</div>
+        </section>
+        <section class="border border-slate-200 bg-white px-6 py-8 shadow-sm sm:px-9">
+            <p class="text-xs font-bold uppercase tracking-[0.16em] text-[#0ea5e9]">Đăng nhập nhân viên</p>
+            <h2 class="mt-3 text-2xl font-bold tracking-[-0.04em] text-slate-900">Chào mừng trở lại</h2>
+            <p class="mt-2 text-sm text-slate-500">Dùng tài khoản nội bộ của bạn.</p>
+            <form class="mt-7 grid gap-5" [formGroup]="form" (ngSubmit)="submit()" novalidate><label
+                    class="grid gap-2 text-sm font-semibold text-slate-700">Tên đăng nhập<input
+                        formControlName="username" autocomplete="username"
+                        class="min-h-12 border border-slate-200 px-3 font-normal outline-none focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/15" /></label><label
+                    class="grid gap-2 text-sm font-semibold text-slate-700">Mật khẩu<input formControlName="password"
+                        type="password" autocomplete="current-password"
+                        class="min-h-12 border border-slate-200 px-3 font-normal outline-none focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/15" /></label>@if
+                (error()) {<p role="alert" class="border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{
+                    error() }}</p>}<button data-testid="staff-login-submit" type="submit"
+                    class="min-h-12 bg-[#103f4c] px-5 text-sm font-semibold text-white hover:bg-[#0b2e38] disabled:cursor-not-allowed disabled:opacity-50"
+                    [disabled]="busy()">{{ busy() ? 'Đang đăng nhập...' : 'Đăng nhập' }}</button></form>
+        </section>
+    </div>
+</main>

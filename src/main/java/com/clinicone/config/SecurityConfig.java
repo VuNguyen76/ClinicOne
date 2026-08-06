@@ -32,6 +32,7 @@ public class SecurityConfig {
                                 "/api/v1/auth/register",
                                 "/api/v1/auth/login-sms",
                                 "/api/v1/auth/login",
+                                "/api/v1/staff/auth/login",
                                 "/actuator/health"
                         ).permitAll()
                         .anyRequest().authenticated()
