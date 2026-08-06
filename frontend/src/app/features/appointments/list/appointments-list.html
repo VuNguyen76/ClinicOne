@@ -11,15 +11,7 @@
     <div class="flex items-center gap-3 text-sm"><a routerLink="/home" class="font-semibold text-[#103f4c] hover:text-[#0ea5e9]">Trang chủ</a><mat-icon class="!h-4 !w-4 !text-[16px] text-slate-400">chevron_right</mat-icon><span class="font-semibold text-[#0ea5e9]">Lịch hẹn của tôi</span></div>
 
     <div class="mt-8 grid gap-8 lg:grid-cols-[230px_1fr] lg:gap-10">
-      <aside class="border-r border-slate-200 pr-6" aria-label="Menu tài khoản">
-        <nav class="grid gap-2" aria-label="Khu vực tài khoản">
-          <a routerLink="/appointments" class="flex items-center gap-3 rounded-r-[8px] border-l-2 border-[#0ea5e9] bg-[#eafaff] px-4 py-3 text-sm font-semibold text-[#08aeda]" aria-current="page"><mat-icon>event_available</mat-icon>Lịch hẹn của tôi</a>
-          <a routerLink="/account" class="flex items-center gap-3 rounded-r-[8px] px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-[#0ea5e9]"><mat-icon>badge</mat-icon>Hồ sơ bệnh nhân</a>
-          <a routerLink="/change-password" class="flex items-center gap-3 rounded-r-[8px] px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-[#0ea5e9]"><mat-icon>lock</mat-icon>Đổi mật khẩu</a>
-          <a routerLink="/medical-records" class="flex items-center gap-3 rounded-r-[8px] px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-[#0ea5e9]"><mat-icon>receipt_long</mat-icon>Phiếu khám bệnh</a>
-          <a routerLink="/notifications" class="flex items-center gap-3 rounded-r-[8px] px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-[#0ea5e9]"><mat-icon>notifications_none</mat-icon>Thông báo</a>
-        </nav>
-      </aside>
+      <aside class="border-r border-slate-200 pr-6"><app-account-nav /></aside>
 
       <section class="min-w-0">
         <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p class="text-xs font-bold uppercase tracking-[0.16em] text-[#0ea5e9]">Lịch khám</p><h1 class="mt-2 text-2xl font-bold tracking-[-0.035em] text-slate-900 sm:text-3xl">Lịch hẹn của tôi</h1><p class="mt-2 text-sm text-slate-500">Theo dõi lịch đã đặt và mở nhanh thông tin từng buổi khám.</p></div><a routerLink="/appointments/new" class="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-[#0ea5e9] px-4 text-sm font-semibold text-[#0284c7] hover:bg-[#e8f8fc]"><mat-icon class="!text-[19px]">add</mat-icon>Đặt lịch mới</a></div>

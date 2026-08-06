@@ -5,6 +5,7 @@ import { finalize } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
 import { apiErrorMessage, AuthApiService } from '../../../core/auth/auth-api.service';
 import { AccountMenu } from '../../../shared/account-menu/account-menu';
+import { AccountNav } from '../../../shared/account-nav/account-nav';
 
 function passwordsMatch(control: AbstractControl): ValidationErrors | null {
   const values = control.value as { newPassword?: string; confirmPassword?: string };
@@ -13,7 +14,7 @@ function passwordsMatch(control: AbstractControl): ValidationErrors | null {
 
 @Component({
   selector: 'app-change-password',
-  imports: [ReactiveFormsModule, RouterLink, MatIconModule, AccountMenu],
+  imports: [ReactiveFormsModule, RouterLink, MatIconModule, AccountMenu, AccountNav],
   templateUrl: './change-password.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

@@ -1,0 +1,11 @@
+<nav class="grid gap-1" aria-label="Menu tài khoản">
+  @for (item of items; track item.route) {
+    <a [routerLink]="item.route"
+      routerLinkActive="border-[#0ea5e9] bg-[#eafaff] font-semibold text-[#08aeda]"
+      class="flex min-h-12 items-center gap-3 rounded-r-[8px] border-l-2 border-transparent px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-[#0ea5e9]"
+      [attr.data-testid]="'account-nav-' + item.route.slice(1).replace('/', '-')">
+      <mat-icon class="!h-5 !w-5 !text-[20px]">{{ item.icon }}</mat-icon>
+      <span>{{ item.label }}</span>
+    </a>
+  }
+</nav>
