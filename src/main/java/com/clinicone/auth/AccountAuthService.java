@@ -1,5 +1,7 @@
 package com.clinicone.auth;
 
+import com.clinicone.patientprofile.PatientProfile;
+import com.clinicone.patientprofile.PatientProfileRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -28,16 +30,26 @@ public class AccountAuthService {
     private final PasswordEncoder passwordEncoder;
     private final SessionTokenGenerator tokenGenerator;
     private final Clock clock;
+    private final PatientProfileRepository patientProfileRepository;
 
     public AccountAuthService(PatientAccountRepository accountRepository, LoginSessionRepository sessionRepository,
                               OtpService otpService, PasswordEncoder passwordEncoder,
                               SessionTokenGenerator tokenGenerator, Clock clock) {
+        this(accountRepository, sessionRepository, otpService, passwordEncoder, tokenGenerator, clock, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public AccountAuthService(PatientAccountRepository accountRepository, LoginSessionRepository sessionRepository,
+                              OtpService otpService, PasswordEncoder passwordEncoder,
+                              SessionTokenGenerator tokenGenerator, Clock clock,
+                              PatientProfileRepository patientProfileRepository) {
         this.accountRepository = accountRepository;
         this.sessionRepository = sessionRepository;
         this.otpService = otpService;
         this.passwordEncoder = passwordEncoder;
         this.tokenGenerator = tokenGenerator;
         this.clock = clock;
+        this.patientProfileRepository = patientProfileRepository;
     }
 
     @Transactional
@@ -55,7 +67,11 @@ public class AccountAuthService {
         validateProfileDetails(request.dateOfBirth(), request.gender());
         account.updateProfile(request.fullName().trim(), request.dateOfBirth(), normalizeGender(request.gender()),
                 normalizeAddress(request.address()));
+        account.updateIdentityAndAddress(null, null, null, normalize(request.provinceCode()), normalize(request.provinceName()),
+                normalize(request.districtCode()), normalize(request.districtName()), normalize(request.wardCode()),
+                normalize(request.wardName()), normalize(request.streetAddress()));
         PatientAccount saved = accountRepository.save(account);
+        syncPrimaryProfile(saved);
         return new RegistrationResponse(saved.getId(), saved.getPhone(), saved.getFullName());
     }
 
@@ -101,7 +117,32 @@ public class AccountAuthService {
                 normalize(request.districtCode()), normalize(request.districtName()), normalize(request.wardCode()),
                 normalize(request.wardName()), normalize(request.streetAddress()));
         accountRepository.save(account);
+        syncPrimaryProfile(account);
         return toProfile(account);
+    }
+
+    private void syncPrimaryProfile(PatientAccount account) {
+        if (patientProfileRepository == null || account.getId() == null || account.getDateOfBirth() == null
+                || account.getGender() == null || account.getFullName() == null) {
+            return;
+        }
+        PatientProfile primary = patientProfileRepository
+                .findByOwnerIdAndActiveTrueOrderByPrimaryProfileDescCreatedAtAsc(account.getId())
+                .stream()
+                .filter(PatientProfile::isPrimaryProfile)
+                .findFirst()
+                .orElseGet(() -> PatientProfile.create(account, account.getFullName(), "Bản thân",
+                        account.getDateOfBirth(), account.getGender(), account.getPhone(), account.getIdentityNumber(),
+                        account.getNationality(), account.getEthnicity(), account.getAddress(), account.getProvinceCode(),
+                        account.getProvinceName(), account.getDistrictCode(), account.getDistrictName(), account.getWardCode(),
+                        account.getWardName(), account.getStreetAddress(), true));
+        if (primary.getId() != null) {
+            primary.update(account.getFullName(), "Bản thân", account.getDateOfBirth(), account.getGender(),
+                    account.getPhone(), account.getIdentityNumber(), account.getNationality(), account.getEthnicity(),
+                    account.getAddress(), account.getProvinceCode(), account.getProvinceName(), account.getDistrictCode(),
+                    account.getDistrictName(), account.getWardCode(), account.getWardName(), account.getStreetAddress());
+        }
+        patientProfileRepository.save(primary);
     }
 
     @Transactional

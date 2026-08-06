@@ -49,6 +49,27 @@ export interface PatientProfileResponse {
   mustChangePassword: boolean;
 }
 
+export interface PatientProfileItem {
+  id: string;
+  fullName: string;
+  relationship: string;
+  dateOfBirth: string;
+  gender: string;
+  phone: string | null;
+  identityNumber: string | null;
+  nationality: string | null;
+  ethnicity: string | null;
+  address: string | null;
+  provinceCode: string | null;
+  provinceName: string | null;
+  districtCode: string | null;
+  districtName: string | null;
+  wardCode: string | null;
+  wardName: string | null;
+  streetAddress: string | null;
+  primaryProfile: boolean;
+}
+
 export interface AppointmentResponse {
   id: string;
   appointmentCode: string;
@@ -59,6 +80,8 @@ export interface AppointmentResponse {
   reason: string;
   status: string;
   statusLabel: string;
+  profileId?: string | null;
+  profileName?: string | null;
 }
 
 export interface ExaminationSessionResponse {
@@ -94,6 +117,41 @@ export interface CreateAppointmentRequest {
   appointmentDate: string;
   startTime: string;
   reason: string;
+  profileId?: string;
+}
+
+export interface PatientProfileRequest {
+  fullName: string;
+  relationship: string;
+  dateOfBirth: string;
+  gender: string;
+  phone?: string;
+  identityNumber?: string;
+  nationality?: string;
+  ethnicity?: string;
+  address?: string;
+  provinceCode?: string;
+  provinceName?: string;
+  districtCode?: string;
+  districtName?: string;
+  wardCode?: string;
+  wardName?: string;
+  streetAddress?: string;
+}
+
+export interface SpecialtyOption {
+  code: string;
+  name: string;
+  description: string;
+}
+
+export interface AppointmentSlotResponse {
+  specialty: string;
+  appointmentDate: string;
+  startTime: string;
+  endTime: string;
+  doctorName: string;
+  remainingCapacity: number;
 }
 
 export type ApiErrorResponse = {
@@ -114,6 +172,9 @@ export class AuthApiService {
   private readonly appointmentsRoot = '/api/v1/appointments';
   private readonly examinationsRoot = '/api/v1/examinations';
   private readonly medicalRecordsRoot = '/api/v1/medical-records';
+  private readonly patientProfilesRoot = '/api/v1/patient-profiles';
+  private readonly specialtiesRoot = '/api/v1/specialties';
+  private readonly appointmentSlotsRoot = '/api/v1/appointment-slots';
 
   requestSmsOtp(phone: string, purpose: OtpPurpose): Observable<OtpResponse> {
     return this.http.post<OtpResponse>(`${this.apiRoot}/request-sms-otp`, { phone, purpose });
@@ -145,12 +206,40 @@ export class AuthApiService {
     return this.http.post<{ verified: boolean }>(`${this.apiRoot}/verify-sms-otp`, { phone, purpose, code });
   }
 
-  register(phone: string, fullName: string, password: string, dateOfBirth: string, gender: string, address: string): Observable<RegistrationResponse> {
-    return this.http.post<RegistrationResponse>(`${this.apiRoot}/register`, { phone, fullName, password, dateOfBirth, gender, address });
+  register(phone: string, fullName: string, password: string, dateOfBirth: string, gender: string, address: string,
+           provinceCode = '', provinceName = '', districtCode = '', districtName = '', wardCode = '', wardName = '', streetAddress = ''): Observable<RegistrationResponse> {
+    return this.http.post<RegistrationResponse>(`${this.apiRoot}/register`, {
+      phone, fullName, password, dateOfBirth, gender, address,
+      provinceCode, provinceName, districtCode, districtName, wardCode, wardName, streetAddress,
+    });
   }
 
   getProfile(): Observable<PatientProfileResponse> {
     return this.http.get<PatientProfileResponse>(`${this.apiRoot}/me`);
+  }
+
+  getPatientProfiles(): Observable<PatientProfileItem[]> {
+    return this.http.get<PatientProfileItem[]>(this.patientProfilesRoot);
+  }
+
+  getSpecialties(query?: string): Observable<SpecialtyOption[]> {
+    return this.http.get<SpecialtyOption[]>(this.specialtiesRoot, query ? { params: { query } } : undefined);
+  }
+
+  getAppointmentSlots(specialty: string, from: string, to: string): Observable<AppointmentSlotResponse[]> {
+    return this.http.get<AppointmentSlotResponse[]>(this.appointmentSlotsRoot, { params: { specialty, from, to } });
+  }
+
+  createPatientProfile(request: PatientProfileRequest): Observable<PatientProfileItem> {
+    return this.http.post<PatientProfileItem>(this.patientProfilesRoot, request);
+  }
+
+  updatePatientProfile(id: string, request: PatientProfileRequest): Observable<PatientProfileItem> {
+    return this.http.patch<PatientProfileItem>(`${this.patientProfilesRoot}/${id}`, request);
+  }
+
+  deletePatientProfile(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.patientProfilesRoot}/${id}`);
   }
 
   updateProfile(fullName: string, dateOfBirth: string | null, gender: string | null, address: string,

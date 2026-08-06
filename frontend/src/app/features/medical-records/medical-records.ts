@@ -4,11 +4,12 @@ import { MatIconModule } from '@angular/material/icon';
 import { finalize } from 'rxjs';
 import { apiErrorMessage, AuthApiService, MedicalRecordResponse } from '../../core/auth/auth-api.service';
 import { AccountMenu } from '../../shared/account-menu/account-menu';
+import { AccountNav } from '../../shared/account-nav/account-nav';
 
 @Component({
   selector: 'app-medical-records',
   standalone: true,
-  imports: [RouterLink, MatIconModule, AccountMenu],
+  imports: [RouterLink, MatIconModule, AccountMenu, AccountNav],
   templateUrl: './medical-records.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

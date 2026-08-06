@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { apiErrorMessage, AuthApiService } from '../../../core/auth/auth-api.service';
+import { VietnamAddressService, VietnamAddressUnit } from '../../../core/address/vietnam-address.service';
 
 type RegisterStep = 'phone' | 'otp' | 'profile' | 'done';
 
@@ -16,17 +17,22 @@ function passwordsMatch(control: { value: { password: string; confirmPassword: s
   templateUrl: './register.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class Register {
+export class Register implements OnInit {
   private readonly formBuilder = inject(FormBuilder);
   private readonly authApi = inject(AuthApiService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly addressApi = inject(VietnamAddressService);
 
   protected readonly step = signal<RegisterStep>('phone');
   protected readonly phone = signal('');
   protected readonly notice = signal('');
   protected readonly error = signal('');
   protected readonly busy = signal(false);
+  protected readonly provinces = signal<VietnamAddressUnit[]>([]);
+  protected readonly districts = signal<VietnamAddressUnit[]>([]);
+  protected readonly wards = signal<VietnamAddressUnit[]>([]);
+  protected readonly addressLoading = signal(false);
   protected readonly today = new Date().toISOString().slice(0, 10);
 
   readonly phoneForm = this.formBuilder.nonNullable.group({
@@ -43,13 +49,30 @@ export class Register {
       dateOfBirth: ['', [Validators.required]],
       gender: ['', [Validators.required]],
       address: ['', [Validators.maxLength(500)]],
+      provinceCode: [''],
+      provinceName: [''],
+      districtCode: [''],
+      districtName: [''],
+      wardCode: [''],
+      wardName: [''],
+      streetAddress: ['', [Validators.maxLength(500)]],
       password: ['', [Validators.required, Validators.minLength(8), Validators.maxLength(72)]],
       confirmPassword: ['', [Validators.required]],
     },
     { validators: passwordsMatch },
   );
 
+  ngOnInit(): void {
+    this.addressApi.getProvinces().subscribe({
+      next: (items) => this.provinces.set(items),
+      error: () => this.error.set('Không tải được danh sách tỉnh/thành. Bạn vẫn có thể đăng ký trước.'),
+    });
+  }
+
   protected submitPhone(): void {
+    if (this.busy()) {
+      return;
+    }
     this.clearMessages();
     if (this.phoneForm.invalid) {
       this.phoneForm.markAllAsTouched();
@@ -57,14 +80,15 @@ export class Register {
     }
 
     const phone = this.phoneForm.controls.phone.value;
+    this.phone.set(phone);
+    this.step.set('otp');
+    this.notice.set('Đang gửi mã OTP...');
     this.busy.set(true);
     this.authApi
       .requestSmsOtp(phone, 'REGISTRATION')
       .pipe(finalize(() => this.busy.set(false)))
       .subscribe({
         next: () => {
-          this.phone.set(phone);
-          this.step.set('otp');
           this.notice.set('Mã OTP đã được gửi đến số điện thoại của bạn.');
         },
         error: (response) => this.showError(response),
@@ -98,10 +122,13 @@ export class Register {
       return;
     }
 
-    const { fullName, password, dateOfBirth, gender, address } = this.profileForm.getRawValue();
+    const { fullName, password, dateOfBirth, gender, provinceCode, provinceName, districtCode, districtName,
+      wardCode, wardName, streetAddress } = this.profileForm.getRawValue();
+    const address = [streetAddress, wardName, districtName, provinceName].filter((value) => value.trim()).join(', ');
     this.busy.set(true);
     this.authApi
-      .register(this.phone(), fullName.trim(), password, dateOfBirth, gender, address.trim())
+      .register(this.phone(), fullName.trim(), password, dateOfBirth, gender, address.trim(), provinceCode, provinceName,
+        districtCode, districtName, wardCode, wardName, streetAddress.trim())
       .pipe(finalize(() => this.busy.set(false)))
       .subscribe({
         next: () => {
@@ -122,6 +149,40 @@ export class Register {
   protected backToOtp(): void {
     this.step.set('otp');
     this.clearMessages();
+  }
+
+  protected provinceChanged(): void {
+    const provinceCode = this.profileForm.controls.provinceCode.value;
+    const province = this.provinces().find((item) => String(item.code) === provinceCode);
+    this.profileForm.patchValue({ provinceName: province?.name ?? '', districtCode: '', districtName: '', wardCode: '', wardName: '' });
+    this.districts.set([]);
+    this.wards.set([]);
+    if (provinceCode) {
+      this.addressLoading.set(true);
+      this.addressApi.getDistricts(provinceCode).pipe(finalize(() => this.addressLoading.set(false))).subscribe({
+        next: (items) => this.districts.set(items),
+        error: () => this.error.set('Không tải được danh sách quận/huyện. Vui lòng thử lại.'),
+      });
+    }
+  }
+
+  protected districtChanged(): void {
+    const districtCode = this.profileForm.controls.districtCode.value;
+    const district = this.districts().find((item) => String(item.code) === districtCode);
+    this.profileForm.patchValue({ districtName: district?.name ?? '', wardCode: '', wardName: '' });
+    this.wards.set([]);
+    if (districtCode) {
+      this.addressLoading.set(true);
+      this.addressApi.getWards(districtCode).pipe(finalize(() => this.addressLoading.set(false))).subscribe({
+        next: (items) => this.wards.set(items),
+        error: () => this.error.set('Không tải được danh sách xã/phường. Vui lòng thử lại.'),
+      });
+    }
+  }
+
+  protected wardChanged(): void {
+    const ward = this.wards().find((item) => String(item.code) === this.profileForm.controls.wardCode.value);
+    this.profileForm.controls.wardName.setValue(ward?.name ?? '');
   }
 
   protected goToLogin(): void {
