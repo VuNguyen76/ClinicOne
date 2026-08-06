@@ -33,7 +33,10 @@ public class LoginSession {
     @Column(name = "revoked_at")
     private Instant revokedAt;
 
-    @Column(nullable = false, length = 30)
+    // Legacy patient sessions predate role-based sessions and legitimately have no role.
+    // Keep the column nullable so Hibernate can update an existing database without
+    // failing on those rows; getRole() applies the patient fallback when reading them.
+    @Column(length = 30)
     private String role;
 
     protected LoginSession() {
