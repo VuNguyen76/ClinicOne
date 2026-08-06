@@ -130,14 +130,8 @@ export class Booking implements OnInit {
     this.availableSlots.set([]);
     this.form.controls.appointmentDate.setValue(date.iso);
     this.form.controls.startTime.reset('');
-    this.slotsLoading.set(true);
-    this.authApi.getAppointmentSlots(this.form.controls.specialty.value, date.iso, date.iso).subscribe({
-      next: (slots) => {
-        this.availableSlots.set(slots.map((slot) => this.toTimeSlot(slot)));
-        this.slotsLoading.set(false);
-      },
-      error: (response) => { this.slotsLoading.set(false); this.handleAuthError(response); },
-    });
+    const slotsForDate = this.monthSlots().filter((slot) => slot.appointmentDate === date.iso);
+    this.availableSlots.set(slotsForDate.map((slot) => this.toTimeSlot(slot)));
   }
 
   protected chooseSlot(slot: TimeSlot): void {

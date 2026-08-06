@@ -45,4 +45,25 @@ describe('Booking calendar', () => {
     expect(request.request.params.get('to')).toBe(expectedTo);
     request.flush([]);
   });
+
+  it('uses the already loaded month data when a date is selected', () => {
+    component['chooseSpecialty']({ code: 'NOI', name: 'Nội tổng quát', description: 'Khám tổng quát' });
+    const request = http.expectOne((item) => item.url === '/api/v1/appointment-slots');
+    const date = component['dates']().find((item) => item.inCurrentMonth && item.iso >= component['today']);
+    expect(date).toBeDefined();
+    request.flush([{
+      specialty: 'Nội tổng quát',
+      appointmentDate: date!.iso,
+      startTime: '08:30:00',
+      endTime: '09:30:00',
+      doctorName: 'Bác sĩ chuyên khoa',
+      remainingCapacity: 9,
+    }]);
+
+    component['chooseDate'](date!);
+
+    expect(component['availableSlots']()).toHaveLength(1);
+    expect(component['availableSlots']()[0].label).toBe('08:30 - 09:30');
+    http.expectNone((item) => item.url === '/api/v1/appointment-slots');
+  });
 });
