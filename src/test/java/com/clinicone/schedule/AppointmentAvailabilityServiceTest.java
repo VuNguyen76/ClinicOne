@@ -12,6 +12,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class AppointmentAvailabilityServiceTest {
@@ -21,14 +22,17 @@ class AppointmentAvailabilityServiceTest {
     @Test
     void returnsOnlyWorkingDaySlotsForKnownSpecialty() {
         LocalDate monday = LocalDate.of(2026, 8, 10);
-        when(appointmentRepository.countBySpecialtyAndAppointmentDateAndStartTimeAndStatus(
-                "Khám Tổng Quát", monday, LocalTime.of(7, 30), AppointmentStatus.BOOKED)).thenReturn(2L);
+        when(appointmentRepository.countBookedBySpecialtyAndDateRange(
+                "Khám Tổng Quát", monday, monday, AppointmentStatus.BOOKED))
+                .thenReturn(List.of(new SlotBookingCount(monday, LocalTime.of(7, 30), 2L)));
 
         List<AvailableSlotResponse> slots = service.find("Khám Tổng Quát", monday, monday);
 
         assertEquals(7, slots.size());
         assertEquals(8, slots.get(0).remainingCapacity());
         assertEquals(LocalTime.of(7, 30), slots.get(0).startTime());
+        verify(appointmentRepository).countBookedBySpecialtyAndDateRange(
+                "Khám Tổng Quát", monday, monday, AppointmentStatus.BOOKED);
     }
 
     @Test

@@ -116,7 +116,7 @@
           {<button data-testid="calendar-date" type="button"
             class="relative min-h-14 rounded-lg border border-slate-100 px-1 py-2 text-center transition hover:-translate-y-0.5 hover:border-[#0ea5e9] hover:bg-[#f1fbfe] disabled:cursor-not-allowed disabled:opacity-35 sm:min-h-16"
             [class.border-[#0ea5e9]]="selectedDate() === date.iso" [class.bg-[#e8f8fc]]="selectedDate() === date.iso"
-            [class.text-slate-400]="!date.inCurrentMonth" [disabled]="!date.inCurrentMonth || date.iso < today"
+            [class.text-slate-400]="!date.inCurrentMonth" [disabled]="!date.inCurrentMonth || date.iso < today || slotsLoading()"
             (click)="chooseDate(date)"><span class="block text-sm font-bold"
               [class.text-slate-800]="date.inCurrentMonth">{{ date.day }}</span>@if (hasAvailability(date)) {<span
               class="absolute bottom-1 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-[#0ea5e9]"

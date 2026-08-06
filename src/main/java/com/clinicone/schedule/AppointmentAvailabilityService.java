@@ -9,7 +9,9 @@ import org.springframework.stereotype.Service;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class AppointmentAvailabilityService {
@@ -42,9 +44,13 @@ public class AppointmentAvailabilityService {
     public List<AvailableSlotResponse> find(String specialty, LocalDate from, LocalDate to) {
         specialtyCatalog.require(specialty);
         validateRange(from, to);
+        Map<SlotKey, Long> bookedBySlot = new HashMap<>();
+        appointmentRepository.countBookedBySpecialtyAndDateRange(specialty, from, to, AppointmentStatus.BOOKED)
+                .forEach(item -> bookedBySlot.put(new SlotKey(item.appointmentDate(), item.startTime()), item.bookedCount()));
         return from.datesUntil(to.plusDays(1))
                 .filter(this::isWorkingDay)
-                .flatMap(date -> SLOT_TEMPLATES.stream().map(template -> toResponse(specialty, date, template)))
+                .flatMap(date -> SLOT_TEMPLATES.stream().map(template -> toResponse(specialty, date, template,
+                        bookedBySlot.getOrDefault(new SlotKey(date, template.startTime()), 0L))))
                 .filter(slot -> slot.remainingCapacity() > 0)
                 .toList();
     }
@@ -59,16 +65,16 @@ public class AppointmentAvailabilityService {
                 .findFirst()
                 .orElseThrow(() -> new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_SLOT_INVALID",
                         "Khung giờ này không thuộc lịch khám đang mở."));
-        AvailableSlotResponse slot = toResponse(specialty, appointmentDate, template);
+        long booked = appointmentRepository.countBySpecialtyAndAppointmentDateAndStartTimeAndStatus(
+                specialty, appointmentDate, template.startTime(), AppointmentStatus.BOOKED);
+        AvailableSlotResponse slot = toResponse(specialty, appointmentDate, template, booked);
         if (slot.remainingCapacity() <= 0) {
             throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_SLOT_FULL",
                     "Khung giờ này vừa hết chỗ. Vui lòng chọn khung giờ khác.");
         }
     }
 
-    private AvailableSlotResponse toResponse(String specialty, LocalDate date, SlotTemplate template) {
-        long booked = appointmentRepository.countBySpecialtyAndAppointmentDateAndStartTimeAndStatus(
-                specialty, date, template.startTime(), AppointmentStatus.BOOKED);
+    private AvailableSlotResponse toResponse(String specialty, LocalDate date, SlotTemplate template, long booked) {
         return new AvailableSlotResponse(specialty, date, template.startTime(), template.endTime(), DEFAULT_DOCTOR,
                 Math.max(0, SLOT_CAPACITY - Math.toIntExact(booked)));
     }
@@ -85,5 +91,8 @@ public class AppointmentAvailabilityService {
     }
 
     private record SlotTemplate(LocalTime startTime, LocalTime endTime) {
+    }
+
+    private record SlotKey(LocalDate date, LocalTime startTime) {
     }
 }
