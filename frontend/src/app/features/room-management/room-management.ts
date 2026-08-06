@@ -24,6 +24,7 @@ export class RoomManagement implements OnInit {
   protected readonly statusFilter = signal<RoomStatusFilter>('ALL');
   protected readonly loading = signal(true);
   protected readonly saving = signal(false);
+  protected readonly formOpen = signal(false);
   protected readonly editingId = signal<string | null>(null);
   protected readonly error = signal('');
   protected readonly activeCount = computed(() => this.rooms().filter((room) => room.active).length);
@@ -59,7 +60,7 @@ export class RoomManagement implements OnInit {
     operation.subscribe({
       next: (room) => {
         this.rooms.update((items) => this.editingId() ? items.map((item) => item.id === room.id ? room : item) : [...items, room].sort((a, b) => a.code.localeCompare(b.code)));
-        this.resetForm();
+        this.closeForm();
         this.saving.set(false);
       },
       error: (response) => { this.saving.set(false); this.handleError(response); },
@@ -70,11 +71,20 @@ export class RoomManagement implements OnInit {
     this.editingId.set(room.id);
     this.form.setValue({ code: room.code, name: room.name, specialty: room.specialty });
     this.error.set('');
+    this.formOpen.set(true);
   }
 
-  protected resetForm(): void {
+  protected openCreate(): void {
     this.editingId.set(null);
     this.form.reset({ code: '', name: '', specialty: '' });
+    this.error.set('');
+    this.formOpen.set(true);
+  }
+
+  protected closeForm(): void {
+    this.editingId.set(null);
+    this.form.reset({ code: '', name: '', specialty: '' });
+    this.formOpen.set(false);
   }
 
   protected updateSearch(event: Event): void {
@@ -103,6 +113,7 @@ export class RoomManagement implements OnInit {
     if (response.status === 401) {
       sessionStorage.removeItem('clinicOneAccessToken');
       sessionStorage.removeItem('clinicOnePatientName');
+      sessionStorage.removeItem('clinicOneStaffRole');
       void this.router.navigateByUrl('/login');
       return;
     }
