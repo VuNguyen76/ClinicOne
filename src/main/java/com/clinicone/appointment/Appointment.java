@@ -109,6 +109,13 @@ public class Appointment {
         this.cancellationReason = reason == null || reason.isBlank() ? null : reason.trim();
     }
 
+    public void complete() {
+        if (this.status != AppointmentStatus.BOOKED) {
+            throw new IllegalStateException("Chỉ có thể hoàn tất lịch hẹn đang được đặt");
+        }
+        this.status = AppointmentStatus.COMPLETED;
+    }
+
     public void reschedule(LocalDate appointmentDate, LocalTime startTime) {
         this.appointmentDate = appointmentDate;
         this.startTime = startTime;
