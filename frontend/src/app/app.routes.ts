@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, patientGuard, roomManagerGuard, staffGuard } from './core/auth/auth.guard';
+import { patientGuard, roomManagerGuard, staffGuard } from './core/auth/auth.guard';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'home' },
@@ -9,7 +9,7 @@ export const routes: Routes = [
   { path: 'staff', loadComponent: () => import('./features/staff-dashboard/staff-dashboard').then((m) => m.StaffDashboard), canActivate: [staffGuard] },
   { path: 'register', loadComponent: () => import('./features/auth/register/register').then((m) => m.Register) },
   { path: 'account', loadComponent: () => import('./features/account/account').then((m) => m.Account), canActivate: [patientGuard] },
-  { path: 'change-password', loadComponent: () => import('./features/auth/change-password/change-password').then((m) => m.ChangePassword), canActivate: [authGuard] },
+  { path: 'change-password', loadComponent: () => import('./features/auth/change-password/change-password').then((m) => m.ChangePassword), canActivate: [patientGuard] },
   { path: 'appointments/new', loadComponent: () => import('./features/appointments/booking/booking').then((m) => m.Booking), canActivate: [patientGuard] },
   { path: 'appointments', loadComponent: () => import('./features/appointments/list/appointments-list').then((m) => m.AppointmentsList), canActivate: [patientGuard] },
   { path: 'appointments/:id', loadComponent: () => import('./features/appointments/detail/appointment-detail').then((m) => m.AppointmentDetail), canActivate: [patientGuard] },
