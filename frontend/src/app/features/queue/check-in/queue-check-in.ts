@@ -1,0 +1,105 @@
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { MatIconModule } from '@angular/material/icon';
+import { ApiErrorResponse, AppointmentResponse, AuthApiService, QueueTicketResponse, apiErrorMessage } from '../../../core/auth/auth-api.service';
+import { AccountMenu } from '../../../shared/account-menu/account-menu';
+
+@Component({
+  selector: 'app-queue-check-in',
+  standalone: true,
+  imports: [RouterLink, MatIconModule, AccountMenu, DecimalPipe],
+  templateUrl: './queue-check-in.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class QueueCheckIn implements OnInit {
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly authApi = inject(AuthApiService);
+
+  protected readonly roomCode = signal('');
+  protected readonly appointments = signal<AppointmentResponse[]>([]);
+  protected readonly selectedAppointment = signal<AppointmentResponse | null>(null);
+  protected readonly ticket = signal<QueueTicketResponse | null>(null);
+  protected readonly loading = signal(true);
+  protected readonly busy = signal(false);
+  protected readonly error = signal('');
+  protected readonly today = this.toIsoDate(new Date());
+
+  ngOnInit(): void {
+    this.roomCode.set(this.route.snapshot.paramMap.get('roomCode') ?? '');
+    this.loadAppointments();
+  }
+
+  protected todayAppointments(): AppointmentResponse[] {
+    return this.appointments().filter((appointment) => appointment.appointmentDate === this.today && appointment.status === 'BOOKED');
+  }
+
+  protected chooseAppointment(appointment: AppointmentResponse): void {
+    this.error.set('');
+    this.selectedAppointment.set(appointment);
+  }
+
+  protected checkIn(): void {
+    const appointment = this.selectedAppointment();
+    if (!appointment) {
+      this.error.set('Vui lòng chọn lịch hẹn để lấy số.');
+      return;
+    }
+    this.error.set('');
+    this.busy.set(true);
+    this.authApi.checkInToRoom(this.roomCode(), appointment.id).subscribe({
+      next: (ticket) => {
+        this.ticket.set(ticket);
+        this.busy.set(false);
+      },
+      error: (response) => {
+        this.busy.set(false);
+        this.handleError(response);
+      },
+    });
+  }
+
+  protected formatTime(value: string): string {
+    return value.slice(0, 5);
+  }
+
+  protected formatDate(value: string): string {
+    const [year, month, day] = value.split('-').map(Number);
+    return new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+      .format(new Date(year, month - 1, day));
+  }
+
+  protected retry(): void {
+    this.error.set('');
+    this.loadAppointments();
+  }
+
+  private loadAppointments(): void {
+    this.loading.set(true);
+    this.authApi.getAppointments().subscribe({
+      next: (appointments) => {
+        this.appointments.set(appointments);
+        this.loading.set(false);
+      },
+      error: (response) => {
+        this.loading.set(false);
+        this.handleError(response);
+      },
+    });
+  }
+
+  private handleError(response: { status?: number } & ApiErrorResponse): void {
+    if (response.status === 401 || response.status === 403) {
+      sessionStorage.removeItem('clinicOneAccessToken');
+      sessionStorage.removeItem('clinicOnePatientName');
+      void this.router.navigateByUrl('/login');
+      return;
+    }
+    this.error.set(apiErrorMessage(response));
+  }
+
+  private toIsoDate(date: Date): string {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  }
+}
