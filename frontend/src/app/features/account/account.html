@@ -1,4 +1,4 @@
-<main class="min-h-screen bg-white text-[#103f4c]">
+<main class="min-h-screen bg-[#f7fafb] text-[#103f4c]">
   <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
     <div class="mx-auto flex h-[72px] max-w-[1200px] items-center justify-between gap-8 px-5 lg:px-0">
       <a routerLink="/home" class="flex items-center gap-3" aria-label="ClinicOne, trang chủ">
@@ -27,7 +27,7 @@
     <div class="flex items-center gap-3 text-sm"><a routerLink="/home" class="font-semibold text-[#103f4c] hover:text-[#0ea5e9]">Trang chủ</a><mat-icon class="!h-4 !w-4 !text-[16px] text-slate-400">chevron_right</mat-icon><span class="font-semibold text-[#0ea5e9]">Hồ sơ bệnh nhân</span></div>
 
     <div class="mt-8 grid gap-8 lg:grid-cols-[230px_1fr] lg:gap-10">
-      <aside class="border-r border-slate-200 pr-6"><app-account-nav /></aside>
+      <aside class="border-b border-slate-200 pb-5 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-6"><app-account-nav /></aside>
 
       <section class="min-w-0" id="profile">
         <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center"><h1 class="text-2xl font-bold tracking-[-0.03em] text-slate-900">Danh sách hồ sơ bệnh nhân</h1><a data-testid="add-profile-action" routerLink="/patient-profiles" class="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-[#0ea5e9] bg-white px-4 text-sm font-semibold text-[#0284c7] transition hover:bg-[#e8f8fc]"><mat-icon class="!text-[19px]">add</mat-icon>Thêm hồ sơ</a></div>
