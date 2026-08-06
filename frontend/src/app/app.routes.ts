@@ -5,6 +5,7 @@ export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'home' },
   { path: 'home', loadComponent: () => import('./features/home/home').then((m) => m.Home) },
   { path: 'login', loadComponent: () => import('./features/auth/login/login').then((m) => m.Login) },
+  { path: 'staff/login', loadComponent: () => import('./features/staff-auth/staff-login').then((m) => m.StaffLogin) },
   { path: 'register', loadComponent: () => import('./features/auth/register/register').then((m) => m.Register) },
   { path: 'account', loadComponent: () => import('./features/account/account').then((m) => m.Account), canActivate: [authGuard] },
   { path: 'change-password', loadComponent: () => import('./features/auth/change-password/change-password').then((m) => m.ChangePassword), canActivate: [authGuard] },

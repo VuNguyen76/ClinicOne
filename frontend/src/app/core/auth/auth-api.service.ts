@@ -176,15 +176,36 @@ export interface ClinicRoomResponse {
   active: boolean;
 }
 
+export interface StaffLoginResponse {
+  accessToken: string;
+  tokenType: string;
+  expiresAt: string;
+  staffId: string;
+  fullName: string;
+  role: string;
+}
+
 export type ApiErrorResponse = {
-  error?: { message?: string; detail?: string; title?: string } | string;
+  error?: {
+    message?: string;
+    detail?: string;
+    title?: string;
+    error?: { message?: string; detail?: string };
+  } | string;
   message?: string;
   detail?: string;
 };
 
 export function apiErrorMessage(response: ApiErrorResponse): string {
   const payload = typeof response.error === 'object' && response.error !== null ? response.error : undefined;
-  return payload?.message ?? payload?.detail ?? response.message ?? response.detail ?? (typeof response.error === 'string' ? response.error : undefined) ?? 'Không thể xử lý yêu cầu. Vui lòng thử lại.';
+  return payload?.message
+    ?? payload?.detail
+    ?? payload?.error?.message
+    ?? payload?.error?.detail
+    ?? response.message
+    ?? response.detail
+    ?? (typeof response.error === 'string' ? response.error : undefined)
+    ?? 'Không thể xử lý yêu cầu. Vui lòng thử lại.';
 }
 
 @Injectable({ providedIn: 'root' })
@@ -213,6 +234,7 @@ export class AuthApiService {
       .pipe(tap((session) => {
         sessionStorage.setItem('clinicOneAccessToken', session.accessToken);
         sessionStorage.setItem('clinicOnePatientName', session.fullName);
+        sessionStorage.removeItem('clinicOneStaffRole');
       }));
   }
 
@@ -222,6 +244,7 @@ export class AuthApiService {
       .pipe(tap((session) => {
         sessionStorage.setItem('clinicOneAccessToken', session.accessToken);
         sessionStorage.setItem('clinicOnePatientName', session.fullName);
+        sessionStorage.removeItem('clinicOneStaffRole');
       }));
   }
 
@@ -337,6 +360,14 @@ export class AuthApiService {
 
   getRooms(): Observable<ClinicRoomResponse[]> {
     return this.http.get<ClinicRoomResponse[]>('/api/v1/rooms');
+  }
+
+  staffLogin(username: string, password: string): Observable<StaffLoginResponse> {
+    return this.http.post<StaffLoginResponse>('/api/v1/staff/auth/login', { username, password }).pipe(tap((session) => {
+      sessionStorage.setItem('clinicOneAccessToken', session.accessToken);
+      sessionStorage.setItem('clinicOnePatientName', session.fullName);
+      sessionStorage.setItem('clinicOneStaffRole', session.role);
+    }));
   }
 
   createRoom(request: Omit<ClinicRoomResponse, 'id' | 'active'>): Observable<ClinicRoomResponse> {

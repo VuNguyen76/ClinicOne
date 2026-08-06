@@ -58,6 +58,7 @@ export class AccountMenu {
   protected logout(): void {
     sessionStorage.removeItem('clinicOneAccessToken');
     sessionStorage.removeItem('clinicOnePatientName');
+    sessionStorage.removeItem('clinicOneStaffRole');
     this.menuOpen.set(false);
     this.loggedIn.set(false);
     void this.router.navigateByUrl('/home');

@@ -33,14 +33,22 @@ public class LoginSession {
     @Column(name = "revoked_at")
     private Instant revokedAt;
 
+    @Column(nullable = false, length = 30)
+    private String role;
+
     protected LoginSession() {
     }
 
     public LoginSession(UUID accountId, String tokenHash, Instant issuedAt, Instant expiresAt) {
+        this(accountId, tokenHash, issuedAt, expiresAt, "ROLE_PATIENT");
+    }
+
+    public LoginSession(UUID accountId, String tokenHash, Instant issuedAt, Instant expiresAt, String role) {
         this.accountId = accountId;
         this.tokenHash = tokenHash;
         this.issuedAt = issuedAt;
         this.expiresAt = expiresAt;
+        this.role = role;
     }
 
     public void revoke(Instant now) { revokedAt = now; }
@@ -49,4 +57,5 @@ public class LoginSession {
     public Instant getIssuedAt() { return issuedAt; }
     public Instant getExpiresAt() { return expiresAt; }
     public Instant getRevokedAt() { return revokedAt; }
+    public String getRole() { return role == null || role.isBlank() ? "ROLE_PATIENT" : role; }
 }
