@@ -24,7 +24,7 @@ public class ClinicRoomController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR', 'DOCTOR', 'RECEPTIONIST')")
     public ResponseEntity<List<ClinicRoomResponse>> list() {
         return ResponseEntity.ok(service.list());
     }
