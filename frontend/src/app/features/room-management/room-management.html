@@ -1,40 +1,40 @@
 <main class="min-h-screen bg-[#f4f7f8] text-[#173f4b] lg:flex">
-  <aside class="hidden w-[248px] shrink-0 flex-col bg-[#0b2c36] text-white lg:flex">
+  <aside class="hidden w-[268px] shrink-0 flex-col border-r border-[#123e49] bg-[#082b35] text-white lg:flex">
     <div class="flex h-[72px] items-center border-b border-white/10 px-6">
       <a routerLink="/home" class="flex items-center gap-3" aria-label="ClinicOne, trang chủ">
         <img class="h-9 w-9 object-contain brightness-0 invert" src="clinicone-mark.png" alt="" aria-hidden="true" />
         <span class="text-[20px] font-bold tracking-[-0.05em]">Clinic<span class="text-[#55c8ec]">One</span></span>
       </a>
     </div>
-    <nav class="mt-7 flex-1 px-3" aria-label="Điều hướng vận hành">
+    <nav class="mt-8 flex-1 px-3" aria-label="Điều hướng vận hành">
       <a routerLink="/home" class="mb-1 flex items-center gap-3 rounded-lg px-3 py-3 text-sm text-white/65 transition hover:bg-white/10 hover:text-white"><mat-icon class="!h-5 !w-5 !text-[19px]">home</mat-icon>Trang chủ</a>
-      <a routerLink="/staff" class="mb-1 flex items-center gap-3 rounded-lg px-3 py-3 text-sm text-white/65 transition hover:bg-white/10 hover:text-white"><mat-icon class="!h-5 !w-5 !text-[19px]">monitor_heart</mat-icon>Điều phối lượt khám</a>
+      <a routerLink="/staff" class="mb-1 flex items-center gap-3 rounded-lg px-3 py-3 text-sm text-white/65 transition hover:bg-white/10 hover:text-white"><mat-icon class="!h-5 !w-5 !text-[19px]">monitor_heart</mat-icon>Bảng điều hành</a>
       <a routerLink="/admin/rooms" aria-current="page" class="mb-1 flex items-center gap-3 rounded-lg border-l-2 border-[#55c8ec] bg-white/10 px-3 py-3 text-sm font-semibold text-white"><mat-icon class="!h-5 !w-5 !text-[19px] text-[#55c8ec]">meeting_room</mat-icon>Phòng khám</a>
     </nav>
-    <div class="border-t border-white/10 px-6 py-5"><p class="text-xs text-white/45">ClinicOne Operations</p><p class="mt-1 text-xs text-white/70">Bản điều hành 1.0</p></div>
+    <div class="border-t border-white/10 px-6 py-5"><p class="text-xs text-white/45">ClinicOne</p><p class="mt-1 text-xs text-white/70">Cấu hình hệ thống</p></div>
   </aside>
 
   <div class="min-w-0 flex-1">
-    <header class="sticky top-0 z-30 flex h-[72px] items-center justify-between border-b border-[#dce7ea] bg-white/95 px-5 backdrop-blur lg:px-8">
-      <div class="flex items-center gap-3"><button type="button" class="grid h-9 w-9 place-items-center rounded-lg text-slate-500 hover:bg-[#eef7f9] lg:hidden" aria-label="Mở điều hướng"><mat-icon>menu</mat-icon></button><div class="hidden items-center gap-2 text-sm sm:flex"><span class="font-semibold text-[#173f4b]">Vận hành</span><mat-icon class="!h-4 !w-4 !text-[16px] text-slate-400">chevron_right</mat-icon><span class="text-slate-500">Phòng khám</span></div><span class="text-sm font-semibold text-[#173f4b] sm:hidden">Phòng khám</span></div>
+    <header class="sticky top-0 z-30 flex h-[80px] items-center justify-between border-b border-[#dce7ea] bg-white/95 px-5 backdrop-blur lg:px-8">
+      <div class="flex items-center gap-3"><button type="button" class="grid h-9 w-9 place-items-center rounded-lg text-slate-500 hover:bg-[#eef7f9] lg:hidden" aria-label="Mở điều hướng"><mat-icon>menu</mat-icon></button><div class="hidden items-center gap-2 text-sm sm:flex"><span class="font-semibold text-[#173f4b]">Vận hành</span><mat-icon class="!h-4 !w-4 !text-[16px] text-slate-400">chevron_right</mat-icon><span class="text-slate-500">Quản lý phòng khám</span></div><span class="text-sm font-semibold text-[#173f4b] sm:hidden">Quản lý phòng khám</span></div>
       <app-account-menu />
     </header>
 
-    <div class="mx-auto max-w-[1440px] px-5 py-7 lg:px-8 lg:py-9">
+    <div class="mx-auto max-w-[1440px] px-5 py-8 lg:px-10 lg:py-10">
       <div class="flex flex-col justify-between gap-4 border-b border-[#dce7ea] pb-6 sm:flex-row sm:items-end">
-        <div><p class="text-[11px] font-bold uppercase tracking-[0.18em] text-[#0b91c9]">Danh mục / Cấu hình</p><h1 class="mt-2 text-3xl font-bold tracking-[-0.05em] text-[#0a303b] sm:text-[34px]">Phòng khám</h1><p class="mt-2 text-sm text-slate-500">Quản lý phòng và trạng thái phục vụ.</p></div>
+        <div><p class="text-[11px] font-bold uppercase tracking-[0.18em] text-[#0b91c9]">Vận hành / Cấu hình</p><h1 class="mt-2 text-3xl font-bold tracking-[-0.05em] text-[#0a303b] sm:text-[34px]">Quản lý phòng khám</h1><p class="mt-2 text-sm text-slate-500">Tạo phòng và quản lý trạng thái phục vụ.</p></div>
         <button data-testid="open-room-form" type="button" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#0b3846] px-5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#082d39]" (click)="openCreate()"><mat-icon class="!h-5 !w-5 !text-[19px]">add</mat-icon>Phòng mới</button>
       </div>
 
       @if (error()) {<p class="mt-5 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert"><mat-icon class="!h-5 !w-5 !text-[19px]">error_outline</mat-icon>{{ error() }}</p>}
 
-      <section class="mt-6 flex flex-wrap divide-y divide-[#e7eff1] border-y border-[#dce7ea] bg-white sm:divide-x sm:divide-y-0" aria-label="Tóm tắt phòng khám">
+      <section class="mt-7 grid gap-3 sm:grid-cols-3" aria-label="Tóm tắt phòng khám">
         <div class="min-w-[170px] flex-1 px-5 py-4"><p class="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">Tổng phòng</p><p class="mt-1 text-2xl font-bold tracking-[-0.04em] text-[#173f4b]">{{ rooms().length }}</p></div>
         <div class="min-w-[170px] flex-1 px-5 py-4"><p class="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">Đang hoạt động</p><p class="mt-1 text-2xl font-bold tracking-[-0.04em] text-emerald-700">{{ activeCount() }}</p></div>
         <div class="min-w-[170px] flex-1 px-5 py-4"><p class="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">Tạm dừng</p><p class="mt-1 text-2xl font-bold tracking-[-0.04em] text-slate-600">{{ inactiveCount() }}</p></div>
       </section>
 
-      <section class="mt-6 min-w-0 overflow-hidden rounded-xl border border-[#dce7ea] bg-white">
+      <section class="mt-7 min-w-0 overflow-hidden rounded-2xl border border-[#dce7ea] bg-white shadow-[0_8px_30px_rgba(15,59,70,0.06)]">
         <div class="flex flex-col gap-4 border-b border-[#e7eff1] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div class="flex items-center gap-3"><h2 class="text-sm font-bold text-[#173f4b]">Danh sách phòng</h2><span class="rounded bg-[#eef7f9] px-2 py-1 text-[11px] font-bold text-[#0b84bd]">{{ visibleRooms().length }} bản ghi</span></div>
           <div class="flex flex-col gap-2 sm:flex-row"><label class="relative block sm:w-56"><span class="sr-only">Tìm phòng</span><mat-icon class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 !h-5 !w-5 !text-[18px] text-slate-400">search</mat-icon><input class="min-h-10 w-full rounded-md border border-[#d5e3e7] bg-[#fbfdfe] pl-9 pr-3 text-sm outline-none transition focus:border-[#0ea5e9] focus:ring-4 focus:ring-[#0ea5e9]/10" placeholder="Tìm phòng..." (input)="updateSearch($event)" /></label><label class="block sm:w-36"><span class="sr-only">Lọc trạng thái</span><select class="min-h-10 w-full rounded-md border border-[#d5e3e7] bg-[#fbfdfe] px-3 text-sm text-[#315663] outline-none transition focus:border-[#0ea5e9] focus:ring-4 focus:ring-[#0ea5e9]/10" [value]="statusFilter()" (change)="updateStatus($event)"><option value="ALL">Tất cả</option><option value="ACTIVE">Đang hoạt động</option><option value="INACTIVE">Tạm dừng</option></select></label></div>
