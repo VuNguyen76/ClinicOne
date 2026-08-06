@@ -12,6 +12,7 @@ import { MatIconModule } from '@angular/material/icon';
 export class AccountMenu {
   protected readonly loggedIn = signal(false);
   protected readonly menuOpen = signal(false);
+  protected readonly staffRole = signal<string | null>(null);
   protected readonly fullName = signal('Tài khoản');
 
   constructor(
@@ -20,10 +21,12 @@ export class AccountMenu {
   ) {
     const token = typeof sessionStorage === 'undefined' ? null : sessionStorage.getItem('clinicOneAccessToken');
     const name = typeof sessionStorage === 'undefined' ? null : sessionStorage.getItem('clinicOnePatientName');
+    const role = typeof sessionStorage === 'undefined' ? null : sessionStorage.getItem('clinicOneStaffRole');
     this.loggedIn.set(Boolean(token));
     if (name) {
       this.fullName.set(name);
     }
+    this.staffRole.set(role);
   }
 
   protected toggleMenu(): void {
@@ -41,6 +44,20 @@ export class AccountMenu {
       fragment: 'ignored',
       matrixParams: 'ignored',
     });
+  }
+
+  protected isStaff(): boolean {
+    return Boolean(this.staffRole());
+  }
+
+  protected staffRoleLabel(): string {
+    switch (this.staffRole()) {
+      case 'ADMIN': return 'Quản trị viên';
+      case 'COORDINATOR': return 'Điều phối viên';
+      case 'RECEPTIONIST': return 'Nhân viên tiếp nhận';
+      case 'DOCTOR': return 'Bác sĩ';
+      default: return 'Nhân viên';
+    }
   }
 
   @HostListener('document:keydown.escape')
