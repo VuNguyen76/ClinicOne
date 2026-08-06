@@ -1,0 +1,93 @@
+package com.clinicone.queue;
+
+import com.clinicone.config.SecurityConfig;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.test.web.servlet.MockMvc;
+
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.List;
+import java.util.UUID;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@WebMvcTest(QueueController.class)
+@Import({SecurityConfig.class, QueueControllerTest.MockBeans.class})
+class QueueControllerTest {
+    private static final UUID ACCOUNT_ID = UUID.fromString("7d9e3fb4-1045-4ca4-86d2-7d1fca4c1a13");
+    private static final UUID APPOINTMENT_ID = UUID.fromString("ad9e3fb4-1045-4ca4-86d2-7d1fca4c1a13");
+    private static final UUID TICKET_ID = UUID.fromString("bd9e3fb4-1045-4ca4-86d2-7d1fca4c1a13");
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private QueueService queueService;
+
+    @Test
+    void checksInAppointmentFromRoomQr() throws Exception {
+        when(queueService.checkIn(eq(ACCOUNT_ID.toString()), eq("NOI-01"), eq(APPOINTMENT_ID)))
+                .thenReturn(response());
+
+        mockMvc.perform(post("/api/v1/rooms/NOI-01/queue/check-in")
+                        .with(authentication(authenticated()))
+                        .contentType("application/json")
+                        .content("{\"appointmentId\":\"" + APPOINTMENT_ID + "\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.queueNumber").value(5))
+                .andExpect(jsonPath("$.roomCode").value("NOI-01"));
+    }
+
+    @Test
+    void listsRoomQueueForStaffScreen() throws Exception {
+        when(queueService.list(eq("NOI-01"), eq(LocalDate.of(2026, 8, 6))))
+                .thenReturn(List.of(response()));
+
+        mockMvc.perform(get("/api/v1/rooms/NOI-01/queue?date=2026-08-06")
+                        .with(authentication(authenticated())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].queueNumber").value(5));
+    }
+
+    @Test
+    void callsTicket() throws Exception {
+        when(queueService.call(TICKET_ID)).thenReturn(response());
+
+        mockMvc.perform(post("/api/v1/queue/" + TICKET_ID + "/call")
+                        .with(authentication(authenticated())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CALLED"));
+    }
+
+    private static UsernamePasswordAuthenticationToken authenticated() {
+        return UsernamePasswordAuthenticationToken.authenticated(ACCOUNT_ID.toString(), null, List.of());
+    }
+
+    private static QueueTicketResponse response() {
+        return new QueueTicketResponse(TICKET_ID, 5, "NOI-01", "Phòng Nội tổng quát 01",
+                LocalDate.of(2026, 8, 6), LocalTime.of(9, 0), "CALLED", "Đang được gọi",
+                "CL-20260806-1234", "Nội tổng quát", "BS. Nguyễn An");
+    }
+
+    @TestConfiguration
+    static class MockBeans {
+        @Bean
+        QueueService queueService() {
+            return mock(QueueService.class);
+        }
+    }
+}

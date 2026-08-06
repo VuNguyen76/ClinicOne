@@ -1,0 +1,133 @@
+package com.clinicone.queue;
+
+import com.clinicone.appointment.Appointment;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.UUID;
+
+@Entity
+@Table(name = "queue_tickets", indexes = {
+        @Index(name = "idx_queue_tickets_room_date_status", columnList = "room_id,queue_date,status")
+}, uniqueConstraints = {
+        @UniqueConstraint(name = "uk_queue_tickets_appointment", columnNames = "appointment_id"),
+        @UniqueConstraint(name = "uk_queue_tickets_room_date_number", columnNames = {"room_id", "queue_date", "queue_number"})
+})
+public class QueueTicket {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "appointment_id", nullable = false)
+    private Appointment appointment;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "room_id", nullable = false)
+    private ClinicRoom room;
+
+    @Column(name = "queue_date", nullable = false)
+    private LocalDate queueDate;
+
+    @Column(name = "queue_number", nullable = false)
+    private int queueNumber;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private QueueTicketStatus status;
+
+    @Column(name = "checked_in_at", nullable = false)
+    private Instant checkedInAt;
+
+    @Column(name = "called_at")
+    private Instant calledAt;
+
+    @Column(name = "completed_at")
+    private Instant completedAt;
+
+    @Column(name = "skip_reason", length = 250)
+    private String skipReason;
+
+    protected QueueTicket() {
+    }
+
+    private QueueTicket(Appointment appointment, ClinicRoom room, LocalDate queueDate, int queueNumber) {
+        this.appointment = appointment;
+        this.room = room;
+        this.queueDate = queueDate;
+        this.queueNumber = queueNumber;
+        this.status = QueueTicketStatus.WAITING;
+    }
+
+    public static QueueTicket create(Appointment appointment, ClinicRoom room, LocalDate queueDate, int queueNumber) {
+        if (queueNumber < 1) {
+            throw new IllegalArgumentException("Số thứ tự phải lớn hơn 0");
+        }
+        return new QueueTicket(appointment, room, queueDate, queueNumber);
+    }
+
+    public void call() {
+        if (status != QueueTicketStatus.WAITING && status != QueueTicketStatus.SKIPPED) {
+            throw new IllegalStateException("Chỉ được gọi lượt đang chờ hoặc đã bỏ qua");
+        }
+        status = QueueTicketStatus.CALLED;
+        calledAt = Instant.now();
+        skipReason = null;
+    }
+
+    public void skip(String reason) {
+        if (status != QueueTicketStatus.CALLED) {
+            throw new IllegalStateException("Chỉ được bỏ qua lượt đang được gọi");
+        }
+        status = QueueTicketStatus.SKIPPED;
+        skipReason = reason == null || reason.isBlank() ? null : reason.trim();
+    }
+
+    public void startService() {
+        if (status != QueueTicketStatus.CALLED) {
+            throw new IllegalStateException("Chỉ được bắt đầu khám từ lượt đang được gọi");
+        }
+        status = QueueTicketStatus.IN_SERVICE;
+    }
+
+    public void complete() {
+        if (status != QueueTicketStatus.CALLED && status != QueueTicketStatus.IN_SERVICE) {
+            throw new IllegalStateException("Lượt chưa sẵn sàng để hoàn tất");
+        }
+        status = QueueTicketStatus.COMPLETED;
+        completedAt = Instant.now();
+    }
+
+    @PrePersist
+    void onCreate() {
+        if (checkedInAt == null) {
+            checkedInAt = Instant.now();
+        }
+    }
+
+    public UUID getId() { return id; }
+    public Appointment getAppointment() { return appointment; }
+    public ClinicRoom getRoom() { return room; }
+    public LocalDate getQueueDate() { return queueDate; }
+    public int getQueueNumber() { return queueNumber; }
+    public QueueTicketStatus getStatus() { return status; }
+    public Instant getCheckedInAt() { return checkedInAt; }
+    public Instant getCalledAt() { return calledAt; }
+    public Instant getCompletedAt() { return completedAt; }
+    public String getSkipReason() { return skipReason; }
+}
