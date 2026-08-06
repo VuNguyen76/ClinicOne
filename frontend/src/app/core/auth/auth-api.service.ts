@@ -154,6 +154,20 @@ export interface AppointmentSlotResponse {
   remainingCapacity: number;
 }
 
+export interface QueueTicketResponse {
+  id: string;
+  queueNumber: number;
+  roomCode: string;
+  roomName: string;
+  queueDate: string;
+  appointmentTime: string;
+  status: 'WAITING' | 'CALLED' | 'IN_SERVICE' | 'SKIPPED' | 'COMPLETED' | string;
+  statusLabel: string;
+  appointmentCode: string;
+  specialty: string;
+  doctorName: string;
+}
+
 export type ApiErrorResponse = {
   error?: { message?: string; detail?: string; title?: string } | string;
   message?: string;
@@ -175,6 +189,7 @@ export class AuthApiService {
   private readonly patientProfilesRoot = '/api/v1/patient-profiles';
   private readonly specialtiesRoot = '/api/v1/specialties';
   private readonly appointmentSlotsRoot = '/api/v1/appointment-slots';
+  private readonly queueRoot = '/api/v1/queue';
 
   requestSmsOtp(phone: string, purpose: OtpPurpose): Observable<OtpResponse> {
     return this.http.post<OtpResponse>(`${this.apiRoot}/request-sms-otp`, { phone, purpose });
@@ -286,5 +301,29 @@ export class AuthApiService {
 
   getMedicalRecord(id: string): Observable<MedicalRecordResponse> {
     return this.http.get<MedicalRecordResponse>(`${this.medicalRecordsRoot}/${id}`);
+  }
+
+  checkInToRoom(roomCode: string, appointmentId: string): Observable<QueueTicketResponse> {
+    return this.http.post<QueueTicketResponse>(`/api/v1/rooms/${encodeURIComponent(roomCode)}/queue/check-in`, { appointmentId });
+  }
+
+  getRoomQueue(roomCode: string, date: string): Observable<QueueTicketResponse[]> {
+    return this.http.get<QueueTicketResponse[]>(`/api/v1/rooms/${encodeURIComponent(roomCode)}/queue`, { params: { date } });
+  }
+
+  callQueueTicket(ticketId: string): Observable<QueueTicketResponse> {
+    return this.http.post<QueueTicketResponse>(`${this.queueRoot}/${ticketId}/call`, {});
+  }
+
+  skipQueueTicket(ticketId: string, reason = ''): Observable<QueueTicketResponse> {
+    return this.http.post<QueueTicketResponse>(`${this.queueRoot}/${ticketId}/skip`, { reason });
+  }
+
+  startQueueTicket(ticketId: string): Observable<QueueTicketResponse> {
+    return this.http.post<QueueTicketResponse>(`${this.queueRoot}/${ticketId}/start`, {});
+  }
+
+  completeQueueTicket(ticketId: string): Observable<QueueTicketResponse> {
+    return this.http.post<QueueTicketResponse>(`${this.queueRoot}/${ticketId}/complete`, {});
   }
 }
