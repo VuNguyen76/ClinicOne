@@ -32,6 +32,9 @@ describe('RoomManagement', () => {
   it('creates a room from the admin form', () => {
     http.expectOne('/api/v1/rooms').flush([]);
     fixture.detectChanges();
+    (fixture.nativeElement.querySelector('[data-testid="open-room-form"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).not.toBeNull();
     fixture.nativeElement.querySelector('[formcontrolname="code"]').value = 'NOI-01';
     fixture.nativeElement.querySelector('[formcontrolname="name"]').value = 'Phòng Nội 01';
     fixture.nativeElement.querySelector('[formcontrolname="specialty"]').value = 'Nội tổng quát';
@@ -47,7 +50,18 @@ describe('RoomManagement', () => {
     request.flush(room('NOI-01', true));
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('[data-testid="room-form-title"]').textContent).toContain('Tạo phòng mới');
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
+  });
+
+  it('opens the edit form as a modal for an existing room', () => {
+    http.expectOne('/api/v1/rooms').flush([room('NOI-01', true)]);
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('[aria-label="Sửa phòng Phòng NOI-01"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="room-form-title"]').textContent).toContain('Sửa thông tin phòng');
   });
 });
 
