@@ -12,17 +12,11 @@
     </div>
     <nav class="mt-7 flex-1 px-3" aria-label="Điều hướng vận hành">
       <p class="px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-white/35">Phân hệ</p>
-      <a routerLink="/dashboard" class="mb-1 flex items-center gap-3 rounded-lg px-3 py-3 text-sm text-white/65 transition hover:bg-white/10 hover:text-white">
-        <mat-icon class="!h-5 !w-5 !text-[19px]">dashboard</mat-icon>Tổng quan
-      </a>
       <a routerLink="/admin/rooms" aria-current="page" class="mb-1 flex items-center gap-3 rounded-lg border-l-2 border-[#55c8ec] bg-white/10 px-3 py-3 text-sm font-semibold text-white">
         <mat-icon class="!h-5 !w-5 !text-[19px] text-[#55c8ec]">meeting_room</mat-icon>Phòng khám
       </a>
-      <a routerLink="/appointments" class="mb-1 flex items-center gap-3 rounded-lg px-3 py-3 text-sm text-white/65 transition hover:bg-white/10 hover:text-white">
-        <mat-icon class="!h-5 !w-5 !text-[19px]">event_available</mat-icon>Lịch hẹn
-      </a>
-      <a routerLink="/medical-records" class="mb-1 flex items-center gap-3 rounded-lg px-3 py-3 text-sm text-white/65 transition hover:bg-white/10 hover:text-white">
-        <mat-icon class="!h-5 !w-5 !text-[19px]">receipt_long</mat-icon>Phiếu khám
+      <a routerLink="/change-password" class="mb-1 flex items-center gap-3 rounded-lg px-3 py-3 text-sm text-white/65 transition hover:bg-white/10 hover:text-white">
+        <mat-icon class="!h-5 !w-5 !text-[19px]">lock</mat-icon>Bảo mật tài khoản
       </a>
     </nav>
     <div class="border-t border-white/10 px-6 py-5">
@@ -67,7 +61,7 @@
         <div class="min-w-[170px] flex-1 px-5 py-4"><p class="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">Tạm dừng</p><p class="mt-1 text-2xl font-bold tracking-[-0.04em] text-slate-600">{{ inactiveCount() }}</p></div>
       </section>
 
-      <div class="mt-6 grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_350px]">
+      <div class="mt-6 grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_440px]">
         <section class="min-w-0 overflow-hidden rounded-xl border border-[#dce7ea] bg-white">
           <div class="flex flex-col gap-4 border-b border-[#e7eff1] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div class="flex items-center gap-3"><h2 class="text-sm font-bold text-[#173f4b]">Danh sách phòng</h2><span class="rounded bg-[#eef7f9] px-2 py-1 text-[11px] font-bold text-[#0b84bd]">{{ visibleRooms().length }} bản ghi</span></div>
@@ -104,12 +98,12 @@
         </section>
 
         <section class="rounded-xl border border-[#dce7ea] bg-white xl:sticky xl:top-[92px]">
-          <div class="flex items-start justify-between border-b border-[#e7eff1] px-5 py-4"><div><p class="text-[10px] font-bold uppercase tracking-[0.14em] text-[#0b91c9]">Thông tin</p><h2 data-testid="room-form-title" class="mt-1 text-sm font-bold text-[#173f4b]">{{ editingId() ? 'Sửa thông tin phòng' : 'Tạo phòng mới' }}</h2></div>@if (editingId()) {<button type="button" class="text-xs font-semibold text-slate-500 hover:text-[#0b84bd]" (click)="resetForm()">Hủy sửa</button>}</div>
-          <form class="grid gap-4 p-5" [formGroup]="form" (ngSubmit)="submit()" novalidate>
-            <label class="grid gap-2 text-sm font-semibold text-[#315663]">Mã phòng<input formControlName="code" class="min-h-10 rounded-md border border-[#d5e3e7] bg-[#fbfdfe] px-3 font-normal uppercase outline-none transition focus:border-[#0ea5e9] focus:ring-4 focus:ring-[#0ea5e9]/10" placeholder="Ví dụ: NOI-01" /></label>
-            <label class="grid gap-2 text-sm font-semibold text-[#315663]">Tên phòng<input formControlName="name" class="min-h-10 rounded-md border border-[#d5e3e7] bg-[#fbfdfe] px-3 font-normal outline-none transition focus:border-[#0ea5e9] focus:ring-4 focus:ring-[#0ea5e9]/10" placeholder="Phòng Nội tổng quát 01" /></label>
-            <label class="grid gap-2 text-sm font-semibold text-[#315663]">Chuyên khoa<input formControlName="specialty" class="min-h-10 rounded-md border border-[#d5e3e7] bg-[#fbfdfe] px-3 font-normal outline-none transition focus:border-[#0ea5e9] focus:ring-4 focus:ring-[#0ea5e9]/10" placeholder="Nội tổng quát" /></label>
-            <div class="mt-2 flex gap-2"><button data-testid="save-room" type="submit" class="min-h-10 flex-1 rounded-md bg-[#0b3846] px-4 text-sm font-semibold text-white transition hover:bg-[#082d39] disabled:cursor-not-allowed disabled:opacity-50" [disabled]="saving()">{{ saving() ? 'Đang lưu...' : (editingId() ? 'Lưu thay đổi' : 'Tạo phòng') }}</button>@if (editingId()) {<button type="button" class="min-h-10 rounded-md border border-[#d5e3e7] px-4 text-sm font-semibold text-slate-600 hover:bg-slate-50" (click)="resetForm()">Hủy</button>}</div>
+          <div class="flex items-start justify-between border-b border-[#e7eff1] px-6 py-5"><div><p class="text-[10px] font-bold uppercase tracking-[0.14em] text-[#0b91c9]">Thông tin phòng</p><h2 data-testid="room-form-title" class="mt-1 text-lg font-bold tracking-[-0.02em] text-[#173f4b]">{{ editingId() ? 'Sửa thông tin phòng' : 'Tạo phòng mới' }}</h2><p class="mt-1 text-sm text-slate-500">Nhập thông tin để phòng sẵn sàng phục vụ.</p></div>@if (editingId()) {<button type="button" class="text-xs font-semibold text-slate-500 hover:text-[#0b84bd]" (click)="resetForm()">Hủy sửa</button>}</div>
+          <form class="grid gap-5 p-6" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+            <label class="grid gap-2 text-sm font-semibold text-[#315663]">Mã phòng<input formControlName="code" class="min-h-12 rounded-md border border-[#d5e3e7] bg-[#fbfdfe] px-3 font-normal uppercase outline-none transition focus:border-[#0ea5e9] focus:ring-4 focus:ring-[#0ea5e9]/10" placeholder="Ví dụ: NOI-01" /></label>
+            <label class="grid gap-2 text-sm font-semibold text-[#315663]">Tên phòng<input formControlName="name" class="min-h-12 rounded-md border border-[#d5e3e7] bg-[#fbfdfe] px-3 font-normal outline-none transition focus:border-[#0ea5e9] focus:ring-4 focus:ring-[#0ea5e9]/10" placeholder="Phòng Nội tổng quát 01" /></label>
+            <label class="grid gap-2 text-sm font-semibold text-[#315663]">Chuyên khoa<input formControlName="specialty" class="min-h-12 rounded-md border border-[#d5e3e7] bg-[#fbfdfe] px-3 font-normal outline-none transition focus:border-[#0ea5e9] focus:ring-4 focus:ring-[#0ea5e9]/10" placeholder="Nội tổng quát" /></label>
+            <div class="mt-2 flex gap-2"><button data-testid="save-room" type="submit" class="min-h-12 flex-1 rounded-md bg-[#0b3846] px-4 text-sm font-semibold text-white transition hover:bg-[#082d39] disabled:cursor-not-allowed disabled:opacity-50" [disabled]="saving()">{{ saving() ? 'Đang lưu...' : (editingId() ? 'Lưu thay đổi' : 'Tạo phòng') }}</button>@if (editingId()) {<button type="button" class="min-h-12 rounded-md border border-[#d5e3e7] px-4 text-sm font-semibold text-slate-600 hover:bg-slate-50" (click)="resetForm()">Hủy</button>}</div>
           </form>
         </section>
       </div>
