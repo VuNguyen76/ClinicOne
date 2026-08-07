@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
@@ -10,6 +11,7 @@ import {
   apiErrorMessage,
 } from '../../core/auth/auth-api.service';
 import { AccountMenu } from '../../shared/account-menu/account-menu';
+import { debounceTime } from 'rxjs';
 
 @Component({
   selector: 'app-doctor-examination',
@@ -23,6 +25,7 @@ export class DoctorExamination implements OnInit {
   private readonly router = inject(Router);
   private readonly authApi = inject(AuthApiService);
   private readonly fb = inject(FormBuilder);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly examination = signal<DoctorExaminationResponse | null>(null);
   protected readonly loading = signal(true);
@@ -41,6 +44,7 @@ export class DoctorExamination implements OnInit {
   });
 
   ngOnInit(): void {
+    this.form.valueChanges.pipe(debounceTime(1200), takeUntilDestroyed(this.destroyRef)).subscribe(() => this.autosaveDraft());
     const ticketId = this.route.snapshot.paramMap.get('ticketId');
     if (!ticketId) {
       this.error.set('Không tìm thấy lượt khám.');
@@ -58,7 +62,7 @@ export class DoctorExamination implements OnInit {
           treatmentPlan: value.treatmentPlan ?? '',
           prescription: value.prescription ?? '',
           followUpDate: value.followUpDate ?? '',
-        });
+        }, { emitEvent: false });
         if (value.signedAt) this.form.disable();
         this.loading.set(false);
       },
@@ -80,6 +84,24 @@ export class DoctorExamination implements OnInit {
         this.examination.set(value);
         this.saving.set(false);
         this.notice.set('Đã lưu bản nháp');
+      },
+      error: (response) => {
+        this.saving.set(false);
+        this.handleError(response);
+      },
+    });
+  }
+
+  private autosaveDraft(): void {
+    const ticketId = this.examination()?.ticketId;
+    if (!ticketId || this.loading() || this.saving() || this.signing() || this.examination()?.signedAt) return;
+    this.saving.set(true);
+    this.error.set('');
+    this.authApi.saveDoctorExaminationDraft(ticketId, this.request()).subscribe({
+      next: (value) => {
+        this.examination.set(value);
+        this.saving.set(false);
+        this.notice.set('Đã tự lưu bản nháp');
       },
       error: (response) => {
         this.saving.set(false);
