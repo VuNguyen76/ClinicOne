@@ -6,6 +6,8 @@ import com.clinicone.appointment.AppointmentStatus;
 import com.clinicone.auth.AccountStatus;
 import com.clinicone.auth.AuthException;
 import com.clinicone.auth.PatientAccount;
+import com.clinicone.examination.ExaminationSessionRepository;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -32,20 +34,23 @@ class QueueServiceTest {
     private QueueService service;
     private ClinicRoom room;
     private Appointment appointment;
+    private ExaminationSessionRepository sessionRepository;
 
     @BeforeEach
     void setUp() {
         roomRepository = mock(ClinicRoomRepository.class);
         ticketRepository = mock(QueueTicketRepository.class);
         appointmentRepository = mock(AppointmentRepository.class);
-        service = new QueueService(roomRepository, ticketRepository, appointmentRepository,
+        sessionRepository = mock(ExaminationSessionRepository.class);
+        service = new QueueService(roomRepository, ticketRepository, appointmentRepository, sessionRepository,
                 Clock.fixed(Instant.parse("2026-08-06T02:00:00Z"), ZoneId.of("Asia/Ho_Chi_Minh")));
 
         room = ClinicRoom.create("NOI-01", "Phòng Nội tổng quát 01", "Nội tổng quát");
         appointment = appointment("Nội tổng quát", TODAY);
         setId(appointment, APPOINTMENT_ID);
         when(roomRepository.findByCodeAndActiveTrue("NOI-01")).thenReturn(Optional.of(room));
-        when(appointmentRepository.findByIdAndPatientId(APPOINTMENT_ID, ACCOUNT_ID)).thenReturn(Optional.of(appointment));
+        when(appointmentRepository.findByIdAndPatientId(APPOINTMENT_ID, ACCOUNT_ID))
+                .thenReturn(Optional.of(appointment));
         when(ticketRepository.findByAppointmentId(APPOINTMENT_ID)).thenReturn(Optional.empty());
         when(ticketRepository.findMaxQueueNumberByRoomCodeAndQueueDate("NOI-01", TODAY)).thenReturn(4);
         when(ticketRepository.save(any(QueueTicket.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -58,7 +63,31 @@ class QueueServiceTest {
         assertEquals(5, response.queueNumber());
         assertEquals(QueueTicketStatus.WAITING.name(), response.status());
         verify(ticketRepository).save(any(QueueTicket.class));
-    }
+    }// AC-REC-01-01
+
+    @Test
+    void rejectsCheckInWhenQueueIsFull() {
+        // Giả lập hàng đợi hôm nay tại phòng này đã đạt 999 số
+        when(ticketRepository.findMaxQueueNumberByRoomCodeAndQueueDate("NOI-01", TODAY)).thenReturn(999);
+
+        AuthException exception = assertThrows(AuthException.class,
+                () -> service.checkIn(ACCOUNT_ID.toString(), "NOI-01", APPOINTMENT_ID));
+
+        assertEquals(409, exception.getStatus().value());
+        assertEquals("QUEUE_MAX_CAPACITY", exception.getCode());
+    }// AC-REC-01-02
+
+    @Test
+    void checkInUpdatesAppointmentAndCreatesExaminationSession() {
+        service.checkIn(ACCOUNT_ID.toString(), "NOI-01", APPOINTMENT_ID);
+
+        // 1. Kiểm tra Lịch hẹn được đổi sang CHECKED_IN và lưu lại
+        assertEquals(AppointmentStatus.CHECKED_IN, appointment.getStatus());
+        verify(appointmentRepository).save(appointment);
+
+        // 2. Kiểm tra Lượt khám ExaminationSession được tạo và lưu
+        verify(sessionRepository).save(any(com.clinicone.examination.ExaminationSession.class));
+    }// AC-REC-01-03
 
     @Test
     void repeatedScanReturnsExistingTicketWithoutCreatingAnotherNumber() {
@@ -70,19 +99,51 @@ class QueueServiceTest {
 
         assertEquals(5, response.queueNumber());
         verify(ticketRepository, never()).save(any(QueueTicket.class));
-    }
+    }// AC-REC-01-04
 
     @Test
     void rejectsCheckInForAnotherSpecialty() {
         Appointment otherSpecialty = appointment("Nhi khoa", TODAY);
-        when(appointmentRepository.findByIdAndPatientId(APPOINTMENT_ID, ACCOUNT_ID)).thenReturn(Optional.of(otherSpecialty));
+        when(appointmentRepository.findByIdAndPatientId(APPOINTMENT_ID, ACCOUNT_ID))
+                .thenReturn(Optional.of(otherSpecialty));
 
         AuthException exception = assertThrows(AuthException.class,
                 () -> service.checkIn(ACCOUNT_ID.toString(), "NOI-01", APPOINTMENT_ID));
 
         assertEquals(409, exception.getStatus().value());
         assertEquals("QUEUE_ROOM_MISMATCH", exception.getCode());
-    }
+    }// AC-REC-01-05
+
+    @Test
+    void printBackendDataAfterCheckIn() {
+        // 1. Thuc hien check-in (Chuyen trang thai -> Tao luot kham -> Add vao hang doi)
+        QueueTicketResponse result = service.checkIn(ACCOUNT_ID.toString(), "NOI-01", APPOINTMENT_ID);
+
+        // 2. In du lieu ra Console kiem tra 3 bang
+        System.out.println("\n========== KET QUA CHECK-IN THANH CONG ==========");
+        
+        // Bang 1: Lich hen (Appointment)
+        System.out.println("[BANG 1 - APPOINTMENT]");
+        System.out.println(" - ID Lich hen   : " + appointment.getId());
+        System.out.println(" - Trang thai moi: " + appointment.getStatus() + " (" + appointment.getStatus().label() + ")");
+
+        // Bang 2: Hang doi (QueueTicket) - ADD BENH NHAN VAO HANG DOI PHONG
+        System.out.println("\n[BANG 2 - QUEUE_TICKET (ADD BENH NHAN VAO HANG DOI)]");
+        System.out.println(" - So thu tu (STT): " + result.queueNumber());
+        System.out.println(" - Ma phong       : " + result.roomCode());
+        System.out.println(" - Trang thai ve  : " + result.status() + " (" + result.statusLabel() + ")");
+
+        // Bang 3: Luot kham (ExaminationSession)
+        System.out.println("\n[BANG 3 - EXAMINATION_SESSION]");
+        System.out.println(" - Kiem tra tao luot kham: Da tao thanh cong cho Lich hen ID " + APPOINTMENT_ID);
+        
+        System.out.println("==================================================\n");
+
+        // 3. Khang dinh du lieu bang Assert
+        assertEquals(AppointmentStatus.CHECKED_IN, appointment.getStatus());
+        assertEquals(5, result.queueNumber());
+        verify(sessionRepository).save(any(com.clinicone.examination.ExaminationSession.class));
+    }// luồng chuyển trạng thái
 
     @Test
     void rejectsCheckInOutsideAppointmentDate() {
