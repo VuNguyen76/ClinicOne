@@ -111,6 +111,16 @@ export interface MedicalRecordResponse {
   signedAt: string;
 }
 
+export interface PatientNotificationResponse {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  targetUrl: string;
+  read: boolean;
+  createdAt: string;
+}
+
 export interface CreateAppointmentRequest {
   specialty: string;
   doctorName: string;
@@ -356,6 +366,7 @@ export class AuthApiService {
   private readonly specialtiesRoot = '/api/v1/specialties';
   private readonly appointmentSlotsRoot = '/api/v1/appointment-slots';
   private readonly queueRoot = '/api/v1/queue';
+  private readonly notificationsRoot = '/api/v1/notifications';
 
   requestSmsOtp(phone: string, purpose: OtpPurpose): Observable<OtpResponse> {
     return this.http.post<OtpResponse>(`${this.apiRoot}/request-sms-otp`, { phone, purpose });
@@ -469,6 +480,18 @@ export class AuthApiService {
 
   getMedicalRecord(id: string): Observable<MedicalRecordResponse> {
     return this.http.get<MedicalRecordResponse>(`${this.medicalRecordsRoot}/${id}`);
+  }
+
+  getNotifications(): Observable<PatientNotificationResponse[]> {
+    return this.http.get<PatientNotificationResponse[]>(this.notificationsRoot);
+  }
+
+  getUnreadNotificationCount(): Observable<{ count: number }> {
+    return this.http.get<{ count: number }>(`${this.notificationsRoot}/unread-count`);
+  }
+
+  markNotificationRead(id: string): Observable<void> {
+    return this.http.post<void>(`${this.notificationsRoot}/${id}/read`, {});
   }
 
   checkInToRoom(roomCode: string, appointmentId: string): Observable<QueueTicketResponse> {

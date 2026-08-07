@@ -4,6 +4,7 @@
     class="relative grid h-10 w-10 place-items-center rounded-lg text-[#173f4b] transition hover:bg-[#eef7f9] hover:text-[#0b84bd]"
     aria-label="Thông báo" title="Thông báo">
     <mat-icon class="!text-[21px]">notifications_none</mat-icon>
+    @if (unreadNotifications() > 0) {<span class="absolute right-0 top-0 min-w-4 rounded-full bg-rose-500 px-1 text-center text-[10px] font-bold leading-4 text-white">{{ unreadNotifications() > 99 ? '99+' : unreadNotifications() }}</span>}
   </a>}
   <button type="button" data-testid="account-menu-trigger"
     class="inline-flex min-h-10 max-w-[240px] items-center gap-2 rounded-lg border border-[#cbdde2] bg-white px-3 text-sm font-semibold text-[#173f4b] transition hover:border-[#0ea5e9] hover:bg-[#eef7f9]"
@@ -80,7 +81,7 @@
         [class.text-[#0284c7]]="isActive('/notifications')"
         [attr.aria-current]="isActive('/notifications') ? 'page' : null"
         class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]"
-        role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">notifications_none</mat-icon>Thông báo</a>
+        role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">notifications_none</mat-icon><span class="flex-1">Thông báo</span>@if (unreadNotifications() > 0) {<span class="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-600">{{ unreadNotifications() > 99 ? '99+' : unreadNotifications() }}</span>}</a>
       <a routerLink="/change-password"
         class="mt-1 flex items-center gap-3 border-t border-slate-100 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]"
         role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">lock</mat-icon>Đổi mật khẩu</a>
