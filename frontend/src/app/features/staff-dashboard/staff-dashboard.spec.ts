@@ -59,6 +59,17 @@ describe('StaffDashboard', () => {
 
     expect(fixture.nativeElement.querySelector('[data-testid="call-next"]')).not.toBeNull();
   });
+
+  it('does not expose manual completion to a doctor while a visit is in service', () => {
+    http.expectOne('/api/v1/rooms').flush([room('NOI-01')]);
+    http.expectOne((request) => request.url.endsWith('/queue')).flush([ticket('ticket-1', 'IN_SERVICE')]);
+    const component = fixture.componentInstance as any;
+    component.role.set('DOCTOR');
+    fixture.detectChanges();
+
+    const buttons = Array.from(fixture.nativeElement.querySelectorAll('button')) as HTMLButtonElement[];
+    expect(buttons.some((button) => button.textContent?.includes('Hoàn tất'))).toBe(false);
+  });
 });
 
 function room(code: string) {
@@ -66,7 +77,7 @@ function room(code: string) {
 }
 
 function ticket(id: string, status: string) {
-  const labels: Record<string, string> = { WAITING: 'Đang chờ', CALLED: 'Đã gọi' };
+  const labels: Record<string, string> = { WAITING: 'Đang chờ', CALLED: 'Đã gọi', IN_SERVICE: 'Đang khám' };
   return {
     id,
     queueNumber: 1,

@@ -1,7 +1,9 @@
 package com.clinicone.queue;
 
 import jakarta.validation.Valid;
+import com.clinicone.auth.AuthException;
 import com.clinicone.auth.StaffRole;
+import org.springframework.http.HttpStatus;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -99,9 +101,11 @@ public class QueueController {
     @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR', 'DOCTOR')")
     public ResponseEntity<QueueTicketResponse> complete(Authentication authentication, @PathVariable UUID ticketId) {
         StaffRole role = staffRole(authentication);
-        return ResponseEntity.ok(role == StaffRole.DOCTOR
-                ? queueService.complete(ticketId, authentication.getName())
-                : queueService.complete(ticketId));
+        if (role == StaffRole.DOCTOR) {
+            throw new AuthException(HttpStatus.CONFLICT, "DOCTOR_COMPLETE_VIA_SIGN",
+                    "Bác sĩ cần ký phiếu khám để hệ thống tự hoàn tất lượt.");
+        }
+        return ResponseEntity.ok(queueService.complete(ticketId));
     }
 
     private StaffRole staffRole(Authentication authentication) {

@@ -13,6 +13,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -63,6 +64,20 @@ class DoctorExaminationControllerTest {
     }
 
     @Test
+    void doctorCanSignCompletedExamination() throws Exception {
+        when(service.sign(eq(TICKET_ID), eq(STAFF_ID.toString()), org.mockito.ArgumentMatchers.any()))
+                .thenReturn(signedResponse());
+
+        mockMvc.perform(post("/api/v1/doctor/examinations/" + TICKET_ID + "/sign")
+                        .with(authentication(authenticated("ROLE_DOCTOR")))
+                        .contentType("application/json")
+                        .content("{\"reason\":\"Đau đầu\",\"examinationNotes\":\"Mạch ổn\",\"diagnosis\":\"Đau đầu căng thẳng\",\"conclusion\":\"Theo dõi thêm\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.signedAt").isNotEmpty());
+    }
+
+    @Test
     void nonDoctorCannotOpenDoctorWorkspace() throws Exception {
         mockMvc.perform(get("/api/v1/doctor/examinations/" + TICKET_ID)
                         .with(authentication(authenticated("ROLE_ADMIN"))))
@@ -80,6 +95,14 @@ class DoctorExaminationControllerTest {
                 LocalDate.of(2026, 8, 6), LocalTime.of(9, 0), "Nguyễn Thanh Vũ", LocalDate.of(2005, 6, 7),
                 "Nam", "0862764830", "Đau đầu", "Mạch ổn", "", "", "", "", null,
                 "IN_PROGRESS", null);
+    }
+
+    private static DoctorExaminationResponse signedResponse() {
+        return new DoctorExaminationResponse(TICKET_ID, UUID.randomUUID(), UUID.randomUUID(), 5,
+                "Phòng Nội tổng quát 01", "CL-20260806-1234", "Nội tổng quát", "BS. Nguyễn An",
+                LocalDate.of(2026, 8, 6), LocalTime.of(9, 0), "Nguyễn Thanh Vũ", LocalDate.of(2005, 6, 7),
+                "Nam", "0862764830", "Đau đầu", "Mạch ổn", "Đau đầu căng thẳng", "Theo dõi thêm", "", "", null,
+                "COMPLETED", Instant.parse("2026-08-07T09:30:00Z"));
     }
 
     @TestConfiguration

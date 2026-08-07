@@ -129,4 +129,60 @@ test.describe('liên thông tiếp nhận và hàng đợi bác sĩ', () => {
     await dialog.getByRole('button', { name: 'Tạo lịch và cấp số' }).click();
     await expect(page.getByText('Đã tạo lịch và cấp số 08')).toBeVisible();
   });
+
+  test('bác sĩ gọi số, mở phiên khám, lưu nháp và ký phiếu để hoàn tất lượt', async ({ page }) => {
+    await page.addInitScript(() => {
+      sessionStorage.setItem('clinicOneAccessToken', 'doctor-e2e-token');
+      sessionStorage.setItem('clinicOneStaffRole', 'DOCTOR');
+    });
+    let queueState = 'WAITING';
+    const ticket = () => ({ id: 'ticket-9', queueNumber: 9, roomCode: 'NOI-01', roomName: 'Phòng Nội 01',
+      queueDate: todayIso, appointmentTime: '09:00:00', status: queueState,
+      statusLabel: queueState === 'WAITING' ? 'Đang chờ' : queueState === 'CALLED' ? 'Đã gọi' : queueState === 'IN_SERVICE' ? 'Đang khám' : 'Hoàn tất',
+      appointmentCode: 'CL-E2E-9', specialty: 'Nội tổng quát', doctorName: 'Bác sĩ Nguyễn An' });
+    await page.route('**/api/v1/doctor/queue**', (route) => json(route, {
+      roomCode: 'NOI-01', roomName: 'Phòng Nội 01', specialty: 'Nội tổng quát', tickets: [ticket()],
+    }));
+    await page.route('**/api/v1/doctor/queue/call-next**', (route) => {
+      queueState = 'CALLED';
+      return json(route, ticket());
+    });
+    await page.route('**/api/v1/queue/ticket-9/start', (route) => {
+      queueState = 'IN_SERVICE';
+      return json(route, ticket());
+    });
+    const draft = {
+      ticketId: 'ticket-9', appointmentId: 'appointment-9', examinationId: 'exam-9', queueNumber: 9,
+      roomName: 'Phòng Nội 01', appointmentCode: 'CL-E2E-9', specialty: 'Nội tổng quát',
+      doctorName: 'Bác sĩ Nguyễn An', appointmentDate: todayIso, startTime: '09:00:00', patientName: 'Trần Bình',
+      patientDateOfBirth: '1995-05-05', patientGender: 'Nam', patientPhone: '0900000001', reason: '',
+      examinationNotes: '', diagnosis: '', conclusion: '', treatmentPlan: '', prescription: '', followUpDate: null,
+      status: 'IN_PROGRESS', signedAt: null,
+    };
+    await page.route('**/api/v1/doctor/examinations/ticket-9', (route) => json(route, draft));
+    await page.route('**/api/v1/doctor/examinations/ticket-9/draft', (route) => json(route, {
+      ...draft, reason: 'Đau đầu', examinationNotes: 'Mạch ổn', diagnosis: 'Đau đầu căng thẳng', conclusion: 'Theo dõi thêm',
+    }));
+    await page.route('**/api/v1/doctor/examinations/ticket-9/sign', (route) => json(route, {
+      ...draft, reason: 'Đau đầu', examinationNotes: 'Mạch ổn', diagnosis: 'Đau đầu căng thẳng', conclusion: 'Theo dõi thêm',
+      status: 'COMPLETED', signedAt: '2026-08-07T09:30:00Z',
+    }));
+
+    await page.goto('/doctor');
+    await page.getByTestId('call-next').click();
+    await expect(page.getByTestId('queue-row')).toContainText('Đã gọi');
+    await page.getByRole('button', { name: 'Vào khám' }).click();
+    await expect(page).toHaveURL(/\/doctor\/examinations\/ticket-9$/);
+    const form = page.getByTestId('medical-form');
+    await form.locator('textarea[formcontrolname="reason"]').fill('Đau đầu');
+    await form.locator('textarea[formcontrolname="examinationNotes"]').fill('Mạch ổn');
+    await form.locator('textarea[formcontrolname="diagnosis"]').fill('Đau đầu căng thẳng');
+    await form.locator('textarea[formcontrolname="conclusion"]').fill('Theo dõi thêm');
+    await form.getByTestId('save-draft').click();
+    await expect(page.getByText('Đã lưu bản nháp')).toBeVisible();
+    await form.getByTestId('sign-record').click();
+    await expect(page.getByText('Đã ký phiếu khám')).toBeVisible();
+    await expect(form.locator('textarea[formcontrolname="reason"]')).toBeDisabled();
+    await expect(page.getByText('Đã hoàn thành')).toBeVisible();
+  });
 });
