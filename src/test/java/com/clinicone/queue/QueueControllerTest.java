@@ -87,6 +87,27 @@ class QueueControllerTest {
                 .andExpect(jsonPath("$.status").value("CALLED"));
     }
 
+    @Test
+    void doctorCanCallOwnTicket() throws Exception {
+        when(queueService.call(TICKET_ID, ACCOUNT_ID.toString())).thenReturn(response());
+
+        mockMvc.perform(post("/api/v1/queue/" + TICKET_ID + "/call")
+                        .with(authentication(authenticated("ROLE_DOCTOR"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CALLED"));
+    }
+
+    @Test
+    void doctorCanCallNextPatientFromOwnQueue() throws Exception {
+        when(queueService.callNext(eq(ACCOUNT_ID.toString()), eq(LocalDate.of(2026, 8, 6))))
+                .thenReturn(response());
+
+        mockMvc.perform(post("/api/v1/doctor/queue/call-next?date=2026-08-06")
+                        .with(authentication(authenticated("ROLE_DOCTOR"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CALLED"));
+    }
+
     private static UsernamePasswordAuthenticationToken authenticated(String role) {
         return UsernamePasswordAuthenticationToken.authenticated(ACCOUNT_ID.toString(), null,
                 List.of(new SimpleGrantedAuthority(role)));

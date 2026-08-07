@@ -40,6 +40,7 @@ describe('ReceptionCheckIn', () => {
   it('confirms arrival and updates the queue number', () => {
     const component = fixture.componentInstance as any;
     component.query.set('CL-20260807-1234');
+    component.exceptionReason.set('QR phòng bị lỗi');
     component.search();
     http.expectOne((item) => item.url === '/api/v1/reception/appointments').flush([appointment()]);
     fixture.detectChanges();
@@ -47,7 +48,7 @@ describe('ReceptionCheckIn', () => {
     (fixture.nativeElement.querySelector('button:not([type="submit"])') as HTMLButtonElement).click();
     const request = http.expectOne('/api/v1/reception/appointments/a-1/check-in');
     expect(request.request.method).toBe('POST');
-    expect(request.request.body).toEqual({ roomCode: 'NOI-01' });
+    expect(request.request.body).toEqual({ roomCode: 'NOI-01', reason: 'QR phòng bị lỗi' });
     request.flush({ ...appointment(), queueNumber: 5, queueStatus: 'WAITING', queueStatusLabel: 'Đang chờ' });
     fixture.detectChanges();
 

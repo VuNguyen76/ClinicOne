@@ -63,6 +63,9 @@ public class QueueTicket {
     @Column(name = "skip_reason", length = 250)
     private String skipReason;
 
+    @Column(name = "exception_reason", length = 250)
+    private String exceptionReason;
+
     protected QueueTicket() {
     }
 
@@ -75,10 +78,21 @@ public class QueueTicket {
     }
 
     public static QueueTicket create(Appointment appointment, ClinicRoom room, LocalDate queueDate, int queueNumber) {
+        return create(appointment, room, queueDate, queueNumber, null);
+    }
+
+    public static QueueTicket create(Appointment appointment, ClinicRoom room, LocalDate queueDate,
+                                     int queueNumber, String exceptionReason) {
         if (queueNumber < 1) {
             throw new IllegalArgumentException("Số thứ tự phải lớn hơn 0");
         }
-        return new QueueTicket(appointment, room, queueDate, queueNumber);
+        QueueTicket ticket = new QueueTicket(appointment, room, queueDate, queueNumber);
+        ticket.recordExceptionReason(exceptionReason);
+        return ticket;
+    }
+
+    public void recordExceptionReason(String reason) {
+        this.exceptionReason = reason == null || reason.isBlank() ? null : reason.trim();
     }
 
     public void call() {
@@ -130,4 +144,5 @@ public class QueueTicket {
     public Instant getCalledAt() { return calledAt; }
     public Instant getCompletedAt() { return completedAt; }
     public String getSkipReason() { return skipReason; }
+    public String getExceptionReason() { return exceptionReason; }
 }

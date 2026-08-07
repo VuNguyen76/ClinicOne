@@ -18,6 +18,7 @@ export class ReceptionCheckIn implements OnInit {
 
   protected readonly query = signal('');
   protected readonly selectedDate = signal(this.toIsoDate(new Date()));
+  protected readonly exceptionReason = signal('');
   protected readonly appointments = signal<ReceptionAppointmentResponse[]>([]);
   protected readonly loading = signal(false);
   protected readonly searched = signal(false);
@@ -54,10 +55,15 @@ export class ReceptionCheckIn implements OnInit {
 
   protected checkIn(appointment: ReceptionAppointmentResponse): void {
     if (!appointment.roomCode || appointment.queueStatus) return;
+    const reason = this.exceptionReason().trim();
+    if (reason.length < 3) {
+      this.error.set('Nhập lý do hỗ trợ tại quầy trước khi cấp số.');
+      return;
+    }
     this.busyId.set(appointment.id);
     this.error.set('');
     this.notice.set('');
-    this.authApi.receptionCheckIn(appointment.id, appointment.roomCode).subscribe({
+    this.authApi.receptionCheckIn(appointment.id, appointment.roomCode, reason).subscribe({
       next: (updated) => {
         this.appointments.update((items) => items.map((item) => item.id === updated.id ? updated : item));
         this.busyId.set('');

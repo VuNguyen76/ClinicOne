@@ -50,8 +50,19 @@ public class ExaminationSession {
         return new ExaminationSession(appointment);
     }
 
+    public void checkIn() {
+        if (status == ExaminationSessionStatus.COMPLETED
+                || status == ExaminationSessionStatus.CANCELLED) {
+            throw new IllegalStateException("Phiên khám không còn cho phép check-in.");
+        }
+        if (status == ExaminationSessionStatus.SCHEDULED) {
+            status = ExaminationSessionStatus.CHECKED_IN;
+        }
+    }
+
     public void begin() {
-        if (status == ExaminationSessionStatus.COMPLETED) {
+        if (status == ExaminationSessionStatus.COMPLETED
+                || status == ExaminationSessionStatus.CANCELLED) {
             throw new IllegalStateException("Phiên khám đã hoàn tất.");
         }
         status = ExaminationSessionStatus.IN_PROGRESS;

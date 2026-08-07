@@ -51,17 +51,32 @@ public class QueueController {
         return ResponseEntity.ok(queueService.doctorQueue(date, authentication.getName()));
     }
 
+    @PostMapping("/doctor/queue/call-next")
+    @PreAuthorize("hasRole('DOCTOR')")
+    public ResponseEntity<QueueTicketResponse> callNext(
+            Authentication authentication,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return ResponseEntity.ok(queueService.callNext(authentication.getName(), date));
+    }
+
     @PostMapping("/queue/{ticketId}/call")
-    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR', 'RECEPTIONIST')")
-    public ResponseEntity<QueueTicketResponse> call(@PathVariable UUID ticketId) {
-        return ResponseEntity.ok(queueService.call(ticketId));
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR', 'DOCTOR', 'RECEPTIONIST')")
+    public ResponseEntity<QueueTicketResponse> call(Authentication authentication, @PathVariable UUID ticketId) {
+        StaffRole role = staffRole(authentication);
+        return ResponseEntity.ok(role == StaffRole.DOCTOR
+                ? queueService.call(ticketId, authentication.getName())
+                : queueService.call(ticketId));
     }
 
     @PostMapping("/queue/{ticketId}/skip")
-    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR', 'RECEPTIONIST')")
-    public ResponseEntity<QueueTicketResponse> skip(@PathVariable UUID ticketId,
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR', 'DOCTOR', 'RECEPTIONIST')")
+    public ResponseEntity<QueueTicketResponse> skip(Authentication authentication, @PathVariable UUID ticketId,
                                                     @Valid @RequestBody(required = false) QueueSkipRequest request) {
-        return ResponseEntity.ok(queueService.skip(ticketId, request == null ? null : request.reason()));
+        StaffRole role = staffRole(authentication);
+        String reason = request == null ? null : request.reason();
+        return ResponseEntity.ok(role == StaffRole.DOCTOR
+                ? queueService.skip(ticketId, authentication.getName(), reason)
+                : queueService.skip(ticketId, reason));
     }
 
     @PostMapping("/queue/{ticketId}/start")

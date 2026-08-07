@@ -6,6 +6,13 @@ import com.clinicone.appointment.AppointmentStatus;
 import com.clinicone.auth.AccountStatus;
 import com.clinicone.auth.AuthException;
 import com.clinicone.auth.PatientAccount;
+import com.clinicone.auth.StaffAccount;
+import com.clinicone.auth.StaffRole;
+import com.clinicone.doctor.DoctorProfile;
+import com.clinicone.doctor.DoctorProfileRepository;
+import com.clinicone.examination.ExaminationSession;
+import com.clinicone.examination.ExaminationSessionRepository;
+import com.clinicone.examination.ExaminationSessionStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -29,6 +36,8 @@ class QueueServiceTest {
     private ClinicRoomRepository roomRepository;
     private QueueTicketRepository ticketRepository;
     private AppointmentRepository appointmentRepository;
+    private DoctorProfileRepository doctorProfileRepository;
+    private ExaminationSessionRepository examinationSessionRepository;
     private QueueService service;
     private ClinicRoom room;
     private Appointment appointment;
@@ -38,7 +47,10 @@ class QueueServiceTest {
         roomRepository = mock(ClinicRoomRepository.class);
         ticketRepository = mock(QueueTicketRepository.class);
         appointmentRepository = mock(AppointmentRepository.class);
+        doctorProfileRepository = mock(DoctorProfileRepository.class);
+        examinationSessionRepository = mock(ExaminationSessionRepository.class);
         service = new QueueService(roomRepository, ticketRepository, appointmentRepository,
+                doctorProfileRepository, examinationSessionRepository,
                 Clock.fixed(Instant.parse("2026-08-06T02:00:00Z"), ZoneId.of("Asia/Ho_Chi_Minh")));
 
         room = ClinicRoom.create("NOI-01", "Phòng Nội tổng quát 01", "Nội tổng quát");
@@ -49,6 +61,9 @@ class QueueServiceTest {
         when(ticketRepository.findByAppointmentId(APPOINTMENT_ID)).thenReturn(Optional.empty());
         when(ticketRepository.findMaxQueueNumberByRoomCodeAndQueueDate("NOI-01", TODAY)).thenReturn(4);
         when(ticketRepository.save(any(QueueTicket.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(examinationSessionRepository.findByAppointment_Id(APPOINTMENT_ID)).thenReturn(Optional.empty());
+        when(examinationSessionRepository.save(any(ExaminationSession.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
     }
 
     @Test
@@ -58,6 +73,9 @@ class QueueServiceTest {
         assertEquals(5, response.queueNumber());
         assertEquals(QueueTicketStatus.WAITING.name(), response.status());
         verify(ticketRepository).save(any(QueueTicket.class));
+        var sessionCaptor = org.mockito.ArgumentCaptor.forClass(ExaminationSession.class);
+        verify(examinationSessionRepository).save(sessionCaptor.capture());
+        assertEquals(ExaminationSessionStatus.CHECKED_IN, sessionCaptor.getValue().getStatus());
     }
 
     @Test
@@ -65,11 +83,62 @@ class QueueServiceTest {
         QueueTicket existing = QueueTicket.create(appointment, room, TODAY, 5);
         setId(existing, UUID.randomUUID());
         when(ticketRepository.findByAppointmentId(APPOINTMENT_ID)).thenReturn(Optional.of(existing));
+        when(examinationSessionRepository.findByAppointment_Id(APPOINTMENT_ID))
+                .thenReturn(Optional.of(checkedInSession()));
 
         QueueTicketResponse response = service.checkIn(ACCOUNT_ID.toString(), "NOI-01", APPOINTMENT_ID);
 
         assertEquals(5, response.queueNumber());
         verify(ticketRepository, never()).save(any(QueueTicket.class));
+    }
+
+    @Test
+    void createsCheckedInSessionWhenExistingQueueTicketHasNoSession() {
+        QueueTicket existing = QueueTicket.create(appointment, room, TODAY, 5);
+        setId(existing, UUID.randomUUID());
+        when(ticketRepository.findByAppointmentId(APPOINTMENT_ID)).thenReturn(Optional.of(existing));
+
+        service.checkIn(ACCOUNT_ID.toString(), "NOI-01", APPOINTMENT_ID);
+
+        verify(examinationSessionRepository).save(any(ExaminationSession.class));
+    }
+
+    @Test
+    void recordsReceptionReasonOnExceptionCheckIn() {
+        when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
+
+        service.checkInByStaff("NOI-01", APPOINTMENT_ID, "QR phòng bị lỗi");
+
+        var ticketCaptor = org.mockito.ArgumentCaptor.forClass(QueueTicket.class);
+        verify(ticketRepository).save(ticketCaptor.capture());
+        assertEquals("QR phòng bị lỗi", ticketCaptor.getValue().getExceptionReason());
+    }
+
+    @Test
+    void callNextUsesFirstWaitingTicketFromDoctorsOwnRoom() {
+        UUID doctorId = UUID.fromString("c1e7aa0f-8dc2-4d3d-9d75-7f909e0bb1de");
+        StaffAccount staff = StaffAccount.create("doctor", "hash", "BS. Nguyễn An", StaffRole.DOCTOR);
+        setId(staff, doctorId);
+        DoctorProfile profile = DoctorProfile.create(staff, "Nội tổng quát", room);
+        Appointment doctorsAppointment = Appointment.create(appointment.getPatient(), doctorId,
+                "CL-20260806-DOCTOR", "Nội tổng quát", "BS. Nguyễn An", TODAY,
+                java.time.LocalTime.of(9, 0), "Đau đầu");
+        setId(doctorsAppointment, UUID.randomUUID());
+        QueueTicket first = QueueTicket.create(doctorsAppointment, room, TODAY, 1);
+        setId(first, UUID.randomUUID());
+        QueueTicket second = QueueTicket.create(doctorsAppointment, room, TODAY, 2);
+        setId(second, UUID.randomUUID());
+        second.call();
+        when(doctorProfileRepository.findByStaffAccount_Id(doctorId)).thenReturn(Optional.of(profile));
+        when(ticketRepository.findByRoomCodeAndQueueDateAndAppointment_DoctorStaffIdOrderByQueueNumberAsc(
+                "NOI-01", TODAY, doctorId)).thenReturn(java.util.List.of(first, second));
+        when(ticketRepository.findById(first.getId())).thenReturn(Optional.of(first));
+
+        QueueTicketResponse response = service.callNext(doctorId.toString(), TODAY);
+
+        assertEquals(first.getId(), response.id());
+        assertEquals(QueueTicketStatus.CALLED.name(), response.status());
+        verify(ticketRepository).save(first);
     }
 
     @Test
@@ -130,6 +199,12 @@ class QueueServiceTest {
         setId(account, ACCOUNT_ID);
         return Appointment.create(account, "CL-20260806-1234", specialty, "BS. Nguyễn An", date,
                 java.time.LocalTime.of(9, 0), "Đau đầu");
+    }
+
+    private ExaminationSession checkedInSession() {
+        ExaminationSession session = ExaminationSession.create(appointment);
+        session.checkIn();
+        return session;
     }
 
     private static void setId(Object target, UUID id) {
