@@ -38,7 +38,9 @@ export class StaffLogin {
           ? '/doctor'
           : session.role === 'ADMIN' || session.role === 'COORDINATOR'
             ? '/admin/rooms'
-            : '/home';
+            : session.role === 'RECEPTIONIST'
+              ? '/reception/check-in'
+              : '/staff/login';
         void this.router.navigateByUrl(destination);
       },
       error: (response) => {
