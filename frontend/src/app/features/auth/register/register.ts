@@ -34,6 +34,7 @@ export class Register implements OnInit {
   protected readonly wards = signal<VietnamAddressUnit[]>([]);
   protected readonly addressLoading = signal(false);
   protected readonly today = new Date().toISOString().slice(0, 10);
+  protected readonly returnUrl = this.safeReturnUrl();
 
   readonly phoneForm = this.formBuilder.nonNullable.group({
     phone: [this.route.snapshot.queryParamMap.get('phone') ?? '', [Validators.required, Validators.pattern(/^0\d{9}$/)]],
@@ -186,7 +187,7 @@ export class Register implements OnInit {
   }
 
   protected goToLogin(): void {
-    void this.router.navigateByUrl('/login');
+    void this.router.navigate(['/login'], this.returnUrl ? { queryParams: { returnUrl: this.returnUrl } } : undefined);
   }
 
   private clearMessages(): void {
@@ -196,5 +197,10 @@ export class Register implements OnInit {
 
   private showError(response: { error?: { message?: string; detail?: string; title?: string } | string; message?: string; detail?: string }): void {
     this.error.set(apiErrorMessage(response));
+  }
+
+  private safeReturnUrl(): string | null {
+    const value = this.route.snapshot.queryParamMap.get('returnUrl');
+    return value && value.startsWith('/') && !value.startsWith('//') ? value : null;
   }
 }

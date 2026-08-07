@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { apiErrorMessage, AuthApiService } from '../../../core/auth/auth-api.service';
 
@@ -16,6 +16,7 @@ export class Login {
   private readonly formBuilder = inject(FormBuilder);
   private readonly authApi = inject(AuthApiService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   protected readonly step = signal<LoginStep>('phone');
   protected readonly notice = signal('');
@@ -51,7 +52,10 @@ export class Login {
           if (response.accountExists) {
             this.step.set('password');
           } else {
-            void this.router.navigate(['/register'], { queryParams: { phone } });
+            const returnUrl = this.safeReturnUrl();
+            void this.router.navigate(['/register'], {
+              queryParams: returnUrl ? { phone, returnUrl } : { phone },
+            });
           }
         },
         error: (response) => this.showError(response),
@@ -73,7 +77,16 @@ export class Login {
       .login(this.phone(), password)
       .pipe(finalize(() => this.busy.set(false)))
       .subscribe({
-        next: (session) => this.router.navigateByUrl(session.mustChangePassword ? '/change-password?required=1' : '/dashboard'),
+        next: (session) => {
+          const returnUrl = this.safeReturnUrl();
+          if (session.mustChangePassword) {
+            void this.router.navigate(['/change-password'], {
+              queryParams: returnUrl ? { required: '1', returnUrl } : { required: '1' },
+            });
+            return;
+          }
+          void this.router.navigateByUrl(returnUrl || '/dashboard');
+        },
         error: (response) => this.showError(response),
       });
   }
@@ -87,6 +100,11 @@ export class Login {
 
   protected showNotReadyMessage(action: string): void {
     this.notice.set(`${action} sẽ được bổ sung trong phiên bản tiếp theo.`);
+  }
+
+  private safeReturnUrl(): string | null {
+    const value = this.route.snapshot.queryParamMap.get('returnUrl');
+    return value && value.startsWith('/') && !value.startsWith('//') ? value : null;
   }
 
   private showError(response: { error?: { message?: string; detail?: string; title?: string } | string; message?: string; detail?: string }): void {
