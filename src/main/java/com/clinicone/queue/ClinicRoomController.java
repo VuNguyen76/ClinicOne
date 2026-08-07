@@ -29,6 +29,12 @@ public class ClinicRoomController {
         return ResponseEntity.ok(service.list());
     }
 
+    @GetMapping("/{roomKey}/check-in")
+    @PreAuthorize("hasRole('PATIENT')")
+    public ResponseEntity<ClinicRoomCheckInResponse> checkInRoom(@PathVariable String roomKey) {
+        return ResponseEntity.ok(service.checkInRoom(roomKey));
+    }
+
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ClinicRoomResponse> create(@Valid @RequestBody CreateClinicRoomRequest request) {

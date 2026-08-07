@@ -12,7 +12,7 @@
     <section class="co-reveal mt-8 grid gap-8 overflow-hidden border border-slate-200 bg-white shadow-sm lg:grid-cols-[0.85fr_1.15fr]">
       <div class="relative overflow-hidden bg-[#103f4c] px-7 py-8 text-white sm:px-10 sm:py-10">
         <div class="absolute -right-16 -top-16 h-48 w-48 rounded-full border-[28px] border-white/10"></div>
-        <div class="relative"><p class="text-xs font-bold uppercase tracking-[0.18em] text-cyan-200">Check-in tại phòng khám</p><h1 class="mt-4 text-3xl font-bold tracking-[-0.04em] sm:text-4xl">Lấy số thứ tự</h1><p class="mt-4 max-w-sm text-sm leading-6 text-white/75">Mã phòng <span data-testid="room-code" class="font-bold text-white">{{ roomCode() }}</span> đã được nhận diện. Chọn lịch hẹn hôm nay để tiếp tục.</p><div class="mt-10 flex items-center gap-3 text-sm text-white/70"><span class="grid h-9 w-9 place-items-center rounded-full bg-white/10"><mat-icon class="!text-[20px]">qr_code_2</mat-icon></span><span>Quét lại mã sẽ giữ nguyên số đã nhận.</span></div></div>
+        <div class="relative"><p class="text-xs font-bold uppercase tracking-[0.18em] text-cyan-200">Check-in tại phòng khám</p><h1 class="mt-4 text-3xl font-bold tracking-[-0.04em] sm:text-4xl">Lấy số thứ tự</h1><p class="mt-4 max-w-sm text-sm leading-6 text-white/75">Phòng <span data-testid="room-code" class="font-bold text-white">{{ room()?.name || roomCode() }}</span> đã được nhận diện. Chọn lịch hẹn hôm nay để tiếp tục.</p><div class="mt-10 flex items-center gap-3 text-sm text-white/70"><span class="grid h-9 w-9 place-items-center rounded-full bg-white/10"><mat-icon class="!text-[20px]">qr_code_2</mat-icon></span><span>Quét lại mã sẽ giữ nguyên số đã nhận.</span></div></div>
       </div>
 
       <div class="px-6 py-7 sm:px-9 sm:py-9">

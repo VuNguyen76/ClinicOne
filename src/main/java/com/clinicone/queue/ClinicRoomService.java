@@ -16,9 +16,14 @@ public class ClinicRoomService {
         this.repository = repository;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<ClinicRoomResponse> list() {
-        return repository.findAllByOrderByCodeAsc().stream().map(ClinicRoomResponse::from).toList();
+        return repository.findAllByOrderByCodeAsc().stream().map(room -> {
+            boolean missingToken = room.getQrToken() == null || room.getQrToken().isBlank();
+            room.ensureQrToken();
+            if (missingToken) repository.save(room);
+            return response(room);
+        }).toList();
     }
 
     @Transactional
@@ -28,7 +33,8 @@ public class ClinicRoomService {
             throw new AuthException(HttpStatus.CONFLICT, "ROOM_CODE_EXISTS", "Mã phòng đã tồn tại.");
         }
         ClinicRoom room = ClinicRoom.create(code, request.name(), request.specialty());
-        return ClinicRoomResponse.from(repository.save(room));
+        room.ensureQrToken();
+        return response(repository.save(room));
     }
 
     @Transactional
@@ -39,19 +45,38 @@ public class ClinicRoomService {
             throw new AuthException(HttpStatus.CONFLICT, "ROOM_CODE_EXISTS", "Mã phòng đã tồn tại.");
         }
         room.update(code, request.name(), request.specialty());
-        return ClinicRoomResponse.from(repository.save(room));
+        room.ensureQrToken();
+        return response(repository.save(room));
     }
 
     @Transactional
     public ClinicRoomResponse setActive(UUID id, boolean active) {
         ClinicRoom room = find(id);
         room.setActive(active);
-        return ClinicRoomResponse.from(repository.save(room));
+        room.ensureQrToken();
+        return response(repository.save(room));
+    }
+
+    @Transactional(readOnly = true)
+    public ClinicRoomCheckInResponse checkInRoom(String roomKey) {
+        ClinicRoom room = findActiveByCodeOrQrToken(roomKey);
+        return ClinicRoomCheckInResponse.from(room);
     }
 
     private ClinicRoom find(UUID id) {
         return repository.findById(id)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "ROOM_NOT_FOUND", "Không tìm thấy phòng khám."));
+    }
+
+    private ClinicRoom findActiveByCodeOrQrToken(String roomKey) {
+        String normalized = roomKey == null ? "" : roomKey.trim();
+        return repository.findByCodeAndActiveTrue(normalized)
+                .or(() -> repository.findByQrTokenAndActiveTrue(normalized))
+                .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "ROOM_NOT_FOUND", "Không tìm thấy phòng khám đang hoạt động."));
+    }
+
+    private ClinicRoomResponse response(ClinicRoom room) {
+        return ClinicRoomResponse.from(room);
     }
 
     private String normalizeCode(String code) {

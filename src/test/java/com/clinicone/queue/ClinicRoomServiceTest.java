@@ -38,6 +38,7 @@ class ClinicRoomServiceTest {
         assertEquals("NOI-01", response.code());
         assertEquals("Nội tổng quát", response.specialty());
         assertEquals(true, response.active());
+        org.junit.jupiter.api.Assertions.assertNotNull(response.qrToken());
         verify(repository).save(any(ClinicRoom.class));
     }
 

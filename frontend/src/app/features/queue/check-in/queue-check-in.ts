@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@ang
 import { DecimalPipe } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
-import { ApiErrorResponse, AppointmentResponse, AuthApiService, QueueTicketResponse, apiErrorMessage } from '../../../core/auth/auth-api.service';
+import { ApiErrorResponse, AppointmentResponse, AuthApiService, ClinicRoomCheckInResponse, QueueTicketResponse, apiErrorMessage } from '../../../core/auth/auth-api.service';
 import { AccountMenu } from '../../../shared/account-menu/account-menu';
 
 @Component({
@@ -18,6 +18,7 @@ export class QueueCheckIn implements OnInit {
   private readonly authApi = inject(AuthApiService);
 
   protected readonly roomCode = signal('');
+  protected readonly room = signal<ClinicRoomCheckInResponse | null>(null);
   protected readonly appointments = signal<AppointmentResponse[]>([]);
   protected readonly selectedAppointment = signal<AppointmentResponse | null>(null);
   protected readonly ticket = signal<QueueTicketResponse | null>(null);
@@ -28,11 +29,14 @@ export class QueueCheckIn implements OnInit {
 
   ngOnInit(): void {
     this.roomCode.set(this.route.snapshot.paramMap.get('roomCode') ?? '');
-    this.loadAppointments();
+    this.loadRoom();
   }
 
   protected todayAppointments(): AppointmentResponse[] {
-    return this.appointments().filter((appointment) => appointment.appointmentDate === this.today && appointment.status === 'BOOKED');
+    const specialty = this.room()?.specialty.toLowerCase();
+    return this.appointments().filter((appointment) => appointment.appointmentDate === this.today
+      && appointment.status === 'BOOKED'
+      && (!specialty || appointment.specialty.toLowerCase() === specialty));
   }
 
   protected chooseAppointment(appointment: AppointmentResponse): void {
@@ -72,7 +76,7 @@ export class QueueCheckIn implements OnInit {
 
   protected retry(): void {
     this.error.set('');
-    this.loadAppointments();
+    this.loadRoom();
   }
 
   private loadAppointments(): void {
@@ -81,6 +85,19 @@ export class QueueCheckIn implements OnInit {
       next: (appointments) => {
         this.appointments.set(appointments);
         this.loading.set(false);
+      },
+      error: (response) => {
+        this.loading.set(false);
+        this.handleError(response);
+      },
+    });
+  }
+
+  private loadRoom(): void {
+    this.authApi.getRoomForCheckIn(this.roomCode()).subscribe({
+      next: (room) => {
+        this.room.set(room);
+        this.loadAppointments();
       },
       error: (response) => {
         this.loading.set(false);

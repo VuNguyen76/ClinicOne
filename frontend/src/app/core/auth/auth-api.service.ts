@@ -184,6 +184,13 @@ export interface ClinicRoomResponse {
   name: string;
   specialty: string;
   active: boolean;
+  qrToken: string;
+}
+
+export interface ClinicRoomCheckInResponse {
+  code: string;
+  name: string;
+  specialty: string;
 }
 
 export interface DoctorAccountResponse {
@@ -435,6 +442,10 @@ export class AuthApiService {
     return this.http.post<QueueTicketResponse>(`/api/v1/rooms/${encodeURIComponent(roomCode)}/queue/check-in`, { appointmentId });
   }
 
+  getRoomForCheckIn(roomKey: string): Observable<ClinicRoomCheckInResponse> {
+    return this.http.get<ClinicRoomCheckInResponse>(`/api/v1/rooms/${encodeURIComponent(roomKey)}/check-in`);
+  }
+
   getRoomQueue(roomCode: string, date: string): Observable<QueueTicketResponse[]> {
     return this.http.get<QueueTicketResponse[]>(`/api/v1/rooms/${encodeURIComponent(roomCode)}/queue`, { params: { date } });
   }
@@ -491,11 +502,11 @@ export class AuthApiService {
     }));
   }
 
-  createRoom(request: Omit<ClinicRoomResponse, 'id' | 'active'>): Observable<ClinicRoomResponse> {
+  createRoom(request: Omit<ClinicRoomResponse, 'id' | 'active' | 'qrToken'>): Observable<ClinicRoomResponse> {
     return this.http.post<ClinicRoomResponse>('/api/v1/rooms', request);
   }
 
-  updateRoom(id: string, request: Omit<ClinicRoomResponse, 'id' | 'active'>): Observable<ClinicRoomResponse> {
+  updateRoom(id: string, request: Omit<ClinicRoomResponse, 'id' | 'active' | 'qrToken'>): Observable<ClinicRoomResponse> {
     return this.http.put<ClinicRoomResponse>(`/api/v1/rooms/${id}`, request);
   }
 

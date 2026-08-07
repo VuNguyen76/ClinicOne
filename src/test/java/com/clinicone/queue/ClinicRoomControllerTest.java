@@ -68,6 +68,17 @@ class ClinicRoomControllerTest {
     }
 
     @Test
+    void patientCanResolveRoomFromQrToken() throws Exception {
+        when(service.checkInRoom("qr-token")).thenReturn(new ClinicRoomCheckInResponse(
+                "NOI-01", "Phòng Nội 01", "Nội tổng quát"));
+
+        mockMvc.perform(get("/api/v1/rooms/qr-token/check-in")
+                        .with(authentication(authenticated("ROLE_PATIENT"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("NOI-01"));
+    }
+
+    @Test
     void coordinatorCannotCreateRoom() throws Exception {
         mockMvc.perform(post("/api/v1/rooms")
                         .with(authentication(authenticated("ROLE_COORDINATOR")))
@@ -106,7 +117,7 @@ class ClinicRoomControllerTest {
     }
 
     private static ClinicRoomResponse roomResponse(boolean active) {
-        return new ClinicRoomResponse(ROOM_ID, "NOI-01", "Phòng Nội 01", "Nội tổng quát", active);
+        return new ClinicRoomResponse(ROOM_ID, "NOI-01", "Phòng Nội 01", "Nội tổng quát", active, "qr-token");
     }
 
     @TestConfiguration
