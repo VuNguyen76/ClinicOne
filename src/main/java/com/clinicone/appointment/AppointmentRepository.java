@@ -20,6 +20,9 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
     long countBySpecialtyAndAppointmentDateAndStartTimeAndStatus(String specialty, LocalDate appointmentDate,
                                                                   LocalTime startTime, AppointmentStatus status);
 
+    long countByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(UUID doctorStaffId, LocalDate appointmentDate,
+                                                                       LocalTime startTime, AppointmentStatus status);
+
     @Query("""
             select new com.clinicone.schedule.SlotBookingCount(a.appointmentDate, a.startTime, count(a))
             from Appointment a

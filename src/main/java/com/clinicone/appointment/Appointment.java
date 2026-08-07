@@ -51,6 +51,9 @@ public class Appointment {
     @Column(name = "doctor_name", nullable = false, length = 120)
     private String doctorName;
 
+    @Column(name = "doctor_staff_id")
+    private UUID doctorStaffId;
+
     @Column(name = "appointment_date", nullable = false)
     private LocalDate appointmentDate;
 
@@ -77,8 +80,14 @@ public class Appointment {
     }
 
     private Appointment(PatientAccount patient, String appointmentCode, String specialty, String doctorName,
-                         LocalDate appointmentDate, LocalTime startTime, String reason) {
+                        LocalDate appointmentDate, LocalTime startTime, String reason) {
+        this(patient, null, appointmentCode, specialty, doctorName, appointmentDate, startTime, reason);
+    }
+
+    private Appointment(PatientAccount patient, UUID doctorStaffId, String appointmentCode, String specialty,
+                         String doctorName, LocalDate appointmentDate, LocalTime startTime, String reason) {
         this.patient = patient;
+        this.doctorStaffId = doctorStaffId;
         this.appointmentCode = appointmentCode;
         this.specialty = specialty;
         this.doctorName = doctorName;
@@ -94,11 +103,27 @@ public class Appointment {
         return new Appointment(patient, appointmentCode, specialty, doctorName, appointmentDate, startTime, reason);
     }
 
+    public static Appointment create(PatientAccount patient, UUID doctorStaffId, String appointmentCode,
+                                      String specialty, String doctorName, LocalDate appointmentDate,
+                                      LocalTime startTime, String reason) {
+        return new Appointment(patient, doctorStaffId, appointmentCode, specialty, doctorName, appointmentDate,
+                startTime, reason);
+    }
+
     public static Appointment create(PatientAccount patient, PatientProfile patientProfile, String appointmentCode,
                                      String specialty, String doctorName, LocalDate appointmentDate,
                                      LocalTime startTime, String reason) {
         Appointment appointment = new Appointment(patient, appointmentCode, specialty, doctorName, appointmentDate,
                 startTime, reason);
+        appointment.patientProfile = patientProfile;
+        return appointment;
+    }
+
+    public static Appointment create(PatientAccount patient, UUID doctorStaffId, PatientProfile patientProfile,
+                                      String appointmentCode, String specialty, String doctorName,
+                                      LocalDate appointmentDate, LocalTime startTime, String reason) {
+        Appointment appointment = new Appointment(patient, doctorStaffId, appointmentCode, specialty, doctorName,
+                appointmentDate, startTime, reason);
         appointment.patientProfile = patientProfile;
         return appointment;
     }
@@ -138,6 +163,7 @@ public class Appointment {
     public String getAppointmentCode() { return appointmentCode; }
     public String getSpecialty() { return specialty; }
     public String getDoctorName() { return doctorName; }
+    public UUID getDoctorStaffId() { return doctorStaffId; }
     public LocalDate getAppointmentDate() { return appointmentDate; }
     public LocalTime getStartTime() { return startTime; }
     public String getReason() { return reason; }

@@ -38,6 +38,10 @@
         class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]"
         role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">meeting_room</mat-icon>Quản lý phòng
         khám</a>}
+      @if (canManageRooms()) {<a routerLink="/admin/doctors" [class.bg-[#eafaff]]="isActive('/admin/doctors')"
+        [class.text-[#0284c7]]="isActive('/admin/doctors')" [attr.aria-current]="isActive('/admin/doctors') ? 'page' : null"
+        class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]"
+        role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">medical_services</mat-icon>Quản lý bác sĩ</a>}
       <button type="button"
         class="flex w-full items-center gap-3 border-t border-slate-100 px-5 py-3 text-left text-sm text-slate-700 transition hover:bg-slate-50 hover:text-rose-600"
         role="menuitem" (click)="logout()"><mat-icon class="!text-[20px]">logout</mat-icon>Đăng xuất</button>

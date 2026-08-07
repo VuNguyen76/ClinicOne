@@ -15,10 +15,16 @@ public record CreateAppointmentRequest(
         @NotNull @FutureOrPresent LocalDate appointmentDate,
         @NotNull LocalTime startTime,
         @NotBlank @Size(min = 3, max = 500) String reason,
-        UUID profileId
+        UUID profileId,
+        UUID doctorId
 ) {
     public CreateAppointmentRequest(String specialty, String doctorName, LocalDate appointmentDate,
                                     LocalTime startTime, String reason) {
         this(specialty, doctorName, appointmentDate, startTime, reason, null);
+    }
+
+    public CreateAppointmentRequest(String specialty, String doctorName, LocalDate appointmentDate,
+                                    LocalTime startTime, String reason, UUID profileId) {
+        this(specialty, doctorName, appointmentDate, startTime, reason, profileId, null);
     }
 }

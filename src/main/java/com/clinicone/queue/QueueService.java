@@ -4,6 +4,7 @@ import com.clinicone.appointment.Appointment;
 import com.clinicone.appointment.AppointmentRepository;
 import com.clinicone.appointment.AppointmentStatus;
 import com.clinicone.auth.AuthException;
+import com.clinicone.doctor.DoctorProfileRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -23,19 +24,27 @@ public class QueueService {
     private final ClinicRoomRepository roomRepository;
     private final QueueTicketRepository ticketRepository;
     private final AppointmentRepository appointmentRepository;
+    private final DoctorProfileRepository doctorProfileRepository;
     private final Clock clock;
 
     public QueueService(ClinicRoomRepository roomRepository, QueueTicketRepository ticketRepository,
                         AppointmentRepository appointmentRepository) {
-        this(roomRepository, ticketRepository, appointmentRepository, Clock.systemUTC());
+        this(roomRepository, ticketRepository, appointmentRepository, null, Clock.systemUTC());
+    }
+
+    public QueueService(ClinicRoomRepository roomRepository, QueueTicketRepository ticketRepository,
+                        AppointmentRepository appointmentRepository, Clock clock) {
+        this(roomRepository, ticketRepository, appointmentRepository, null, clock);
     }
 
     @Autowired
     public QueueService(ClinicRoomRepository roomRepository, QueueTicketRepository ticketRepository,
-                        AppointmentRepository appointmentRepository, Clock clock) {
+                        AppointmentRepository appointmentRepository, DoctorProfileRepository doctorProfileRepository,
+                        Clock clock) {
         this.roomRepository = roomRepository;
         this.ticketRepository = ticketRepository;
         this.appointmentRepository = appointmentRepository;
+        this.doctorProfileRepository = doctorProfileRepository;
         this.clock = clock;
     }
 
@@ -56,6 +65,7 @@ public class QueueService {
             throw new AuthException(HttpStatus.CONFLICT, "QUEUE_ROOM_MISMATCH",
                     "Phòng này không thuộc chuyên khoa của lịch hẹn.");
         }
+        ensureDoctorRoom(appointment, room);
 
         var existing = ticketRepository.findByAppointmentId(appointmentId);
         if (existing.isPresent()) {
@@ -160,6 +170,15 @@ public class QueueService {
             throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_NOT_ACTIONABLE",
                     "Lịch hẹn không còn cho phép lấy số.");
         }
+    }
+
+    private void ensureDoctorRoom(Appointment appointment, ClinicRoom room) {
+        if (doctorProfileRepository == null || appointment.getDoctorStaffId() == null) return;
+        doctorProfileRepository.findByStaffAccount_Id(appointment.getDoctorStaffId())
+                .filter(profile -> profile.isActive()
+                        && profile.getRoom().getCode().equalsIgnoreCase(room.getCode()))
+                .orElseThrow(() -> new AuthException(HttpStatus.CONFLICT, "QUEUE_ROOM_MISMATCH",
+                        "Vui lòng quét mã tại đúng phòng của bác sĩ trong lịch hẹn."));
     }
 
     private LocalDate today() {
