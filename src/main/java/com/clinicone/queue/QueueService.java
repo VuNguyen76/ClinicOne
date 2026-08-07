@@ -7,6 +7,10 @@ import com.clinicone.auth.AuthException;
 import com.clinicone.auth.StaffRole;
 import com.clinicone.doctor.DoctorProfile;
 import com.clinicone.doctor.DoctorProfileRepository;
+import com.clinicone.examination.ExaminationSession;
+import com.clinicone.examination.ExaminationSessionRepository;
+import com.clinicone.examination.ExaminationSessionStatus;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -28,25 +32,39 @@ public class QueueService {
     private final AppointmentRepository appointmentRepository;
     private final DoctorProfileRepository doctorProfileRepository;
     private final Clock clock;
+    private final ExaminationSessionRepository sessionRepository;
 
-    public QueueService(ClinicRoomRepository roomRepository, QueueTicketRepository ticketRepository,
-                        AppointmentRepository appointmentRepository) {
-        this(roomRepository, ticketRepository, appointmentRepository, null, Clock.systemUTC());
+    // Constructor 1: Constructor mặc định (dùng hệ giờ UTC)
+    public QueueService(ClinicRoomRepository roomRepository, 
+                        QueueTicketRepository ticketRepository,
+                        AppointmentRepository appointmentRepository, 
+                        DoctorProfileRepository doctorProfileRepository,
+                        ExaminationSessionRepository sessionRepository) {
+        this(roomRepository, ticketRepository, appointmentRepository, doctorProfileRepository, sessionRepository, Clock.systemUTC());
     }
 
-    public QueueService(ClinicRoomRepository roomRepository, QueueTicketRepository ticketRepository,
-                        AppointmentRepository appointmentRepository, Clock clock) {
-        this(roomRepository, ticketRepository, appointmentRepository, null, clock);
+    // Constructor 2: Constructor dùng cho Unit Test (truyền Clock tùy chỉnh)
+    public QueueService(ClinicRoomRepository roomRepository, 
+                        QueueTicketRepository ticketRepository,
+                        AppointmentRepository appointmentRepository, 
+                        ExaminationSessionRepository sessionRepository, 
+                        Clock clock) {
+        this(roomRepository, ticketRepository, appointmentRepository, null, sessionRepository, clock);
     }
 
+    // Constructor 3: Constructor chính của Spring Boot (@Autowired)
     @Autowired
-    public QueueService(ClinicRoomRepository roomRepository, QueueTicketRepository ticketRepository,
-                        AppointmentRepository appointmentRepository, DoctorProfileRepository doctorProfileRepository,
+    public QueueService(ClinicRoomRepository roomRepository, 
+                        QueueTicketRepository ticketRepository,
+                        AppointmentRepository appointmentRepository, 
+                        DoctorProfileRepository doctorProfileRepository,
+                        ExaminationSessionRepository sessionRepository, 
                         Clock clock) {
         this.roomRepository = roomRepository;
         this.ticketRepository = ticketRepository;
         this.appointmentRepository = appointmentRepository;
         this.doctorProfileRepository = doctorProfileRepository;
+        this.sessionRepository = sessionRepository;
         this.clock = clock;
     }
 
@@ -85,8 +103,18 @@ public class QueueService {
 
         int nextNumber = nextNumber(room.getCode(), today);
         try {
+            // 1. Lưu vé hàng đợi
             QueueTicket ticket = ticketRepository.save(QueueTicket.create(appointment, room, today, nextNumber));
+            
+            // 2. Chuyển trạng thái lịch hẹn -> Đã check-in
+            appointment.checkIn();
+            appointmentRepository.save(appointment);
+            
+            // 3. Tạo lượt khám (Truyền thẳng object appointment vào, thay vì UUID)
+            ExaminationSession session = ExaminationSession.create(appointment);
+            sessionRepository.save(session);
             return QueueTicketResponse.from(ticket);
+
         } catch (DataIntegrityViolationException exception) {
             return ticketRepository.findByAppointmentId(appointmentId)
                     .map(QueueTicketResponse::from)
@@ -196,7 +224,12 @@ public class QueueService {
 
     private int nextNumber(String roomCode, LocalDate date) {
         Integer currentMax = ticketRepository.findMaxQueueNumberByRoomCodeAndQueueDate(roomCode, date);
-        return currentMax == null ? 1 : currentMax + 1;
+        int next = currentMax == null ? 1 : currentMax + 1;
+        if (next > 999) {
+            throw new AuthException(HttpStatus.CONFLICT, "QUEUE_MAX_CAPACITY",
+                    "Đã vượt quá số thứ tự tối đa (999) trong ngày.");
+        }
+        return next;
     }
 
     private ClinicRoom findRoom(String roomCode) {
