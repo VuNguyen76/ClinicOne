@@ -38,4 +38,17 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
             @Param("status") AppointmentStatus status);
 
     Optional<Appointment> findByIdAndPatientId(UUID appointmentId, UUID patientId);
+
+    @Query("""
+            select a from Appointment a
+            join fetch a.patient p
+            left join fetch a.patientProfile profile
+            where a.status = :status
+              and a.appointmentDate = :appointmentDate
+              and (lower(a.appointmentCode) = lower(:query) or p.phone = :query or profile.phone = :query)
+            order by a.startTime asc
+            """)
+    List<Appointment> findReceptionCandidates(@Param("query") String query,
+                                               @Param("appointmentDate") LocalDate appointmentDate,
+                                               @Param("status") AppointmentStatus status);
 }

@@ -53,10 +53,22 @@ public class QueueService {
     @Transactional
     public QueueTicketResponse checkIn(String accountId, String roomCode, UUID appointmentId) {
         UUID patientId = parseAccountId(accountId);
-        ClinicRoom room = findRoom(roomCode);
         Appointment appointment = appointmentRepository.findByIdAndPatientId(appointmentId, patientId)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "APPOINTMENT_NOT_FOUND",
                         "Không tìm thấy lịch hẹn."));
+        return checkInAppointment(roomCode, appointment);
+    }
+
+    @Transactional
+    public QueueTicketResponse checkInByStaff(String roomCode, UUID appointmentId) {
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "APPOINTMENT_NOT_FOUND",
+                        "Không tìm thấy lịch hẹn."));
+        return checkInAppointment(roomCode, appointment);
+    }
+
+    private QueueTicketResponse checkInAppointment(String roomCode, Appointment appointment) {
+        ClinicRoom room = findRoom(roomCode);
         ensureBookable(appointment);
         LocalDate today = today();
         if (!appointment.getAppointmentDate().equals(today)) {
@@ -69,6 +81,7 @@ public class QueueService {
         }
         ensureDoctorRoom(appointment, room);
 
+        UUID appointmentId = appointment.getId();
         var existing = ticketRepository.findByAppointmentId(appointmentId);
         if (existing.isPresent()) {
             QueueTicket ticket = existing.get();
