@@ -109,6 +109,13 @@ class QueueControllerTest {
     }
 
     @Test
+    void doctorMustSignMedicalRecordBeforeCompleting() throws Exception {
+        mockMvc.perform(post("/api/v1/queue/" + TICKET_ID + "/complete")
+                        .with(authentication(authenticated("ROLE_DOCTOR"))))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
     void receptionistCanCloseQueueTicketWhenPatientLeavesBeforeExam() throws Exception {
         when(queueService.leaveBeforeExam(eq(TICKET_ID), eq("Bệnh nhân bận việc")))
                 .thenReturn(new QueueTicketResponse(TICKET_ID, 5, "NOI-01", "Phòng Nội tổng quát 01",

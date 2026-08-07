@@ -76,6 +76,37 @@ describe('DoctorExamination', () => {
     request.flush({ ...examination(), reason: 'Đau đầu kéo dài' });
     vi.useRealTimers();
   });
+
+  it('requires the four clinical fields and locks the form after signing', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('[data-testid="sign-record"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="alert"]').textContent)
+      .toContain('Nhập đủ lý do khám');
+    http.expectNone('/api/v1/doctor/examinations/ticket-1/sign');
+
+    const fields: Record<string, string> = {
+      reason: 'Đau đầu', examinationNotes: 'Mạch ổn', diagnosis: 'Đau đầu căng thẳng', conclusion: 'Theo dõi thêm',
+    };
+    Object.entries(fields).forEach(([name, value]) => {
+      const control = fixture.nativeElement.querySelector(`textarea[formControlName="${name}"]`) as HTMLTextAreaElement;
+      control.value = value;
+      control.dispatchEvent(new Event('input'));
+    });
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('[data-testid="sign-record"]') as HTMLButtonElement).click();
+
+    const request = http.expectOne('/api/v1/doctor/examinations/ticket-1/sign');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toMatchObject(fields);
+    request.flush({ ...examination(), ...fields, status: 'COMPLETED', signedAt: '2026-08-07T09:30:00Z' });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Đã ký phiếu khám');
+    expect((fixture.nativeElement.querySelector('textarea[formControlName="reason"]') as HTMLTextAreaElement).disabled).toBe(true);
+  });
 });
 
 function examination() {
