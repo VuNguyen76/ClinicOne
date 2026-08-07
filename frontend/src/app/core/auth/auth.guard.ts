@@ -30,6 +30,17 @@ export const staffGuard: CanActivateFn = (_route, state) => {
   return router.createUrlTree(['/staff/login'], { queryParams: { returnUrl: state.url } });
 };
 
+export const doctorGuard: CanActivateFn = (_route, state) => {
+  const router = inject(Router);
+  const token = sessionToken();
+  const role = staffRole();
+
+  if (!token || !role) {
+    return router.createUrlTree(['/staff/login'], { queryParams: { returnUrl: state.url } });
+  }
+  return role === 'DOCTOR' ? true : router.createUrlTree(['/home']);
+};
+
 export const roomManagerGuard: CanActivateFn = (_route, state) => {
   const router = inject(Router);
   const token = sessionToken();
