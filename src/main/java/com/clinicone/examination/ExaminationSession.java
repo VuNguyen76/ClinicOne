@@ -55,9 +55,8 @@ public class ExaminationSession {
                 || status == ExaminationSessionStatus.CANCELLED) {
             throw new IllegalStateException("Phiên khám không còn cho phép check-in.");
         }
-        if (status == ExaminationSessionStatus.SCHEDULED) {
-            status = ExaminationSessionStatus.CHECKED_IN;
-        }
+        // Check-in creates the session; the session remains "Đã tạo" until the
+        // doctor explicitly starts the examination.
     }
 
     public void begin() {

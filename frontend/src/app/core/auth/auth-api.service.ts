@@ -164,7 +164,7 @@ export interface QueueTicketResponse {
   roomName: string;
   queueDate: string;
   appointmentTime: string;
-  status: 'WAITING' | 'CALLED' | 'IN_SERVICE' | 'SKIPPED' | 'COMPLETED' | string;
+  status: 'WAITING' | 'CALLED' | 'IN_SERVICE' | 'SKIPPED' | 'COMPLETED' | 'CLOSED' | 'LEFT_BEFORE_EXAM' | string;
   statusLabel: string;
   appointmentCode: string;
   specialty: string;
