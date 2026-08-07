@@ -4,6 +4,7 @@ import com.clinicone.auth.AccountStatus;
 import com.clinicone.auth.AuthException;
 import com.clinicone.auth.PatientAccount;
 import com.clinicone.auth.PatientAccountRepository;
+import com.clinicone.notification.PatientNotificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -26,13 +27,15 @@ class AppointmentServiceTest {
 
     private PatientAccountRepository accountRepository;
     private AppointmentRepository appointmentRepository;
+    private PatientNotificationService notificationService;
     private AppointmentService service;
 
     @BeforeEach
     void setUp() {
         accountRepository = mock(PatientAccountRepository.class);
         appointmentRepository = mock(AppointmentRepository.class);
-        service = new AppointmentService(accountRepository, appointmentRepository);
+        notificationService = mock(PatientNotificationService.class);
+        service = new AppointmentService(accountRepository, appointmentRepository, null, null, notificationService);
         when(appointmentRepository.save(any(Appointment.class))).thenAnswer(invocation -> invocation.getArgument(0));
     }
 
@@ -52,6 +55,7 @@ class AppointmentServiceTest {
         assertEquals("BS. Nguyễn An", response.doctorName());
         assertEquals("Đã đặt", response.statusLabel());
         verify(appointmentRepository).save(any(Appointment.class));
+        verify(notificationService).notifyAppointmentCreated(any(Appointment.class));
     }
 
     @Test
@@ -104,6 +108,7 @@ class AppointmentServiceTest {
         service.cancel(ACCOUNT_ID.toString(), UUID.randomUUID().toString(), new CancelAppointmentRequest("Bận việc"));
 
         assertEquals(AppointmentStatus.CANCELLED, appointment.getStatus());
+        verify(notificationService).notifyAppointmentCancelled(appointment);
     }
 
     @Test
@@ -121,6 +126,7 @@ class AppointmentServiceTest {
 
         assertEquals(LocalDate.of(2026, 8, 11), response.appointmentDate());
         assertEquals(LocalTime.of(10, 0), response.startTime());
+        verify(notificationService).notifyAppointmentRescheduled(appointment, "2026-08-10", "08:30");
     }
 
     private static void setId(PatientAccount account, UUID id) {

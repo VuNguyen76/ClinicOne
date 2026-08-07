@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
+import com.clinicone.appointment.Appointment;
 
 @Service
 public class PatientNotificationService {
@@ -53,6 +54,32 @@ public class PatientNotificationService {
         String eventKey = "MEDICAL_RECORD_SIGNED:" + recordId;
         if (!repository.existsByEventKey(eventKey)) {
             repository.save(PatientNotification.recordSigned(patientId, recordId, appointmentCode, doctorName, specialty));
+        }
+    }
+
+    @Transactional
+    public void notifyAppointmentCreated(Appointment appointment) {
+        saveOnce(PatientNotification.appointmentCreated(appointment.getPatient().getId(), appointment.getId(),
+                appointment.getAppointmentCode(), appointment.getSpecialty(), appointment.getDoctorName(),
+                appointment.getAppointmentDate().toString(), appointment.getStartTime().toString()));
+    }
+
+    @Transactional
+    public void notifyAppointmentCancelled(Appointment appointment) {
+        saveOnce(PatientNotification.appointmentCancelled(appointment.getPatient().getId(), appointment.getId(),
+                appointment.getAppointmentCode()));
+    }
+
+    @Transactional
+    public void notifyAppointmentRescheduled(Appointment appointment, String previousDate, String previousTime) {
+        saveOnce(PatientNotification.appointmentRescheduled(appointment.getPatient().getId(), appointment.getId(),
+                appointment.getAppointmentCode(), appointment.getAppointmentDate().toString(),
+                appointment.getStartTime().toString(), previousDate, previousTime));
+    }
+
+    private void saveOnce(PatientNotification notification) {
+        if (!repository.existsByEventKey(notification.getEventKey())) {
+            repository.save(notification);
         }
     }
 

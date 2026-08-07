@@ -6,6 +6,7 @@ import com.clinicone.auth.PatientAccountRepository;
 import com.clinicone.patientprofile.PatientProfile;
 import com.clinicone.patientprofile.PatientProfileRepository;
 import com.clinicone.schedule.AppointmentAvailabilityService;
+import com.clinicone.notification.PatientNotificationService;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +23,7 @@ public class AppointmentService {
     private final AppointmentRepository appointmentRepository;
     private final PatientProfileRepository profileRepository;
     private final AppointmentAvailabilityService availabilityService;
+    private final PatientNotificationService notificationService;
 
     public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository) {
         this(accountRepository, appointmentRepository, null, null);
@@ -29,16 +31,23 @@ public class AppointmentService {
 
     public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
                               PatientProfileRepository profileRepository) {
-        this(accountRepository, appointmentRepository, profileRepository, null);
+        this(accountRepository, appointmentRepository, profileRepository, null, null);
+    }
+
+    public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
+                              PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService) {
+        this(accountRepository, appointmentRepository, profileRepository, availabilityService, null);
     }
 
     @org.springframework.beans.factory.annotation.Autowired
     public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
-                              PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService) {
+                              PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService,
+                              PatientNotificationService notificationService) {
         this.accountRepository = accountRepository;
         this.appointmentRepository = appointmentRepository;
         this.profileRepository = profileRepository;
         this.availabilityService = availabilityService;
+        this.notificationService = notificationService;
     }
 
     @Transactional(readOnly = true)
@@ -80,7 +89,11 @@ public class AppointmentService {
                 : Appointment.create(patient, request.doctorId(), profile, nextAppointmentCode(),
                 request.specialty().trim(), request.doctorName().trim(), appointmentDate, startTime,
                 request.reason().trim());
-        return AppointmentResponse.from(appointmentRepository.save(appointment));
+        Appointment saved = appointmentRepository.save(appointment);
+        if (notificationService != null) {
+            notificationService.notifyAppointmentCreated(saved);
+        }
+        return AppointmentResponse.from(saved);
     }
 
     private PatientProfile resolveProfile(UUID profileId, UUID patientId) {
@@ -98,6 +111,9 @@ public class AppointmentService {
         ensureBookable(appointment);
         appointment.cancel(request == null ? null : request.reason());
         appointmentRepository.save(appointment);
+        if (notificationService != null) {
+            notificationService.notifyAppointmentCancelled(appointment);
+        }
     }
 
     @Transactional
@@ -116,8 +132,14 @@ public class AppointmentService {
             throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_DUPLICATE",
                     "Bạn đã có lịch hẹn trong khung giờ này.");
         }
+        String previousDate = appointment.getAppointmentDate().toString();
+        String previousTime = appointment.getStartTime().toString();
         appointment.reschedule(request.appointmentDate(), request.startTime());
-        return AppointmentResponse.from(appointmentRepository.save(appointment));
+        Appointment saved = appointmentRepository.save(appointment);
+        if (notificationService != null && !sameSlot) {
+            notificationService.notifyAppointmentRescheduled(saved, previousDate, previousTime);
+        }
+        return AppointmentResponse.from(saved);
     }
 
     private String nextAppointmentCode() {

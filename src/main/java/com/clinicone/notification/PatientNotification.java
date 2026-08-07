@@ -74,6 +74,35 @@ public class PatientNotification {
                 "MEDICAL_RECORD_SIGNED:" + recordId);
     }
 
+    public static PatientNotification appointmentCreated(UUID patientAccountId, UUID appointmentId,
+                                                         String appointmentCode, String specialty,
+                                                         String doctorName, String date, String time) {
+        return new PatientNotification(patientAccountId, PatientNotificationType.APPOINTMENT_CREATED,
+                "Đặt lịch thành công",
+                "Lịch hẹn " + appointmentCode + " với " + doctorName + " đã được ghi nhận vào " + date + " lúc " + time + ".",
+                "/appointments/" + appointmentId,
+                "APPOINTMENT_CREATED:" + appointmentId);
+    }
+
+    public static PatientNotification appointmentCancelled(UUID patientAccountId, UUID appointmentId,
+                                                            String appointmentCode) {
+        return new PatientNotification(patientAccountId, PatientNotificationType.APPOINTMENT_CANCELLED,
+                "Lịch hẹn đã được hủy",
+                "Lịch hẹn " + appointmentCode + " đã được hủy theo yêu cầu của bạn.",
+                "/appointments/" + appointmentId,
+                "APPOINTMENT_CANCELLED:" + appointmentId);
+    }
+
+    public static PatientNotification appointmentRescheduled(UUID patientAccountId, UUID appointmentId,
+                                                              String appointmentCode, String date, String time,
+                                                              String previousDate, String previousTime) {
+        return new PatientNotification(patientAccountId, PatientNotificationType.APPOINTMENT_RESCHEDULED,
+                "Lịch hẹn đã được đổi",
+                "Lịch hẹn " + appointmentCode + " đã chuyển sang " + date + " lúc " + time + ".",
+                "/appointments/" + appointmentId,
+                "APPOINTMENT_RESCHEDULED:" + appointmentId + ":" + previousDate + "T" + previousTime + "->" + date + "T" + time);
+    }
+
     @PrePersist
     void onCreate() {
         createdAt = Instant.now();
