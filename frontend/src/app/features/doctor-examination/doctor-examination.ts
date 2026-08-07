@@ -115,7 +115,7 @@ export class DoctorExamination implements OnInit {
   }
 
   protected back(): void {
-    void this.router.navigateByUrl('/staff');
+    void this.router.navigateByUrl('/doctor');
   }
 
   protected formatDate(value: string | null | undefined): string {

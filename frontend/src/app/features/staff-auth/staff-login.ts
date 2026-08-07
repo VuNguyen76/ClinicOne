@@ -35,7 +35,7 @@ export class StaffLogin {
       next: (session) => {
         this.busy.set(false);
         const destination = session.role === 'DOCTOR'
-          ? '/staff'
+          ? '/doctor'
           : session.role === 'ADMIN' || session.role === 'COORDINATOR'
             ? '/admin/rooms'
             : '/home';
