@@ -90,6 +90,34 @@ describe('ReceptionCheckIn', () => {
 
     expect(fixture.nativeElement.textContent).toContain('Đã tạo lịch và cấp số 08');
   });
+
+  it('starts OTP registration when the phone has no account', () => {
+    const component = fixture.componentInstance as any;
+    const openButton = fixture.nativeElement.querySelector('[data-testid="open-walk-in"]') as HTMLButtonElement;
+    openButton.click();
+    http.expectOne((item) => item.url === '/api/v1/specialties').flush([]);
+    component.walkInPhone.set('0912345678');
+    component.loadWalkInProfiles();
+    http.expectOne((item) => item.url === '/api/v1/reception/profiles').flush({ error: { message: 'Chưa tìm thấy tài khoản' } }, { status: 404, statusText: 'Not Found' });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Chưa có tài khoản');
+    component.requestRegistrationOtp();
+    const otpRequest = http.expectOne('/api/v1/reception/patients/request-otp');
+    expect(otpRequest.request.body).toEqual({ phone: '0912345678' });
+    otpRequest.flush({ expiresInSeconds: 300, retryAfterSeconds: 60 });
+    component.walkInOtp.set('123456');
+    component.registrationFullName.set('Nguyễn An');
+    component.registrationDateOfBirth.set('1995-06-07');
+    component.registrationGender.set('Nữ');
+    component.submitRegistration();
+    const registrationRequest = http.expectOne('/api/v1/reception/patients');
+    expect(registrationRequest.request.body.fullName).toBe('Nguyễn An');
+    registrationRequest.flush({ accountId: 'account-1', phone: '0912345678', fullName: 'Nguyễn An', mustChangePassword: true });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Đã tạo tài khoản cho Nguyễn An');
+  });
 });
 
 function appointment() {

@@ -46,6 +46,34 @@
             <div><p class="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0b91c9]">Tiếp nhận tại quầy</p><h2 id="walk-in-title" class="mt-1 text-xl font-bold text-[#0a303b]">Tạo lịch và cấp số</h2><p class="mt-1 text-xs text-slate-500">Chỉ áp dụng cho ngày hôm nay; hệ thống tự chọn phòng theo bác sĩ.</p></div>
             <button type="button" aria-label="Đóng" class="grid h-8 w-8 place-items-center rounded-md text-slate-500 transition hover:bg-slate-100" (click)="closeWalkIn()"><mat-icon>close</mat-icon></button>
           </div>
+          @if (walkInRegistration()) {
+            <form class="grid gap-4 px-5 py-5" (ngSubmit)="$event.preventDefault(); submitRegistration()">
+              <div class="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">Chưa có tài khoản. Tạo hồ sơ bằng OTP gửi tới số điện thoại này.</div>
+              <label class="grid gap-1 text-xs font-bold uppercase tracking-[0.08em] text-slate-500">Số điện thoại
+                <input class="min-h-10 rounded-md border border-[#d5e3e7] px-3 text-sm font-semibold normal-case tracking-normal outline-none focus:border-[#0ea5e9]" [ngModel]="walkInPhone()" (ngModelChange)="walkInPhone.set($event)" name="registrationPhone" inputmode="numeric" placeholder="0912345678" />
+              </label>
+              <div class="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
+                <label class="grid gap-1 text-xs font-bold uppercase tracking-[0.08em] text-slate-500">Mã OTP
+                  <input class="min-h-10 rounded-md border border-[#d5e3e7] px-3 text-sm font-semibold normal-case tracking-normal outline-none focus:border-[#0ea5e9]" [ngModel]="walkInOtp()" (ngModelChange)="walkInOtp.set($event)" name="walkInOtp" inputmode="numeric" maxlength="6" placeholder="6 chữ số" />
+                </label>
+                <button type="button" class="min-h-10 rounded-md border border-[#0ea5e9] px-4 text-sm font-semibold text-[#087eae] transition hover:bg-[#effaff] disabled:opacity-50" [disabled]="registrationLoading() || registrationOtpSent()" (click)="requestRegistrationOtp()">{{ registrationOtpSent() ? 'Đã gửi mã' : 'Gửi OTP' }}</button>
+              </div>
+              <div class="grid gap-4 sm:grid-cols-2">
+                <label class="grid gap-1 text-xs font-bold uppercase tracking-[0.08em] text-slate-500">Họ và tên
+                  <input class="min-h-10 rounded-md border border-[#d5e3e7] px-3 text-sm font-semibold normal-case tracking-normal outline-none focus:border-[#0ea5e9]" [ngModel]="registrationFullName()" (ngModelChange)="registrationFullName.set($event)" name="registrationFullName" />
+                </label>
+                <label class="grid gap-1 text-xs font-bold uppercase tracking-[0.08em] text-slate-500">Ngày sinh
+                  <input class="min-h-10 rounded-md border border-[#d5e3e7] px-3 text-sm font-semibold normal-case tracking-normal outline-none focus:border-[#0ea5e9]" type="date" [ngModel]="registrationDateOfBirth()" (ngModelChange)="registrationDateOfBirth.set($event)" name="registrationDateOfBirth" />
+                </label>
+              </div>
+              <label class="grid gap-1 text-xs font-bold uppercase tracking-[0.08em] text-slate-500">Giới tính
+                <select class="min-h-10 rounded-md border border-[#d5e3e7] bg-white px-3 text-sm font-semibold normal-case tracking-normal outline-none focus:border-[#0ea5e9]" [ngModel]="registrationGender()" (ngModelChange)="registrationGender.set($event)" name="registrationGender"><option value="">Chọn giới tính</option><option value="Nam">Nam</option><option value="Nữ">Nữ</option><option value="Khác">Khác</option></select>
+              </label>
+              <div class="flex justify-end gap-2 border-t border-[#e7eff1] pt-4"><button type="button" class="min-h-10 rounded-md px-4 text-sm font-semibold text-slate-600 transition hover:bg-slate-100" (click)="closeWalkIn()">Hủy</button><button type="submit" class="min-h-10 rounded-md bg-[#0b3846] px-5 text-sm font-semibold text-white transition hover:bg-[#082d39] disabled:opacity-50" [disabled]="registrationLoading() || !registrationOtpSent()">{{ registrationLoading() ? 'Đang tạo...' : 'Tạo tài khoản' }}</button></div>
+            </form>
+          } @else if (walkInNeedsPasswordChange()) {
+            <div class="grid gap-4 px-5 py-5"><div class="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm text-emerald-800">Đã tạo tài khoản cho {{ registrationFullName() }}. Người bệnh cần đăng nhập bằng mật khẩu tạm và đổi mật khẩu trước khi check-in.</div><p class="text-sm text-slate-600">Sau khi đổi mật khẩu xong, bấm nút bên dưới để tìm lại hồ sơ và tiếp tục.</p><div class="flex justify-end gap-2 border-t border-[#e7eff1] pt-4"><button type="button" class="min-h-10 rounded-md px-4 text-sm font-semibold text-slate-600 transition hover:bg-slate-100" (click)="closeWalkIn()">Đóng</button><button type="button" class="min-h-10 rounded-md bg-[#0b3846] px-5 text-sm font-semibold text-white transition hover:bg-[#082d39]" (click)="continueAfterPasswordChange()">Đã đổi mật khẩu</button></div></div>
+          } @else {
           <form class="grid gap-4 px-5 py-5" (ngSubmit)="$event.preventDefault(); submitWalkIn()">
             <div class="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
               <label class="grid gap-1 text-xs font-bold uppercase tracking-[0.08em] text-slate-500">Số điện thoại
@@ -77,6 +105,7 @@
             </label>
             <div class="flex justify-end gap-2 border-t border-[#e7eff1] pt-4"><button type="button" class="min-h-10 rounded-md px-4 text-sm font-semibold text-slate-600 transition hover:bg-slate-100" (click)="closeWalkIn()">Hủy</button><button type="submit" class="min-h-10 rounded-md bg-[#0b3846] px-5 text-sm font-semibold text-white transition hover:bg-[#082d39] disabled:opacity-50" [disabled]="walkInLoading()">{{ walkInLoading() ? 'Đang tạo...' : 'Tạo lịch và cấp số' }}</button></div>
           </form>
+          }
         </section>
       </div>
     }

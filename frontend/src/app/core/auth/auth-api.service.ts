@@ -298,6 +298,21 @@ export interface ReceptionPatientProfile {
   primaryProfile: boolean;
 }
 
+export interface ReceptionPatientRegistrationRequest {
+  phone: string;
+  otpCode: string;
+  fullName: string;
+  dateOfBirth: string;
+  gender: string;
+}
+
+export interface ReceptionPatientRegistrationResponse {
+  accountId: string;
+  phone: string;
+  fullName: string;
+  mustChangePassword: boolean;
+}
+
 export interface StaffLoginResponse {
   accessToken: string;
   tokenType: string;
@@ -518,6 +533,14 @@ export class AuthApiService {
 
   getReceptionProfiles(phone: string): Observable<ReceptionPatientProfile[]> {
     return this.http.get<ReceptionPatientProfile[]>('/api/v1/reception/profiles', { params: { phone } });
+  }
+
+  requestReceptionPatientOtp(phone: string): Observable<{ expiresInSeconds: number; retryAfterSeconds: number }> {
+    return this.http.post<{ expiresInSeconds: number; retryAfterSeconds: number }>('/api/v1/reception/patients/request-otp', { phone });
+  }
+
+  registerReceptionPatient(request: ReceptionPatientRegistrationRequest): Observable<ReceptionPatientRegistrationResponse> {
+    return this.http.post<ReceptionPatientRegistrationResponse>('/api/v1/reception/patients', request);
   }
 
   saveDoctorExaminationDraft(ticketId: string, request: DoctorExaminationRequest): Observable<DoctorExaminationResponse> {

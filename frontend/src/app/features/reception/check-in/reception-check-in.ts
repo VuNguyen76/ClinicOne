@@ -39,6 +39,14 @@ export class ReceptionCheckIn implements OnInit {
   protected readonly walkInLoading = signal(false);
   protected readonly walkInProfilesLoading = signal(false);
   protected readonly walkInSlotsLoading = signal(false);
+  protected readonly walkInRegistration = signal(false);
+  protected readonly walkInNeedsPasswordChange = signal(false);
+  protected readonly walkInOtp = signal('');
+  protected readonly registrationFullName = signal('');
+  protected readonly registrationDateOfBirth = signal('');
+  protected readonly registrationGender = signal('');
+  protected readonly registrationOtpSent = signal(false);
+  protected readonly registrationLoading = signal(false);
 
   ngOnInit(): void {
     this.query.set('');
@@ -101,6 +109,13 @@ export class ReceptionCheckIn implements OnInit {
     this.walkInStartTime.set('');
     this.walkInReason.set('');
     this.walkInExceptionReason.set('');
+    this.walkInRegistration.set(false);
+    this.walkInNeedsPasswordChange.set(false);
+    this.walkInOtp.set('');
+    this.registrationFullName.set('');
+    this.registrationDateOfBirth.set('');
+    this.registrationGender.set('');
+    this.registrationOtpSent.set(false);
     this.error.set('');
     if (this.walkInSpecialties().length === 0) {
       this.authApi.getSpecialties().subscribe({
@@ -112,6 +127,62 @@ export class ReceptionCheckIn implements OnInit {
 
   protected closeWalkIn(): void {
     if (!this.walkInLoading()) this.walkInOpen.set(false);
+  }
+
+  protected requestRegistrationOtp(): void {
+    const phone = this.walkInPhone().trim();
+    if (!/^0\d{9}$/.test(phone)) {
+      this.error.set('Nhập số điện thoại hợp lệ trước khi gửi OTP.');
+      return;
+    }
+    this.registrationLoading.set(true);
+    this.error.set('');
+    this.authApi.requestReceptionPatientOtp(phone).subscribe({
+      next: () => {
+        this.registrationLoading.set(false);
+        this.registrationOtpSent.set(true);
+        this.notice.set('Đã gửi OTP. Mã có hiệu lực trong 5 phút.');
+      },
+      error: (response) => {
+        this.registrationLoading.set(false);
+        this.handleError(response);
+      },
+    });
+  }
+
+  protected submitRegistration(): void {
+    const phone = this.walkInPhone().trim();
+    if (!/^0\d{9}$/.test(phone) || !/^\d{6}$/.test(this.walkInOtp())
+      || this.registrationFullName().trim().length < 2 || !this.registrationDateOfBirth()
+      || !this.registrationGender()) {
+      this.error.set('Nhập đủ họ tên, ngày sinh, giới tính và mã OTP 6 số.');
+      return;
+    }
+    this.registrationLoading.set(true);
+    this.error.set('');
+    this.authApi.registerReceptionPatient({
+      phone,
+      otpCode: this.walkInOtp(),
+      fullName: this.registrationFullName().trim(),
+      dateOfBirth: this.registrationDateOfBirth(),
+      gender: this.registrationGender(),
+    }).subscribe({
+      next: (response) => {
+        this.registrationLoading.set(false);
+        this.walkInRegistration.set(false);
+        this.walkInNeedsPasswordChange.set(true);
+        this.notice.set(`Đã tạo tài khoản cho ${response.fullName}.`);
+      },
+      error: (response) => {
+        this.registrationLoading.set(false);
+        this.handleError(response);
+      },
+    });
+  }
+
+  protected continueAfterPasswordChange(): void {
+    this.walkInNeedsPasswordChange.set(false);
+    this.loadWalkInProfiles();
   }
 
   protected loadWalkInProfiles(): void {
@@ -130,6 +201,11 @@ export class ReceptionCheckIn implements OnInit {
       },
       error: (response) => {
         this.walkInProfilesLoading.set(false);
+        if (response.status === 404) {
+          this.walkInRegistration.set(true);
+          this.error.set('');
+          return;
+        }
         this.handleError(response);
       },
     });
