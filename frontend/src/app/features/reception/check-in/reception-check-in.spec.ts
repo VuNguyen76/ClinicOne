@@ -45,7 +45,7 @@ describe('ReceptionCheckIn', () => {
     http.expectOne((item) => item.url === '/api/v1/reception/appointments').flush([appointment()]);
     fixture.detectChanges();
 
-    (fixture.nativeElement.querySelector('button:not([type="submit"])') as HTMLButtonElement).click();
+    (fixture.nativeElement.querySelector('button[data-testid="check-in"]') as HTMLButtonElement).click();
     const request = http.expectOne('/api/v1/reception/appointments/a-1/check-in');
     expect(request.request.method).toBe('POST');
     expect(request.request.body).toEqual({ roomCode: 'NOI-01', reason: 'QR phòng bị lỗi' });
@@ -53,6 +53,42 @@ describe('ReceptionCheckIn', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Số 05');
+  });
+
+  it('opens the walk-in form and creates an appointment from a selected slot', () => {
+    const component = fixture.componentInstance as any;
+    const openButton = Array.from(fixture.nativeElement.querySelectorAll('button'))
+      .find((button: any) => button.textContent.includes('Tiếp nhận không có lịch')) as HTMLButtonElement;
+    openButton.click();
+    fixture.detectChanges();
+    http.expectOne((item) => item.url === '/api/v1/specialties').flush([
+      { code: 'NOI', name: 'Nội tổng quát', description: '' },
+    ]);
+
+    component.walkInPhone.set('0912345678');
+    component.loadWalkInProfiles();
+    http.expectOne((item) => item.url === '/api/v1/reception/profiles').flush([
+      { id: 'p-1', fullName: 'Nguyễn Thanh Vũ', relationship: 'Bản thân', primaryProfile: true },
+    ]);
+    component.walkInSpecialty.set('Nội tổng quát');
+    component.loadWalkInSlots();
+    http.expectOne((item) => item.url === '/api/v1/appointment-slots').flush([
+      { specialty: 'Nội tổng quát', appointmentDate: component.walkInDate(), startTime: '09:00:00', endTime: '09:30:00', doctorName: 'BS. Nguyễn An', remainingCapacity: 1, doctorId: 'd-1', roomCode: 'NOI-01' },
+    ]);
+    component.walkInProfileId.set('p-1');
+    component.walkInStartTime.set('09:00:00');
+    component.walkInReason.set('Đau đầu từ sáng');
+    component.walkInExceptionReason.set('Người bệnh đến quầy không có lịch');
+    component.submitWalkIn();
+    const request = http.expectOne('/api/v1/reception/walk-in');
+    expect(request.request.body).toEqual({
+      phone: '0912345678', profileId: 'p-1', doctorId: 'd-1', appointmentDate: component.walkInDate(),
+      startTime: '09:00:00', reason: 'Đau đầu từ sáng', exceptionReason: 'Người bệnh đến quầy không có lịch',
+    });
+    request.flush({ ...appointment(), queueNumber: 8, queueStatus: 'WAITING', queueStatusLabel: 'Đang chờ' });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Đã tạo lịch và cấp số 08');
   });
 });
 

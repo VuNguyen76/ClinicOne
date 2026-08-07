@@ -290,6 +290,14 @@ export interface ReceptionWalkInRequest {
   exceptionReason: string;
 }
 
+export interface ReceptionPatientProfile {
+  id: string;
+  fullName: string;
+  relationship: string;
+  dateOfBirth?: string | null;
+  primaryProfile: boolean;
+}
+
 export interface StaffLoginResponse {
   accessToken: string;
   tokenType: string;
@@ -506,6 +514,10 @@ export class AuthApiService {
 
   createReceptionWalkIn(request: ReceptionWalkInRequest): Observable<ReceptionAppointmentResponse> {
     return this.http.post<ReceptionAppointmentResponse>('/api/v1/reception/walk-in', request);
+  }
+
+  getReceptionProfiles(phone: string): Observable<ReceptionPatientProfile[]> {
+    return this.http.get<ReceptionPatientProfile[]>('/api/v1/reception/profiles', { params: { phone } });
   }
 
   saveDoctorExaminationDraft(ticketId: string, request: DoctorExaminationRequest): Observable<DoctorExaminationResponse> {

@@ -12,6 +12,8 @@ import com.clinicone.auth.PatientAccount;
 import com.clinicone.auth.PatientAccountRepository;
 import com.clinicone.doctor.DoctorProfile;
 import com.clinicone.doctor.DoctorProfileRepository;
+import com.clinicone.patientprofile.PatientProfileRepository;
+import com.clinicone.patientprofile.PatientProfileResponse;
 import com.clinicone.queue.QueueService;
 import com.clinicone.queue.QueueTicketRepository;
 import com.clinicone.queue.QueueTicketResponse;
@@ -36,13 +38,14 @@ public class ReceptionService {
     private final Clock clock;
     private final PatientAccountRepository patientAccountRepository;
     private final AppointmentService appointmentService;
+    private final PatientProfileRepository patientProfileRepository;
 
     public ReceptionService(AppointmentRepository appointmentRepository,
                             DoctorProfileRepository doctorProfileRepository,
                             QueueTicketRepository ticketRepository,
                             QueueService queueService,
                             Clock clock) {
-        this(appointmentRepository, doctorProfileRepository, ticketRepository, queueService, clock, null, null);
+        this(appointmentRepository, doctorProfileRepository, ticketRepository, queueService, clock, null, null, null);
     }
 
     @org.springframework.beans.factory.annotation.Autowired
@@ -52,7 +55,8 @@ public class ReceptionService {
                             QueueService queueService,
                             Clock clock,
                             PatientAccountRepository patientAccountRepository,
-                            AppointmentService appointmentService) {
+                            AppointmentService appointmentService,
+                            PatientProfileRepository patientProfileRepository) {
         this.appointmentRepository = appointmentRepository;
         this.doctorProfileRepository = doctorProfileRepository;
         this.ticketRepository = ticketRepository;
@@ -60,6 +64,7 @@ public class ReceptionService {
         this.clock = clock;
         this.patientAccountRepository = patientAccountRepository;
         this.appointmentService = appointmentService;
+        this.patientProfileRepository = patientProfileRepository;
     }
 
     @Transactional(readOnly = true)
@@ -77,6 +82,19 @@ public class ReceptionService {
                         "Không tìm thấy lịch hẹn."));
         QueueTicketResponse ticket = queueService.checkInByStaff(request.roomCode().trim(), appointmentId, request.reason().trim());
         return toResponse(appointment, ticket);
+    }
+
+    @Transactional(readOnly = true)
+    public List<PatientProfileResponse> profiles(String phone) {
+        if (patientAccountRepository == null || patientProfileRepository == null) {
+            throw new AuthException(HttpStatus.SERVICE_UNAVAILABLE, "RECEPTION_PROFILES_UNAVAILABLE",
+                    "Chưa bật tra cứu hồ sơ tại quầy.");
+        }
+        PatientAccount patient = patientAccountRepository.findByPhone(normalizePhone(phone))
+                .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "PATIENT_ACCOUNT_REQUIRED",
+                        "Chưa tìm thấy tài khoản theo số điện thoại."));
+        return patientProfileRepository.findByOwnerIdAndActiveTrueOrderByPrimaryProfileDescCreatedAtAsc(patient.getId())
+                .stream().map(PatientProfileResponse::from).toList();
     }
 
     /**

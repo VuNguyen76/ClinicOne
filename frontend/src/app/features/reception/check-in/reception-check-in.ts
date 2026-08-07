@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@ang
 import { FormsModule } from '@angular/forms';
 import { RouterLink, Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
-import { ApiErrorResponse, AuthApiService, ReceptionAppointmentResponse, apiErrorMessage } from '../../../core/auth/auth-api.service';
+import { ApiErrorResponse, AppointmentSlotResponse, AuthApiService, ReceptionAppointmentResponse, ReceptionPatientProfile, SpecialtyOption, apiErrorMessage } from '../../../core/auth/auth-api.service';
 import { AccountMenu } from '../../../shared/account-menu/account-menu';
 
 @Component({
@@ -25,6 +25,20 @@ export class ReceptionCheckIn implements OnInit {
   protected readonly busyId = signal('');
   protected readonly error = signal('');
   protected readonly notice = signal('');
+  protected readonly walkInOpen = signal(false);
+  protected readonly walkInPhone = signal('');
+  protected readonly walkInDate = signal(this.toIsoDate(new Date()));
+  protected readonly walkInProfiles = signal<ReceptionPatientProfile[]>([]);
+  protected readonly walkInProfileId = signal('');
+  protected readonly walkInSpecialties = signal<SpecialtyOption[]>([]);
+  protected readonly walkInSpecialty = signal('');
+  protected readonly walkInSlots = signal<AppointmentSlotResponse[]>([]);
+  protected readonly walkInStartTime = signal('');
+  protected readonly walkInReason = signal('');
+  protected readonly walkInExceptionReason = signal('');
+  protected readonly walkInLoading = signal(false);
+  protected readonly walkInProfilesLoading = signal(false);
+  protected readonly walkInSlotsLoading = signal(false);
 
   ngOnInit(): void {
     this.query.set('');
@@ -71,6 +85,114 @@ export class ReceptionCheckIn implements OnInit {
       },
       error: (response) => {
         this.busyId.set('');
+        this.handleError(response);
+      },
+    });
+  }
+
+  protected openWalkIn(): void {
+    this.walkInOpen.set(true);
+    this.walkInPhone.set('');
+    this.walkInDate.set(this.toIsoDate(new Date()));
+    this.walkInProfiles.set([]);
+    this.walkInProfileId.set('');
+    this.walkInSpecialty.set('');
+    this.walkInSlots.set([]);
+    this.walkInStartTime.set('');
+    this.walkInReason.set('');
+    this.walkInExceptionReason.set('');
+    this.error.set('');
+    if (this.walkInSpecialties().length === 0) {
+      this.authApi.getSpecialties().subscribe({
+        next: (specialties) => this.walkInSpecialties.set(specialties),
+        error: (response) => this.handleError(response),
+      });
+    }
+  }
+
+  protected closeWalkIn(): void {
+    if (!this.walkInLoading()) this.walkInOpen.set(false);
+  }
+
+  protected loadWalkInProfiles(): void {
+    const phone = this.walkInPhone().trim();
+    if (!/^0\d{9}$/.test(phone)) {
+      this.error.set('Nhập số điện thoại gồm 10 chữ số để tìm hồ sơ.');
+      return;
+    }
+    this.walkInProfilesLoading.set(true);
+    this.error.set('');
+    this.authApi.getReceptionProfiles(phone).subscribe({
+      next: (profiles) => {
+        this.walkInProfiles.set(profiles);
+        this.walkInProfileId.set(profiles.find((profile) => profile.primaryProfile)?.id ?? profiles[0]?.id ?? '');
+        this.walkInProfilesLoading.set(false);
+      },
+      error: (response) => {
+        this.walkInProfilesLoading.set(false);
+        this.handleError(response);
+      },
+    });
+  }
+
+  protected loadWalkInSlots(): void {
+    const specialty = this.walkInSpecialty();
+    if (!specialty || !this.walkInDate()) {
+      this.walkInSlots.set([]);
+      this.walkInStartTime.set('');
+      return;
+    }
+    this.walkInSlotsLoading.set(true);
+    this.authApi.getAppointmentSlots(specialty, this.walkInDate(), this.walkInDate()).subscribe({
+      next: (slots) => {
+        const available = slots.filter((slot) => !!slot.doctorId && slot.remainingCapacity > 0);
+        this.walkInSlots.set(available);
+        this.walkInStartTime.set(available[0]?.startTime ?? '');
+        this.walkInSlotsLoading.set(false);
+      },
+      error: (response) => {
+        this.walkInSlotsLoading.set(false);
+        this.handleError(response);
+      },
+    });
+  }
+
+  protected submitWalkIn(): void {
+    const phone = this.walkInPhone().trim();
+    const slot = this.walkInSlots().find((item) => item.startTime === this.walkInStartTime());
+    const reason = this.walkInReason().trim();
+    const exceptionReason = this.walkInExceptionReason().trim();
+    if (!/^0\d{9}$/.test(phone)) {
+      this.error.set('Nhập số điện thoại hợp lệ trước khi tiếp nhận.');
+      return;
+    }
+    if (!slot?.doctorId) {
+      this.error.set('Chọn một khung giờ còn trống.');
+      return;
+    }
+    if (reason.length < 3 || exceptionReason.length < 3) {
+      this.error.set('Nhập lý do khám và lý do tiếp nhận tại quầy.');
+      return;
+    }
+    this.walkInLoading.set(true);
+    this.error.set('');
+    this.authApi.createReceptionWalkIn({
+      phone,
+      profileId: this.walkInProfileId() || null,
+      doctorId: slot.doctorId,
+      appointmentDate: this.walkInDate(),
+      startTime: slot.startTime,
+      reason,
+      exceptionReason,
+    }).subscribe({
+      next: (appointment) => {
+        this.walkInLoading.set(false);
+        this.walkInOpen.set(false);
+        this.appointments.update((items) => [appointment, ...items]);
+        this.notice.set(`Đã tạo lịch và cấp số ${String(appointment.queueNumber).padStart(2, '0')} cho ${appointment.patientName}.`);
+      },
+      error: (response) => {
+        this.walkInLoading.set(false);
         this.handleError(response);
       },
     });
