@@ -8,6 +8,8 @@ import com.clinicone.appointment.AppointmentRepository;
 import com.clinicone.queue.QueueTicket;
 import com.clinicone.queue.QueueTicketRepository;
 import com.clinicone.queue.QueueTicketStatus;
+import com.clinicone.doctor.DoctorProfile;
+import com.clinicone.doctor.DoctorProfileRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,22 +23,25 @@ public class DoctorExaminationService {
     private final MedicalRecordRepository recordRepository;
     private final StaffAccountRepository staffRepository;
     private final AppointmentRepository appointmentRepository;
+    private final DoctorProfileRepository doctorProfileRepository;
 
     public DoctorExaminationService(QueueTicketRepository ticketRepository,
                                     ExaminationSessionRepository sessionRepository,
                                     MedicalRecordRepository recordRepository,
                                     StaffAccountRepository staffRepository,
-                                    AppointmentRepository appointmentRepository) {
+                                    AppointmentRepository appointmentRepository,
+                                    DoctorProfileRepository doctorProfileRepository) {
         this.ticketRepository = ticketRepository;
         this.sessionRepository = sessionRepository;
         this.recordRepository = recordRepository;
         this.staffRepository = staffRepository;
         this.appointmentRepository = appointmentRepository;
+        this.doctorProfileRepository = doctorProfileRepository;
     }
 
     @Transactional
     public DoctorExaminationResponse open(UUID ticketId, String staffId) {
-        Workspace workspace = workspace(ticketId);
+        Workspace workspace = workspace(ticketId, staffId);
         workspace.session().begin();
         MedicalRecord record = record(workspace.session());
         if (record.getDoctorName() == null || record.getDoctorName().isBlank()) {
@@ -49,7 +54,7 @@ public class DoctorExaminationService {
 
     @Transactional
     public DoctorExaminationResponse saveDraft(UUID ticketId, String staffId, DoctorExaminationRequest request) {
-        Workspace workspace = workspace(ticketId);
+        Workspace workspace = workspace(ticketId, staffId);
         workspace.session().begin();
         MedicalRecord record = record(workspace.session());
         try {
@@ -64,7 +69,7 @@ public class DoctorExaminationService {
 
     @Transactional
     public DoctorExaminationResponse sign(UUID ticketId, String staffId, DoctorExaminationRequest request) {
-        Workspace workspace = workspace(ticketId);
+        Workspace workspace = workspace(ticketId, staffId);
         workspace.session().begin();
         requireRequiredFields(request);
         MedicalRecord record = record(workspace.session());
@@ -85,14 +90,33 @@ public class DoctorExaminationService {
         return response(workspace.ticket(), workspace.session(), record);
     }
 
-    private Workspace workspace(UUID ticketId) {
+    private Workspace workspace(UUID ticketId, String staffId) {
         QueueTicket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "QUEUE_TICKET_NOT_FOUND",
                         "Không tìm thấy lượt trong hàng đợi."));
         if (ticket.getStatus() != QueueTicketStatus.IN_SERVICE) {
             throw conflict("QUEUE_INVALID_STATE", "Lượt khám chưa ở trạng thái đang khám.");
         }
+        UUID doctorId = parseStaffId(staffId);
+        if (!doctorId.equals(ticket.getAppointment().getDoctorStaffId())) {
+            throw new AuthException(HttpStatus.FORBIDDEN, "DOCTOR_TICKET_SCOPE",
+                    "Bác sĩ chỉ được mở phiếu của lượt đã được phân công.");
+        }
+        doctorProfileRepository.findByStaffAccount_Id(doctorId)
+                .filter(DoctorProfile::isActive)
+                .filter(profile -> profile.getRoom().getCode().equalsIgnoreCase(ticket.getRoom().getCode()))
+                .orElseThrow(() -> new AuthException(HttpStatus.FORBIDDEN, "DOCTOR_ASSIGNMENT_REQUIRED",
+                        "Bác sĩ chưa được gán đúng chuyên khoa và phòng khám."));
         return new Workspace(ticket, ticket.getAppointment(), session(ticket.getAppointment()));
+    }
+
+    private UUID parseStaffId(String staffId) {
+        try {
+            return UUID.fromString(staffId);
+        } catch (IllegalArgumentException exception) {
+            throw new AuthException(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_REQUIRED",
+                    "Phiên đăng nhập bác sĩ không hợp lệ.");
+        }
     }
 
     private ExaminationSession session(Appointment appointment) {

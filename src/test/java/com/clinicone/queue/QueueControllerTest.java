@@ -1,6 +1,7 @@
 package com.clinicone.queue;
 
 import com.clinicone.config.SecurityConfig;
+import com.clinicone.auth.StaffRole;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -55,13 +56,25 @@ class QueueControllerTest {
 
     @Test
     void listsRoomQueueForStaffScreen() throws Exception {
-        when(queueService.list(eq("NOI-01"), eq(LocalDate.of(2026, 8, 6))))
+        when(queueService.listForStaff(eq("NOI-01"), eq(LocalDate.of(2026, 8, 6)), eq(ACCOUNT_ID.toString()), eq(StaffRole.COORDINATOR)))
                 .thenReturn(List.of(response()));
 
         mockMvc.perform(get("/api/v1/rooms/NOI-01/queue?date=2026-08-06")
                         .with(authentication(authenticated("ROLE_COORDINATOR"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].queueNumber").value(5));
+    }
+
+    @Test
+    void doctorGetsOnlyOwnWorkspaceQueue() throws Exception {
+        when(queueService.doctorQueue(eq(LocalDate.of(2026, 8, 6)), eq(ACCOUNT_ID.toString())))
+                .thenReturn(new DoctorQueueResponse("NOI-01", "Phòng Nội tổng quát 01", "Nội tổng quát", List.of(response())));
+
+        mockMvc.perform(get("/api/v1/doctor/queue?date=2026-08-06")
+                        .with(authentication(authenticated("ROLE_DOCTOR"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.roomCode").value("NOI-01"))
+                .andExpect(jsonPath("$.tickets[0].queueNumber").value(5));
     }
 
     @Test

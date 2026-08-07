@@ -29,6 +29,7 @@ export class StaffDashboard implements OnInit {
   protected readonly queue = signal<QueueTicketResponse[]>([]);
   protected readonly loadingRooms = signal(true);
   protected readonly loadingQueue = signal(false);
+  protected readonly doctorRoomName = signal('');
   protected readonly busyTicketId = signal('');
   protected readonly error = signal('');
   protected readonly role = signal(sessionStorage.getItem('clinicOneStaffRole') ?? '');
@@ -40,10 +41,12 @@ export class StaffDashboard implements OnInit {
 
   protected readonly isDispatcher = computed(() => ['ADMIN', 'COORDINATOR', 'RECEPTIONIST'].includes(this.role()));
   protected readonly isDoctor = computed(() => ['ADMIN', 'COORDINATOR', 'DOCTOR'].includes(this.role()));
+  protected readonly isOwnDoctor = computed(() => this.role() === 'DOCTOR');
   protected readonly canManageRooms = computed(() => ['ADMIN', 'COORDINATOR'].includes(this.role()));
 
   ngOnInit(): void {
-    this.loadRooms();
+    if (this.isOwnDoctor()) this.loadDoctorQueue();
+    else this.loadRooms();
   }
 
   protected loadRooms(): void {
@@ -67,6 +70,10 @@ export class StaffDashboard implements OnInit {
   }
 
   protected loadQueue(): void {
+    if (this.isOwnDoctor()) {
+      this.loadDoctorQueue();
+      return;
+    }
     const roomCode = this.selectedRoomCode();
     if (!roomCode) {
       this.queue.set([]);
@@ -86,7 +93,26 @@ export class StaffDashboard implements OnInit {
     });
   }
 
+  private loadDoctorQueue(): void {
+    this.loadingRooms.set(false);
+    this.loadingQueue.set(true);
+    this.error.set('');
+    this.authApi.getDoctorQueue(this.selectedDate()).subscribe({
+      next: (workspace) => {
+        this.selectedRoomCode.set(workspace.roomCode);
+        this.doctorRoomName.set(workspace.roomName);
+        this.queue.set([...workspace.tickets].sort((a, b) => a.queueNumber - b.queueNumber));
+        this.loadingQueue.set(false);
+      },
+      error: (response) => {
+        this.loadingQueue.set(false);
+        this.handleError(response);
+      },
+    });
+  }
+
   protected selectRoom(event: Event): void {
+    if (this.isOwnDoctor()) return;
     this.selectedRoomCode.set((event.target as HTMLSelectElement).value);
     this.loadQueue();
   }
@@ -122,6 +148,7 @@ export class StaffDashboard implements OnInit {
   }
 
   protected roomName(): string {
+    if (this.isOwnDoctor()) return this.doctorRoomName() || 'Chưa được phân công phòng';
     return this.rooms().find((room) => room.code === this.selectedRoomCode())?.name ?? 'Chưa chọn phòng';
   }
 

@@ -32,7 +32,7 @@
     <section
       class="mt-5 grid gap-3 rounded-lg border border-[#dce7ea] bg-white p-3 sm:grid-cols-[minmax(0,1fr)_170px_auto] sm:items-end"
       aria-label="Bộ lọc hàng đợi">
-      <label class="grid gap-1 text-[11px] font-bold uppercase tracking-[0.08em] text-slate-500">Phòng khám
+      @if (!isOwnDoctor()) {<label class="grid gap-1 text-[11px] font-bold uppercase tracking-[0.08em] text-slate-500">Phòng khám
         <select data-testid="room-selector"
           class="min-h-10 rounded-md border border-[#d5e3e7] bg-[#fbfdfe] px-3 text-sm font-semibold normal-case tracking-normal text-[#173f4b] outline-none transition focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/15"
           [value]="selectedRoomCode()" (change)="selectRoom($event)"
@@ -41,15 +41,15 @@
           @for (room of activeRooms(); track room.id) {<option [value]="room.code">{{ room.code }} · {{ room.name }}
           </option>}
         </select>
-      </label>
+      </label>} @else {<div class="grid gap-1 text-[11px] font-bold uppercase tracking-[0.08em] text-slate-500"><span>Phòng được phân công</span><div class="flex min-h-10 items-center gap-2 rounded-md bg-[#eef8fa] px-3 text-sm font-semibold normal-case tracking-normal text-[#0b84bd]"><mat-icon class="!h-5 !w-5 !text-[18px]">meeting_room</mat-icon>{{ roomName() }}</div></div>}
       <label class="grid gap-1 text-[11px] font-bold uppercase tracking-[0.08em] text-slate-500">Ngày
         <input data-testid="date-selector" type="date"
           class="min-h-10 rounded-md border border-[#d5e3e7] bg-[#fbfdfe] px-3 text-sm font-semibold normal-case tracking-normal text-[#173f4b] outline-none transition focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/15"
           [value]="selectedDate()" (change)="selectDate($event)" />
       </label>
-      <div class="flex min-h-10 items-center gap-2 rounded-md bg-[#eef8fa] px-3 text-sm font-semibold text-[#0b84bd]">
+      @if (!isOwnDoctor()) {<div class="flex min-h-10 items-center gap-2 rounded-md bg-[#eef8fa] px-3 text-sm font-semibold text-[#0b84bd]">
         <mat-icon class="!h-5 !w-5 !text-[18px]">meeting_room</mat-icon><span class="truncate">{{ roomName() }}</span>
-      </div>
+      </div>}
     </section>
 
     <section
