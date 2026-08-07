@@ -38,4 +38,10 @@ public class ReceptionController {
                                                                   @Valid @RequestBody ReceptionCheckInRequest request) {
         return ResponseEntity.ok(service.checkIn(appointmentId, request));
     }
+
+    @PostMapping("/walk-in")
+    public ResponseEntity<ReceptionAppointmentResponse> createWalkIn(
+            @Valid @RequestBody ReceptionWalkInRequest request) {
+        return ResponseEntity.ok(service.createWalkIn(request));
+    }
 }

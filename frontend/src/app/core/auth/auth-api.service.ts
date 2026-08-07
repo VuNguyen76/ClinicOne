@@ -280,6 +280,16 @@ export interface ReceptionAppointmentResponse {
   queueStatusLabel: string | null;
 }
 
+export interface ReceptionWalkInRequest {
+  phone: string;
+  profileId?: string | null;
+  doctorId: string;
+  appointmentDate: string;
+  startTime: string;
+  reason: string;
+  exceptionReason: string;
+}
+
 export interface StaffLoginResponse {
   accessToken: string;
   tokenType: string;
@@ -492,6 +502,10 @@ export class AuthApiService {
 
   receptionCheckIn(appointmentId: string, roomCode: string, reason: string): Observable<ReceptionAppointmentResponse> {
     return this.http.post<ReceptionAppointmentResponse>(`/api/v1/reception/appointments/${appointmentId}/check-in`, { roomCode, reason });
+  }
+
+  createReceptionWalkIn(request: ReceptionWalkInRequest): Observable<ReceptionAppointmentResponse> {
+    return this.http.post<ReceptionAppointmentResponse>('/api/v1/reception/walk-in', request);
   }
 
   saveDoctorExaminationDraft(ticketId: string, request: DoctorExaminationRequest): Observable<DoctorExaminationResponse> {
