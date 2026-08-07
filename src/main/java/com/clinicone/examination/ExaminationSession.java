@@ -71,6 +71,16 @@ public class ExaminationSession {
         status = ExaminationSessionStatus.COMPLETED;
     }
 
+    public void cancel() {
+        if (status == ExaminationSessionStatus.CANCELLED) {
+            return;
+        }
+        if (status == ExaminationSessionStatus.IN_PROGRESS || status == ExaminationSessionStatus.COMPLETED) {
+            throw new IllegalStateException("Lượt khám đã bắt đầu, không thể ghi nhận rời trước khám.");
+        }
+        status = ExaminationSessionStatus.CANCELLED;
+    }
+
     @PrePersist
     void onCreate() {
         if (createdAt == null) {

@@ -462,6 +462,10 @@ export class AuthApiService {
     return this.http.post<QueueTicketResponse>(`${this.queueRoot}/${ticketId}/skip`, { reason });
   }
 
+  leaveQueueTicket(ticketId: string, reason: string): Observable<QueueTicketResponse> {
+    return this.http.post<QueueTicketResponse>(`${this.queueRoot}/${ticketId}/leave`, { reason });
+  }
+
   startQueueTicket(ticketId: string): Observable<QueueTicketResponse> {
     return this.http.post<QueueTicketResponse>(`${this.queueRoot}/${ticketId}/start`, {});
   }

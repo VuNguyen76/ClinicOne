@@ -10,7 +10,7 @@ import {
   apiErrorMessage,
 } from '../../core/auth/auth-api.service';
 
-type QueueAction = 'call' | 'skip' | 'start' | 'complete';
+type QueueAction = 'call' | 'skip' | 'start' | 'complete' | 'leave';
 
 @Component({
   selector: 'app-staff-dashboard',
@@ -124,12 +124,16 @@ export class StaffDashboard implements OnInit {
   }
 
   protected act(ticket: QueueTicketResponse, action: QueueAction): void {
+    const leaveReason = action === 'leave' ? window.prompt('Lý do bệnh nhân rời trước khi khám?')?.trim() : null;
+    if (action === 'leave' && !leaveReason) return;
     this.busyTicketId.set(ticket.id);
     this.error.set('');
     const request = action === 'call'
       ? this.authApi.callQueueTicket(ticket.id)
       : action === 'skip'
         ? this.authApi.skipQueueTicket(ticket.id, 'Không có mặt khi được gọi')
+        : action === 'leave'
+          ? this.authApi.leaveQueueTicket(ticket.id, leaveReason ?? '')
         : action === 'start'
           ? this.authApi.startQueueTicket(ticket.id)
           : this.authApi.completeQueueTicket(ticket.id);

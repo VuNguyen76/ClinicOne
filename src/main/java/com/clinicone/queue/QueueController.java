@@ -79,6 +79,13 @@ public class QueueController {
                 : queueService.skip(ticketId, reason));
     }
 
+    @PostMapping("/queue/{ticketId}/leave")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR', 'RECEPTIONIST')")
+    public ResponseEntity<QueueTicketResponse> leaveBeforeExam(
+            @PathVariable UUID ticketId, @Valid @RequestBody QueueLeaveRequest request) {
+        return ResponseEntity.ok(queueService.leaveBeforeExam(ticketId, request.reason()));
+    }
+
     @PostMapping("/queue/{ticketId}/start")
     @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR', 'DOCTOR')")
     public ResponseEntity<QueueTicketResponse> start(Authentication authentication, @PathVariable UUID ticketId) {
