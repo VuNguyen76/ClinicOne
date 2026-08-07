@@ -1,0 +1,97 @@
+package com.clinicone.notification;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+
+import java.time.Instant;
+import java.util.UUID;
+
+@Entity
+@Table(name = "patient_notifications", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_patient_notifications_event", columnNames = "event_key")
+})
+public class PatientNotification {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+
+    @Column(name = "patient_account_id", nullable = false)
+    private UUID patientAccountId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 40)
+    private PatientNotificationType type;
+
+    @Column(nullable = false, length = 160)
+    private String title;
+
+    @Column(nullable = false, length = 500)
+    private String message;
+
+    @Column(name = "target_url", nullable = false, length = 300)
+    private String targetUrl;
+
+    @Column(name = "event_key", nullable = false, length = 120)
+    private String eventKey;
+
+    @Column(name = "created_at", nullable = false)
+    private Instant createdAt;
+
+    @Column(name = "read_at")
+    private Instant readAt;
+
+    protected PatientNotification() {
+    }
+
+    private PatientNotification(UUID patientAccountId, PatientNotificationType type, String title,
+                                String message, String targetUrl, String eventKey) {
+        this.patientAccountId = patientAccountId;
+        this.type = type;
+        this.title = title;
+        this.message = message;
+        this.targetUrl = targetUrl;
+        this.eventKey = eventKey;
+    }
+
+    public static PatientNotification recordSigned(UUID patientAccountId, UUID recordId, String appointmentCode,
+                                                     String doctorName, String specialty) {
+        String appointmentLabel = appointmentCode == null || appointmentCode.isBlank()
+                ? "lượt khám của bạn" : "lịch hẹn " + appointmentCode;
+        String doctorLabel = doctorName == null || doctorName.isBlank() ? "bác sĩ phụ trách" : doctorName;
+        String specialtyLabel = specialty == null || specialty.isBlank() ? "" : " tại " + specialty;
+        return new PatientNotification(patientAccountId, PatientNotificationType.MEDICAL_RECORD_SIGNED,
+                "Phiếu khám đã có kết quả",
+                "" + doctorLabel + " đã ký phiếu khám cho " + appointmentLabel + specialtyLabel + ".",
+                "/medical-records/" + recordId,
+                "MEDICAL_RECORD_SIGNED:" + recordId);
+    }
+
+    @PrePersist
+    void onCreate() {
+        createdAt = Instant.now();
+    }
+
+    public void markRead() {
+        if (readAt == null) {
+            readAt = Instant.now();
+        }
+    }
+
+    public UUID getId() { return id; }
+    public UUID getPatientAccountId() { return patientAccountId; }
+    public PatientNotificationType getType() { return type; }
+    public String getTitle() { return title; }
+    public String getMessage() { return message; }
+    public String getTargetUrl() { return targetUrl; }
+    public String getEventKey() { return eventKey; }
+    public Instant getCreatedAt() { return createdAt; }
+    public Instant getReadAt() { return readAt; }
+}

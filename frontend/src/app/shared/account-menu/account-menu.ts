@@ -1,6 +1,7 @@
-import { ChangeDetectionStrategy, Component, ElementRef, HostListener, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, HostListener, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
+import { AuthApiService } from '../../core/auth/auth-api.service';
 
 @Component({
   selector: 'app-account-menu',
@@ -14,6 +15,8 @@ export class AccountMenu {
   protected readonly menuOpen = signal(false);
   protected readonly staffRole = signal<string | null>(null);
   protected readonly fullName = signal('Tài khoản');
+  protected readonly unreadNotifications = signal(0);
+  private readonly authApi = inject(AuthApiService, { optional: true });
 
   constructor(
     private readonly router: Router,
@@ -27,6 +30,14 @@ export class AccountMenu {
       this.fullName.set(name);
     }
     this.staffRole.set(role);
+    // The header badge is hydrated on the patient home page. Other pages load
+    // their own notification data and should not start an extra request while
+    // rendering shared navigation.
+    if (token && !role && this.authApi && this.router.url === '/home') {
+      this.authApi.getUnreadNotificationCount().subscribe({
+        next: (result) => this.unreadNotifications.set(result.count),
+      });
+    }
   }
 
   protected toggleMenu(): void {

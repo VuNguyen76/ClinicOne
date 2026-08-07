@@ -10,6 +10,8 @@ import com.clinicone.queue.QueueTicketRepository;
 import com.clinicone.queue.QueueTicketStatus;
 import com.clinicone.doctor.DoctorProfile;
 import com.clinicone.doctor.DoctorProfileRepository;
+import com.clinicone.notification.PatientNotificationService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +26,7 @@ public class DoctorExaminationService {
     private final StaffAccountRepository staffRepository;
     private final AppointmentRepository appointmentRepository;
     private final DoctorProfileRepository doctorProfileRepository;
+    private final PatientNotificationService notificationService;
 
     public DoctorExaminationService(QueueTicketRepository ticketRepository,
                                     ExaminationSessionRepository sessionRepository,
@@ -31,12 +34,25 @@ public class DoctorExaminationService {
                                     StaffAccountRepository staffRepository,
                                     AppointmentRepository appointmentRepository,
                                     DoctorProfileRepository doctorProfileRepository) {
+        this(ticketRepository, sessionRepository, recordRepository, staffRepository, appointmentRepository,
+                doctorProfileRepository, null);
+    }
+
+    @Autowired
+    public DoctorExaminationService(QueueTicketRepository ticketRepository,
+                                    ExaminationSessionRepository sessionRepository,
+                                    MedicalRecordRepository recordRepository,
+                                    StaffAccountRepository staffRepository,
+                                    AppointmentRepository appointmentRepository,
+                                    DoctorProfileRepository doctorProfileRepository,
+                                    PatientNotificationService notificationService) {
         this.ticketRepository = ticketRepository;
         this.sessionRepository = sessionRepository;
         this.recordRepository = recordRepository;
         this.staffRepository = staffRepository;
         this.appointmentRepository = appointmentRepository;
         this.doctorProfileRepository = doctorProfileRepository;
+        this.notificationService = notificationService;
     }
 
     @Transactional
@@ -84,6 +100,10 @@ public class DoctorExaminationService {
             ticketRepository.save(workspace.ticket());
             sessionRepository.save(workspace.session());
             recordRepository.save(record);
+            if (notificationService != null) {
+                notificationService.notifyMedicalRecordSigned(workspace.appointment().getPatient().getId(), record.getId(),
+                        workspace.appointment().getAppointmentCode(), record.getDoctorName(), workspace.appointment().getSpecialty());
+            }
         } catch (IllegalStateException exception) {
             throw conflict("MEDICAL_RECORD_SIGN_FAILED", exception.getMessage());
         }
