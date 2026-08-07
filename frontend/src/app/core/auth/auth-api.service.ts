@@ -171,6 +171,13 @@ export interface QueueTicketResponse {
   doctorName: string;
 }
 
+export interface DoctorQueueResponse {
+  roomCode: string;
+  roomName: string;
+  specialty: string;
+  tickets: QueueTicketResponse[];
+}
+
 export interface ClinicRoomResponse {
   id: string;
   code: string;
@@ -412,6 +419,10 @@ export class AuthApiService {
 
   getRoomQueue(roomCode: string, date: string): Observable<QueueTicketResponse[]> {
     return this.http.get<QueueTicketResponse[]>(`/api/v1/rooms/${encodeURIComponent(roomCode)}/queue`, { params: { date } });
+  }
+
+  getDoctorQueue(date: string): Observable<DoctorQueueResponse> {
+    return this.http.get<DoctorQueueResponse>('/api/v1/doctor/queue', { params: { date } });
   }
 
   callQueueTicket(ticketId: string): Observable<QueueTicketResponse> {

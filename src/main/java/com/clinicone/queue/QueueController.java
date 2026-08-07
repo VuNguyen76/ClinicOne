@@ -1,6 +1,7 @@
 package com.clinicone.queue;
 
 import jakarta.validation.Valid;
+import com.clinicone.auth.StaffRole;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -36,9 +37,18 @@ public class QueueController {
     @GetMapping("/rooms/{roomCode}/queue")
     @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR', 'DOCTOR', 'RECEPTIONIST')")
     public ResponseEntity<List<QueueTicketResponse>> list(
+            Authentication authentication,
             @PathVariable String roomCode,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        return ResponseEntity.ok(queueService.list(roomCode, date));
+        return ResponseEntity.ok(queueService.listForStaff(roomCode, date, authentication.getName(), staffRole(authentication)));
+    }
+
+    @GetMapping("/doctor/queue")
+    @PreAuthorize("hasRole('DOCTOR')")
+    public ResponseEntity<DoctorQueueResponse> doctorQueue(
+            Authentication authentication,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return ResponseEntity.ok(queueService.doctorQueue(date, authentication.getName()));
     }
 
     @PostMapping("/queue/{ticketId}/call")
@@ -56,13 +66,36 @@ public class QueueController {
 
     @PostMapping("/queue/{ticketId}/start")
     @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR', 'DOCTOR')")
-    public ResponseEntity<QueueTicketResponse> start(@PathVariable UUID ticketId) {
-        return ResponseEntity.ok(queueService.start(ticketId));
+    public ResponseEntity<QueueTicketResponse> start(Authentication authentication, @PathVariable UUID ticketId) {
+        StaffRole role = staffRole(authentication);
+        return ResponseEntity.ok(role == StaffRole.DOCTOR
+                ? queueService.start(ticketId, authentication.getName())
+                : queueService.start(ticketId));
     }
 
     @PostMapping("/queue/{ticketId}/complete")
     @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR', 'DOCTOR')")
-    public ResponseEntity<QueueTicketResponse> complete(@PathVariable UUID ticketId) {
-        return ResponseEntity.ok(queueService.complete(ticketId));
+    public ResponseEntity<QueueTicketResponse> complete(Authentication authentication, @PathVariable UUID ticketId) {
+        StaffRole role = staffRole(authentication);
+        return ResponseEntity.ok(role == StaffRole.DOCTOR
+                ? queueService.complete(ticketId, authentication.getName())
+                : queueService.complete(ticketId));
+    }
+
+    private StaffRole staffRole(Authentication authentication) {
+        return authentication.getAuthorities().stream()
+                .map(granted -> granted.getAuthority())
+                .filter(authority -> authority.startsWith("ROLE_"))
+                .map(authority -> authority.substring("ROLE_".length()))
+                .map(value -> {
+                    try {
+                        return StaffRole.valueOf(value);
+                    } catch (IllegalArgumentException exception) {
+                        return null;
+                    }
+                })
+                .filter(java.util.Objects::nonNull)
+                .findFirst()
+                .orElseThrow(() -> new org.springframework.security.access.AccessDeniedException("Staff role required"));
     }
 }

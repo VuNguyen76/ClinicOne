@@ -4,6 +4,8 @@ import com.clinicone.appointment.Appointment;
 import com.clinicone.appointment.AppointmentRepository;
 import com.clinicone.appointment.AppointmentStatus;
 import com.clinicone.auth.AuthException;
+import com.clinicone.auth.StaffRole;
+import com.clinicone.doctor.DoctorProfile;
 import com.clinicone.doctor.DoctorProfileRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -102,6 +104,38 @@ public class QueueService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<QueueTicketResponse> listForStaff(String roomCode, LocalDate date, String staffId, StaffRole role) {
+        if (role == StaffRole.DOCTOR) {
+            UUID doctorId = parseStaffId(staffId);
+            DoctorProfile profile = doctorProfile(doctorId);
+            if (!profile.getRoom().getCode().equalsIgnoreCase(roomCode)) {
+                throw new AuthException(HttpStatus.FORBIDDEN, "DOCTOR_ROOM_SCOPE",
+                        "Bác sĩ chỉ được xem hàng đợi của phòng được phân công.");
+            }
+            LocalDate queueDate = date == null ? today() : date;
+            return ticketRepository.findByRoomCodeAndQueueDateAndAppointment_DoctorStaffIdOrderByQueueNumberAsc(
+                            roomCode, queueDate, doctorId).stream()
+                    .map(QueueTicketResponse::from)
+                    .toList();
+        }
+        return list(roomCode, date);
+    }
+
+    @Transactional(readOnly = true)
+    public DoctorQueueResponse doctorQueue(LocalDate date, String staffId) {
+        UUID doctorId = parseStaffId(staffId);
+        DoctorProfile profile = doctorProfile(doctorId);
+        LocalDate queueDate = date == null ? today() : date;
+        List<QueueTicketResponse> tickets = ticketRepository
+                .findByRoomCodeAndQueueDateAndAppointment_DoctorStaffIdOrderByQueueNumberAsc(
+                        profile.getRoom().getCode(), queueDate, doctorId).stream()
+                .map(QueueTicketResponse::from)
+                .toList();
+        return new DoctorQueueResponse(profile.getRoom().getCode(), profile.getRoom().getName(),
+                profile.getSpecialty(), tickets);
+    }
+
     @Transactional
     public QueueTicketResponse call(UUID ticketId) {
         QueueTicket ticket = findTicket(ticketId);
@@ -126,7 +160,13 @@ public class QueueService {
 
     @Transactional
     public QueueTicketResponse start(UUID ticketId) {
+        return start(ticketId, null);
+    }
+
+    @Transactional
+    public QueueTicketResponse start(UUID ticketId, String staffId) {
         QueueTicket ticket = findTicket(ticketId);
+        ensureDoctorOwnsTicket(ticket, staffId);
         try {
             ticket.startService();
         } catch (IllegalStateException exception) {
@@ -137,7 +177,13 @@ public class QueueService {
 
     @Transactional
     public QueueTicketResponse complete(UUID ticketId) {
+        return complete(ticketId, null);
+    }
+
+    @Transactional
+    public QueueTicketResponse complete(UUID ticketId, String staffId) {
         QueueTicket ticket = findTicket(ticketId);
+        ensureDoctorOwnsTicket(ticket, staffId);
         try {
             ticket.complete();
         } catch (IllegalStateException exception) {
@@ -157,6 +203,26 @@ public class QueueService {
         return roomRepository.findByCodeAndActiveTrue(roomCode)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "ROOM_NOT_FOUND",
                         "Không tìm thấy phòng khám đang hoạt động."));
+    }
+
+    private DoctorProfile doctorProfile(UUID staffId) {
+        if (doctorProfileRepository == null) {
+            throw new AuthException(HttpStatus.CONFLICT, "DOCTOR_ASSIGNMENT_REQUIRED",
+                    "Bác sĩ chưa được gán chuyên khoa và phòng khám.");
+        }
+        return doctorProfileRepository.findByStaffAccount_Id(staffId)
+                .filter(DoctorProfile::isActive)
+                .orElseThrow(() -> new AuthException(HttpStatus.CONFLICT, "DOCTOR_ASSIGNMENT_REQUIRED",
+                        "Bác sĩ chưa được gán chuyên khoa và phòng khám."));
+    }
+
+    private UUID parseStaffId(String staffId) {
+        try {
+            return UUID.fromString(staffId);
+        } catch (IllegalArgumentException exception) {
+            throw new AuthException(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_REQUIRED",
+                    "Phiên đăng nhập nhân viên không hợp lệ.");
+        }
     }
 
     private QueueTicket findTicket(UUID ticketId) {
@@ -179,6 +245,20 @@ public class QueueService {
                         && profile.getRoom().getCode().equalsIgnoreCase(room.getCode()))
                 .orElseThrow(() -> new AuthException(HttpStatus.CONFLICT, "QUEUE_ROOM_MISMATCH",
                         "Vui lòng quét mã tại đúng phòng của bác sĩ trong lịch hẹn."));
+    }
+
+    private void ensureDoctorOwnsTicket(QueueTicket ticket, String staffId) {
+        if (staffId == null) return;
+        UUID doctorId = parseStaffId(staffId);
+        if (!doctorId.equals(ticket.getAppointment().getDoctorStaffId())) {
+            throw new AuthException(HttpStatus.FORBIDDEN, "DOCTOR_TICKET_SCOPE",
+                    "Bác sĩ chỉ được thao tác trên lượt đã được phân công.");
+        }
+        DoctorProfile profile = doctorProfile(doctorId);
+        if (!profile.getRoom().getCode().equalsIgnoreCase(ticket.getRoom().getCode())) {
+            throw new AuthException(HttpStatus.FORBIDDEN, "DOCTOR_ROOM_SCOPE",
+                    "Bác sĩ chỉ được thao tác trong phòng được phân công.");
+        }
     }
 
     private LocalDate today() {
