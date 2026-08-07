@@ -27,6 +27,7 @@ describe('QueueCheckIn', () => {
 
   it('shows only today booked appointments from the room QR entry point', () => {
     const today = localIsoDate();
+    http.expectOne('/api/v1/rooms/NOI-01/check-in').flush({ code: 'NOI-01', name: 'Phòng Nội tổng quát 01', specialty: 'Nội tổng quát' });
     http.expectOne('/api/v1/appointments').flush([
       appointment(today, 'BOOKED', 'Nội tổng quát'),
       appointment(today, 'CANCELLED', 'Nội tổng quát'),
@@ -34,12 +35,13 @@ describe('QueueCheckIn', () => {
     ]);
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelectorAll('[data-testid="check-in-appointment"]').length).toBe(2);
-    expect(fixture.nativeElement.querySelector('[data-testid="room-code"]').textContent).toContain('NOI-01');
+    expect(fixture.nativeElement.querySelectorAll('[data-testid="check-in-appointment"]').length).toBe(1);
+    expect(fixture.nativeElement.querySelector('[data-testid="room-code"]').textContent).toContain('Phòng Nội');
   });
 
   it('returns the existing queue number after a successful check-in', () => {
     const today = localIsoDate();
+    http.expectOne('/api/v1/rooms/NOI-01/check-in').flush({ code: 'NOI-01', name: 'Phòng Nội tổng quát 01', specialty: 'Nội tổng quát' });
     http.expectOne('/api/v1/appointments').flush([appointment(today, 'BOOKED', 'Nội tổng quát')]);
     fixture.detectChanges();
 

@@ -64,4 +64,17 @@
       </section>
     </div>
   }
+  <section class="mx-auto mt-7 max-w-[1440px] px-5 pb-8 lg:px-10" aria-labelledby="room-qr-list-title">
+    <div class="flex items-end justify-between gap-4"><div><p class="text-[11px] font-bold uppercase tracking-[0.18em] text-[#0b91c9]">Check-in tại phòng</p><h2 id="room-qr-list-title" class="mt-1 text-xl font-bold tracking-[-0.03em] text-[#173f4b]">Mã QR cố định</h2></div><span class="text-xs text-slate-500">Đặt trước cửa phòng đang hoạt động</span></div>
+    <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">@for (room of visibleRooms(); track room.id) {@if (room.active) {<article class="flex items-center justify-between gap-4 rounded-xl border border-[#dce7ea] bg-white px-4 py-4 shadow-sm"><div class="min-w-0"><p class="truncate font-semibold text-[#173f4b]">{{ room.name }}</p><p class="mt-1 text-xs text-slate-500">{{ room.code }} · {{ room.specialty }}</p></div><button type="button" class="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-[#e8f7fb] px-3 py-2 text-xs font-bold text-[#0879a8] transition hover:bg-[#d7f1f8]" (click)="openQr(room)"><mat-icon class="!h-4 !w-4 !text-[16px]">qr_code_2</mat-icon>Xem mã</button></article>}}</div>
+  </section>
+
+  @if (qrRoom(); as room) {
+    <div class="fixed inset-0 z-[70] flex items-center justify-center bg-[#071f29]/60 p-4 backdrop-blur-[2px]" role="presentation" (click)="closeQr()">
+      <section class="w-full max-w-[460px] overflow-hidden rounded-2xl border border-white/70 bg-white shadow-[0_24px_80px_rgba(7,31,41,0.3)]" role="dialog" aria-modal="true" aria-labelledby="room-qr-title" (click)="$event.stopPropagation()">
+        <div class="flex items-start justify-between border-b border-[#e7eff1] px-6 py-5"><div><p class="text-[10px] font-bold uppercase tracking-[0.14em] text-[#0b91c9]">Mã check-in cố định</p><h2 id="room-qr-title" class="mt-1 text-xl font-bold text-[#173f4b]">{{ room.name }}</h2><p class="mt-1 text-sm text-slate-500">{{ room.specialty }} · {{ room.code }}</p></div><button type="button" class="grid h-9 w-9 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" aria-label="Đóng mã QR" (click)="closeQr()"><mat-icon>close</mat-icon></button></div>
+        <div class="grid place-items-center px-6 py-7"><div class="grid min-h-[290px] w-[290px] place-items-center rounded-xl border border-slate-200 bg-white p-3 shadow-inner">@if (qrLoading()) {<mat-icon class="animate-pulse !h-10 !w-10 !text-[40px] text-slate-300">qr_code_2</mat-icon>} @else if (qrImage()) {<img [src]="qrImage()" [alt]="'Mã QR check-in phòng ' + room.name" class="h-full w-full" />}</div><p class="mt-5 text-center text-sm text-slate-500">Đặt mã này trước cửa phòng để bệnh nhân quét và nhận số thứ tự.</p><div class="mt-5 flex w-full gap-3"><button type="button" class="min-h-11 flex-1 rounded-lg border border-[#b9dce7] px-4 text-sm font-semibold text-[#0879a8] hover:bg-[#e8f7fb]" [disabled]="!qrImage()" (click)="downloadQr()"><mat-icon class="mr-1 align-middle !text-[18px]">download</mat-icon>Tải xuống</button><button type="button" class="min-h-11 flex-1 rounded-lg bg-[#0b3846] px-4 text-sm font-semibold text-white hover:bg-[#082d39]" [disabled]="!qrImage()" (click)="printQr()"><mat-icon class="mr-1 align-middle !text-[18px]">print</mat-icon>In mã QR</button></div></div>
+      </section>
+    </div>
+  }
 </main>

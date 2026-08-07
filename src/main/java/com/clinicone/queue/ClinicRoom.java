@@ -30,6 +30,10 @@ public class ClinicRoom {
     @Column(nullable = false)
     private boolean active;
 
+    /** Opaque, stable value embedded in the QR card displayed outside the room. */
+    @Column(name = "qr_token", unique = true, length = 64)
+    private String qrToken;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -62,6 +66,14 @@ public class ClinicRoom {
         if (createdAt == null) {
             createdAt = Instant.now();
         }
+        ensureQrToken();
+    }
+
+    public String ensureQrToken() {
+        if (qrToken == null || qrToken.isBlank()) {
+            qrToken = UUID.randomUUID().toString();
+        }
+        return qrToken;
     }
 
     public UUID getId() { return id; }
@@ -69,4 +81,5 @@ public class ClinicRoom {
     public String getName() { return name; }
     public String getSpecialty() { return specialty; }
     public boolean isActive() { return active; }
+    public String getQrToken() { return qrToken; }
 }

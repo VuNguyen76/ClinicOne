@@ -214,6 +214,7 @@ public class QueueService {
 
     private ClinicRoom findRoom(String roomCode) {
         return roomRepository.findByCodeAndActiveTrue(roomCode)
+                .or(() -> roomRepository.findByQrTokenAndActiveTrue(roomCode))
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "ROOM_NOT_FOUND",
                         "Không tìm thấy phòng khám đang hoạt động."));
     }
