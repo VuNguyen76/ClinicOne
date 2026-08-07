@@ -79,6 +79,32 @@ class ReceptionControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
+    @Test
+    void receptionistCanCreateWalkInFromExistingPatientAccount() throws Exception {
+        when(service.createWalkIn(any())).thenReturn(responseWithTicket());
+
+        mockMvc.perform(post("/api/v1/reception/walk-in")
+                        .with(authentication(authenticated("ROLE_RECEPTIONIST")))
+                        .contentType("application/json")
+                        .content("{\"phone\":\"0912345678\",\"doctorId\":\"7d9e3fb4-1045-4ca4-86d2-7d1fca4c1a13\","
+                                + "\"appointmentDate\":\"2026-08-07\",\"startTime\":\"09:00\","
+                                + "\"reason\":\"Đau đầu từ sáng\",\"exceptionReason\":\"Người bệnh đến quầy không có lịch\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.queueNumber").value(5))
+                .andExpect(jsonPath("$.appointmentCode").value("CL-20260807-1234"));
+    }
+
+    @Test
+    void receptionistCannotCreateWalkInWithInvalidPhone() throws Exception {
+        mockMvc.perform(post("/api/v1/reception/walk-in")
+                        .with(authentication(authenticated("ROLE_RECEPTIONIST")))
+                        .contentType("application/json")
+                        .content("{\"phone\":\"09123\",\"doctorId\":\"7d9e3fb4-1045-4ca4-86d2-7d1fca4c1a13\","
+                                + "\"appointmentDate\":\"2026-08-07\",\"startTime\":\"09:00\","
+                                + "\"reason\":\"Đau đầu từ sáng\",\"exceptionReason\":\"Người bệnh đến quầy không có lịch\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
     private static UsernamePasswordAuthenticationToken authenticated(String role) {
         return UsernamePasswordAuthenticationToken.authenticated(STAFF_ID.toString(), null,
                 List.of(new SimpleGrantedAuthority(role)));
