@@ -64,7 +64,8 @@ public class AppointmentService {
         LocalDate appointmentDate = request.appointmentDate();
         LocalTime startTime = request.startTime();
         if (availabilityService != null) {
-            availabilityService.ensureBookable(request.specialty(), appointmentDate, startTime);
+            availabilityService.ensureBookable(request.specialty(), request.doctorName(), request.doctorId(),
+                    appointmentDate, startTime);
         }
         if (appointmentRepository.findByPatientIdAndAppointmentDateAndStartTimeAndStatus(
                 patientId, appointmentDate, startTime, AppointmentStatus.BOOKED).isPresent()) {
@@ -74,10 +75,11 @@ public class AppointmentService {
 
         PatientProfile profile = resolveProfile(request.profileId(), patientId);
         Appointment appointment = profile == null
-                ? Appointment.create(patient, nextAppointmentCode(), request.specialty().trim(), request.doctorName().trim(),
-                appointmentDate, startTime, request.reason().trim())
-                : Appointment.create(patient, profile, nextAppointmentCode(), request.specialty().trim(),
-                request.doctorName().trim(), appointmentDate, startTime, request.reason().trim());
+                ? Appointment.create(patient, request.doctorId(), nextAppointmentCode(), request.specialty().trim(),
+                request.doctorName().trim(), appointmentDate, startTime, request.reason().trim())
+                : Appointment.create(patient, request.doctorId(), profile, nextAppointmentCode(),
+                request.specialty().trim(), request.doctorName().trim(), appointmentDate, startTime,
+                request.reason().trim());
         return AppointmentResponse.from(appointmentRepository.save(appointment));
     }
 
@@ -106,7 +108,8 @@ public class AppointmentService {
         boolean sameSlot = appointment.getAppointmentDate().equals(request.appointmentDate())
                 && appointment.getStartTime().equals(request.startTime());
         if (availabilityService != null && !sameSlot) {
-            availabilityService.ensureBookable(appointment.getSpecialty(), request.appointmentDate(), request.startTime());
+            availabilityService.ensureBookable(appointment.getSpecialty(), appointment.getDoctorName(),
+                    appointment.getDoctorStaffId(), request.appointmentDate(), request.startTime());
         }
         if (!sameSlot && appointmentRepository.findByPatientIdAndAppointmentDateAndStartTimeAndStatus(
                 patientId, request.appointmentDate(), request.startTime(), AppointmentStatus.BOOKED).isPresent()) {

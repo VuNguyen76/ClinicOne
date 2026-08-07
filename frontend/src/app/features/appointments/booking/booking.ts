@@ -17,9 +17,12 @@ interface DateOption {
 
 interface TimeSlot {
   label: string;
-  value: string;
+  key: string;
+  startTime: string;
   period: 'Buổi sáng' | 'Buổi chiều';
   doctorName: string;
+  doctorId: string | null;
+  roomCode: string | null;
 }
 
 @Component({
@@ -54,6 +57,7 @@ export class Booking implements OnInit {
   protected readonly form = this.formBuilder.nonNullable.group({
     specialty: ['', [Validators.required, Validators.maxLength(120)]],
     doctorName: ['Bác sĩ chuyên khoa', [Validators.required, Validators.maxLength(120)]],
+    doctorId: [''],
     appointmentDate: ['', [Validators.required]],
     startTime: ['', [Validators.required]],
     reason: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(500)]],
@@ -136,9 +140,15 @@ export class Booking implements OnInit {
 
   protected chooseSlot(slot: TimeSlot): void {
     this.clearError();
-    this.selectedSlot.set(slot.value);
-    this.form.controls.startTime.setValue(slot.value);
+    this.selectedSlot.set(slot.key);
+    this.form.controls.startTime.setValue(slot.startTime);
     this.form.controls.doctorName.setValue(slot.doctorName);
+    this.form.controls.doctorId.setValue(slot.doctorId ?? '');
+  }
+
+  protected selectedSlotLabel(): string {
+    const selected = this.availableSlots().find((slot) => slot.key === this.selectedSlot());
+    return selected ? `${selected.label} · ${selected.doctorName}${selected.roomCode ? ` · ${selected.roomCode}` : ''}` : '';
   }
 
   protected slotsFor(period: TimeSlot['period']): TimeSlot[] {
@@ -203,7 +213,7 @@ export class Booking implements OnInit {
   private toTimeSlot(slot: AppointmentSlotResponse): TimeSlot {
     const startTime = slot.startTime.slice(0, 5);
     const endTime = slot.endTime.slice(0, 5);
-    return { label: `${startTime} - ${endTime}`, value: startTime, period: Number(startTime.slice(0, 2)) < 12 ? 'Buổi sáng' : 'Buổi chiều', doctorName: slot.doctorName };
+    return { label: `${startTime} - ${endTime}`, key: `${slot.doctorId ?? slot.doctorName}|${startTime}`, startTime, period: Number(startTime.slice(0, 2)) < 12 ? 'Buổi sáng' : 'Buổi chiều', doctorName: slot.doctorName, doctorId: slot.doctorId ?? null, roomCode: slot.roomCode ?? null };
   }
 
   private handleAuthError(response: { status?: number } & ApiErrorResponse): void {

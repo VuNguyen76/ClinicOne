@@ -118,6 +118,7 @@ export interface CreateAppointmentRequest {
   startTime: string;
   reason: string;
   profileId?: string;
+  doctorId?: string;
 }
 
 export interface PatientProfileRequest {
@@ -152,6 +153,8 @@ export interface AppointmentSlotResponse {
   endTime: string;
   doctorName: string;
   remainingCapacity: number;
+  doctorId?: string | null;
+  roomCode?: string | null;
 }
 
 export interface QueueTicketResponse {
@@ -173,6 +176,39 @@ export interface ClinicRoomResponse {
   code: string;
   name: string;
   specialty: string;
+  active: boolean;
+}
+
+export interface DoctorAccountResponse {
+  staffId: string;
+  username: string;
+  fullName: string;
+  specialty: string | null;
+  roomId: string | null;
+  roomCode: string | null;
+  roomName: string | null;
+  assigned: boolean;
+  active: boolean;
+}
+
+export interface DoctorAssignmentResponse {
+  staffId: string;
+  username: string;
+  fullName: string;
+  specialty: string;
+  roomId: string;
+  roomCode: string;
+  roomName: string;
+  active: boolean;
+}
+
+export interface DoctorScheduleResponse {
+  id: string;
+  doctorId: string;
+  dayOfWeek: string;
+  startTime: string;
+  endTime: string;
+  slotDurationMinutes: number;
   active: boolean;
 }
 
@@ -428,5 +464,25 @@ export class AuthApiService {
 
   setRoomActive(id: string, active: boolean): Observable<ClinicRoomResponse> {
     return this.http.post<ClinicRoomResponse>(`/api/v1/rooms/${id}/${active ? 'activate' : 'deactivate'}`, {});
+  }
+
+  getDoctors(): Observable<DoctorAccountResponse[]> {
+    return this.http.get<DoctorAccountResponse[]>('/api/v1/admin/doctors');
+  }
+
+  assignDoctor(staffId: string, specialty: string, roomId: string): Observable<DoctorAssignmentResponse> {
+    return this.http.put<DoctorAssignmentResponse>(`/api/v1/admin/doctors/${staffId}/assignment`, { specialty, roomId });
+  }
+
+  getDoctorSchedules(staffId: string): Observable<DoctorScheduleResponse[]> {
+    return this.http.get<DoctorScheduleResponse[]>(`/api/v1/admin/doctors/${staffId}/schedules`);
+  }
+
+  addDoctorSchedule(staffId: string, request: { dayOfWeek: string; startTime: string; endTime: string; slotDurationMinutes: number }): Observable<DoctorScheduleResponse> {
+    return this.http.post<DoctorScheduleResponse>(`/api/v1/admin/doctors/${staffId}/schedules`, request);
+  }
+
+  removeDoctorSchedule(staffId: string, scheduleId: string): Observable<void> {
+    return this.http.delete<void>(`/api/v1/admin/doctors/${staffId}/schedules/${scheduleId}`);
   }
 }
