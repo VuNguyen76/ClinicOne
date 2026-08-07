@@ -136,6 +136,18 @@ public class QueueTicket {
         completedAt = Instant.now();
     }
 
+    public void leaveBeforeExam(String reason) {
+        if (status == QueueTicketStatus.LEFT_BEFORE_EXAM) {
+            return;
+        }
+        if (status != QueueTicketStatus.WAITING && status != QueueTicketStatus.CALLED) {
+            throw new IllegalStateException("Chỉ có thể đóng lượt trước khi bắt đầu khám.");
+        }
+        status = QueueTicketStatus.LEFT_BEFORE_EXAM;
+        skipReason = reason == null || reason.isBlank() ? null : reason.trim();
+        completedAt = Instant.now();
+    }
+
     @PrePersist
     void onCreate() {
         if (checkedInAt == null) {

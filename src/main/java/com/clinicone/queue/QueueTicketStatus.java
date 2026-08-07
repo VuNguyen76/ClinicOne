@@ -5,6 +5,7 @@ public enum QueueTicketStatus {
     CALLED("Đang được gọi"),
     IN_SERVICE("Đang khám"),
     SKIPPED("Đã bỏ qua"),
+    LEFT_BEFORE_EXAM("Rời trước khám"),
     COMPLETED("Đã hoàn tất");
 
     private final String label;

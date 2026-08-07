@@ -108,6 +108,21 @@ class QueueControllerTest {
                 .andExpect(jsonPath("$.status").value("CALLED"));
     }
 
+    @Test
+    void receptionistCanCloseQueueTicketWhenPatientLeavesBeforeExam() throws Exception {
+        when(queueService.leaveBeforeExam(eq(TICKET_ID), eq("Bệnh nhân bận việc")))
+                .thenReturn(new QueueTicketResponse(TICKET_ID, 5, "NOI-01", "Phòng Nội tổng quát 01",
+                        LocalDate.of(2026, 8, 6), LocalTime.of(9, 0), "LEFT_BEFORE_EXAM", "Rời trước khám",
+                        "CL-20260806-1234", "Nội tổng quát", "BS. Nguyễn An"));
+
+        mockMvc.perform(post("/api/v1/queue/" + TICKET_ID + "/leave")
+                        .with(authentication(authenticated("ROLE_RECEPTIONIST")))
+                        .contentType("application/json")
+                        .content("{\"reason\":\"Bệnh nhân bận việc\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("LEFT_BEFORE_EXAM"));
+    }
+
     private static UsernamePasswordAuthenticationToken authenticated(String role) {
         return UsernamePasswordAuthenticationToken.authenticated(ACCOUNT_ID.toString(), null,
                 List.of(new SimpleGrantedAuthority(role)));

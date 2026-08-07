@@ -263,6 +263,27 @@ public class QueueService {
         return QueueTicketResponse.from(ticketRepository.save(ticket));
     }
 
+    @Transactional
+    public QueueTicketResponse leaveBeforeExam(UUID ticketId, String reason) {
+        QueueTicket ticket = findTicket(ticketId);
+        String normalizedReason = normalizeLeaveReason(reason);
+        try {
+            ticket.leaveBeforeExam(normalizedReason);
+            ticket.getAppointment().markNotPerformed();
+            appointmentRepository.save(ticket.getAppointment());
+            if (examinationSessionRepository != null) {
+                examinationSessionRepository.findByAppointment_Id(ticket.getAppointment().getId())
+                        .ifPresent(session -> {
+                            session.cancel();
+                            examinationSessionRepository.save(session);
+                        });
+            }
+        } catch (IllegalStateException exception) {
+            throw queueStateConflict(exception.getMessage());
+        }
+        return QueueTicketResponse.from(ticketRepository.save(ticket));
+    }
+
     private int nextNumber(String roomCode, LocalDate date) {
         Integer currentMax = ticketRepository.findMaxQueueNumberByRoomCodeAndQueueDate(roomCode, date);
         return currentMax == null ? 1 : currentMax + 1;
@@ -286,6 +307,19 @@ public class QueueService {
         if (normalized.length() < 3 || normalized.length() > 250) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "RECEPTION_REASON_INVALID",
                     "Lý do hỗ trợ tại quầy phải từ 3 đến 250 ký tự.");
+        }
+        return normalized;
+    }
+
+    private String normalizeLeaveReason(String reason) {
+        if (reason == null) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "QUEUE_LEAVE_REASON_REQUIRED",
+                    "Cần ghi lý do bệnh nhân rời trước khi khám.");
+        }
+        String normalized = reason.trim();
+        if (normalized.length() < 3 || normalized.length() > 250) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "QUEUE_LEAVE_REASON_INVALID",
+                    "Lý do phải từ 3 đến 250 ký tự.");
         }
         return normalized;
     }

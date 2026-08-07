@@ -209,6 +209,42 @@ class QueueServiceTest {
         verify(appointmentRepository).save(appointment);
     }
 
+    @Test
+    void receptionCanCloseTicketWhenPatientLeavesBeforeExamination() {
+        QueueTicket ticket = QueueTicket.create(appointment, room, TODAY, 5);
+        setId(ticket, UUID.randomUUID());
+        ExaminationSession session = ExaminationSession.create(appointment);
+        when(ticketRepository.findById(ticket.getId())).thenReturn(Optional.of(ticket));
+        when(examinationSessionRepository.findByAppointment_Id(APPOINTMENT_ID)).thenReturn(Optional.of(session));
+        when(ticketRepository.save(any(QueueTicket.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(appointmentRepository.save(any(Appointment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(examinationSessionRepository.save(any(ExaminationSession.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        QueueTicketResponse response = service.leaveBeforeExam(ticket.getId(), "Bệnh nhân bận việc");
+
+        assertEquals(QueueTicketStatus.LEFT_BEFORE_EXAM.name(), response.status());
+        assertEquals(AppointmentStatus.NOT_PERFORMED, appointment.getStatus());
+        assertEquals(ExaminationSessionStatus.CANCELLED, session.getStatus());
+        verify(appointmentRepository).save(appointment);
+        verify(examinationSessionRepository).save(session);
+    }
+
+    @Test
+    void cannotCloseTicketAfterExaminationHasStarted() {
+        QueueTicket ticket = QueueTicket.create(appointment, room, TODAY, 5);
+        setId(ticket, UUID.randomUUID());
+        ticket.call();
+        ticket.startService();
+        when(ticketRepository.findById(ticket.getId())).thenReturn(Optional.of(ticket));
+
+        AuthException exception = assertThrows(AuthException.class,
+                () -> service.leaveBeforeExam(ticket.getId(), "Bệnh nhân bận việc"));
+
+        assertEquals(409, exception.getStatus().value());
+        assertEquals("QUEUE_INVALID_STATE", exception.getCode());
+    }
+
     private static Appointment appointment(String specialty, LocalDate date) {
         PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
         setId(account, ACCOUNT_ID);
