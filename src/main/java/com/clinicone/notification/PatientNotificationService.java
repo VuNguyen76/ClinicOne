@@ -1,7 +1,10 @@
 package com.clinicone.notification;
 
 import com.clinicone.auth.AuthException;
+import com.clinicone.auth.PatientAccountRepository;
 import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,9 +15,25 @@ import com.clinicone.appointment.Appointment;
 @Service
 public class PatientNotificationService {
     private final PatientNotificationRepository repository;
+    private final PatientAccountRepository accountRepository;
+    private final SmsSender smsSender;
 
     public PatientNotificationService(PatientNotificationRepository repository) {
+        this(repository, null, (SmsSender) null);
+    }
+
+    public PatientNotificationService(PatientNotificationRepository repository,
+                                      PatientAccountRepository accountRepository, SmsSender smsSender) {
         this.repository = repository;
+        this.accountRepository = accountRepository;
+        this.smsSender = smsSender;
+    }
+
+    @Autowired
+    public PatientNotificationService(PatientNotificationRepository repository,
+                                      PatientAccountRepository accountRepository,
+                                      ObjectProvider<SmsSender> smsSenders) {
+        this(repository, accountRepository, smsSenders.getIfAvailable());
     }
 
     @Transactional(readOnly = true)
@@ -79,8 +98,25 @@ public class PatientNotificationService {
 
     private void saveOnce(PatientNotification notification) {
         if (!repository.existsByEventKey(notification.getEventKey())) {
-            repository.save(notification);
+            PatientNotification saved = repository.save(notification);
+            sendSmsBestEffort(saved);
         }
+    }
+
+    private void sendSmsBestEffort(PatientNotification notification) {
+        if (smsSender == null || accountRepository == null) {
+            return;
+        }
+        accountRepository.findById(notification.getPatientAccountId())
+                .map(account -> account.getPhone())
+                .filter(phone -> phone != null && !phone.isBlank())
+                .ifPresent(phone -> {
+                    try {
+                        smsSender.sendText(phone, notification.getMessage());
+                    } catch (RuntimeException ignored) {
+                        // SMS is a best-effort channel; the in-app notification remains authoritative.
+                    }
+                });
     }
 
     private UUID parseAccountId(String accountId) {
