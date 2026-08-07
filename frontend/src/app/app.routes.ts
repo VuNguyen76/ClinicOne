@@ -1,9 +1,9 @@
 import { Routes } from '@angular/router';
-import { doctorGuard, patientGuard, roomManagerGuard, staffGuard } from './core/auth/auth.guard';
+import { doctorGuard, homeGuard, patientGuard, roomManagerGuard, staffGuard } from './core/auth/auth.guard';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'home' },
-  { path: 'home', loadComponent: () => import('./features/home/home').then((m) => m.Home) },
+  { path: 'home', loadComponent: () => import('./features/home/home').then((m) => m.Home), canActivate: [homeGuard] },
   { path: 'login', loadComponent: () => import('./features/auth/login/login').then((m) => m.Login) },
   { path: 'staff/login', loadComponent: () => import('./features/staff-auth/staff-login').then((m) => m.StaffLogin) },
   { path: 'staff', loadComponent: () => import('./features/staff-dashboard/staff-dashboard').then((m) => m.StaffDashboard), canActivate: [doctorGuard] },

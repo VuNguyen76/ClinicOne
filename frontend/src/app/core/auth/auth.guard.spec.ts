@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
-import { authGuard, doctorGuard, patientGuard, roomManagerGuard, staffGuard } from './auth.guard';
+import { authGuard, doctorGuard, homeGuard, patientGuard, roomManagerGuard, staffGuard } from './auth.guard';
 
 describe('ClinicOne route guards', () => {
   let router: { createUrlTree: ReturnType<typeof vi.fn> };
@@ -43,5 +43,11 @@ describe('ClinicOne route guards', () => {
 
     sessionStorage.setItem('clinicOneStaffRole', 'ADMIN');
     expect(TestBed.runInInjectionContext(() => doctorGuard(null as never, { url: '/staff' } as never))).toEqual({ commands: ['/home'] });
+  });
+
+  it('keeps staff sessions out of the patient home page', () => {
+    sessionStorage.setItem('clinicOneAccessToken', 'staff-token');
+    sessionStorage.setItem('clinicOneStaffRole', 'DOCTOR');
+    expect(TestBed.runInInjectionContext(() => homeGuard(null as never, { url: '/home' } as never))).toEqual({ commands: ['/staff'] });
   });
 });
