@@ -50,6 +50,10 @@ export class AccountMenu {
     return Boolean(this.staffRole());
   }
 
+  protected isDoctor(): boolean {
+    return this.staffRole() === 'DOCTOR';
+  }
+
   protected canManageRooms(): boolean {
     return this.staffRole() === 'ADMIN' || this.staffRole() === 'COORDINATOR';
   }
