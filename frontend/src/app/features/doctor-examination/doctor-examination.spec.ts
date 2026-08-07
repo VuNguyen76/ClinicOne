@@ -58,6 +58,24 @@ describe('DoctorExamination', () => {
 
     expect(fixture.nativeElement.textContent).toContain('Đã lưu bản nháp');
   });
+
+  it('autosaves edited clinical fields after the doctor pauses typing', () => {
+    vi.useFakeTimers();
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+
+    const reason = fixture.nativeElement.querySelector('textarea[formControlName="reason"]') as HTMLTextAreaElement;
+    reason.value = 'Đau đầu kéo dài';
+    reason.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    vi.advanceTimersByTime(1200);
+    const request = http.expectOne('/api/v1/doctor/examinations/ticket-1/draft');
+    expect(request.request.method).toBe('PUT');
+    expect(request.request.body.reason).toBe('Đau đầu kéo dài');
+    request.flush({ ...examination(), reason: 'Đau đầu kéo dài' });
+    vi.useRealTimers();
+  });
 });
 
 function examination() {
