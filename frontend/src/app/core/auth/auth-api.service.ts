@@ -255,6 +255,24 @@ export interface DoctorExaminationRequest {
   followUpDate?: string | null;
 }
 
+export interface ReceptionAppointmentResponse {
+  id: string;
+  appointmentCode: string;
+  appointmentDate: string;
+  startTime: string;
+  specialty: string;
+  doctorName: string;
+  roomCode: string | null;
+  roomName: string | null;
+  patientProfileId: string | null;
+  patientName: string;
+  patientPhone: string | null;
+  status: string;
+  queueNumber: number | null;
+  queueStatus: string | null;
+  queueStatusLabel: string | null;
+}
+
 export interface StaffLoginResponse {
   accessToken: string;
   tokenType: string;
@@ -447,6 +465,14 @@ export class AuthApiService {
 
   getDoctorExamination(ticketId: string): Observable<DoctorExaminationResponse> {
     return this.http.get<DoctorExaminationResponse>(`/api/v1/doctor/examinations/${ticketId}`);
+  }
+
+  searchReceptionAppointments(query: string, date: string): Observable<ReceptionAppointmentResponse[]> {
+    return this.http.get<ReceptionAppointmentResponse[]>('/api/v1/reception/appointments', { params: { query, date } });
+  }
+
+  receptionCheckIn(appointmentId: string, roomCode: string): Observable<ReceptionAppointmentResponse> {
+    return this.http.post<ReceptionAppointmentResponse>(`/api/v1/reception/appointments/${appointmentId}/check-in`, { roomCode });
   }
 
   saveDoctorExaminationDraft(ticketId: string, request: DoctorExaminationRequest): Observable<DoctorExaminationResponse> {

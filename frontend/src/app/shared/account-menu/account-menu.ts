@@ -58,6 +58,10 @@ export class AccountMenu {
     return this.staffRole() === 'ADMIN' || this.staffRole() === 'COORDINATOR';
   }
 
+  protected canReceivePatients(): boolean {
+    return ['ADMIN', 'COORDINATOR', 'RECEPTIONIST'].includes(this.staffRole() ?? '');
+  }
+
   protected staffRoleLabel(): string {
     switch (this.staffRole()) {
       case 'ADMIN': return 'Quản trị viên';

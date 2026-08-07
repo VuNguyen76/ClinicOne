@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { doctorGuard, homeGuard, patientGuard, roomManagerGuard, staffGuard } from './core/auth/auth.guard';
+import { doctorGuard, homeGuard, patientGuard, receptionGuard, roomManagerGuard, staffGuard } from './core/auth/auth.guard';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'home' },
@@ -17,6 +17,7 @@ export const routes: Routes = [
   { path: 'appointments/:id', loadComponent: () => import('./features/appointments/detail/appointment-detail').then((m) => m.AppointmentDetail), canActivate: [patientGuard] },
   { path: 'queue/check-in/:roomCode', loadComponent: () => import('./features/queue/check-in/queue-check-in').then((m) => m.QueueCheckIn), canActivate: [patientGuard] },
   { path: 'queue/rooms/:roomCode', loadComponent: () => import('./features/queue/board/queue-board').then((m) => m.QueueBoard), canActivate: [staffGuard] },
+  { path: 'reception/check-in', loadComponent: () => import('./features/reception/check-in/reception-check-in').then((m) => m.ReceptionCheckIn), canActivate: [receptionGuard] },
   { path: 'medical-records', loadComponent: () => import('./features/medical-records/medical-records').then((m) => m.MedicalRecords), canActivate: [patientGuard] },
   { path: 'medical-records/:id', loadComponent: () => import('./features/medical-records/medical-record-detail').then((m) => m.MedicalRecordDetail), canActivate: [patientGuard] },
   { path: 'patient-profiles', loadComponent: () => import('./features/patient-profiles/patient-profiles').then((m) => m.PatientProfiles), canActivate: [patientGuard] },
