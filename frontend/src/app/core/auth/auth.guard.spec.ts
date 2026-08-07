@@ -39,15 +39,15 @@ describe('ClinicOne route guards', () => {
   it('allows the medical operations board only for doctors', () => {
     sessionStorage.setItem('clinicOneAccessToken', 'staff-token');
     sessionStorage.setItem('clinicOneStaffRole', 'DOCTOR');
-    expect(TestBed.runInInjectionContext(() => doctorGuard(null as never, { url: '/staff' } as never))).toBe(true);
+    expect(TestBed.runInInjectionContext(() => doctorGuard(null as never, { url: '/doctor' } as never))).toBe(true);
 
     sessionStorage.setItem('clinicOneStaffRole', 'ADMIN');
-    expect(TestBed.runInInjectionContext(() => doctorGuard(null as never, { url: '/staff' } as never))).toEqual({ commands: ['/home'] });
+    expect(TestBed.runInInjectionContext(() => doctorGuard(null as never, { url: '/doctor' } as never))).toEqual({ commands: ['/home'] });
   });
 
   it('keeps staff sessions out of the patient home page', () => {
     sessionStorage.setItem('clinicOneAccessToken', 'staff-token');
     sessionStorage.setItem('clinicOneStaffRole', 'DOCTOR');
-    expect(TestBed.runInInjectionContext(() => homeGuard(null as never, { url: '/home' } as never))).toEqual({ commands: ['/staff'] });
+    expect(TestBed.runInInjectionContext(() => homeGuard(null as never, { url: '/home' } as never))).toEqual({ commands: ['/doctor'] });
   });
 });

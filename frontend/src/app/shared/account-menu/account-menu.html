@@ -28,11 +28,11 @@
     </div>
 
     @if (isStaff()) {
-    <nav class="py-2" aria-label="Điều hướng vận hành">Bảng điều hành
-      @if (isDoctor()) {<a routerLink="/staff" [class.bg-[#eafaff]]="isActive('/staff')"
-        [class.text-[#0284c7]]="isActive('/staff')" [attr.aria-current]="isActive('/staff') ? 'page' : null"
+    <nav class="py-2" aria-label="Điều hướng vận hành">
+        @if (isDoctor()) {<a routerLink="/doctor" [class.bg-[#eafaff]]="isActive('/doctor')"
+        [class.text-[#0284c7]]="isActive('/doctor')" [attr.aria-current]="isActive('/doctor') ? 'page' : null"
         class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]"
-        role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">monitor_heart</mat-icon></a>}
+        role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">monitor_heart</mat-icon>Không gian bác sĩ</a>}
       @if (canManageRooms()) {<a routerLink="/admin/rooms" [class.bg-[#eafaff]]="isActive('/admin/rooms')"
         [class.text-[#0284c7]]="isActive('/admin/rooms')" [attr.aria-current]="isActive('/admin/rooms') ? 'page' : null"
         class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]"
