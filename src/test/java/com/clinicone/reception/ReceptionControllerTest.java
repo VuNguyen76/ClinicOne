@@ -62,12 +62,21 @@ class ReceptionControllerTest {
         when(service.checkIn(eq(APPOINTMENT_ID), any())).thenReturn(responseWithTicket());
 
         mockMvc.perform(post("/api/v1/reception/appointments/" + APPOINTMENT_ID + "/check-in")
-                        .with(authentication(authenticated("ROLE_RECEPTIONIST")))
+                .with(authentication(authenticated("ROLE_RECEPTIONIST")))
                         .contentType("application/json")
-                        .content("{\"roomCode\":\"NOI-01\"}"))
+                        .content("{\"roomCode\":\"NOI-01\",\"reason\":\"QR phòng bị lỗi\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.queueNumber").value(5))
                 .andExpect(jsonPath("$.queueStatus").value("WAITING"));
+    }
+
+    @Test
+    void receptionistCannotUseExceptionCheckInWithoutReason() throws Exception {
+        mockMvc.perform(post("/api/v1/reception/appointments/" + APPOINTMENT_ID + "/check-in")
+                        .with(authentication(authenticated("ROLE_RECEPTIONIST")))
+                        .contentType("application/json")
+                        .content("{\"roomCode\":\"NOI-01\"}"))
+                .andExpect(status().isBadRequest());
     }
 
     private static UsernamePasswordAuthenticationToken authenticated(String role) {

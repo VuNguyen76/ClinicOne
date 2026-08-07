@@ -478,12 +478,16 @@ export class AuthApiService {
     return this.http.get<DoctorExaminationResponse>(`/api/v1/doctor/examinations/${ticketId}`);
   }
 
+  callNextDoctor(date: string): Observable<QueueTicketResponse> {
+    return this.http.post<QueueTicketResponse>('/api/v1/doctor/queue/call-next', {}, { params: { date } });
+  }
+
   searchReceptionAppointments(query: string, date: string): Observable<ReceptionAppointmentResponse[]> {
     return this.http.get<ReceptionAppointmentResponse[]>('/api/v1/reception/appointments', { params: { query, date } });
   }
 
-  receptionCheckIn(appointmentId: string, roomCode: string): Observable<ReceptionAppointmentResponse> {
-    return this.http.post<ReceptionAppointmentResponse>(`/api/v1/reception/appointments/${appointmentId}/check-in`, { roomCode });
+  receptionCheckIn(appointmentId: string, roomCode: string, reason: string): Observable<ReceptionAppointmentResponse> {
+    return this.http.post<ReceptionAppointmentResponse>(`/api/v1/reception/appointments/${appointmentId}/check-in`, { roomCode, reason });
   }
 
   saveDoctorExaminationDraft(ticketId: string, request: DoctorExaminationRequest): Observable<DoctorExaminationResponse> {

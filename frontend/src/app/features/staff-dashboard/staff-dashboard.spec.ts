@@ -49,6 +49,16 @@ describe('StaffDashboard', () => {
 
     expect(fixture.nativeElement.querySelector('[data-testid="queue-status"]').textContent).toContain('Đã gọi');
   });
+
+  it('shows the call-next action to a doctor for a waiting ticket', () => {
+    http.expectOne('/api/v1/rooms').flush([room('NOI-01')]);
+    http.expectOne((request) => request.url.endsWith('/queue')).flush([ticket('ticket-1', 'WAITING')]);
+    const component = fixture.componentInstance as any;
+    component.role.set('DOCTOR');
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[data-testid="call-next"]')).not.toBeNull();
+  });
 });
 
 function room(code: string) {

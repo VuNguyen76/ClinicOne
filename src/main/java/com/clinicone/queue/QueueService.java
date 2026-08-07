@@ -7,6 +7,8 @@ import com.clinicone.auth.AuthException;
 import com.clinicone.auth.StaffRole;
 import com.clinicone.doctor.DoctorProfile;
 import com.clinicone.doctor.DoctorProfileRepository;
+import com.clinicone.examination.ExaminationSession;
+import com.clinicone.examination.ExaminationSessionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -27,26 +29,34 @@ public class QueueService {
     private final QueueTicketRepository ticketRepository;
     private final AppointmentRepository appointmentRepository;
     private final DoctorProfileRepository doctorProfileRepository;
+    private final ExaminationSessionRepository examinationSessionRepository;
     private final Clock clock;
 
     public QueueService(ClinicRoomRepository roomRepository, QueueTicketRepository ticketRepository,
                         AppointmentRepository appointmentRepository) {
-        this(roomRepository, ticketRepository, appointmentRepository, null, Clock.systemUTC());
+        this(roomRepository, ticketRepository, appointmentRepository, null, null, Clock.systemUTC());
     }
 
     public QueueService(ClinicRoomRepository roomRepository, QueueTicketRepository ticketRepository,
                         AppointmentRepository appointmentRepository, Clock clock) {
-        this(roomRepository, ticketRepository, appointmentRepository, null, clock);
+        this(roomRepository, ticketRepository, appointmentRepository, null, null, clock);
+    }
+
+    public QueueService(ClinicRoomRepository roomRepository, QueueTicketRepository ticketRepository,
+                        AppointmentRepository appointmentRepository, DoctorProfileRepository doctorProfileRepository,
+                        Clock clock) {
+        this(roomRepository, ticketRepository, appointmentRepository, doctorProfileRepository, null, clock);
     }
 
     @Autowired
     public QueueService(ClinicRoomRepository roomRepository, QueueTicketRepository ticketRepository,
                         AppointmentRepository appointmentRepository, DoctorProfileRepository doctorProfileRepository,
-                        Clock clock) {
+                        ExaminationSessionRepository examinationSessionRepository, Clock clock) {
         this.roomRepository = roomRepository;
         this.ticketRepository = ticketRepository;
         this.appointmentRepository = appointmentRepository;
         this.doctorProfileRepository = doctorProfileRepository;
+        this.examinationSessionRepository = examinationSessionRepository;
         this.clock = clock;
     }
 
@@ -60,14 +70,18 @@ public class QueueService {
     }
 
     @Transactional
-    public QueueTicketResponse checkInByStaff(String roomCode, UUID appointmentId) {
+    public QueueTicketResponse checkInByStaff(String roomCode, UUID appointmentId, String exceptionReason) {
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "APPOINTMENT_NOT_FOUND",
                         "Không tìm thấy lịch hẹn."));
-        return checkInAppointment(roomCode, appointment);
+        return checkInAppointment(roomCode, appointment, normalizeExceptionReason(exceptionReason));
     }
 
     private QueueTicketResponse checkInAppointment(String roomCode, Appointment appointment) {
+        return checkInAppointment(roomCode, appointment, null);
+    }
+
+    private QueueTicketResponse checkInAppointment(String roomCode, Appointment appointment, String exceptionReason) {
         ClinicRoom room = findRoom(roomCode);
         ensureBookable(appointment);
         LocalDate today = today();
@@ -93,16 +107,25 @@ public class QueueService {
                 throw new AuthException(HttpStatus.CONFLICT, "QUEUE_ALREADY_COMPLETED",
                         "Lượt khám này đã hoàn tất.");
             }
+            if (exceptionReason != null) {
+                ticket.recordExceptionReason(exceptionReason);
+                ticketRepository.save(ticket);
+            }
+            ensureCheckedInSession(appointment);
             return QueueTicketResponse.from(ticket);
         }
 
         int nextNumber = nextNumber(room.getCode(), today);
         try {
-            QueueTicket ticket = ticketRepository.save(QueueTicket.create(appointment, room, today, nextNumber));
+            QueueTicket ticket = ticketRepository.save(QueueTicket.create(appointment, room, today, nextNumber, exceptionReason));
+            ensureCheckedInSession(appointment);
             return QueueTicketResponse.from(ticket);
         } catch (DataIntegrityViolationException exception) {
             return ticketRepository.findByAppointmentId(appointmentId)
-                    .map(QueueTicketResponse::from)
+                    .map(ticket -> {
+                        ensureCheckedInSession(appointment);
+                        return QueueTicketResponse.from(ticket);
+                    })
                     .orElseThrow(() -> new AuthException(HttpStatus.CONFLICT, "QUEUE_CHECK_IN_RETRY",
                             "Không thể cấp số lúc này, vui lòng thử lại."));
         }
@@ -151,7 +174,13 @@ public class QueueService {
 
     @Transactional
     public QueueTicketResponse call(UUID ticketId) {
+        return call(ticketId, null);
+    }
+
+    @Transactional
+    public QueueTicketResponse call(UUID ticketId, String staffId) {
         QueueTicket ticket = findTicket(ticketId);
+        ensureDoctorOwnsTicket(ticket, staffId);
         try {
             ticket.call();
         } catch (IllegalStateException exception) {
@@ -161,8 +190,30 @@ public class QueueService {
     }
 
     @Transactional
+    public QueueTicketResponse callNext(String staffId, LocalDate date) {
+        UUID doctorId = parseStaffId(staffId);
+        DoctorProfile profile = doctorProfile(doctorId);
+        LocalDate queueDate = date == null ? today() : date;
+        QueueTicket next = ticketRepository
+                .findByRoomCodeAndQueueDateAndAppointment_DoctorStaffIdOrderByQueueNumberAsc(
+                        profile.getRoom().getCode(), queueDate, doctorId).stream()
+                .filter(ticket -> ticket.getStatus() == QueueTicketStatus.WAITING
+                        || ticket.getStatus() == QueueTicketStatus.SKIPPED)
+                .findFirst()
+                .orElseThrow(() -> new AuthException(HttpStatus.CONFLICT, "QUEUE_NO_NEXT_PATIENT",
+                        "Không còn bệnh nhân đang chờ trong hàng đợi."));
+        return call(next.getId(), staffId);
+    }
+
+    @Transactional
     public QueueTicketResponse skip(UUID ticketId, String reason) {
+        return skip(ticketId, null, reason);
+    }
+
+    @Transactional
+    public QueueTicketResponse skip(UUID ticketId, String staffId, String reason) {
         QueueTicket ticket = findTicket(ticketId);
+        ensureDoctorOwnsTicket(ticket, staffId);
         try {
             ticket.skip(reason);
         } catch (IllegalStateException exception) {
@@ -210,6 +261,28 @@ public class QueueService {
     private int nextNumber(String roomCode, LocalDate date) {
         Integer currentMax = ticketRepository.findMaxQueueNumberByRoomCodeAndQueueDate(roomCode, date);
         return currentMax == null ? 1 : currentMax + 1;
+    }
+
+    private void ensureCheckedInSession(Appointment appointment) {
+        if (examinationSessionRepository == null) {
+            return;
+        }
+        ExaminationSession session = examinationSessionRepository.findByAppointment_Id(appointment.getId())
+                .orElseGet(() -> ExaminationSession.create(appointment));
+        session.checkIn();
+        examinationSessionRepository.save(session);
+    }
+
+    private String normalizeExceptionReason(String reason) {
+        if (reason == null) {
+            return null;
+        }
+        String normalized = reason.trim();
+        if (normalized.length() < 3 || normalized.length() > 250) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "RECEPTION_REASON_INVALID",
+                    "Lý do hỗ trợ tại quầy phải từ 3 đến 250 ký tự.");
+        }
+        return normalized;
     }
 
     private ClinicRoom findRoom(String roomCode) {

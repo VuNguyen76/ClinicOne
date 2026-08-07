@@ -54,7 +54,7 @@ public class ReceptionService {
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "APPOINTMENT_NOT_FOUND",
                         "Không tìm thấy lịch hẹn."));
-        QueueTicketResponse ticket = queueService.checkInByStaff(request.roomCode().trim(), appointmentId);
+        QueueTicketResponse ticket = queueService.checkInByStaff(request.roomCode().trim(), appointmentId, request.reason().trim());
         return toResponse(appointment, ticket);
     }
 
