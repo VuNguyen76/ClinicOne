@@ -110,6 +110,9 @@ export class StaffDashboard implements OnInit {
       next: (updated) => {
         this.queue.update((items) => items.map((item) => item.id === updated.id ? updated : item));
         this.busyTicketId.set('');
+        if (action === 'start') {
+          void this.router.navigate(['/doctor/examinations', ticket.id]);
+        }
       },
       error: (response) => {
         this.busyTicketId.set('');

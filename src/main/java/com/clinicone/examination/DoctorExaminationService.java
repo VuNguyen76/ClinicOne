@@ -1,0 +1,149 @@
+package com.clinicone.examination;
+
+import com.clinicone.auth.AuthException;
+import com.clinicone.auth.StaffAccount;
+import com.clinicone.auth.StaffAccountRepository;
+import com.clinicone.appointment.Appointment;
+import com.clinicone.appointment.AppointmentRepository;
+import com.clinicone.queue.QueueTicket;
+import com.clinicone.queue.QueueTicketRepository;
+import com.clinicone.queue.QueueTicketStatus;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.UUID;
+
+@Service
+public class DoctorExaminationService {
+    private final QueueTicketRepository ticketRepository;
+    private final ExaminationSessionRepository sessionRepository;
+    private final MedicalRecordRepository recordRepository;
+    private final StaffAccountRepository staffRepository;
+    private final AppointmentRepository appointmentRepository;
+
+    public DoctorExaminationService(QueueTicketRepository ticketRepository,
+                                    ExaminationSessionRepository sessionRepository,
+                                    MedicalRecordRepository recordRepository,
+                                    StaffAccountRepository staffRepository,
+                                    AppointmentRepository appointmentRepository) {
+        this.ticketRepository = ticketRepository;
+        this.sessionRepository = sessionRepository;
+        this.recordRepository = recordRepository;
+        this.staffRepository = staffRepository;
+        this.appointmentRepository = appointmentRepository;
+    }
+
+    @Transactional
+    public DoctorExaminationResponse open(UUID ticketId, String staffId) {
+        Workspace workspace = workspace(ticketId);
+        workspace.session().begin();
+        MedicalRecord record = record(workspace.session());
+        if (record.getDoctorName() == null || record.getDoctorName().isBlank()) {
+            record.saveDraft(doctorName(staffId, workspace.appointment()), record.getReason(),
+                    record.getExaminationNotes(), record.getDiagnosis(), record.getConclusion(),
+                    record.getTreatmentPlan(), record.getPrescription(), record.getFollowUpDate());
+        }
+        return response(workspace.ticket(), workspace.session(), record);
+    }
+
+    @Transactional
+    public DoctorExaminationResponse saveDraft(UUID ticketId, String staffId, DoctorExaminationRequest request) {
+        Workspace workspace = workspace(ticketId);
+        workspace.session().begin();
+        MedicalRecord record = record(workspace.session());
+        try {
+            record.saveDraft(doctorName(staffId, workspace.appointment()), request.reason(), request.examinationNotes(),
+                    request.diagnosis(), request.conclusion(), request.treatmentPlan(), request.prescription(),
+                    request.followUpDate());
+        } catch (IllegalStateException exception) {
+            throw conflict("MEDICAL_RECORD_LOCKED", exception.getMessage());
+        }
+        return response(workspace.ticket(), workspace.session(), record);
+    }
+
+    @Transactional
+    public DoctorExaminationResponse sign(UUID ticketId, String staffId, DoctorExaminationRequest request) {
+        Workspace workspace = workspace(ticketId);
+        workspace.session().begin();
+        requireRequiredFields(request);
+        MedicalRecord record = record(workspace.session());
+        try {
+            record.sign(doctorName(staffId, workspace.appointment()), request.reason(), request.examinationNotes(),
+                    request.diagnosis(), request.conclusion(), request.treatmentPlan(), request.prescription(),
+                    request.followUpDate());
+            workspace.session().complete();
+            workspace.ticket().complete();
+            workspace.appointment().complete();
+            appointmentRepository.save(workspace.appointment());
+            ticketRepository.save(workspace.ticket());
+            sessionRepository.save(workspace.session());
+            recordRepository.save(record);
+        } catch (IllegalStateException exception) {
+            throw conflict("MEDICAL_RECORD_SIGN_FAILED", exception.getMessage());
+        }
+        return response(workspace.ticket(), workspace.session(), record);
+    }
+
+    private Workspace workspace(UUID ticketId) {
+        QueueTicket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "QUEUE_TICKET_NOT_FOUND",
+                        "Không tìm thấy lượt trong hàng đợi."));
+        if (ticket.getStatus() != QueueTicketStatus.IN_SERVICE) {
+            throw conflict("QUEUE_INVALID_STATE", "Lượt khám chưa ở trạng thái đang khám.");
+        }
+        return new Workspace(ticket, ticket.getAppointment(), session(ticket.getAppointment()));
+    }
+
+    private ExaminationSession session(Appointment appointment) {
+        return sessionRepository.findByAppointment_Id(appointment.getId())
+                .orElseGet(() -> sessionRepository.save(ExaminationSession.create(appointment)));
+    }
+
+    private MedicalRecord record(ExaminationSession session) {
+        return recordRepository.findBySession_Id(session.getId())
+                .orElseGet(() -> recordRepository.save(MedicalRecord.draft(session)));
+    }
+
+    private String doctorName(String staffId, Appointment appointment) {
+        try {
+            return staffRepository.findById(UUID.fromString(staffId))
+                    .map(StaffAccount::getFullName)
+                    .filter(name -> name != null && !name.isBlank())
+                    .orElse(appointment.getDoctorName());
+        } catch (IllegalArgumentException exception) {
+            return appointment.getDoctorName();
+        }
+    }
+
+    private void requireRequiredFields(DoctorExaminationRequest request) {
+        if (blank(request.reason()) || blank(request.examinationNotes()) || blank(request.diagnosis())
+                || blank(request.conclusion())) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "MEDICAL_RECORD_REQUIRED",
+                    "Cần nhập lý do khám, ghi nhận khám, chẩn đoán và kết luận trước khi ký phiếu.");
+        }
+    }
+
+    private boolean blank(String value) {
+        return value == null || value.isBlank();
+    }
+
+    private AuthException conflict(String code, String message) {
+        return new AuthException(HttpStatus.CONFLICT, code, message);
+    }
+
+    private DoctorExaminationResponse response(QueueTicket ticket, ExaminationSession session, MedicalRecord record) {
+        Appointment appointment = ticket.getAppointment();
+        var patient = appointment.getPatient();
+        return new DoctorExaminationResponse(ticket.getId(), appointment.getId(), session.getId(), ticket.getQueueNumber(),
+                ticket.getRoom().getName(), appointment.getAppointmentCode(), appointment.getSpecialty(),
+                record.getDoctorName() == null ? appointment.getDoctorName() : record.getDoctorName(),
+                appointment.getAppointmentDate(), appointment.getStartTime(), patient.getFullName(),
+                patient.getDateOfBirth(), patient.getGender(), patient.getPhone(), record.getReason(),
+                record.getExaminationNotes(), record.getDiagnosis(), record.getConclusion(), record.getTreatmentPlan(),
+                record.getPrescription(), record.getFollowUpDate(), session.getStatus().name(), record.getSignedAt());
+    }
+
+    private record Workspace(QueueTicket ticket, Appointment appointment, ExaminationSession session) {
+    }
+}

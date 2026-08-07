@@ -176,6 +176,42 @@ export interface ClinicRoomResponse {
   active: boolean;
 }
 
+export interface DoctorExaminationResponse {
+  ticketId: string;
+  appointmentId: string;
+  examinationId: string;
+  queueNumber: number;
+  roomName: string;
+  appointmentCode: string;
+  specialty: string;
+  doctorName: string;
+  appointmentDate: string;
+  startTime: string;
+  patientName: string;
+  patientDateOfBirth: string | null;
+  patientGender: string | null;
+  patientPhone: string;
+  reason: string | null;
+  examinationNotes: string | null;
+  diagnosis: string | null;
+  conclusion: string | null;
+  treatmentPlan: string | null;
+  prescription: string | null;
+  followUpDate: string | null;
+  status: string;
+  signedAt: string | null;
+}
+
+export interface DoctorExaminationRequest {
+  reason?: string;
+  examinationNotes?: string;
+  diagnosis?: string;
+  conclusion?: string;
+  treatmentPlan?: string;
+  prescription?: string;
+  followUpDate?: string | null;
+}
+
 export interface StaffLoginResponse {
   accessToken: string;
   tokenType: string;
@@ -360,6 +396,18 @@ export class AuthApiService {
 
   getRooms(): Observable<ClinicRoomResponse[]> {
     return this.http.get<ClinicRoomResponse[]>('/api/v1/rooms');
+  }
+
+  getDoctorExamination(ticketId: string): Observable<DoctorExaminationResponse> {
+    return this.http.get<DoctorExaminationResponse>(`/api/v1/doctor/examinations/${ticketId}`);
+  }
+
+  saveDoctorExaminationDraft(ticketId: string, request: DoctorExaminationRequest): Observable<DoctorExaminationResponse> {
+    return this.http.put<DoctorExaminationResponse>(`/api/v1/doctor/examinations/${ticketId}/draft`, request);
+  }
+
+  signDoctorExamination(ticketId: string, request: DoctorExaminationRequest): Observable<DoctorExaminationResponse> {
+    return this.http.post<DoctorExaminationResponse>(`/api/v1/doctor/examinations/${ticketId}/sign`, request);
   }
 
   staffLogin(username: string, password: string): Observable<StaffLoginResponse> {

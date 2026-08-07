@@ -1,0 +1,73 @@
+<main class="min-h-screen bg-[#f6f8f9] text-[#173f4b]" data-testid="doctor-workspace">
+  <header class="sticky top-0 z-30 h-16 border-b border-[#dce7ea] bg-white/95 backdrop-blur">
+    <div class="mx-auto flex h-full max-w-[1440px] items-center justify-between gap-4 px-4 lg:px-8">
+      <a routerLink="/staff" class="flex items-center gap-2.5" aria-label="ClinicOne">
+        <img class="h-8 w-8 object-contain" src="clinicone-mark.png" alt="" aria-hidden="true" />
+        <span class="text-lg font-bold tracking-[-0.05em] text-[#0a303b]">Clinic<span class="text-[#0ea5e9]">One</span></span>
+        <span class="hidden border-l border-[#dce7ea] pl-3 text-sm font-medium text-slate-500 sm:inline">Phiên khám</span>
+      </a>
+      <app-account-menu />
+    </div>
+  </header>
+
+  <div class="mx-auto max-w-[1440px] px-4 py-5 lg:px-8 lg:py-7">
+    @if (loading()) {
+      <div class="space-y-3" aria-label="Đang tải phiên khám">
+        <div class="h-24 animate-pulse rounded-lg bg-white"></div>
+        <div class="h-96 animate-pulse rounded-lg bg-white"></div>
+      </div>
+    } @else if (examination(); as exam) {
+      <section class="flex flex-col gap-3 border-b border-[#dce7ea] pb-5 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <button type="button" class="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-[#0b91c9] hover:text-[#0877a4]" (click)="back()">
+            <mat-icon class="!h-5 !w-5 !text-[18px]">arrow_back</mat-icon> Hàng đợi
+          </button>
+          <h1 class="text-2xl font-bold tracking-[-0.04em] text-[#0a303b]">Phiên khám #{{ exam.queueNumber }}</h1>
+          <p class="mt-1 text-sm text-slate-500">{{ exam.roomName }} · {{ exam.specialty }} · {{ formatTime(exam.startTime) }}</p>
+        </div>
+        <span class="inline-flex w-fit items-center gap-2 rounded-full bg-violet-50 px-3 py-1.5 text-xs font-bold text-violet-700">
+          <span class="h-1.5 w-1.5 rounded-full bg-violet-500"></span>{{ exam.status === 'COMPLETED' ? 'Đã hoàn thành' : 'Đang khám' }}
+        </span>
+      </section>
+
+      @if (error()) {<p class="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700" role="alert">{{ error() }}</p>}
+      @if (notice()) {<p class="mt-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm text-emerald-700" role="status">{{ notice() }}</p>}
+
+      <div class="mt-5 grid gap-5 lg:grid-cols-[290px_minmax(0,1fr)]">
+        <aside class="h-fit border border-[#dce7ea] bg-white p-5" data-testid="patient-summary">
+          <div class="flex items-start justify-between gap-3 border-b border-[#e7eff1] pb-4">
+            <div>
+              <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-[#0b91c9]">Người bệnh</p>
+              <h2 class="mt-1 text-lg font-bold text-[#0a303b]">{{ exam.patientName }}</h2>
+            </div>
+            <div class="grid h-10 w-10 place-items-center rounded-full bg-[#eaf7fb] text-[#0b91c9]"><mat-icon>person</mat-icon></div>
+          </div>
+          <dl class="divide-y divide-[#edf2f3] text-sm">
+            <div class="flex justify-between gap-3 py-3"><dt class="text-slate-500">Ngày sinh</dt><dd class="font-semibold text-right">{{ formatDate(exam.patientDateOfBirth) }}</dd></div>
+            <div class="flex justify-between gap-3 py-3"><dt class="text-slate-500">Giới tính</dt><dd class="font-semibold text-right">{{ exam.patientGender || 'Chưa cập nhật' }}</dd></div>
+            <div class="flex justify-between gap-3 py-3"><dt class="text-slate-500">Điện thoại</dt><dd class="font-semibold text-right">{{ exam.patientPhone }}</dd></div>
+            <div class="flex justify-between gap-3 py-3"><dt class="text-slate-500">Mã lịch hẹn</dt><dd class="font-semibold text-right">{{ exam.appointmentCode }}</dd></div>
+          </dl>
+          <div class="mt-4 border-t border-[#e7eff1] pt-4 text-xs text-slate-500">Bác sĩ phụ trách <strong class="block mt-1 text-sm text-[#173f4b]">{{ exam.doctorName }}</strong></div>
+        </aside>
+
+        <form [formGroup]="form" data-testid="medical-form" class="border border-[#dce7ea] bg-white" (submit)="$event.preventDefault()">
+          <div class="border-b border-[#e7eff1] px-5 py-4 sm:px-6">
+            <h2 class="text-base font-bold text-[#0a303b]">Phiếu khám</h2>
+            <p class="mt-1 text-xs text-slate-500">Lưu nháp trong lúc khám; chỉ phiếu đã ký mới được gửi cho người bệnh.</p>
+          </div>
+          <div class="grid gap-5 p-5 sm:grid-cols-2 sm:p-6">
+            <label class="grid gap-1.5 sm:col-span-2"><span class="text-sm font-semibold">Lý do khám <em class="text-red-500">*</em></span><textarea formControlName="reason" rows="2" [class.border-red-400]="fieldInvalid('reason')" class="rounded-md border border-[#d5e3e7] px-3 py-2.5 text-sm outline-none transition focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/15" placeholder="Người bệnh đến khám vì..."></textarea></label>
+            <label class="grid gap-1.5 sm:col-span-2"><span class="text-sm font-semibold">Ghi nhận khám <em class="text-red-500">*</em></span><textarea formControlName="examinationNotes" rows="4" [class.border-red-400]="fieldInvalid('examinationNotes')" class="rounded-md border border-[#d5e3e7] px-3 py-2.5 text-sm outline-none transition focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/15" placeholder="Dấu hiệu, kết quả thăm khám..."></textarea></label>
+            <label class="grid gap-1.5"><span class="text-sm font-semibold">Chẩn đoán <em class="text-red-500">*</em></span><textarea formControlName="diagnosis" rows="3" [class.border-red-400]="fieldInvalid('diagnosis')" class="rounded-md border border-[#d5e3e7] px-3 py-2.5 text-sm outline-none transition focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/15" placeholder="Chẩn đoán của bác sĩ..."></textarea></label>
+            <label class="grid gap-1.5"><span class="text-sm font-semibold">Kết luận <em class="text-red-500">*</em></span><textarea formControlName="conclusion" rows="3" [class.border-red-400]="fieldInvalid('conclusion')" class="rounded-md border border-[#d5e3e7] px-3 py-2.5 text-sm outline-none transition focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/15" placeholder="Kết luận sau khám..."></textarea></label>
+            <label class="grid gap-1.5"><span class="text-sm font-semibold">Hướng xử trí</span><textarea formControlName="treatmentPlan" rows="3" class="rounded-md border border-[#d5e3e7] px-3 py-2.5 text-sm outline-none transition focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/15" placeholder="Điều trị, dặn dò..."></textarea></label>
+            <label class="grid gap-1.5"><span class="text-sm font-semibold">Đơn thuốc</span><textarea formControlName="prescription" rows="3" class="rounded-md border border-[#d5e3e7] px-3 py-2.5 text-sm outline-none transition focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/15" placeholder="Thuốc và cách dùng (nếu có)..."></textarea></label>
+            <label class="grid max-w-xs gap-1.5"><span class="text-sm font-semibold">Hẹn tái khám</span><input type="date" formControlName="followUpDate" class="min-h-10 rounded-md border border-[#d5e3e7] px-3 text-sm outline-none transition focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/15" /></label>
+          </div>
+          @if (!exam.signedAt) {<div class="sticky bottom-0 flex flex-col-reverse gap-2 border-t border-[#e7eff1] bg-white/95 px-5 py-4 backdrop-blur sm:flex-row sm:justify-end sm:px-6"><button data-testid="save-draft" type="button" class="min-h-10 rounded-md border border-[#cfe0e5] px-4 text-sm font-semibold text-[#173f4b] transition hover:border-[#0ea5e9] hover:text-[#0b84bd] disabled:opacity-50" [disabled]="saving() || signing()" (click)="saveDraft()">{{ saving() ? 'Đang lưu...' : 'Lưu bản nháp' }}</button><button data-testid="sign-record" type="button" class="min-h-10 rounded-md bg-[#0b3846] px-4 text-sm font-semibold text-white transition hover:bg-[#082d39] disabled:opacity-50" [disabled]="saving() || signing()" (click)="sign()">{{ signing() ? 'Đang ký...' : 'Ký phiếu khám' }}</button></div>}
+        </form>
+      </div>
+    }
+  </div>
+</main>

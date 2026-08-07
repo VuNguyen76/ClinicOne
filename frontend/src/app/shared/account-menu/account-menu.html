@@ -1,42 +1,91 @@
 @if (loggedIn()) {
-  <div class="relative flex items-center gap-2" data-testid="account-menu">
-    @if (!isStaff()) {<a routerLink="/notifications" class="relative grid h-10 w-10 place-items-center rounded-lg text-[#173f4b] transition hover:bg-[#eef7f9] hover:text-[#0b84bd]" aria-label="Thông báo" title="Thông báo">
-      <mat-icon class="!text-[21px]">notifications_none</mat-icon>
-    </a>}
-    <button type="button" data-testid="account-menu-trigger" class="inline-flex min-h-10 max-w-[240px] items-center gap-2 rounded-lg border border-[#cbdde2] bg-white px-3 text-sm font-semibold text-[#173f4b] transition hover:border-[#0ea5e9] hover:bg-[#eef7f9]" aria-label="Mở menu tài khoản" aria-haspopup="menu" [attr.aria-expanded]="menuOpen()" aria-controls="account-menu-panel" (click)="toggleMenu()">
-      <mat-icon class="!h-5 !w-5 !text-[20px] text-[#0b91c9]">account_circle</mat-icon>
-      <span class="truncate">{{ fullName() }}</span>
-      <mat-icon class="!h-4 !w-4 !text-[17px] text-slate-400">expand_more</mat-icon>
-    </button>
+<div class="relative flex items-center gap-2" data-testid="account-menu">
+  @if (!isStaff()) {<a routerLink="/notifications"
+    class="relative grid h-10 w-10 place-items-center rounded-lg text-[#173f4b] transition hover:bg-[#eef7f9] hover:text-[#0b84bd]"
+    aria-label="Thông báo" title="Thông báo">
+    <mat-icon class="!text-[21px]">notifications_none</mat-icon>
+  </a>}
+  <button type="button" data-testid="account-menu-trigger"
+    class="inline-flex min-h-10 max-w-[240px] items-center gap-2 rounded-lg border border-[#cbdde2] bg-white px-3 text-sm font-semibold text-[#173f4b] transition hover:border-[#0ea5e9] hover:bg-[#eef7f9]"
+    aria-label="Mở menu tài khoản" aria-haspopup="menu" [attr.aria-expanded]="menuOpen()"
+    aria-controls="account-menu-panel" (click)="toggleMenu()">
+    <mat-icon class="!h-5 !w-5 !text-[20px] text-[#0b91c9]">account_circle</mat-icon>
+    <span class="truncate">{{ fullName() }}</span>
+    <mat-icon class="!h-4 !w-4 !text-[17px] text-slate-400">expand_more</mat-icon>
+  </button>
 
-    @if (menuOpen()) {
-      <div id="account-menu-panel" class="absolute right-0 top-[calc(100%+10px)] z-50 w-[min(300px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_16px_45px_rgba(15,23,42,0.16)]" role="menu" aria-label="Menu tài khoản">
-        <div class="flex items-center gap-3 border-b border-slate-100 px-5 py-4">
-          <span class="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#e8f7fb] text-[#0b84bd]"><mat-icon>person</mat-icon></span>
-          <div class="min-w-0"><p class="text-xs text-slate-500">{{ isStaff() ? staffRoleLabel() : 'Xin chào!' }}</p><p class="truncate text-sm font-bold text-slate-900">{{ fullName() }}</p></div>
-        </div>
-
-        @if (isStaff()) {
-          <nav class="py-2" aria-label="Điều hướng vận hành">
-            @if (isDoctor()) {<a routerLink="/staff" [class.bg-[#eafaff]]="isActive('/staff')" [class.text-[#0284c7]]="isActive('/staff')" [attr.aria-current]="isActive('/staff') ? 'page' : null" class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]" role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">monitor_heart</mat-icon>Bảng điều hành</a>}
-            @if (canManageRooms()) {<a routerLink="/admin/rooms" [class.bg-[#eafaff]]="isActive('/admin/rooms')" [class.text-[#0284c7]]="isActive('/admin/rooms')" [attr.aria-current]="isActive('/admin/rooms') ? 'page' : null" class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]" role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">meeting_room</mat-icon>Quản lý phòng khám</a>}
-            <button type="button" class="flex w-full items-center gap-3 border-t border-slate-100 px-5 py-3 text-left text-sm text-slate-700 transition hover:bg-slate-50 hover:text-rose-600" role="menuitem" (click)="logout()"><mat-icon class="!text-[20px]">logout</mat-icon>Đăng xuất</button>
-          </nav>
-        } @else {
-          <nav class="py-2" aria-label="Điều hướng tài khoản">
-            <a routerLink="/dashboard" [class.bg-[#eafaff]]="isActive('/dashboard')" [class.text-[#0284c7]]="isActive('/dashboard')" [attr.aria-current]="isActive('/dashboard') ? 'page' : null" class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]" role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">dashboard</mat-icon>Tổng quan</a>
-            <a routerLink="/appointments" [class.bg-[#eafaff]]="isActive('/appointments')" [class.text-[#0284c7]]="isActive('/appointments')" [attr.aria-current]="isActive('/appointments') ? 'page' : null" class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]" role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">event_available</mat-icon>Lịch hẹn của tôi</a>
-            <a routerLink="/account" [class.bg-[#eafaff]]="isActive('/account')" [class.text-[#0284c7]]="isActive('/account')" [attr.aria-current]="isActive('/account') ? 'page' : null" class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]" role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">badge</mat-icon>Hồ sơ bệnh nhân</a>
-            <a routerLink="/patient-profiles" [class.bg-[#eafaff]]="isActive('/patient-profiles')" [class.text-[#0284c7]]="isActive('/patient-profiles')" [attr.aria-current]="isActive('/patient-profiles') ? 'page' : null" class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]" role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">group</mat-icon>Hồ sơ người đi khám</a>
-            <a routerLink="/medical-records" [class.bg-[#eafaff]]="isActive('/medical-records')" [class.text-[#0284c7]]="isActive('/medical-records')" [attr.aria-current]="isActive('/medical-records') ? 'page' : null" class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]" role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">receipt_long</mat-icon>Phiếu khám bệnh</a>
-            <a routerLink="/notifications" [class.bg-[#eafaff]]="isActive('/notifications')" [class.text-[#0284c7]]="isActive('/notifications')" [attr.aria-current]="isActive('/notifications') ? 'page' : null" class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]" role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">notifications_none</mat-icon>Thông báo</a>
-            <a routerLink="/change-password" class="mt-1 flex items-center gap-3 border-t border-slate-100 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]" role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">lock</mat-icon>Đổi mật khẩu</a>
-            <button type="button" class="flex w-full items-center gap-3 border-t border-slate-100 px-5 py-3 text-left text-sm text-slate-700 transition hover:bg-slate-50 hover:text-rose-600" role="menuitem" (click)="logout()"><mat-icon class="!text-[20px]">logout</mat-icon>Đăng xuất</button>
-          </nav>
-        }
+  @if (menuOpen()) {
+  <div id="account-menu-panel"
+    class="absolute right-0 top-[calc(100%+10px)] z-50 w-[min(300px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_16px_45px_rgba(15,23,42,0.16)]"
+    role="menu" aria-label="Menu tài khoản">
+    <div class="flex items-center gap-3 border-b border-slate-100 px-5 py-4">
+      <span
+        class="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#e8f7fb] text-[#0b84bd]"><mat-icon>person</mat-icon></span>
+      <div class="min-w-0">
+        <p class="text-xs text-slate-500">{{ isStaff() ? staffRoleLabel() : 'Xin chào!' }}</p>
+        <p class="truncate text-sm font-bold text-slate-900">{{ fullName() }}</p>
       </div>
+    </div>
+
+    @if (isStaff()) {
+    <nav class="py-2" aria-label="Điều hướng vận hành">Bảng điều hành
+      @if (isDoctor()) {<a routerLink="/staff" [class.bg-[#eafaff]]="isActive('/staff')"
+        [class.text-[#0284c7]]="isActive('/staff')" [attr.aria-current]="isActive('/staff') ? 'page' : null"
+        class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]"
+        role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">monitor_heart</mat-icon></a>}
+      @if (canManageRooms()) {<a routerLink="/admin/rooms" [class.bg-[#eafaff]]="isActive('/admin/rooms')"
+        [class.text-[#0284c7]]="isActive('/admin/rooms')" [attr.aria-current]="isActive('/admin/rooms') ? 'page' : null"
+        class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]"
+        role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">meeting_room</mat-icon>Quản lý phòng
+        khám</a>}
+      <button type="button"
+        class="flex w-full items-center gap-3 border-t border-slate-100 px-5 py-3 text-left text-sm text-slate-700 transition hover:bg-slate-50 hover:text-rose-600"
+        role="menuitem" (click)="logout()"><mat-icon class="!text-[20px]">logout</mat-icon>Đăng xuất</button>
+    </nav>
+    } @else {
+    <nav class="py-2" aria-label="Điều hướng tài khoản">
+      <a routerLink="/dashboard" [class.bg-[#eafaff]]="isActive('/dashboard')"
+        [class.text-[#0284c7]]="isActive('/dashboard')" [attr.aria-current]="isActive('/dashboard') ? 'page' : null"
+        class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]"
+        role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">dashboard</mat-icon>Tổng quan</a>
+      <a routerLink="/appointments" [class.bg-[#eafaff]]="isActive('/appointments')"
+        [class.text-[#0284c7]]="isActive('/appointments')"
+        [attr.aria-current]="isActive('/appointments') ? 'page' : null"
+        class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]"
+        role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">event_available</mat-icon>Lịch hẹn của
+        tôi</a>
+      <a routerLink="/account" [class.bg-[#eafaff]]="isActive('/account')" [class.text-[#0284c7]]="isActive('/account')"
+        [attr.aria-current]="isActive('/account') ? 'page' : null"
+        class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]"
+        role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">badge</mat-icon>Hồ sơ bệnh nhân</a>
+      <a routerLink="/patient-profiles" [class.bg-[#eafaff]]="isActive('/patient-profiles')"
+        [class.text-[#0284c7]]="isActive('/patient-profiles')"
+        [attr.aria-current]="isActive('/patient-profiles') ? 'page' : null"
+        class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]"
+        role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">group</mat-icon>Hồ sơ người đi khám</a>
+      <a routerLink="/medical-records" [class.bg-[#eafaff]]="isActive('/medical-records')"
+        [class.text-[#0284c7]]="isActive('/medical-records')"
+        [attr.aria-current]="isActive('/medical-records') ? 'page' : null"
+        class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]"
+        role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">receipt_long</mat-icon>Phiếu khám bệnh</a>
+      <a routerLink="/notifications" [class.bg-[#eafaff]]="isActive('/notifications')"
+        [class.text-[#0284c7]]="isActive('/notifications')"
+        [attr.aria-current]="isActive('/notifications') ? 'page' : null"
+        class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]"
+        role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">notifications_none</mat-icon>Thông báo</a>
+      <a routerLink="/change-password"
+        class="mt-1 flex items-center gap-3 border-t border-slate-100 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]"
+        role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">lock</mat-icon>Đổi mật khẩu</a>
+      <button type="button"
+        class="flex w-full items-center gap-3 border-t border-slate-100 px-5 py-3 text-left text-sm text-slate-700 transition hover:bg-slate-50 hover:text-rose-600"
+        role="menuitem" (click)="logout()"><mat-icon class="!text-[20px]">logout</mat-icon>Đăng xuất</button>
+    </nav>
     }
   </div>
+  }
+</div>
 } @else {
-  <a routerLink="/login" class="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[#0ea5e9] bg-white px-4 text-sm font-semibold text-[#075985] transition hover:bg-[#eafaff] hover:text-[#0284c7]"><mat-icon class="!h-5 !w-5 !text-[20px] text-[#0ea5e9]">account_circle</mat-icon>Đăng nhập</a>
+<a routerLink="/login"
+  class="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[#0ea5e9] bg-white px-4 text-sm font-semibold text-[#075985] transition hover:bg-[#eafaff] hover:text-[#0284c7]"><mat-icon
+    class="!h-5 !w-5 !text-[20px] text-[#0ea5e9]">account_circle</mat-icon>Đăng nhập</a>
 }

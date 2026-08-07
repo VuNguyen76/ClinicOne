@@ -134,6 +134,7 @@ public class Appointment {
     }
 
     public UUID getId() { return id; }
+    public PatientAccount getPatient() { return patient; }
     public String getAppointmentCode() { return appointmentCode; }
     public String getSpecialty() { return specialty; }
     public String getDoctorName() { return doctorName; }

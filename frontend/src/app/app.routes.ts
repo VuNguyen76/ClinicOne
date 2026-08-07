@@ -7,6 +7,7 @@ export const routes: Routes = [
   { path: 'login', loadComponent: () => import('./features/auth/login/login').then((m) => m.Login) },
   { path: 'staff/login', loadComponent: () => import('./features/staff-auth/staff-login').then((m) => m.StaffLogin) },
   { path: 'staff', loadComponent: () => import('./features/staff-dashboard/staff-dashboard').then((m) => m.StaffDashboard), canActivate: [doctorGuard] },
+  { path: 'doctor/examinations/:ticketId', loadComponent: () => import('./features/doctor-examination/doctor-examination').then((m) => m.DoctorExamination), canActivate: [doctorGuard] },
   { path: 'register', loadComponent: () => import('./features/auth/register/register').then((m) => m.Register) },
   { path: 'account', loadComponent: () => import('./features/account/account').then((m) => m.Account), canActivate: [patientGuard] },
   { path: 'change-password', loadComponent: () => import('./features/auth/change-password/change-password').then((m) => m.ChangePassword), canActivate: [patientGuard] },
