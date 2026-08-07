@@ -134,9 +134,42 @@ public class Appointment {
         this.cancellationReason = reason == null || reason.isBlank() ? null : reason.trim();
     }
 
-    public void complete() {
+    public void checkIn() {
+        if (this.status == AppointmentStatus.CHECKED_IN) {
+            return;
+        }
         if (this.status != AppointmentStatus.BOOKED) {
-            throw new IllegalStateException("Chỉ có thể hoàn tất lịch hẹn đang được đặt");
+            throw new IllegalStateException("Lịch hẹn không còn cho phép check-in.");
+        }
+        this.status = AppointmentStatus.CHECKED_IN;
+    }
+
+    public void markAbsent() {
+        if (this.status == AppointmentStatus.ABSENT) {
+            return;
+        }
+        if (this.status != AppointmentStatus.BOOKED) {
+            throw new IllegalStateException("Chỉ lịch hẹn chưa check-in mới được ghi nhận vắng mặt.");
+        }
+        this.status = AppointmentStatus.ABSENT;
+    }
+
+    public void markNotPerformed() {
+        if (this.status == AppointmentStatus.NOT_PERFORMED) {
+            return;
+        }
+        if (this.status != AppointmentStatus.BOOKED && this.status != AppointmentStatus.CHECKED_IN) {
+            throw new IllegalStateException("Lịch hẹn không còn phù hợp để ghi nhận không thực hiện.");
+        }
+        this.status = AppointmentStatus.NOT_PERFORMED;
+    }
+
+    public void complete() {
+        if (this.status == AppointmentStatus.COMPLETED) {
+            return;
+        }
+        if (this.status != AppointmentStatus.BOOKED && this.status != AppointmentStatus.CHECKED_IN) {
+            throw new IllegalStateException("Chỉ có thể hoàn tất lịch hẹn đang được xử lý");
         }
         this.status = AppointmentStatus.COMPLETED;
     }

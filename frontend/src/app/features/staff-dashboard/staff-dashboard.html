@@ -129,7 +129,7 @@
                     [disabled]="busyTicketId() === ticket.id" (click)="act(ticket, 'call')">Gọi số</button>} @if
                   ((isDispatcher() || isOwnDoctor()) && ticket.status === 'CALLED') {<button type="button"
                     class="min-h-8 rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition hover:bg-amber-50 disabled:opacity-50"
-                    [disabled]="busyTicketId() === ticket.id" (click)="act(ticket, 'skip')">Bỏ qua</button>} @if
+                    [disabled]="busyTicketId() === ticket.id" (click)="act(ticket, 'skip')">Gọi lại sau</button>} @if
                   (isDoctor() && ticket.status === 'CALLED') {<button type="button"
                     class="min-h-8 rounded-md border border-violet-200 px-2.5 text-xs font-semibold text-violet-700 transition hover:bg-violet-50 disabled:opacity-50"
                     [disabled]="busyTicketId() === ticket.id" (click)="act(ticket, 'start')">Vào khám</button>} @if

@@ -1,7 +1,7 @@
 package com.clinicone.examination;
 
 public enum ExaminationSessionStatus {
-    SCHEDULED("Đã đặt"),
+    SCHEDULED("Đã tạo"),
     CHECKED_IN("Đã check-in"),
     IN_PROGRESS("Đang khám"),
     COMPLETED("Đã hoàn thành"),

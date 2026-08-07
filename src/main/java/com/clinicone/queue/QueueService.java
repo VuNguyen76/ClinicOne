@@ -83,7 +83,6 @@ public class QueueService {
 
     private QueueTicketResponse checkInAppointment(String roomCode, Appointment appointment, String exceptionReason) {
         ClinicRoom room = findRoom(roomCode);
-        ensureBookable(appointment);
         LocalDate today = today();
         if (!appointment.getAppointmentDate().equals(today)) {
             throw new AuthException(HttpStatus.CONFLICT, "QUEUE_DATE_NOT_OPEN",
@@ -107,6 +106,8 @@ public class QueueService {
                 throw new AuthException(HttpStatus.CONFLICT, "QUEUE_ALREADY_COMPLETED",
                         "Lượt khám này đã hoàn tất.");
             }
+            appointment.checkIn();
+            appointmentRepository.save(appointment);
             if (exceptionReason != null) {
                 ticket.recordExceptionReason(exceptionReason);
                 ticketRepository.save(ticket);
@@ -114,6 +115,10 @@ public class QueueService {
             ensureCheckedInSession(appointment);
             return QueueTicketResponse.from(ticket);
         }
+
+        ensureBookable(appointment);
+        appointment.checkIn();
+        appointmentRepository.save(appointment);
 
         int nextNumber = nextNumber(room.getCode(), today);
         try {

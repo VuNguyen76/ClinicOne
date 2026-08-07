@@ -57,6 +57,10 @@ public class QueueTicket {
     @Column(name = "called_at")
     private Instant calledAt;
 
+    // Nullable keeps ddl-auto update compatible with queue rows created before recall tracking.
+    @Column(name = "call_count")
+    private Integer callCount = 0;
+
     @Column(name = "completed_at")
     private Instant completedAt;
 
@@ -101,6 +105,10 @@ public class QueueTicket {
         }
         status = QueueTicketStatus.CALLED;
         calledAt = Instant.now();
+        if (callCount == null) {
+            callCount = 0;
+        }
+        callCount++;
         skipReason = null;
     }
 
@@ -108,7 +116,8 @@ public class QueueTicket {
         if (status != QueueTicketStatus.CALLED) {
             throw new IllegalStateException("Chỉ được bỏ qua lượt đang được gọi");
         }
-        status = QueueTicketStatus.SKIPPED;
+        // "Gọi lại sau" đưa người bệnh về trạng thái chờ, không tạo nhánh trạng thái riêng.
+        status = QueueTicketStatus.WAITING;
         skipReason = reason == null || reason.isBlank() ? null : reason.trim();
     }
 
@@ -132,6 +141,9 @@ public class QueueTicket {
         if (checkedInAt == null) {
             checkedInAt = Instant.now();
         }
+        if (callCount == null || callCount < 0) {
+            callCount = 0;
+        }
     }
 
     public UUID getId() { return id; }
@@ -142,6 +154,7 @@ public class QueueTicket {
     public QueueTicketStatus getStatus() { return status; }
     public Instant getCheckedInAt() { return checkedInAt; }
     public Instant getCalledAt() { return calledAt; }
+    public int getCallCount() { return callCount == null ? 0 : callCount; }
     public Instant getCompletedAt() { return completedAt; }
     public String getSkipReason() { return skipReason; }
     public String getExceptionReason() { return exceptionReason; }

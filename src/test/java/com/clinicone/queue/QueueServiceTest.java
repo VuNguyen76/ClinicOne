@@ -72,16 +72,18 @@ class QueueServiceTest {
 
         assertEquals(5, response.queueNumber());
         assertEquals(QueueTicketStatus.WAITING.name(), response.status());
+        assertEquals(AppointmentStatus.CHECKED_IN, appointment.getStatus());
         verify(ticketRepository).save(any(QueueTicket.class));
         var sessionCaptor = org.mockito.ArgumentCaptor.forClass(ExaminationSession.class);
         verify(examinationSessionRepository).save(sessionCaptor.capture());
-        assertEquals(ExaminationSessionStatus.CHECKED_IN, sessionCaptor.getValue().getStatus());
+        assertEquals(ExaminationSessionStatus.SCHEDULED, sessionCaptor.getValue().getStatus());
     }
 
     @Test
     void repeatedScanReturnsExistingTicketWithoutCreatingAnotherNumber() {
         QueueTicket existing = QueueTicket.create(appointment, room, TODAY, 5);
         setId(existing, UUID.randomUUID());
+        appointment.checkIn();
         when(ticketRepository.findByAppointmentId(APPOINTMENT_ID)).thenReturn(Optional.of(existing));
         when(examinationSessionRepository.findByAppointment_Id(APPOINTMENT_ID))
                 .thenReturn(Optional.of(checkedInSession()));
@@ -90,6 +92,19 @@ class QueueServiceTest {
 
         assertEquals(5, response.queueNumber());
         verify(ticketRepository, never()).save(any(QueueTicket.class));
+    }
+
+    @Test
+    void callingTheSameTicketAgainRecordsAnotherCallWithoutChangingItsNumber() {
+        QueueTicket ticket = QueueTicket.create(appointment, room, TODAY, 5);
+
+        ticket.call();
+        ticket.skip("Bệnh nhân chưa có mặt");
+        ticket.call();
+
+        assertEquals(5, ticket.getQueueNumber());
+        assertEquals(2, ticket.getCallCount());
+        org.junit.jupiter.api.Assertions.assertNotNull(ticket.getCalledAt());
     }
 
     @Test
