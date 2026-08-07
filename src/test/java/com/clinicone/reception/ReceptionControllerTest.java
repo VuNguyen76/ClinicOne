@@ -38,6 +38,9 @@ class ReceptionControllerTest {
     @Autowired
     private ReceptionService service;
 
+    @Autowired
+    private ReceptionPatientService patientService;
+
     @Test
     void receptionistCanSearchTodaysAppointmentByPhone() throws Exception {
         when(service.search(eq("0912345678"), eq(LocalDate.of(2026, 8, 7))))
@@ -127,6 +130,11 @@ class ReceptionControllerTest {
         @Bean
         ReceptionService receptionService() {
             return mock(ReceptionService.class);
+        }
+
+        @Bean
+        ReceptionPatientService receptionPatientService() {
+            return mock(ReceptionPatientService.class);
         }
     }
 }

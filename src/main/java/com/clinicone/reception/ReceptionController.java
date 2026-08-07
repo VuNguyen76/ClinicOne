@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import com.clinicone.patientprofile.PatientProfileResponse;
+import com.clinicone.auth.RequestOtpResponse;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -22,9 +23,11 @@ import java.util.UUID;
 @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR', 'RECEPTIONIST')")
 public class ReceptionController {
     private final ReceptionService service;
+    private final ReceptionPatientService patientService;
 
-    public ReceptionController(ReceptionService service) {
+    public ReceptionController(ReceptionService service, ReceptionPatientService patientService) {
         this.service = service;
+        this.patientService = patientService;
     }
 
     @GetMapping("/appointments")
@@ -49,5 +52,17 @@ public class ReceptionController {
     @GetMapping("/profiles")
     public ResponseEntity<List<PatientProfileResponse>> profiles(@RequestParam String phone) {
         return ResponseEntity.ok(service.profiles(phone));
+    }
+
+    @PostMapping("/patients/request-otp")
+    public ResponseEntity<RequestOtpResponse> requestPatientOtp(
+            @Valid @RequestBody ReceptionPatientOtpRequest request) {
+        return ResponseEntity.ok(patientService.requestOtp(request));
+    }
+
+    @PostMapping("/patients")
+    public ResponseEntity<ReceptionPatientRegistrationResponse> registerPatient(
+            @Valid @RequestBody ReceptionPatientRegistrationRequest request) {
+        return ResponseEntity.status(201).body(patientService.register(request));
     }
 }

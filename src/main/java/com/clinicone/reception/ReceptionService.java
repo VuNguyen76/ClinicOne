@@ -116,6 +116,10 @@ public class ReceptionService {
             throw new AuthException(HttpStatus.CONFLICT, "PATIENT_ACCOUNT_LOCKED",
                     "Tài khoản người bệnh đang bị khóa.");
         }
+        if (patient.isMustChangePassword()) {
+            throw new AuthException(HttpStatus.CONFLICT, "PASSWORD_CHANGE_REQUIRED",
+                    "Người bệnh cần đổi mật khẩu tạm trước khi check-in.");
+        }
 
         LocalDate appointmentDate = request.appointmentDate();
         if (!today().equals(appointmentDate)) {
