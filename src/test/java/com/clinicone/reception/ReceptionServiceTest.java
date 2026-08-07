@@ -10,6 +10,7 @@ import com.clinicone.auth.PatientAccountRepository;
 import com.clinicone.auth.StaffAccount;
 import com.clinicone.doctor.DoctorProfile;
 import com.clinicone.doctor.DoctorProfileRepository;
+import com.clinicone.patientprofile.PatientProfileRepository;
 import com.clinicone.queue.ClinicRoom;
 import com.clinicone.queue.QueueService;
 import com.clinicone.queue.QueueTicketRepository;
@@ -55,9 +56,10 @@ class ReceptionServiceTest {
         ticketRepository = mock(QueueTicketRepository.class);
         queueService = mock(QueueService.class);
         appointmentService = mock(AppointmentService.class);
+        PatientProfileRepository patientProfileRepository = mock(PatientProfileRepository.class);
         Clock clock = Clock.fixed(Instant.parse("2026-08-07T03:00:00Z"), ZoneOffset.UTC);
         service = new ReceptionService(appointmentRepository, doctorProfileRepository, ticketRepository,
-                queueService, clock, patientAccountRepository, appointmentService);
+                queueService, clock, patientAccountRepository, appointmentService, patientProfileRepository);
     }
 
     @Test

@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import com.clinicone.patientprofile.PatientProfileResponse;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -43,5 +44,10 @@ public class ReceptionController {
     public ResponseEntity<ReceptionAppointmentResponse> createWalkIn(
             @Valid @RequestBody ReceptionWalkInRequest request) {
         return ResponseEntity.ok(service.createWalkIn(request));
+    }
+
+    @GetMapping("/profiles")
+    public ResponseEntity<List<PatientProfileResponse>> profiles(@RequestParam String phone) {
+        return ResponseEntity.ok(service.profiles(phone));
     }
 }
