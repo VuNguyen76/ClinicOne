@@ -1,0 +1,92 @@
+package com.clinicone.examination;
+
+import com.clinicone.config.SecurityConfig;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.test.web.servlet.MockMvc;
+
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.List;
+import java.util.UUID;
+
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@WebMvcTest(DoctorExaminationController.class)
+@Import({SecurityConfig.class, DoctorExaminationControllerTest.MockBeans.class})
+class DoctorExaminationControllerTest {
+    private static final UUID STAFF_ID = UUID.fromString("7d9e3fb4-1045-4ca4-86d2-7d1fca4c1a13");
+    private static final UUID TICKET_ID = UUID.fromString("bd9e3fb4-1045-4ca4-86d2-7d1fca4c1a13");
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private DoctorExaminationService service;
+
+    @Test
+    void doctorCanOpenExaminationWorkspace() throws Exception {
+        when(service.open(TICKET_ID, STAFF_ID.toString())).thenReturn(response());
+
+        mockMvc.perform(get("/api/v1/doctor/examinations/" + TICKET_ID)
+                        .with(authentication(authenticated("ROLE_DOCTOR"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.patientName").value("Nguyễn Thanh Vũ"))
+                .andExpect(jsonPath("$.status").value("IN_PROGRESS"));
+    }
+
+    @Test
+    void doctorCanSaveDraft() throws Exception {
+        when(service.saveDraft(eq(TICKET_ID), eq(STAFF_ID.toString()), org.mockito.ArgumentMatchers.any()))
+                .thenReturn(response());
+
+        mockMvc.perform(put("/api/v1/doctor/examinations/" + TICKET_ID + "/draft")
+                        .with(authentication(authenticated("ROLE_DOCTOR")))
+                        .contentType("application/json")
+                        .content("{\"reason\":\"Đau đầu\",\"examinationNotes\":\"Mạch ổn\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.reason").value("Đau đầu"));
+    }
+
+    @Test
+    void nonDoctorCannotOpenDoctorWorkspace() throws Exception {
+        mockMvc.perform(get("/api/v1/doctor/examinations/" + TICKET_ID)
+                        .with(authentication(authenticated("ROLE_ADMIN"))))
+                .andExpect(status().isForbidden());
+    }
+
+    private static UsernamePasswordAuthenticationToken authenticated(String role) {
+        return UsernamePasswordAuthenticationToken.authenticated(STAFF_ID.toString(), null,
+                List.of(new SimpleGrantedAuthority(role)));
+    }
+
+    private static DoctorExaminationResponse response() {
+        return new DoctorExaminationResponse(TICKET_ID, UUID.randomUUID(), UUID.randomUUID(), 5,
+                "Phòng Nội tổng quát 01", "CL-20260806-1234", "Nội tổng quát", "BS. Nguyễn An",
+                LocalDate.of(2026, 8, 6), LocalTime.of(9, 0), "Nguyễn Thanh Vũ", LocalDate.of(2005, 6, 7),
+                "Nam", "0862764830", "Đau đầu", "Mạch ổn", "", "", "", "", null,
+                "IN_PROGRESS", null);
+    }
+
+    @TestConfiguration
+    static class MockBeans {
+        @Bean
+        DoctorExaminationService doctorExaminationService() {
+            return mock(DoctorExaminationService.class);
+        }
+    }
+}

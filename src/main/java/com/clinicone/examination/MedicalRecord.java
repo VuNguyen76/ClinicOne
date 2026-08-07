@@ -85,6 +85,30 @@ public class MedicalRecord {
                 treatmentPlan, prescription, followUpDate, Instant.now());
     }
 
+    public void saveDraft(String doctorName, String reason, String examinationNotes, String diagnosis,
+                          String conclusion, String treatmentPlan, String prescription, LocalDate followUpDate) {
+        if (signedAt != null) {
+            throw new IllegalStateException("Phiếu khám đã ký, không thể sửa.");
+        }
+        this.doctorName = doctorName;
+        this.reason = reason;
+        this.examinationNotes = examinationNotes;
+        this.diagnosis = diagnosis;
+        this.conclusion = conclusion;
+        this.treatmentPlan = treatmentPlan;
+        this.prescription = prescription;
+        this.followUpDate = followUpDate;
+    }
+
+    public void sign(String doctorName, String reason, String examinationNotes, String diagnosis,
+                     String conclusion, String treatmentPlan, String prescription, LocalDate followUpDate) {
+        if (signedAt != null) {
+            throw new IllegalStateException("Phiếu khám đã ký, không thể ký lại.");
+        }
+        saveDraft(doctorName, reason, examinationNotes, diagnosis, conclusion, treatmentPlan, prescription, followUpDate);
+        signedAt = Instant.now();
+    }
+
     @PrePersist
     void onCreate() {
         if (signedAt != null && signedAt.isAfter(Instant.now())) {

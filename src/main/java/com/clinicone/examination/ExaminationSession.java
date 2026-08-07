@@ -50,6 +50,17 @@ public class ExaminationSession {
         return new ExaminationSession(appointment);
     }
 
+    public void begin() {
+        if (status == ExaminationSessionStatus.COMPLETED) {
+            throw new IllegalStateException("Phiên khám đã hoàn tất.");
+        }
+        status = ExaminationSessionStatus.IN_PROGRESS;
+    }
+
+    public void complete() {
+        status = ExaminationSessionStatus.COMPLETED;
+    }
+
     @PrePersist
     void onCreate() {
         if (createdAt == null) {
