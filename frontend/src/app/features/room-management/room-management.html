@@ -1,14 +1,12 @@
 <main class="min-h-screen bg-[#f4f7f8] text-[#173f4b] lg:flex">
   <aside class="hidden w-[268px] shrink-0 flex-col border-r border-[#123e49] bg-[#082b35] text-white lg:flex">
     <div class="flex h-[72px] items-center border-b border-white/10 px-6">
-      <a routerLink="/home" class="flex items-center gap-3" aria-label="ClinicOne, trang chủ">
+      <a routerLink="/admin/rooms" class="flex items-center gap-3" aria-label="ClinicOne, quản lý phòng khám">
         <img class="h-9 w-9 object-contain brightness-0 invert" src="clinicone-mark.png" alt="" aria-hidden="true" />
         <span class="text-[20px] font-bold tracking-[-0.05em]">Clinic<span class="text-[#55c8ec]">One</span></span>
       </a>
     </div>
     <nav class="mt-8 flex-1 px-3" aria-label="Điều hướng vận hành">
-      <a routerLink="/home" class="mb-1 flex items-center gap-3 rounded-lg px-3 py-3 text-sm text-white/65 transition hover:bg-white/10 hover:text-white"><mat-icon class="!h-5 !w-5 !text-[19px]">home</mat-icon>Trang chủ</a>
-      <a routerLink="/staff" class="mb-1 flex items-center gap-3 rounded-lg px-3 py-3 text-sm text-white/65 transition hover:bg-white/10 hover:text-white"><mat-icon class="!h-5 !w-5 !text-[19px]">monitor_heart</mat-icon>Bảng điều hành</a>
       <a routerLink="/admin/rooms" aria-current="page" class="mb-1 flex items-center gap-3 rounded-lg border-l-2 border-[#55c8ec] bg-white/10 px-3 py-3 text-sm font-semibold text-white"><mat-icon class="!h-5 !w-5 !text-[19px] text-[#55c8ec]">meeting_room</mat-icon>Phòng khám</a>
     </nav>
     <div class="border-t border-white/10 px-6 py-5"><p class="text-xs text-white/45">ClinicOne</p><p class="mt-1 text-xs text-white/70">Cấu hình hệ thống</p></div>

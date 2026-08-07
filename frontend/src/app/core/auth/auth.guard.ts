@@ -41,6 +41,21 @@ export const doctorGuard: CanActivateFn = (_route, state) => {
   return role === 'DOCTOR' ? true : router.createUrlTree(['/home']);
 };
 
+export const homeGuard: CanActivateFn = () => {
+  const router = inject(Router);
+  const role = staffRole();
+  if (!sessionToken() || !role) {
+    return true;
+  }
+  if (role === 'DOCTOR') {
+    return router.createUrlTree(['/staff']);
+  }
+  if (role === 'ADMIN' || role === 'COORDINATOR') {
+    return router.createUrlTree(['/admin/rooms']);
+  }
+  return router.createUrlTree(['/staff/login']);
+};
+
 export const roomManagerGuard: CanActivateFn = (_route, state) => {
   const router = inject(Router);
   const token = sessionToken();
