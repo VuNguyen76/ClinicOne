@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
+import { Router } from '@angular/router';
 import { StaffLogin } from './staff-login';
 
 describe('StaffLogin', () => {
@@ -56,5 +57,23 @@ describe('StaffLogin', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain('Đăng nhập không thành công');
+  });
+
+  it('sends reception staff to the reception workspace after login', () => {
+    const router = TestBed.inject(Router);
+    const navigateSpy = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+    fixture.nativeElement.querySelector('[formcontrolname="username"]').value = 'receptionist';
+    fixture.nativeElement.querySelector('[formcontrolname="password"]').value = 'admin123';
+    fixture.nativeElement.querySelector('[formcontrolname="username"]').dispatchEvent(new Event('input'));
+    fixture.nativeElement.querySelector('[formcontrolname="password"]').dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('[data-testid="staff-login-submit"]') as HTMLButtonElement).click();
+
+    http.expectOne('/api/v1/staff/auth/login').flush({
+      accessToken: 'reception-token', tokenType: 'Bearer', expiresAt: '2099-01-01T00:00:00Z',
+      staffId: 'staff-reception', fullName: 'Nhân viên tiếp nhận', role: 'RECEPTIONIST',
+    });
+
+    expect(navigateSpy).toHaveBeenCalledWith('/reception/check-in');
   });
 });
