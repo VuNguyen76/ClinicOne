@@ -51,7 +51,7 @@ export class ChangePassword {
         next: () => {
           this.passwordForm.reset();
           if (this.required()) {
-            void this.router.navigateByUrl('/dashboard');
+            void this.router.navigateByUrl(this.safeReturnUrl() || '/dashboard');
             return;
           }
           this.notice.set('Mật khẩu đã được đổi.');
@@ -68,5 +68,10 @@ export class ChangePassword {
       return;
     }
     this.error.set(apiErrorMessage(response));
+  }
+
+  private safeReturnUrl(): string | null {
+    const value = this.route.snapshot.queryParamMap.get('returnUrl');
+    return value && value.startsWith('/') && !value.startsWith('//') ? value : null;
   }
 }
