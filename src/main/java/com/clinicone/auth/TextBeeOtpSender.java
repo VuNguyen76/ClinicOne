@@ -5,12 +5,13 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import com.clinicone.notification.SmsSender;
 
 import java.util.List;
 
 @Component
 @ConditionalOnProperty(prefix = "app.otp", name = "provider", havingValue = "textbee")
-public class TextBeeOtpSender implements OtpSender {
+public class TextBeeOtpSender implements OtpSender, SmsSender {
 
     private final RestClient client;
     private final String apiKey;
@@ -34,12 +35,24 @@ public class TextBeeOtpSender implements OtpSender {
         if (apiKey.isBlank() || deviceId.isBlank()) {
             throw new IllegalStateException("TextBee API key and device ID are not configured");
         }
+        sendRequest(phone, messageFor(purpose, code));
+    }
+
+    @Override
+    public void sendText(String phone, String message) {
+        if (apiKey.isBlank() || deviceId.isBlank()) {
+            throw new IllegalStateException("TextBee API key and device ID are not configured");
+        }
+        sendRequest(phone, message);
+    }
+
+    private void sendRequest(String phone, String message) {
         client.post()
                 .uri(uriBuilder -> uriBuilder
                         .path("/api/v1/gateway/devices/{deviceId}/send-sms")
                         .build(deviceId))
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(new SmsRequest(List.of(phone), messageFor(purpose, code)))
+                .body(new SmsRequest(List.of(phone), message))
                 .retrieve()
                 .toBodilessEntity();
     }
