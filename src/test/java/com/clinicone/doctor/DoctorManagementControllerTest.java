@@ -40,6 +40,20 @@ class DoctorManagementControllerTest {
     private DoctorManagementService service;
 
     @Test
+    void adminCanCreateDoctorAccount() throws Exception {
+        when(service.createDoctor(any())).thenReturn(new DoctorAccountResponse(DOCTOR_ID, "bs.an",
+                "Bác sĩ Nguyễn An", null, null, null, null, false, false));
+
+        mockMvc.perform(post("/api/v1/admin/doctors")
+                        .with(authentication(authenticated("ROLE_ADMIN")))
+                        .contentType("application/json")
+                        .content("{\"username\":\"bs.an\",\"fullName\":\"Bác sĩ Nguyễn An\",\"password\":\"doctor123\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.username").value("bs.an"))
+                .andExpect(jsonPath("$.assigned").value(false));
+    }
+
+    @Test
     void adminCanAssignDoctorAndCreateWorkingHours() throws Exception {
         when(service.assign(eq(DOCTOR_ID), any())).thenReturn(profile());
         when(service.addSchedule(eq(DOCTOR_ID), any())).thenReturn(schedule());

@@ -4,6 +4,7 @@ import com.clinicone.auth.AuthException;
 import com.clinicone.auth.StaffAccount;
 import com.clinicone.auth.StaffAccountRepository;
 import com.clinicone.auth.StaffRole;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import com.clinicone.queue.ClinicRoom;
 import com.clinicone.queue.ClinicRoomRepository;
 import com.clinicone.schedule.SpecialtyCatalogService;
@@ -23,17 +24,20 @@ public class DoctorManagementService {
     private final DoctorScheduleRepository scheduleRepository;
     private final ClinicRoomRepository roomRepository;
     private final SpecialtyCatalogService specialtyCatalog;
+    private final PasswordEncoder passwordEncoder;
 
     public DoctorManagementService(StaffAccountRepository staffRepository,
                                    DoctorProfileRepository profileRepository,
                                    DoctorScheduleRepository scheduleRepository,
                                    ClinicRoomRepository roomRepository,
-                                   SpecialtyCatalogService specialtyCatalog) {
+                                   SpecialtyCatalogService specialtyCatalog,
+                                   PasswordEncoder passwordEncoder) {
         this.staffRepository = staffRepository;
         this.profileRepository = profileRepository;
         this.scheduleRepository = scheduleRepository;
         this.roomRepository = roomRepository;
         this.specialtyCatalog = specialtyCatalog;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Transactional(readOnly = true)
@@ -43,6 +47,18 @@ public class DoctorManagementService {
                         .map(profile -> DoctorAccountResponse.from(staff, profile))
                         .orElseGet(() -> DoctorAccountResponse.unassigned(staff)))
                 .toList();
+    }
+
+    @Transactional
+    public DoctorAccountResponse createDoctor(DoctorCreateRequest request) {
+        String username = request.username().trim();
+        String fullName = request.fullName().trim();
+        if (staffRepository.findByUsernameIgnoreCase(username).isPresent()) {
+            throw conflict("STAFF_USERNAME_TAKEN", "Tên đăng nhập đã được sử dụng.");
+        }
+        StaffAccount doctor = staffRepository.save(StaffAccount.create(
+                username, passwordEncoder.encode(request.password()), fullName, StaffRole.DOCTOR));
+        return DoctorAccountResponse.unassigned(doctor);
     }
 
     @Transactional
