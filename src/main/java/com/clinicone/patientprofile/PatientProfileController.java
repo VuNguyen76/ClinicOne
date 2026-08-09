@@ -41,6 +41,14 @@ public class PatientProfileController {
         return ResponseEntity.ok(service.update(authentication.getName(), profileId, request));
     }
 
+    // Endpoint dành riêng cho Lễ tân cập nhật hồ sơ thiếu
+    @PatchMapping("/{profileId}/reception-update")
+    public ResponseEntity<PatientProfileResponse> updateByReceptionist(
+            @PathVariable String profileId,
+            @Valid @RequestBody UpdatePatientProfileRequest request) {
+        return ResponseEntity.ok(service.updateMissingDataByReceptionist(profileId, request));
+    }
+
     @DeleteMapping("/{profileId}")
     public ResponseEntity<Void> delete(Authentication authentication, @PathVariable String profileId) {
         service.delete(authentication.getName(), profileId);

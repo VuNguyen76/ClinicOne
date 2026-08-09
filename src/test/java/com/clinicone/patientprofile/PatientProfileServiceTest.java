@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.any;
+import static org.mockito.ArgumentMatchers.any;
 
 class PatientProfileServiceTest {
     private static final UUID ACCOUNT_ID = UUID.randomUUID();
@@ -89,5 +89,59 @@ class PatientProfileServiceTest {
         assertEquals("Nữ", account.getGender());
         assertEquals("Địa chỉ mới", account.getAddress());
         verify(accountRepository).save(account);
+    }
+
+    @Test
+    void preventsOverwritingExistingFieldsForReceptionist() {
+        // AC-REC-02-01: Màn hình khóa trường đã có (Backend không ghi đè dữ liệu cũ)
+        PatientAccountRepository accountRepository = mock(PatientAccountRepository.class);
+        PatientProfileRepository profileRepository = mock(PatientProfileRepository.class);
+
+        // Giả lập DB có sẵn Tên, nhưng thiếu Ngày sinh và Giới tính
+        PatientAccount account = mock(PatientAccount.class);
+        PatientProfile profile = PatientProfile.forTest(PROFILE_ID, account, "Tên Cũ", "Bản thân", null, null, true);
+        when(profileRepository.findById(PROFILE_ID)).thenReturn(Optional.of(profile));
+        when(profileRepository.save(any(PatientProfile.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        PatientProfileService service = new PatientProfileService(accountRepository, profileRepository);
+
+        // Request gửi lên cố tình sửa tên thành "Tên Bị Sửa"
+        UpdatePatientProfileRequest request = new UpdatePatientProfileRequest(
+                "Tên Bị Sửa", "Bản thân", LocalDate.of(1990, 1, 1), "Nam",
+                null, null, null, null, null
+        );
+
+        service.updateMissingDataByReceptionist(PROFILE_ID.toString(), request);
+
+        // Assert: Tên phải bị khóa giữ nguyên "Tên Cũ", Ngày sinh và Giới tính được bổ sung
+        assertEquals("Tên Cũ", profile.getFullName());
+        assertEquals(LocalDate.of(1990, 1, 1), profile.getDateOfBirth());
+        assertEquals("Nam", profile.getGender());
+    }
+
+    @Test
+    void missingAddressDoesNotBlockUpdateForReceptionist() {
+        // AC-REC-02-02: Thiếu địa chỉ không chặn tiếp nhận
+        PatientAccountRepository accountRepository = mock(PatientAccountRepository.class);
+        PatientProfileRepository profileRepository = mock(PatientProfileRepository.class);
+
+        PatientAccount account = mock(PatientAccount.class);
+        PatientProfile profile = PatientProfile.forTest(PROFILE_ID, account, null, "Bản thân", null, null, true);
+        when(profileRepository.findById(PROFILE_ID)).thenReturn(Optional.of(profile));
+        when(profileRepository.save(any(PatientProfile.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        PatientProfileService service = new PatientProfileService(accountRepository, profileRepository);
+
+        // Request gửi lên KHÔNG có địa chỉ (truyền null)
+        UpdatePatientProfileRequest request = new UpdatePatientProfileRequest(
+                "Nguyễn Văn A", "Bản thân", LocalDate.of(1990, 1, 1), "Nam",
+                null, null, null, null, null
+        );
+
+        PatientProfileResponse response = service.updateMissingDataByReceptionist(PROFILE_ID.toString(), request);
+
+        // Assert: Hàm chạy thành công, không văng lỗi và lưu được thông tin
+        assertEquals("Nguyễn Văn A", response.fullName());
+        verify(profileRepository).save(profile);
     }
 }
