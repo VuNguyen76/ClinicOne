@@ -60,6 +60,25 @@
           }
         </section>
 
+        <div class="grid content-start gap-6">
+        @if (queueTickets().length > 0) {
+          <section data-testid="my-queue-card" class="rounded-[16px] border border-[#b9dce7] bg-white shadow-sm" aria-labelledby="my-queue-heading">
+            <div class="flex items-center justify-between gap-3 border-b border-slate-100 px-6 py-5">
+              <div><h2 id="my-queue-heading" class="text-lg font-bold text-slate-900">Lượt khám hôm nay</h2><p class="mt-1 text-sm text-slate-500">Số thứ tự nhận tại phòng bác sĩ.</p></div>
+              <mat-icon class="text-[#0ea5e9]">confirmation_number</mat-icon>
+            </div>
+            <div class="divide-y divide-slate-100">
+              @for (ticket of queueTickets(); track ticket.id) {
+                <a routerLink="/appointments" class="flex items-center gap-4 px-6 py-5 transition hover:bg-[#f8fdff]">
+                  <span class="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-[#e8f8fc] text-2xl font-bold tracking-[-0.05em] text-[#0b84bd]">{{ formatQueueNumber(ticket.queueNumber) }}</span>
+                  <span class="min-w-0 flex-1"><strong class="block truncate text-sm text-slate-900">{{ ticket.specialty }}</strong><span class="mt-1 block truncate text-xs text-slate-500">{{ ticket.roomName }} · {{ ticket.doctorName }}</span></span>
+                  <span class="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold" [class]="queueStatusClass(ticket.status)">{{ ticket.statusLabel }}</span>
+                </a>
+              }
+            </div>
+          </section>
+        }
+
         <aside class="rounded-[16px] border border-slate-200 bg-white shadow-sm" aria-labelledby="profile-summary-heading">
           <div class="border-b border-slate-100 px-6 py-5"><h2 id="profile-summary-heading" class="text-lg font-bold text-slate-900">Thông tin của bạn</h2><p class="mt-1 text-sm text-slate-500">Thông tin dùng khi đặt lịch.</p></div>
           <div class="space-y-4 px-6 py-6 text-sm">
@@ -69,6 +88,7 @@
             <a routerLink="/account" class="inline-flex items-center gap-2 pt-2 font-semibold text-[#0284c7] hover:underline">Cập nhật hồ sơ <mat-icon class="!text-[18px]">arrow_forward</mat-icon></a>
           </div>
         </aside>
+        </div>
       </div>
     }
   </div>

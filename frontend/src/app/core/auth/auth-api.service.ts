@@ -498,6 +498,10 @@ export class AuthApiService {
     return this.http.post<QueueTicketResponse>(`/api/v1/rooms/${encodeURIComponent(roomCode)}/queue/check-in`, { appointmentId });
   }
 
+  getMyQueue(date: string): Observable<QueueTicketResponse[]> {
+    return this.http.get<QueueTicketResponse[]>('/api/v1/patient/queue', { params: { date } });
+  }
+
   getRoomForCheckIn(roomKey: string): Observable<ClinicRoomCheckInResponse> {
     return this.http.get<ClinicRoomCheckInResponse>(`/api/v1/rooms/${encodeURIComponent(roomKey)}/check-in`);
   }

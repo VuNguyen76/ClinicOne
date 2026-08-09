@@ -20,6 +20,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -92,6 +93,20 @@ class QueueServiceTest {
 
         assertEquals(5, response.queueNumber());
         verify(ticketRepository, never()).save(any(QueueTicket.class));
+    }
+
+    @Test
+    void patientCanReadOwnQueueForTheSelectedDate() {
+        QueueTicket ticket = QueueTicket.create(appointment, room, TODAY, 5);
+        setId(ticket, UUID.randomUUID());
+        when(ticketRepository.findByAppointment_Patient_IdAndQueueDateOrderByQueueNumberAsc(ACCOUNT_ID, TODAY))
+                .thenReturn(List.of(ticket));
+
+        List<QueueTicketResponse> response = service.listForPatient(ACCOUNT_ID.toString(), TODAY);
+
+        assertEquals(1, response.size());
+        assertEquals(5, response.get(0).queueNumber());
+        verify(ticketRepository).findByAppointment_Patient_IdAndQueueDateOrderByQueueNumberAsc(ACCOUNT_ID, TODAY);
     }
 
     @Test

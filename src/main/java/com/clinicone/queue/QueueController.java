@@ -36,6 +36,14 @@ public class QueueController {
         return ResponseEntity.ok(queueService.checkIn(authentication.getName(), roomCode, request.appointmentId()));
     }
 
+    @GetMapping("/patient/queue")
+    @PreAuthorize("hasRole('PATIENT')")
+    public ResponseEntity<List<QueueTicketResponse>> patientQueue(
+            Authentication authentication,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return ResponseEntity.ok(queueService.listForPatient(authentication.getName(), date));
+    }
+
     @GetMapping("/rooms/{roomCode}/queue")
     @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR', 'DOCTOR', 'RECEPTIONIST')")
     public ResponseEntity<List<QueueTicketResponse>> list(

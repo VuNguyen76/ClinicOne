@@ -19,6 +19,9 @@ public interface QueueTicketRepository extends JpaRepository<QueueTicket, UUID> 
 
     List<QueueTicket> findByRoomCodeAndQueueDateOrderByQueueNumberAsc(String roomCode, LocalDate queueDate);
 
+    List<QueueTicket> findByAppointment_Patient_IdAndQueueDateOrderByQueueNumberAsc(UUID patientId,
+                                                                                       LocalDate queueDate);
+
     List<QueueTicket> findByRoomCodeAndQueueDateAndAppointment_DoctorStaffIdOrderByQueueNumberAsc(
             String roomCode, LocalDate queueDate, UUID doctorStaffId);
 }

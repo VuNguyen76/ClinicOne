@@ -25,9 +25,23 @@ describe('Dashboard', () => {
   afterEach(() => http.verify());
 
   it('keeps the appointment heading and actions aligned in one header row', () => {
+    http.expectOne((request) => request.url === '/api/v1/patient/queue').flush([]);
+    fixture.detectChanges();
     const header = fixture.nativeElement.querySelector('[data-testid="appointments-header"]') as HTMLElement;
     expect(header).not.toBeNull();
     expect(header.querySelector('[data-testid="appointments-actions"]')).not.toBeNull();
     expect(header.querySelector('[routerlink="/appointments"]')).not.toBeNull();
+  });
+
+  it('shows the patient queue number after QR check-in', () => {
+    http.expectOne((request) => request.url === '/api/v1/patient/queue').flush([{
+      id: 'ticket-1', queueNumber: 5, roomCode: 'NOI-01', roomName: 'Phòng Nội tổng quát 01', queueDate: '2026-08-09',
+      appointmentTime: '09:00:00', status: 'WAITING', statusLabel: 'Đang chờ', appointmentCode: 'CL-001',
+      specialty: 'Nội tổng quát', doctorName: 'BS. Nguyễn An',
+    }]);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[data-testid="my-queue-card"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="my-queue-card"]').textContent).toContain('05');
   });
 });
