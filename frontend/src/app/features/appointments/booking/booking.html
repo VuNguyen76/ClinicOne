@@ -30,35 +30,23 @@
   </div>
 
   <div class="mx-auto grid max-w-[1200px] gap-6 px-5 py-8 lg:grid-cols-[255px_minmax(0,1fr)] lg:py-10 lg:px-0">
-    <aside class="h-fit border border-slate-200 bg-white lg:sticky lg:top-[96px]">
-      <div class="border-b border-slate-200 bg-[#159fe0] px-5 py-4 text-sm font-bold text-white">Thông tin khám</div>
-      <div class="grid gap-4 px-5 py-5 text-sm">
-        <div class="flex gap-3"><mat-icon class="!h-5 !w-5 !text-[20px] text-[#159fe0]">local_hospital</mat-icon>
-          <div>
-            <p class="font-semibold text-slate-800">ClinicOne Medical Center</p>
-            <p class="mt-1 text-xs leading-5 text-slate-500">Cơ sở khám bệnh</p>
-          </div>
+    <aside class="h-fit overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm lg:sticky lg:top-[96px]">
+      <div class="flex items-center gap-3 border-b border-slate-200 bg-[#159fe0] px-5 py-4 text-sm font-bold text-white"><span class="grid h-8 w-8 place-items-center rounded-lg bg-white/15"><mat-icon class="!h-5 !w-5 !text-[20px]">event_note</mat-icon></span><span>Thông tin khám</span></div>
+      <div class="px-5 py-2 text-sm">
+        <div class="flex min-w-0 gap-3 border-b border-slate-100 py-4"><mat-icon class="mt-0.5 !h-5 !w-5 !shrink-0 !text-[20px] text-[#159fe0]">local_hospital</mat-icon>
+          <div class="min-w-0"><p class="truncate font-semibold text-slate-800">ClinicOne Medical Center</p><p class="mt-1 text-xs leading-5 text-slate-500">Cơ sở khám bệnh</p></div>
         </div>
-        @if (selectedSpecialty()) {<div class="flex gap-3"><mat-icon
-            class="!h-5 !w-5 !text-[20px] text-[#159fe0]">medical_services</mat-icon>
-          <div>
-            <p class="text-xs text-slate-500">Chuyên khoa</p>
-            <p class="mt-1 font-semibold text-slate-800">{{ selectedSpecialty() }}</p>
-          </div>
+        @if (selectedSpecialty()) {<div class="flex min-w-0 gap-3 border-b border-slate-100 py-4"><mat-icon
+            class="mt-0.5 !h-5 !w-5 !shrink-0 !text-[20px] text-[#159fe0]">medical_services</mat-icon>
+          <div class="min-w-0"><p class="text-xs text-slate-500">Chuyên khoa</p><p class="mt-1 font-semibold leading-5 text-slate-800">{{ selectedSpecialty() }}</p></div>
         </div>}
-        @if (selectedDate()) {<div class="flex gap-3"><mat-icon
-            class="!h-5 !w-5 !text-[20px] text-[#159fe0]">event</mat-icon>
-          <div>
-            <p class="text-xs text-slate-500">Ngày khám</p>
-            <p class="mt-1 font-semibold text-slate-800">{{ formatDate(selectedDate()) }}</p>
-          </div>
+        @if (selectedDate()) {<div class="flex min-w-0 gap-3 border-b border-slate-100 py-4"><mat-icon
+            class="mt-0.5 !h-5 !w-5 !shrink-0 !text-[20px] text-[#159fe0]">event</mat-icon>
+          <div class="min-w-0"><p class="text-xs text-slate-500">Ngày khám</p><time class="mt-1 block font-semibold leading-5 text-slate-800">{{ formatDate(selectedDate()) }}</time></div>
         </div>}
-        @if (selectedSlot()) {<div class="flex gap-3"><mat-icon
-            class="!h-5 !w-5 !text-[20px] text-[#159fe0]">schedule</mat-icon>
-          <div>
-            <p class="text-xs text-slate-500">Khung giờ</p>
-            <p class="mt-1 font-semibold text-slate-800">{{ selectedSlotLabel() }}</p>
-          </div>
+        @if (selectedSlotDetails(); as slot) {<div class="flex min-w-0 gap-3 py-4"><mat-icon
+            class="mt-0.5 !h-5 !w-5 !shrink-0 !text-[20px] text-[#159fe0]">schedule</mat-icon>
+          <div class="min-w-0"><p class="text-xs text-slate-500">Khung giờ</p><p class="mt-1 font-bold leading-5 text-slate-900">{{ slot.label }}</p><div class="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs font-medium text-slate-500"><span>{{ slot.doctorName }}</span>@if (slot.roomCode) {<span class="rounded-md bg-[#e8f7fb] px-2 py-0.5 text-[11px] font-semibold text-[#0879a8]">Phòng {{ slot.roomCode }}</span>}</div></div>
         </div>}
       </div>
       <div class="border-t border-slate-200 px-5 py-5">
@@ -156,10 +144,7 @@
             <p class="text-xs text-slate-500">Chuyên khoa</p>
             <p class="mt-1 font-semibold text-slate-800">{{ selectedSpecialty() }}</p>
           </div>
-          <div>
-            <p class="text-xs text-slate-500">Ngày và giờ</p>
-            <p class="mt-1 font-semibold text-slate-800">{{ formatDate(selectedDate()) }} · {{ selectedSlotLabel() }}</p>
-          </div>
+          <div class="min-w-0"><p class="text-xs text-slate-500">Ngày khám</p><p class="mt-1 font-semibold text-slate-800">{{ formatDate(selectedDate()) }}</p><p class="mt-1 text-sm font-medium text-slate-600">{{ selectedSlotLabel() }}</p></div>
         </div><label class="grid gap-2 text-sm font-semibold text-slate-700">Người đi khám *<select
             class="min-h-12 rounded-lg border border-slate-200 bg-white px-3 font-normal outline-none focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/15"
             formControlName="profileId">

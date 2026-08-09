@@ -151,6 +151,10 @@ export class Booking implements OnInit {
     return selected ? `${selected.label} · ${selected.doctorName}${selected.roomCode ? ` · ${selected.roomCode}` : ''}` : '';
   }
 
+  protected selectedSlotDetails(): TimeSlot | null {
+    return this.availableSlots().find((slot) => slot.key === this.selectedSlot()) ?? null;
+  }
+
   protected slotsFor(period: TimeSlot['period']): TimeSlot[] {
     return this.availableSlots().filter((slot) => slot.period === period);
   }
