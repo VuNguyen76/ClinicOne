@@ -2,8 +2,9 @@ import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } 
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
+import { forkJoin } from 'rxjs';
 import { AccountMenu } from '../../shared/account-menu/account-menu';
-import { ApiErrorResponse, AuthApiService, ClinicRoomResponse, apiErrorMessage } from '../../core/auth/auth-api.service';
+import { ApiErrorResponse, AuthApiService, ClinicRoomResponse, SpecialtyOption, apiErrorMessage } from '../../core/auth/auth-api.service';
 import * as QRCode from 'qrcode';
 
 type RoomStatusFilter = 'ALL' | 'ACTIVE' | 'INACTIVE';
@@ -21,6 +22,7 @@ export class RoomManagement implements OnInit {
   private readonly router = inject(Router);
 
   protected readonly rooms = signal<ClinicRoomResponse[]>([]);
+  protected readonly specialties = signal<SpecialtyOption[]>([]);
   protected readonly searchTerm = signal('');
   protected readonly statusFilter = signal<RoomStatusFilter>('ALL');
   protected readonly loading = signal(true);
@@ -49,7 +51,7 @@ export class RoomManagement implements OnInit {
   });
 
   ngOnInit(): void {
-    this.loadRooms();
+    this.loadData();
   }
 
   protected submit(): void {
@@ -97,6 +99,10 @@ export class RoomManagement implements OnInit {
 
   protected updateStatus(event: Event): void {
     this.statusFilter.set((event.target as HTMLSelectElement).value as RoomStatusFilter);
+  }
+
+  protected hasSpecialty(name: string): boolean {
+    return this.specialties().some((specialty) => specialty.name === name);
   }
 
   protected toggleActive(room: ClinicRoomResponse): void {
@@ -164,9 +170,13 @@ export class RoomManagement implements OnInit {
     printWindow.print();
   }
 
-  private loadRooms(): void {
-    this.authApi.getRooms().subscribe({
-      next: (rooms) => { this.rooms.set(rooms); this.loading.set(false); },
+  private loadData(): void {
+    forkJoin({ rooms: this.authApi.getRooms(), specialties: this.authApi.getSpecialties() }).subscribe({
+      next: (data) => {
+        this.rooms.set(data.rooms);
+        this.specialties.set(data.specialties);
+        this.loading.set(false);
+      },
       error: (response) => { this.loading.set(false); this.handleError(response); },
     });
   }

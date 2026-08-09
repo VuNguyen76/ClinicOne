@@ -22,6 +22,7 @@ describe('RoomManagement', () => {
   afterEach(() => http.verify());
 
   it('loads rooms ordered by the backend', () => {
+    http.expectOne('/api/v1/specialties').flush([{ code: 'NOI', name: 'Nội tổng quát', description: 'Khám tổng quát' }]);
     http.expectOne('/api/v1/rooms').flush([room('NOI-01', true), room('NHI-01', false)]);
     fixture.detectChanges();
 
@@ -30,6 +31,7 @@ describe('RoomManagement', () => {
   });
 
   it('creates a room from the admin form', () => {
+    http.expectOne('/api/v1/specialties').flush([{ code: 'NOI', name: 'Nội tổng quát', description: 'Khám tổng quát' }]);
     http.expectOne('/api/v1/rooms').flush([]);
     fixture.detectChanges();
     (fixture.nativeElement.querySelector('[data-testid="open-room-form"]') as HTMLButtonElement).click();
@@ -40,7 +42,7 @@ describe('RoomManagement', () => {
     fixture.nativeElement.querySelector('[formcontrolname="specialty"]').value = 'Nội tổng quát';
     fixture.nativeElement.querySelector('[formcontrolname="code"]').dispatchEvent(new Event('input'));
     fixture.nativeElement.querySelector('[formcontrolname="name"]').dispatchEvent(new Event('input'));
-    fixture.nativeElement.querySelector('[formcontrolname="specialty"]').dispatchEvent(new Event('input'));
+    fixture.nativeElement.querySelector('[formcontrolname="specialty"]').dispatchEvent(new Event('change'));
     fixture.detectChanges();
     (fixture.nativeElement.querySelector('[data-testid="save-room"]') as HTMLButtonElement).click();
 
@@ -53,7 +55,23 @@ describe('RoomManagement', () => {
     expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
   });
 
+  it('uses the preloaded specialty catalog in the room form', () => {
+    http.expectOne('/api/v1/specialties').flush([
+      { code: 'NOI', name: 'Nội tổng quát', description: 'Khám tổng quát' },
+      { code: 'NHI', name: 'Nhi', description: 'Khám trẻ em' },
+    ]);
+    http.expectOne('/api/v1/rooms').flush([]);
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('[data-testid="open-room-form"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const specialty = fixture.nativeElement.querySelector('[data-testid="room-specialty"]') as HTMLSelectElement;
+    expect(Array.from(specialty.options).map((option) => option.textContent?.trim())).toEqual(['Chọn chuyên khoa', 'Nội tổng quát', 'Nhi']);
+  });
+
   it('opens the edit form as a modal for an existing room', () => {
+    http.expectOne('/api/v1/specialties').flush([{ code: 'NOI', name: 'Nội tổng quát', description: 'Khám tổng quát' }]);
     http.expectOne('/api/v1/rooms').flush([room('NOI-01', true)]);
     fixture.detectChanges();
 
