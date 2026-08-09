@@ -36,6 +36,7 @@ describe('QueueCheckIn', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelectorAll('[data-testid="check-in-appointment"]').length).toBe(1);
+    expect(fixture.nativeElement.querySelector('[data-testid="qr-check-in-guide"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('[data-testid="room-code"]').textContent).toContain('Phòng Nội');
   });
 
