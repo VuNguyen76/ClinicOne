@@ -1,0 +1,136 @@
+package com.clinicone.examination;
+
+import com.clinicone.appointment.Appointment;
+import com.clinicone.appointment.AppointmentRepository;
+import com.clinicone.auth.AccountStatus;
+import com.clinicone.auth.AuthException;
+import com.clinicone.auth.PatientAccount;
+import com.clinicone.auth.StaffAccount;
+import com.clinicone.auth.StaffAccountRepository;
+import com.clinicone.auth.StaffRole;
+import com.clinicone.doctor.DoctorProfile;
+import com.clinicone.doctor.DoctorProfileRepository;
+import com.clinicone.notification.PatientNotificationService;
+import com.clinicone.queue.ClinicRoom;
+import com.clinicone.queue.QueueTicket;
+import com.clinicone.queue.QueueTicketRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.lang.reflect.Field;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.Optional;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+class DoctorExaminationServiceTest {
+    private static final UUID DOCTOR_ID = UUID.fromString("7d9e3fb4-1045-4ca4-86d2-7d1fca4c1a13");
+    private static final UUID OTHER_DOCTOR_ID = UUID.fromString("8d9e3fb4-1045-4ca4-86d2-7d1fca4c1a13");
+    private static final UUID APPOINTMENT_ID = UUID.fromString("ad9e3fb4-1045-4ca4-86d2-7d1fca4c1a13");
+    private static final UUID TICKET_ID = UUID.fromString("bd9e3fb4-1045-4ca4-86d2-7d1fca4c1a13");
+    private static final UUID SESSION_ID = UUID.fromString("cd9e3fb4-1045-4ca4-86d2-7d1fca4c1a13");
+    private static final UUID RECORD_ID = UUID.fromString("dd9e3fb4-1045-4ca4-86d2-7d1fca4c1a13");
+
+    private QueueTicketRepository ticketRepository;
+    private ExaminationSessionRepository sessionRepository;
+    private MedicalRecordRepository recordRepository;
+    private StaffAccountRepository staffRepository;
+    private AppointmentRepository appointmentRepository;
+    private DoctorProfileRepository profileRepository;
+    private PatientNotificationService notificationService;
+    private DoctorExaminationService service;
+    private QueueTicket ticket;
+    private ExaminationSession session;
+    private MedicalRecord record;
+    private Appointment appointment;
+
+    @BeforeEach
+    void setUp() {
+        ticketRepository = mock(QueueTicketRepository.class);
+        sessionRepository = mock(ExaminationSessionRepository.class);
+        recordRepository = mock(MedicalRecordRepository.class);
+        staffRepository = mock(StaffAccountRepository.class);
+        appointmentRepository = mock(AppointmentRepository.class);
+        profileRepository = mock(DoctorProfileRepository.class);
+        notificationService = mock(PatientNotificationService.class);
+        service = new DoctorExaminationService(ticketRepository, sessionRepository, recordRepository,
+                staffRepository, appointmentRepository, profileRepository, notificationService);
+
+        ClinicRoom room = ClinicRoom.create("NOI-01", "Phòng Nội 01", "Nội tổng quát");
+        StaffAccount doctor = StaffAccount.create("bs.an", "hash", "Bác sĩ Nguyễn An", StaffRole.DOCTOR);
+        setId(doctor, DOCTOR_ID);
+        DoctorProfile profile = DoctorProfile.create(doctor, "Nội tổng quát", room);
+        PatientAccount patient = new PatientAccount("0912345678", "hash", "Nguyễn Thanh Vũ",
+                AccountStatus.ACTIVE, false);
+        setId(patient, UUID.fromString("ed9e3fb4-1045-4ca4-86d2-7d1fca4c1a13"));
+        appointment = Appointment.create(patient, DOCTOR_ID, "CL-E2E-001", "Nội tổng quát",
+                "Bác sĩ Nguyễn An", LocalDate.of(2026, 8, 9), LocalTime.of(9, 0), "Đau đầu");
+        setId(appointment, APPOINTMENT_ID);
+        ticket = QueueTicket.create(appointment, room, appointment.getAppointmentDate(), 5);
+        setId(ticket, TICKET_ID);
+        ticket.call();
+        ticket.startService();
+        session = ExaminationSession.create(appointment);
+        setId(session, SESSION_ID);
+        session.begin();
+        record = MedicalRecord.draft(session);
+        setId(record, RECORD_ID);
+
+        when(ticketRepository.findById(TICKET_ID)).thenReturn(Optional.of(ticket));
+        when(sessionRepository.findByAppointment_Id(APPOINTMENT_ID)).thenReturn(Optional.of(session));
+        when(recordRepository.findBySession_Id(SESSION_ID)).thenReturn(Optional.of(record));
+        when(staffRepository.findById(DOCTOR_ID)).thenReturn(Optional.of(doctor));
+        when(profileRepository.findByStaffAccount_Id(DOCTOR_ID)).thenReturn(Optional.of(profile));
+        when(appointmentRepository.save(any(Appointment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(ticketRepository.save(any(QueueTicket.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(sessionRepository.save(any(ExaminationSession.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(recordRepository.save(any(MedicalRecord.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    }
+
+    @Test
+    void signingCompletesTheWholeExaminationAndNotifiesPatient() {
+        DoctorExaminationResponse response = service.sign(TICKET_ID, DOCTOR_ID.toString(), request());
+
+        assertThat(response.status()).isEqualTo("COMPLETED");
+        assertThat(response.signedAt()).isNotNull();
+        assertThat(ticket.getStatus()).isEqualTo(com.clinicone.queue.QueueTicketStatus.COMPLETED);
+        assertThat(appointment.getStatus()).isEqualTo(com.clinicone.appointment.AppointmentStatus.COMPLETED);
+        assertThat(session.getStatus()).isEqualTo(ExaminationSessionStatus.COMPLETED);
+        assertThat(record.getSignedAt()).isNotNull();
+        verify(appointmentRepository).save(appointment);
+        verify(ticketRepository).save(ticket);
+        verify(sessionRepository).save(session);
+        verify(recordRepository).save(record);
+        verify(notificationService).notifyMedicalRecordSigned(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void anotherDoctorCannotOpenOrSignTheTicket() {
+        assertThatThrownBy(() -> service.sign(TICKET_ID, OTHER_DOCTOR_ID.toString(), request()))
+                .isInstanceOf(AuthException.class)
+                .hasMessage("Bác sĩ chỉ được mở phiếu của lượt đã được phân công.");
+        assertThat(record.getSignedAt()).isNull();
+    }
+
+    private DoctorExaminationRequest request() {
+        return new DoctorExaminationRequest("Đau đầu", "Mạch ổn", "Đau đầu căng thẳng",
+                "Theo dõi thêm", "Nghỉ ngơi", "Paracetamol khi đau", null);
+    }
+
+    private static void setId(Object target, UUID id) {
+        try {
+            Field field = target.getClass().getDeclaredField("id");
+            field.setAccessible(true);
+            field.set(target, id);
+        } catch (ReflectiveOperationException exception) {
+            throw new AssertionError(exception);
+        }
+    }
+}
