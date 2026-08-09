@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -73,6 +74,44 @@ public class PatientProfileService {
                     profile.getDistrictName(), profile.getWardCode(), profile.getWardName(), profile.getStreetAddress());
             accountRepository.save(owner);
         }
+        return PatientProfileResponse.from(profileRepository.save(profile));
+    }
+
+    @Transactional
+    public PatientProfileResponse updateMissingDataByReceptionist(String profileId, UpdatePatientProfileRequest request) {
+        // 1. Lễ tân không bị ràng buộc bởi ownerId, tìm hồ sơ trực tiếp bằng ID
+        PatientProfile profile = profileRepository.findById(UUID.fromString(profileId))
+                .orElseThrow(this::profileNotFound);
+
+        // 2. AC-REC-02-01: Khóa trường đã có 
+        // Chỉ lấy giá trị từ request nếu dữ liệu cũ đang thực sự trống (legacy data)
+        String newFullName = (profile.getFullName() == null || profile.getFullName().isBlank()) ? normalize(request.fullName()) : profile.getFullName();
+        LocalDate newDob = (profile.getDateOfBirth() == null) ? request.dateOfBirth() : profile.getDateOfBirth();
+        String newGender = (profile.getGender() == null || profile.getGender().isBlank()) ? normalize(request.gender()) : profile.getGender();
+
+        // 3. AC-REC-02-02: Địa chỉ có thể nhập thêm (nếu có thì lấy, không thì giữ cũ)
+        String newAddress = request.address() != null ? normalize(request.address()) : profile.getAddress();
+
+        // 4. Cập nhật vào Entity. Các trường khác (Relationship, Identity,...) giữ nguyên như cũ.
+        profile.update(
+                newFullName,
+                profile.getRelationship(), 
+                newDob,
+                newGender,
+                profile.getPhone(),
+                profile.getIdentityNumber(),
+                profile.getNationality(),
+                profile.getEthnicity(),
+                newAddress,
+                profile.getProvinceCode(),
+                profile.getProvinceName(),
+                profile.getDistrictCode(),
+                profile.getDistrictName(),
+                profile.getWardCode(),
+                profile.getWardName(),
+                profile.getStreetAddress()
+        );
+
         return PatientProfileResponse.from(profileRepository.save(profile));
     }
 
