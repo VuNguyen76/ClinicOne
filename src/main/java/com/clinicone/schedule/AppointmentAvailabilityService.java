@@ -15,9 +15,11 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class AppointmentAvailabilityService {
@@ -135,26 +137,40 @@ public class AppointmentAvailabilityService {
     }
 
     private List<AvailableSlotResponse> findConfigured(String specialty, LocalDate from, LocalDate to) {
-        List<DoctorProfile> profiles = doctorProfileRepository.findBySpecialtyIgnoreCaseAndActiveTrue(specialty);
+        List<DoctorSchedule> schedules = doctorScheduleRepository.findActiveBySpecialtyIgnoreCase(specialty);
+        List<UUID> doctorStaffIds = schedules.stream()
+                .map(schedule -> schedule.getDoctorProfile().getStaffAccount().getId())
+                .distinct()
+                .toList();
+        if (doctorStaffIds.isEmpty()) {
+            return List.of();
+        }
+        Map<DoctorSlotKey, Long> bookedBySlot = appointmentRepository
+                .countBookedByDoctorsAndDateRange(doctorStaffIds, from, to, AppointmentStatus.BOOKED)
+                .stream()
+                .collect(Collectors.toMap(
+                        item -> new DoctorSlotKey(item.doctorStaffId(), item.appointmentDate(), item.startTime()),
+                        DoctorSlotBookingCount::bookedCount));
         return from.datesUntil(to.plusDays(1))
-                .flatMap(date -> profiles.stream()
-                        .flatMap(profile -> doctorScheduleRepository.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(
-                                        profile.getId(), date.getDayOfWeek()).stream()
-                                .flatMap(schedule -> slotsFor(profile, schedule, date).stream())))
+                .flatMap(date -> schedules.stream()
+                        .filter(schedule -> schedule.getDayOfWeek() == date.getDayOfWeek())
+                        .flatMap(schedule -> slotsFor(schedule, date, bookedBySlot).stream()))
                 .filter(slot -> slot.remainingCapacity() > 0)
                 .toList();
     }
 
-    private List<AvailableSlotResponse> slotsFor(DoctorProfile profile, DoctorSchedule schedule, LocalDate date) {
-        java.util.ArrayList<AvailableSlotResponse> slots = new java.util.ArrayList<>();
+    private List<AvailableSlotResponse> slotsFor(DoctorSchedule schedule, LocalDate date,
+                                                  Map<DoctorSlotKey, Long> bookedBySlot) {
+        DoctorProfile profile = schedule.getDoctorProfile();
+        UUID doctorStaffId = profile.getStaffAccount().getId();
+        ArrayList<AvailableSlotResponse> slots = new ArrayList<>();
         LocalTime start = schedule.getStartTime();
         while (!start.plusMinutes(schedule.getSlotDurationMinutes()).isAfter(schedule.getEndTime())) {
-            long booked = appointmentRepository.countByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
-                    profile.getStaffAccount().getId(), date, start, AppointmentStatus.BOOKED);
+            long booked = bookedBySlot.getOrDefault(new DoctorSlotKey(doctorStaffId, date, start), 0L);
             LocalTime end = start.plusMinutes(schedule.getSlotDurationMinutes());
             slots.add(new AvailableSlotResponse(profile.getSpecialty(), date, start, end,
                     profile.getStaffAccount().getFullName(), booked == 0 ? 1 : 0,
-                    profile.getStaffAccount().getId(), profile.getRoom().getCode()));
+                    doctorStaffId, profile.getRoom().getCode()));
             start = end;
         }
         return slots;
@@ -191,5 +207,8 @@ public class AppointmentAvailabilityService {
     }
 
     private record SlotKey(LocalDate date, LocalTime startTime) {
+    }
+
+    private record DoctorSlotKey(UUID doctorStaffId, LocalDate date, LocalTime startTime) {
     }
 }
