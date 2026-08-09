@@ -146,6 +146,16 @@ public class QueueService {
     }
 
     @Transactional(readOnly = true)
+    public List<QueueTicketResponse> listForPatient(String accountId, LocalDate date) {
+        UUID patientId = parseAccountId(accountId);
+        LocalDate queueDate = date == null ? today() : date;
+        return ticketRepository.findByAppointment_Patient_IdAndQueueDateOrderByQueueNumberAsc(patientId, queueDate)
+                .stream()
+                .map(QueueTicketResponse::from)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public List<QueueTicketResponse> listForStaff(String roomCode, LocalDate date, String staffId, StaffRole role) {
         if (role == StaffRole.DOCTOR) {
             UUID doctorId = parseStaffId(staffId);

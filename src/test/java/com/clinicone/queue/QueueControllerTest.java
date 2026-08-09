@@ -55,6 +55,17 @@ class QueueControllerTest {
     }
 
     @Test
+    void listsPatientsOwnQueueForToday() throws Exception {
+        when(queueService.listForPatient(eq(ACCOUNT_ID.toString()), eq(LocalDate.of(2026, 8, 6))))
+                .thenReturn(List.of(response()));
+
+        mockMvc.perform(get("/api/v1/patient/queue?date=2026-08-06")
+                        .with(authentication(authenticated("ROLE_PATIENT"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].queueNumber").value(5));
+    }
+
+    @Test
     void listsRoomQueueForStaffScreen() throws Exception {
         when(queueService.listForStaff(eq("NOI-01"), eq(LocalDate.of(2026, 8, 6)), eq(ACCOUNT_ID.toString()), eq(StaffRole.COORDINATOR)))
                 .thenReturn(List.of(response()));
