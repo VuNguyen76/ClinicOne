@@ -61,6 +61,7 @@ async function mockExistingAccount(page: Page): Promise<void> {
   }));
   await page.route('**/api/v1/auth/me', (route) => fulfillJson(route, profile));
   await page.route('**/api/v1/appointments', (route) => fulfillJson(route, []));
+  await page.route('**/api/v1/patient/queue**', (route) => fulfillJson(route, []));
 }
 
 test.describe('luồng người dùng ClinicOne', () => {
