@@ -9,6 +9,7 @@ import com.clinicone.doctor.DoctorSchedule;
 import com.clinicone.doctor.DoctorScheduleRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -57,6 +58,7 @@ public class AppointmentAvailabilityService {
         this(appointmentRepository, new SpecialtyCatalogService());
     }
 
+    @Transactional(readOnly = true)
     public List<AvailableSlotResponse> find(String specialty, LocalDate from, LocalDate to) {
         specialtyCatalog.require(specialty);
         validateRange(from, to);
@@ -74,10 +76,12 @@ public class AppointmentAvailabilityService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public void ensureBookable(String specialty, LocalDate appointmentDate, LocalTime startTime) {
         ensureBookableFallback(specialty, appointmentDate, startTime);
     }
 
+    @Transactional(readOnly = true)
     public void ensureBookable(String specialty, String doctorName, UUID doctorId, LocalDate appointmentDate,
                                 LocalTime startTime) {
         specialtyCatalog.require(specialty);
