@@ -36,6 +36,33 @@ describe('DoctorManagement', () => {
     expect(fixture.nativeElement.querySelectorAll('[data-testid="doctor-row"]').length).toBe(1);
     expect(fixture.nativeElement.textContent).toContain('Chưa phân công');
   });
+
+  it('creates a doctor account when no doctor exists', () => {
+    http.expectOne('/api/v1/admin/doctors').flush([]);
+    http.expectOne('/api/v1/rooms').flush([room('NOI-01')]);
+    http.expectOne('/api/v1/specialties').flush([]);
+    fixture.detectChanges();
+
+    fixture.nativeElement.querySelector('[data-testid="empty-create-doctor"]').click();
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('[data-testid="doctor-username"]') as HTMLInputElement).value = 'bs.an';
+    (fixture.nativeElement.querySelector('[data-testid="doctor-username"]') as HTMLInputElement).dispatchEvent(new Event('input'));
+    (fixture.nativeElement.querySelector('[data-testid="doctor-full-name"]') as HTMLInputElement).value = 'Bác sĩ Nguyễn An';
+    (fixture.nativeElement.querySelector('[data-testid="doctor-full-name"]') as HTMLInputElement).dispatchEvent(new Event('input'));
+    (fixture.nativeElement.querySelector('[data-testid="doctor-password"]') as HTMLInputElement).value = 'doctor123';
+    (fixture.nativeElement.querySelector('[data-testid="doctor-password"]') as HTMLInputElement).dispatchEvent(new Event('input'));
+    fixture.nativeElement.querySelector('[data-testid="submit-create-doctor"]').click();
+
+    const request = http.expectOne('/api/v1/admin/doctors');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual({ username: 'bs.an', fullName: 'Bác sĩ Nguyễn An', password: 'doctor123' });
+    request.flush(doctor('doctor-1', false));
+    http.expectOne('/api/v1/admin/doctors/doctor-1/schedules').flush([]);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelectorAll('[data-testid="doctor-row"]').length).toBe(1);
+    expect(fixture.nativeElement.textContent).toContain('Bác sĩ Nguyễn An');
+  });
 });
 
 function doctor(staffId: string, assigned: boolean) {

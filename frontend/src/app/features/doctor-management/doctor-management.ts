@@ -8,6 +8,7 @@ import {
   ApiErrorResponse,
   AuthApiService,
   ClinicRoomResponse,
+  CreateDoctorRequest,
   DoctorAccountResponse,
   DoctorScheduleResponse,
   SpecialtyOption,
@@ -35,9 +36,15 @@ export class DoctorManagement implements OnInit {
   protected readonly saving = signal(false);
   protected readonly error = signal('');
   protected readonly notice = signal('');
+  protected readonly createDoctorOpen = signal(false);
   protected readonly assignmentForm = this.fb.nonNullable.group({
     specialty: ['', [Validators.required]],
     roomId: ['', [Validators.required]],
+  });
+  protected readonly createDoctorForm = this.fb.nonNullable.group({
+    username: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(80)]],
+    fullName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(200)]],
+    password: ['', [Validators.required, Validators.minLength(6), Validators.maxLength(72)]],
   });
   protected readonly scheduleForm = this.fb.nonNullable.group({
     dayOfWeek: ['MONDAY', [Validators.required]],
@@ -72,6 +79,37 @@ export class DoctorManagement implements OnInit {
     this.authApi.getDoctorSchedules(doctor.staffId).subscribe({
       next: (schedules) => this.schedules.set(schedules),
       error: (response) => this.error.set(apiErrorMessage(response)),
+    });
+  }
+
+  protected openCreateDoctor(): void {
+    this.error.set('');
+    this.notice.set('');
+    this.createDoctorForm.reset({ username: '', fullName: '', password: '' });
+    this.createDoctorOpen.set(true);
+  }
+
+  protected closeCreateDoctor(): void {
+    if (!this.saving()) this.createDoctorOpen.set(false);
+  }
+
+  protected createDoctor(): void {
+    if (this.createDoctorForm.invalid) {
+      this.createDoctorForm.markAllAsTouched();
+      return;
+    }
+    this.saving.set(true);
+    this.error.set('');
+    const request = this.createDoctorForm.getRawValue() as CreateDoctorRequest;
+    this.authApi.createDoctor(request).subscribe({
+      next: (doctor) => {
+        this.doctors.update((items) => [...items, doctor].sort((a, b) => a.fullName.localeCompare(b.fullName)));
+        this.createDoctorOpen.set(false);
+        this.saving.set(false);
+        this.notice.set(`Đã tạo tài khoản cho ${doctor.fullName}. Tiếp tục phân công chuyên khoa và phòng.`);
+        this.selectDoctor(doctor);
+      },
+      error: (response) => { this.saving.set(false); this.error.set(apiErrorMessage(response)); },
     });
   }
 

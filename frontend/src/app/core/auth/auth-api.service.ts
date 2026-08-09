@@ -215,6 +215,12 @@ export interface DoctorAccountResponse {
   active: boolean;
 }
 
+export interface CreateDoctorRequest {
+  username: string;
+  fullName: string;
+  password: string;
+}
+
 export interface DoctorAssignmentResponse {
   staffId: string;
   username: string;
@@ -600,6 +606,10 @@ export class AuthApiService {
 
   getDoctors(): Observable<DoctorAccountResponse[]> {
     return this.http.get<DoctorAccountResponse[]>('/api/v1/admin/doctors');
+  }
+
+  createDoctor(request: CreateDoctorRequest): Observable<DoctorAccountResponse> {
+    return this.http.post<DoctorAccountResponse>('/api/v1/admin/doctors', request);
   }
 
   assignDoctor(staffId: string, specialty: string, roomId: string): Observable<DoctorAssignmentResponse> {
