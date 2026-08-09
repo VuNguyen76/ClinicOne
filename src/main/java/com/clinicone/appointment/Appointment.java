@@ -25,7 +25,8 @@ import java.util.UUID;
 @Entity
 @Table(name = "appointments", indexes = {
         @Index(name = "idx_appointments_patient_date", columnList = "patient_account_id,appointment_date,start_time"),
-        @Index(name = "idx_appointments_slot_availability", columnList = "specialty,appointment_date,start_time,status")
+        @Index(name = "idx_appointments_slot_availability", columnList = "specialty,appointment_date,start_time,status"),
+        @Index(name = "idx_appointments_doctor_slot", columnList = "doctor_staff_id,appointment_date,start_time,status")
 }, uniqueConstraints = {
         @UniqueConstraint(name = "uk_appointments_patient_slot", columnNames = {"patient_account_id", "appointment_date", "start_time"})
 })

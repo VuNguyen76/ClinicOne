@@ -1,6 +1,7 @@
 package com.clinicone.appointment;
 
 import com.clinicone.schedule.SlotBookingCount;
+import com.clinicone.schedule.DoctorSlotBookingCount;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -33,6 +34,21 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
             """)
     List<SlotBookingCount> countBookedBySpecialtyAndDateRange(
             @Param("specialty") String specialty,
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to,
+            @Param("status") AppointmentStatus status);
+
+    @Query("""
+            select new com.clinicone.schedule.DoctorSlotBookingCount(
+                a.doctorStaffId, a.appointmentDate, a.startTime, count(a))
+            from Appointment a
+            where a.doctorStaffId in :doctorStaffIds
+              and a.appointmentDate between :from and :to
+              and a.status = :status
+            group by a.doctorStaffId, a.appointmentDate, a.startTime
+            """)
+    List<DoctorSlotBookingCount> countBookedByDoctorsAndDateRange(
+            @Param("doctorStaffIds") List<UUID> doctorStaffIds,
             @Param("from") LocalDate from,
             @Param("to") LocalDate to,
             @Param("status") AppointmentStatus status);
