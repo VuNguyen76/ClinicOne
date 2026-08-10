@@ -251,6 +251,30 @@ export interface DoctorAccountResponse {
   active: boolean;
 }
 
+export interface EligibleDoctorResponse {
+  doctorProfileId: string;
+  staffId: string;
+  fullName: string;
+}
+
+export interface ClinicServiceResponse {
+  id: string;
+  name: string;
+  specialty: string;
+  visitType: string;
+  durationMinutes: number;
+  active: boolean;
+  eligibleDoctors: EligibleDoctorResponse[];
+}
+
+export interface ClinicServiceRequest {
+  name: string;
+  specialty: string;
+  visitType: string;
+  durationMinutes: number;
+  doctorIds: string[];
+}
+
 export interface CreateDoctorRequest {
   username: string;
   fullName: string;
@@ -509,6 +533,10 @@ export class AuthApiService {
     return this.http.get<SpecialtyOption[]>(this.specialtiesRoot, query ? { params: { query } } : undefined);
   }
 
+  getActiveClinicServices(): Observable<ClinicServiceResponse[]> {
+    return this.http.get<ClinicServiceResponse[]>('/api/v1/services');
+  }
+
   getAppointmentSlots(specialty: string, from: string, to: string): Observable<AppointmentSlotResponse[]> {
     return this.http.get<AppointmentSlotResponse[]>(this.appointmentSlotsRoot, { params: { specialty, from, to } });
   }
@@ -697,6 +725,22 @@ export class AuthApiService {
 
   getDoctors(): Observable<DoctorAccountResponse[]> {
     return this.http.get<DoctorAccountResponse[]>('/api/v1/admin/doctors');
+  }
+
+  getClinicServices(activeOnly = false): Observable<ClinicServiceResponse[]> {
+    return this.http.get<ClinicServiceResponse[]>(`/api/v1/admin/services${activeOnly ? '/active' : ''}`);
+  }
+
+  createClinicService(request: ClinicServiceRequest): Observable<ClinicServiceResponse> {
+    return this.http.post<ClinicServiceResponse>('/api/v1/admin/services', request);
+  }
+
+  updateClinicService(id: string, request: ClinicServiceRequest): Observable<ClinicServiceResponse> {
+    return this.http.put<ClinicServiceResponse>(`/api/v1/admin/services/${id}`, request);
+  }
+
+  setClinicServiceActive(id: string, active: boolean): Observable<ClinicServiceResponse> {
+    return this.http.post<ClinicServiceResponse>(`/api/v1/admin/services/${id}/${active ? 'activate' : 'deactivate'}`, {});
   }
 
   createDoctor(request: CreateDoctorRequest): Observable<DoctorAccountResponse> {
