@@ -5,12 +5,15 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 public interface QueueTicketRepository extends JpaRepository<QueueTicket, UUID> {
     Optional<QueueTicket> findByAppointmentId(UUID appointmentId);
+
+    List<QueueTicket> findByAppointmentIdIn(Collection<UUID> appointmentIds);
 
     @Query("select max(ticket.queueNumber) from QueueTicket ticket "
             + "where ticket.room.code = :roomCode and ticket.queueDate = :queueDate")
