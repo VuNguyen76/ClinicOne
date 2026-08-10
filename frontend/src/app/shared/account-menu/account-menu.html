@@ -71,6 +71,10 @@
         [class.text-[#0284c7]]="isActive('/admin/reconciliations')" [attr.aria-current]="isActive('/admin/reconciliations') ? 'page' : null"
         class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]"
         role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">fact_check</mat-icon>Đối soát sai sót</a>}
+      @if (canManageRooms()) {<a routerLink="/admin/business-audit" [class.bg-[#eafaff]]="isActive('/admin/business-audit')"
+        [class.text-[#0284c7]]="isActive('/admin/business-audit')" [attr.aria-current]="isActive('/admin/business-audit') ? 'page' : null"
+        class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]"
+        role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">history</mat-icon>Lịch sử công việc</a>}
       @if (staffRole() === 'ADMIN') {<a routerLink="/admin/staff" [class.bg-[#eafaff]]="isActive('/admin/staff')"
         [class.text-[#0284c7]]="isActive('/admin/staff')" [attr.aria-current]="isActive('/admin/staff') ? 'page' : null"
         class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]"

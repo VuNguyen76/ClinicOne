@@ -427,6 +427,28 @@ export interface AccessAuditResponse {
   occurredAt: string;
 }
 
+export interface BusinessLogResponse {
+  id: string;
+  eventId: string;
+  entityType: string;
+  entityId: string;
+  previousStatus: string | null;
+  nextStatus: string;
+  eventType: string;
+  actor: string;
+  reason: string | null;
+  occurredAt: string;
+}
+
+export interface BusinessLogPageResponse {
+  items: BusinessLogResponse[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  last: boolean;
+}
+
 export interface AvailableReplacementSlot {
   specialty: string;
   appointmentDate: string;
@@ -918,6 +940,12 @@ export class AuthApiService {
   getAccessAudit(filters: { from?: string; to?: string; actor?: string; outcome?: string; eventType?: string } = {}): Observable<AccessAuditResponse[]> {
     const params = Object.fromEntries(Object.entries(filters).filter(([, value]) => !!value)) as Record<string, string>;
     return this.http.get<AccessAuditResponse[]>('/api/v1/admin/access-audit', { params });
+  }
+
+  getBusinessLogPage(entityType: string, entityId: string, page = 0, size = 50): Observable<BusinessLogPageResponse> {
+    return this.http.get<BusinessLogPageResponse>('/api/v1/admin/audit/search', {
+      params: { entityType, entityId, page, size },
+    });
   }
 
   getReplacementSlots(caseId: string, from?: string, to?: string): Observable<AvailableReplacementSlot[]> {
