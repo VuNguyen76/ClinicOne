@@ -103,6 +103,39 @@ public class PatientNotification {
                 "APPOINTMENT_RESCHEDULED:" + appointmentId + ":" + previousDate + "T" + previousTime + "->" + date + "T" + time);
     }
 
+    public static PatientNotification appointmentReminder(UUID patientAccountId, UUID appointmentId,
+                                                          String appointmentCode, String specialty,
+                                                          String doctorName, String date, String time, int hours) {
+        PatientNotificationType type = hours == 24
+                ? PatientNotificationType.APPOINTMENT_REMINDER_24H
+                : PatientNotificationType.APPOINTMENT_REMINDER_2H;
+        String suffix = hours == 24 ? "24 giờ" : "2 giờ";
+        return new PatientNotification(patientAccountId, type,
+                "Nhắc lịch khám",
+                "Lịch hẹn " + appointmentCode + " vào " + date + " lúc " + time
+                        + " (còn khoảng " + suffix + ").",
+                "/appointments/" + appointmentId,
+                type.name() + ":" + appointmentId);
+    }
+
+    public static PatientNotification appointmentLateWarning(UUID patientAccountId, UUID appointmentId,
+                                                              String appointmentCode) {
+        return new PatientNotification(patientAccountId, PatientNotificationType.APPOINTMENT_LATE_WARNING,
+                "Lịch hẹn đã quá giờ",
+                "Lịch hẹn " + appointmentCode + " đã quá giờ. Vui lòng đến quầy để được hỗ trợ.",
+                "/appointments/" + appointmentId,
+                "APPOINTMENT_LATE_WARNING:" + appointmentId);
+    }
+
+    public static PatientNotification appointmentAbsent(UUID patientAccountId, UUID appointmentId,
+                                                         String appointmentCode) {
+        return new PatientNotification(patientAccountId, PatientNotificationType.APPOINTMENT_ABSENT,
+                "Đã ghi nhận vắng mặt",
+                "Lịch hẹn " + appointmentCode + " đã được ghi nhận vắng mặt. Vui lòng liên hệ quầy để đặt lịch mới.",
+                "/appointments/" + appointmentId,
+                "APPOINTMENT_ABSENT:" + appointmentId);
+    }
+
     @PrePersist
     void onCreate() {
         createdAt = Instant.now();
