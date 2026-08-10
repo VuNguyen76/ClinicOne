@@ -16,7 +16,8 @@ export class AdminStatistics implements OnInit {
   private readonly authApi = inject(AuthApiService);
   protected readonly from = signal(this.today());
   protected readonly to = signal(this.today());
-  protected readonly specialty = signal('Khám Tổng Quát');
+  protected readonly specialty = signal('');
+  protected readonly specialties = signal<{ code: string; name: string; description: string }[]>([]);
   protected readonly doctorId = signal('');
   protected readonly doctors = signal<{ staffId: string; fullName: string; specialty: string | null }[]>([]);
   protected readonly groupBy = signal<'DAY' | 'WEEK' | 'MONTH'>('DAY');
@@ -26,7 +27,16 @@ export class AdminStatistics implements OnInit {
 
   ngOnInit(): void {
     this.authApi.getDoctors().subscribe({ next: (doctors) => this.doctors.set(doctors) });
-    this.load();
+    this.authApi.getSpecialties().subscribe({
+      next: (specialties) => {
+        this.specialties.set(specialties);
+        if (!this.specialty() && specialties.length > 0) this.specialty.set(specialties[0].name);
+        this.load();
+      },
+      error: (response: ApiErrorResponse) => {
+        this.error.set(apiErrorMessage(response));
+      },
+    });
   }
 
   protected load(): void {
