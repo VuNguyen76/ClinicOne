@@ -34,6 +34,8 @@ export class StaffManagement implements OnInit {
   protected readonly newDepartmentName = signal('');
   protected readonly newRoles = signal<string[]>([]);
   protected readonly roleOptions = ['DOCTOR', 'RECEPTIONIST', 'COORDINATOR'];
+  protected readonly editingAccount = signal<StaffAccountResponse | null>(null);
+  protected readonly editingRoles = signal<string[]>([]);
 
   ngOnInit(): void {
     this.load();
@@ -66,6 +68,46 @@ export class StaffManagement implements OnInit {
 
   protected closeCreate(): void {
     if (!this.updatingId()) this.createOpen.set(false);
+  }
+
+  protected openRoleEditor(account: StaffAccountResponse): void {
+    this.error.set('');
+    this.editingAccount.set(account);
+    this.editingRoles.set([...(account.roles?.length ? account.roles : [account.role])]);
+  }
+
+  protected closeRoleEditor(): void {
+    if (!this.updatingId()) this.editingAccount.set(null);
+  }
+
+  protected toggleEditingRole(role: string): void {
+    this.editingRoles.update((roles) => roles.includes(role)
+      ? roles.filter((item) => item !== role)
+      : [...roles, role]);
+  }
+
+  protected hasEditingRole(role: string): boolean {
+    return this.editingRoles().includes(role);
+  }
+
+  protected saveRoles(): void {
+    const account = this.editingAccount();
+    const roles = this.editingRoles();
+    if (!account || roles.length === 0 || roles.length > 3) {
+      this.error.set('Chọn từ 1 đến 3 vai trò.');
+      return;
+    }
+    this.error.set('');
+    this.updatingId.set(`roles:${account.staffId}`);
+    this.authApi.updateStaffRoles(account.staffId, roles).subscribe({
+      next: (updated) => {
+        this.accounts.update((items) => items.map((item) => item.staffId === updated.staffId ? updated : item));
+        this.updatingId.set(null);
+        this.editingAccount.set(null);
+        this.notice.set(`Đã cập nhật vai trò cho ${updated.fullName}.`);
+      },
+      error: (response: ApiErrorResponse) => { this.updatingId.set(null); this.error.set(apiErrorMessage(response)); },
+    });
   }
 
   protected toggleRole(role: string): void {

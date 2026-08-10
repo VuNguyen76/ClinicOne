@@ -90,6 +90,28 @@ class StaffManagementServiceTest {
         verify(accountRepository, never()).save(any(StaffAccount.class));
     }
 
+    @Test
+    void updatesBusinessRolesWithoutAllowingAdminCombination() throws Exception {
+        StaffAccount account = account();
+        when(accountRepository.findById(STAFF_ID)).thenReturn(Optional.of(account));
+
+        StaffAccountResponse response = service.updateRoles(STAFF_ID,
+                new UpdateStaffRolesRequest(List.of(StaffRole.DOCTOR, StaffRole.RECEPTIONIST)));
+
+        assertEquals(java.util.Set.of(StaffRole.DOCTOR, StaffRole.RECEPTIONIST), response.roles());
+        assertEquals(java.util.Set.of(StaffRole.DOCTOR, StaffRole.RECEPTIONIST), account.getRoles());
+        verify(accountRepository).save(account);
+    }
+
+    @Test
+    void rejectsAdminCombinedWithBusinessRoleWhenUpdating() throws Exception {
+        AuthException exception = assertThrows(AuthException.class, () -> service.updateRoles(STAFF_ID,
+                new UpdateStaffRolesRequest(List.of(StaffRole.ADMIN, StaffRole.DOCTOR))));
+
+        assertEquals("STAFF_ROLE_COMBINATION_INVALID", exception.getCode());
+        verify(accountRepository, never()).findById(any(UUID.class));
+    }
+
     private StaffAccount account() throws Exception {
         StaffAccount account = StaffAccount.create("bs.an", "hash", "Bác sĩ An", StaffRole.DOCTOR);
         Field field = StaffAccount.class.getDeclaredField("id");

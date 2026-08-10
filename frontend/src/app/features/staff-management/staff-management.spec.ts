@@ -71,6 +71,22 @@ describe('StaffManagement', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('A1b2C3d4E5f6');
   });
+
+  it('updates the selected roles for an existing business account', () => {
+    http.expectOne('/api/v1/admin/staff').flush([account('ACTIVE')]);
+    fixture.detectChanges();
+    const component = fixture.componentInstance as any;
+    component.openRoleEditor(account('ACTIVE'));
+    component.editingRoles.set(['DOCTOR', 'RECEPTIONIST']);
+    component.saveRoles();
+
+    const request = http.expectOne('/api/v1/admin/staff/staff-1/roles');
+    expect(request.request.method).toBe('PUT');
+    expect(request.request.body).toEqual({ roles: ['DOCTOR', 'RECEPTIONIST'] });
+    request.flush({ ...account('ACTIVE'), roles: ['DOCTOR', 'RECEPTIONIST'] });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Đã cập nhật vai trò');
+  });
 });
 
 function account(status: string) {
