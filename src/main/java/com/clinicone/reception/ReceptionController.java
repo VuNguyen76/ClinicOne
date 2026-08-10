@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import com.clinicone.patientprofile.PatientProfileResponse;
 import com.clinicone.auth.RequestOtpResponse;
 
 import java.time.LocalDate;
@@ -50,7 +49,7 @@ public class ReceptionController {
     }
 
     @GetMapping("/profiles")
-    public ResponseEntity<List<PatientProfileResponse>> profiles(@RequestParam String phone) {
+    public ResponseEntity<List<ReceptionPatientProfileResponse>> profiles(@RequestParam String phone) {
         return ResponseEntity.ok(service.profiles(phone));
     }
 

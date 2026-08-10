@@ -85,7 +85,7 @@ public class ReceptionService {
     }
 
     @Transactional(readOnly = true)
-    public List<PatientProfileResponse> profiles(String phone) {
+    public List<ReceptionPatientProfileResponse> profiles(String phone) {
         if (patientAccountRepository == null || patientProfileRepository == null) {
             throw new AuthException(HttpStatus.SERVICE_UNAVAILABLE, "RECEPTION_PROFILES_UNAVAILABLE",
                     "Chưa bật tra cứu hồ sơ tại quầy.");
@@ -94,7 +94,7 @@ public class ReceptionService {
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "PATIENT_ACCOUNT_REQUIRED",
                         "Chưa tìm thấy tài khoản theo số điện thoại."));
         return patientProfileRepository.findByOwnerIdAndActiveTrueOrderByPrimaryProfileDescCreatedAtAsc(patient.getId())
-                .stream().map(PatientProfileResponse::from).toList();
+                .stream().map(ReceptionPatientProfileResponse::from).toList();
     }
 
     /**

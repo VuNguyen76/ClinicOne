@@ -383,6 +383,8 @@ export interface ReceptionPatientProfile {
   relationship: string;
   dateOfBirth?: string | null;
   primaryProfile: boolean;
+  accountStatus?: string;
+  mustChangePassword?: boolean;
 }
 
 export interface ReceptionPatientRegistrationRequest {
@@ -391,6 +393,10 @@ export interface ReceptionPatientRegistrationRequest {
   fullName: string;
   dateOfBirth: string;
   gender: string;
+  identityNumber?: string;
+  nationality?: string;
+  ethnicity?: string;
+  address?: string;
 }
 
 export interface ReceptionPatientRegistrationResponse {

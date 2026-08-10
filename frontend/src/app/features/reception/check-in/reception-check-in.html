@@ -69,6 +69,22 @@
               <label class="grid gap-1 text-xs font-bold uppercase tracking-[0.08em] text-slate-500">Giới tính
                 <select class="min-h-10 rounded-md border border-[#d5e3e7] bg-white px-3 text-sm font-semibold normal-case tracking-normal outline-none focus:border-[#0ea5e9]" [ngModel]="registrationGender()" (ngModelChange)="registrationGender.set($event)" name="registrationGender"><option value="">Chọn giới tính</option><option value="Nam">Nam</option><option value="Nữ">Nữ</option><option value="Khác">Khác</option></select>
               </label>
+              <div class="grid gap-4 sm:grid-cols-2">
+                <label class="grid gap-1 text-xs font-bold uppercase tracking-[0.08em] text-slate-500">CCCD/CMND
+                  <input class="min-h-10 rounded-md border border-[#d5e3e7] px-3 text-sm font-semibold normal-case tracking-normal outline-none focus:border-[#0ea5e9]" [ngModel]="registrationIdentityNumber()" (ngModelChange)="registrationIdentityNumber.set($event)" name="registrationIdentityNumber" inputmode="numeric" maxlength="12" placeholder="Không bắt buộc" />
+                </label>
+                <label class="grid gap-1 text-xs font-bold uppercase tracking-[0.08em] text-slate-500">Quốc tịch
+                  <input class="min-h-10 rounded-md border border-[#d5e3e7] px-3 text-sm font-semibold normal-case tracking-normal outline-none focus:border-[#0ea5e9]" [ngModel]="registrationNationality()" (ngModelChange)="registrationNationality.set($event)" name="registrationNationality" />
+                </label>
+              </div>
+              <div class="grid gap-4 sm:grid-cols-2">
+                <label class="grid gap-1 text-xs font-bold uppercase tracking-[0.08em] text-slate-500">Dân tộc
+                  <input class="min-h-10 rounded-md border border-[#d5e3e7] px-3 text-sm font-semibold normal-case tracking-normal outline-none focus:border-[#0ea5e9]" [ngModel]="registrationEthnicity()" (ngModelChange)="registrationEthnicity.set($event)" name="registrationEthnicity" />
+                </label>
+                <label class="grid gap-1 text-xs font-bold uppercase tracking-[0.08em] text-slate-500">Địa chỉ
+                  <input class="min-h-10 rounded-md border border-[#d5e3e7] px-3 text-sm font-semibold normal-case tracking-normal outline-none focus:border-[#0ea5e9]" [ngModel]="registrationAddress()" (ngModelChange)="registrationAddress.set($event)" name="registrationAddress" placeholder="Số nhà, đường..." />
+                </label>
+              </div>
               <div class="flex justify-end gap-2 border-t border-[#e7eff1] pt-4"><button type="button" class="min-h-10 rounded-md px-4 text-sm font-semibold text-slate-600 transition hover:bg-slate-100" (click)="closeWalkIn()">Hủy</button><button type="submit" class="min-h-10 rounded-md bg-[#0b3846] px-5 text-sm font-semibold text-white transition hover:bg-[#082d39] disabled:opacity-50" [disabled]="registrationLoading() || !registrationOtpSent()">{{ registrationLoading() ? 'Đang tạo...' : 'Tạo tài khoản' }}</button></div>
             </form>
           } @else if (walkInNeedsPasswordChange()) {
