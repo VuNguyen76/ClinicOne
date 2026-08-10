@@ -11,8 +11,10 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import com.clinicone.audit.AccessAuditService;
 
 import java.time.Clock;
+import jakarta.servlet.http.HttpServletResponse;
 
 @Configuration
 @EnableMethodSecurity
@@ -21,7 +23,8 @@ public class SecurityConfig {
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http,
-                                            ObjectProvider<com.clinicone.auth.SessionAuthenticationFilter> sessionFilter)
+                                            ObjectProvider<com.clinicone.auth.SessionAuthenticationFilter> sessionFilter,
+                                            ObjectProvider<AccessAuditService> accessAuditService)
             throws Exception {
         var chain = http
                 .csrf(AbstractHttpConfigurer::disable)
@@ -38,10 +41,31 @@ public class SecurityConfig {
                                 "/actuator/health"
                         ).permitAll()
                         .anyRequest().authenticated()
-                );
+                )
+                .exceptionHandling(exceptions -> exceptions
+                        .accessDeniedHandler((request, response, exception) -> {
+                            recordAccessDenied(accessAuditService, request);
+                            response.sendError(HttpServletResponse.SC_FORBIDDEN);
+                        })
+                        .authenticationEntryPoint((request, response, exception) -> {
+                            recordAccessDenied(accessAuditService, request);
+                            response.sendError(HttpServletResponse.SC_FORBIDDEN);
+                        }));
         sessionFilter.ifAvailable(filter -> chain.addFilterBefore(
                 filter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class));
         return chain.build();
+    }
+
+    private void recordAccessDenied(ObjectProvider<AccessAuditService> provider,
+                                    jakarta.servlet.http.HttpServletRequest request) {
+        AccessAuditService service = provider.getIfAvailable();
+        if (service == null) return;
+        var principal = request.getUserPrincipal();
+        String actor = principal == null ? "ANONYMOUS" : principal.getName();
+        String eventType = principal == null ? "AUTHENTICATION_REQUIRED" : "ACCESS_DENIED";
+        try {
+            service.record(eventType, actor, "FAILED", request.getRequestURI(), request.getRemoteAddr());
+        } catch (RuntimeException ignored) { }
     }
 
     @Bean

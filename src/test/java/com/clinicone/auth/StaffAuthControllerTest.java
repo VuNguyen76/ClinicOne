@@ -15,6 +15,7 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -29,6 +30,9 @@ class StaffAuthControllerTest {
     @Autowired
     private StaffAuthService service;
 
+    @Autowired
+    private com.clinicone.audit.AccessAuditService accessAuditService;
+
     @Test
     void staffLoginEndpointIsPublicAndReturnsRole() throws Exception {
         when(service.login(any())).thenReturn(new StaffLoginResponse(
@@ -41,6 +45,7 @@ class StaffAuthControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").value("staff-token"))
                 .andExpect(jsonPath("$.role").value("ADMIN"));
+        verify(accessAuditService).record("STAFF_LOGIN", "admin", "SUCCESS", "/api/v1/staff/auth/login", "127.0.0.1");
     }
 
     @TestConfiguration
@@ -48,6 +53,11 @@ class StaffAuthControllerTest {
         @Bean
         StaffAuthService staffAuthService() {
             return mock(StaffAuthService.class);
+        }
+
+        @Bean
+        com.clinicone.audit.AccessAuditService accessAuditService() {
+            return mock(com.clinicone.audit.AccessAuditService.class);
         }
     }
 }

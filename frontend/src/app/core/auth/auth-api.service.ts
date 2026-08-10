@@ -403,6 +403,16 @@ export interface ReconciliationResponse {
   createdAt: string;
 }
 
+export interface AccessAuditResponse {
+  id: string;
+  eventType: string;
+  actor: string;
+  outcome: string;
+  function: string;
+  ipAddress: string | null;
+  occurredAt: string;
+}
+
 export interface AvailableReplacementSlot {
   specialty: string;
   appointmentDate: string;
@@ -607,6 +617,10 @@ export class AuthApiService {
     return this.http.get<SpecialtyOption[]>(this.specialtiesRoot, query ? { params: { query } } : undefined);
   }
 
+  logoutPatient(): Observable<void> {
+    return this.http.post<void>(`${this.apiRoot}/logout`, {});
+  }
+
   getActiveClinicServices(): Observable<ClinicServiceResponse[]> {
     return this.http.get<ClinicServiceResponse[]>('/api/v1/services');
   }
@@ -787,6 +801,10 @@ export class AuthApiService {
     }));
   }
 
+  logoutStaff(): Observable<void> {
+    return this.http.post<void>('/api/v1/staff/auth/logout', {});
+  }
+
   createRoom(request: Omit<ClinicRoomResponse, 'id' | 'active' | 'qrToken'>): Observable<ClinicRoomResponse> {
     return this.http.post<ClinicRoomResponse>('/api/v1/rooms', request);
   }
@@ -881,6 +899,11 @@ export class AuthApiService {
 
   closeReconciliation(id: string, request: { action: string; referenceType: string; referenceValue: string; resultNote: string }): Observable<ReconciliationResponse> {
     return this.http.post<ReconciliationResponse>(`/api/v1/admin/reconciliations/${id}/close`, request);
+  }
+
+  getAccessAudit(filters: { from?: string; to?: string; actor?: string; outcome?: string; eventType?: string } = {}): Observable<AccessAuditResponse[]> {
+    const params = Object.fromEntries(Object.entries(filters).filter(([, value]) => !!value)) as Record<string, string>;
+    return this.http.get<AccessAuditResponse[]>('/api/v1/admin/access-audit', { params });
   }
 
   getReplacementSlots(caseId: string, from?: string, to?: string): Observable<AvailableReplacementSlot[]> {

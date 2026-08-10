@@ -45,6 +45,16 @@ public class StaffAuthService {
                 account.getRole().name());
     }
 
+    @Transactional
+    public void logout(String accountId) {
+        try {
+            sessionRepository.revokeActiveByAccountId(java.util.UUID.fromString(accountId), Instant.now(clock));
+        } catch (IllegalArgumentException exception) {
+            throw new AuthException(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_REQUIRED",
+                    "Phiên đăng nhập không hợp lệ.");
+        }
+    }
+
     private AuthException invalidCredentials() {
         return new AuthException(HttpStatus.UNAUTHORIZED, "STAFF_INVALID_CREDENTIALS",
                 "Tên đăng nhập hoặc mật khẩu không đúng.");

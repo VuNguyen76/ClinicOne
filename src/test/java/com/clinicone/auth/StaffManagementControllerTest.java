@@ -16,6 +16,7 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -34,6 +35,9 @@ class StaffManagementControllerTest {
     @Autowired
     private StaffManagementService service;
 
+    @Autowired
+    private com.clinicone.audit.AccessAuditService accessAuditService;
+
     @Test
     void adminCanListAndLockStaffAccount() throws Exception {
         StaffAccountResponse response = new StaffAccountResponse(STAFF_ID, "bs.an", "Bác sĩ An",
@@ -51,6 +55,7 @@ class StaffManagementControllerTest {
                         .with(authentication(authenticated("ROLE_ADMIN"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("LOCKED"));
+        verify(accessAuditService).record("STAFF_LOCK", STAFF_ID.toString(), "SUCCESS", "/api/v1/admin/staff/{id}/lock", "127.0.0.1");
     }
 
     @Test
@@ -70,6 +75,11 @@ class StaffManagementControllerTest {
         @Bean
         StaffManagementService staffManagementService() {
             return mock(StaffManagementService.class);
+        }
+
+        @Bean
+        com.clinicone.audit.AccessAuditService accessAuditService() {
+            return mock(com.clinicone.audit.AccessAuditService.class);
         }
     }
 }
