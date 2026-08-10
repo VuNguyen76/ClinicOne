@@ -109,6 +109,12 @@ public class PatientNotificationService {
     }
 
     @Transactional
+    public void notifyAppointmentRescheduleRequired(Appointment appointment) {
+        saveOnce(PatientNotification.appointmentRescheduleRequired(appointment.getPatient().getId(),
+                appointment.getId(), appointment.getAppointmentCode()));
+    }
+
+    @Transactional
     public void notifyAppointmentReminder(Appointment appointment, int hours) {
         saveOnce(PatientNotification.appointmentReminder(appointment.getPatient().getId(), appointment.getId(),
                 appointment.getAppointmentCode(), appointment.getSpecialty(), appointment.getDoctorName(),

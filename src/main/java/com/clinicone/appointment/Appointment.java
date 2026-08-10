@@ -180,6 +180,13 @@ public class Appointment {
         this.startTime = startTime;
     }
 
+    public void reschedule(LocalDate appointmentDate, LocalTime startTime, UUID doctorStaffId, String doctorName) {
+        this.appointmentDate = appointmentDate;
+        this.startTime = startTime;
+        this.doctorStaffId = doctorStaffId;
+        this.doctorName = doctorName == null || doctorName.isBlank() ? this.doctorName : doctorName.trim();
+    }
+
     static Appointment existing(PatientAccount patient, String appointmentCode, String specialty, String doctorName,
                                  LocalDate appointmentDate, LocalTime startTime, String reason) {
         return create(patient, appointmentCode, specialty, doctorName, appointmentDate, startTime, reason);

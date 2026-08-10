@@ -25,6 +25,7 @@ export const routes: Routes = [
   { path: 'admin/rooms', loadComponent: () => import('./features/room-management/room-management').then((m) => m.RoomManagement), canActivate: [roomManagerGuard] },
   { path: 'admin/doctors', loadComponent: () => import('./features/doctor-management/doctor-management').then((m) => m.DoctorManagement), canActivate: [roomManagerGuard] },
   { path: 'admin/statistics', loadComponent: () => import('./features/admin-statistics/admin-statistics').then((m) => m.AdminStatistics), canActivate: [roomManagerGuard] },
+  { path: 'admin/rescheduling', loadComponent: () => import('./features/rescheduling/rescheduling').then((m) => m.Rescheduling), canActivate: [roomManagerGuard] },
   { path: 'about', loadComponent: () => import('./features/public/public-page').then((m) => m.PublicPage), data: { page: 'about' } },
   { path: 'process', loadComponent: () => import('./features/public/public-page').then((m) => m.PublicPage), data: { page: 'process' } },
   { path: 'common-issues', loadComponent: () => import('./features/public/public-page').then((m) => m.PublicPage), data: { page: 'common-issues' } },

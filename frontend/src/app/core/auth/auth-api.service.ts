@@ -275,6 +275,36 @@ export interface DoctorScheduleResponse {
   active: boolean;
 }
 
+export interface RescheduleCaseResponse {
+  id: string;
+  appointmentId: string;
+  appointmentCode: string;
+  specialty: string;
+  oldDoctorName: string;
+  oldDoctorId: string | null;
+  oldAppointmentDate: string;
+  oldStartTime: string;
+  reason: string;
+  status: 'OPEN' | 'RESOLVED' | string;
+  newDoctorName: string | null;
+  newDoctorId: string | null;
+  newAppointmentDate: string | null;
+  newStartTime: string | null;
+  createdAt: string;
+  resolvedAt: string | null;
+}
+
+export interface AvailableReplacementSlot {
+  specialty: string;
+  appointmentDate: string;
+  startTime: string;
+  endTime: string;
+  doctorName: string;
+  remainingCapacity: number;
+  doctorId: string | null;
+  roomCode: string | null;
+}
+
 export interface DoctorExaminationResponse {
   ticketId: string;
   appointmentId: string;
@@ -664,6 +694,23 @@ export class AuthApiService {
 
   removeDoctorSchedule(staffId: string, scheduleId: string): Observable<void> {
     return this.http.delete<void>(`/api/v1/admin/doctors/${staffId}/schedules/${scheduleId}`);
+  }
+
+  getRescheduleCases(): Observable<RescheduleCaseResponse[]> {
+    return this.http.get<RescheduleCaseResponse[]>('/api/v1/admin/rescheduling');
+  }
+
+  getReplacementSlots(caseId: string, from?: string, to?: string): Observable<AvailableReplacementSlot[]> {
+    let params: Record<string, string> | undefined;
+    if (from && to) params = { from, to };
+    return this.http.get<AvailableReplacementSlot[]>(`/api/v1/admin/rescheduling/${caseId}/alternatives`, { params });
+  }
+
+  resolveRescheduleCase(caseId: string, appointmentDate: string, startTime: string,
+                        doctorName: string, doctorId?: string | null): Observable<RescheduleCaseResponse> {
+    return this.http.post<RescheduleCaseResponse>(`/api/v1/admin/rescheduling/${caseId}/resolve`, {
+      appointmentDate, startTime, doctorName, doctorId: doctorId || undefined,
+    });
   }
 
   getOperationalStatistics(from: string, to: string, specialty: string, doctorId?: string): Observable<OperationalStatisticsResponse> {

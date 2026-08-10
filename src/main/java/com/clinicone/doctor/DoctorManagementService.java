@@ -8,6 +8,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import com.clinicone.queue.ClinicRoom;
 import com.clinicone.queue.ClinicRoomRepository;
 import com.clinicone.schedule.SpecialtyCatalogService;
+import com.clinicone.rescheduling.ReschedulingService;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +26,7 @@ public class DoctorManagementService {
     private final ClinicRoomRepository roomRepository;
     private final SpecialtyCatalogService specialtyCatalog;
     private final PasswordEncoder passwordEncoder;
+    private final ReschedulingService reschedulingService;
 
     public DoctorManagementService(StaffAccountRepository staffRepository,
                                    DoctorProfileRepository profileRepository,
@@ -32,12 +34,25 @@ public class DoctorManagementService {
                                    ClinicRoomRepository roomRepository,
                                    SpecialtyCatalogService specialtyCatalog,
                                    PasswordEncoder passwordEncoder) {
+        this(staffRepository, profileRepository, scheduleRepository, roomRepository, specialtyCatalog,
+                passwordEncoder, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public DoctorManagementService(StaffAccountRepository staffRepository,
+                                   DoctorProfileRepository profileRepository,
+                                   DoctorScheduleRepository scheduleRepository,
+                                   ClinicRoomRepository roomRepository,
+                                   SpecialtyCatalogService specialtyCatalog,
+                                   PasswordEncoder passwordEncoder,
+                                   ReschedulingService reschedulingService) {
         this.staffRepository = staffRepository;
         this.profileRepository = profileRepository;
         this.scheduleRepository = scheduleRepository;
         this.roomRepository = roomRepository;
         this.specialtyCatalog = specialtyCatalog;
         this.passwordEncoder = passwordEncoder;
+        this.reschedulingService = reschedulingService;
     }
 
     @Transactional(readOnly = true)
@@ -114,6 +129,9 @@ public class DoctorManagementService {
         }
         schedule.setActive(false);
         scheduleRepository.save(schedule);
+        if (reschedulingService != null) {
+            reschedulingService.openForScheduleRemoval(schedule);
+        }
     }
 
     private StaffAccount findDoctor(UUID staffId) {
