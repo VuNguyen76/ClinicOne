@@ -12,6 +12,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.HashMap;
@@ -39,21 +41,35 @@ public class AppointmentAvailabilityService {
     private final SpecialtyCatalogService specialtyCatalog;
     private final DoctorProfileRepository doctorProfileRepository;
     private final DoctorScheduleRepository doctorScheduleRepository;
+    private final AppointmentHoldRepository holdRepository;
+    private final Clock clock;
 
     public AppointmentAvailabilityService(AppointmentRepository appointmentRepository,
                                           SpecialtyCatalogService specialtyCatalog) {
-        this(appointmentRepository, specialtyCatalog, null, null);
+        this(appointmentRepository, specialtyCatalog, null, null, null, Clock.systemUTC());
+    }
+
+    public AppointmentAvailabilityService(AppointmentRepository appointmentRepository,
+                                          SpecialtyCatalogService specialtyCatalog,
+                                          DoctorProfileRepository doctorProfileRepository,
+                                          DoctorScheduleRepository doctorScheduleRepository) {
+        this(appointmentRepository, specialtyCatalog, doctorProfileRepository, doctorScheduleRepository,
+                null, Clock.systemUTC());
     }
 
     @org.springframework.beans.factory.annotation.Autowired
     public AppointmentAvailabilityService(AppointmentRepository appointmentRepository,
                                           SpecialtyCatalogService specialtyCatalog,
                                           DoctorProfileRepository doctorProfileRepository,
-                                          DoctorScheduleRepository doctorScheduleRepository) {
+                                          DoctorScheduleRepository doctorScheduleRepository,
+                                          AppointmentHoldRepository holdRepository,
+                                          Clock clock) {
         this.appointmentRepository = appointmentRepository;
         this.specialtyCatalog = specialtyCatalog;
         this.doctorProfileRepository = doctorProfileRepository;
         this.doctorScheduleRepository = doctorScheduleRepository;
+        this.holdRepository = holdRepository;
+        this.clock = clock;
     }
 
     public AppointmentAvailabilityService(AppointmentRepository appointmentRepository) {
@@ -70,6 +86,11 @@ public class AppointmentAvailabilityService {
         Map<SlotKey, Long> bookedBySlot = new HashMap<>();
         appointmentRepository.countBookedBySpecialtyAndDateRange(specialty, from, to, AppointmentStatus.BOOKED)
                 .forEach(item -> bookedBySlot.put(new SlotKey(item.appointmentDate(), item.startTime()), item.bookedCount()));
+        if (holdRepository != null) {
+            holdRepository.findActiveBySpecialtyAndDateRange(specialty, from, to, Instant.now(clock))
+                    .forEach(hold -> bookedBySlot.merge(
+                            new SlotKey(hold.getAppointmentDate(), hold.getStartTime()), 1L, Long::sum));
+        }
         return from.datesUntil(to.plusDays(1))
                 .filter(this::isWorkingDay)
                 .flatMap(date -> SLOT_TEMPLATES.stream().map(template -> toResponse(specialty, date, template,
@@ -80,15 +101,21 @@ public class AppointmentAvailabilityService {
 
     @Transactional(readOnly = true)
     public void ensureBookable(String specialty, LocalDate appointmentDate, LocalTime startTime) {
-        ensureBookableFallback(specialty, appointmentDate, startTime);
+        ensureBookableFallback(specialty, appointmentDate, startTime, null);
     }
 
     @Transactional(readOnly = true)
     public void ensureBookable(String specialty, String doctorName, UUID doctorId, LocalDate appointmentDate,
                                 LocalTime startTime) {
+        ensureBookable(specialty, doctorName, doctorId, appointmentDate, startTime, null);
+    }
+
+    @Transactional(readOnly = true)
+    public void ensureBookable(String specialty, String doctorName, UUID doctorId, LocalDate appointmentDate,
+                               LocalTime startTime, UUID excludedHoldId) {
         specialtyCatalog.require(specialty);
         if (doctorProfileRepository == null) {
-            ensureBookableFallback(specialty, appointmentDate, startTime);
+            ensureBookableFallback(specialty, appointmentDate, startTime, excludedHoldId);
             return;
         }
         validateDate(appointmentDate);
@@ -112,14 +139,23 @@ public class AppointmentAvailabilityService {
             throw new AuthException(HttpStatus.CONFLICT, "DOCTOR_SLOT_INVALID",
                     "Khung giờ này không nằm trong giờ làm của bác sĩ.");
         }
-        if (appointmentRepository.countByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
-                doctorId, appointmentDate, startTime, AppointmentStatus.BOOKED) > 0) {
+        long booked = appointmentRepository.countByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
+                doctorId, appointmentDate, startTime, AppointmentStatus.BOOKED);
+        long activeHolds = 0;
+        if (holdRepository != null) {
+            activeHolds = excludedHoldId == null
+                    ? holdRepository.countActiveByDoctorSlot(doctorId, appointmentDate, startTime, Instant.now(clock))
+                    : holdRepository.countActiveByDoctorSlotExcludingHold(doctorId, appointmentDate, startTime,
+                    Instant.now(clock), excludedHoldId);
+        }
+        if (booked > 0 || activeHolds > 0) {
             throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_SLOT_FULL",
                     "Khung giờ này vừa hết chỗ. Vui lòng chọn khung giờ khác.");
         }
     }
 
-    private void ensureBookableFallback(String specialty, LocalDate appointmentDate, LocalTime startTime) {
+    private void ensureBookableFallback(String specialty, LocalDate appointmentDate, LocalTime startTime,
+                                        UUID excludedHoldId) {
         specialtyCatalog.require(specialty);
         validateDate(appointmentDate);
         SlotTemplate template = SLOT_TEMPLATES.stream()
@@ -129,6 +165,13 @@ public class AppointmentAvailabilityService {
                         "Khung giờ này không thuộc lịch khám đang mở."));
         long booked = appointmentRepository.countBySpecialtyAndAppointmentDateAndStartTimeAndStatus(
                 specialty, appointmentDate, template.startTime(), AppointmentStatus.BOOKED);
+        if (holdRepository != null) {
+            booked += excludedHoldId == null
+                    ? holdRepository.countActiveBySpecialtyAndSlot(specialty, appointmentDate, template.startTime(),
+                    Instant.now(clock))
+                    : holdRepository.countActiveBySpecialtyAndSlotExcludingHold(specialty, appointmentDate,
+                    template.startTime(), Instant.now(clock), excludedHoldId);
+        }
         AvailableSlotResponse slot = toResponse(specialty, appointmentDate, template, booked);
         if (slot.remainingCapacity() <= 0) {
             throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_SLOT_FULL",
@@ -151,6 +194,12 @@ public class AppointmentAvailabilityService {
                 .collect(Collectors.toMap(
                         item -> new DoctorSlotKey(item.doctorStaffId(), item.appointmentDate(), item.startTime()),
                         DoctorSlotBookingCount::bookedCount));
+        if (holdRepository != null) {
+            holdRepository.findActiveByDoctorsAndDateRange(doctorStaffIds, from, to, Instant.now(clock))
+                    .forEach(hold -> bookedBySlot.merge(
+                            new DoctorSlotKey(hold.getDoctorStaffId(), hold.getAppointmentDate(), hold.getStartTime()),
+                            1L, Long::sum));
+        }
         return from.datesUntil(to.plusDays(1))
                 .flatMap(date -> schedules.stream()
                         .filter(schedule -> schedule.getDayOfWeek() == date.getDayOfWeek())

@@ -5,6 +5,9 @@ import com.clinicone.auth.AuthException;
 import com.clinicone.auth.PatientAccount;
 import com.clinicone.auth.PatientAccountRepository;
 import com.clinicone.notification.PatientNotificationService;
+import com.clinicone.schedule.AppointmentAvailabilityService;
+import com.clinicone.schedule.AppointmentHold;
+import com.clinicone.schedule.AppointmentHoldService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -21,6 +24,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doNothing;
 
 class AppointmentServiceTest {
     private static final UUID ACCOUNT_ID = UUID.fromString("7d9e3fb4-1045-4ca4-86d2-7d1fca4c1a13");
@@ -28,6 +32,8 @@ class AppointmentServiceTest {
     private PatientAccountRepository accountRepository;
     private AppointmentRepository appointmentRepository;
     private PatientNotificationService notificationService;
+    private AppointmentAvailabilityService availabilityService;
+    private AppointmentHoldService holdService;
     private AppointmentService service;
 
     @BeforeEach
@@ -35,7 +41,10 @@ class AppointmentServiceTest {
         accountRepository = mock(PatientAccountRepository.class);
         appointmentRepository = mock(AppointmentRepository.class);
         notificationService = mock(PatientNotificationService.class);
-        service = new AppointmentService(accountRepository, appointmentRepository, null, null, notificationService);
+        availabilityService = mock(AppointmentAvailabilityService.class);
+        holdService = mock(AppointmentHoldService.class);
+        service = new AppointmentService(accountRepository, appointmentRepository, null, availabilityService,
+                notificationService, null, holdService);
         when(appointmentRepository.save(any(Appointment.class))).thenAnswer(invocation -> invocation.getArgument(0));
     }
 
@@ -56,6 +65,28 @@ class AppointmentServiceTest {
         assertEquals("Đã đặt", response.statusLabel());
         verify(appointmentRepository).save(any(Appointment.class));
         verify(notificationService).notifyAppointmentCreated(any(Appointment.class));
+    }
+
+    @Test
+    void consumesOwnHoldWhenAppointmentIsCreated() throws Exception {
+        PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
+        setId(account, ACCOUNT_ID);
+        UUID holdId = UUID.randomUUID();
+        AppointmentHold hold = AppointmentHold.create(account, "Nội khoa", "BS. Nguyễn An", null,
+                LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), "PATIENT-HOLD", java.time.Instant.MAX);
+        setId(hold, holdId);
+        when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
+        when(appointmentRepository.findByPatientIdAndAppointmentDateAndStartTimeAndStatus(
+                ACCOUNT_ID, LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), AppointmentStatus.BOOKED))
+                .thenReturn(Optional.empty());
+        when(holdService.requireForBooking(eq(ACCOUNT_ID.toString()), eq(holdId), any())).thenReturn(hold);
+
+        service.create(ACCOUNT_ID.toString(), new CreateAppointmentRequest("Nội khoa", "BS. Nguyễn An",
+                LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), "Đau đầu", null, null, holdId));
+
+        verify(availabilityService).ensureBookable("Nội khoa", "BS. Nguyễn An", null,
+                LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), holdId);
+        verify(holdService).consume(hold);
     }
 
     @Test
@@ -144,6 +175,16 @@ class AppointmentServiceTest {
             var field = Appointment.class.getDeclaredField("id");
             field.setAccessible(true);
             field.set(appointment, id);
+        } catch (ReflectiveOperationException exception) {
+            throw new AssertionError(exception);
+        }
+    }
+
+    private static void setId(com.clinicone.schedule.AppointmentHold hold, UUID id) {
+        try {
+            var field = com.clinicone.schedule.AppointmentHold.class.getDeclaredField("id");
+            field.setAccessible(true);
+            field.set(hold, id);
         } catch (ReflectiveOperationException exception) {
             throw new AssertionError(exception);
         }

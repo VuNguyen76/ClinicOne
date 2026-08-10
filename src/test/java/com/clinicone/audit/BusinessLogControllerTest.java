@@ -63,5 +63,10 @@ class BusinessLogControllerTest {
         BusinessLogService businessLogService() {
             return mock(BusinessLogService.class);
         }
+
+        @Bean
+        BusinessLogIntegrityJob businessLogIntegrityJob() {
+            return mock(BusinessLogIntegrityJob.class);
+        }
     }
 }

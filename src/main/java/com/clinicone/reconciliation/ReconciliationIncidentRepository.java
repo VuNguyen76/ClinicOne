@@ -13,6 +13,8 @@ import java.util.UUID;
 public interface ReconciliationIncidentRepository extends JpaRepository<ReconciliationIncident, UUID> {
     List<ReconciliationIncident> findByStatusOrderByCreatedAtDesc(ReconciliationStatus status);
 
+    boolean existsByEntityTypeAndEntityIdAndStatus(String entityType, UUID entityId, ReconciliationStatus status);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select r from ReconciliationIncident r where r.id = :id")
     Optional<ReconciliationIncident> findByIdForUpdate(@Param("id") UUID id);

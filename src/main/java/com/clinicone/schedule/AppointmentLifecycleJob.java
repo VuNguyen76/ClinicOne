@@ -34,14 +34,24 @@ public class AppointmentLifecycleJob {
     private final PatientNotificationService notificationService;
     private final BusinessLogService businessLogService;
     private final Clock clock;
+    private final AppointmentHoldService holdService;
 
     public AppointmentLifecycleJob(AppointmentRepository appointmentRepository,
                                    PatientNotificationService notificationService,
                                    BusinessLogService businessLogService, Clock clock) {
+        this(appointmentRepository, notificationService, businessLogService, clock, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public AppointmentLifecycleJob(AppointmentRepository appointmentRepository,
+                                   PatientNotificationService notificationService,
+                                   BusinessLogService businessLogService, Clock clock,
+                                   AppointmentHoldService holdService) {
         this.appointmentRepository = appointmentRepository;
         this.notificationService = notificationService;
         this.businessLogService = businessLogService;
         this.clock = clock;
+        this.holdService = holdService;
     }
 
     @Scheduled(fixedDelayString = "${app.appointments.lifecycle-job-delay-ms:60000}")
@@ -51,6 +61,9 @@ public class AppointmentLifecycleJob {
 
     @Transactional
     public LifecycleJobResult runOnce() {
+        if (holdService != null) {
+            holdService.releaseExpired();
+        }
         Instant now = Instant.now(clock);
         LocalDate today = now.atZone(CLINIC_ZONE).toLocalDate();
         List<Appointment> appointments = appointmentRepository

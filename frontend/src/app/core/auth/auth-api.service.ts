@@ -144,6 +144,24 @@ export interface CreateAppointmentRequest {
   reason: string;
   profileId?: string;
   doctorId?: string;
+  holdId?: string;
+}
+
+export interface CreateAppointmentHoldRequest {
+  specialty: string;
+  doctorName: string;
+  appointmentDate: string;
+  startTime: string;
+  doctorId?: string;
+}
+
+export interface AppointmentHoldResponse {
+  id: string;
+  specialty: string;
+  doctorName: string;
+  appointmentDate: string;
+  startTime: string;
+  expiresAt: string;
 }
 
 export interface PatientProfileRequest {
@@ -386,6 +404,7 @@ export class AuthApiService {
   private readonly patientProfilesRoot = '/api/v1/patient-profiles';
   private readonly specialtiesRoot = '/api/v1/specialties';
   private readonly appointmentSlotsRoot = '/api/v1/appointment-slots';
+  private readonly appointmentHoldsRoot = '/api/v1/appointment-holds';
   private readonly queueRoot = '/api/v1/queue';
   private readonly notificationsRoot = '/api/v1/notifications';
 
@@ -501,6 +520,10 @@ export class AuthApiService {
 
   getMedicalRecord(id: string): Observable<MedicalRecordResponse> {
     return this.http.get<MedicalRecordResponse>(`${this.medicalRecordsRoot}/${id}`);
+  }
+
+  holdAppointmentSlot(request: CreateAppointmentHoldRequest): Observable<AppointmentHoldResponse> {
+    return this.http.post<AppointmentHoldResponse>(this.appointmentHoldsRoot, request);
   }
 
   getNotifications(): Observable<PatientNotificationResponse[]> {

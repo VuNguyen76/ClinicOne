@@ -6,6 +6,8 @@ import com.clinicone.auth.PatientAccountRepository;
 import com.clinicone.patientprofile.PatientProfile;
 import com.clinicone.patientprofile.PatientProfileRepository;
 import com.clinicone.schedule.AppointmentAvailabilityService;
+import com.clinicone.schedule.AppointmentHold;
+import com.clinicone.schedule.AppointmentHoldService;
 import com.clinicone.notification.PatientNotificationService;
 import com.clinicone.audit.BusinessLogService;
 import org.springframework.http.HttpStatus;
@@ -26,37 +28,47 @@ public class AppointmentService {
     private final AppointmentAvailabilityService availabilityService;
     private final PatientNotificationService notificationService;
     private final BusinessLogService businessLogService;
+    private final AppointmentHoldService holdService;
 
     public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository) {
-        this(accountRepository, appointmentRepository, null, null, null, null);
+        this(accountRepository, appointmentRepository, null, null, null, null, null);
     }
 
     public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
                               PatientProfileRepository profileRepository) {
-        this(accountRepository, appointmentRepository, profileRepository, null, null, null);
+        this(accountRepository, appointmentRepository, profileRepository, null, null, null, null);
     }
 
     public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
                               PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService) {
-        this(accountRepository, appointmentRepository, profileRepository, availabilityService, null, null);
+        this(accountRepository, appointmentRepository, profileRepository, availabilityService, null, null, null);
     }
 
     public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
                               PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService,
                               PatientNotificationService notificationService) {
-        this(accountRepository, appointmentRepository, profileRepository, availabilityService, notificationService, null);
+        this(accountRepository, appointmentRepository, profileRepository, availabilityService, notificationService, null, null);
+    }
+
+    public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
+                              PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService,
+                              PatientNotificationService notificationService, BusinessLogService businessLogService) {
+        this(accountRepository, appointmentRepository, profileRepository, availabilityService, notificationService,
+                businessLogService, null);
     }
 
     @org.springframework.beans.factory.annotation.Autowired
     public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
                               PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService,
-                              PatientNotificationService notificationService, BusinessLogService businessLogService) {
+                              PatientNotificationService notificationService, BusinessLogService businessLogService,
+                              AppointmentHoldService holdService) {
         this.accountRepository = accountRepository;
         this.appointmentRepository = appointmentRepository;
         this.profileRepository = profileRepository;
         this.availabilityService = availabilityService;
         this.notificationService = notificationService;
         this.businessLogService = businessLogService;
+        this.holdService = holdService;
     }
 
     @Transactional(readOnly = true)
@@ -81,9 +93,22 @@ public class AppointmentService {
                 .orElseThrow(() -> authenticationRequired());
         LocalDate appointmentDate = request.appointmentDate();
         LocalTime startTime = request.startTime();
+        AppointmentHold hold = null;
+        if (request.holdId() != null) {
+            if (holdService == null) {
+                throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_HOLD_UNAVAILABLE",
+                        "Không thể xác nhận giữ chỗ lúc này. Vui lòng chọn lại khung giờ.");
+            }
+            hold = holdService.requireForBooking(accountId, request.holdId(), request);
+        }
         if (availabilityService != null) {
-            availabilityService.ensureBookable(request.specialty(), request.doctorName(), request.doctorId(),
-                    appointmentDate, startTime);
+            if (hold == null) {
+                availabilityService.ensureBookable(request.specialty(), request.doctorName(), request.doctorId(),
+                        appointmentDate, startTime);
+            } else {
+                availabilityService.ensureBookable(request.specialty(), request.doctorName(), request.doctorId(),
+                        appointmentDate, startTime, hold.getId());
+            }
         }
         if (appointmentRepository.findByPatientIdAndAppointmentDateAndStartTimeAndStatus(
                 patientId, appointmentDate, startTime, AppointmentStatus.BOOKED).isPresent()) {
@@ -99,6 +124,9 @@ public class AppointmentService {
                 request.specialty().trim(), request.doctorName().trim(), appointmentDate, startTime,
                 request.reason().trim());
         Appointment saved = appointmentRepository.save(appointment);
+        if (hold != null) {
+            holdService.consume(hold);
+        }
         recordTransition(UUID.randomUUID(), saved.getId(), null, saved.getStatus().name(), "CREATE_APPOINTMENT", accountId,
                 null);
         if (notificationService != null) {

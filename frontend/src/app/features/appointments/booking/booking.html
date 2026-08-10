@@ -133,7 +133,7 @@
             class="min-h-11 rounded-lg border border-slate-200 px-5 text-sm font-semibold text-slate-600 hover:bg-slate-50"
             (click)="back()">Quay lại</button><button type="button"
             class="min-h-11 rounded-lg bg-[#0ea5e9] px-5 text-sm font-semibold text-white hover:bg-[#0284c7] disabled:cursor-not-allowed disabled:opacity-50"
-            [disabled]="!selectedSlot()" (click)="continueToDetails()">Tiếp tục</button></div>
+            [disabled]="!selectedSlot() || holdBusy()" (click)="continueToDetails()">{{ holdBusy() ? 'Đang giữ...' : 'Tiếp tục' }}</button></div>
       </div>
       } @else {
       <div class="border-b border-slate-200 bg-[#159fe0] px-6 py-4 text-lg font-bold text-white sm:px-8">Thông tin người

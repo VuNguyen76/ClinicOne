@@ -2,6 +2,7 @@ package com.clinicone.audit;
 
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -14,9 +15,11 @@ import java.util.UUID;
 @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
 public class BusinessLogController {
     private final BusinessLogService service;
+    private final BusinessLogIntegrityJob integrityJob;
 
-    public BusinessLogController(BusinessLogService service) {
+    public BusinessLogController(BusinessLogService service, BusinessLogIntegrityJob integrityJob) {
         this.service = service;
+        this.integrityJob = integrityJob;
     }
 
     @GetMapping("/appointments/{appointmentId}")
@@ -32,5 +35,10 @@ public class BusinessLogController {
     @GetMapping("/examinations/{sessionId}")
     public List<BusinessLogResponse> examinationHistory(@PathVariable UUID sessionId) {
         return service.list("EXAMINATION", sessionId);
+    }
+
+    @PostMapping("/integrity-check")
+    public BusinessLogIntegrityJob.IntegrityCheckResult integrityCheck() {
+        return integrityJob.runOnce();
     }
 }
