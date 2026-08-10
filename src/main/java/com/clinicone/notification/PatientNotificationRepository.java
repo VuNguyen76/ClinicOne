@@ -13,5 +13,7 @@ public interface PatientNotificationRepository extends JpaRepository<PatientNoti
 
     Optional<PatientNotification> findByIdAndPatientAccountId(UUID id, UUID patientAccountId);
 
+    Optional<PatientNotification> findByEventKey(String eventKey);
+
     boolean existsByEventKey(String eventKey);
 }

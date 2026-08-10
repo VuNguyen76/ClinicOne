@@ -17,23 +17,38 @@ public class PatientNotificationService {
     private final PatientNotificationRepository repository;
     private final PatientAccountRepository accountRepository;
     private final SmsSender smsSender;
+    private final SmsDeliveryService smsDeliveryService;
 
     public PatientNotificationService(PatientNotificationRepository repository) {
-        this(repository, null, (SmsSender) null);
+        this(repository, null, (SmsSender) null, (SmsDeliveryService) null);
     }
 
     public PatientNotificationService(PatientNotificationRepository repository,
                                       PatientAccountRepository accountRepository, SmsSender smsSender) {
+        this(repository, accountRepository, smsSender, null);
+    }
+
+    public PatientNotificationService(PatientNotificationRepository repository,
+                                      PatientAccountRepository accountRepository, SmsSender smsSender,
+                                      SmsDeliveryService smsDeliveryService) {
         this.repository = repository;
         this.accountRepository = accountRepository;
         this.smsSender = smsSender;
+        this.smsDeliveryService = smsDeliveryService;
+    }
+
+    public PatientNotificationService(PatientNotificationRepository repository,
+                                      PatientAccountRepository accountRepository,
+                                      ObjectProvider<SmsSender> smsSenders) {
+        this(repository, accountRepository, smsSenders.getIfAvailable(), null);
     }
 
     @Autowired
     public PatientNotificationService(PatientNotificationRepository repository,
                                       PatientAccountRepository accountRepository,
-                                      ObjectProvider<SmsSender> smsSenders) {
-        this(repository, accountRepository, smsSenders.getIfAvailable());
+                                      ObjectProvider<SmsSender> smsSenders,
+                                      ObjectProvider<SmsDeliveryService> smsDeliveries) {
+        this(repository, accountRepository, smsSenders.getIfAvailable(), smsDeliveries.getIfAvailable());
     }
 
     @Transactional(readOnly = true)
@@ -70,10 +85,7 @@ public class PatientNotificationService {
         if (patientId == null || recordId == null) {
             return;
         }
-        String eventKey = "MEDICAL_RECORD_SIGNED:" + recordId;
-        if (!repository.existsByEventKey(eventKey)) {
-            repository.save(PatientNotification.recordSigned(patientId, recordId, appointmentCode, doctorName, specialty));
-        }
+        saveOnce(PatientNotification.recordSigned(patientId, recordId, appointmentCode, doctorName, specialty));
     }
 
     @Transactional
@@ -97,26 +109,41 @@ public class PatientNotificationService {
     }
 
     private void saveOnce(PatientNotification notification) {
-        if (!repository.existsByEventKey(notification.getEventKey())) {
-            PatientNotification saved = repository.save(notification);
-            sendSmsBestEffort(saved);
-        }
+        PatientNotification saved = repository.findByEventKey(notification.getEventKey())
+                .orElseGet(() -> repository.save(notification));
+        enqueueSms(saved);
     }
 
-    private void sendSmsBestEffort(PatientNotification notification) {
-        if (smsSender == null || accountRepository == null) {
+    private void enqueueSms(PatientNotification notification) {
+        if (accountRepository == null) {
             return;
         }
         accountRepository.findById(notification.getPatientAccountId())
-                .map(account -> account.getPhone())
-                .filter(phone -> phone != null && !phone.isBlank())
-                .ifPresent(phone -> {
-                    try {
-                        smsSender.sendText(phone, notification.getMessage());
-                    } catch (RuntimeException ignored) {
-                        // SMS is a best-effort channel; the in-app notification remains authoritative.
+                .ifPresent(account -> {
+                    String phone = account.getPhone();
+                    if (phone == null || phone.isBlank()) return;
+                    if (smsDeliveryService != null) {
+                        smsDeliveryService.enqueue(account.getId(), notification.getEventKey(), phone,
+                                smsMessage(account.getStatus(), notification));
+                    } else if (smsSender != null) {
+                        try {
+                            smsSender.sendText(phone, notification.getMessage());
+                        } catch (RuntimeException ignored) {
+                            // Legacy direct sender is best-effort; production uses the outbox worker.
+                        }
                     }
                 });
+    }
+
+    private String smsMessage(com.clinicone.auth.AccountStatus status, PatientNotification notification) {
+        if (status == com.clinicone.auth.AccountStatus.LOCKED) {
+            return "ClinicOne: Bạn có thông báo mới. Vui lòng mở khóa tài khoản để xem trong ứng dụng.";
+        }
+        if (notification.getType() == PatientNotificationType.MEDICAL_RECORD_SIGNED) {
+            return "ClinicOne: Kết quả khám đã sẵn sàng. Mở ứng dụng ClinicOne để xem.";
+        }
+        return "ClinicOne: " + notification.getTitle() + ". " + notification.getMessage()
+                + " Mở ứng dụng ClinicOne để xem.";
     }
 
     private UUID parseAccountId(String accountId) {
