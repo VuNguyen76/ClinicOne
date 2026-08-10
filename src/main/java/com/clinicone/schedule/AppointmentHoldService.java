@@ -4,6 +4,7 @@ import com.clinicone.appointment.CreateAppointmentRequest;
 import com.clinicone.auth.AuthException;
 import com.clinicone.auth.PatientAccount;
 import com.clinicone.auth.PatientAccountRepository;
+import com.clinicone.config.ClinicConfigurationService;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -18,13 +19,14 @@ import java.util.UUID;
 
 @Service
 public class AppointmentHoldService {
-    private static final Duration HOLD_DURATION = Duration.ofMinutes(5);
+    private static final Duration DEFAULT_HOLD_DURATION = Duration.ofMinutes(10);
 
     private final PatientAccountRepository accountRepository;
     private final AppointmentHoldRepository holdRepository;
     private final AppointmentAvailabilityService availabilityService;
     private final Clock clock;
     private final ClinicServiceRepository clinicServiceRepository;
+    private final ClinicConfigurationService configurationService;
 
     public AppointmentHoldService(PatientAccountRepository accountRepository,
                                   AppointmentHoldRepository holdRepository,
@@ -33,17 +35,27 @@ public class AppointmentHoldService {
         this(accountRepository, holdRepository, availabilityService, clock, null);
     }
 
-    @org.springframework.beans.factory.annotation.Autowired
     public AppointmentHoldService(PatientAccountRepository accountRepository,
                                   AppointmentHoldRepository holdRepository,
                                   AppointmentAvailabilityService availabilityService,
                                   Clock clock,
                                   ClinicServiceRepository clinicServiceRepository) {
+        this(accountRepository, holdRepository, availabilityService, clock, clinicServiceRepository, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public AppointmentHoldService(PatientAccountRepository accountRepository,
+                                  AppointmentHoldRepository holdRepository,
+                                  AppointmentAvailabilityService availabilityService,
+                                  Clock clock,
+                                  ClinicServiceRepository clinicServiceRepository,
+                                  ClinicConfigurationService configurationService) {
         this.accountRepository = accountRepository;
         this.holdRepository = holdRepository;
         this.availabilityService = availabilityService;
         this.clock = clock;
         this.clinicServiceRepository = clinicServiceRepository;
+        this.configurationService = configurationService;
     }
 
     @Transactional
@@ -77,7 +89,7 @@ public class AppointmentHoldService {
 
         AppointmentHold hold = AppointmentHold.create(patient, request.specialty().trim(), request.doctorName().trim(),
                 request.doctorId(), request.appointmentDate(), request.startTime(), holdKey,
-                now.plus(HOLD_DURATION), request.serviceId());
+                now.plus(holdDuration()), request.serviceId());
         try {
             return AppointmentHoldResponse.from(holdRepository.saveAndFlush(hold));
         } catch (DataIntegrityViolationException exception) {
@@ -161,6 +173,11 @@ public class AppointmentHoldService {
             throw new AuthException(HttpStatus.CONFLICT, "CLINIC_SERVICE_DOCTOR_NOT_ELIGIBLE",
                     "Bác sĩ đã chọn không thực hiện dịch vụ này.");
         }
+    }
+
+    private Duration holdDuration() {
+        if (configurationService == null) return DEFAULT_HOLD_DURATION;
+        return Duration.ofMinutes(configurationService.current().getHoldMinutes());
     }
 
     private void throwExpired(AppointmentHold hold) {

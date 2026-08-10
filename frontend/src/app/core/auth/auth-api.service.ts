@@ -150,6 +150,16 @@ export interface OperationalStatisticsResponse {
   buckets: OperationalStatisticsBucket[];
 }
 
+export interface ClinicConfigurationResponse {
+  id: string;
+  unitName: string;
+  departmentName: string;
+  holdMinutes: number;
+  cancellationThresholdHours: number;
+  updatedBy: string;
+  updatedAt: string;
+}
+
 export interface CreateAppointmentRequest {
   specialty: string;
   doctorName: string;
@@ -966,5 +976,18 @@ export class AuthApiService {
     let params: Record<string, string> = { from, to, specialty, groupBy };
     if (doctorId) params = { ...params, doctorId };
     return this.http.get<OperationalStatisticsResponse>('/api/v1/admin/statistics', { params });
+  }
+
+  getClinicConfiguration(): Observable<ClinicConfigurationResponse> {
+    return this.http.get<ClinicConfigurationResponse>('/api/v1/admin/configuration');
+  }
+
+  updateClinicConfiguration(request: {
+    unitName: string;
+    departmentName: string;
+    holdMinutes: number;
+    cancellationThresholdHours: number;
+  }): Observable<ClinicConfigurationResponse> {
+    return this.http.put<ClinicConfigurationResponse>('/api/v1/admin/configuration', request);
   }
 }

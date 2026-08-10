@@ -10,11 +10,15 @@ import com.clinicone.schedule.AppointmentHold;
 import com.clinicone.schedule.AppointmentHoldService;
 import com.clinicone.doctor.DoctorProfile;
 import com.clinicone.auth.StaffAccount;
+import com.clinicone.config.ClinicConfigurationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -215,6 +219,26 @@ class AppointmentServiceTest {
 
         assertEquals(AppointmentStatus.CANCELLED, appointment.getStatus());
         verify(notificationService).notifyAppointmentCancelled(appointment);
+    }
+
+    @Test
+    void requiresReasonWhenCancellingWithinConfiguredThreshold() {
+        PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
+        setId(account, ACCOUNT_ID);
+        Appointment appointment = Appointment.existing(account, "CL-20260810-AB12", "Nội khoa", "BS. Nguyễn An",
+                LocalDate.of(2026, 8, 10), LocalTime.of(13, 0), "Đau đầu");
+        when(appointmentRepository.findByIdAndPatientId(any(), eq(ACCOUNT_ID))).thenReturn(Optional.of(appointment));
+        ClinicConfigurationService configuration = mock(ClinicConfigurationService.class);
+        when(configuration.current()).thenReturn(com.clinicone.config.ClinicConfiguration.defaults());
+        service = new AppointmentService(accountRepository, appointmentRepository, null, availabilityService,
+                notificationService, null, holdService, clinicServiceRepository, configuration,
+                Clock.fixed(Instant.parse("2026-08-10T01:00:00Z"), ZoneOffset.UTC));
+
+        AuthException exception = assertThrows(AuthException.class, () -> service.cancel(
+                ACCOUNT_ID.toString(), UUID.randomUUID().toString(), new CancelAppointmentRequest("   ")));
+
+        assertEquals("CANCELLATION_REASON_REQUIRED", exception.getCode());
+        verify(appointmentRepository, never()).save(any(Appointment.class));
     }
 
     @Test

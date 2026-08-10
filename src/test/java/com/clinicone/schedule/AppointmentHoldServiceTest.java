@@ -46,7 +46,7 @@ class AppointmentHoldServiceTest {
     }
 
     @Test
-    void createsFiveMinuteHoldForAuthenticatedPatient() {
+    void createsConfiguredTenMinuteHoldForAuthenticatedPatient() {
         PatientAccount account = account();
         when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
         when(holdRepository.findByHoldKey(any())).thenReturn(Optional.empty());
@@ -56,7 +56,7 @@ class AppointmentHoldServiceTest {
                 new CreateAppointmentHoldRequest("Nội tổng quát", "BS. An",
                         LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), DOCTOR_ID));
 
-        assertEquals(NOW.plusSeconds(300), response.expiresAt());
+        assertEquals(NOW.plusSeconds(600), response.expiresAt());
         verify(availabilityService).ensureBookable("Nội tổng quát", "BS. An", DOCTOR_ID,
                 LocalDate.of(2026, 8, 10), LocalTime.of(8, 30));
     }

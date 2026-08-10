@@ -142,8 +142,12 @@ public class Appointment {
     }
 
     public void cancel(String reason) {
+        cancel(reason, Instant.now());
+    }
+
+    public void cancel(String reason, Instant cancelledAt) {
         this.status = AppointmentStatus.CANCELLED;
-        this.cancelledAt = Instant.now();
+        this.cancelledAt = cancelledAt == null ? Instant.now() : cancelledAt;
         this.cancellationReason = reason == null || reason.isBlank() ? null : reason.trim();
     }
 

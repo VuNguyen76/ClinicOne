@@ -10,6 +10,7 @@ import com.clinicone.schedule.AppointmentHold;
 import com.clinicone.schedule.AppointmentHoldService;
 import com.clinicone.schedule.ClinicService;
 import com.clinicone.schedule.ClinicServiceRepository;
+import com.clinicone.config.ClinicConfigurationService;
 import com.clinicone.notification.PatientNotificationService;
 import com.clinicone.audit.BusinessLogService;
 import org.springframework.http.HttpStatus;
@@ -18,12 +19,17 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 public class AppointmentService {
+    private static final ZoneId CLINIC_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     private final PatientAccountRepository accountRepository;
     private final AppointmentRepository appointmentRepository;
     private final PatientProfileRepository profileRepository;
@@ -32,6 +38,8 @@ public class AppointmentService {
     private final BusinessLogService businessLogService;
     private final AppointmentHoldService holdService;
     private final ClinicServiceRepository clinicServiceRepository;
+    private final ClinicConfigurationService configurationService;
+    private final Clock clock;
 
     public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository) {
         this(accountRepository, appointmentRepository, null, null, null, null, null, null);
@@ -65,14 +73,23 @@ public class AppointmentService {
                               PatientNotificationService notificationService, BusinessLogService businessLogService,
                               AppointmentHoldService holdService) {
         this(accountRepository, appointmentRepository, profileRepository, availabilityService, notificationService,
-                businessLogService, holdService, null);
+                businessLogService, holdService, null, null, Clock.systemUTC());
+    }
+
+    public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
+                              PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService,
+                              PatientNotificationService notificationService, BusinessLogService businessLogService,
+                              AppointmentHoldService holdService, ClinicServiceRepository clinicServiceRepository) {
+        this(accountRepository, appointmentRepository, profileRepository, availabilityService, notificationService,
+                businessLogService, holdService, clinicServiceRepository, null, Clock.systemUTC());
     }
 
     @org.springframework.beans.factory.annotation.Autowired
     public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
                               PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService,
                               PatientNotificationService notificationService, BusinessLogService businessLogService,
-                              AppointmentHoldService holdService, ClinicServiceRepository clinicServiceRepository) {
+                              AppointmentHoldService holdService, ClinicServiceRepository clinicServiceRepository,
+                              ClinicConfigurationService configurationService, Clock clock) {
         this.accountRepository = accountRepository;
         this.appointmentRepository = appointmentRepository;
         this.profileRepository = profileRepository;
@@ -81,6 +98,8 @@ public class AppointmentService {
         this.businessLogService = businessLogService;
         this.holdService = holdService;
         this.clinicServiceRepository = clinicServiceRepository;
+        this.configurationService = configurationService;
+        this.clock = clock == null ? Clock.systemUTC() : clock;
     }
 
     @Transactional(readOnly = true)
@@ -206,9 +225,10 @@ public class AppointmentService {
     public void cancel(String accountId, String appointmentId, CancelAppointmentRequest request) {
         Appointment appointment = findOwned(parseAppointmentId(appointmentId), parseAccountId(accountId));
         ensureBookable(appointment);
+        requireLateCancellationReason(appointment, request == null ? null : request.reason());
         String previousStatus = appointment.getStatus().name();
         UUID eventId = UUID.randomUUID();
-        appointment.cancel(request == null ? null : request.reason());
+        appointment.cancel(request == null ? null : request.reason(), Instant.now(clock));
         appointmentRepository.save(appointment);
         recordTransition(eventId, appointment.getId(), previousStatus, appointment.getStatus().name(), "CANCEL_APPOINTMENT",
                 accountId, request == null ? null : request.reason());
@@ -289,6 +309,19 @@ public class AppointmentService {
     private AuthException authenticationRequired() {
         return new AuthException(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_REQUIRED",
                 "Phiên đăng nhập không hợp lệ.");
+    }
+
+    private void requireLateCancellationReason(Appointment appointment, String reason) {
+        Instant appointmentAt = java.time.ZonedDateTime.of(appointment.getAppointmentDate(), appointment.getStartTime(), CLINIC_ZONE).toInstant();
+        Duration remaining = Duration.between(Instant.now(clock), appointmentAt);
+        int thresholdHours = configurationService == null
+                ? 12
+                : configurationService.current().getCancellationThresholdHours();
+        if (!remaining.isNegative() && remaining.compareTo(Duration.ofHours(thresholdHours)) <= 0
+                && (reason == null || reason.isBlank())) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "CANCELLATION_REASON_REQUIRED",
+                    "Cần chọn lý do khi hủy lịch trong thời gian quy định.");
+        }
     }
 
     private void recordTransition(UUID eventId, UUID appointmentId, String previousStatus, String nextStatus,

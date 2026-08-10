@@ -83,6 +83,10 @@
         [class.text-[#0284c7]]="isActive('/admin/access-audit')" [attr.aria-current]="isActive('/admin/access-audit') ? 'page' : null"
         class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]"
         role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">manage_search</mat-icon>Nhật ký truy cập</a>}
+      @if (staffRole() === 'ADMIN') {<a routerLink="/admin/configuration" [class.bg-[#eafaff]]="isActive('/admin/configuration')"
+        [class.text-[#0284c7]]="isActive('/admin/configuration')" [attr.aria-current]="isActive('/admin/configuration') ? 'page' : null"
+        class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]"
+        role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">tune</mat-icon>Cấu hình phòng khám</a>}
       <button type="button"
         class="flex w-full items-center gap-3 border-t border-slate-100 px-5 py-3 text-left text-sm text-slate-700 transition hover:bg-slate-50 hover:text-rose-600"
         role="menuitem" (click)="logout()"><mat-icon class="!text-[20px]">logout</mat-icon>Đăng xuất</button>
