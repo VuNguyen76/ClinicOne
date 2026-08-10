@@ -79,9 +79,16 @@ public class LocalDataInitializer implements CommandLineRunner {
         StaffAccount admin = ensureStaff("admin", "admin123", "Quản trị viên", StaffRole.ADMIN);
         StaffAccount receptionist = ensureStaff("reception", "reception123", "Nhân viên tiếp nhận", StaffRole.RECEPTIONIST);
         StaffAccount doctor = ensureStaff("doctor", "doctor123", "Bác sĩ Nguyễn An", StaffRole.DOCTOR);
-        ClinicRoom room = ensureRoom();
-        DoctorProfile profile = profileRepository.findByStaffAccount_Id(doctor.getId())
-                .orElseGet(() -> profileRepository.save(DoctorProfile.create(doctor, DEFAULT_SPECIALTY, room)));
+        DoctorProfile profile = profileRepository.findByStaffAccount_Id(doctor.getId()).orElse(null);
+        ClinicRoom room;
+        if (profile == null) {
+            room = ensureRoom();
+            profile = profileRepository.save(DoctorProfile.create(doctor, DEFAULT_SPECIALTY, room));
+        } else {
+            // Reuse an existing assignment so local bootstrap never creates a
+            // second room that is not actually used by the seeded doctor.
+            room = profile.getRoom();
+        }
         ensureWeekdaySchedules(profile);
         PatientAccount patient = ensurePatient();
         PatientProfile patientProfile = ensurePatientProfile(patient);
