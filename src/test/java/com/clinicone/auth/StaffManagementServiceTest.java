@@ -101,6 +101,7 @@ class StaffManagementServiceTest {
         assertEquals(java.util.Set.of(StaffRole.DOCTOR, StaffRole.RECEPTIONIST), response.roles());
         assertEquals(java.util.Set.of(StaffRole.DOCTOR, StaffRole.RECEPTIONIST), account.getRoles());
         verify(accountRepository).save(account);
+        verify(sessionRepository).revokeActiveByAccountId(eq(STAFF_ID), any(Instant.class));
     }
 
     @Test

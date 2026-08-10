@@ -95,7 +95,9 @@ public class StaffManagementService {
         Set<StaffRole> roles = validateRoles(request == null ? null : request.roles());
         StaffAccount account = find(staffId);
         account.replaceRoles(roles);
-        return StaffAccountResponse.from(accountRepository.save(account));
+        StaffAccountResponse response = StaffAccountResponse.from(accountRepository.save(account));
+        sessionRepository.revokeActiveByAccountId(staffId, Instant.now(clock));
+        return response;
     }
 
     private Set<StaffRole> validateRoles(List<StaffRole> requested) {
