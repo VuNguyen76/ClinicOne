@@ -13,6 +13,9 @@ import com.clinicone.schedule.ClinicServiceRepository;
 import com.clinicone.config.ClinicConfigurationService;
 import com.clinicone.notification.PatientNotificationService;
 import com.clinicone.audit.BusinessLogService;
+import com.clinicone.reason.ReasonCatalog;
+import com.clinicone.reason.ReasonCatalogService;
+import com.clinicone.reason.ReasonCatalogType;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,33 +42,34 @@ public class AppointmentService {
     private final AppointmentHoldService holdService;
     private final ClinicServiceRepository clinicServiceRepository;
     private final ClinicConfigurationService configurationService;
+    private final ReasonCatalogService reasonCatalogService;
     private final Clock clock;
 
     public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository) {
-        this(accountRepository, appointmentRepository, null, null, null, null, null, null);
+        this(accountRepository, appointmentRepository, null, null, null, null, null, null, null, null, null);
     }
 
     public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
                               PatientProfileRepository profileRepository) {
-        this(accountRepository, appointmentRepository, profileRepository, null, null, null, null, null);
+        this(accountRepository, appointmentRepository, profileRepository, null, null, null, null, null, null, null, null);
     }
 
     public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
                               PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService) {
-        this(accountRepository, appointmentRepository, profileRepository, availabilityService, null, null, null, null);
+        this(accountRepository, appointmentRepository, profileRepository, availabilityService, null, null, null, null, null, null, null);
     }
 
     public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
                               PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService,
                               PatientNotificationService notificationService) {
-        this(accountRepository, appointmentRepository, profileRepository, availabilityService, notificationService, null, null, null);
+        this(accountRepository, appointmentRepository, profileRepository, availabilityService, notificationService, null, null, null, null, null, null);
     }
 
     public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
                               PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService,
                               PatientNotificationService notificationService, BusinessLogService businessLogService) {
         this(accountRepository, appointmentRepository, profileRepository, availabilityService, notificationService,
-                businessLogService, null, null);
+                businessLogService, null, null, null, null, null);
     }
 
     public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
@@ -73,7 +77,7 @@ public class AppointmentService {
                               PatientNotificationService notificationService, BusinessLogService businessLogService,
                               AppointmentHoldService holdService) {
         this(accountRepository, appointmentRepository, profileRepository, availabilityService, notificationService,
-                businessLogService, holdService, null, null, Clock.systemUTC());
+                businessLogService, holdService, null, null, null, Clock.systemUTC());
     }
 
     public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
@@ -81,7 +85,7 @@ public class AppointmentService {
                               PatientNotificationService notificationService, BusinessLogService businessLogService,
                               AppointmentHoldService holdService, ClinicServiceRepository clinicServiceRepository) {
         this(accountRepository, appointmentRepository, profileRepository, availabilityService, notificationService,
-                businessLogService, holdService, clinicServiceRepository, null, Clock.systemUTC());
+                businessLogService, holdService, clinicServiceRepository, null, null, Clock.systemUTC());
     }
 
     @org.springframework.beans.factory.annotation.Autowired
@@ -89,7 +93,8 @@ public class AppointmentService {
                               PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService,
                               PatientNotificationService notificationService, BusinessLogService businessLogService,
                               AppointmentHoldService holdService, ClinicServiceRepository clinicServiceRepository,
-                              ClinicConfigurationService configurationService, Clock clock) {
+                              ClinicConfigurationService configurationService, ReasonCatalogService reasonCatalogService,
+                              Clock clock) {
         this.accountRepository = accountRepository;
         this.appointmentRepository = appointmentRepository;
         this.profileRepository = profileRepository;
@@ -99,7 +104,18 @@ public class AppointmentService {
         this.holdService = holdService;
         this.clinicServiceRepository = clinicServiceRepository;
         this.configurationService = configurationService;
+        this.reasonCatalogService = reasonCatalogService;
         this.clock = clock == null ? Clock.systemUTC() : clock;
+    }
+
+    /** Backward-compatible constructor for isolated unit tests and integrations. */
+    public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
+                              PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService,
+                              PatientNotificationService notificationService, BusinessLogService businessLogService,
+                              AppointmentHoldService holdService, ClinicServiceRepository clinicServiceRepository,
+                              ClinicConfigurationService configurationService, Clock clock) {
+        this(accountRepository, appointmentRepository, profileRepository, availabilityService, notificationService,
+                businessLogService, holdService, clinicServiceRepository, configurationService, null, clock);
     }
 
     @Transactional(readOnly = true)
@@ -225,13 +241,14 @@ public class AppointmentService {
     public void cancel(String accountId, String appointmentId, CancelAppointmentRequest request) {
         Appointment appointment = findOwned(parseAppointmentId(appointmentId), parseAccountId(accountId));
         ensureBookable(appointment);
-        requireLateCancellationReason(appointment, request == null ? null : request.reason());
+        String cancellationReason = resolveCancellationReason(request);
+        requireLateCancellationReason(appointment, cancellationReason);
         String previousStatus = appointment.getStatus().name();
         UUID eventId = UUID.randomUUID();
-        appointment.cancel(request == null ? null : request.reason(), Instant.now(clock));
+        appointment.cancel(cancellationReason, Instant.now(clock));
         appointmentRepository.save(appointment);
         recordTransition(eventId, appointment.getId(), previousStatus, appointment.getStatus().name(), "CANCEL_APPOINTMENT",
-                accountId, request == null ? null : request.reason());
+                accountId, cancellationReason);
         if (notificationService != null) {
             notificationService.notifyAppointmentCancelled(appointment);
         }
@@ -322,6 +339,26 @@ public class AppointmentService {
             throw new AuthException(HttpStatus.BAD_REQUEST, "CANCELLATION_REASON_REQUIRED",
                     "Cần chọn lý do khi hủy lịch trong thời gian quy định.");
         }
+    }
+
+    private String resolveCancellationReason(CancelAppointmentRequest request) {
+        if (request == null) {
+            return null;
+        }
+        if (reasonCatalogService == null) {
+            return request.reason() == null || request.reason().isBlank() ? null : request.reason().trim();
+        }
+        if ((request.reasonCode() == null || request.reasonCode().isBlank())
+                && (request.reason() == null || request.reason().isBlank())) {
+            return null;
+        }
+        if (request.reasonCode() == null || request.reasonCode().isBlank()) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "CANCELLATION_REASON_REQUIRED",
+                    "Hãy chọn một lý do trong danh mục.");
+        }
+        ReasonCatalog reason = reasonCatalogService.requireActive(ReasonCatalogType.APPOINTMENT_CANCELLATION,
+                request.reasonCode());
+        return reason.getLabel();
     }
 
     private void recordTransition(UUID eventId, UUID appointmentId, String previousStatus, String nextStatus,

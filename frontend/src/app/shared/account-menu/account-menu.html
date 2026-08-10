@@ -87,6 +87,10 @@
         [class.text-[#0284c7]]="isActive('/admin/configuration')" [attr.aria-current]="isActive('/admin/configuration') ? 'page' : null"
         class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]"
         role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">tune</mat-icon>Cấu hình phòng khám</a>}
+      @if (staffRole() === 'ADMIN') {<a routerLink="/admin/reason-catalog" [class.bg-[#eafaff]]="isActive('/admin/reason-catalog')"
+        [class.text-[#0284c7]]="isActive('/admin/reason-catalog')" [attr.aria-current]="isActive('/admin/reason-catalog') ? 'page' : null"
+        class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]"
+        role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">list_alt</mat-icon>Danh mục lý do</a>}
       <button type="button"
         class="flex w-full items-center gap-3 border-t border-slate-100 px-5 py-3 text-left text-sm text-slate-700 transition hover:bg-slate-50 hover:text-rose-600"
         role="menuitem" (click)="logout()"><mat-icon class="!text-[20px]">logout</mat-icon>Đăng xuất</button>
