@@ -13,6 +13,9 @@ import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 
@@ -40,6 +43,22 @@ class AppointmentAvailabilityServiceTest {
         assertEquals(LocalTime.of(7, 30), slots.get(0).startTime());
         verify(appointmentRepository).countBookedBySpecialtyAndDateRange(
                 "Khám Tổng Quát", monday, monday, AppointmentStatus.BOOKED);
+    }
+
+    @Test
+    void keepsCheckedInAppointmentsOccupyingTheirFallbackSlot() {
+        LocalDate monday = LocalDate.of(2026, 8, 10);
+        when(appointmentRepository.countBookedBySpecialtyAndDateRange(
+                "Khám Tổng Quát", monday, monday, AppointmentStatus.BOOKED))
+                .thenReturn(List.of());
+        when(appointmentRepository.countBookedBySpecialtyAndDateRange(
+                "Khám Tổng Quát", monday, monday, AppointmentStatus.CHECKED_IN))
+                .thenReturn(List.of(new SlotBookingCount(monday, LocalTime.of(7, 30), 10L)));
+
+        List<AvailableSlotResponse> slots = service.find("Khám Tổng Quát", monday, monday);
+
+        assertEquals(6, slots.size());
+        assertEquals(LocalTime.of(8, 30), slots.get(0).startTime());
     }
 
     @Test
@@ -154,5 +173,19 @@ class AppointmentAvailabilityServiceTest {
                 .countByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
                         org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
                         org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void validatesBookableDateUsingClinicTimezone() {
+        Clock justAfterClinicMidnight = Clock.fixed(Instant.parse("2026-08-10T17:30:00Z"), ZoneOffset.UTC);
+        AppointmentAvailabilityService clinicClockService = new AppointmentAvailabilityService(
+                appointmentRepository, new SpecialtyCatalogService(), null, null, null,
+                justAfterClinicMidnight);
+
+        AuthException exception = assertThrows(AuthException.class,
+                () -> clinicClockService.ensureBookable("Khám Tổng Quát", LocalDate.of(2026, 8, 10),
+                        LocalTime.of(7, 30)));
+
+        assertEquals("APPOINTMENT_SLOT_INVALID", exception.getCode());
     }
 }

@@ -29,6 +29,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -80,6 +81,25 @@ class AppointmentServiceTest {
         assertEquals("Đã đặt", response.statusLabel());
         verify(appointmentRepository).save(any(Appointment.class));
         verify(notificationService).notifyAppointmentCreated(any(Appointment.class));
+    }
+
+    @Test
+    void generatesAppointmentCodeUsingClinicTimezone() {
+        PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
+        setId(account, ACCOUNT_ID);
+        when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
+        when(appointmentRepository.findByPatientIdAndAppointmentDateAndStartTimeAndStatus(
+                ACCOUNT_ID, LocalDate.of(2026, 8, 11), LocalTime.of(8, 30), AppointmentStatus.BOOKED))
+                .thenReturn(Optional.empty());
+        service = new AppointmentService(accountRepository, appointmentRepository, null, availabilityService,
+                notificationService, null, holdService, clinicServiceRepository, null, reasonCatalogService,
+                Clock.fixed(Instant.parse("2026-08-10T17:30:00Z"), ZoneOffset.UTC));
+
+        AppointmentResponse response = service.create(ACCOUNT_ID.toString(), new CreateAppointmentRequest(
+                "Nội khoa", "BS. Nguyễn An", LocalDate.of(2026, 8, 11), LocalTime.of(8, 30),
+                "Đau đầu kéo dài"));
+
+        assertTrue(response.appointmentCode().startsWith("CL-20260811-"));
     }
 
     @Test
@@ -187,6 +207,28 @@ class AppointmentServiceTest {
                 "Nội khoa", "BS. Nguyễn An", LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), "Đau đầu")));
 
         assertEquals(409, exception.getStatus().value());
+        assertEquals("APPOINTMENT_DUPLICATE", exception.getCode());
+    }
+
+    @Test
+    void rejectsDuplicateAppointmentWhenExistingAppointmentWasCheckedIn() {
+        PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
+        setId(account, ACCOUNT_ID);
+        Appointment checkedIn = Appointment.existing(account, "CL-20260810-AB12", "Nội khoa", "BS. Nguyễn An",
+                LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), "Đau đầu");
+        checkedIn.checkIn();
+        when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
+        when(appointmentRepository.findByPatientIdAndAppointmentDateAndStartTimeAndStatus(
+                ACCOUNT_ID, LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), AppointmentStatus.BOOKED))
+                .thenReturn(Optional.empty());
+        when(appointmentRepository.findByPatientIdAndAppointmentDateAndStartTimeAndStatus(
+                ACCOUNT_ID, LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), AppointmentStatus.CHECKED_IN))
+                .thenReturn(Optional.of(checkedIn));
+
+        AuthException exception = assertThrows(AuthException.class, () -> service.create(ACCOUNT_ID.toString(),
+                new CreateAppointmentRequest("Nội khoa", "BS. Nguyễn An", LocalDate.of(2026, 8, 10),
+                        LocalTime.of(8, 30), "Đau đầu")));
+
         assertEquals("APPOINTMENT_DUPLICATE", exception.getCode());
     }
 

@@ -16,6 +16,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +26,9 @@ import java.util.stream.Collectors;
 
 @Service
 public class AppointmentAvailabilityService {
+    private static final ZoneId CLINIC_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
+    private static final List<AppointmentStatus> ACTIVE_BOOKING_STATUSES =
+            List.of(AppointmentStatus.BOOKED, AppointmentStatus.CHECKED_IN);
     private static final int SLOT_CAPACITY = 10;
     private static final String DEFAULT_DOCTOR = "Bác sĩ chuyên khoa";
     private static final List<SlotTemplate> SLOT_TEMPLATES = List.of(
@@ -126,8 +130,8 @@ public class AppointmentAvailabilityService {
             return findConfigured(specialty, from, to, service);
         }
         Map<SlotKey, Long> bookedBySlot = new HashMap<>();
-        appointmentRepository.countBookedBySpecialtyAndDateRange(specialty, from, to, AppointmentStatus.BOOKED)
-                .forEach(item -> bookedBySlot.put(new SlotKey(item.appointmentDate(), item.startTime()), item.bookedCount()));
+        countSpecialtyBookings(specialty, from, to).forEach(item ->
+                bookedBySlot.put(new SlotKey(item.appointmentDate(), item.startTime()), item.bookedCount()));
         if (holdRepository != null) {
             holdRepository.findActiveBySpecialtyAndDateRange(specialty, from, to, Instant.now(clock))
                     .forEach(hold -> bookedBySlot.merge(
@@ -198,8 +202,7 @@ public class AppointmentAvailabilityService {
             throw new AuthException(HttpStatus.CONFLICT, "DOCTOR_SLOT_INVALID",
                     "Khung giờ này không nằm trong giờ làm của bác sĩ.");
         }
-        long booked = appointmentRepository.countByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
-                doctorId, appointmentDate, startTime, AppointmentStatus.BOOKED);
+        long booked = countDoctorBookings(doctorId, appointmentDate, startTime);
         long activeHolds = 0;
         if (holdRepository != null) {
             activeHolds = excludedHoldId == null
@@ -222,8 +225,7 @@ public class AppointmentAvailabilityService {
                 .findFirst()
                 .orElseThrow(() -> new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_SLOT_INVALID",
                         "Khung giờ này không thuộc lịch khám đang mở."));
-        long booked = appointmentRepository.countBySpecialtyAndAppointmentDateAndStartTimeAndStatus(
-                specialty, appointmentDate, template.startTime(), AppointmentStatus.BOOKED);
+        long booked = countSpecialtyBookings(specialty, appointmentDate, template.startTime());
         if (holdRepository != null) {
             booked += excludedHoldId == null
                     ? holdRepository.countActiveBySpecialtyAndSlot(specialty, appointmentDate, template.startTime(),
@@ -256,12 +258,7 @@ public class AppointmentAvailabilityService {
         if (doctorStaffIds.isEmpty()) {
             return List.of();
         }
-        Map<DoctorSlotKey, Long> bookedBySlot = appointmentRepository
-                .countBookedByDoctorsAndDateRange(doctorStaffIds, from, to, AppointmentStatus.BOOKED)
-                .stream()
-                .collect(Collectors.toMap(
-                        item -> new DoctorSlotKey(item.doctorStaffId(), item.appointmentDate(), item.startTime()),
-                        DoctorSlotBookingCount::bookedCount));
+        Map<DoctorSlotKey, Long> bookedBySlot = countDoctorBookings(doctorStaffIds, from, to);
         if (holdRepository != null) {
             holdRepository.findActiveByDoctorsAndDateRange(doctorStaffIds, from, to, Instant.now(clock))
                     .forEach(hold -> bookedBySlot.merge(
@@ -283,12 +280,7 @@ public class AppointmentAvailabilityService {
                                                       LocalDate from, LocalDate to) {
         List<UUID> doctorStaffIds = generatedSlots.stream().map(GeneratedClinicSlot::getDoctorStaffId)
                 .distinct().toList();
-        Map<DoctorSlotKey, Long> bookedBySlot = appointmentRepository
-                .countBookedByDoctorsAndDateRange(doctorStaffIds, from, to, AppointmentStatus.BOOKED)
-                .stream()
-                .collect(Collectors.toMap(
-                        item -> new DoctorSlotKey(item.doctorStaffId(), item.appointmentDate(), item.startTime()),
-                        DoctorSlotBookingCount::bookedCount));
+        Map<DoctorSlotKey, Long> bookedBySlot = countDoctorBookings(doctorStaffIds, from, to);
         if (holdRepository != null) {
             holdRepository.findActiveByDoctorsAndDateRange(doctorStaffIds, from, to, Instant.now(clock))
                     .forEach(hold -> bookedBySlot.merge(
@@ -310,8 +302,7 @@ public class AppointmentAvailabilityService {
             throw new AuthException(HttpStatus.CONFLICT, "DOCTOR_SLOT_INVALID",
                     "Bác sĩ không thuộc khung giờ đã chọn.");
         }
-        long booked = appointmentRepository.countByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
-                slot.getDoctorStaffId(), slot.getAppointmentDate(), slot.getStartTime(), AppointmentStatus.BOOKED);
+        long booked = countDoctorBookings(slot.getDoctorStaffId(), slot.getAppointmentDate(), slot.getStartTime());
         if (holdRepository != null) {
             booked += excludedHoldId == null
                     ? holdRepository.countActiveByDoctorSlot(slot.getDoctorStaffId(), slot.getAppointmentDate(),
@@ -350,7 +341,8 @@ public class AppointmentAvailabilityService {
     }
 
     private void validateDate(LocalDate appointmentDate) {
-        if (appointmentDate == null || appointmentDate.isBefore(LocalDate.now()) || !isWorkingDay(appointmentDate)) {
+        LocalDate clinicToday = LocalDate.now(clock.withZone(CLINIC_ZONE));
+        if (appointmentDate == null || appointmentDate.isBefore(clinicToday) || !isWorkingDay(appointmentDate)) {
             throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_SLOT_INVALID", "Ngày khám không còn nhận đặt lịch.");
         }
     }
@@ -418,5 +410,42 @@ public class AppointmentAvailabilityService {
     }
 
     private record DoctorSlotKey(UUID doctorStaffId, LocalDate date, LocalTime startTime) {
+    }
+
+    private List<SlotBookingCount> countSpecialtyBookings(String specialty, LocalDate from, LocalDate to) {
+        Map<SlotKey, Long> counts = new HashMap<>();
+        for (AppointmentStatus status : ACTIVE_BOOKING_STATUSES) {
+            appointmentRepository.countBookedBySpecialtyAndDateRange(specialty, from, to, status)
+                    .forEach(item -> counts.merge(new SlotKey(item.appointmentDate(), item.startTime()),
+                            item.bookedCount(), Long::sum));
+        }
+        return counts.entrySet().stream()
+                .map(item -> new SlotBookingCount(item.getKey().date(), item.getKey().startTime(), item.getValue()))
+                .toList();
+    }
+
+    private long countSpecialtyBookings(String specialty, LocalDate date, LocalTime startTime) {
+        return ACTIVE_BOOKING_STATUSES.stream()
+                .mapToLong(status -> appointmentRepository.countBySpecialtyAndAppointmentDateAndStartTimeAndStatus(
+                        specialty, date, startTime, status))
+                .sum();
+    }
+
+    private long countDoctorBookings(UUID doctorId, LocalDate date, LocalTime startTime) {
+        return ACTIVE_BOOKING_STATUSES.stream()
+                .mapToLong(status -> appointmentRepository.countByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
+                        doctorId, date, startTime, status))
+                .sum();
+    }
+
+    private Map<DoctorSlotKey, Long> countDoctorBookings(List<UUID> doctorStaffIds, LocalDate from, LocalDate to) {
+        Map<DoctorSlotKey, Long> counts = new HashMap<>();
+        for (AppointmentStatus status : ACTIVE_BOOKING_STATUSES) {
+            appointmentRepository.countBookedByDoctorsAndDateRange(doctorStaffIds, from, to, status)
+                    .forEach(item -> counts.merge(
+                            new DoctorSlotKey(item.doctorStaffId(), item.appointmentDate(), item.startTime()),
+                            item.bookedCount(), Long::sum));
+        }
+        return counts;
     }
 }
