@@ -33,7 +33,7 @@ class OperationalStatisticsControllerTest {
 
     @Test
     void coordinatorCanReadStatistics() throws Exception {
-        when(service.summarize(any(), any(), any(), any())).thenReturn(new OperationalStatisticsResponse(
+        when(service.summarize(any(), any(), any(), any(), any())).thenReturn(new OperationalStatisticsResponse(
                 LocalDate.of(2026, 8, 10), LocalDate.of(2026, 8, 10), "Khám Tổng Quát", null,
                 4, 3, 1, 0, 2, 1, null, null));
 
@@ -41,6 +41,7 @@ class OperationalStatisticsControllerTest {
                         .param("from", "2026-08-10")
                         .param("to", "2026-08-10")
                         .param("specialty", "Khám Tổng Quát")
+                        .param("groupBy", "WEEK")
                         .with(authentication(authenticated("ROLE_COORDINATOR"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalAppointments").value(4))

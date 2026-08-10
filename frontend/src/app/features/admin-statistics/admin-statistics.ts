@@ -17,16 +17,22 @@ export class AdminStatistics implements OnInit {
   protected readonly from = signal(this.today());
   protected readonly to = signal(this.today());
   protected readonly specialty = signal('Khám Tổng Quát');
+  protected readonly doctorId = signal('');
+  protected readonly doctors = signal<{ staffId: string; fullName: string; specialty: string | null }[]>([]);
+  protected readonly groupBy = signal<'DAY' | 'WEEK' | 'MONTH'>('DAY');
   protected readonly report = signal<OperationalStatisticsResponse | null>(null);
   protected readonly loading = signal(false);
   protected readonly error = signal('');
 
-  ngOnInit(): void { this.load(); }
+  ngOnInit(): void {
+    this.authApi.getDoctors().subscribe({ next: (doctors) => this.doctors.set(doctors) });
+    this.load();
+  }
 
   protected load(): void {
     this.loading.set(true);
     this.error.set('');
-    this.authApi.getOperationalStatistics(this.from(), this.to(), this.specialty()).subscribe({
+    this.authApi.getOperationalStatistics(this.from(), this.to(), this.specialty(), this.doctorId() || undefined, this.groupBy()).subscribe({
       next: (result) => { this.report.set(result); this.loading.set(false); },
       error: (response: ApiErrorResponse) => { this.report.set(null); this.error.set(apiErrorMessage(response)); this.loading.set(false); },
     });
@@ -35,6 +41,10 @@ export class AdminStatistics implements OnInit {
   protected updateFrom(value: string): void { this.from.set(value); }
   protected updateTo(value: string): void { this.to.set(value); }
   protected updateSpecialty(value: string): void { this.specialty.set(value); }
+  protected updateDoctor(value: string): void { this.doctorId.set(value); }
+  protected updateGroupBy(value: string): void {
+    if (value === 'WEEK' || value === 'MONTH' || value === 'DAY') this.groupBy.set(value);
+  }
   protected formatAverage(value: number | null): string { return value === null ? '—' : `${value.toFixed(1)} phút`; }
 
   private today(): string {

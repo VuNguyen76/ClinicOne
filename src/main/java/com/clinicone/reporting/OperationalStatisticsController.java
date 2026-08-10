@@ -26,7 +26,8 @@ public class OperationalStatisticsController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam String specialty,
-            @RequestParam(required = false) UUID doctorId) {
-        return ResponseEntity.ok(service.summarize(from, to, specialty, doctorId));
+            @RequestParam(required = false) UUID doctorId,
+            @RequestParam(defaultValue = "DAY") String groupBy) {
+        return ResponseEntity.ok(service.summarize(from, to, specialty, doctorId, groupBy));
     }
 }

@@ -121,6 +121,18 @@ export interface PatientNotificationResponse {
   createdAt: string;
 }
 
+export interface OperationalStatisticsBucket {
+  period: string;
+  totalAppointments: number;
+  checkedInAppointments: number;
+  absentAppointments: number;
+  cancelledAppointments: number;
+  completedAppointments: number;
+  notPerformedAppointments: number;
+  averageWaitMinutes: number | null;
+  averageExaminationMinutes: number | null;
+}
+
 export interface OperationalStatisticsResponse {
   from: string;
   to: string;
@@ -134,6 +146,8 @@ export interface OperationalStatisticsResponse {
   notPerformedAppointments: number;
   averageWaitMinutes: number | null;
   averageExaminationMinutes: number | null;
+  groupBy: 'DAY' | 'WEEK' | 'MONTH' | string;
+  buckets: OperationalStatisticsBucket[];
 }
 
 export interface CreateAppointmentRequest {
@@ -919,8 +933,9 @@ export class AuthApiService {
     });
   }
 
-  getOperationalStatistics(from: string, to: string, specialty: string, doctorId?: string): Observable<OperationalStatisticsResponse> {
-    let params: Record<string, string> = { from, to, specialty };
+  getOperationalStatistics(from: string, to: string, specialty: string, doctorId?: string,
+                           groupBy: 'DAY' | 'WEEK' | 'MONTH' = 'DAY'): Observable<OperationalStatisticsResponse> {
+    let params: Record<string, string> = { from, to, specialty, groupBy };
     if (doctorId) params = { ...params, doctorId };
     return this.http.get<OperationalStatisticsResponse>('/api/v1/admin/statistics', { params });
   }
