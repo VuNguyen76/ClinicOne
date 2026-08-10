@@ -49,6 +49,21 @@
             <div class="flex justify-between gap-3 py-3"><dt class="text-slate-500">Mã lịch hẹn</dt><dd class="font-semibold text-right">{{ exam.appointmentCode }}</dd></div>
           </dl>
           <div class="mt-4 border-t border-[#e7eff1] pt-4 text-xs text-slate-500">Bác sĩ phụ trách <strong class="block mt-1 text-sm text-[#173f4b]">{{ exam.doctorName }}</strong></div>
+          <div class="mt-4 border-t border-[#e7eff1] pt-4">
+            <p class="text-[10px] font-bold uppercase tracking-[0.12em] text-[#0b91c9]">Lịch sử khám</p>
+            @if (exam.history?.length) {
+              <div class="mt-2 grid gap-2">
+                @for (record of exam.history; track record.id) {
+                  <div class="rounded-md bg-[#f7fbfc] px-3 py-2 text-xs">
+                    <p class="font-semibold text-[#173f4b]">{{ record.diagnosis || 'Đã khám' }}</p>
+                    <p class="mt-0.5 text-slate-500">{{ record.doctorName }} · {{ formatDate(record.signedAt) }}</p>
+                  </div>
+                }
+              </div>
+            } @else {
+              <p class="mt-2 text-xs text-slate-500">Chưa có phiếu khám đã ký trước đó.</p>
+            }
+          </div>
         </aside>
 
         <form [formGroup]="form" data-testid="medical-form" class="border border-[#dce7ea] bg-white" (submit)="$event.preventDefault()">

@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
+import java.util.List;
 
 @Service
 public class DoctorExaminationService {
@@ -243,6 +244,9 @@ public class DoctorExaminationService {
         var patient = appointment.getPatient();
         boolean requiresRecord = appointment.requiresMedicalRecord();
         String recordDoctorName = record == null ? null : record.getDoctorName();
+        List<MedicalRecordResponse> history = recordRepository
+                .findBySession_Appointment_Patient_IdAndSignedAtIsNotNullOrderBySignedAtDesc(patient.getId())
+                .stream().map(MedicalRecordResponse::from).toList();
         return new DoctorExaminationResponse(ticket.getId(), appointment.getId(), session.getId(), ticket.getQueueNumber(),
                 ticket.getRoom().getName(), appointment.getAppointmentCode(), appointment.getSpecialty(),
                 recordDoctorName == null ? appointment.getDoctorName() : recordDoctorName,
@@ -251,7 +255,7 @@ public class DoctorExaminationService {
                 record == null ? null : record.getExaminationNotes(), record == null ? null : record.getDiagnosis(),
                 record == null ? null : record.getConclusion(), record == null ? null : record.getTreatmentPlan(),
                 record == null ? null : record.getPrescription(), record == null ? null : record.getFollowUpDate(),
-                session.getStatus().name(), record == null ? null : record.getSignedAt(), requiresRecord);
+                session.getStatus().name(), record == null ? null : record.getSignedAt(), requiresRecord, history);
     }
 
     private record Workspace(QueueTicket ticket, Appointment appointment, ExaminationSession session) {

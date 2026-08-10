@@ -515,6 +515,7 @@ export interface DoctorExaminationResponse {
   status: string;
   signedAt: string | null;
   requiresMedicalRecord?: boolean;
+  history?: MedicalRecordResponse[];
 }
 
 export interface DoctorExaminationRequest {
