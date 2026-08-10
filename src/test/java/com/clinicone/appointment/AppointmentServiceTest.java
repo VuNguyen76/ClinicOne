@@ -269,6 +269,27 @@ class AppointmentServiceTest {
     }
 
     @Test
+    void retriesCancellationWithSameKeyWithoutRepeatingSideEffects() {
+        PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
+        setId(account, ACCOUNT_ID);
+        Appointment appointment = Appointment.existing(account, "CL-20260810-AB12", "Nội khoa", "BS. Nguyễn An",
+                LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), "Đau đầu");
+        UUID appointmentId = UUID.randomUUID();
+        setId(appointment, appointmentId);
+        when(appointmentRepository.findByIdAndPatientId(appointmentId, ACCOUNT_ID)).thenReturn(Optional.of(appointment));
+
+        service.cancel(ACCOUNT_ID.toString(), appointmentId.toString(), new CancelAppointmentRequest("Bận việc"),
+                "cancel-request-1");
+        service.cancel(ACCOUNT_ID.toString(), appointmentId.toString(), new CancelAppointmentRequest("Bận việc"),
+                "cancel-request-1");
+
+        assertEquals(AppointmentStatus.CANCELLED, appointment.getStatus());
+        assertEquals("cancel-request-1", appointment.getCancellationRequestKey());
+        verify(appointmentRepository).save(appointment);
+        verify(notificationService).notifyAppointmentCancelled(appointment);
+    }
+
+    @Test
     void requiresReasonWhenCancellingWithinConfiguredThreshold() {
         PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
         setId(account, ACCOUNT_ID);

@@ -239,13 +239,25 @@ public class AppointmentService {
 
     @Transactional
     public void cancel(String accountId, String appointmentId, CancelAppointmentRequest request) {
+        cancel(accountId, appointmentId, request, null);
+    }
+
+    @Transactional
+    public void cancel(String accountId, String appointmentId, CancelAppointmentRequest request,
+                       String requestKey) {
         Appointment appointment = findOwned(parseAppointmentId(appointmentId), parseAccountId(accountId));
+        String normalizedRequestKey = normalizeRequestKey(requestKey);
+        if (appointment.getStatus() == AppointmentStatus.CANCELLED
+                && normalizedRequestKey != null
+                && normalizedRequestKey.equals(appointment.getCancellationRequestKey())) {
+            return;
+        }
         ensureBookable(appointment);
         String cancellationReason = resolveCancellationReason(request);
         requireLateCancellationReason(appointment, cancellationReason);
         String previousStatus = appointment.getStatus().name();
         UUID eventId = UUID.randomUUID();
-        appointment.cancel(cancellationReason, Instant.now(clock));
+        appointment.cancel(cancellationReason, Instant.now(clock), normalizedRequestKey);
         appointmentRepository.save(appointment);
         recordTransition(eventId, appointment.getId(), previousStatus, appointment.getStatus().name(), "CANCEL_APPOINTMENT",
                 accountId, cancellationReason);
@@ -326,6 +338,18 @@ public class AppointmentService {
     private AuthException authenticationRequired() {
         return new AuthException(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_REQUIRED",
                 "Phiên đăng nhập không hợp lệ.");
+    }
+
+    private String normalizeRequestKey(String requestKey) {
+        if (requestKey == null || requestKey.isBlank()) {
+            return null;
+        }
+        String normalized = requestKey.trim();
+        if (normalized.length() > 80) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "IDEMPOTENCY_KEY_INVALID",
+                    "Khóa chống trùng không được dài quá 80 ký tự.");
+        }
+        return normalized;
     }
 
     private boolean hasActiveAppointment(UUID patientId, LocalDate appointmentDate, LocalTime startTime) {

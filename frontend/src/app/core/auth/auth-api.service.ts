@@ -744,8 +744,10 @@ export class AuthApiService {
     return this.http.get<ReasonCatalogResponse[]>('/api/v1/reasons', { params: { type: 'APPOINTMENT_CANCELLATION' } });
   }
 
-  cancelAppointment(id: string, reasonCode?: string): Observable<void> {
-    return this.http.post<void>(`${this.appointmentsRoot}/${id}/cancel`, { reasonCode: reasonCode ?? '' });
+  cancelAppointment(id: string, reasonCode?: string, requestKey?: string): Observable<void> {
+    return this.http.post<void>(`${this.appointmentsRoot}/${id}/cancel`, { reasonCode: reasonCode ?? '' }, {
+      headers: requestKey ? { 'Idempotency-Key': requestKey } : undefined,
+    });
   }
 
   rescheduleAppointment(id: string, appointmentDate: string, startTime: string): Observable<AppointmentResponse> {

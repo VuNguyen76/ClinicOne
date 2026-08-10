@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestHeader;
 
 import java.util.List;
 import java.util.UUID;
@@ -42,8 +43,9 @@ public class AppointmentController {
     @PostMapping("/{appointmentId}/cancel")
     public ResponseEntity<Void> cancel(Authentication authentication,
                                        @PathVariable UUID appointmentId,
-                                       @Valid @RequestBody(required = false) CancelAppointmentRequest request) {
-        appointmentService.cancel(authentication.getName(), appointmentId.toString(), request);
+                                       @Valid @RequestBody(required = false) CancelAppointmentRequest request,
+                                       @RequestHeader(value = "Idempotency-Key", required = false) String requestKey) {
+        appointmentService.cancel(authentication.getName(), appointmentId.toString(), request, requestKey);
         return ResponseEntity.noContent().build();
     }
 
