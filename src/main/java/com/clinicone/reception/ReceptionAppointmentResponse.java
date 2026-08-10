@@ -22,8 +22,20 @@ public record ReceptionAppointmentResponse(
         String status,
         Integer queueNumber,
         String queueStatus,
-        String queueStatusLabel
+        String queueStatusLabel,
+        String queuePresenceStatus,
+        String queuePresenceLabel
 ) {
+    public ReceptionAppointmentResponse(UUID id, String appointmentCode, LocalDate appointmentDate,
+                                        LocalTime startTime, String specialty, String doctorName,
+                                        String roomCode, String roomName, UUID patientProfileId,
+                                        String patientName, String patientPhone, String status,
+                                        Integer queueNumber, String queueStatus, String queueStatusLabel) {
+        this(id, appointmentCode, appointmentDate, startTime, specialty, doctorName, roomCode, roomName,
+                patientProfileId, patientName, patientPhone, status, queueNumber, queueStatus, queueStatusLabel,
+                null, null);
+    }
+
     public static ReceptionAppointmentResponse from(Appointment appointment, String roomCode, String roomName,
                                                      QueueTicketResponse ticket) {
         var profile = appointment.getPatientProfile();
@@ -33,6 +45,8 @@ public record ReceptionAppointmentResponse(
                 profile == null ? null : profile.getId(), profile == null ? appointment.getPatient().getFullName() : profile.getFullName(),
                 profile == null ? appointment.getPatient().getPhone() : profile.getPhone(), appointment.getStatus().name(),
                 ticket == null ? null : ticket.queueNumber(), ticket == null ? null : ticket.status(),
-                ticket == null ? null : ticket.statusLabel());
+                ticket == null ? null : ticket.statusLabel(), ticket == null ? null : ticket.presenceStatus(),
+                ticket == null ? null : ticket.presenceLabel());
     }
+
 }

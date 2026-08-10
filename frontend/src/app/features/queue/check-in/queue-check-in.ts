@@ -35,7 +35,7 @@ export class QueueCheckIn implements OnInit {
   protected todayAppointments(): AppointmentResponse[] {
     const specialty = this.room()?.specialty.toLowerCase();
     return this.appointments().filter((appointment) => appointment.appointmentDate === this.today
-      && appointment.status === 'BOOKED'
+      && (appointment.status === 'BOOKED' || appointment.status === 'CHECKED_IN')
       && (!specialty || appointment.specialty.toLowerCase() === specialty));
   }
 

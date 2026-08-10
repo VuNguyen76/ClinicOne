@@ -96,6 +96,24 @@ class QueueServiceTest {
     }
 
     @Test
+    void returningPatientScanRestoresPresenceWithoutCreatingAnotherTicket() {
+        QueueTicket existing = QueueTicket.create(appointment, room, TODAY, 5);
+        setId(existing, UUID.randomUUID());
+        existing.call();
+        existing.skip("Bệnh nhân chưa có mặt");
+        appointment.checkIn();
+        when(ticketRepository.findByAppointmentId(APPOINTMENT_ID)).thenReturn(Optional.of(existing));
+        when(examinationSessionRepository.findByAppointment_Id(APPOINTMENT_ID))
+                .thenReturn(Optional.of(checkedInSession()));
+
+        QueueTicketResponse response = service.checkIn(ACCOUNT_ID.toString(), "NOI-01", APPOINTMENT_ID);
+
+        assertEquals(5, response.queueNumber());
+        assertEquals(QueuePresenceStatus.READY.name(), response.presenceStatus());
+        verify(ticketRepository).save(existing);
+    }
+
+    @Test
     void patientCanReadOwnQueueForTheSelectedDate() {
         QueueTicket ticket = QueueTicket.create(appointment, room, TODAY, 5);
         setId(ticket, UUID.randomUUID());
@@ -115,11 +133,27 @@ class QueueServiceTest {
 
         ticket.call();
         ticket.skip("Bệnh nhân chưa có mặt");
+
+        assertEquals(5, ticket.getQueueNumber());
+        assertEquals(1, ticket.getCallCount());
+        org.junit.jupiter.api.Assertions.assertNotNull(ticket.getCalledAt());
+        assertEquals(QueuePresenceStatus.RETURN_REQUIRED, ticket.getPresenceStatus());
+        assertThrows(IllegalStateException.class, ticket::call);
+    }
+
+    @Test
+    void patientReturningByQrKeepsNumberAndBecomesReadyAgain() {
+        QueueTicket ticket = QueueTicket.create(appointment, room, TODAY, 5);
+
+        ticket.call();
+        ticket.skip("Bệnh nhân chưa có mặt");
+        ticket.markReturned(Instant.parse("2026-08-06T02:20:00Z"));
         ticket.call();
 
         assertEquals(5, ticket.getQueueNumber());
         assertEquals(2, ticket.getCallCount());
-        org.junit.jupiter.api.Assertions.assertNotNull(ticket.getCalledAt());
+        assertEquals(QueuePresenceStatus.READY, ticket.getPresenceStatus());
+        assertEquals(Instant.parse("2026-08-06T02:20:00Z"), ticket.getReturnedAt());
     }
 
     @Test
@@ -203,10 +237,10 @@ class QueueServiceTest {
         ticket.skip("Bệnh nhân chưa có mặt");
         when(ticketRepository.findById(ticket.getId())).thenReturn(Optional.of(ticket));
 
-        QueueTicketResponse response = service.call(ticket.getId());
+        AuthException exception = assertThrows(AuthException.class, () -> service.call(ticket.getId()));
 
-        assertEquals(QueueTicketStatus.CALLED.name(), response.status());
-        assertEquals(QueueTicketStatus.CALLED.label(), response.statusLabel());
+        assertEquals(409, exception.getStatus().value());
+        assertEquals("QUEUE_INVALID_STATE", exception.getCode());
     }
 
     @Test

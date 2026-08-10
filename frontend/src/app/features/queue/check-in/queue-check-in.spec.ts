@@ -60,13 +60,32 @@ describe('QueueCheckIn', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="queue-number"]').textContent).toContain('5');
     expect(fixture.nativeElement.querySelector('[data-testid="queue-status"]').textContent).toContain('Đang chờ');
   });
+
+  it('keeps a checked-in appointment available so a returning patient can scan again', () => {
+    const today = localIsoDate();
+    http.expectOne('/api/v1/rooms/NOI-01/check-in').flush({ code: 'NOI-01', name: 'Phòng Nội tổng quát 01', specialty: 'Nội tổng quát' });
+    http.expectOne('/api/v1/appointments').flush([appointment(today, 'CHECKED_IN', 'Nội tổng quát')]);
+    fixture.detectChanges();
+
+    const appointmentButton = fixture.nativeElement.querySelector('[data-testid="check-in-appointment"]') as HTMLButtonElement;
+    expect(appointmentButton).not.toBeNull();
+    appointmentButton.click();
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('[data-testid="check-in-submit"]') as HTMLButtonElement).click();
+
+    const request = http.expectOne('/api/v1/rooms/NOI-01/queue/check-in');
+    request.flush({ ...queueTicket(), presenceStatus: 'RETURN_REQUIRED', presenceLabel: 'Chờ quay lại' });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('không cấp số mới');
+  });
 });
 
 function appointment(date: string, status: string, specialty: string) {
   return {
     id: status === 'BOOKED' && specialty === 'Nội tổng quát' ? 'appointment-1' : `${status}-${specialty}`,
     appointmentCode: 'CL-20260806-1234', specialty, doctorName: 'BS. Nguyễn An', appointmentDate: date,
-    startTime: '09:00:00', reason: 'Đau đầu', status, statusLabel: status === 'BOOKED' ? 'Đã đặt' : 'Đã hủy',
+    startTime: '09:00:00', reason: 'Đau đầu', status, statusLabel: status === 'BOOKED' ? 'Đã đặt' : status === 'CHECKED_IN' ? 'Đã check-in' : 'Đã hủy',
   };
 }
 
