@@ -2,6 +2,7 @@ package com.clinicone.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -15,6 +16,7 @@ import java.time.Clock;
 
 @Configuration
 @EnableMethodSecurity
+@EnableScheduling
 public class SecurityConfig {
 
     @Bean
