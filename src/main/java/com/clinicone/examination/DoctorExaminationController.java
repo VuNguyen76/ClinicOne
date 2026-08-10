@@ -1,6 +1,9 @@
 package com.clinicone.examination;
 
+import com.clinicone.audit.AccessAuditService;
 import jakarta.validation.Valid;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -19,15 +22,28 @@ import java.util.UUID;
 @PreAuthorize("hasRole('DOCTOR')")
 public class DoctorExaminationController {
     private final DoctorExaminationService service;
+    private final ObjectProvider<AccessAuditService> accessAudit;
 
-    public DoctorExaminationController(DoctorExaminationService service) {
+    public DoctorExaminationController(DoctorExaminationService service,
+                                       ObjectProvider<AccessAuditService> accessAudit) {
         this.service = service;
+        this.accessAudit = accessAudit;
     }
 
     @GetMapping("/{ticketId}")
     public ResponseEntity<DoctorExaminationResponse> open(Authentication authentication,
-                                                          @PathVariable UUID ticketId) {
-        return ResponseEntity.ok(service.open(ticketId, authentication.getName()));
+                                                          @PathVariable UUID ticketId,
+                                                          HttpServletRequest request) {
+        try {
+            DoctorExaminationResponse response = service.open(ticketId, authentication.getName());
+            recordAudit("DOCTOR_VIEW_EXAMINATION", authentication.getName(), "SUCCESS",
+                    request.getRequestURI(), request.getRemoteAddr());
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException exception) {
+            recordAudit("DOCTOR_VIEW_EXAMINATION", authentication.getName(), "FAILED",
+                    request.getRequestURI(), request.getRemoteAddr());
+            throw exception;
+        }
     }
 
     @PutMapping("/{ticketId}/draft")
@@ -42,5 +58,17 @@ public class DoctorExaminationController {
                                                            @PathVariable UUID ticketId,
                                                            @Valid @RequestBody DoctorExaminationRequest request) {
         return ResponseEntity.ok(service.sign(ticketId, authentication.getName(), request));
+    }
+
+    private void recordAudit(String eventType, String actor, String outcome, String function, String ipAddress) {
+        AccessAuditService service = accessAudit.getIfAvailable();
+        if (service == null) {
+            return;
+        }
+        try {
+            service.record(eventType, actor, outcome, function, ipAddress);
+        } catch (RuntimeException ignored) {
+            // Clinical workspace must remain available if the audit store is unavailable.
+        }
     }
 }
