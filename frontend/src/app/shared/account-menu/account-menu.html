@@ -55,6 +55,10 @@
         [class.text-[#0284c7]]="isActive('/admin/services')" [attr.aria-current]="isActive('/admin/services') ? 'page' : null"
         class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]"
         role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">category</mat-icon>Dịch vụ khám</a>}
+      @if (canManageRooms()) {<a routerLink="/admin/schedule-templates" [class.bg-[#eafaff]]="isActive('/admin/schedule-templates')"
+        [class.text-[#0284c7]]="isActive('/admin/schedule-templates')" [attr.aria-current]="isActive('/admin/schedule-templates') ? 'page' : null"
+        class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]"
+        role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">calendar_month</mat-icon>Mẫu lịch làm việc</a>}
       @if (canManageRooms()) {<a routerLink="/admin/rescheduling" [class.bg-[#eafaff]]="isActive('/admin/rescheduling')"
         [class.text-[#0284c7]]="isActive('/admin/rescheduling')" [attr.aria-current]="isActive('/admin/rescheduling') ? 'page' : null"
         class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]"

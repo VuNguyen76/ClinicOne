@@ -44,10 +44,11 @@ public class AppointmentAvailabilityService {
     private final AppointmentHoldRepository holdRepository;
     private final Clock clock;
     private final ClinicServiceRepository clinicServiceRepository;
+    private final GeneratedClinicSlotRepository generatedSlotRepository;
 
     public AppointmentAvailabilityService(AppointmentRepository appointmentRepository,
                                           SpecialtyCatalogService specialtyCatalog) {
-        this(appointmentRepository, specialtyCatalog, null, null, null, Clock.systemUTC());
+        this(appointmentRepository, specialtyCatalog, null, null, null, Clock.systemUTC(), null, null);
     }
 
     public AppointmentAvailabilityService(AppointmentRepository appointmentRepository,
@@ -55,7 +56,7 @@ public class AppointmentAvailabilityService {
                                           DoctorProfileRepository doctorProfileRepository,
                                           DoctorScheduleRepository doctorScheduleRepository) {
         this(appointmentRepository, specialtyCatalog, doctorProfileRepository, doctorScheduleRepository,
-                null, Clock.systemUTC(), null);
+                null, Clock.systemUTC(), null, null);
     }
 
     public AppointmentAvailabilityService(AppointmentRepository appointmentRepository,
@@ -65,7 +66,18 @@ public class AppointmentAvailabilityService {
                                           AppointmentHoldRepository holdRepository,
                                           Clock clock) {
         this(appointmentRepository, specialtyCatalog, doctorProfileRepository, doctorScheduleRepository,
-                holdRepository, clock, null);
+                holdRepository, clock, null, null);
+    }
+
+    public AppointmentAvailabilityService(AppointmentRepository appointmentRepository,
+                                          SpecialtyCatalogService specialtyCatalog,
+                                          DoctorProfileRepository doctorProfileRepository,
+                                          DoctorScheduleRepository doctorScheduleRepository,
+                                          AppointmentHoldRepository holdRepository,
+                                          Clock clock,
+                                          ClinicServiceRepository clinicServiceRepository) {
+        this(appointmentRepository, specialtyCatalog, doctorProfileRepository, doctorScheduleRepository,
+                holdRepository, clock, clinicServiceRepository, null);
     }
 
     @org.springframework.beans.factory.annotation.Autowired
@@ -75,7 +87,8 @@ public class AppointmentAvailabilityService {
                                           DoctorScheduleRepository doctorScheduleRepository,
                                           AppointmentHoldRepository holdRepository,
                                           Clock clock,
-                                          ClinicServiceRepository clinicServiceRepository) {
+                                          ClinicServiceRepository clinicServiceRepository,
+                                          GeneratedClinicSlotRepository generatedSlotRepository) {
         this.appointmentRepository = appointmentRepository;
         this.specialtyCatalog = specialtyCatalog;
         this.doctorProfileRepository = doctorProfileRepository;
@@ -83,6 +96,7 @@ public class AppointmentAvailabilityService {
         this.holdRepository = holdRepository;
         this.clock = clock;
         this.clinicServiceRepository = clinicServiceRepository;
+        this.generatedSlotRepository = generatedSlotRepository;
     }
 
     public AppointmentAvailabilityService(AppointmentRepository appointmentRepository) {
@@ -100,6 +114,14 @@ public class AppointmentAvailabilityService {
         validateRange(from, to);
         ClinicService service = resolveService(serviceId, specialty);
         Integer serviceDuration = service == null ? null : service.getDurationMinutes();
+        if (serviceId != null && generatedSlotRepository != null) {
+            List<GeneratedClinicSlot> generatedSlots = generatedSlotRepository
+                    .findByClinicServiceIdAndAppointmentDateBetweenAndStatusOrderByAppointmentDateAscStartTimeAsc(
+                            serviceId, from, to, GeneratedSlotStatus.OPEN);
+            if (!generatedSlots.isEmpty()) {
+                return findGenerated(generatedSlots, from, to);
+            }
+        }
         if (doctorProfileRepository != null) {
             return findConfigured(specialty, from, to, service);
         }
@@ -142,6 +164,15 @@ public class AppointmentAvailabilityService {
         specialtyCatalog.require(specialty);
         ClinicService service = resolveService(serviceId, specialty);
         Integer serviceDuration = service == null ? null : service.getDurationMinutes();
+        if (serviceId != null && generatedSlotRepository != null && doctorId != null) {
+            List<GeneratedClinicSlot> generatedSlots = generatedSlotRepository
+                    .findByClinicServiceIdAndDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
+                            serviceId, doctorId, appointmentDate, startTime, GeneratedSlotStatus.OPEN);
+            if (!generatedSlots.isEmpty()) {
+                ensureGeneratedSlotBookable(generatedSlots.get(0), doctorName, excludedHoldId);
+                return;
+            }
+        }
         if (doctorProfileRepository == null) {
             ensureBookableFallback(specialty, appointmentDate, startTime, excludedHoldId, serviceDuration);
             return;
@@ -246,6 +277,52 @@ public class AppointmentAvailabilityService {
                                 serviceDuration).stream()))
                 .filter(slot -> slot.remainingCapacity() > 0)
                 .toList();
+    }
+
+    private List<AvailableSlotResponse> findGenerated(List<GeneratedClinicSlot> generatedSlots,
+                                                      LocalDate from, LocalDate to) {
+        List<UUID> doctorStaffIds = generatedSlots.stream().map(GeneratedClinicSlot::getDoctorStaffId)
+                .distinct().toList();
+        Map<DoctorSlotKey, Long> bookedBySlot = appointmentRepository
+                .countBookedByDoctorsAndDateRange(doctorStaffIds, from, to, AppointmentStatus.BOOKED)
+                .stream()
+                .collect(Collectors.toMap(
+                        item -> new DoctorSlotKey(item.doctorStaffId(), item.appointmentDate(), item.startTime()),
+                        DoctorSlotBookingCount::bookedCount));
+        if (holdRepository != null) {
+            holdRepository.findActiveByDoctorsAndDateRange(doctorStaffIds, from, to, Instant.now(clock))
+                    .forEach(hold -> bookedBySlot.merge(
+                            new DoctorSlotKey(hold.getDoctorStaffId(), hold.getAppointmentDate(), hold.getStartTime()),
+                            1L, Long::sum));
+        }
+        return generatedSlots.stream()
+                .map(slot -> new AvailableSlotResponse(slot.getSpecialty(), slot.getAppointmentDate(),
+                        slot.getStartTime(), slot.getEndTime(), slot.getDoctorName(),
+                        bookedBySlot.getOrDefault(new DoctorSlotKey(slot.getDoctorStaffId(),
+                                slot.getAppointmentDate(), slot.getStartTime()), 0L) == 0 ? 1 : 0,
+                        slot.getDoctorStaffId(), slot.getRoomCode()))
+                .filter(slot -> slot.remainingCapacity() > 0)
+                .toList();
+    }
+
+    private void ensureGeneratedSlotBookable(GeneratedClinicSlot slot, String doctorName, UUID excludedHoldId) {
+        if (doctorName != null && !slot.getDoctorName().equalsIgnoreCase(doctorName)) {
+            throw new AuthException(HttpStatus.CONFLICT, "DOCTOR_SLOT_INVALID",
+                    "Bác sĩ không thuộc khung giờ đã chọn.");
+        }
+        long booked = appointmentRepository.countByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
+                slot.getDoctorStaffId(), slot.getAppointmentDate(), slot.getStartTime(), AppointmentStatus.BOOKED);
+        if (holdRepository != null) {
+            booked += excludedHoldId == null
+                    ? holdRepository.countActiveByDoctorSlot(slot.getDoctorStaffId(), slot.getAppointmentDate(),
+                    slot.getStartTime(), Instant.now(clock))
+                    : holdRepository.countActiveByDoctorSlotExcludingHold(slot.getDoctorStaffId(),
+                    slot.getAppointmentDate(), slot.getStartTime(), Instant.now(clock), excludedHoldId);
+        }
+        if (booked > 0) {
+            throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_SLOT_FULL",
+                    "Khung giờ này vừa hết chỗ. Vui lòng chọn khung giờ khác.");
+        }
     }
 
     private List<AvailableSlotResponse> slotsFor(DoctorSchedule schedule, LocalDate date,
