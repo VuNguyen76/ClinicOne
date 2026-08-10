@@ -71,7 +71,8 @@ public class ReceptionService {
     public List<ReceptionAppointmentResponse> search(String query, LocalDate date) {
         String normalized = normalizeQuery(query);
         LocalDate appointmentDate = date == null ? today() : date;
-        return appointmentRepository.findReceptionCandidates(normalized, appointmentDate, AppointmentStatus.BOOKED)
+        return appointmentRepository.findReceptionCandidatesByStatuses(normalized, appointmentDate,
+                        List.of(AppointmentStatus.BOOKED, AppointmentStatus.CHECKED_IN))
                 .stream().map(this::toResponse).toList();
     }
 
@@ -82,6 +83,18 @@ public class ReceptionService {
                         "Không tìm thấy lịch hẹn."));
         QueueTicketResponse ticket = queueService.checkInByStaff(request.roomCode().trim(), appointmentId, request.reason().trim());
         return toResponse(appointment, ticket);
+    }
+
+    @Transactional
+    public ReceptionAppointmentResponse leaveBeforeExam(UUID appointmentId, String reason) {
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "APPOINTMENT_NOT_FOUND",
+                        "Không tìm thấy lịch hẹn."));
+        QueueTicketResponse existingTicket = ticketRepository.findByAppointmentId(appointmentId)
+                .map(ticket -> queueService.leaveBeforeExam(ticket.getId(), reason))
+                .orElseThrow(() -> new AuthException(HttpStatus.CONFLICT, "QUEUE_NOT_FOUND",
+                        "Lịch hẹn chưa có lượt trong hàng đợi."));
+        return toResponse(appointment, existingTicket);
     }
 
     @Transactional(readOnly = true)

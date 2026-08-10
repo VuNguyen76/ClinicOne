@@ -647,6 +647,10 @@ export class AuthApiService {
     return this.http.post<ReceptionAppointmentResponse>(`/api/v1/reception/appointments/${appointmentId}/check-in`, { roomCode, reason });
   }
 
+  leaveReceptionAppointment(appointmentId: string, reason: string): Observable<ReceptionAppointmentResponse> {
+    return this.http.post<ReceptionAppointmentResponse>(`/api/v1/reception/appointments/${appointmentId}/leave`, { reason });
+  }
+
   createReceptionWalkIn(request: ReceptionWalkInRequest): Observable<ReceptionAppointmentResponse> {
     return this.http.post<ReceptionAppointmentResponse>('/api/v1/reception/walk-in', request);
   }

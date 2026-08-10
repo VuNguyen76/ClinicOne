@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import com.clinicone.auth.RequestOtpResponse;
+import com.clinicone.queue.QueueLeaveRequest;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -40,6 +41,13 @@ public class ReceptionController {
     public ResponseEntity<ReceptionAppointmentResponse> checkIn(@PathVariable UUID appointmentId,
                                                                   @Valid @RequestBody ReceptionCheckInRequest request) {
         return ResponseEntity.ok(service.checkIn(appointmentId, request));
+    }
+
+    @PostMapping("/appointments/{appointmentId}/leave")
+    @PreAuthorize("hasRole('RECEPTIONIST')")
+    public ResponseEntity<ReceptionAppointmentResponse> leaveBeforeExam(@PathVariable UUID appointmentId,
+                                                                          @Valid @RequestBody QueueLeaveRequest request) {
+        return ResponseEntity.ok(service.leaveBeforeExam(appointmentId, request.reason()));
     }
 
     @PostMapping("/walk-in")
