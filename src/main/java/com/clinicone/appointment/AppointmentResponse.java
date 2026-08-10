@@ -20,13 +20,14 @@ public record AppointmentResponse(
         UUID serviceId,
         String serviceName,
         String visitType,
-        Integer serviceDurationMinutes
+        Integer serviceDurationMinutes,
+        boolean requiresMedicalRecord
 ) {
     public AppointmentResponse(UUID id, String appointmentCode, String specialty, String doctorName,
                                LocalDate appointmentDate, LocalTime startTime, String reason,
                                String status, String statusLabel) {
         this(id, appointmentCode, specialty, doctorName, appointmentDate, startTime, reason, status, statusLabel,
-                null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, true);
     }
 
     public AppointmentResponse(UUID id, String appointmentCode, String specialty, String doctorName,
@@ -34,7 +35,7 @@ public record AppointmentResponse(
                                String status, String statusLabel, UUID profileId, String profileName,
                                UUID doctorId) {
         this(id, appointmentCode, specialty, doctorName, appointmentDate, startTime, reason, status,
-                statusLabel, profileId, profileName, doctorId, null, null, null, null);
+                statusLabel, profileId, profileName, doctorId, null, null, null, null, true);
     }
 
     public static AppointmentResponse from(Appointment appointment) {
@@ -44,6 +45,6 @@ public record AppointmentResponse(
                 appointment.getPatientProfile() == null ? null : appointment.getPatientProfile().getId(),
                 appointment.getPatientProfile() == null ? null : appointment.getPatientProfile().getFullName(),
                 appointment.getDoctorStaffId(), appointment.getServiceId(), appointment.getServiceName(),
-                appointment.getVisitType(), appointment.getServiceDurationMinutes());
+                appointment.getVisitType(), appointment.getServiceDurationMinutes(), appointment.requiresMedicalRecord());
     }
 }

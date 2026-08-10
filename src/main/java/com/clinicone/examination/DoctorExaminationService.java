@@ -76,11 +76,14 @@ public class DoctorExaminationService {
         UUID eventId = UUID.randomUUID();
         String previousSessionStatus = workspace.session().getStatus().name();
         workspace.session().begin();
-        MedicalRecord record = record(workspace.session());
-        if (record.getDoctorName() == null || record.getDoctorName().isBlank()) {
-            record.saveDraft(doctorName(staffId, workspace.appointment()), record.getReason(),
-                    record.getExaminationNotes(), record.getDiagnosis(), record.getConclusion(),
-                    record.getTreatmentPlan(), record.getPrescription(), record.getFollowUpDate());
+        MedicalRecord record = null;
+        if (workspace.appointment().requiresMedicalRecord()) {
+            record = record(workspace.session());
+            if (record.getDoctorName() == null || record.getDoctorName().isBlank()) {
+                record.saveDraft(doctorName(staffId, workspace.appointment()), record.getReason(),
+                        record.getExaminationNotes(), record.getDiagnosis(), record.getConclusion(),
+                        record.getTreatmentPlan(), record.getPrescription(), record.getFollowUpDate());
+            }
         }
         recordTransition(eventId, "EXAMINATION", workspace.session().getId(), previousSessionStatus,
                 workspace.session().getStatus().name(), "START_EXAMINATION", staffId, null);
@@ -90,6 +93,9 @@ public class DoctorExaminationService {
     @Transactional
     public DoctorExaminationResponse saveDraft(UUID ticketId, String staffId, DoctorExaminationRequest request) {
         Workspace workspace = workspace(ticketId, staffId);
+        if (!workspace.appointment().requiresMedicalRecord()) {
+            throw conflict("MEDICAL_RECORD_NOT_REQUIRED", "Loại lượt khám này không dùng phiếu khám.");
+        }
         UUID eventId = UUID.randomUUID();
         String previousSessionStatus = workspace.session().getStatus().name();
         workspace.session().begin();
@@ -114,6 +120,21 @@ public class DoctorExaminationService {
         String previousTicketStatus = workspace.ticket().getStatus().name();
         String previousAppointmentStatus = workspace.appointment().getStatus().name();
         workspace.session().begin();
+        if (!workspace.appointment().requiresMedicalRecord()) {
+            workspace.session().complete();
+            workspace.ticket().complete();
+            workspace.appointment().complete();
+            appointmentRepository.save(workspace.appointment());
+            ticketRepository.save(workspace.ticket());
+            sessionRepository.save(workspace.session());
+            recordTransition(eventId, "EXAMINATION", workspace.session().getId(), previousSessionStatus,
+                    workspace.session().getStatus().name(), "COMPLETE_EXAMINATION", staffId, null);
+            recordTransition(eventId, "QUEUE_TICKET", workspace.ticket().getId(), previousTicketStatus,
+                    workspace.ticket().getStatus().name(), "COMPLETE_EXAMINATION", staffId, null);
+            recordTransition(eventId, "APPOINTMENT", workspace.appointment().getId(), previousAppointmentStatus,
+                    workspace.appointment().getStatus().name(), "COMPLETE_EXAMINATION", staffId, null);
+            return response(workspace.ticket(), workspace.session(), null);
+        }
         requireRequiredFields(request);
         MedicalRecord record = record(workspace.session());
         try {
@@ -220,13 +241,17 @@ public class DoctorExaminationService {
     private DoctorExaminationResponse response(QueueTicket ticket, ExaminationSession session, MedicalRecord record) {
         Appointment appointment = ticket.getAppointment();
         var patient = appointment.getPatient();
+        boolean requiresRecord = appointment.requiresMedicalRecord();
+        String recordDoctorName = record == null ? null : record.getDoctorName();
         return new DoctorExaminationResponse(ticket.getId(), appointment.getId(), session.getId(), ticket.getQueueNumber(),
                 ticket.getRoom().getName(), appointment.getAppointmentCode(), appointment.getSpecialty(),
-                record.getDoctorName() == null ? appointment.getDoctorName() : record.getDoctorName(),
+                recordDoctorName == null ? appointment.getDoctorName() : recordDoctorName,
                 appointment.getAppointmentDate(), appointment.getStartTime(), patient.getFullName(),
-                patient.getDateOfBirth(), patient.getGender(), patient.getPhone(), record.getReason(),
-                record.getExaminationNotes(), record.getDiagnosis(), record.getConclusion(), record.getTreatmentPlan(),
-                record.getPrescription(), record.getFollowUpDate(), session.getStatus().name(), record.getSignedAt());
+                patient.getDateOfBirth(), patient.getGender(), patient.getPhone(), record == null ? null : record.getReason(),
+                record == null ? null : record.getExaminationNotes(), record == null ? null : record.getDiagnosis(),
+                record == null ? null : record.getConclusion(), record == null ? null : record.getTreatmentPlan(),
+                record == null ? null : record.getPrescription(), record == null ? null : record.getFollowUpDate(),
+                session.getStatus().name(), record == null ? null : record.getSignedAt(), requiresRecord);
     }
 
     private record Workspace(QueueTicket ticket, Appointment appointment, ExaminationSession session) {

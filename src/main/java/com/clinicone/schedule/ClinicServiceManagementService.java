@@ -46,7 +46,8 @@ public class ClinicServiceManagementService {
             throw conflict("SERVICE_EXISTS", "Dịch vụ cùng tên, chuyên khoa và loại lượt đã tồn tại.");
         }
         List<DoctorProfile> doctors = resolveDoctors(request.doctorIds(), specialty);
-        ClinicService service = ClinicService.create(name, specialty, visitType, request.durationMinutes(), doctors);
+        ClinicService service = ClinicService.create(name, specialty, visitType, request.durationMinutes(),
+                requiresMedicalRecord(request.requiresMedicalRecord()), doctors);
         return toResponse(repository.save(service));
     }
 
@@ -61,7 +62,8 @@ public class ClinicServiceManagementService {
                 name, specialty, visitType, id)) {
             throw conflict("SERVICE_EXISTS", "Dịch vụ cùng tên, chuyên khoa và loại lượt đã tồn tại.");
         }
-        service.update(name, specialty, visitType, request.durationMinutes(), resolveDoctors(request.doctorIds(), specialty));
+        service.update(name, specialty, visitType, request.durationMinutes(),
+                requiresMedicalRecord(request.requiresMedicalRecord()), resolveDoctors(request.doctorIds(), specialty));
         return toResponse(repository.save(service));
     }
 
@@ -122,7 +124,12 @@ public class ClinicServiceManagementService {
                 .sorted(java.util.Comparator.comparing(EligibleDoctorResponse::fullName))
                 .toList();
         return new ClinicServiceResponse(service.getId(), service.getName(), service.getSpecialty(),
-                service.getVisitType(), service.getDurationMinutes(), service.isActive(), doctors);
+                service.getVisitType(), service.getDurationMinutes(), service.isActive(), doctors,
+                service.requiresMedicalRecord());
+    }
+
+    private boolean requiresMedicalRecord(Boolean value) {
+        return value == null || value;
     }
 
     private AuthException conflict(String code, String message) {
