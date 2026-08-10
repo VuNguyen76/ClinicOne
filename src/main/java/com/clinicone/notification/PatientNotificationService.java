@@ -108,6 +108,25 @@ public class PatientNotificationService {
                 appointment.getStartTime().toString(), previousDate, previousTime));
     }
 
+    @Transactional
+    public void notifyAppointmentReminder(Appointment appointment, int hours) {
+        saveOnce(PatientNotification.appointmentReminder(appointment.getPatient().getId(), appointment.getId(),
+                appointment.getAppointmentCode(), appointment.getSpecialty(), appointment.getDoctorName(),
+                appointment.getAppointmentDate().toString(), appointment.getStartTime().toString(), hours));
+    }
+
+    @Transactional
+    public void notifyAppointmentLate(Appointment appointment) {
+        saveOnce(PatientNotification.appointmentLateWarning(appointment.getPatient().getId(), appointment.getId(),
+                appointment.getAppointmentCode()));
+    }
+
+    @Transactional
+    public void notifyAppointmentAbsent(Appointment appointment) {
+        saveOnce(PatientNotification.appointmentAbsent(appointment.getPatient().getId(), appointment.getId(),
+                appointment.getAppointmentCode()));
+    }
+
     private void saveOnce(PatientNotification notification) {
         PatientNotification saved = repository.findByEventKey(notification.getEventKey())
                 .orElseGet(() -> repository.save(notification));

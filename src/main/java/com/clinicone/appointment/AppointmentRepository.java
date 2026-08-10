@@ -57,6 +57,9 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
 
     Optional<Appointment> findByAppointmentCode(String appointmentCode);
 
+    List<Appointment> findByStatusAndAppointmentDateBetweenOrderByAppointmentDateAscStartTimeAsc(
+            AppointmentStatus status, LocalDate from, LocalDate to);
+
     List<Appointment> findBySpecialtyIgnoreCaseAndAppointmentDateBetweenOrderByAppointmentDateAscStartTimeAsc(
             String specialty, LocalDate from, LocalDate to);
 

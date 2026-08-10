@@ -205,4 +205,5 @@ public class Appointment {
     public AppointmentStatus getStatus() { return status; }
     public Instant getCancelledAt() { return cancelledAt; }
     public String getCancellationReason() { return cancellationReason; }
+    public Instant getCreatedAt() { return createdAt; }
 }
