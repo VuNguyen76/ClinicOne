@@ -78,6 +78,42 @@ class AppointmentAvailabilityServiceTest {
     }
 
     @Test
+    void prefersPersistedGeneratedSlotsForSelectedService() {
+        ClinicServiceRepository serviceRepository = mock(ClinicServiceRepository.class);
+        GeneratedClinicSlotRepository slotRepository = mock(GeneratedClinicSlotRepository.class);
+        ClinicService clinicService = mock(ClinicService.class);
+        GeneratedClinicSlot generatedSlot = mock(GeneratedClinicSlot.class);
+        UUID serviceId = UUID.randomUUID();
+        UUID doctorId = UUID.randomUUID();
+        LocalDate monday = LocalDate.of(2026, 8, 10);
+        when(serviceRepository.findById(serviceId)).thenReturn(java.util.Optional.of(clinicService));
+        when(clinicService.isActive()).thenReturn(true);
+        when(clinicService.getSpecialty()).thenReturn("Khám Tổng Quát");
+        when(clinicService.getDurationMinutes()).thenReturn(30);
+        when(slotRepository.findByClinicServiceIdAndAppointmentDateBetweenAndStatusOrderByAppointmentDateAscStartTimeAsc(
+                serviceId, monday, monday, GeneratedSlotStatus.OPEN)).thenReturn(List.of(generatedSlot));
+        when(generatedSlot.getSpecialty()).thenReturn("Khám Tổng Quát");
+        when(generatedSlot.getAppointmentDate()).thenReturn(monday);
+        when(generatedSlot.getStartTime()).thenReturn(LocalTime.of(8, 0));
+        when(generatedSlot.getEndTime()).thenReturn(LocalTime.of(8, 30));
+        when(generatedSlot.getDoctorStaffId()).thenReturn(doctorId);
+        when(generatedSlot.getDoctorName()).thenReturn("Bác sĩ An");
+        when(generatedSlot.getRoomCode()).thenReturn("TQ-01");
+        when(appointmentRepository.countBookedByDoctorsAndDateRange(
+                List.of(doctorId), monday, monday, AppointmentStatus.BOOKED)).thenReturn(List.of());
+
+        AppointmentAvailabilityService configuredService = new AppointmentAvailabilityService(
+                appointmentRepository, new SpecialtyCatalogService(), null, null, null,
+                java.time.Clock.systemUTC(), serviceRepository, slotRepository);
+
+        List<AvailableSlotResponse> slots = configuredService.find("Khám Tổng Quát", monday, monday, serviceId);
+
+        assertEquals(1, slots.size());
+        assertEquals(LocalTime.of(8, 0), slots.get(0).startTime());
+        assertEquals("TQ-01", slots.get(0).roomCode());
+    }
+
+    @Test
     void loadsConfiguredMonthWithBatchQueries() {
         DoctorProfileRepository doctorProfileRepository = mock(DoctorProfileRepository.class);
         DoctorScheduleRepository scheduleRepository = mock(DoctorScheduleRepository.class);

@@ -94,7 +94,10 @@ public class ReschedulingService {
         RescheduleCase item = findCase(caseId);
         LocalDate start = from == null ? item.getOldAppointmentDate() : from;
         LocalDate end = to == null ? start.plusDays(SEARCH_DAYS) : to;
-        return availabilityService.find(item.getSpecialty(), start, end);
+        if (item.getAppointment().getServiceId() == null) {
+            return availabilityService.find(item.getSpecialty(), start, end);
+        }
+        return availabilityService.find(item.getSpecialty(), start, end, item.getAppointment().getServiceId());
     }
 
     @Transactional
@@ -107,8 +110,13 @@ public class ReschedulingService {
         if (appointment.getStatus() != AppointmentStatus.BOOKED) {
             throw conflict("RESCHEDULE_APPOINTMENT_NOT_BOOKED", "Lịch hẹn không còn ở trạng thái có thể sắp xếp lại.");
         }
-        availabilityService.ensureBookable(appointment.getSpecialty(), request.doctorName(), request.doctorId(),
-                request.appointmentDate(), request.startTime());
+        if (appointment.getServiceId() == null) {
+            availabilityService.ensureBookable(appointment.getSpecialty(), request.doctorName(), request.doctorId(),
+                    request.appointmentDate(), request.startTime());
+        } else {
+            availabilityService.ensureBookable(appointment.getSpecialty(), request.doctorName(), request.doctorId(),
+                    request.appointmentDate(), request.startTime(), null, appointment.getServiceId());
+        }
         String previousDate = appointment.getAppointmentDate().toString();
         String previousTime = appointment.getStartTime().toString();
         appointment.reschedule(request.appointmentDate(), request.startTime(), request.doctorId(),

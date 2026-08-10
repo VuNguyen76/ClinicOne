@@ -277,6 +277,47 @@ export interface ClinicServiceRequest {
   doctorIds: string[];
 }
 
+export interface ScheduleBreakRequest {
+  startTime: string;
+  endTime: string;
+}
+
+export interface ScheduleTemplateRequest {
+  clinicServiceId: string;
+  doctorId: string;
+  roomId: string;
+  startDate: string;
+  endDate: string;
+  weekdays: string[];
+  dayStart: string;
+  dayEnd: string;
+  durationMinutes: number;
+  breaks: ScheduleBreakRequest[];
+  exceptionDates: string[];
+}
+
+export interface ScheduleTemplateResponse {
+  id: string;
+  clinicServiceId: string;
+  serviceName: string;
+  specialty: string;
+  visitType: string;
+  durationMinutes: number;
+  doctorId: string;
+  doctorName: string;
+  roomId: string;
+  roomCode: string;
+  startDate: string;
+  endDate: string;
+  weekdays: string[];
+  dayStart: string;
+  dayEnd: string;
+  breaks: ScheduleBreakRequest[];
+  exceptionDates: string[];
+  generatedSlotCount: number;
+  active: boolean;
+}
+
 export interface CreateDoctorRequest {
   username: string;
   fullName: string;
@@ -745,6 +786,18 @@ export class AuthApiService {
 
   setClinicServiceActive(id: string, active: boolean): Observable<ClinicServiceResponse> {
     return this.http.post<ClinicServiceResponse>(`/api/v1/admin/services/${id}/${active ? 'activate' : 'deactivate'}`, {});
+  }
+
+  getScheduleTemplates(): Observable<ScheduleTemplateResponse[]> {
+    return this.http.get<ScheduleTemplateResponse[]>('/api/v1/admin/schedule-templates');
+  }
+
+  createScheduleTemplate(request: ScheduleTemplateRequest): Observable<ScheduleTemplateResponse> {
+    return this.http.post<ScheduleTemplateResponse>('/api/v1/admin/schedule-templates', request);
+  }
+
+  regenerateScheduleTemplate(id: string): Observable<ScheduleTemplateResponse> {
+    return this.http.post<ScheduleTemplateResponse>(`/api/v1/admin/schedule-templates/${id}/regenerate`, {});
   }
 
   createDoctor(request: CreateDoctorRequest): Observable<DoctorAccountResponse> {
