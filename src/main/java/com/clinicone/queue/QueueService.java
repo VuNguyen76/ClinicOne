@@ -9,6 +9,7 @@ import com.clinicone.doctor.DoctorProfile;
 import com.clinicone.doctor.DoctorProfileRepository;
 import com.clinicone.examination.ExaminationSession;
 import com.clinicone.examination.ExaminationSessionRepository;
+import com.clinicone.audit.BusinessLogService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -30,33 +31,43 @@ public class QueueService {
     private final AppointmentRepository appointmentRepository;
     private final DoctorProfileRepository doctorProfileRepository;
     private final ExaminationSessionRepository examinationSessionRepository;
+    private final BusinessLogService businessLogService;
     private final Clock clock;
 
     public QueueService(ClinicRoomRepository roomRepository, QueueTicketRepository ticketRepository,
                         AppointmentRepository appointmentRepository) {
-        this(roomRepository, ticketRepository, appointmentRepository, null, null, Clock.systemUTC());
+        this(roomRepository, ticketRepository, appointmentRepository, null, null, null, Clock.systemUTC());
     }
 
     public QueueService(ClinicRoomRepository roomRepository, QueueTicketRepository ticketRepository,
                         AppointmentRepository appointmentRepository, Clock clock) {
-        this(roomRepository, ticketRepository, appointmentRepository, null, null, clock);
+        this(roomRepository, ticketRepository, appointmentRepository, null, null, null, clock);
     }
 
     public QueueService(ClinicRoomRepository roomRepository, QueueTicketRepository ticketRepository,
                         AppointmentRepository appointmentRepository, DoctorProfileRepository doctorProfileRepository,
                         Clock clock) {
-        this(roomRepository, ticketRepository, appointmentRepository, doctorProfileRepository, null, clock);
+        this(roomRepository, ticketRepository, appointmentRepository, doctorProfileRepository, null, null, clock);
+    }
+
+    public QueueService(ClinicRoomRepository roomRepository, QueueTicketRepository ticketRepository,
+                        AppointmentRepository appointmentRepository, DoctorProfileRepository doctorProfileRepository,
+                        ExaminationSessionRepository examinationSessionRepository, Clock clock) {
+        this(roomRepository, ticketRepository, appointmentRepository, doctorProfileRepository,
+                examinationSessionRepository, null, clock);
     }
 
     @Autowired
     public QueueService(ClinicRoomRepository roomRepository, QueueTicketRepository ticketRepository,
                         AppointmentRepository appointmentRepository, DoctorProfileRepository doctorProfileRepository,
-                        ExaminationSessionRepository examinationSessionRepository, Clock clock) {
+                        ExaminationSessionRepository examinationSessionRepository, BusinessLogService businessLogService,
+                        Clock clock) {
         this.roomRepository = roomRepository;
         this.ticketRepository = ticketRepository;
         this.appointmentRepository = appointmentRepository;
         this.doctorProfileRepository = doctorProfileRepository;
         this.examinationSessionRepository = examinationSessionRepository;
+        this.businessLogService = businessLogService;
         this.clock = clock;
     }
 
@@ -66,7 +77,7 @@ public class QueueService {
         Appointment appointment = appointmentRepository.findByIdAndPatientId(appointmentId, patientId)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "APPOINTMENT_NOT_FOUND",
                         "Không tìm thấy lịch hẹn."));
-        return checkInAppointment(roomCode, appointment);
+        return checkInAppointment(roomCode, appointment, null, accountId);
     }
 
     @Transactional
@@ -74,14 +85,19 @@ public class QueueService {
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "APPOINTMENT_NOT_FOUND",
                         "Không tìm thấy lịch hẹn."));
-        return checkInAppointment(roomCode, appointment, normalizeExceptionReason(exceptionReason));
+        return checkInAppointment(roomCode, appointment, normalizeExceptionReason(exceptionReason), "STAFF");
     }
 
     private QueueTicketResponse checkInAppointment(String roomCode, Appointment appointment) {
-        return checkInAppointment(roomCode, appointment, null);
+        return checkInAppointment(roomCode, appointment, null, "SYSTEM");
     }
 
     private QueueTicketResponse checkInAppointment(String roomCode, Appointment appointment, String exceptionReason) {
+        return checkInAppointment(roomCode, appointment, exceptionReason, "SYSTEM");
+    }
+
+    private QueueTicketResponse checkInAppointment(String roomCode, Appointment appointment, String exceptionReason,
+                                                   String actor) {
         ClinicRoom room = findRoom(roomCode);
         LocalDate today = today();
         if (!appointment.getAppointmentDate().equals(today)) {
@@ -95,6 +111,7 @@ public class QueueService {
         ensureDoctorRoom(appointment, room);
 
         UUID appointmentId = appointment.getId();
+        UUID eventId = UUID.randomUUID();
         var existing = ticketRepository.findByAppointmentId(appointmentId);
         if (existing.isPresent()) {
             QueueTicket ticket = existing.get();
@@ -106,24 +123,42 @@ public class QueueService {
                 throw new AuthException(HttpStatus.CONFLICT, "QUEUE_ALREADY_COMPLETED",
                         "Lượt khám này đã hoàn tất.");
             }
+            String previousAppointmentStatus = appointment.getStatus().name();
             appointment.checkIn();
             appointmentRepository.save(appointment);
             if (exceptionReason != null) {
                 ticket.recordExceptionReason(exceptionReason);
                 ticketRepository.save(ticket);
             }
-            ensureCheckedInSession(appointment);
+            SessionTransition sessionTransition = ensureCheckedInSession(appointment);
+            recordTransition(eventId, "APPOINTMENT", appointment.getId(), previousAppointmentStatus,
+                    appointment.getStatus().name(), "CHECK_IN", actor, exceptionReason);
+            if (sessionTransition != null) {
+                recordTransition(eventId, "EXAMINATION", sessionTransition.session().getId(),
+                        sessionTransition.previousStatus(), sessionTransition.session().getStatus().name(),
+                        "CHECK_IN", actor, exceptionReason);
+            }
             return QueueTicketResponse.from(ticket);
         }
 
         ensureBookable(appointment);
+        String previousAppointmentStatus = appointment.getStatus().name();
         appointment.checkIn();
         appointmentRepository.save(appointment);
 
         int nextNumber = nextNumber(room.getCode(), today);
         try {
             QueueTicket ticket = ticketRepository.save(QueueTicket.create(appointment, room, today, nextNumber, exceptionReason));
-            ensureCheckedInSession(appointment);
+            SessionTransition sessionTransition = ensureCheckedInSession(appointment);
+            recordTransition(eventId, "APPOINTMENT", appointment.getId(), previousAppointmentStatus,
+                    appointment.getStatus().name(), "CHECK_IN", actor, exceptionReason);
+            recordTransition(eventId, "QUEUE_TICKET", ticket.getId(), null, ticket.getStatus().name(),
+                    "CHECK_IN", actor, exceptionReason);
+            if (sessionTransition != null) {
+                recordTransition(eventId, "EXAMINATION", sessionTransition.session().getId(),
+                        sessionTransition.previousStatus(), sessionTransition.session().getStatus().name(),
+                        "CHECK_IN", actor, exceptionReason);
+            }
             return QueueTicketResponse.from(ticket);
         } catch (DataIntegrityViolationException exception) {
             return ticketRepository.findByAppointmentId(appointmentId)
@@ -196,12 +231,16 @@ public class QueueService {
     public QueueTicketResponse call(UUID ticketId, String staffId) {
         QueueTicket ticket = findTicket(ticketId);
         ensureDoctorOwnsTicket(ticket, staffId);
+        String previousStatus = ticket.getStatus().name();
         try {
             ticket.call();
         } catch (IllegalStateException exception) {
             throw queueStateConflict(exception.getMessage());
         }
-        return QueueTicketResponse.from(ticketRepository.save(ticket));
+        QueueTicketResponse response = QueueTicketResponse.from(ticketRepository.save(ticket));
+        recordTransition(UUID.randomUUID(), "QUEUE_TICKET", ticket.getId(), previousStatus,
+                ticket.getStatus().name(), "CALL_PATIENT", staffId);
+        return response;
     }
 
     @Transactional
@@ -229,12 +268,16 @@ public class QueueService {
     public QueueTicketResponse skip(UUID ticketId, String staffId, String reason) {
         QueueTicket ticket = findTicket(ticketId);
         ensureDoctorOwnsTicket(ticket, staffId);
+        String previousStatus = ticket.getStatus().name();
         try {
             ticket.skip(reason);
         } catch (IllegalStateException exception) {
             throw queueStateConflict(exception.getMessage());
         }
-        return QueueTicketResponse.from(ticketRepository.save(ticket));
+        QueueTicketResponse response = QueueTicketResponse.from(ticketRepository.save(ticket));
+        recordTransition(UUID.randomUUID(), "QUEUE_TICKET", ticket.getId(), previousStatus,
+                ticket.getStatus().name(), "RETURN_TO_QUEUE", staffId, reason);
+        return response;
     }
 
     @Transactional
@@ -246,12 +289,16 @@ public class QueueService {
     public QueueTicketResponse start(UUID ticketId, String staffId) {
         QueueTicket ticket = findTicket(ticketId);
         ensureDoctorOwnsTicket(ticket, staffId);
+        String previousStatus = ticket.getStatus().name();
         try {
             ticket.startService();
         } catch (IllegalStateException exception) {
             throw queueStateConflict(exception.getMessage());
         }
-        return QueueTicketResponse.from(ticketRepository.save(ticket));
+        QueueTicketResponse response = QueueTicketResponse.from(ticketRepository.save(ticket));
+        recordTransition(UUID.randomUUID(), "QUEUE_TICKET", ticket.getId(), previousStatus,
+                ticket.getStatus().name(), "START_EXAMINATION", staffId);
+        return response;
     }
 
     @Transactional
@@ -263,6 +310,9 @@ public class QueueService {
     public QueueTicketResponse complete(UUID ticketId, String staffId) {
         QueueTicket ticket = findTicket(ticketId);
         ensureDoctorOwnsTicket(ticket, staffId);
+        UUID eventId = UUID.randomUUID();
+        String previousTicketStatus = ticket.getStatus().name();
+        String previousAppointmentStatus = ticket.getAppointment().getStatus().name();
         try {
             ticket.complete();
         } catch (IllegalStateException exception) {
@@ -270,13 +320,21 @@ public class QueueService {
         }
         ticket.getAppointment().complete();
         appointmentRepository.save(ticket.getAppointment());
-        return QueueTicketResponse.from(ticketRepository.save(ticket));
+        QueueTicketResponse response = QueueTicketResponse.from(ticketRepository.save(ticket));
+        recordTransition(eventId, "QUEUE_TICKET", ticket.getId(), previousTicketStatus,
+                ticket.getStatus().name(), "COMPLETE_EXAMINATION", staffId);
+        recordTransition(eventId, "APPOINTMENT", ticket.getAppointment().getId(), previousAppointmentStatus,
+                ticket.getAppointment().getStatus().name(), "COMPLETE_EXAMINATION", staffId);
+        return response;
     }
 
     @Transactional
     public QueueTicketResponse leaveBeforeExam(UUID ticketId, String reason) {
         QueueTicket ticket = findTicket(ticketId);
         String normalizedReason = normalizeLeaveReason(reason);
+        UUID eventId = UUID.randomUUID();
+        String previousTicketStatus = ticket.getStatus().name();
+        String previousAppointmentStatus = ticket.getAppointment().getStatus().name();
         try {
             ticket.leaveBeforeExam(normalizedReason);
             ticket.getAppointment().markNotPerformed();
@@ -291,7 +349,12 @@ public class QueueService {
         } catch (IllegalStateException exception) {
             throw queueStateConflict(exception.getMessage());
         }
-        return QueueTicketResponse.from(ticketRepository.save(ticket));
+        QueueTicketResponse response = QueueTicketResponse.from(ticketRepository.save(ticket));
+        recordTransition(eventId, "QUEUE_TICKET", ticket.getId(), previousTicketStatus,
+                ticket.getStatus().name(), "LEAVE_BEFORE_EXAM", "SYSTEM", normalizedReason);
+        recordTransition(eventId, "APPOINTMENT", ticket.getAppointment().getId(), previousAppointmentStatus,
+                ticket.getAppointment().getStatus().name(), "LEAVE_BEFORE_EXAM", "SYSTEM", normalizedReason);
+        return response;
     }
 
     private int nextNumber(String roomCode, LocalDate date) {
@@ -299,14 +362,28 @@ public class QueueService {
         return currentMax == null ? 1 : currentMax + 1;
     }
 
-    private void ensureCheckedInSession(Appointment appointment) {
+    private SessionTransition ensureCheckedInSession(Appointment appointment) {
         if (examinationSessionRepository == null) {
-            return;
+            return null;
         }
-        ExaminationSession session = examinationSessionRepository.findByAppointment_Id(appointment.getId())
-                .orElseGet(() -> ExaminationSession.create(appointment));
+        var existing = examinationSessionRepository.findByAppointment_Id(appointment.getId());
+        ExaminationSession session = existing.orElseGet(() -> ExaminationSession.create(appointment));
+        String previousStatus = existing.map(value -> value.getStatus().name()).orElse(null);
         session.checkIn();
-        examinationSessionRepository.save(session);
+        return new SessionTransition(examinationSessionRepository.save(session), previousStatus);
+    }
+
+    private void recordTransition(UUID eventId, String entityType, UUID entityId, String previousStatus,
+                                  String nextStatus, String eventType, String actor) {
+        recordTransition(eventId, entityType, entityId, previousStatus, nextStatus, eventType, actor, null);
+    }
+
+    private void recordTransition(UUID eventId, String entityType, UUID entityId, String previousStatus,
+                                  String nextStatus, String eventType, String actor, String reason) {
+        if (businessLogService != null && entityId != null) {
+            businessLogService.recordTransition(eventId, entityType, entityId, previousStatus, nextStatus,
+                    eventType, actor, reason);
+        }
     }
 
     private String normalizeExceptionReason(String reason) {
@@ -412,5 +489,8 @@ public class QueueService {
 
     private AuthException queueStateConflict(String message) {
         return new AuthException(HttpStatus.CONFLICT, "QUEUE_INVALID_STATE", message);
+    }
+
+    private record SessionTransition(ExaminationSession session, String previousStatus) {
     }
 }

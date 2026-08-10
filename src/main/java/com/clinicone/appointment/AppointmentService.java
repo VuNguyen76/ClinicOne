@@ -7,6 +7,7 @@ import com.clinicone.patientprofile.PatientProfile;
 import com.clinicone.patientprofile.PatientProfileRepository;
 import com.clinicone.schedule.AppointmentAvailabilityService;
 import com.clinicone.notification.PatientNotificationService;
+import com.clinicone.audit.BusinessLogService;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,30 +25,38 @@ public class AppointmentService {
     private final PatientProfileRepository profileRepository;
     private final AppointmentAvailabilityService availabilityService;
     private final PatientNotificationService notificationService;
+    private final BusinessLogService businessLogService;
 
     public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository) {
-        this(accountRepository, appointmentRepository, null, null);
+        this(accountRepository, appointmentRepository, null, null, null, null);
     }
 
     public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
                               PatientProfileRepository profileRepository) {
-        this(accountRepository, appointmentRepository, profileRepository, null, null);
+        this(accountRepository, appointmentRepository, profileRepository, null, null, null);
     }
 
     public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
                               PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService) {
-        this(accountRepository, appointmentRepository, profileRepository, availabilityService, null);
+        this(accountRepository, appointmentRepository, profileRepository, availabilityService, null, null);
+    }
+
+    public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
+                              PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService,
+                              PatientNotificationService notificationService) {
+        this(accountRepository, appointmentRepository, profileRepository, availabilityService, notificationService, null);
     }
 
     @org.springframework.beans.factory.annotation.Autowired
     public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
                               PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService,
-                              PatientNotificationService notificationService) {
+                              PatientNotificationService notificationService, BusinessLogService businessLogService) {
         this.accountRepository = accountRepository;
         this.appointmentRepository = appointmentRepository;
         this.profileRepository = profileRepository;
         this.availabilityService = availabilityService;
         this.notificationService = notificationService;
+        this.businessLogService = businessLogService;
     }
 
     @Transactional(readOnly = true)
@@ -90,6 +99,8 @@ public class AppointmentService {
                 request.specialty().trim(), request.doctorName().trim(), appointmentDate, startTime,
                 request.reason().trim());
         Appointment saved = appointmentRepository.save(appointment);
+        recordTransition(UUID.randomUUID(), saved.getId(), null, saved.getStatus().name(), "CREATE_APPOINTMENT", accountId,
+                null);
         if (notificationService != null) {
             notificationService.notifyAppointmentCreated(saved);
         }
@@ -109,8 +120,12 @@ public class AppointmentService {
     public void cancel(String accountId, String appointmentId, CancelAppointmentRequest request) {
         Appointment appointment = findOwned(parseAppointmentId(appointmentId), parseAccountId(accountId));
         ensureBookable(appointment);
+        String previousStatus = appointment.getStatus().name();
+        UUID eventId = UUID.randomUUID();
         appointment.cancel(request == null ? null : request.reason());
         appointmentRepository.save(appointment);
+        recordTransition(eventId, appointment.getId(), previousStatus, appointment.getStatus().name(), "CANCEL_APPOINTMENT",
+                accountId, request == null ? null : request.reason());
         if (notificationService != null) {
             notificationService.notifyAppointmentCancelled(appointment);
         }
@@ -182,5 +197,13 @@ public class AppointmentService {
     private AuthException authenticationRequired() {
         return new AuthException(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_REQUIRED",
                 "Phiên đăng nhập không hợp lệ.");
+    }
+
+    private void recordTransition(UUID eventId, UUID appointmentId, String previousStatus, String nextStatus,
+                                  String eventType, String actor, String reason) {
+        if (businessLogService != null && appointmentId != null) {
+            businessLogService.recordTransition(eventId, "APPOINTMENT", appointmentId, previousStatus, nextStatus,
+                    eventType, actor, reason);
+        }
     }
 }

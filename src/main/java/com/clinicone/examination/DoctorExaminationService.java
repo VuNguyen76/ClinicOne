@@ -11,6 +11,7 @@ import com.clinicone.queue.QueueTicketStatus;
 import com.clinicone.doctor.DoctorProfile;
 import com.clinicone.doctor.DoctorProfileRepository;
 import com.clinicone.notification.PatientNotificationService;
+import com.clinicone.audit.BusinessLogService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -27,6 +28,7 @@ public class DoctorExaminationService {
     private final AppointmentRepository appointmentRepository;
     private final DoctorProfileRepository doctorProfileRepository;
     private final PatientNotificationService notificationService;
+    private final BusinessLogService businessLogService;
 
     public DoctorExaminationService(QueueTicketRepository ticketRepository,
                                     ExaminationSessionRepository sessionRepository,
@@ -35,7 +37,18 @@ public class DoctorExaminationService {
                                     AppointmentRepository appointmentRepository,
                                     DoctorProfileRepository doctorProfileRepository) {
         this(ticketRepository, sessionRepository, recordRepository, staffRepository, appointmentRepository,
-                doctorProfileRepository, null);
+                doctorProfileRepository, null, null);
+    }
+
+    public DoctorExaminationService(QueueTicketRepository ticketRepository,
+                                    ExaminationSessionRepository sessionRepository,
+                                    MedicalRecordRepository recordRepository,
+                                    StaffAccountRepository staffRepository,
+                                    AppointmentRepository appointmentRepository,
+                                    DoctorProfileRepository doctorProfileRepository,
+                                    PatientNotificationService notificationService) {
+        this(ticketRepository, sessionRepository, recordRepository, staffRepository, appointmentRepository,
+                doctorProfileRepository, notificationService, null);
     }
 
     @Autowired
@@ -45,7 +58,8 @@ public class DoctorExaminationService {
                                     StaffAccountRepository staffRepository,
                                     AppointmentRepository appointmentRepository,
                                     DoctorProfileRepository doctorProfileRepository,
-                                    PatientNotificationService notificationService) {
+                                    PatientNotificationService notificationService,
+                                    BusinessLogService businessLogService) {
         this.ticketRepository = ticketRepository;
         this.sessionRepository = sessionRepository;
         this.recordRepository = recordRepository;
@@ -53,11 +67,14 @@ public class DoctorExaminationService {
         this.appointmentRepository = appointmentRepository;
         this.doctorProfileRepository = doctorProfileRepository;
         this.notificationService = notificationService;
+        this.businessLogService = businessLogService;
     }
 
     @Transactional
     public DoctorExaminationResponse open(UUID ticketId, String staffId) {
         Workspace workspace = workspace(ticketId, staffId);
+        UUID eventId = UUID.randomUUID();
+        String previousSessionStatus = workspace.session().getStatus().name();
         workspace.session().begin();
         MedicalRecord record = record(workspace.session());
         if (record.getDoctorName() == null || record.getDoctorName().isBlank()) {
@@ -65,12 +82,16 @@ public class DoctorExaminationService {
                     record.getExaminationNotes(), record.getDiagnosis(), record.getConclusion(),
                     record.getTreatmentPlan(), record.getPrescription(), record.getFollowUpDate());
         }
+        recordTransition(eventId, "EXAMINATION", workspace.session().getId(), previousSessionStatus,
+                workspace.session().getStatus().name(), "START_EXAMINATION", staffId, null);
         return response(workspace.ticket(), workspace.session(), record);
     }
 
     @Transactional
     public DoctorExaminationResponse saveDraft(UUID ticketId, String staffId, DoctorExaminationRequest request) {
         Workspace workspace = workspace(ticketId, staffId);
+        UUID eventId = UUID.randomUUID();
+        String previousSessionStatus = workspace.session().getStatus().name();
         workspace.session().begin();
         MedicalRecord record = record(workspace.session());
         try {
@@ -80,12 +101,18 @@ public class DoctorExaminationService {
         } catch (IllegalStateException exception) {
             throw conflict("MEDICAL_RECORD_LOCKED", exception.getMessage());
         }
+        recordTransition(eventId, "EXAMINATION", workspace.session().getId(), previousSessionStatus,
+                workspace.session().getStatus().name(), "START_EXAMINATION", staffId, null);
         return response(workspace.ticket(), workspace.session(), record);
     }
 
     @Transactional
     public DoctorExaminationResponse sign(UUID ticketId, String staffId, DoctorExaminationRequest request) {
         Workspace workspace = workspace(ticketId, staffId);
+        UUID eventId = UUID.randomUUID();
+        String previousSessionStatus = workspace.session().getStatus().name();
+        String previousTicketStatus = workspace.ticket().getStatus().name();
+        String previousAppointmentStatus = workspace.appointment().getStatus().name();
         workspace.session().begin();
         requireRequiredFields(request);
         MedicalRecord record = record(workspace.session());
@@ -100,6 +127,12 @@ public class DoctorExaminationService {
             ticketRepository.save(workspace.ticket());
             sessionRepository.save(workspace.session());
             recordRepository.save(record);
+            recordTransition(eventId, "EXAMINATION", workspace.session().getId(), previousSessionStatus,
+                    workspace.session().getStatus().name(), "SIGN_MEDICAL_RECORD", staffId, null);
+            recordTransition(eventId, "QUEUE_TICKET", workspace.ticket().getId(), previousTicketStatus,
+                    workspace.ticket().getStatus().name(), "SIGN_MEDICAL_RECORD", staffId, null);
+            recordTransition(eventId, "APPOINTMENT", workspace.appointment().getId(), previousAppointmentStatus,
+                    workspace.appointment().getStatus().name(), "SIGN_MEDICAL_RECORD", staffId, null);
             if (notificationService != null) {
                 notificationService.notifyMedicalRecordSigned(workspace.appointment().getPatient().getId(), record.getId(),
                         workspace.appointment().getAppointmentCode(), record.getDoctorName(), workspace.appointment().getSpecialty());
@@ -174,6 +207,14 @@ public class DoctorExaminationService {
 
     private AuthException conflict(String code, String message) {
         return new AuthException(HttpStatus.CONFLICT, code, message);
+    }
+
+    private void recordTransition(UUID eventId, String entityType, UUID entityId, String previousStatus,
+                                  String nextStatus, String eventType, String actor, String reason) {
+        if (businessLogService != null && entityId != null) {
+            businessLogService.recordTransition(eventId, entityType, entityId, previousStatus, nextStatus,
+                    eventType, actor, reason);
+        }
     }
 
     private DoctorExaminationResponse response(QueueTicket ticket, ExaminationSession session, MedicalRecord record) {
