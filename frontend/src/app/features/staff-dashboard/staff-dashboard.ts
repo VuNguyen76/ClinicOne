@@ -38,7 +38,8 @@ export class StaffDashboard implements OnInit {
   protected readonly calledCount = computed(() => this.queue().filter((ticket) => ticket.status === 'CALLED').length);
   protected readonly inServiceCount = computed(() => this.queue().filter((ticket) => ticket.status === 'IN_SERVICE').length);
   protected readonly completedCount = computed(() => this.queue().filter((ticket) => ticket.status === 'COMPLETED').length);
-  protected readonly nextWaitingTicket = computed(() => this.queue().find((ticket) => ticket.status === 'WAITING' || ticket.status === 'SKIPPED'));
+  protected readonly nextWaitingTicket = computed(() => this.queue().find((ticket) =>
+    (ticket.status === 'WAITING' && ticket.presenceStatus !== 'RETURN_REQUIRED') || ticket.status === 'SKIPPED'));
 
   protected readonly isDispatcher = computed(() => ['ADMIN', 'COORDINATOR', 'RECEPTIONIST'].includes(this.role()));
   protected readonly isDoctor = computed(() => ['ADMIN', 'COORDINATOR', 'DOCTOR'].includes(this.role()));

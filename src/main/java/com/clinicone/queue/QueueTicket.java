@@ -51,11 +51,19 @@ public class QueueTicket {
     @Column(nullable = false, length = 20)
     private QueueTicketStatus status;
 
+    /** Read-only presence signal; it is not a second queue lifecycle status. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "presence_status", length = 24)
+    private QueuePresenceStatus presenceStatus = QueuePresenceStatus.READY;
+
     @Column(name = "checked_in_at", nullable = false)
     private Instant checkedInAt;
 
     @Column(name = "called_at")
     private Instant calledAt;
+
+    @Column(name = "returned_at")
+    private Instant returnedAt;
 
     // Nullable keeps ddl-auto update compatible with queue rows created before recall tracking.
     @Column(name = "call_count")
@@ -79,6 +87,7 @@ public class QueueTicket {
         this.queueDate = queueDate;
         this.queueNumber = queueNumber;
         this.status = QueueTicketStatus.WAITING;
+        this.presenceStatus = QueuePresenceStatus.READY;
     }
 
     public static QueueTicket create(Appointment appointment, ClinicRoom room, LocalDate queueDate, int queueNumber) {
@@ -103,6 +112,9 @@ public class QueueTicket {
         if (status != QueueTicketStatus.WAITING && status != QueueTicketStatus.SKIPPED) {
             throw new IllegalStateException("Chỉ được gọi lượt đang chờ hoặc đã bỏ qua");
         }
+        if (getPresenceStatus() == QueuePresenceStatus.RETURN_REQUIRED) {
+            throw new IllegalStateException("Bệnh nhân chưa quay lại sau khi được gọi");
+        }
         status = QueueTicketStatus.CALLED;
         calledAt = Instant.now();
         if (callCount == null) {
@@ -116,9 +128,19 @@ public class QueueTicket {
         if (status != QueueTicketStatus.CALLED) {
             throw new IllegalStateException("Chỉ được bỏ qua lượt đang được gọi");
         }
-        // "Gọi lại sau" đưa người bệnh về trạng thái chờ, không tạo nhánh trạng thái riêng.
+        // "Gọi lại sau" đưa người bệnh về trạng thái chờ, nhưng đánh dấu phải quay lại.
         status = QueueTicketStatus.WAITING;
+        presenceStatus = QueuePresenceStatus.RETURN_REQUIRED;
         skipReason = reason == null || reason.isBlank() ? null : reason.trim();
+    }
+
+    public void markReturned(Instant returnedAt) {
+        if (status != QueueTicketStatus.WAITING
+                || getPresenceStatus() != QueuePresenceStatus.RETURN_REQUIRED) {
+            return;
+        }
+        presenceStatus = QueuePresenceStatus.READY;
+        this.returnedAt = returnedAt;
     }
 
     public void startService() {
@@ -156,6 +178,16 @@ public class QueueTicket {
         if (callCount == null || callCount < 0) {
             callCount = 0;
         }
+        if (presenceStatus == null) {
+            presenceStatus = QueuePresenceStatus.READY;
+        }
+    }
+
+    @jakarta.persistence.PreUpdate
+    void onUpdate() {
+        if (presenceStatus == null) {
+            presenceStatus = QueuePresenceStatus.READY;
+        }
     }
 
     public UUID getId() { return id; }
@@ -164,8 +196,13 @@ public class QueueTicket {
     public LocalDate getQueueDate() { return queueDate; }
     public int getQueueNumber() { return queueNumber; }
     public QueueTicketStatus getStatus() { return status; }
+    public QueuePresenceStatus getPresenceStatus() {
+        return presenceStatus == null ? QueuePresenceStatus.READY : presenceStatus;
+    }
+    public String getPresenceLabel() { return getPresenceStatus().label(); }
     public Instant getCheckedInAt() { return checkedInAt; }
     public Instant getCalledAt() { return calledAt; }
+    public Instant getReturnedAt() { return returnedAt; }
     public int getCallCount() { return callCount == null ? 0 : callCount; }
     public Instant getCompletedAt() { return completedAt; }
     public String getSkipReason() { return skipReason; }

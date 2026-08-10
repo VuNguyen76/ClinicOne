@@ -209,6 +209,9 @@ export interface QueueTicketResponse {
   appointmentTime: string;
   status: 'WAITING' | 'CALLED' | 'IN_SERVICE' | 'SKIPPED' | 'COMPLETED' | 'CLOSED' | 'LEFT_BEFORE_EXAM' | string;
   statusLabel: string;
+  presenceStatus?: 'READY' | 'RETURN_REQUIRED' | string;
+  presenceLabel?: string;
+  returnedAt?: string | null;
   appointmentCode: string;
   specialty: string;
   doctorName: string;
@@ -365,6 +368,8 @@ export interface ReceptionAppointmentResponse {
   queueNumber: number | null;
   queueStatus: string | null;
   queueStatusLabel: string | null;
+  queuePresenceStatus?: 'READY' | 'RETURN_REQUIRED' | string | null;
+  queuePresenceLabel?: string | null;
 }
 
 export interface ReceptionWalkInRequest {
