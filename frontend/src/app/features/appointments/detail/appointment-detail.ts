@@ -27,6 +27,7 @@ export class AppointmentDetail implements OnInit {
   protected readonly error = signal('');
   protected readonly cancellationReasons = signal<ReasonCatalogResponse[]>([]);
   protected readonly selectedCancellationReason = signal('');
+  private cancellationRequestKey: string | null = null;
   protected readonly today = new Date().toISOString().slice(0, 10);
   protected readonly rescheduleForm = this.formBuilder.nonNullable.group({
     appointmentDate: ['', [Validators.required]],
@@ -72,7 +73,9 @@ export class AppointmentDetail implements OnInit {
       return;
     }
     this.busy.set(true);
-    this.authApi.cancelAppointment(appointment.id, this.selectedCancellationReason() || undefined)
+    this.cancellationRequestKey ??= crypto.randomUUID();
+    this.authApi.cancelAppointment(appointment.id, this.selectedCancellationReason() || undefined,
+      this.cancellationRequestKey)
       .pipe(finalize(() => this.busy.set(false)))
       .subscribe({
         next: () => void this.router.navigateByUrl('/dashboard'),

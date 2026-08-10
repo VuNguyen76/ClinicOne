@@ -89,6 +89,9 @@ public class Appointment {
     @Column(name = "cancellation_reason", length = 500)
     private String cancellationReason;
 
+    @Column(name = "cancellation_request_key", length = 80)
+    private String cancellationRequestKey;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -149,9 +152,14 @@ public class Appointment {
     }
 
     public void cancel(String reason, Instant cancelledAt) {
+        cancel(reason, cancelledAt, null);
+    }
+
+    public void cancel(String reason, Instant cancelledAt, String requestKey) {
         this.status = AppointmentStatus.CANCELLED;
         this.cancelledAt = cancelledAt == null ? Instant.now() : cancelledAt;
         this.cancellationReason = reason == null || reason.isBlank() ? null : reason.trim();
+        this.cancellationRequestKey = requestKey == null || requestKey.isBlank() ? null : requestKey.trim();
     }
 
     public void checkIn() {
@@ -249,5 +257,6 @@ public class Appointment {
     public AppointmentStatus getStatus() { return status; }
     public Instant getCancelledAt() { return cancelledAt; }
     public String getCancellationReason() { return cancellationReason; }
+    public String getCancellationRequestKey() { return cancellationRequestKey; }
     public Instant getCreatedAt() { return createdAt; }
 }
