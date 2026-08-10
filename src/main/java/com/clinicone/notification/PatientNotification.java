@@ -103,6 +103,15 @@ public class PatientNotification {
                 "APPOINTMENT_RESCHEDULED:" + appointmentId + ":" + previousDate + "T" + previousTime + "->" + date + "T" + time);
     }
 
+    public static PatientNotification appointmentRescheduleRequired(UUID patientAccountId, UUID appointmentId,
+                                                                      String appointmentCode) {
+        return new PatientNotification(patientAccountId, PatientNotificationType.APPOINTMENT_RESCHEDULE_REQUIRED,
+                "Lịch hẹn cần chọn lại giờ",
+                "Lịch hẹn " + appointmentCode + " cần được sắp xếp lại. Vui lòng mở ứng dụng hoặc liên hệ quầy.",
+                "/appointments/" + appointmentId,
+                "APPOINTMENT_RESCHEDULE_REQUIRED:" + appointmentId);
+    }
+
     public static PatientNotification appointmentReminder(UUID patientAccountId, UUID appointmentId,
                                                           String appointmentCode, String specialty,
                                                           String doctorName, String date, String time, int hours) {
