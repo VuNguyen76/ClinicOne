@@ -16,6 +16,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -39,7 +40,7 @@ class ReceptionPatientServiceTest {
 
     @Test
     void requestsRegistrationOtpOnlyForUnusedPhone() {
-        when(accountRepository.existsByPhone("0912345678")).thenReturn(false);
+        when(accountRepository.findByPhone("0912345678")).thenReturn(Optional.empty());
         when(otpService.requestSmsOtp("0912345678", OtpPurpose.REGISTRATION))
                 .thenReturn(new RequestOtpResponse(300, 60));
 
@@ -50,10 +51,33 @@ class ReceptionPatientServiceTest {
     }
 
     @Test
-    void createsActiveAccountThatMustChangeTemporaryPasswordAfterOtp() {
+    void allowsOtpResendForPendingActivationAccount() {
+        PatientAccount pending = new PatientAccount("0912345678", "pending-hash", "Nguyễn An",
+                AccountStatus.ACTIVE, true);
+        when(accountRepository.findByPhone("0912345678")).thenReturn(Optional.of(pending));
+        when(otpService.requestSmsOtp("0912345678", OtpPurpose.REGISTRATION))
+                .thenReturn(new RequestOtpResponse(300, 60));
+
+        service.requestOtp(new ReceptionPatientOtpRequest("0912345678"));
+
+        verify(otpService).requestSmsOtp("0912345678", OtpPurpose.REGISTRATION);
+    }
+
+    @Test
+    void rejectsOtpRequestForAlreadyActiveAccount() {
+        PatientAccount active = new PatientAccount("0912345678", "hash", "Nguyễn An",
+                AccountStatus.ACTIVE, false);
+        when(accountRepository.findByPhone("0912345678")).thenReturn(Optional.of(active));
+
+        org.junit.jupiter.api.Assertions.assertThrows(com.clinicone.auth.AuthException.class,
+                () -> service.requestOtp(new ReceptionPatientOtpRequest("0912345678")));
+    }
+
+    @Test
+    void createsPendingAccountWithoutIssuingADefaultPasswordAfterOtp() {
         when(accountRepository.existsByPhone("0912345678")).thenReturn(false);
-        when(passwordEncoder.encode("123456")).thenReturn("encoded-temp");
-        PatientAccount saved = new PatientAccount("0912345678", "encoded-temp", "Nguyễn An",
+        when(passwordEncoder.encode(any(String.class))).thenReturn("encoded-pending");
+        PatientAccount saved = new PatientAccount("0912345678", "encoded-pending", "Nguyễn An",
                 AccountStatus.ACTIVE, true);
         when(accountRepository.save(any(PatientAccount.class))).thenReturn(saved);
 
@@ -65,7 +89,7 @@ class ReceptionPatientServiceTest {
         assertThat(response.fullName()).isEqualTo("Nguyễn An");
         assertThat(response.mustChangePassword()).isTrue();
         verify(otpService).verifySmsOtp("0912345678", OtpPurpose.REGISTRATION, "123456");
-        verify(passwordEncoder).encode("123456");
+        verify(passwordEncoder).encode(argThat(value -> value != null && !value.equals("123456")));
         verify(profileRepository).save(any());
     }
 }

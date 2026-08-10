@@ -137,6 +137,16 @@ describe('ReceptionCheckIn', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Đã tạo tài khoản cho Nguyễn An');
+    component.activationPassword.set('new-password');
+    component.activationConfirmPassword.set('new-password');
+    component.activatePendingAccount();
+    const activationRequest = http.expectOne('/api/v1/auth/activate');
+    expect(activationRequest.request.body).toEqual({
+      phone: '0912345678', newPassword: 'new-password', confirmPassword: 'new-password',
+    });
+    activationRequest.flush(null);
+    const profilesAfterActivation = http.expectOne('/api/v1/reception/profiles?phone=0912345678');
+    profilesAfterActivation.flush([]);
   });
 });
 
