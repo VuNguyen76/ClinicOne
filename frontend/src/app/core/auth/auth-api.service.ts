@@ -121,6 +121,21 @@ export interface PatientNotificationResponse {
   createdAt: string;
 }
 
+export interface OperationalStatisticsResponse {
+  from: string;
+  to: string;
+  specialty: string;
+  doctorId: string | null;
+  totalAppointments: number;
+  checkedInAppointments: number;
+  absentAppointments: number;
+  cancelledAppointments: number;
+  completedAppointments: number;
+  notPerformedAppointments: number;
+  averageWaitMinutes: number | null;
+  averageExaminationMinutes: number | null;
+}
+
 export interface CreateAppointmentRequest {
   specialty: string;
   doctorName: string;
@@ -626,5 +641,11 @@ export class AuthApiService {
 
   removeDoctorSchedule(staffId: string, scheduleId: string): Observable<void> {
     return this.http.delete<void>(`/api/v1/admin/doctors/${staffId}/schedules/${scheduleId}`);
+  }
+
+  getOperationalStatistics(from: string, to: string, specialty: string, doctorId?: string): Observable<OperationalStatisticsResponse> {
+    let params: Record<string, string> = { from, to, specialty };
+    if (doctorId) params = { ...params, doctorId };
+    return this.http.get<OperationalStatisticsResponse>('/api/v1/admin/statistics', { params });
   }
 }

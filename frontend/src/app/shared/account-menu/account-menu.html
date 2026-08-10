@@ -43,6 +43,10 @@
         class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]"
         role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">meeting_room</mat-icon>Quản lý phòng
         khám</a>}
+      @if (canManageRooms()) {<a routerLink="/admin/statistics" [class.bg-[#eafaff]]="isActive('/admin/statistics')"
+        [class.text-[#0284c7]]="isActive('/admin/statistics')" [attr.aria-current]="isActive('/admin/statistics') ? 'page' : null"
+        class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]"
+        role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">analytics</mat-icon>Thống kê vận hành</a>}
       @if (canManageRooms()) {<a routerLink="/admin/doctors" [class.bg-[#eafaff]]="isActive('/admin/doctors')"
         [class.text-[#0284c7]]="isActive('/admin/doctors')" [attr.aria-current]="isActive('/admin/doctors') ? 'page' : null"
         class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]"

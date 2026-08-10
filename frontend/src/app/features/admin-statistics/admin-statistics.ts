@@ -1,0 +1,44 @@
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { MatIconModule } from '@angular/material/icon';
+import { ApiErrorResponse, AuthApiService, OperationalStatisticsResponse, apiErrorMessage } from '../../core/auth/auth-api.service';
+import { AccountMenu } from '../../shared/account-menu/account-menu';
+
+@Component({
+  selector: 'app-admin-statistics',
+  standalone: true,
+  imports: [FormsModule, RouterLink, MatIconModule, AccountMenu],
+  templateUrl: './admin-statistics.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class AdminStatistics implements OnInit {
+  private readonly authApi = inject(AuthApiService);
+  protected readonly from = signal(this.today());
+  protected readonly to = signal(this.today());
+  protected readonly specialty = signal('Khám Tổng Quát');
+  protected readonly report = signal<OperationalStatisticsResponse | null>(null);
+  protected readonly loading = signal(false);
+  protected readonly error = signal('');
+
+  ngOnInit(): void { this.load(); }
+
+  protected load(): void {
+    this.loading.set(true);
+    this.error.set('');
+    this.authApi.getOperationalStatistics(this.from(), this.to(), this.specialty()).subscribe({
+      next: (result) => { this.report.set(result); this.loading.set(false); },
+      error: (response: ApiErrorResponse) => { this.report.set(null); this.error.set(apiErrorMessage(response)); this.loading.set(false); },
+    });
+  }
+
+  protected updateFrom(value: string): void { this.from.set(value); }
+  protected updateTo(value: string): void { this.to.set(value); }
+  protected updateSpecialty(value: string): void { this.specialty.set(value); }
+  protected formatAverage(value: number | null): string { return value === null ? '—' : `${value.toFixed(1)} phút`; }
+
+  private today(): string {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  }
+}

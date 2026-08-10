@@ -38,6 +38,12 @@ public class ExaminationSession {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    @Column(name = "started_at")
+    private Instant startedAt;
+
+    @Column(name = "ended_at")
+    private Instant endedAt;
+
     protected ExaminationSession() {
     }
 
@@ -65,10 +71,16 @@ public class ExaminationSession {
             throw new IllegalStateException("Phiên khám đã hoàn tất.");
         }
         status = ExaminationSessionStatus.IN_PROGRESS;
+        if (startedAt == null) {
+            startedAt = Instant.now();
+        }
     }
 
     public void complete() {
         status = ExaminationSessionStatus.COMPLETED;
+        if (endedAt == null) {
+            endedAt = Instant.now();
+        }
     }
 
     public void cancel() {
@@ -92,4 +104,6 @@ public class ExaminationSession {
     public Appointment getAppointment() { return appointment; }
     public ExaminationSessionStatus getStatus() { return status; }
     public Instant getCreatedAt() { return createdAt; }
+    public Instant getStartedAt() { return startedAt; }
+    public Instant getEndedAt() { return endedAt; }
 }
