@@ -75,19 +75,19 @@
         [class.text-[#0284c7]]="isActive('/admin/business-audit')" [attr.aria-current]="isActive('/admin/business-audit') ? 'page' : null"
         class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]"
         role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">history</mat-icon>Lịch sử công việc</a>}
-      @if (staffRole() === 'ADMIN') {<a routerLink="/admin/staff" [class.bg-[#eafaff]]="isActive('/admin/staff')"
+      @if (staffRoles().includes('ADMIN')) {<a routerLink="/admin/staff" [class.bg-[#eafaff]]="isActive('/admin/staff')"
         [class.text-[#0284c7]]="isActive('/admin/staff')" [attr.aria-current]="isActive('/admin/staff') ? 'page' : null"
         class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]"
         role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">manage_accounts</mat-icon>Tài khoản nhân viên</a>}
-      @if (staffRole() === 'ADMIN') {<a routerLink="/admin/access-audit" [class.bg-[#eafaff]]="isActive('/admin/access-audit')"
+      @if (staffRoles().includes('ADMIN')) {<a routerLink="/admin/access-audit" [class.bg-[#eafaff]]="isActive('/admin/access-audit')"
         [class.text-[#0284c7]]="isActive('/admin/access-audit')" [attr.aria-current]="isActive('/admin/access-audit') ? 'page' : null"
         class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]"
         role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">manage_search</mat-icon>Nhật ký truy cập</a>}
-      @if (staffRole() === 'ADMIN') {<a routerLink="/admin/configuration" [class.bg-[#eafaff]]="isActive('/admin/configuration')"
+      @if (staffRoles().includes('ADMIN')) {<a routerLink="/admin/configuration" [class.bg-[#eafaff]]="isActive('/admin/configuration')"
         [class.text-[#0284c7]]="isActive('/admin/configuration')" [attr.aria-current]="isActive('/admin/configuration') ? 'page' : null"
         class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]"
         role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">tune</mat-icon>Cấu hình phòng khám</a>}
-      @if (staffRole() === 'ADMIN') {<a routerLink="/admin/reason-catalog" [class.bg-[#eafaff]]="isActive('/admin/reason-catalog')"
+      @if (staffRoles().includes('ADMIN')) {<a routerLink="/admin/reason-catalog" [class.bg-[#eafaff]]="isActive('/admin/reason-catalog')"
         [class.text-[#0284c7]]="isActive('/admin/reason-catalog')" [attr.aria-current]="isActive('/admin/reason-catalog') ? 'page' : null"
         class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]"
         role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">list_alt</mat-icon>Danh mục lý do</a>}

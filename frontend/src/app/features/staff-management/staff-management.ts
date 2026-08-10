@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import {
   ApiErrorResponse,
@@ -12,7 +13,7 @@ import { AccountMenu } from '../../shared/account-menu/account-menu';
 @Component({
   selector: 'app-staff-management',
   standalone: true,
-  imports: [RouterLink, MatIconModule, AccountMenu],
+  imports: [FormsModule, RouterLink, MatIconModule, AccountMenu],
   templateUrl: './staff-management.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -25,6 +26,14 @@ export class StaffManagement implements OnInit {
   protected readonly confirming = signal<StaffAccountResponse | null>(null);
   protected readonly error = signal('');
   protected readonly notice = signal('');
+  protected readonly createOpen = signal(false);
+  protected readonly createdCredentials = signal<{ username: string; password: string } | null>(null);
+  protected readonly newFullName = signal('');
+  protected readonly newEmployeeCode = signal('');
+  protected readonly newUnitName = signal('');
+  protected readonly newDepartmentName = signal('');
+  protected readonly newRoles = signal<string[]>([]);
+  protected readonly roleOptions = ['DOCTOR', 'RECEPTIONIST', 'COORDINATOR'];
 
   ngOnInit(): void {
     this.load();
@@ -42,6 +51,52 @@ export class StaffManagement implements OnInit {
   protected askToLock(account: StaffAccountResponse): void {
     this.confirming.set(account);
     this.error.set('');
+  }
+
+  protected openCreate(): void {
+    this.createdCredentials.set(null);
+    this.newFullName.set('');
+    this.newEmployeeCode.set('');
+    this.newUnitName.set('');
+    this.newDepartmentName.set('');
+    this.newRoles.set([]);
+    this.error.set('');
+    this.createOpen.set(true);
+  }
+
+  protected closeCreate(): void {
+    if (!this.updatingId()) this.createOpen.set(false);
+  }
+
+  protected toggleRole(role: string): void {
+    this.newRoles.update((roles) => roles.includes(role) ? roles.filter((item) => item !== role) : [...roles, role]);
+  }
+
+  protected hasRole(role: string): boolean {
+    return this.newRoles().includes(role);
+  }
+
+  protected createAccount(): void {
+    const request = {
+      fullName: this.newFullName().trim(), employeeCode: this.newEmployeeCode().trim(),
+      unitName: this.newUnitName().trim(), departmentName: this.newDepartmentName().trim(), roles: this.newRoles(),
+    };
+    if (!request.fullName || !request.employeeCode || !request.unitName || !request.departmentName || request.roles.length === 0 || request.roles.length > 3) {
+      this.error.set('Nhập đủ thông tin và chọn từ 1 đến 3 vai trò.');
+      return;
+    }
+    this.error.set('');
+    this.notice.set('');
+    this.updatingId.set('creating');
+    this.authApi.createStaffAccount(request).subscribe({
+      next: (created) => {
+        this.accounts.update((items) => [...items, created.account].sort((a, b) => a.fullName.localeCompare(b.fullName)));
+        this.createdCredentials.set({ username: created.account.username, password: created.initialPassword });
+        this.notice.set('Đã tạo tài khoản. Hãy bàn giao mật khẩu khởi tạo một lần cho nhân viên.');
+        this.updatingId.set(null);
+      },
+      error: (response: ApiErrorResponse) => { this.error.set(apiErrorMessage(response)); this.updatingId.set(null); },
+    });
   }
 
   protected closeConfirm(): void {
@@ -69,6 +124,10 @@ export class StaffManagement implements OnInit {
 
   protected roleLabel(role: string): string {
     return ({ ADMIN: 'Quản trị viên', COORDINATOR: 'Điều phối viên', RECEPTIONIST: 'Tiếp nhận', DOCTOR: 'Bác sĩ' } as Record<string, string>)[role] ?? role;
+  }
+
+  protected roleLabels(account: StaffAccountResponse): string {
+    return (account.roles?.length ? account.roles : [account.role]).map((role) => this.roleLabel(role)).join(' · ');
   }
 
   protected statusLabel(status: string): string {

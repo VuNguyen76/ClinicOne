@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import java.util.Arrays;
 
 @Component
 public class SessionAuthenticationFilter extends OncePerRequestFilter {
@@ -42,7 +43,11 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
                 if (session != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                     var authentication = UsernamePasswordAuthenticationToken.authenticated(
                             session.getAccountId().toString(), null,
-                            List.of(new SimpleGrantedAuthority(session.getRole())));
+                            Arrays.stream(session.getRole().split(","))
+                                    .map(String::trim)
+                                    .filter(value -> !value.isBlank())
+                                    .map(SimpleGrantedAuthority::new)
+                                    .toList());
                     authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 }

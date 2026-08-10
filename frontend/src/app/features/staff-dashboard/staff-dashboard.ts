@@ -200,6 +200,7 @@ export class StaffDashboard implements OnInit {
     if (response.status === 401) {
       sessionStorage.removeItem('clinicOneAccessToken');
       sessionStorage.removeItem('clinicOneStaffRole');
+      sessionStorage.removeItem('clinicOneStaffRoles');
       void this.router.navigateByUrl('/staff/login');
       return;
     }

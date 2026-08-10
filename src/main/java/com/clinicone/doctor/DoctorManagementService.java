@@ -57,7 +57,8 @@ public class DoctorManagementService {
 
     @Transactional(readOnly = true)
     public List<DoctorAccountResponse> list() {
-        return staffRepository.findByRoleOrderByFullNameAsc(StaffRole.DOCTOR).stream()
+        return staffRepository.findAllByOrderByFullNameAsc().stream()
+                .filter(staff -> staff.hasRole(StaffRole.DOCTOR))
                 .map(staff -> profileRepository.findByStaffAccount_Id(staff.getId())
                         .map(profile -> DoctorAccountResponse.from(staff, profile))
                         .orElseGet(() -> DoctorAccountResponse.unassigned(staff)))
@@ -138,7 +139,7 @@ public class DoctorManagementService {
         StaffAccount staff = staffRepository.findById(staffId)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "DOCTOR_NOT_FOUND",
                         "Không tìm thấy tài khoản bác sĩ."));
-        if (staff.getRole() != StaffRole.DOCTOR) {
+        if (!staff.hasRole(StaffRole.DOCTOR)) {
             throw new AuthException(HttpStatus.CONFLICT, "STAFF_NOT_DOCTOR", "Tài khoản này không có vai trò bác sĩ.");
         }
         return staff;

@@ -34,9 +34,10 @@ export class StaffLogin {
     this.authApi.staffLogin(username, password).subscribe({
       next: (session) => {
         this.busy.set(false);
-        const destination = session.role === 'DOCTOR'
+        const roles = session.roles?.length ? session.roles : [session.role];
+        const destination = roles.includes('DOCTOR')
           ? '/doctor'
-          : session.role === 'ADMIN' || session.role === 'COORDINATOR'
+          : roles.includes('ADMIN') || roles.includes('COORDINATOR')
             ? '/admin/rooms'
             : session.role === 'RECEPTIONIST'
               ? '/reception/check-in'
