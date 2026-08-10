@@ -32,11 +32,13 @@ public class ReconciliationController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('COORDINATOR')")
     public ResponseEntity<ReconciliationResponse> open(@Valid @RequestBody OpenReconciliationRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.open(request));
     }
 
     @PostMapping("/{id}/close")
+    @PreAuthorize("hasRole('COORDINATOR')")
     public ReconciliationResponse close(Authentication authentication, @PathVariable UUID id,
                                         @Valid @RequestBody CloseReconciliationRequest request) {
         return service.close(id, request, authentication.getName());
