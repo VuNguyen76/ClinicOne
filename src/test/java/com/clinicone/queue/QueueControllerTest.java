@@ -109,6 +109,22 @@ class QueueControllerTest {
     }
 
     @Test
+    void doctorRoleRemainsScopedWhenAccountHasAnotherBusinessRole() throws Exception {
+        when(queueService.call(TICKET_ID, ACCOUNT_ID.toString())).thenReturn(response());
+
+        mockMvc.perform(post("/api/v1/queue/" + TICKET_ID + "/call")
+                        .with(authentication(authenticated("ROLE_RECEPTIONIST", "ROLE_DOCTOR"))))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void doctorRoleStillRequiresSignedRecordWhenAccountHasAnotherBusinessRole() throws Exception {
+        mockMvc.perform(post("/api/v1/queue/" + TICKET_ID + "/complete")
+                        .with(authentication(authenticated("ROLE_RECEPTIONIST", "ROLE_DOCTOR"))))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
     void doctorCanCallNextPatientFromOwnQueue() throws Exception {
         when(queueService.callNext(eq(ACCOUNT_ID.toString()), eq(LocalDate.of(2026, 8, 6))))
                 .thenReturn(response());
@@ -142,8 +158,12 @@ class QueueControllerTest {
     }
 
     private static UsernamePasswordAuthenticationToken authenticated(String role) {
+        return authenticated(new String[]{role});
+    }
+
+    private static UsernamePasswordAuthenticationToken authenticated(String... roles) {
         return UsernamePasswordAuthenticationToken.authenticated(ACCOUNT_ID.toString(), null,
-                List.of(new SimpleGrantedAuthority(role)));
+                java.util.Arrays.stream(roles).map(SimpleGrantedAuthority::new).toList());
     }
 
     private static QueueTicketResponse response() {
