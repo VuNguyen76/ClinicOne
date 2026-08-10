@@ -74,6 +74,19 @@ class ReceptionControllerTest {
     }
 
     @Test
+    void receptionistCanSeeWhetherTheAccountStillNeedsPasswordChange() throws Exception {
+        when(service.profiles("0912345678")).thenReturn(List.of(new ReceptionPatientProfileResponse(
+                UUID.randomUUID(), "Nguyễn Thanh Vũ", "Bản thân", LocalDate.of(2005, 6, 7), true,
+                com.clinicone.auth.AccountStatus.ACTIVE, true)));
+
+        mockMvc.perform(get("/api/v1/reception/profiles?phone=0912345678")
+                        .with(authentication(authenticated("ROLE_RECEPTIONIST"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].mustChangePassword").value(true))
+                .andExpect(jsonPath("$[0].accountStatus").value("ACTIVE"));
+    }
+
+    @Test
     void receptionistCannotUseExceptionCheckInWithoutReason() throws Exception {
         mockMvc.perform(post("/api/v1/reception/appointments/" + APPOINTMENT_ID + "/check-in")
                         .with(authentication(authenticated("ROLE_RECEPTIONIST")))

@@ -45,6 +45,10 @@ export class ReceptionCheckIn implements OnInit {
   protected readonly registrationFullName = signal('');
   protected readonly registrationDateOfBirth = signal('');
   protected readonly registrationGender = signal('');
+  protected readonly registrationIdentityNumber = signal('');
+  protected readonly registrationNationality = signal('Việt Nam');
+  protected readonly registrationEthnicity = signal('Kinh');
+  protected readonly registrationAddress = signal('');
   protected readonly registrationOtpSent = signal(false);
   protected readonly registrationLoading = signal(false);
 
@@ -115,6 +119,10 @@ export class ReceptionCheckIn implements OnInit {
     this.registrationFullName.set('');
     this.registrationDateOfBirth.set('');
     this.registrationGender.set('');
+    this.registrationIdentityNumber.set('');
+    this.registrationNationality.set('Việt Nam');
+    this.registrationEthnicity.set('Kinh');
+    this.registrationAddress.set('');
     this.registrationOtpSent.set(false);
     this.error.set('');
     if (this.walkInSpecialties().length === 0) {
@@ -166,6 +174,10 @@ export class ReceptionCheckIn implements OnInit {
       fullName: this.registrationFullName().trim(),
       dateOfBirth: this.registrationDateOfBirth(),
       gender: this.registrationGender(),
+      identityNumber: this.registrationIdentityNumber().trim() || undefined,
+      nationality: this.registrationNationality().trim() || undefined,
+      ethnicity: this.registrationEthnicity().trim() || undefined,
+      address: this.registrationAddress().trim() || undefined,
     }).subscribe({
       next: (response) => {
         this.registrationLoading.set(false);
@@ -197,6 +209,14 @@ export class ReceptionCheckIn implements OnInit {
       next: (profiles) => {
         this.walkInProfiles.set(profiles);
         this.walkInProfileId.set(profiles.find((profile) => profile.primaryProfile)?.id ?? profiles[0]?.id ?? '');
+        if (profiles.some((profile) => profile.mustChangePassword || profile.accountStatus === 'LOCKED')) {
+          this.walkInNeedsPasswordChange.set(true);
+          this.notice.set(profiles.some((profile) => profile.accountStatus === 'LOCKED')
+            ? 'Tài khoản đang bị khóa. Cần xử lý tài khoản trước khi tiếp nhận.'
+            : 'Người bệnh chưa đổi mật khẩu tạm. Hãy yêu cầu đăng nhập và đổi mật khẩu trước khi tiếp tục.');
+        } else {
+          this.walkInNeedsPasswordChange.set(false);
+        }
         this.walkInProfilesLoading.set(false);
       },
       error: (response) => {
