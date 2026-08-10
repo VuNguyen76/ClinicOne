@@ -26,7 +26,6 @@ import java.util.UUID;
 @Component
 public class AppointmentLifecycleJob {
     private static final ZoneId CLINIC_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
-    private static final Duration EXPECTED_DURATION = Duration.ofMinutes(60);
     private static final Duration LATE_THRESHOLD = Duration.ofMinutes(15);
     private static final Duration ABSENT_THRESHOLD = Duration.ofHours(24);
 
@@ -82,11 +81,11 @@ public class AppointmentLifecycleJob {
                 notificationService.notifyAppointmentReminder(appointment, 2);
                 reminders++;
             }
-            if (!now.isBefore(appointmentAt.plus(EXPECTED_DURATION).plus(LATE_THRESHOLD))) {
+            if (!now.isBefore(appointmentAt.plus(LATE_THRESHOLD))) {
                 notificationService.notifyAppointmentLate(appointment);
                 lateWarnings++;
             }
-            if (!now.isBefore(appointmentAt.plus(EXPECTED_DURATION).plus(ABSENT_THRESHOLD))
+            if (!now.isBefore(appointmentAt.plus(ABSENT_THRESHOLD))
                     && appointment.getStatus() == AppointmentStatus.BOOKED) {
                 markAbsent(appointment);
                 absent++;
