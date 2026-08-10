@@ -21,6 +21,7 @@ import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Optional;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -141,6 +142,23 @@ class DoctorExaminationServiceTest {
         assertThat(response.reason()).isNull();
         verify(recordRepository, never()).findBySession_Id(SESSION_ID);
         verify(recordRepository, never()).save(any(MedicalRecord.class));
+    }
+
+    @Test
+    void returnsSignedHistoryForThePatientInTheDoctorWorkspace() {
+        ExaminationSession previousSession = ExaminationSession.create(appointment);
+        MedicalRecord previousRecord = MedicalRecord.draft(previousSession);
+        previousRecord.sign("Bác sĩ cũ", "Đau đầu", "Đã khám", "Đau đầu căng thẳng",
+                "Theo dõi", "Nghỉ ngơi", null, null);
+        when(recordRepository.findBySession_Appointment_Patient_IdAndSignedAtIsNotNullOrderBySignedAtDesc(
+                appointment.getPatient().getId())).thenReturn(List.of(previousRecord));
+
+        DoctorExaminationResponse response = service.open(TICKET_ID, DOCTOR_ID.toString());
+
+        assertThat(response.history()).singleElement().satisfies(item -> {
+            assertThat(item.doctorName()).isEqualTo("Bác sĩ cũ");
+            assertThat(item.diagnosis()).isEqualTo("Đau đầu căng thẳng");
+        });
     }
 
     @Test
