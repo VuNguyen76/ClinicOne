@@ -385,6 +385,24 @@ export interface DoctorTimeOffResponse {
   active: boolean;
 }
 
+export interface ReconciliationResponse {
+  id: string;
+  incidentCode: string;
+  entityType: string;
+  entityId: string;
+  eventId: string | null;
+  reason: string;
+  assignee: string;
+  status: 'OPEN' | 'CLOSED' | string;
+  resolutionAction: string | null;
+  referenceType: 'BUSINESS_LOG' | 'INCIDENT' | string | null;
+  referenceValue: string | null;
+  resultNote: string | null;
+  closedBy: string | null;
+  closedAt: string | null;
+  createdAt: string;
+}
+
 export interface AvailableReplacementSlot {
   specialty: string;
   appointmentDate: string;
@@ -855,6 +873,14 @@ export class AuthApiService {
 
   createDoctorTimeOff(request: { doctorId: string; startDate: string; endDate: string; reason: string }): Observable<DoctorTimeOffResponse> {
     return this.http.post<DoctorTimeOffResponse>('/api/v1/admin/doctor-time-off', request);
+  }
+
+  getReconciliations(status = 'OPEN'): Observable<ReconciliationResponse[]> {
+    return this.http.get<ReconciliationResponse[]>('/api/v1/admin/reconciliations', { params: { status } });
+  }
+
+  closeReconciliation(id: string, request: { action: string; referenceType: string; referenceValue: string; resultNote: string }): Observable<ReconciliationResponse> {
+    return this.http.post<ReconciliationResponse>(`/api/v1/admin/reconciliations/${id}/close`, request);
   }
 
   getReplacementSlots(caseId: string, from?: string, to?: string): Observable<AvailableReplacementSlot[]> {
