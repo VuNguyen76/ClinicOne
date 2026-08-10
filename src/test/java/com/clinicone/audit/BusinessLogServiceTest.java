@@ -41,4 +41,11 @@ class BusinessLogServiceTest {
                 "BOOKED", "CANCELLED", "CANCEL", "staff", null))
                 .isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    void rejectsPageLargerThanHundred() {
+        assertThatThrownBy(() -> service.page("APPOINTMENT", UUID.randomUUID(), 0, 101))
+                .hasMessageContaining("1 đến 100");
+        verifyNoInteractions(repository);
+    }
 }

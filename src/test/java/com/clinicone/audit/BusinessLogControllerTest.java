@@ -52,6 +52,22 @@ class BusinessLogControllerTest {
                 .andExpect(status().isForbidden());
     }
 
+    @Test
+    void coordinatorCanReadPagedBusinessHistory() throws Exception {
+        UUID entityId = UUID.randomUUID();
+        when(service.page("APPOINTMENT", entityId, 0, 50))
+                .thenReturn(new BusinessLogPageResponse(List.of(), 0, 50, 0, 0, true));
+
+        mockMvc.perform(get("/api/v1/admin/audit/search")
+                        .param("entityType", "APPOINTMENT")
+                        .param("entityId", entityId.toString())
+                        .with(authentication(authenticated("ROLE_COORDINATOR"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(50))
+                .andExpect(jsonPath("$.items").isArray());
+    }
+
     private static UsernamePasswordAuthenticationToken authenticated(String role) {
         return UsernamePasswordAuthenticationToken.authenticated("staff-id", null,
                 List.of(new SimpleGrantedAuthority(role)));

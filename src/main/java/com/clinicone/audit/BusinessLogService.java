@@ -2,6 +2,8 @@ package com.clinicone.audit;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import com.clinicone.reconciliation.ReconciliationIncidentRepository;
 import com.clinicone.reconciliation.ReconciliationStatus;
 import com.clinicone.auth.AuthException;
@@ -57,8 +59,22 @@ public class BusinessLogService {
     @Transactional(readOnly = true)
     public List<BusinessLogResponse> list(String entityType, UUID entityId) {
         return repository.findByEntityTypeAndEntityIdOrderByOccurredAtAscIdAsc(entityType, entityId).stream()
+                .limit(100)
                 .map(BusinessLogResponse::from)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public BusinessLogPageResponse page(String entityType, UUID entityId, int page, int size) {
+        if (entityType == null || entityType.isBlank() || entityId == null
+                || page < 0 || size < 1 || size > 100) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "AUDIT_PAGE_INVALID",
+                    "Cần chọn đối tượng hợp lệ; trang từ 0 và kích thước mỗi trang từ 1 đến 100 bản ghi.");
+        }
+        Page<BusinessLog> result = repository.findByEntityTypeAndEntityIdOrderByOccurredAtAscIdAsc(
+                normalize(entityType, 40), entityId, PageRequest.of(page, size));
+        return new BusinessLogPageResponse(result.getContent().stream().map(BusinessLogResponse::from).toList(),
+                result.getNumber(), result.getSize(), result.getTotalElements(), result.getTotalPages(), result.isLast());
     }
 
     private boolean sameState(String previousStatus, String nextStatus) {
