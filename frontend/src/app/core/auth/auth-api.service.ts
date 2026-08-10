@@ -111,6 +111,14 @@ export interface MedicalRecordResponse {
   signedAt: string;
 }
 
+export interface ReasonCatalogResponse {
+  id: string;
+  type: string;
+  code: string;
+  label: string;
+  active: boolean;
+}
+
 export interface PatientNotificationResponse {
   id: string;
   type: string;
@@ -715,8 +723,12 @@ export class AuthApiService {
     return this.http.get<AppointmentResponse>(`${this.appointmentsRoot}/${id}`);
   }
 
-  cancelAppointment(id: string, reason?: string): Observable<void> {
-    return this.http.post<void>(`${this.appointmentsRoot}/${id}/cancel`, { reason: reason ?? '' });
+  getCancellationReasons(): Observable<ReasonCatalogResponse[]> {
+    return this.http.get<ReasonCatalogResponse[]>('/api/v1/reasons', { params: { type: 'APPOINTMENT_CANCELLATION' } });
+  }
+
+  cancelAppointment(id: string, reasonCode?: string): Observable<void> {
+    return this.http.post<void>(`${this.appointmentsRoot}/${id}/cancel`, { reasonCode: reasonCode ?? '' });
   }
 
   rescheduleAppointment(id: string, appointmentDate: string, startTime: string): Observable<AppointmentResponse> {
@@ -885,6 +897,26 @@ export class AuthApiService {
 
   setClinicServiceActive(id: string, active: boolean): Observable<ClinicServiceResponse> {
     return this.http.post<ClinicServiceResponse>(`/api/v1/admin/services/${id}/${active ? 'activate' : 'deactivate'}`, {});
+  }
+
+  getAdminCancellationReasons(): Observable<ReasonCatalogResponse[]> {
+    return this.http.get<ReasonCatalogResponse[]>('/api/v1/admin/reason-catalog', {
+      params: { type: 'APPOINTMENT_CANCELLATION', activeOnly: 'false' },
+    });
+  }
+
+  createCancellationReason(code: string, label: string): Observable<ReasonCatalogResponse> {
+    return this.http.post<ReasonCatalogResponse>('/api/v1/admin/reason-catalog', {
+      type: 'APPOINTMENT_CANCELLATION', code, label,
+    });
+  }
+
+  updateCancellationReason(id: string, code: string, label: string): Observable<ReasonCatalogResponse> {
+    return this.http.put<ReasonCatalogResponse>(`/api/v1/admin/reason-catalog/${id}`, { code, label });
+  }
+
+  setCancellationReasonActive(id: string, active: boolean): Observable<ReasonCatalogResponse> {
+    return this.http.post<ReasonCatalogResponse>(`/api/v1/admin/reason-catalog/${id}/${active ? 'activate' : 'deactivate'}`, {});
   }
 
   getScheduleTemplates(): Observable<ScheduleTemplateResponse[]> {

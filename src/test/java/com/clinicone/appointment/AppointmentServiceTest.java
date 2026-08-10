@@ -11,6 +11,9 @@ import com.clinicone.schedule.AppointmentHoldService;
 import com.clinicone.doctor.DoctorProfile;
 import com.clinicone.auth.StaffAccount;
 import com.clinicone.config.ClinicConfigurationService;
+import com.clinicone.reason.ReasonCatalog;
+import com.clinicone.reason.ReasonCatalogService;
+import com.clinicone.reason.ReasonCatalogType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -43,6 +46,7 @@ class AppointmentServiceTest {
     private AppointmentAvailabilityService availabilityService;
     private AppointmentHoldService holdService;
     private com.clinicone.schedule.ClinicServiceRepository clinicServiceRepository;
+    private ReasonCatalogService reasonCatalogService;
     private AppointmentService service;
 
     @BeforeEach
@@ -53,6 +57,7 @@ class AppointmentServiceTest {
         availabilityService = mock(AppointmentAvailabilityService.class);
         holdService = mock(AppointmentHoldService.class);
         clinicServiceRepository = mock(com.clinicone.schedule.ClinicServiceRepository.class);
+        reasonCatalogService = mock(ReasonCatalogService.class);
         service = new AppointmentService(accountRepository, appointmentRepository, null, availabilityService,
                 notificationService, null, holdService, clinicServiceRepository);
         when(appointmentRepository.save(any(Appointment.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -239,6 +244,27 @@ class AppointmentServiceTest {
 
         assertEquals("CANCELLATION_REASON_REQUIRED", exception.getCode());
         verify(appointmentRepository, never()).save(any(Appointment.class));
+    }
+
+    @Test
+    void storesSelectedCancellationCatalogLabelInsteadOfFreeText() {
+        PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
+        setId(account, ACCOUNT_ID);
+        Appointment appointment = Appointment.existing(account, "CL-20260810-AB12", "Nội khoa", "BS. Nguyễn An",
+                LocalDate.of(2026, 8, 20), LocalTime.of(13, 0), "Đau đầu");
+        when(appointmentRepository.findByIdAndPatientId(any(), eq(ACCOUNT_ID))).thenReturn(Optional.of(appointment));
+        ReasonCatalog reason = ReasonCatalog.create(ReasonCatalogType.APPOINTMENT_CANCELLATION,
+                "SCHEDULE_CHANGE", "Thay đổi kế hoạch");
+        when(reasonCatalogService.requireActive(ReasonCatalogType.APPOINTMENT_CANCELLATION, "SCHEDULE_CHANGE"))
+                .thenReturn(reason);
+        service = new AppointmentService(accountRepository, appointmentRepository, null, availabilityService,
+                notificationService, null, holdService, clinicServiceRepository, null, reasonCatalogService,
+                Clock.fixed(Instant.parse("2026-08-10T01:00:00Z"), ZoneOffset.UTC));
+
+        service.cancel(ACCOUNT_ID.toString(), UUID.randomUUID().toString(),
+                new CancelAppointmentRequest("nội dung không được tin cậy", "SCHEDULE_CHANGE"));
+
+        assertEquals("Thay đổi kế hoạch", appointment.getCancellationReason());
     }
 
     @Test
