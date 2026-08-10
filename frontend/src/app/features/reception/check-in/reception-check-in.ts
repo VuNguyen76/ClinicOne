@@ -19,6 +19,7 @@ export class ReceptionCheckIn implements OnInit {
   protected readonly query = signal('');
   protected readonly selectedDate = signal(this.toIsoDate(new Date()));
   protected readonly exceptionReason = signal('');
+  protected readonly leaveReason = signal('');
   protected readonly appointments = signal<ReceptionAppointmentResponse[]>([]);
   protected readonly loading = signal(false);
   protected readonly searched = signal(false);
@@ -66,11 +67,12 @@ export class ReceptionCheckIn implements OnInit {
     this.searched.set(true);
     this.error.set('');
     this.notice.set('');
+    this.leaveReason.set('');
     this.authApi.searchReceptionAppointments(value, this.selectedDate()).subscribe({
       next: (appointments) => {
         this.appointments.set(appointments);
         this.loading.set(false);
-        if (appointments.length === 0) this.notice.set('Không tìm thấy lịch hẹn đang chờ trong ngày đã chọn.');
+        if (appointments.length === 0) this.notice.set('Không tìm thấy lịch hẹn phù hợp trong ngày đã chọn.');
       },
       error: (response) => {
         this.loading.set(false);
@@ -94,6 +96,30 @@ export class ReceptionCheckIn implements OnInit {
         this.appointments.update((items) => items.map((item) => item.id === updated.id ? updated : item));
         this.busyId.set('');
         this.notice.set(`Đã cấp số ${String(updated.queueNumber).padStart(2, '0')} cho ${updated.patientName}.`);
+      },
+      error: (response) => {
+        this.busyId.set('');
+        this.handleError(response);
+      },
+    });
+  }
+
+  protected leaveBeforeExam(appointment: ReceptionAppointmentResponse): void {
+    if (appointment.queueStatus !== 'WAITING') return;
+    const reason = this.leaveReason().trim();
+    if (reason.length < 10) {
+      this.error.set('Nhập lý do người bệnh rời trước khám (ít nhất 10 ký tự).');
+      return;
+    }
+    this.busyId.set(appointment.id);
+    this.error.set('');
+    this.notice.set('');
+    this.authApi.leaveReceptionAppointment(appointment.id, reason).subscribe({
+      next: (updated) => {
+        this.appointments.update((items) => items.map((item) => item.id === updated.id ? updated : item));
+        this.busyId.set('');
+        this.leaveReason.set('');
+        this.notice.set(`Đã ghi nhận ${updated.patientName} rời trước khám.`);
       },
       error: (response) => {
         this.busyId.set('');
@@ -303,7 +329,11 @@ export class ReceptionCheckIn implements OnInit {
   }
 
   protected queueClass(appointment: ReceptionAppointmentResponse): string {
-    return appointment.queueStatus ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700';
+    if (!appointment.queueStatus) return 'bg-amber-50 text-amber-700';
+    if (appointment.queueStatus === 'LEFT_BEFORE_EXAM' || appointment.queueStatus === 'SKIPPED') {
+      return 'bg-amber-50 text-amber-700';
+    }
+    return 'bg-emerald-50 text-emerald-700';
   }
 
   private handleError(response: { status?: number } & ApiErrorResponse): void {

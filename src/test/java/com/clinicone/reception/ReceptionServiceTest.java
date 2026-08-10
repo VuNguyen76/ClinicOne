@@ -4,6 +4,7 @@ import com.clinicone.appointment.Appointment;
 import com.clinicone.appointment.AppointmentRepository;
 import com.clinicone.appointment.AppointmentResponse;
 import com.clinicone.appointment.AppointmentService;
+import com.clinicone.appointment.AppointmentStatus;
 import com.clinicone.auth.AccountStatus;
 import com.clinicone.auth.PatientAccount;
 import com.clinicone.auth.PatientAccountRepository;
@@ -13,6 +14,7 @@ import com.clinicone.doctor.DoctorProfileRepository;
 import com.clinicone.patientprofile.PatientProfileRepository;
 import com.clinicone.queue.ClinicRoom;
 import com.clinicone.queue.QueueService;
+import com.clinicone.queue.QueueTicket;
 import com.clinicone.queue.QueueTicketRepository;
 import com.clinicone.queue.QueueTicketResponse;
 import org.junit.jupiter.api.BeforeEach;
@@ -119,5 +121,37 @@ class ReceptionServiceTest {
                 "0912345678", null, DOCTOR_ID, TODAY, LocalTime.of(9, 0), "Đau đầu từ sáng",
                 "Người bệnh đến quầy không có lịch")))
                 .hasMessageContaining("Chưa tìm thấy tài khoản");
+    }
+
+    @Test
+    void receptionistCanRecordCheckedInPatientLeftBeforeExam() {
+        UUID ticketId = UUID.randomUUID();
+        PatientAccount patient = mock(PatientAccount.class);
+        when(patient.getFullName()).thenReturn("Nguyễn Thanh Vũ");
+        when(patient.getPhone()).thenReturn("0912345678");
+        Appointment appointment = mock(Appointment.class);
+        when(appointment.getId()).thenReturn(APPOINTMENT_ID);
+        when(appointment.getAppointmentCode()).thenReturn("CL-20260807-1234");
+        when(appointment.getAppointmentDate()).thenReturn(TODAY);
+        when(appointment.getStartTime()).thenReturn(LocalTime.of(9, 0));
+        when(appointment.getSpecialty()).thenReturn("Nội tổng quát");
+        when(appointment.getDoctorName()).thenReturn("BS. Nguyễn An");
+        when(appointment.getStatus()).thenReturn(AppointmentStatus.CHECKED_IN);
+        when(appointment.getPatient()).thenReturn(patient);
+        when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
+        QueueTicket ticket = mock(QueueTicket.class);
+        when(ticket.getId()).thenReturn(ticketId);
+        when(ticketRepository.findByAppointmentId(APPOINTMENT_ID)).thenReturn(Optional.of(ticket));
+        QueueTicketResponse updated = new QueueTicketResponse(ticketId, 8, "NOI-01", "Phòng Nội 01",
+                TODAY, LocalTime.of(9, 0), "LEFT_BEFORE_EXAM", "Rời trước khám", "CL-20260807-1234",
+                "Nội tổng quát", "BS. Nguyễn An");
+        when(queueService.leaveBeforeExam(ticketId, "Người bệnh bận việc đột xuất")).thenReturn(updated);
+
+        ReceptionAppointmentResponse response = service.leaveBeforeExam(APPOINTMENT_ID,
+                "Người bệnh bận việc đột xuất");
+
+        assertThat(response.queueStatus()).isEqualTo("LEFT_BEFORE_EXAM");
+        assertThat(response.queueNumber()).isEqualTo(8);
+        verify(queueService).leaveBeforeExam(ticketId, "Người bệnh bận việc đột xuất");
     }
 }

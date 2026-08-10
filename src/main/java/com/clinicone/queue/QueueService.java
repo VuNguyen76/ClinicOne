@@ -471,9 +471,9 @@ public class QueueService {
                     "Cần ghi lý do bệnh nhân rời trước khi khám.");
         }
         String normalized = reason.trim();
-        if (normalized.length() < 3 || normalized.length() > 250) {
+        if (normalized.length() < 10 || normalized.length() > 500) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "QUEUE_LEAVE_REASON_INVALID",
-                    "Lý do phải từ 3 đến 250 ký tự.");
+                    "Lý do phải từ 10 đến 500 ký tự.");
         }
         return normalized;
     }

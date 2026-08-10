@@ -55,6 +55,26 @@ describe('ReceptionCheckIn', () => {
     expect(fixture.nativeElement.textContent).toContain('Số 05');
   });
 
+  it('records a checked-in patient leaving before examination', () => {
+    const component = fixture.componentInstance as any;
+    component.query.set('CL-20260807-1234');
+    component.search();
+    http.expectOne((item) => item.url === '/api/v1/reception/appointments').flush([
+      { ...appointment(), status: 'CHECKED_IN', queueNumber: 5, queueStatus: 'WAITING', queueStatusLabel: 'Đang chờ' },
+    ]);
+    fixture.detectChanges();
+    component.leaveReason.set('Người bệnh bận việc đột xuất');
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('[data-testid="leave-before-exam"]') as HTMLButtonElement).click();
+    const request = http.expectOne('/api/v1/reception/appointments/a-1/leave');
+    expect(request.request.body).toEqual({ reason: 'Người bệnh bận việc đột xuất' });
+    request.flush({ ...appointment(), status: 'NOT_PERFORMED', queueNumber: 5, queueStatus: 'LEFT_BEFORE_EXAM', queueStatusLabel: 'Rời trước khám' });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Rời trước khám');
+  });
+
   it('opens the walk-in form and creates an appointment from a selected slot', () => {
     const component = fixture.componentInstance as any;
     const openButton = Array.from(fixture.nativeElement.querySelectorAll('button'))

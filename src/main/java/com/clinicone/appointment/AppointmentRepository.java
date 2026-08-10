@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -81,4 +82,17 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
     List<Appointment> findReceptionCandidates(@Param("query") String query,
                                                @Param("appointmentDate") LocalDate appointmentDate,
                                                @Param("status") AppointmentStatus status);
+
+    @Query("""
+            select a from Appointment a
+            join fetch a.patient p
+            left join fetch a.patientProfile profile
+            where a.status in :statuses
+              and a.appointmentDate = :appointmentDate
+              and (lower(a.appointmentCode) = lower(:query) or p.phone = :query or profile.phone = :query)
+            order by a.startTime asc
+            """)
+    List<Appointment> findReceptionCandidatesByStatuses(@Param("query") String query,
+                                                         @Param("appointmentDate") LocalDate appointmentDate,
+                                                         @Param("statuses") Collection<AppointmentStatus> statuses);
 }

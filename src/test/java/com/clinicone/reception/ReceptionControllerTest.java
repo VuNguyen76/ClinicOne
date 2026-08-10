@@ -74,6 +74,20 @@ class ReceptionControllerTest {
     }
 
     @Test
+    void receptionistCanRecordPatientLeftBeforeExam() throws Exception {
+        when(service.leaveBeforeExam(eq(APPOINTMENT_ID), eq("Người bệnh bận việc đột xuất")))
+                .thenReturn(responseWithLeftTicket());
+
+        mockMvc.perform(post("/api/v1/reception/appointments/" + APPOINTMENT_ID + "/leave")
+                        .with(authentication(authenticated("ROLE_RECEPTIONIST")))
+                        .contentType("application/json")
+                        .content("{\"reason\":\"Người bệnh bận việc đột xuất\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.queueNumber").value(5))
+                .andExpect(jsonPath("$.queueStatus").value("LEFT_BEFORE_EXAM"));
+    }
+
+    @Test
     void receptionistCanSeeWhetherTheAccountStillNeedsPasswordChange() throws Exception {
         when(service.profiles("0912345678")).thenReturn(List.of(new ReceptionPatientProfileResponse(
                 UUID.randomUUID(), "Nguyễn Thanh Vũ", "Bản thân", LocalDate.of(2005, 6, 7), true,
@@ -137,6 +151,12 @@ class ReceptionControllerTest {
         return new ReceptionAppointmentResponse(APPOINTMENT_ID, "CL-20260807-1234", LocalDate.of(2026, 8, 7),
                 LocalTime.of(9, 0), "Nội tổng quát", "BS. Nguyễn An", "NOI-01", "Phòng Nội 01", null,
                 "Nguyễn Thanh Vũ", "0912345678", "BOOKED", 5, "WAITING", "Đang chờ");
+    }
+
+    private static ReceptionAppointmentResponse responseWithLeftTicket() {
+        return new ReceptionAppointmentResponse(APPOINTMENT_ID, "CL-20260807-1234", LocalDate.of(2026, 8, 7),
+                LocalTime.of(9, 0), "Nội tổng quát", "BS. Nguyễn An", "NOI-01", "Phòng Nội 01", null,
+                "Nguyễn Thanh Vũ", "0912345678", "NOT_PERFORMED", 5, "LEFT_BEFORE_EXAM", "Rời trước khám");
     }
 
     @TestConfiguration
