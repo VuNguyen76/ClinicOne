@@ -92,8 +92,9 @@ public class StaffManagementService {
 
     @Transactional
     public StaffAccountResponse updateRoles(UUID staffId, UpdateStaffRolesRequest request) {
+        Set<StaffRole> roles = validateRoles(request == null ? null : request.roles());
         StaffAccount account = find(staffId);
-        account.replaceRoles(validateRoles(request == null ? null : request.roles()));
+        account.replaceRoles(roles);
         return StaffAccountResponse.from(accountRepository.save(account));
     }
 
