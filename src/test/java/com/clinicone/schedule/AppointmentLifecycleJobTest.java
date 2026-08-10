@@ -59,8 +59,8 @@ class AppointmentLifecycleJobTest {
     }
 
     @Test
-    void marksBookedAppointmentAbsentAfterExpectedEndAndTwentyFourHours() {
-        Instant now = Instant.parse("2026-08-10T03:00:00Z");
+    void marksBookedAppointmentAbsentTwentyFourHoursAfterScheduledStart() {
+        Instant now = Instant.parse("2026-08-10T01:00:00Z");
         Appointment appointment = appointment(AppointmentStatus.BOOKED, LocalDate.of(2026, 8, 9),
                 LocalTime.of(8, 0), now.minusSeconds(30 * 3600L));
         AtomicBoolean marked = new AtomicBoolean();
@@ -81,6 +81,22 @@ class AppointmentLifecycleJobTest {
         verify(businessLogService).recordTransition(any(), eq("APPOINTMENT"), any(), eq("BOOKED"),
                 eq("ABSENT"), eq("MARK_ABSENT"), eq("SYSTEM"), any());
         verify(notificationService).notifyAppointmentAbsent(appointment);
+    }
+
+    @Test
+    void warnsLateFifteenMinutesAfterScheduledStart() {
+        Instant now = Instant.parse("2026-08-10T01:15:00Z");
+        Appointment appointment = appointment(AppointmentStatus.BOOKED, LocalDate.of(2026, 8, 10),
+                LocalTime.of(8, 0), now.minusSeconds(48 * 3600L));
+        when(appointmentRepository.findByStatusAndAppointmentDateBetweenOrderByAppointmentDateAscStartTimeAsc(
+                eq(AppointmentStatus.BOOKED), any(), any())).thenReturn(List.of(appointment));
+
+        AppointmentLifecycleJob.LifecycleJobResult result = job(now).runOnce();
+
+        assertThat(result.lateWarningCandidates()).isEqualTo(1);
+        assertThat(result.absentTransitions()).isZero();
+        verify(notificationService).notifyAppointmentLate(appointment);
+        verify(appointmentRepository, never()).save(any());
     }
 
     private AppointmentLifecycleJob job(Instant now) {
