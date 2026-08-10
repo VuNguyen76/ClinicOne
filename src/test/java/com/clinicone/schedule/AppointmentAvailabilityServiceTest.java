@@ -32,8 +32,8 @@ class AppointmentAvailabilityServiceTest {
     @Test
     void returnsOnlyWorkingDaySlotsForKnownSpecialty() {
         LocalDate monday = LocalDate.of(2026, 8, 10);
-        when(appointmentRepository.countBookedBySpecialtyAndDateRange(
-                "Khám Tổng Quát", monday, monday, AppointmentStatus.BOOKED))
+        when(appointmentRepository.countBookedBySpecialtyAndDateRangeAndStatusIn(
+                "Khám Tổng Quát", monday, monday, List.of(AppointmentStatus.BOOKED, AppointmentStatus.CHECKED_IN)))
                 .thenReturn(List.of(new SlotBookingCount(monday, LocalTime.of(7, 30), 2L)));
 
         List<AvailableSlotResponse> slots = service.find("Khám Tổng Quát", monday, monday);
@@ -41,18 +41,15 @@ class AppointmentAvailabilityServiceTest {
         assertEquals(7, slots.size());
         assertEquals(8, slots.get(0).remainingCapacity());
         assertEquals(LocalTime.of(7, 30), slots.get(0).startTime());
-        verify(appointmentRepository).countBookedBySpecialtyAndDateRange(
-                "Khám Tổng Quát", monday, monday, AppointmentStatus.BOOKED);
+        verify(appointmentRepository).countBookedBySpecialtyAndDateRangeAndStatusIn(
+                "Khám Tổng Quát", monday, monday, List.of(AppointmentStatus.BOOKED, AppointmentStatus.CHECKED_IN));
     }
 
     @Test
     void keepsCheckedInAppointmentsOccupyingTheirFallbackSlot() {
         LocalDate monday = LocalDate.of(2026, 8, 10);
-        when(appointmentRepository.countBookedBySpecialtyAndDateRange(
-                "Khám Tổng Quát", monday, monday, AppointmentStatus.BOOKED))
-                .thenReturn(List.of());
-        when(appointmentRepository.countBookedBySpecialtyAndDateRange(
-                "Khám Tổng Quát", monday, monday, AppointmentStatus.CHECKED_IN))
+        when(appointmentRepository.countBookedBySpecialtyAndDateRangeAndStatusIn(
+                "Khám Tổng Quát", monday, monday, List.of(AppointmentStatus.BOOKED, AppointmentStatus.CHECKED_IN)))
                 .thenReturn(List.of(new SlotBookingCount(monday, LocalTime.of(7, 30), 10L)));
 
         List<AvailableSlotResponse> slots = service.find("Khám Tổng Quát", monday, monday);
@@ -83,8 +80,9 @@ class AppointmentAvailabilityServiceTest {
         when(clinicService.isActive()).thenReturn(true);
         when(clinicService.getSpecialty()).thenReturn("Khám Tổng Quát");
         when(clinicService.getDurationMinutes()).thenReturn(30);
-        when(appointmentRepository.countBookedBySpecialtyAndDateRange(
-                "Khám Tổng Quát", monday, monday, AppointmentStatus.BOOKED)).thenReturn(List.of());
+        when(appointmentRepository.countBookedBySpecialtyAndDateRangeAndStatusIn(
+                "Khám Tổng Quát", monday, monday, List.of(AppointmentStatus.BOOKED, AppointmentStatus.CHECKED_IN)))
+                .thenReturn(List.of());
 
         AppointmentAvailabilityService serviceWithCatalog = new AppointmentAvailabilityService(
                 appointmentRepository, new SpecialtyCatalogService(), null, null, null,
@@ -118,8 +116,9 @@ class AppointmentAvailabilityServiceTest {
         when(generatedSlot.getDoctorStaffId()).thenReturn(doctorId);
         when(generatedSlot.getDoctorName()).thenReturn("Bác sĩ An");
         when(generatedSlot.getRoomCode()).thenReturn("TQ-01");
-        when(appointmentRepository.countBookedByDoctorsAndDateRange(
-                List.of(doctorId), monday, monday, AppointmentStatus.BOOKED)).thenReturn(List.of());
+        when(appointmentRepository.countBookedByDoctorsAndDateRangeAndStatusIn(
+                List.of(doctorId), monday, monday, List.of(AppointmentStatus.BOOKED, AppointmentStatus.CHECKED_IN)))
+                .thenReturn(List.of());
 
         AppointmentAvailabilityService configuredService = new AppointmentAvailabilityService(
                 appointmentRepository, new SpecialtyCatalogService(), null, null, null,
@@ -158,8 +157,8 @@ class AppointmentAvailabilityServiceTest {
         when(schedule.getSlotDurationMinutes()).thenReturn(60);
         when(scheduleRepository.findActiveBySpecialtyIgnoreCase("Khám Tổng Quát"))
                 .thenReturn(List.of(schedule));
-        when(appointmentRepository.countBookedByDoctorsAndDateRange(
-                List.of(doctorStaffId), monday, monday, AppointmentStatus.BOOKED))
+        when(appointmentRepository.countBookedByDoctorsAndDateRangeAndStatusIn(
+                List.of(doctorStaffId), monday, monday, List.of(AppointmentStatus.BOOKED, AppointmentStatus.CHECKED_IN)))
                 .thenReturn(List.of(new DoctorSlotBookingCount(doctorStaffId, monday, LocalTime.of(8, 30), 1L)));
 
         List<AvailableSlotResponse> slots = configuredService.find("Khám Tổng Quát", monday, monday);
@@ -167,8 +166,8 @@ class AppointmentAvailabilityServiceTest {
         assertEquals(1, slots.size());
         assertEquals(LocalTime.of(9, 30), slots.get(0).startTime());
         verify(scheduleRepository).findActiveBySpecialtyIgnoreCase("Khám Tổng Quát");
-        verify(appointmentRepository).countBookedByDoctorsAndDateRange(
-                List.of(doctorStaffId), monday, monday, AppointmentStatus.BOOKED);
+        verify(appointmentRepository).countBookedByDoctorsAndDateRangeAndStatusIn(
+                List.of(doctorStaffId), monday, monday, List.of(AppointmentStatus.BOOKED, AppointmentStatus.CHECKED_IN));
         verify(appointmentRepository, org.mockito.Mockito.never())
                 .countByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
                         org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
