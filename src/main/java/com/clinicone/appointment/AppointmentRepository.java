@@ -55,6 +55,8 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
 
     Optional<Appointment> findByIdAndPatientId(UUID appointmentId, UUID patientId);
 
+    Optional<Appointment> findByAppointmentCode(String appointmentCode);
+
     @Query("""
             select a from Appointment a
             join fetch a.patient p
