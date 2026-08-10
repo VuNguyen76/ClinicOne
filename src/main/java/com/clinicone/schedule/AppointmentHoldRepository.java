@@ -1,6 +1,7 @@
 package com.clinicone.schedule;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -91,4 +92,16 @@ public interface AppointmentHoldRepository extends JpaRepository<AppointmentHold
                                                            @Param("from") LocalDate from,
                                                            @Param("to") LocalDate to,
                                                            @Param("now") Instant now);
+
+    @Modifying
+    @Query("""
+            delete from AppointmentHold h
+            where h.doctorStaffId = :doctorStaffId
+              and h.appointmentDate between :from and :to
+              and h.expiresAt > :now
+            """)
+    int deleteActiveByDoctorAndDateRange(@Param("doctorStaffId") UUID doctorStaffId,
+                                         @Param("from") LocalDate from,
+                                         @Param("to") LocalDate to,
+                                         @Param("now") Instant now);
 }

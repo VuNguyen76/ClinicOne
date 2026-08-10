@@ -372,6 +372,19 @@ export interface RescheduleCaseResponse {
   resolvedAt: string | null;
 }
 
+export interface DoctorTimeOffResponse {
+  id: string;
+  doctorId: string;
+  doctorName: string;
+  startDate: string;
+  endDate: string;
+  reason: string;
+  lockedSlotCount: number;
+  releasedHoldCount: number;
+  affectedAppointmentCount: number;
+  active: boolean;
+}
+
 export interface AvailableReplacementSlot {
   specialty: string;
   appointmentDate: string;
@@ -834,6 +847,14 @@ export class AuthApiService {
 
   getRescheduleCases(): Observable<RescheduleCaseResponse[]> {
     return this.http.get<RescheduleCaseResponse[]>('/api/v1/admin/rescheduling');
+  }
+
+  getDoctorTimeOffs(): Observable<DoctorTimeOffResponse[]> {
+    return this.http.get<DoctorTimeOffResponse[]>('/api/v1/admin/doctor-time-off');
+  }
+
+  createDoctorTimeOff(request: { doctorId: string; startDate: string; endDate: string; reason: string }): Observable<DoctorTimeOffResponse> {
+    return this.http.post<DoctorTimeOffResponse>('/api/v1/admin/doctor-time-off', request);
   }
 
   getReplacementSlots(caseId: string, from?: string, to?: string): Observable<AvailableReplacementSlot[]> {

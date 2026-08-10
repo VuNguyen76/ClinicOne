@@ -63,6 +63,10 @@
         [class.text-[#0284c7]]="isActive('/admin/rescheduling')" [attr.aria-current]="isActive('/admin/rescheduling') ? 'page' : null"
         class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]"
         role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">event_repeat</mat-icon>Sắp xếp lại lịch</a>}
+      @if (canManageRooms()) {<a routerLink="/admin/doctor-time-off" [class.bg-[#eafaff]]="isActive('/admin/doctor-time-off')"
+        [class.text-[#0284c7]]="isActive('/admin/doctor-time-off')" [attr.aria-current]="isActive('/admin/doctor-time-off') ? 'page' : null"
+        class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]"
+        role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">event_busy</mat-icon>Nghỉ đột xuất</a>}
       @if (staffRole() === 'ADMIN') {<a routerLink="/admin/staff" [class.bg-[#eafaff]]="isActive('/admin/staff')"
         [class.text-[#0284c7]]="isActive('/admin/staff')" [attr.aria-current]="isActive('/admin/staff') ? 'page' : null"
         class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]"

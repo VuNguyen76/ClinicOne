@@ -82,6 +82,25 @@ public class ReschedulingService {
         return opened;
     }
 
+    @Transactional
+    public int openForDoctorTimeOff(UUID doctorId, LocalDate from, LocalDate to, String reason) {
+        List<Appointment> appointments = appointmentRepository
+                .findByDoctorStaffIdAndAppointmentDateBetweenAndStatusOrderByAppointmentDateAscStartTimeAsc(
+                        doctorId, from, to, AppointmentStatus.BOOKED);
+        int opened = 0;
+        for (Appointment appointment : appointments) {
+            if (caseRepository.findByAppointmentIdAndStatus(appointment.getId(), RescheduleCaseStatus.OPEN).isPresent()) {
+                continue;
+            }
+            RescheduleCase item = caseRepository.save(RescheduleCase.open(appointment, reason));
+            if (notificationService != null) {
+                notificationService.notifyAppointmentRescheduleRequired(appointment);
+            }
+            opened++;
+        }
+        return opened;
+    }
+
     @Transactional(readOnly = true)
     public List<RescheduleCaseResponse> listOpen() {
         return caseRepository.findByStatusOrderByCreatedAtAsc(RescheduleCaseStatus.OPEN).stream()
