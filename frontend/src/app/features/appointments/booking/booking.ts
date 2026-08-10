@@ -43,6 +43,8 @@ export class Booking implements OnInit {
   protected readonly selectedSpecialty = signal('');
   protected readonly selectedDate = signal('');
   protected readonly selectedSlot = signal('');
+  protected readonly holdId = signal<string | null>(null);
+  protected readonly holdBusy = signal(false);
   protected readonly calendarMonth = signal(this.startOfMonth(new Date()));
   protected readonly dates = signal(this.buildMonthDates(this.calendarMonth()));
   protected readonly specialties = signal<SpecialtyOption[]>([]);
@@ -96,6 +98,7 @@ export class Booking implements OnInit {
     this.form.controls.startTime.reset('');
     this.selectedDate.set('');
     this.selectedSlot.set('');
+    this.holdId.set(null);
     this.monthSlots.set([]);
     this.step.set(2);
     this.loadMonthAvailability();
@@ -140,6 +143,9 @@ export class Booking implements OnInit {
 
   protected chooseSlot(slot: TimeSlot): void {
     this.clearError();
+    if (this.selectedSlot() !== slot.key) {
+      this.holdId.set(null);
+    }
     this.selectedSlot.set(slot.key);
     this.form.controls.startTime.setValue(slot.startTime);
     this.form.controls.doctorName.setValue(slot.doctorName);
@@ -165,7 +171,29 @@ export class Booking implements OnInit {
       this.error = 'Vui lòng chọn ngày và khung giờ khám.';
       return;
     }
-    this.step.set(3);
+    if (this.holdId()) {
+      this.step.set(3);
+      return;
+    }
+    const value = this.form.getRawValue();
+    this.holdBusy.set(true);
+    this.authApi.holdAppointmentSlot({
+      specialty: value.specialty,
+      doctorName: value.doctorName,
+      doctorId: value.doctorId || undefined,
+      appointmentDate: value.appointmentDate,
+      startTime: value.startTime,
+    }).subscribe({
+      next: (hold) => {
+        this.holdBusy.set(false);
+        this.holdId.set(hold.id);
+        this.step.set(3);
+      },
+      error: (response) => {
+        this.holdBusy.set(false);
+        this.handleAuthError(response);
+      },
+    });
   }
 
   protected back(): void {
@@ -187,7 +215,7 @@ export class Booking implements OnInit {
 
     this.busy = true;
     const value = this.form.getRawValue();
-    this.authApi.createAppointment({ ...value, profileId: value.profileId || undefined }).subscribe({
+    this.authApi.createAppointment({ ...value, profileId: value.profileId || undefined, holdId: this.holdId() ?? undefined }).subscribe({
       next: () => void this.router.navigateByUrl('/dashboard'),
       error: (response) => {
         this.busy = false;
@@ -235,6 +263,7 @@ export class Booking implements OnInit {
     this.dates.set(this.buildMonthDates(this.calendarMonth()));
     this.selectedDate.set('');
     this.selectedSlot.set('');
+    this.holdId.set(null);
     this.availableSlots.set([]);
     this.form.controls.appointmentDate.reset('');
     this.form.controls.startTime.reset('');

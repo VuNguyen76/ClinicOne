@@ -66,4 +66,30 @@ describe('Booking calendar', () => {
     expect(component['availableSlots']()[0].label).toBe('08:30 - 09:30');
     http.expectNone((item) => item.url === '/api/v1/appointment-slots');
   });
+
+  it('holds the selected slot before opening the patient details step', () => {
+    component['chooseSpecialty']({ code: 'NOI', name: 'Nội tổng quát', description: 'Khám tổng quát' });
+    const slotsRequest = http.expectOne((item) => item.url === '/api/v1/appointment-slots');
+    const date = component['dates']().find((item) => item.inCurrentMonth && item.iso >= component['today']);
+    slotsRequest.flush([{
+      specialty: 'Nội tổng quát', appointmentDate: date!.iso, startTime: '08:30:00', endTime: '09:30:00',
+      doctorName: 'Bác sĩ chuyên khoa', remainingCapacity: 1, doctorId: 'doctor-1', roomCode: 'NOI-01',
+    }]);
+    component['chooseDate'](date!);
+    component['chooseSlot'](component['availableSlots']()[0]);
+
+    component['continueToDetails']();
+    const holdRequest = http.expectOne('/api/v1/appointment-holds');
+    expect(holdRequest.request.body).toEqual({
+      specialty: 'Nội tổng quát', doctorName: 'Bác sĩ chuyên khoa', doctorId: 'doctor-1',
+      appointmentDate: date!.iso, startTime: '08:30',
+    });
+    holdRequest.flush({
+      id: 'hold-1', specialty: 'Nội tổng quát', doctorName: 'Bác sĩ chuyên khoa',
+      appointmentDate: date!.iso, startTime: '08:30:00', expiresAt: '2026-08-10T01:05:00Z',
+    });
+
+    expect(component['holdId']()).toBe('hold-1');
+    expect(component['step']()).toBe(3);
+  });
 });

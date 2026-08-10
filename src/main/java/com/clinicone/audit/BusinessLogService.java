@@ -2,6 +2,10 @@ package com.clinicone.audit;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.clinicone.reconciliation.ReconciliationIncidentRepository;
+import com.clinicone.reconciliation.ReconciliationStatus;
+import com.clinicone.auth.AuthException;
+import org.springframework.http.HttpStatus;
 
 import java.util.List;
 import java.util.UUID;
@@ -9,9 +13,17 @@ import java.util.UUID;
 @Service
 public class BusinessLogService {
     private final BusinessLogRepository repository;
+    private final ReconciliationIncidentRepository reconciliationRepository;
 
     public BusinessLogService(BusinessLogRepository repository) {
+        this(repository, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public BusinessLogService(BusinessLogRepository repository,
+                              ReconciliationIncidentRepository reconciliationRepository) {
         this.repository = repository;
+        this.reconciliationRepository = reconciliationRepository;
     }
 
     /**
@@ -26,6 +38,12 @@ public class BusinessLogService {
         }
         if (sameState(previousStatus, nextStatus)) {
             return;
+        }
+        if (reconciliationRepository != null
+                && reconciliationRepository.existsByEntityTypeAndEntityIdAndStatus(
+                entityType, entityId, ReconciliationStatus.OPEN)) {
+            throw new AuthException(HttpStatus.CONFLICT, "RECONCILIATION_REQUIRED",
+                    "Đối tượng đang có sự cố cần đối soát trước khi thực hiện tiếp.");
         }
         String normalizedReason = normalizeReason(reason);
         if (repository.existsByEventIdAndEntityTypeAndEntityId(eventId, entityType, entityId)) {
