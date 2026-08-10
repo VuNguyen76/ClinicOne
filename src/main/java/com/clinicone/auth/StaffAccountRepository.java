@@ -10,4 +10,6 @@ public interface StaffAccountRepository extends JpaRepository<StaffAccount, UUID
     Optional<StaffAccount> findByUsernameIgnoreCase(String username);
 
     List<StaffAccount> findByRoleOrderByFullNameAsc(StaffRole role);
+
+    List<StaffAccount> findAllByOrderByFullNameAsc();
 }

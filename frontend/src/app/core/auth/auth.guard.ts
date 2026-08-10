@@ -79,6 +79,17 @@ export const roomManagerGuard: CanActivateFn = (_route, state) => {
   return role === 'ADMIN' || role === 'COORDINATOR' ? true : router.createUrlTree(['/home']);
 };
 
+export const adminGuard: CanActivateFn = (_route, state) => {
+  const router = inject(Router);
+  const token = sessionToken();
+  const role = staffRole();
+
+  if (!token || !role) {
+    return router.createUrlTree(['/staff/login'], { queryParams: { returnUrl: state.url } });
+  }
+  return role === 'ADMIN' ? true : router.createUrlTree(['/admin/rooms']);
+};
+
 function sessionToken(): string | null {
   return typeof sessionStorage === 'undefined' ? null : sessionStorage.getItem('clinicOneAccessToken');
 }

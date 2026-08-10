@@ -275,6 +275,14 @@ export interface DoctorScheduleResponse {
   active: boolean;
 }
 
+export interface StaffAccountResponse {
+  staffId: string;
+  username: string;
+  fullName: string;
+  role: 'ADMIN' | 'COORDINATOR' | 'RECEPTIONIST' | 'DOCTOR' | string;
+  status: 'ACTIVE' | 'LOCKED' | string;
+}
+
 export interface RescheduleCaseResponse {
   id: string;
   appointmentId: string;
@@ -694,6 +702,18 @@ export class AuthApiService {
 
   removeDoctorSchedule(staffId: string, scheduleId: string): Observable<void> {
     return this.http.delete<void>(`/api/v1/admin/doctors/${staffId}/schedules/${scheduleId}`);
+  }
+
+  getStaffAccounts(): Observable<StaffAccountResponse[]> {
+    return this.http.get<StaffAccountResponse[]>('/api/v1/admin/staff');
+  }
+
+  lockStaffAccount(staffId: string): Observable<StaffAccountResponse> {
+    return this.http.post<StaffAccountResponse>(`/api/v1/admin/staff/${staffId}/lock`, {});
+  }
+
+  unlockStaffAccount(staffId: string): Observable<StaffAccountResponse> {
+    return this.http.post<StaffAccountResponse>(`/api/v1/admin/staff/${staffId}/unlock`, {});
   }
 
   getRescheduleCases(): Observable<RescheduleCaseResponse[]> {

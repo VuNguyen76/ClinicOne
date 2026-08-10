@@ -55,6 +55,10 @@
         [class.text-[#0284c7]]="isActive('/admin/rescheduling')" [attr.aria-current]="isActive('/admin/rescheduling') ? 'page' : null"
         class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]"
         role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">event_repeat</mat-icon>Sắp xếp lại lịch</a>}
+      @if (staffRole() === 'ADMIN') {<a routerLink="/admin/staff" [class.bg-[#eafaff]]="isActive('/admin/staff')"
+        [class.text-[#0284c7]]="isActive('/admin/staff')" [attr.aria-current]="isActive('/admin/staff') ? 'page' : null"
+        class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]"
+        role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">manage_accounts</mat-icon>Tài khoản nhân viên</a>}
       <button type="button"
         class="flex w-full items-center gap-3 border-t border-slate-100 px-5 py-3 text-left text-sm text-slate-700 transition hover:bg-slate-50 hover:text-rose-600"
         role="menuitem" (click)="logout()"><mat-icon class="!text-[20px]">logout</mat-icon>Đăng xuất</button>
