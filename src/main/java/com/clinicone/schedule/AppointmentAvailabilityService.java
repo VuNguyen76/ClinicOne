@@ -413,39 +413,26 @@ public class AppointmentAvailabilityService {
     }
 
     private List<SlotBookingCount> countSpecialtyBookings(String specialty, LocalDate from, LocalDate to) {
-        Map<SlotKey, Long> counts = new HashMap<>();
-        for (AppointmentStatus status : ACTIVE_BOOKING_STATUSES) {
-            appointmentRepository.countBookedBySpecialtyAndDateRange(specialty, from, to, status)
-                    .forEach(item -> counts.merge(new SlotKey(item.appointmentDate(), item.startTime()),
-                            item.bookedCount(), Long::sum));
-        }
-        return counts.entrySet().stream()
-                .map(item -> new SlotBookingCount(item.getKey().date(), item.getKey().startTime(), item.getValue()))
-                .toList();
+        return appointmentRepository.countBookedBySpecialtyAndDateRangeAndStatusIn(
+                specialty, from, to, ACTIVE_BOOKING_STATUSES);
     }
 
     private long countSpecialtyBookings(String specialty, LocalDate date, LocalTime startTime) {
-        return ACTIVE_BOOKING_STATUSES.stream()
-                .mapToLong(status -> appointmentRepository.countBySpecialtyAndAppointmentDateAndStartTimeAndStatus(
-                        specialty, date, startTime, status))
-                .sum();
+        return appointmentRepository.countBySpecialtyAndAppointmentDateAndStartTimeAndStatusIn(
+                specialty, date, startTime, ACTIVE_BOOKING_STATUSES);
     }
 
     private long countDoctorBookings(UUID doctorId, LocalDate date, LocalTime startTime) {
-        return ACTIVE_BOOKING_STATUSES.stream()
-                .mapToLong(status -> appointmentRepository.countByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
-                        doctorId, date, startTime, status))
-                .sum();
+        return appointmentRepository.countByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatusIn(
+                doctorId, date, startTime, ACTIVE_BOOKING_STATUSES);
     }
 
     private Map<DoctorSlotKey, Long> countDoctorBookings(List<UUID> doctorStaffIds, LocalDate from, LocalDate to) {
-        Map<DoctorSlotKey, Long> counts = new HashMap<>();
-        for (AppointmentStatus status : ACTIVE_BOOKING_STATUSES) {
-            appointmentRepository.countBookedByDoctorsAndDateRange(doctorStaffIds, from, to, status)
-                    .forEach(item -> counts.merge(
-                            new DoctorSlotKey(item.doctorStaffId(), item.appointmentDate(), item.startTime()),
-                            item.bookedCount(), Long::sum));
-        }
-        return counts;
+        return appointmentRepository.countBookedByDoctorsAndDateRangeAndStatusIn(
+                        doctorStaffIds, from, to, ACTIVE_BOOKING_STATUSES)
+                .stream()
+                .collect(Collectors.toMap(
+                        item -> new DoctorSlotKey(item.doctorStaffId(), item.appointmentDate(), item.startTime()),
+                        DoctorSlotBookingCount::bookedCount));
     }
 }

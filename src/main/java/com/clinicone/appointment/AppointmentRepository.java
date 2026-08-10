@@ -22,8 +22,16 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
     long countBySpecialtyAndAppointmentDateAndStartTimeAndStatus(String specialty, LocalDate appointmentDate,
                                                                   LocalTime startTime, AppointmentStatus status);
 
+    long countBySpecialtyAndAppointmentDateAndStartTimeAndStatusIn(String specialty, LocalDate appointmentDate,
+                                                                    LocalTime startTime,
+                                                                    Collection<AppointmentStatus> statuses);
+
     long countByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(UUID doctorStaffId, LocalDate appointmentDate,
                                                                        LocalTime startTime, AppointmentStatus status);
+
+    long countByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatusIn(UUID doctorStaffId, LocalDate appointmentDate,
+                                                                         LocalTime startTime,
+                                                                         Collection<AppointmentStatus> statuses);
 
     @Query("""
             select new com.clinicone.schedule.SlotBookingCount(a.appointmentDate, a.startTime, count(a))
@@ -40,6 +48,20 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
             @Param("status") AppointmentStatus status);
 
     @Query("""
+            select new com.clinicone.schedule.SlotBookingCount(a.appointmentDate, a.startTime, count(a))
+            from Appointment a
+            where a.specialty = :specialty
+              and a.appointmentDate between :from and :to
+              and a.status in :statuses
+            group by a.appointmentDate, a.startTime
+            """)
+    List<SlotBookingCount> countBookedBySpecialtyAndDateRangeAndStatusIn(
+            @Param("specialty") String specialty,
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to,
+            @Param("statuses") Collection<AppointmentStatus> statuses);
+
+    @Query("""
             select new com.clinicone.schedule.DoctorSlotBookingCount(
                 a.doctorStaffId, a.appointmentDate, a.startTime, count(a))
             from Appointment a
@@ -53,6 +75,21 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
             @Param("from") LocalDate from,
             @Param("to") LocalDate to,
             @Param("status") AppointmentStatus status);
+
+    @Query("""
+            select new com.clinicone.schedule.DoctorSlotBookingCount(
+                a.doctorStaffId, a.appointmentDate, a.startTime, count(a))
+            from Appointment a
+            where a.doctorStaffId in :doctorStaffIds
+              and a.appointmentDate between :from and :to
+              and a.status in :statuses
+            group by a.doctorStaffId, a.appointmentDate, a.startTime
+            """)
+    List<DoctorSlotBookingCount> countBookedByDoctorsAndDateRangeAndStatusIn(
+            @Param("doctorStaffIds") List<UUID> doctorStaffIds,
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to,
+            @Param("statuses") Collection<AppointmentStatus> statuses);
 
     Optional<Appointment> findByIdAndPatientId(UUID appointmentId, UUID patientId);
 
