@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@ang
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
-import { ApiErrorResponse, AppointmentSlotResponse, AuthApiService, apiErrorMessage, PatientProfileItem, SpecialtyOption } from '../../../core/auth/auth-api.service';
+import { ApiErrorResponse, AppointmentSlotResponse, AuthApiService, apiErrorMessage, ClinicServiceResponse, PatientProfileItem, SpecialtyOption } from '../../../core/auth/auth-api.service';
 import { AccountMenu } from '../../../shared/account-menu/account-menu';
 
 type BookingStep = 1 | 2 | 3;
@@ -41,6 +41,7 @@ export class Booking implements OnInit {
   protected readonly step = signal<BookingStep>(1);
   protected readonly specialtySearch = signal('');
   protected readonly selectedSpecialty = signal('');
+  protected readonly selectedClinicService = signal<ClinicServiceResponse | null>(null);
   protected readonly selectedDate = signal('');
   protected readonly selectedSlot = signal('');
   protected readonly holdId = signal<string | null>(null);
@@ -49,6 +50,8 @@ export class Booking implements OnInit {
   protected readonly dates = signal(this.buildMonthDates(this.calendarMonth()));
   protected readonly specialties = signal<SpecialtyOption[]>([]);
   protected readonly specialtiesLoading = signal(true);
+  protected readonly clinicServices = signal<ClinicServiceResponse[]>([]);
+  protected readonly clinicServicesLoading = signal(true);
   protected readonly availableSlots = signal<TimeSlot[]>([]);
   protected readonly slotsLoading = signal(false);
   protected profiles: PatientProfileItem[] = [];
@@ -71,6 +74,10 @@ export class Booking implements OnInit {
       next: (specialties) => { this.specialties.set(specialties); this.specialtiesLoading.set(false); },
       error: (response) => { this.specialtiesLoading.set(false); this.handleAuthError(response); },
     });
+    this.authApi.getActiveClinicServices().subscribe({
+      next: (services) => { this.clinicServices.set(services); this.clinicServicesLoading.set(false); },
+      error: (response) => { this.clinicServicesLoading.set(false); this.handleAuthError(response); },
+    });
     this.authApi.getPatientProfiles().subscribe({
       next: (profiles) => {
         this.profiles = profiles;
@@ -90,8 +97,31 @@ export class Booking implements OnInit {
     return query ? this.specialties().filter((item) => `${item.name} ${item.description}`.toLocaleLowerCase('vi-VN').includes(query)) : this.specialties();
   }
 
+  protected filteredClinicServices(): ClinicServiceResponse[] {
+    const query = this.specialtySearch().trim().toLocaleLowerCase('vi-VN');
+    return query
+      ? this.clinicServices().filter((item) => `${item.name} ${item.specialty} ${item.visitType}`.toLocaleLowerCase('vi-VN').includes(query))
+      : this.clinicServices();
+  }
+
+  protected chooseClinicService(service: ClinicServiceResponse): void {
+    this.clearError();
+    this.selectedClinicService.set(service);
+    this.selectedSpecialty.set(service.specialty);
+    this.form.controls.specialty.setValue(service.specialty);
+    this.form.controls.appointmentDate.reset('');
+    this.form.controls.startTime.reset('');
+    this.selectedDate.set('');
+    this.selectedSlot.set('');
+    this.holdId.set(null);
+    this.monthSlots.set([]);
+    this.step.set(2);
+    this.loadMonthAvailability();
+  }
+
   protected chooseSpecialty(specialty: SpecialtyOption): void {
     this.clearError();
+    this.selectedClinicService.set(null);
     this.selectedSpecialty.set(specialty.name);
     this.form.controls.specialty.setValue(specialty.name);
     this.form.controls.appointmentDate.reset('');
@@ -183,6 +213,7 @@ export class Booking implements OnInit {
       doctorId: value.doctorId || undefined,
       appointmentDate: value.appointmentDate,
       startTime: value.startTime,
+      serviceId: this.selectedClinicService()?.id,
     }).subscribe({
       next: (hold) => {
         this.holdBusy.set(false);
@@ -215,7 +246,8 @@ export class Booking implements OnInit {
 
     this.busy = true;
     const value = this.form.getRawValue();
-    this.authApi.createAppointment({ ...value, profileId: value.profileId || undefined, holdId: this.holdId() ?? undefined }).subscribe({
+    this.authApi.createAppointment({ ...value, profileId: value.profileId || undefined,
+      holdId: this.holdId() ?? undefined, serviceId: this.selectedClinicService()?.id }).subscribe({
       next: () => void this.router.navigateByUrl('/dashboard'),
       error: (response) => {
         this.busy = false;
@@ -278,7 +310,7 @@ export class Booking implements OnInit {
     const monthStart = this.toIsoDate(month);
     const monthEnd = this.toIsoDate(new Date(month.getFullYear(), month.getMonth() + 1, 0));
     this.slotsLoading.set(true);
-    this.authApi.getAppointmentSlots(specialty, monthStart, monthEnd).subscribe({
+    this.authApi.getAppointmentSlots(specialty, monthStart, monthEnd, this.selectedClinicService()?.id).subscribe({
       next: (slots) => { this.monthSlots.set(slots); this.slotsLoading.set(false); },
       error: (response) => { this.slotsLoading.set(false); this.handleAuthError(response); },
     });

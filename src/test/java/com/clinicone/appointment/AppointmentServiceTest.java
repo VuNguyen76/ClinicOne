@@ -8,6 +8,8 @@ import com.clinicone.notification.PatientNotificationService;
 import com.clinicone.schedule.AppointmentAvailabilityService;
 import com.clinicone.schedule.AppointmentHold;
 import com.clinicone.schedule.AppointmentHoldService;
+import com.clinicone.doctor.DoctorProfile;
+import com.clinicone.auth.StaffAccount;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -15,6 +17,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -25,6 +28,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.never;
 
 class AppointmentServiceTest {
     private static final UUID ACCOUNT_ID = UUID.fromString("7d9e3fb4-1045-4ca4-86d2-7d1fca4c1a13");
@@ -34,6 +38,7 @@ class AppointmentServiceTest {
     private PatientNotificationService notificationService;
     private AppointmentAvailabilityService availabilityService;
     private AppointmentHoldService holdService;
+    private com.clinicone.schedule.ClinicServiceRepository clinicServiceRepository;
     private AppointmentService service;
 
     @BeforeEach
@@ -43,8 +48,9 @@ class AppointmentServiceTest {
         notificationService = mock(PatientNotificationService.class);
         availabilityService = mock(AppointmentAvailabilityService.class);
         holdService = mock(AppointmentHoldService.class);
+        clinicServiceRepository = mock(com.clinicone.schedule.ClinicServiceRepository.class);
         service = new AppointmentService(accountRepository, appointmentRepository, null, availabilityService,
-                notificationService, null, holdService);
+                notificationService, null, holdService, clinicServiceRepository);
         when(appointmentRepository.save(any(Appointment.class))).thenAnswer(invocation -> invocation.getArgument(0));
     }
 
@@ -65,6 +71,75 @@ class AppointmentServiceTest {
         assertEquals("Đã đặt", response.statusLabel());
         verify(appointmentRepository).save(any(Appointment.class));
         verify(notificationService).notifyAppointmentCreated(any(Appointment.class));
+    }
+
+    @Test
+    void persistsSelectedClinicServiceSnapshotOnAppointment() {
+        PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
+        setId(account, ACCOUNT_ID);
+        UUID serviceId = UUID.randomUUID();
+        com.clinicone.schedule.ClinicService clinicService = mock(com.clinicone.schedule.ClinicService.class);
+        when(clinicService.getId()).thenReturn(serviceId);
+        when(clinicService.isActive()).thenReturn(true);
+        when(clinicService.getName()).thenReturn("Khám tổng quát cơ bản");
+        when(clinicService.getSpecialty()).thenReturn("Nội khoa");
+        when(clinicService.getVisitType()).thenReturn("Khám thường");
+        when(clinicService.getDurationMinutes()).thenReturn(30);
+        when(clinicServiceRepository.findById(serviceId)).thenReturn(Optional.of(clinicService));
+        when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
+        when(appointmentRepository.findByPatientIdAndAppointmentDateAndStartTimeAndStatus(
+                ACCOUNT_ID, LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), AppointmentStatus.BOOKED)).thenReturn(Optional.empty());
+
+        AppointmentResponse response = service.create(ACCOUNT_ID.toString(), new CreateAppointmentRequest(
+                "Nội khoa", "BS. Nguyễn An", LocalDate.of(2026, 8, 10), LocalTime.of(8, 30),
+                "Đau đầu kéo dài", null, null, null, serviceId));
+
+        assertEquals(serviceId, response.serviceId());
+        assertEquals("Khám tổng quát cơ bản", response.serviceName());
+        assertEquals("Khám thường", response.visitType());
+        assertEquals(30, response.serviceDurationMinutes());
+        verify(appointmentRepository).save(any(Appointment.class));
+    }
+
+    @Test
+    void rejectsUnknownClinicServiceBeforeCreatingAppointment() {
+        PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
+        setId(account, ACCOUNT_ID);
+        UUID serviceId = UUID.randomUUID();
+        when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
+        when(clinicServiceRepository.findById(serviceId)).thenReturn(Optional.empty());
+
+        AuthException exception = assertThrows(AuthException.class, () -> service.create(ACCOUNT_ID.toString(), new CreateAppointmentRequest(
+                "Nội khoa", "BS. Nguyễn An", LocalDate.of(2026, 8, 10), LocalTime.of(8, 30),
+                "Đau đầu kéo dài", null, null, null, serviceId)));
+
+        assertEquals("CLINIC_SERVICE_NOT_FOUND", exception.getCode());
+        verify(appointmentRepository, never()).save(any(Appointment.class));
+    }
+
+    @Test
+    void rejectsDoctorOutsideSelectedClinicService() {
+        PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
+        setId(account, ACCOUNT_ID);
+        UUID serviceId = UUID.randomUUID();
+        UUID requestedDoctorId = UUID.randomUUID();
+        StaffAccount eligibleStaff = mock(StaffAccount.class);
+        when(eligibleStaff.getId()).thenReturn(UUID.randomUUID());
+        DoctorProfile eligibleDoctor = mock(DoctorProfile.class);
+        when(eligibleDoctor.getStaffAccount()).thenReturn(eligibleStaff);
+        com.clinicone.schedule.ClinicService clinicService = mock(com.clinicone.schedule.ClinicService.class);
+        when(clinicService.isActive()).thenReturn(true);
+        when(clinicService.getSpecialty()).thenReturn("Nội khoa");
+        when(clinicService.getEligibleDoctors()).thenReturn(Set.of(eligibleDoctor));
+        when(clinicServiceRepository.findById(serviceId)).thenReturn(Optional.of(clinicService));
+        when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
+
+        AuthException exception = assertThrows(AuthException.class, () -> service.create(ACCOUNT_ID.toString(), new CreateAppointmentRequest(
+                "Nội khoa", "BS. Nguyễn An", LocalDate.of(2026, 8, 10), LocalTime.of(8, 30),
+                "Đau đầu kéo dài", null, requestedDoctorId, null, serviceId)));
+
+        assertEquals("CLINIC_SERVICE_DOCTOR_NOT_ELIGIBLE", exception.getCode());
+        verify(appointmentRepository, never()).save(any(Appointment.class));
     }
 
     @Test
@@ -158,6 +233,25 @@ class AppointmentServiceTest {
         assertEquals(LocalDate.of(2026, 8, 11), response.appointmentDate());
         assertEquals(LocalTime.of(10, 0), response.startTime());
         verify(notificationService).notifyAppointmentRescheduled(appointment, "2026-08-10", "08:30");
+    }
+
+    @Test
+    void keepsSelectedClinicServiceWhenRescheduling() {
+        PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
+        setId(account, ACCOUNT_ID);
+        UUID serviceId = UUID.randomUUID();
+        Appointment appointment = Appointment.existing(account, "CL-20260810-AB12", "Nội khoa", "BS. Nguyễn An",
+                LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), "Đau đầu");
+        appointment.applyServiceSnapshot(serviceId, "Khám tổng quát", "Khám thường", 30);
+        when(appointmentRepository.findByIdAndPatientId(any(), eq(ACCOUNT_ID))).thenReturn(Optional.of(appointment));
+        when(appointmentRepository.findByPatientIdAndAppointmentDateAndStartTimeAndStatus(
+                ACCOUNT_ID, LocalDate.of(2026, 8, 11), LocalTime.of(10, 0), AppointmentStatus.BOOKED)).thenReturn(Optional.empty());
+
+        service.reschedule(ACCOUNT_ID.toString(), UUID.randomUUID().toString(),
+                new RescheduleAppointmentRequest(LocalDate.of(2026, 8, 11), LocalTime.of(10, 0)));
+
+        verify(availabilityService).ensureBookable("Nội khoa", "BS. Nguyễn An", null,
+                LocalDate.of(2026, 8, 11), LocalTime.of(10, 0), null, serviceId);
     }
 
     private static void setId(PatientAccount account, UUID id) {

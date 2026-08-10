@@ -24,15 +24,26 @@ public class AppointmentHoldService {
     private final AppointmentHoldRepository holdRepository;
     private final AppointmentAvailabilityService availabilityService;
     private final Clock clock;
+    private final ClinicServiceRepository clinicServiceRepository;
 
     public AppointmentHoldService(PatientAccountRepository accountRepository,
                                   AppointmentHoldRepository holdRepository,
                                   AppointmentAvailabilityService availabilityService,
                                   Clock clock) {
+        this(accountRepository, holdRepository, availabilityService, clock, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public AppointmentHoldService(PatientAccountRepository accountRepository,
+                                  AppointmentHoldRepository holdRepository,
+                                  AppointmentAvailabilityService availabilityService,
+                                  Clock clock,
+                                  ClinicServiceRepository clinicServiceRepository) {
         this.accountRepository = accountRepository;
         this.holdRepository = holdRepository;
         this.availabilityService = availabilityService;
         this.clock = clock;
+        this.clinicServiceRepository = clinicServiceRepository;
     }
 
     @Transactional
@@ -40,6 +51,7 @@ public class AppointmentHoldService {
         UUID patientId = parseAccountId(accountId);
         PatientAccount patient = accountRepository.findById(patientId)
                 .orElseThrow(() -> authRequired());
+        validateService(request);
         Instant now = Instant.now(clock);
         String holdKey = holdKey(patientId, request);
         var existing = holdRepository.findByHoldKey(holdKey);
@@ -55,12 +67,17 @@ public class AppointmentHoldService {
             holdRepository.flush();
         }
 
-        availabilityService.ensureBookable(request.specialty(), request.doctorName(), request.doctorId(),
-                request.appointmentDate(), request.startTime());
+        if (request.serviceId() == null) {
+            availabilityService.ensureBookable(request.specialty(), request.doctorName(), request.doctorId(),
+                    request.appointmentDate(), request.startTime());
+        } else {
+            availabilityService.ensureBookable(request.specialty(), request.doctorName(), request.doctorId(),
+                    request.appointmentDate(), request.startTime(), null, request.serviceId());
+        }
 
         AppointmentHold hold = AppointmentHold.create(patient, request.specialty().trim(), request.doctorName().trim(),
                 request.doctorId(), request.appointmentDate(), request.startTime(), holdKey,
-                now.plus(HOLD_DURATION));
+                now.plus(HOLD_DURATION), request.serviceId());
         try {
             return AppointmentHoldResponse.from(holdRepository.saveAndFlush(hold));
         } catch (DataIntegrityViolationException exception) {
@@ -98,6 +115,8 @@ public class AppointmentHoldService {
 
     private boolean sameSlot(AppointmentHold hold, CreateAppointmentRequest request) {
         return hold.getSpecialty().equalsIgnoreCase(request.specialty())
+                && (hold.getServiceId() == null ? request.serviceId() == null
+                : hold.getServiceId().equals(request.serviceId()))
                 && (hold.getDoctorStaffId() == null ? request.doctorId() == null
                 : hold.getDoctorStaffId().equals(request.doctorId()))
                 && hold.getAppointmentDate().equals(request.appointmentDate())
@@ -108,9 +127,40 @@ public class AppointmentHoldService {
         String date = request.appointmentDate().toString();
         String time = request.startTime().toString();
         if (request.doctorId() != null) {
-            return "DOCTOR:" + request.doctorId() + ":" + date + ":" + time;
+            if (request.serviceId() == null) {
+                return "DOCTOR:" + request.doctorId() + ":" + date + ":" + time;
+            }
+            return "DOCTOR:" + request.doctorId() + ":" + request.serviceId() + ":" + date + ":" + time;
         }
-        return "PATIENT:" + patientId + ":" + request.specialty().trim().toLowerCase() + ":" + date + ":" + time;
+        String base = "PATIENT:" + patientId + ":" + request.specialty().trim().toLowerCase();
+        return request.serviceId() == null
+                ? base + ":" + date + ":" + time
+                : base + ":" + request.serviceId() + ":" + date + ":" + time;
+    }
+
+    private void validateService(CreateAppointmentHoldRequest request) {
+        if (request.serviceId() == null || clinicServiceRepository == null) {
+            return;
+        }
+        ClinicService service = clinicServiceRepository.findById(request.serviceId())
+                .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "CLINIC_SERVICE_NOT_FOUND",
+                        "Không tìm thấy dịch vụ khám đã chọn."));
+        if (!service.isActive()) {
+            throw new AuthException(HttpStatus.CONFLICT, "CLINIC_SERVICE_INACTIVE",
+                    "Dịch vụ khám đã tạm ngưng nhận lịch.");
+        }
+        if (!service.getSpecialty().equalsIgnoreCase(request.specialty().trim())) {
+            throw new AuthException(HttpStatus.CONFLICT, "CLINIC_SERVICE_SPECIALTY_MISMATCH",
+                    "Dịch vụ không thuộc chuyên khoa đã chọn.");
+        }
+        var eligibleDoctors = service.getEligibleDoctors();
+        if (eligibleDoctors != null && !eligibleDoctors.isEmpty()
+                && (request.doctorId() == null || eligibleDoctors.stream()
+                .map(doctor -> doctor.getStaffAccount().getId())
+                .noneMatch(request.doctorId()::equals))) {
+            throw new AuthException(HttpStatus.CONFLICT, "CLINIC_SERVICE_DOCTOR_NOT_ELIGIBLE",
+                    "Bác sĩ đã chọn không thực hiện dịch vụ này.");
+        }
     }
 
     private void throwExpired(AppointmentHold hold) {

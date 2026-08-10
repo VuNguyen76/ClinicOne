@@ -8,6 +8,8 @@ import com.clinicone.patientprofile.PatientProfileRepository;
 import com.clinicone.schedule.AppointmentAvailabilityService;
 import com.clinicone.schedule.AppointmentHold;
 import com.clinicone.schedule.AppointmentHoldService;
+import com.clinicone.schedule.ClinicService;
+import com.clinicone.schedule.ClinicServiceRepository;
 import com.clinicone.notification.PatientNotificationService;
 import com.clinicone.audit.BusinessLogService;
 import org.springframework.http.HttpStatus;
@@ -29,39 +31,48 @@ public class AppointmentService {
     private final PatientNotificationService notificationService;
     private final BusinessLogService businessLogService;
     private final AppointmentHoldService holdService;
+    private final ClinicServiceRepository clinicServiceRepository;
 
     public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository) {
-        this(accountRepository, appointmentRepository, null, null, null, null, null);
+        this(accountRepository, appointmentRepository, null, null, null, null, null, null);
     }
 
     public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
                               PatientProfileRepository profileRepository) {
-        this(accountRepository, appointmentRepository, profileRepository, null, null, null, null);
+        this(accountRepository, appointmentRepository, profileRepository, null, null, null, null, null);
     }
 
     public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
                               PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService) {
-        this(accountRepository, appointmentRepository, profileRepository, availabilityService, null, null, null);
+        this(accountRepository, appointmentRepository, profileRepository, availabilityService, null, null, null, null);
     }
 
     public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
                               PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService,
                               PatientNotificationService notificationService) {
-        this(accountRepository, appointmentRepository, profileRepository, availabilityService, notificationService, null, null);
+        this(accountRepository, appointmentRepository, profileRepository, availabilityService, notificationService, null, null, null);
     }
 
     public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
                               PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService,
                               PatientNotificationService notificationService, BusinessLogService businessLogService) {
         this(accountRepository, appointmentRepository, profileRepository, availabilityService, notificationService,
-                businessLogService, null);
+                businessLogService, null, null);
+    }
+
+    public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
+                              PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService,
+                              PatientNotificationService notificationService, BusinessLogService businessLogService,
+                              AppointmentHoldService holdService) {
+        this(accountRepository, appointmentRepository, profileRepository, availabilityService, notificationService,
+                businessLogService, holdService, null);
     }
 
     @org.springframework.beans.factory.annotation.Autowired
     public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
                               PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService,
                               PatientNotificationService notificationService, BusinessLogService businessLogService,
-                              AppointmentHoldService holdService) {
+                              AppointmentHoldService holdService, ClinicServiceRepository clinicServiceRepository) {
         this.accountRepository = accountRepository;
         this.appointmentRepository = appointmentRepository;
         this.profileRepository = profileRepository;
@@ -69,6 +80,7 @@ public class AppointmentService {
         this.notificationService = notificationService;
         this.businessLogService = businessLogService;
         this.holdService = holdService;
+        this.clinicServiceRepository = clinicServiceRepository;
     }
 
     @Transactional(readOnly = true)
@@ -91,6 +103,7 @@ public class AppointmentService {
         UUID patientId = parseAccountId(accountId);
         PatientAccount patient = accountRepository.findById(patientId)
                 .orElseThrow(() -> authenticationRequired());
+        ClinicService selectedService = resolveService(request);
         LocalDate appointmentDate = request.appointmentDate();
         LocalTime startTime = request.startTime();
         AppointmentHold hold = null;
@@ -103,11 +116,21 @@ public class AppointmentService {
         }
         if (availabilityService != null) {
             if (hold == null) {
-                availabilityService.ensureBookable(request.specialty(), request.doctorName(), request.doctorId(),
-                        appointmentDate, startTime);
+                if (request.serviceId() == null) {
+                    availabilityService.ensureBookable(request.specialty(), request.doctorName(), request.doctorId(),
+                            appointmentDate, startTime);
+                } else {
+                    availabilityService.ensureBookable(request.specialty(), request.doctorName(), request.doctorId(),
+                            appointmentDate, startTime, null, request.serviceId());
+                }
             } else {
-                availabilityService.ensureBookable(request.specialty(), request.doctorName(), request.doctorId(),
-                        appointmentDate, startTime, hold.getId());
+                if (request.serviceId() == null) {
+                    availabilityService.ensureBookable(request.specialty(), request.doctorName(), request.doctorId(),
+                            appointmentDate, startTime, hold.getId());
+                } else {
+                    availabilityService.ensureBookable(request.specialty(), request.doctorName(), request.doctorId(),
+                            appointmentDate, startTime, hold.getId(), request.serviceId());
+                }
             }
         }
         if (appointmentRepository.findByPatientIdAndAppointmentDateAndStartTimeAndStatus(
@@ -123,6 +146,10 @@ public class AppointmentService {
                 : Appointment.create(patient, request.doctorId(), profile, nextAppointmentCode(),
                 request.specialty().trim(), request.doctorName().trim(), appointmentDate, startTime,
                 request.reason().trim());
+        if (selectedService != null) {
+            appointment.applyServiceSnapshot(selectedService.getId(), selectedService.getName(),
+                    selectedService.getVisitType(), selectedService.getDurationMinutes());
+        }
         Appointment saved = appointmentRepository.save(appointment);
         if (hold != null) {
             holdService.consume(hold);
@@ -133,6 +160,37 @@ public class AppointmentService {
             notificationService.notifyAppointmentCreated(saved);
         }
         return AppointmentResponse.from(saved);
+    }
+
+    private ClinicService resolveService(CreateAppointmentRequest request) {
+        if (request.serviceId() == null) {
+            return null;
+        }
+        if (clinicServiceRepository == null) {
+            throw new AuthException(HttpStatus.CONFLICT, "CLINIC_SERVICE_UNAVAILABLE",
+                    "Danh mục dịch vụ khám chưa sẵn sàng.");
+        }
+        ClinicService service = clinicServiceRepository.findById(request.serviceId())
+                .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "CLINIC_SERVICE_NOT_FOUND",
+                        "Không tìm thấy dịch vụ khám đã chọn."));
+        if (!service.isActive()) {
+            throw new AuthException(HttpStatus.CONFLICT, "CLINIC_SERVICE_INACTIVE",
+                    "Dịch vụ khám đã tạm ngưng nhận lịch.");
+        }
+        if (!service.getSpecialty().equalsIgnoreCase(request.specialty().trim())) {
+            throw new AuthException(HttpStatus.CONFLICT, "CLINIC_SERVICE_SPECIALTY_MISMATCH",
+                    "Dịch vụ không thuộc chuyên khoa đã chọn.");
+        }
+        var eligibleDoctors = service.getEligibleDoctors();
+        if (eligibleDoctors != null && !eligibleDoctors.isEmpty()) {
+            if (request.doctorId() == null || eligibleDoctors.stream()
+                    .map(doctor -> doctor.getStaffAccount().getId())
+                    .noneMatch(request.doctorId()::equals)) {
+                throw new AuthException(HttpStatus.CONFLICT, "CLINIC_SERVICE_DOCTOR_NOT_ELIGIBLE",
+                        "Bác sĩ đã chọn không thực hiện dịch vụ này.");
+            }
+        }
+        return service;
     }
 
     private PatientProfile resolveProfile(UUID profileId, UUID patientId) {
@@ -167,8 +225,14 @@ public class AppointmentService {
         boolean sameSlot = appointment.getAppointmentDate().equals(request.appointmentDate())
                 && appointment.getStartTime().equals(request.startTime());
         if (availabilityService != null && !sameSlot) {
-            availabilityService.ensureBookable(appointment.getSpecialty(), appointment.getDoctorName(),
-                    appointment.getDoctorStaffId(), request.appointmentDate(), request.startTime());
+            if (appointment.getServiceId() == null) {
+                availabilityService.ensureBookable(appointment.getSpecialty(), appointment.getDoctorName(),
+                        appointment.getDoctorStaffId(), request.appointmentDate(), request.startTime());
+            } else {
+                availabilityService.ensureBookable(appointment.getSpecialty(), appointment.getDoctorName(),
+                        appointment.getDoctorStaffId(), request.appointmentDate(), request.startTime(), null,
+                        appointment.getServiceId());
+            }
         }
         if (!sameSlot && appointmentRepository.findByPatientIdAndAppointmentDateAndStartTimeAndStatus(
                 patientId, request.appointmentDate(), request.startTime(), AppointmentStatus.BOOKED).isPresent()) {

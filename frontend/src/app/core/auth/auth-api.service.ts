@@ -145,6 +145,7 @@ export interface CreateAppointmentRequest {
   profileId?: string;
   doctorId?: string;
   holdId?: string;
+  serviceId?: string;
 }
 
 export interface CreateAppointmentHoldRequest {
@@ -153,6 +154,7 @@ export interface CreateAppointmentHoldRequest {
   appointmentDate: string;
   startTime: string;
   doctorId?: string;
+  serviceId?: string;
 }
 
 export interface AppointmentHoldResponse {
@@ -537,8 +539,10 @@ export class AuthApiService {
     return this.http.get<ClinicServiceResponse[]>('/api/v1/services');
   }
 
-  getAppointmentSlots(specialty: string, from: string, to: string): Observable<AppointmentSlotResponse[]> {
-    return this.http.get<AppointmentSlotResponse[]>(this.appointmentSlotsRoot, { params: { specialty, from, to } });
+  getAppointmentSlots(specialty: string, from: string, to: string, serviceId?: string): Observable<AppointmentSlotResponse[]> {
+    return this.http.get<AppointmentSlotResponse[]>(this.appointmentSlotsRoot, {
+      params: { specialty, from, to, ...(serviceId ? { serviceId } : {}) },
+    });
   }
 
   createPatientProfile(request: PatientProfileRequest): Observable<PatientProfileItem> {

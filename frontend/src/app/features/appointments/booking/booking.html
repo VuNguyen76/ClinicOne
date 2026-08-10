@@ -71,20 +71,27 @@
     <section class="min-w-0 border border-slate-200 bg-white shadow-sm">
       @if (step() === 1) {
       <div class="border-b border-slate-200 bg-[#159fe0] px-6 py-4 text-lg font-bold text-white sm:px-8">Vui lòng chọn
-        chuyên khoa</div>
+        dịch vụ khám</div>
       <div class="p-6 sm:p-8"><label class="relative block"><mat-icon
             class="pointer-events-none absolute left-4 top-1/2 !h-5 !w-5 !-translate-y-1/2 !text-[20px] text-slate-400">search</mat-icon><input
             class="min-h-12 w-full rounded-lg border border-slate-200 pl-12 pr-4 text-sm outline-none transition focus:border-[#0ea5e9] focus:ring-4 focus:ring-[#0ea5e9]/10"
-            placeholder="Tìm nhanh chuyên khoa" [value]="specialtySearch()"
+            placeholder="Tìm dịch vụ hoặc chuyên khoa" [value]="specialtySearch()"
             (input)="specialtySearch.set($any($event.target).value)" /></label>
-        <div class="mt-5 divide-y divide-slate-200 border border-slate-200">@for (specialty of filteredSpecialties();
+        @if (clinicServicesLoading()) {<p class="mt-5 rounded-lg border border-slate-200 px-5 py-8 text-center text-sm text-slate-500">Đang tải dịch vụ khám...</p>}
+        @else if (clinicServices().length > 0) {<div class="mt-5 divide-y divide-slate-200 border border-slate-200">@for (service of filteredClinicServices();
+          track service.id) {<button type="button"
+            class="group block w-full px-5 py-4 text-left transition hover:bg-[#f1fbfe]"
+            (click)="chooseClinicService(service)"><span
+              class="block text-sm font-semibold text-slate-700 group-hover:text-[#0789c4]">{{ service.name
+              }}</span><span class="mt-1 block text-xs leading-5 text-slate-500">{{ service.specialty }} · {{ service.visitType }} · {{ service.durationMinutes }} phút</span></button>} @empty {<p class="px-5 py-8 text-center text-sm text-slate-500">Không tìm thấy dịch vụ phù hợp.</p>}</div>}
+        @else {<div class="mt-5 divide-y divide-slate-200 border border-slate-200">@for (specialty of filteredSpecialties();
           track specialty.name) {<button type="button"
             class="group block w-full px-5 py-4 text-left transition hover:bg-[#f1fbfe]"
             (click)="chooseSpecialty(specialty)"><span
               class="block text-sm font-semibold uppercase text-slate-700 group-hover:text-[#0789c4]">{{ specialty.name
               }}</span><span class="mt-1 block text-xs leading-5 text-slate-500">{{ specialty.description
               }}</span></button>} @empty {<p class="px-5 py-8 text-center text-sm text-slate-500">Không tìm thấy chuyên
-            khoa phù hợp.</p>}</div>
+            khoa phù hợp.</p>}</div>}
       </div>
       } @else if (step() === 2) {
       <div class="border-b border-slate-200 bg-[#159fe0] px-6 py-4 text-lg font-bold text-white sm:px-8">Vui lòng chọn

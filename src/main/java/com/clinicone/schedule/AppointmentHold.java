@@ -48,6 +48,9 @@ public class AppointmentHold {
     @Column(name = "doctor_staff_id")
     private UUID doctorStaffId;
 
+    @Column(name = "clinic_service_id")
+    private UUID serviceId;
+
     @Column(name = "appointment_date", nullable = false)
     private LocalDate appointmentDate;
 
@@ -68,10 +71,17 @@ public class AppointmentHold {
 
     private AppointmentHold(PatientAccount patient, String specialty, String doctorName, UUID doctorStaffId,
                              LocalDate appointmentDate, LocalTime startTime, String holdKey, Instant expiresAt) {
+        this(patient, specialty, doctorName, doctorStaffId, appointmentDate, startTime, holdKey, expiresAt, null);
+    }
+
+    private AppointmentHold(PatientAccount patient, String specialty, String doctorName, UUID doctorStaffId,
+                             LocalDate appointmentDate, LocalTime startTime, String holdKey, Instant expiresAt,
+                             UUID serviceId) {
         this.patient = patient;
         this.specialty = specialty;
         this.doctorName = doctorName;
         this.doctorStaffId = doctorStaffId;
+        this.serviceId = serviceId;
         this.appointmentDate = appointmentDate;
         this.startTime = startTime;
         this.holdKey = holdKey;
@@ -83,6 +93,13 @@ public class AppointmentHold {
                                           String holdKey, Instant expiresAt) {
         return new AppointmentHold(patient, specialty, doctorName, doctorStaffId, appointmentDate, startTime,
                 holdKey, expiresAt);
+    }
+
+    public static AppointmentHold create(PatientAccount patient, String specialty, String doctorName,
+                                          UUID doctorStaffId, LocalDate appointmentDate, LocalTime startTime,
+                                          String holdKey, Instant expiresAt, UUID serviceId) {
+        return new AppointmentHold(patient, specialty, doctorName, doctorStaffId, appointmentDate, startTime,
+                holdKey, expiresAt, serviceId);
     }
 
     @PrePersist
@@ -97,6 +114,7 @@ public class AppointmentHold {
     public String getSpecialty() { return specialty; }
     public String getDoctorName() { return doctorName; }
     public UUID getDoctorStaffId() { return doctorStaffId; }
+    public UUID getServiceId() { return serviceId; }
     public LocalDate getAppointmentDate() { return appointmentDate; }
     public LocalTime getStartTime() { return startTime; }
     public String getHoldKey() { return holdKey; }

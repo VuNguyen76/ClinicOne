@@ -62,6 +62,21 @@ class AppointmentHoldServiceTest {
     }
 
     @Test
+    void keepsSelectedClinicServiceOnHold() {
+        PatientAccount account = account();
+        UUID serviceId = UUID.randomUUID();
+        when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
+        when(holdRepository.findByHoldKey(any())).thenReturn(Optional.empty());
+        when(holdRepository.saveAndFlush(any(AppointmentHold.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        AppointmentHoldResponse response = service.create(ACCOUNT_ID.toString(),
+                new CreateAppointmentHoldRequest("Nội tổng quát", "BS. An",
+                        LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), DOCTOR_ID, serviceId));
+
+        assertEquals(serviceId, response.serviceId());
+    }
+
+    @Test
     void reusesAnActiveHoldOwnedBySamePatient() {
         PatientAccount account = account();
         AppointmentHold existing = AppointmentHold.create(account, "Nội tổng quát", "BS. An", DOCTOR_ID,
