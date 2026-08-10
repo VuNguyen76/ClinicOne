@@ -168,8 +168,7 @@ public class AppointmentService {
                 }
             }
         }
-        if (appointmentRepository.findByPatientIdAndAppointmentDateAndStartTimeAndStatus(
-                patientId, appointmentDate, startTime, AppointmentStatus.BOOKED).isPresent()) {
+        if (hasActiveAppointment(patientId, appointmentDate, startTime)) {
             throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_DUPLICATE",
                     "Bạn đã có lịch hẹn trong khung giờ này.");
         }
@@ -272,8 +271,7 @@ public class AppointmentService {
                         appointment.getServiceId());
             }
         }
-        if (!sameSlot && appointmentRepository.findByPatientIdAndAppointmentDateAndStartTimeAndStatus(
-                patientId, request.appointmentDate(), request.startTime(), AppointmentStatus.BOOKED).isPresent()) {
+        if (!sameSlot && hasActiveAppointment(patientId, request.appointmentDate(), request.startTime())) {
             throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_DUPLICATE",
                     "Bạn đã có lịch hẹn trong khung giờ này.");
         }
@@ -289,7 +287,8 @@ public class AppointmentService {
 
     private String nextAppointmentCode() {
         int suffix = ThreadLocalRandom.current().nextInt(1000, 10000);
-        return "CL-" + LocalDate.now().toString().replace("-", "") + "-" + suffix;
+        LocalDate clinicToday = LocalDate.now(clock.withZone(CLINIC_ZONE));
+        return "CL-" + clinicToday.toString().replace("-", "") + "-" + suffix;
     }
 
     private UUID parseAccountId(String accountId) {
@@ -327,6 +326,13 @@ public class AppointmentService {
     private AuthException authenticationRequired() {
         return new AuthException(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_REQUIRED",
                 "Phiên đăng nhập không hợp lệ.");
+    }
+
+    private boolean hasActiveAppointment(UUID patientId, LocalDate appointmentDate, LocalTime startTime) {
+        return appointmentRepository.findByPatientIdAndAppointmentDateAndStartTimeAndStatus(
+                        patientId, appointmentDate, startTime, AppointmentStatus.BOOKED).isPresent()
+                || appointmentRepository.findByPatientIdAndAppointmentDateAndStartTimeAndStatus(
+                        patientId, appointmentDate, startTime, AppointmentStatus.CHECKED_IN).isPresent();
     }
 
     private void requireLateCancellationReason(Appointment appointment, String reason) {
