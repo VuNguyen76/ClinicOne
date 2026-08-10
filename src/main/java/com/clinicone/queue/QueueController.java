@@ -117,7 +117,7 @@ public class QueueController {
     }
 
     private StaffRole staffRole(Authentication authentication) {
-        return authentication.getAuthorities().stream()
+        List<StaffRole> roles = authentication.getAuthorities().stream()
                 .map(granted -> granted.getAuthority())
                 .filter(authority -> authority.startsWith("ROLE_"))
                 .map(authority -> authority.substring("ROLE_".length()))
@@ -129,7 +129,11 @@ public class QueueController {
                     }
                 })
                 .filter(java.util.Objects::nonNull)
+                .toList();
+        return roles.stream()
+                .filter(role -> role == StaffRole.DOCTOR)
                 .findFirst()
+                .or(() -> roles.stream().findFirst())
                 .orElseThrow(() -> new org.springframework.security.access.AccessDeniedException("Staff role required"));
     }
 }
