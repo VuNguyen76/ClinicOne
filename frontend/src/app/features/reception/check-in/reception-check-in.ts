@@ -52,6 +52,9 @@ export class ReceptionCheckIn implements OnInit {
   protected readonly registrationAddress = signal('');
   protected readonly registrationOtpSent = signal(false);
   protected readonly registrationLoading = signal(false);
+  protected readonly activationPassword = signal('');
+  protected readonly activationConfirmPassword = signal('');
+  protected readonly activationLoading = signal(false);
 
   ngOnInit(): void {
     this.query.set('');
@@ -150,6 +153,8 @@ export class ReceptionCheckIn implements OnInit {
     this.registrationEthnicity.set('Kinh');
     this.registrationAddress.set('');
     this.registrationOtpSent.set(false);
+    this.activationPassword.set('');
+    this.activationConfirmPassword.set('');
     this.error.set('');
     if (this.walkInSpecialties().length === 0) {
       this.authApi.getSpecialties().subscribe({
@@ -218,9 +223,33 @@ export class ReceptionCheckIn implements OnInit {
     });
   }
 
-  protected continueAfterPasswordChange(): void {
-    this.walkInNeedsPasswordChange.set(false);
-    this.loadWalkInProfiles();
+  protected activatePendingAccount(): void {
+    const phone = this.walkInPhone().trim();
+    const password = this.activationPassword();
+    if (!/^0\d{9}$/.test(phone) || password.length < 8 || password.length > 64) {
+      this.error.set('Mật khẩu mới phải dài từ 8 đến 64 ký tự.');
+      return;
+    }
+    if (password !== this.activationConfirmPassword()) {
+      this.error.set('Hai lần nhập mật khẩu mới không giống nhau.');
+      return;
+    }
+    this.activationLoading.set(true);
+    this.error.set('');
+    this.authApi.activateReceptionPatientAccount(phone, password, this.activationConfirmPassword()).subscribe({
+      next: () => {
+        this.activationLoading.set(false);
+        this.activationPassword.set('');
+        this.activationConfirmPassword.set('');
+        this.walkInNeedsPasswordChange.set(false);
+        this.notice.set('Đã kích hoạt tài khoản. Có thể tiếp tục tiếp nhận.');
+        this.loadWalkInProfiles();
+      },
+      error: (response) => {
+        this.activationLoading.set(false);
+        this.handleError(response);
+      },
+    });
   }
 
   protected loadWalkInProfiles(): void {
@@ -239,7 +268,7 @@ export class ReceptionCheckIn implements OnInit {
           this.walkInNeedsPasswordChange.set(true);
           this.notice.set(profiles.some((profile) => profile.accountStatus === 'LOCKED')
             ? 'Tài khoản đang bị khóa. Cần xử lý tài khoản trước khi tiếp nhận.'
-            : 'Người bệnh chưa đổi mật khẩu tạm. Hãy yêu cầu đăng nhập và đổi mật khẩu trước khi tiếp tục.');
+            : 'Người bệnh chưa kích hoạt tài khoản. Hãy đặt mật khẩu mới trước khi tiếp tục.');
         } else {
           this.walkInNeedsPasswordChange.set(false);
         }

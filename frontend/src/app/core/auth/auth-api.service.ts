@@ -831,6 +831,10 @@ export class AuthApiService {
     return this.http.post<ReceptionPatientRegistrationResponse>('/api/v1/reception/patients', request);
   }
 
+  activateReceptionPatientAccount(phone: string, newPassword: string, confirmPassword: string): Observable<void> {
+    return this.http.post<void>('/api/v1/auth/activate', { phone, newPassword, confirmPassword });
+  }
+
   saveDoctorExaminationDraft(ticketId: string, request: DoctorExaminationRequest): Observable<DoctorExaminationResponse> {
     return this.http.put<DoctorExaminationResponse>(`/api/v1/doctor/examinations/${ticketId}/draft`, request);
   }

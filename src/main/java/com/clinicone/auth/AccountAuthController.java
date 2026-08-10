@@ -55,6 +55,12 @@ public class AccountAuthController {
         }
     }
 
+    @PostMapping("/activate")
+    public ResponseEntity<Void> activate(@Valid @RequestBody ActivateAccountRequest request) {
+        authService.activatePendingAccount(request);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(Authentication authentication, HttpServletRequest servletRequest) {
         authService.logout(authentication.getName());
