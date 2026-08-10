@@ -11,20 +11,20 @@ export const authGuard: CanActivateFn = (_route, state) => {
 export const patientGuard: CanActivateFn = (_route, state) => {
   const router = inject(Router);
   const token = sessionToken();
-  const role = staffRole();
+  const roles = staffRoles();
 
   if (!token) {
     return router.createUrlTree(['/login'], { queryParams: { returnUrl: state.url } });
   }
-  return role ? router.createUrlTree(['/home']) : true;
+  return roles.length ? router.createUrlTree(['/home']) : true;
 };
 
 export const staffGuard: CanActivateFn = (_route, state) => {
   const router = inject(Router);
   const token = sessionToken();
-  const role = staffRole();
+  const roles = staffRoles();
 
-  if (token && role) {
+  if (token && roles.length) {
     return true;
   }
   return router.createUrlTree(['/staff/login'], { queryParams: { returnUrl: state.url } });
@@ -33,11 +33,11 @@ export const staffGuard: CanActivateFn = (_route, state) => {
 export const receptionGuard: CanActivateFn = (_route, state) => {
   const router = inject(Router);
   const token = sessionToken();
-  const role = staffRole();
-  if (!token || !role) {
+  const roles = staffRoles();
+  if (!token || !roles.length) {
     return router.createUrlTree(['/staff/login'], { queryParams: { returnUrl: state.url } });
   }
-  return ['ADMIN', 'COORDINATOR', 'RECEPTIONIST'].includes(role)
+  return roles.some((role) => ['ADMIN', 'COORDINATOR', 'RECEPTIONIST'].includes(role))
     ? true
     : router.createUrlTree(['/doctor']);
 };
@@ -45,24 +45,24 @@ export const receptionGuard: CanActivateFn = (_route, state) => {
 export const doctorGuard: CanActivateFn = (_route, state) => {
   const router = inject(Router);
   const token = sessionToken();
-  const role = staffRole();
+  const roles = staffRoles();
 
-  if (!token || !role) {
+  if (!token || !roles.length) {
     return router.createUrlTree(['/staff/login'], { queryParams: { returnUrl: state.url } });
   }
-  return role === 'DOCTOR' ? true : router.createUrlTree(['/home']);
+  return roles.includes('DOCTOR') ? true : router.createUrlTree(['/home']);
 };
 
 export const homeGuard: CanActivateFn = () => {
   const router = inject(Router);
-  const role = staffRole();
-  if (!sessionToken() || !role) {
+  const roles = staffRoles();
+  if (!sessionToken() || !roles.length) {
     return true;
   }
-  if (role === 'DOCTOR') {
+  if (roles.includes('DOCTOR')) {
     return router.createUrlTree(['/doctor']);
   }
-  if (role === 'ADMIN' || role === 'COORDINATOR') {
+  if (roles.includes('ADMIN') || roles.includes('COORDINATOR')) {
     return router.createUrlTree(['/admin/rooms']);
   }
   return router.createUrlTree(['/staff/login']);
@@ -71,23 +71,23 @@ export const homeGuard: CanActivateFn = () => {
 export const roomManagerGuard: CanActivateFn = (_route, state) => {
   const router = inject(Router);
   const token = sessionToken();
-  const role = staffRole();
+  const roles = staffRoles();
 
-  if (!token || !role) {
+  if (!token || !roles.length) {
     return router.createUrlTree(['/staff/login'], { queryParams: { returnUrl: state.url } });
   }
-  return role === 'ADMIN' || role === 'COORDINATOR' ? true : router.createUrlTree(['/home']);
+  return roles.includes('ADMIN') || roles.includes('COORDINATOR') ? true : router.createUrlTree(['/home']);
 };
 
 export const adminGuard: CanActivateFn = (_route, state) => {
   const router = inject(Router);
   const token = sessionToken();
-  const role = staffRole();
+  const roles = staffRoles();
 
-  if (!token || !role) {
+  if (!token || !roles.length) {
     return router.createUrlTree(['/staff/login'], { queryParams: { returnUrl: state.url } });
   }
-  return role === 'ADMIN' ? true : router.createUrlTree(['/admin/rooms']);
+  return roles.includes('ADMIN') ? true : router.createUrlTree(['/admin/rooms']);
 };
 
 function sessionToken(): string | null {
@@ -96,4 +96,17 @@ function sessionToken(): string | null {
 
 function staffRole(): string | null {
   return typeof sessionStorage === 'undefined' ? null : sessionStorage.getItem('clinicOneStaffRole');
+}
+
+function staffRoles(): string[] {
+  if (typeof sessionStorage === 'undefined') return [];
+  const raw = sessionStorage.getItem('clinicOneStaffRoles');
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed.filter((value): value is string => typeof value === 'string');
+    } catch { /* fall back to the legacy primary role */ }
+  }
+  const role = staffRole();
+  return role ? [role] : [];
 }

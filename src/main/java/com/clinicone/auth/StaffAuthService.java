@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 
 @Service
 public class StaffAuthService {
@@ -39,10 +40,11 @@ public class StaffAuthService {
         Instant now = Instant.now(clock);
         Instant expiresAt = now.plus(SESSION_LIFETIME);
         String token = tokenGenerator.generate();
+        List<String> roles = account.getRoles().stream().map(StaffRole::authority).toList();
         sessionRepository.save(new LoginSession(account.getId(), AccountAuthService.hashToken(token), now,
-                expiresAt, account.getRole().authority()));
+                expiresAt, String.join(",", roles)));
         return new StaffLoginResponse(token, "Bearer", expiresAt, account.getId(), account.getFullName(),
-                account.getRole().name());
+                account.getRole().name(), account.getRoles().stream().map(Enum::name).toList());
     }
 
     @Transactional

@@ -186,6 +186,7 @@ export class RoomManagement implements OnInit {
       sessionStorage.removeItem('clinicOneAccessToken');
       sessionStorage.removeItem('clinicOnePatientName');
       sessionStorage.removeItem('clinicOneStaffRole');
+      sessionStorage.removeItem('clinicOneStaffRoles');
       void this.router.navigateByUrl('/login');
       return;
     }

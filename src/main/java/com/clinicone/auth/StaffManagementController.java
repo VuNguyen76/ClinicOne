@@ -8,12 +8,15 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.security.Principal;
 import java.util.List;
 import java.util.UUID;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/v1/admin/staff")
@@ -30,6 +33,25 @@ public class StaffManagementController {
     @GetMapping
     public ResponseEntity<List<StaffAccountResponse>> list() {
         return ResponseEntity.ok(service.list());
+    }
+
+    @PostMapping
+    public ResponseEntity<StaffAccountCreatedResponse> create(@Valid @RequestBody CreateStaffAccountRequest request,
+                                                               Principal principal, HttpServletRequest httpRequest) {
+        StaffAccountCreatedResponse response = service.create(request);
+        recordAudit("STAFF_CREATE", principal == null ? "SYSTEM" : principal.getName(), "SUCCESS",
+                "/api/v1/admin/staff", httpRequest.getRemoteAddr());
+        return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED).body(response);
+    }
+
+    @PutMapping("/{staffId}/roles")
+    public ResponseEntity<StaffAccountResponse> updateRoles(@PathVariable @NotNull UUID staffId,
+                                                            @Valid @RequestBody UpdateStaffRolesRequest request,
+                                                            Principal principal, HttpServletRequest httpRequest) {
+        StaffAccountResponse response = service.updateRoles(staffId, request);
+        recordAudit("STAFF_ROLE_UPDATE", principal == null ? "SYSTEM" : principal.getName(), "SUCCESS",
+                "/api/v1/admin/staff/{id}/roles", httpRequest.getRemoteAddr());
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/{staffId}/lock")

@@ -369,6 +369,7 @@ export class ReceptionCheckIn implements OnInit {
     if (response.status === 401 || response.status === 403) {
       sessionStorage.removeItem('clinicOneAccessToken');
       sessionStorage.removeItem('clinicOneStaffRole');
+      sessionStorage.removeItem('clinicOneStaffRoles');
       void this.router.navigateByUrl('/staff/login');
       return;
     }

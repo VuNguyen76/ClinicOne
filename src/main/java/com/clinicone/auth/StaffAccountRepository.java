@@ -9,6 +9,8 @@ import java.util.List;
 public interface StaffAccountRepository extends JpaRepository<StaffAccount, UUID> {
     Optional<StaffAccount> findByUsernameIgnoreCase(String username);
 
+    boolean existsByEmployeeCodeIgnoreCase(String employeeCode);
+
     List<StaffAccount> findByRoleOrderByFullNameAsc(StaffRole role);
 
     List<StaffAccount> findAllByOrderByFullNameAsc();

@@ -382,7 +382,16 @@ export interface StaffAccountResponse {
   username: string;
   fullName: string;
   role: 'ADMIN' | 'COORDINATOR' | 'RECEPTIONIST' | 'DOCTOR' | string;
+  roles?: string[];
+  employeeCode?: string | null;
+  unitName?: string | null;
+  departmentName?: string | null;
   status: 'ACTIVE' | 'LOCKED' | string;
+}
+
+export interface StaffAccountCreatedResponse {
+  account: StaffAccountResponse;
+  initialPassword: string;
 }
 
 export interface RescheduleCaseResponse {
@@ -580,6 +589,7 @@ export interface StaffLoginResponse {
   staffId: string;
   fullName: string;
   role: string;
+  roles?: string[];
 }
 
 export type ApiErrorResponse = {
@@ -634,6 +644,7 @@ export class AuthApiService {
         sessionStorage.setItem('clinicOneAccessToken', session.accessToken);
         sessionStorage.setItem('clinicOnePatientName', session.fullName);
         sessionStorage.removeItem('clinicOneStaffRole');
+        sessionStorage.removeItem('clinicOneStaffRoles');
       }));
   }
 
@@ -644,6 +655,7 @@ export class AuthApiService {
         sessionStorage.setItem('clinicOneAccessToken', session.accessToken);
         sessionStorage.setItem('clinicOnePatientName', session.fullName);
         sessionStorage.removeItem('clinicOneStaffRole');
+        sessionStorage.removeItem('clinicOneStaffRoles');
       }));
   }
 
@@ -860,6 +872,7 @@ export class AuthApiService {
       sessionStorage.setItem('clinicOneAccessToken', session.accessToken);
       sessionStorage.setItem('clinicOnePatientName', session.fullName);
       sessionStorage.setItem('clinicOneStaffRole', session.role);
+      sessionStorage.setItem('clinicOneStaffRoles', JSON.stringify(session.roles?.length ? session.roles : [session.role]));
     }));
   }
 
@@ -953,6 +966,14 @@ export class AuthApiService {
 
   getStaffAccounts(): Observable<StaffAccountResponse[]> {
     return this.http.get<StaffAccountResponse[]>('/api/v1/admin/staff');
+  }
+
+  createStaffAccount(request: { fullName: string; employeeCode: string; unitName: string; departmentName: string; roles: string[] }): Observable<StaffAccountCreatedResponse> {
+    return this.http.post<StaffAccountCreatedResponse>('/api/v1/admin/staff', request);
+  }
+
+  updateStaffRoles(staffId: string, roles: string[]): Observable<StaffAccountResponse> {
+    return this.http.put<StaffAccountResponse>(`/api/v1/admin/staff/${staffId}/roles`, { roles });
   }
 
   lockStaffAccount(staffId: string): Observable<StaffAccountResponse> {
