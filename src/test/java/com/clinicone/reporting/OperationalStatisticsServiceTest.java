@@ -34,6 +34,14 @@ class OperationalStatisticsServiceTest {
     }
 
     @Test
+    void rejectsUnknownGrouping() {
+        assertThatThrownBy(() -> service.summarize(LocalDate.of(2026, 8, 10), LocalDate.of(2026, 8, 10),
+                "Khám Tổng Quát", null, "YEAR"))
+                .hasMessageContaining("ngày, tuần hoặc tháng");
+        verifyNoInteractions(appointmentRepository, ticketRepository, sessionRepository);
+    }
+
+    @Test
     void calculatesCountsAndDurationsFromRecordedEvents() {
         LocalDate day = LocalDate.of(2026, 8, 10);
         Appointment completed = appointment(AppointmentStatus.COMPLETED);
@@ -64,10 +72,33 @@ class OperationalStatisticsServiceTest {
         assertThat(response.averageExaminationMinutes()).isEqualByComparingTo("30.0");
     }
 
+    @Test
+    void groupsResultsByWeekWithoutChangingAggregateCounts() {
+        LocalDate monday = LocalDate.of(2026, 8, 10);
+        Appointment first = appointment(AppointmentStatus.COMPLETED, monday);
+        Appointment second = appointment(AppointmentStatus.ABSENT, monday.plusDays(1));
+        when(appointmentRepository.findBySpecialtyIgnoreCaseAndAppointmentDateBetweenOrderByAppointmentDateAscStartTimeAsc(
+                "Khám Tổng Quát", monday, monday.plusDays(1))).thenReturn(List.of(first, second));
+        when(ticketRepository.findByAppointmentIdIn(any())).thenReturn(List.of());
+        when(sessionRepository.findByAppointment_IdIn(any())).thenReturn(List.of());
+
+        OperationalStatisticsResponse response = service.summarize(monday, monday.plusDays(1), "Khám Tổng Quát", null, "WEEK");
+
+        assertThat(response.groupBy()).isEqualTo("WEEK");
+        assertThat(response.buckets()).hasSize(1);
+        assertThat(response.buckets().get(0).period()).isEqualTo("2026-08-10");
+        assertThat(response.buckets().get(0).totalAppointments()).isEqualTo(2);
+    }
+
     private Appointment appointment(AppointmentStatus status) {
+        return appointment(status, LocalDate.of(2026, 8, 10));
+    }
+
+    private Appointment appointment(AppointmentStatus status, LocalDate date) {
         Appointment appointment = mock(Appointment.class);
         when(appointment.getId()).thenReturn(UUID.randomUUID());
         when(appointment.getStatus()).thenReturn(status);
+        when(appointment.getAppointmentDate()).thenReturn(date);
         return appointment;
     }
 }
