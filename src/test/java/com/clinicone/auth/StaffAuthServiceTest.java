@@ -80,6 +80,13 @@ class StaffAuthServiceTest {
         verifyNoInteractions(sessionRepository);
     }
 
+    @Test
+    void logoutRevokesAllActiveStaffSessions() {
+        service.logout(STAFF_ID.toString());
+
+        verify(sessionRepository).revokeActiveByAccountId(eq(STAFF_ID), eq(NOW));
+    }
+
     private static void setId(StaffAccount target, UUID id) {
         try {
             var field = StaffAccount.class.getDeclaredField("id");

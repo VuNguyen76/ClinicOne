@@ -96,6 +96,15 @@ export class AccountMenu {
   }
 
   protected logout(): void {
+    const logoutRequest = this.staffRole() ? this.authApi?.logoutStaff() : this.authApi?.logoutPatient();
+    if (logoutRequest) {
+      logoutRequest.subscribe({ complete: () => this.finishLogout(), error: () => this.finishLogout() });
+      return;
+    }
+    this.finishLogout();
+  }
+
+  private finishLogout(): void {
     sessionStorage.removeItem('clinicOneAccessToken');
     sessionStorage.removeItem('clinicOnePatientName');
     sessionStorage.removeItem('clinicOneStaffRole');

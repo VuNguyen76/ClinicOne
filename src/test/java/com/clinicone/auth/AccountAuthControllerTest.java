@@ -18,6 +18,7 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -36,6 +37,9 @@ class AccountAuthControllerTest {
     private MockMvc mockMvc;
     @Autowired
     private AccountAuthService authService;
+
+    @Autowired
+    private com.clinicone.audit.AccessAuditService accessAuditService;
 
     @Test
     void registersAccountAfterOtpVerification() throws Exception {
@@ -61,6 +65,7 @@ class AccountAuthControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").value("token"))
                 .andExpect(jsonPath("$.tokenType").value("Bearer"));
+        verify(accessAuditService).record("PATIENT_LOGIN", "0912345678", "SUCCESS", "/api/v1/auth/login-sms", "127.0.0.1");
     }
 
     @Test
@@ -108,6 +113,11 @@ class AccountAuthControllerTest {
         @Bean
         AccountAuthService accountAuthService() {
             return mock(AccountAuthService.class);
+        }
+
+        @Bean
+        com.clinicone.audit.AccessAuditService accessAuditService() {
+            return mock(com.clinicone.audit.AccessAuditService.class);
         }
     }
 }

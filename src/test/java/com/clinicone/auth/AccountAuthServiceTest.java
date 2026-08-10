@@ -173,6 +173,13 @@ class AccountAuthServiceTest {
         verify(accountRepository, org.mockito.Mockito.never()).save(any(PatientAccount.class));
     }
 
+    @Test
+    void logoutRevokesAllActiveSessions() {
+        service.logout(ACCOUNT_ID.toString());
+
+        verify(sessionRepository).revokeActiveByAccountId(eq(ACCOUNT_ID), eq(NOW));
+    }
+
     private static void setId(PatientAccount account, UUID id) {
         try {
             Field field = PatientAccount.class.getDeclaredField("id");

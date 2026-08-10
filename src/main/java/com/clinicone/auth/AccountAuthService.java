@@ -157,6 +157,16 @@ public class AccountAuthService {
         accountRepository.save(account);
     }
 
+    @Transactional
+    public void logout(String accountId) {
+        try {
+            sessionRepository.revokeActiveByAccountId(java.util.UUID.fromString(accountId), Instant.now(clock));
+        } catch (IllegalArgumentException exception) {
+            throw new AuthException(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_REQUIRED",
+                    "Phiên đăng nhập không hợp lệ.");
+        }
+    }
+
     static String hashToken(String token) {
         try {
             return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
