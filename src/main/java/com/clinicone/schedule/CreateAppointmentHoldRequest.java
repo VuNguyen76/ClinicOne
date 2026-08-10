@@ -14,6 +14,11 @@ public record CreateAppointmentHoldRequest(
         @NotBlank @Size(max = 120) String doctorName,
         @NotNull @FutureOrPresent LocalDate appointmentDate,
         @NotNull LocalTime startTime,
-        UUID doctorId
+        UUID doctorId,
+        UUID serviceId
 ) {
+    public CreateAppointmentHoldRequest(String specialty, String doctorName, LocalDate appointmentDate,
+                                        LocalTime startTime, UUID doctorId) {
+        this(specialty, doctorName, appointmentDate, startTime, doctorId, null);
+    }
 }

@@ -43,6 +43,7 @@ public class AppointmentAvailabilityService {
     private final DoctorScheduleRepository doctorScheduleRepository;
     private final AppointmentHoldRepository holdRepository;
     private final Clock clock;
+    private final ClinicServiceRepository clinicServiceRepository;
 
     public AppointmentAvailabilityService(AppointmentRepository appointmentRepository,
                                           SpecialtyCatalogService specialtyCatalog) {
@@ -54,7 +55,17 @@ public class AppointmentAvailabilityService {
                                           DoctorProfileRepository doctorProfileRepository,
                                           DoctorScheduleRepository doctorScheduleRepository) {
         this(appointmentRepository, specialtyCatalog, doctorProfileRepository, doctorScheduleRepository,
-                null, Clock.systemUTC());
+                null, Clock.systemUTC(), null);
+    }
+
+    public AppointmentAvailabilityService(AppointmentRepository appointmentRepository,
+                                          SpecialtyCatalogService specialtyCatalog,
+                                          DoctorProfileRepository doctorProfileRepository,
+                                          DoctorScheduleRepository doctorScheduleRepository,
+                                          AppointmentHoldRepository holdRepository,
+                                          Clock clock) {
+        this(appointmentRepository, specialtyCatalog, doctorProfileRepository, doctorScheduleRepository,
+                holdRepository, clock, null);
     }
 
     @org.springframework.beans.factory.annotation.Autowired
@@ -63,13 +74,15 @@ public class AppointmentAvailabilityService {
                                           DoctorProfileRepository doctorProfileRepository,
                                           DoctorScheduleRepository doctorScheduleRepository,
                                           AppointmentHoldRepository holdRepository,
-                                          Clock clock) {
+                                          Clock clock,
+                                          ClinicServiceRepository clinicServiceRepository) {
         this.appointmentRepository = appointmentRepository;
         this.specialtyCatalog = specialtyCatalog;
         this.doctorProfileRepository = doctorProfileRepository;
         this.doctorScheduleRepository = doctorScheduleRepository;
         this.holdRepository = holdRepository;
         this.clock = clock;
+        this.clinicServiceRepository = clinicServiceRepository;
     }
 
     public AppointmentAvailabilityService(AppointmentRepository appointmentRepository) {
@@ -78,10 +91,17 @@ public class AppointmentAvailabilityService {
 
     @Transactional(readOnly = true)
     public List<AvailableSlotResponse> find(String specialty, LocalDate from, LocalDate to) {
+        return find(specialty, from, to, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<AvailableSlotResponse> find(String specialty, LocalDate from, LocalDate to, UUID serviceId) {
         specialtyCatalog.require(specialty);
         validateRange(from, to);
+        ClinicService service = resolveService(serviceId, specialty);
+        Integer serviceDuration = service == null ? null : service.getDurationMinutes();
         if (doctorProfileRepository != null) {
-            return findConfigured(specialty, from, to);
+            return findConfigured(specialty, from, to, service);
         }
         Map<SlotKey, Long> bookedBySlot = new HashMap<>();
         appointmentRepository.countBookedBySpecialtyAndDateRange(specialty, from, to, AppointmentStatus.BOOKED)
@@ -93,7 +113,7 @@ public class AppointmentAvailabilityService {
         }
         return from.datesUntil(to.plusDays(1))
                 .filter(this::isWorkingDay)
-                .flatMap(date -> SLOT_TEMPLATES.stream().map(template -> toResponse(specialty, date, template,
+                .flatMap(date -> slotTemplates(serviceDuration).stream().map(template -> toResponse(specialty, date, template,
                         bookedBySlot.getOrDefault(new SlotKey(date, template.startTime()), 0L))))
                 .filter(slot -> slot.remainingCapacity() > 0)
                 .toList();
@@ -101,21 +121,29 @@ public class AppointmentAvailabilityService {
 
     @Transactional(readOnly = true)
     public void ensureBookable(String specialty, LocalDate appointmentDate, LocalTime startTime) {
-        ensureBookableFallback(specialty, appointmentDate, startTime, null);
+        ensureBookable(specialty, null, null, appointmentDate, startTime, null, null);
     }
 
     @Transactional(readOnly = true)
     public void ensureBookable(String specialty, String doctorName, UUID doctorId, LocalDate appointmentDate,
                                 LocalTime startTime) {
-        ensureBookable(specialty, doctorName, doctorId, appointmentDate, startTime, null);
+        ensureBookable(specialty, doctorName, doctorId, appointmentDate, startTime, null, null);
     }
 
     @Transactional(readOnly = true)
     public void ensureBookable(String specialty, String doctorName, UUID doctorId, LocalDate appointmentDate,
                                LocalTime startTime, UUID excludedHoldId) {
+        ensureBookable(specialty, doctorName, doctorId, appointmentDate, startTime, excludedHoldId, null);
+    }
+
+    @Transactional(readOnly = true)
+    public void ensureBookable(String specialty, String doctorName, UUID doctorId, LocalDate appointmentDate,
+                               LocalTime startTime, UUID excludedHoldId, UUID serviceId) {
         specialtyCatalog.require(specialty);
+        ClinicService service = resolveService(serviceId, specialty);
+        Integer serviceDuration = service == null ? null : service.getDurationMinutes();
         if (doctorProfileRepository == null) {
-            ensureBookableFallback(specialty, appointmentDate, startTime, excludedHoldId);
+            ensureBookableFallback(specialty, appointmentDate, startTime, excludedHoldId, serviceDuration);
             return;
         }
         validateDate(appointmentDate);
@@ -134,7 +162,7 @@ public class AppointmentAvailabilityService {
         }
         boolean scheduled = doctorScheduleRepository.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(
                         profile.getId(), appointmentDate.getDayOfWeek()).stream()
-                .anyMatch(schedule -> contains(schedule, startTime));
+                .anyMatch(schedule -> contains(schedule, startTime, serviceDuration));
         if (!scheduled) {
             throw new AuthException(HttpStatus.CONFLICT, "DOCTOR_SLOT_INVALID",
                     "Khung giờ này không nằm trong giờ làm của bác sĩ.");
@@ -155,10 +183,10 @@ public class AppointmentAvailabilityService {
     }
 
     private void ensureBookableFallback(String specialty, LocalDate appointmentDate, LocalTime startTime,
-                                        UUID excludedHoldId) {
+                                        UUID excludedHoldId, Integer serviceDuration) {
         specialtyCatalog.require(specialty);
         validateDate(appointmentDate);
-        SlotTemplate template = SLOT_TEMPLATES.stream()
+        SlotTemplate template = slotTemplates(serviceDuration).stream()
                 .filter(item -> item.startTime().equals(startTime))
                 .findFirst()
                 .orElseThrow(() -> new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_SLOT_INVALID",
@@ -179,8 +207,17 @@ public class AppointmentAvailabilityService {
         }
     }
 
-    private List<AvailableSlotResponse> findConfigured(String specialty, LocalDate from, LocalDate to) {
+    private List<AvailableSlotResponse> findConfigured(String specialty, LocalDate from, LocalDate to,
+                                                       ClinicService service) {
         List<DoctorSchedule> schedules = doctorScheduleRepository.findActiveBySpecialtyIgnoreCase(specialty);
+        if (service != null && service.getEligibleDoctors() != null && !service.getEligibleDoctors().isEmpty()) {
+            var eligibleDoctorIds = service.getEligibleDoctors().stream()
+                    .map(doctor -> doctor.getStaffAccount().getId())
+                    .collect(Collectors.toSet());
+            schedules = schedules.stream()
+                    .filter(schedule -> eligibleDoctorIds.contains(schedule.getDoctorProfile().getStaffAccount().getId()))
+                    .toList();
+        }
         List<UUID> doctorStaffIds = schedules.stream()
                 .map(schedule -> schedule.getDoctorProfile().getStaffAccount().getId())
                 .distinct()
@@ -200,23 +237,27 @@ public class AppointmentAvailabilityService {
                             new DoctorSlotKey(hold.getDoctorStaffId(), hold.getAppointmentDate(), hold.getStartTime()),
                             1L, Long::sum));
         }
+        List<DoctorSchedule> configuredSchedules = schedules;
+        Integer serviceDuration = service == null ? null : service.getDurationMinutes();
         return from.datesUntil(to.plusDays(1))
-                .flatMap(date -> schedules.stream()
+                .flatMap(date -> configuredSchedules.stream()
                         .filter(schedule -> schedule.getDayOfWeek() == date.getDayOfWeek())
-                        .flatMap(schedule -> slotsFor(schedule, date, bookedBySlot).stream()))
+                        .flatMap(schedule -> slotsFor(schedule, date, bookedBySlot,
+                                serviceDuration).stream()))
                 .filter(slot -> slot.remainingCapacity() > 0)
                 .toList();
     }
 
     private List<AvailableSlotResponse> slotsFor(DoctorSchedule schedule, LocalDate date,
-                                                  Map<DoctorSlotKey, Long> bookedBySlot) {
+                                                  Map<DoctorSlotKey, Long> bookedBySlot, Integer serviceDuration) {
         DoctorProfile profile = schedule.getDoctorProfile();
         UUID doctorStaffId = profile.getStaffAccount().getId();
         ArrayList<AvailableSlotResponse> slots = new ArrayList<>();
+        int duration = serviceDuration == null ? schedule.getSlotDurationMinutes() : serviceDuration;
         LocalTime start = schedule.getStartTime();
-        while (!start.plusMinutes(schedule.getSlotDurationMinutes()).isAfter(schedule.getEndTime())) {
+        while (!start.plusMinutes(duration).isAfter(schedule.getEndTime())) {
             long booked = bookedBySlot.getOrDefault(new DoctorSlotKey(doctorStaffId, date, start), 0L);
-            LocalTime end = start.plusMinutes(schedule.getSlotDurationMinutes());
+            LocalTime end = start.plusMinutes(duration);
             slots.add(new AvailableSlotResponse(profile.getSpecialty(), date, start, end,
                     profile.getStaffAccount().getFullName(), booked == 0 ? 1 : 0,
                     doctorStaffId, profile.getRoom().getCode()));
@@ -225,9 +266,10 @@ public class AppointmentAvailabilityService {
         return slots;
     }
 
-    private boolean contains(DoctorSchedule schedule, LocalTime start) {
+    private boolean contains(DoctorSchedule schedule, LocalTime start, Integer serviceDuration) {
+        int duration = serviceDuration == null ? schedule.getSlotDurationMinutes() : serviceDuration;
         return !start.isBefore(schedule.getStartTime())
-                && !start.plusMinutes(schedule.getSlotDurationMinutes()).isAfter(schedule.getEndTime());
+                && !start.plusMinutes(duration).isAfter(schedule.getEndTime());
     }
 
     private void validateDate(LocalDate appointmentDate) {
@@ -256,6 +298,46 @@ public class AppointmentAvailabilityService {
     }
 
     private record SlotKey(LocalDate date, LocalTime startTime) {
+    }
+
+    private List<SlotTemplate> slotTemplates(Integer serviceDuration) {
+        if (serviceDuration == null || serviceDuration == 60) {
+            return SLOT_TEMPLATES;
+        }
+        List<SlotTemplate> result = new ArrayList<>();
+        addTemplates(result, LocalTime.of(7, 30), LocalTime.of(11, 30), serviceDuration);
+        addTemplates(result, LocalTime.of(13, 0), LocalTime.of(16, 0), serviceDuration);
+        return result;
+    }
+
+    private void addTemplates(List<SlotTemplate> target, LocalTime windowStart, LocalTime windowEnd, int duration) {
+        LocalTime start = windowStart;
+        while (!start.plusMinutes(duration).isAfter(windowEnd)) {
+            target.add(new SlotTemplate(start, start.plusMinutes(duration)));
+            start = start.plusMinutes(duration);
+        }
+    }
+
+    private ClinicService resolveService(UUID serviceId, String specialty) {
+        if (serviceId == null) {
+            return null;
+        }
+        if (clinicServiceRepository == null) {
+            throw new AuthException(HttpStatus.CONFLICT, "CLINIC_SERVICE_UNAVAILABLE",
+                    "Danh mục dịch vụ khám chưa sẵn sàng.");
+        }
+        ClinicService service = clinicServiceRepository.findById(serviceId)
+                .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "CLINIC_SERVICE_NOT_FOUND",
+                        "Không tìm thấy dịch vụ khám đã chọn."));
+        if (!service.isActive()) {
+            throw new AuthException(HttpStatus.CONFLICT, "CLINIC_SERVICE_INACTIVE",
+                    "Dịch vụ khám đã tạm ngưng nhận lịch.");
+        }
+        if (!service.getSpecialty().equalsIgnoreCase(specialty.trim())) {
+            throw new AuthException(HttpStatus.CONFLICT, "CLINIC_SERVICE_SPECIALTY_MISMATCH",
+                    "Dịch vụ không thuộc chuyên khoa đã chọn.");
+        }
+        return service;
     }
 
     private record DoctorSlotKey(UUID doctorStaffId, LocalDate date, LocalTime startTime) {

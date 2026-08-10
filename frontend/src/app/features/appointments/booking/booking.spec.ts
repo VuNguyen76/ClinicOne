@@ -20,6 +20,7 @@ describe('Booking calendar', () => {
     http = TestBed.inject(HttpTestingController);
     fixture.detectChanges();
     http.expectOne('/api/v1/specialties').flush([{ code: 'NOI', name: 'Nội tổng quát', description: 'Khám tổng quát' }]);
+    http.expectOne('/api/v1/services').flush([]);
     http.expectOne('/api/v1/patient-profiles').flush([]);
     fixture.detectChanges();
   });
@@ -91,5 +92,25 @@ describe('Booking calendar', () => {
 
     expect(component['holdId']()).toBe('hold-1');
     expect(component['step']()).toBe(3);
+  });
+
+  it('lets the patient choose a configured service and carries its id into the hold', () => {
+    component['chooseClinicService']({
+      id: 'service-1', name: 'Khám tổng quát cơ bản', specialty: 'Nội tổng quát',
+      visitType: 'Khám thường', durationMinutes: 30, active: true, eligibleDoctors: [],
+    });
+    const slotsRequest = http.expectOne((item) => item.url === '/api/v1/appointment-slots');
+    expect(slotsRequest.request.params.get('serviceId')).toBe('service-1');
+    const date = component['dates']().find((item) => item.inCurrentMonth && item.iso >= component['today']);
+    slotsRequest.flush([{
+      specialty: 'Nội tổng quát', appointmentDate: date!.iso, startTime: '08:30:00', endTime: '09:00:00',
+      doctorName: 'Bác sĩ chuyên khoa', remainingCapacity: 1, doctorId: 'doctor-1', roomCode: 'NOI-01',
+    }]);
+    component['chooseDate'](date!);
+    component['chooseSlot'](component['availableSlots']()[0]);
+    component['continueToDetails']();
+
+    const holdRequest = http.expectOne('/api/v1/appointment-holds');
+    expect(holdRequest.request.body.serviceId).toBe('service-1');
   });
 });

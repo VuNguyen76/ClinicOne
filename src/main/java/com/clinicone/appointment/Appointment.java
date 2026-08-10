@@ -55,6 +55,18 @@ public class Appointment {
     @Column(name = "doctor_staff_id")
     private UUID doctorStaffId;
 
+    @Column(name = "clinic_service_id")
+    private UUID serviceId;
+
+    @Column(name = "service_name", length = 120)
+    private String serviceName;
+
+    @Column(name = "visit_type", length = 60)
+    private String visitType;
+
+    @Column(name = "service_duration_minutes")
+    private Integer serviceDurationMinutes;
+
     @Column(name = "appointment_date", nullable = false)
     private LocalDate appointmentDate;
 
@@ -187,6 +199,13 @@ public class Appointment {
         this.doctorName = doctorName == null || doctorName.isBlank() ? this.doctorName : doctorName.trim();
     }
 
+    public void applyServiceSnapshot(UUID serviceId, String serviceName, String visitType, int durationMinutes) {
+        this.serviceId = serviceId;
+        this.serviceName = serviceName == null || serviceName.isBlank() ? null : serviceName.trim();
+        this.visitType = visitType == null || visitType.isBlank() ? null : visitType.trim();
+        this.serviceDurationMinutes = durationMinutes > 0 ? durationMinutes : null;
+    }
+
     static Appointment existing(PatientAccount patient, String appointmentCode, String specialty, String doctorName,
                                  LocalDate appointmentDate, LocalTime startTime, String reason) {
         return create(patient, appointmentCode, specialty, doctorName, appointmentDate, startTime, reason);
@@ -205,6 +224,10 @@ public class Appointment {
     public String getSpecialty() { return specialty; }
     public String getDoctorName() { return doctorName; }
     public UUID getDoctorStaffId() { return doctorStaffId; }
+    public UUID getServiceId() { return serviceId; }
+    public String getServiceName() { return serviceName; }
+    public String getVisitType() { return visitType; }
+    public Integer getServiceDurationMinutes() { return serviceDurationMinutes; }
     public LocalDate getAppointmentDate() { return appointmentDate; }
     public LocalTime getStartTime() { return startTime; }
     public String getReason() { return reason; }

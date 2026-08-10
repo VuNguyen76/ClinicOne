@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/appointment-slots")
@@ -23,7 +24,8 @@ public class AppointmentSlotController {
     public ResponseEntity<List<AvailableSlotResponse>> list(
             @RequestParam String specialty,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
-        return ResponseEntity.ok(availabilityService.find(specialty, from, to));
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) UUID serviceId) {
+        return ResponseEntity.ok(availabilityService.find(specialty, from, to, serviceId));
     }
 }

@@ -55,6 +55,29 @@ class AppointmentAvailabilityServiceTest {
     }
 
     @Test
+    void usesSelectedServiceDurationWhenReturningFallbackSlots() {
+        ClinicServiceRepository serviceRepository = mock(ClinicServiceRepository.class);
+        ClinicService clinicService = mock(ClinicService.class);
+        UUID serviceId = UUID.randomUUID();
+        LocalDate monday = LocalDate.of(2026, 8, 10);
+        when(serviceRepository.findById(serviceId)).thenReturn(java.util.Optional.of(clinicService));
+        when(clinicService.isActive()).thenReturn(true);
+        when(clinicService.getSpecialty()).thenReturn("Khám Tổng Quát");
+        when(clinicService.getDurationMinutes()).thenReturn(30);
+        when(appointmentRepository.countBookedBySpecialtyAndDateRange(
+                "Khám Tổng Quát", monday, monday, AppointmentStatus.BOOKED)).thenReturn(List.of());
+
+        AppointmentAvailabilityService serviceWithCatalog = new AppointmentAvailabilityService(
+                appointmentRepository, new SpecialtyCatalogService(), null, null, null,
+                java.time.Clock.systemUTC(), serviceRepository);
+
+        List<AvailableSlotResponse> slots = serviceWithCatalog.find("Khám Tổng Quát", monday, monday, serviceId);
+
+        assertEquals(14, slots.size());
+        assertEquals(LocalTime.of(8, 30), slots.get(1).endTime());
+    }
+
+    @Test
     void loadsConfiguredMonthWithBatchQueries() {
         DoctorProfileRepository doctorProfileRepository = mock(DoctorProfileRepository.class);
         DoctorScheduleRepository scheduleRepository = mock(DoctorScheduleRepository.class);
