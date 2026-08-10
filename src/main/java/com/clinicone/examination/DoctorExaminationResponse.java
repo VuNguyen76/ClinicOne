@@ -28,6 +28,19 @@ public record DoctorExaminationResponse(
         String prescription,
         LocalDate followUpDate,
         String status,
-        Instant signedAt
+        Instant signedAt,
+        boolean requiresMedicalRecord
 ) {
+    public DoctorExaminationResponse(UUID ticketId, UUID appointmentId, UUID examinationId, int queueNumber,
+                                     String roomName, String appointmentCode, String specialty, String doctorName,
+                                     LocalDate appointmentDate, LocalTime startTime, String patientName,
+                                     LocalDate patientDateOfBirth, String patientGender, String patientPhone,
+                                     String reason, String examinationNotes, String diagnosis, String conclusion,
+                                     String treatmentPlan, String prescription, LocalDate followUpDate,
+                                     String status, Instant signedAt) {
+        this(ticketId, appointmentId, examinationId, queueNumber, roomName, appointmentCode, specialty, doctorName,
+                appointmentDate, startTime, patientName, patientDateOfBirth, patientGender, patientPhone, reason,
+                examinationNotes, diagnosis, conclusion, treatmentPlan, prescription, followUpDate, status, signedAt,
+                true);
+    }
 }

@@ -66,6 +66,20 @@ class ClinicServiceManagementServiceTest {
     }
 
     @Test
+    void createsServiceWithoutMedicalRecordWhenConfigured() {
+        when(doctorProfileRepository.findAllByStaffAccount_IdInAndActiveTrue(List.of(doctorId)))
+                .thenReturn(List.of(doctor));
+
+        ClinicServiceResponse response = service.create(new CreateClinicServiceRequest(
+                "Tư vấn nhanh", "Khám Tổng Quát", "Tư vấn", 15, List.of(doctorId), false));
+
+        assertThat(response.requiresMedicalRecord()).isFalse();
+        ArgumentCaptor<ClinicService> captor = ArgumentCaptor.forClass(ClinicService.class);
+        verify(repository).save(captor.capture());
+        assertThat(captor.getValue().requiresMedicalRecord()).isFalse();
+    }
+
+    @Test
     void rejectsDurationOutsideFiveToOneHundredTwentyMinutes() {
         assertThatThrownBy(() -> service.create(new CreateClinicServiceRequest(
                 "Khám tổng quát cơ bản", "Khám Tổng Quát", "Khám thường", 121, List.of(doctorId))))

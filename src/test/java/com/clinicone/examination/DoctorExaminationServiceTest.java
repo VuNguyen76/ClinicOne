@@ -27,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -109,6 +110,37 @@ class DoctorExaminationServiceTest {
         verify(sessionRepository).save(session);
         verify(recordRepository).save(record);
         verify(notificationService).notifyMedicalRecordSigned(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void endingVisitWithoutMedicalRecordCompletesOnlyAfterDoctorAction() {
+        appointment.applyServiceSnapshot(UUID.randomUUID(), "Tiếp nhận nhanh", "Tư vấn", 15, false);
+
+        DoctorExaminationResponse response = service.sign(TICKET_ID, DOCTOR_ID.toString(),
+                new DoctorExaminationRequest(null, null, null, null, null, null, null));
+
+        assertThat(response.status()).isEqualTo("COMPLETED");
+        assertThat(response.requiresMedicalRecord()).isFalse();
+        assertThat(response.reason()).isNull();
+        assertThat(ticket.getStatus()).isEqualTo(com.clinicone.queue.QueueTicketStatus.COMPLETED);
+        assertThat(appointment.getStatus()).isEqualTo(com.clinicone.appointment.AppointmentStatus.COMPLETED);
+        assertThat(session.getStatus()).isEqualTo(ExaminationSessionStatus.COMPLETED);
+        verify(recordRepository, never()).findBySession_Id(SESSION_ID);
+        verify(recordRepository, never()).save(any(MedicalRecord.class));
+        verify(notificationService, never()).notifyMedicalRecordSigned(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void openingVisitWithoutMedicalRecordDoesNotCreateDraft() {
+        appointment.applyServiceSnapshot(UUID.randomUUID(), "Tư vấn nhanh", "Tư vấn", 15, false);
+
+        DoctorExaminationResponse response = service.open(TICKET_ID, DOCTOR_ID.toString());
+
+        assertThat(response.status()).isEqualTo("IN_PROGRESS");
+        assertThat(response.requiresMedicalRecord()).isFalse();
+        assertThat(response.reason()).isNull();
+        verify(recordRepository, never()).findBySession_Id(SESSION_ID);
+        verify(recordRepository, never()).save(any(MedicalRecord.class));
     }
 
     @Test

@@ -37,6 +37,7 @@ export class ServiceManagement implements OnInit {
   protected readonly visitType = signal('Khám thường');
   protected readonly durationMinutes = signal(30);
   protected readonly selectedDoctorIds = signal<string[]>([]);
+  protected readonly requiresMedicalRecord = signal(true);
 
   ngOnInit(): void {
     this.load();
@@ -88,6 +89,7 @@ export class ServiceManagement implements OnInit {
     this.visitType.set('Khám thường');
     this.durationMinutes.set(30);
     this.selectedDoctorIds.set([]);
+    this.requiresMedicalRecord.set(true);
     this.error.set('');
     this.notice.set('');
   }
@@ -99,6 +101,7 @@ export class ServiceManagement implements OnInit {
     this.visitType.set(service.visitType);
     this.durationMinutes.set(service.durationMinutes);
     this.selectedDoctorIds.set(service.eligibleDoctors.map((doctor) => doctor.staffId));
+    this.requiresMedicalRecord.set(service.requiresMedicalRecord !== false);
     this.error.set('');
     this.notice.set('');
   }
@@ -110,6 +113,7 @@ export class ServiceManagement implements OnInit {
       visitType: this.visitType().trim(),
       durationMinutes: Number(this.durationMinutes()),
       doctorIds: this.selectedDoctorIds(),
+      requiresMedicalRecord: this.requiresMedicalRecord(),
     };
     if (!request.name || !request.specialty || !request.visitType || request.durationMinutes < 5
       || request.durationMinutes > 120 || request.doctorIds.length === 0) {

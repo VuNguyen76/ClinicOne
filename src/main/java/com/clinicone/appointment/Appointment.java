@@ -67,6 +67,9 @@ public class Appointment {
     @Column(name = "service_duration_minutes")
     private Integer serviceDurationMinutes;
 
+    @Column(name = "requires_medical_record")
+    private Boolean requiresMedicalRecord;
+
     @Column(name = "appointment_date", nullable = false)
     private LocalDate appointmentDate;
 
@@ -204,10 +207,16 @@ public class Appointment {
     }
 
     public void applyServiceSnapshot(UUID serviceId, String serviceName, String visitType, int durationMinutes) {
+        applyServiceSnapshot(serviceId, serviceName, visitType, durationMinutes, true);
+    }
+
+    public void applyServiceSnapshot(UUID serviceId, String serviceName, String visitType, int durationMinutes,
+                                     boolean requiresMedicalRecord) {
         this.serviceId = serviceId;
         this.serviceName = serviceName == null || serviceName.isBlank() ? null : serviceName.trim();
         this.visitType = visitType == null || visitType.isBlank() ? null : visitType.trim();
         this.serviceDurationMinutes = durationMinutes > 0 ? durationMinutes : null;
+        this.requiresMedicalRecord = requiresMedicalRecord;
     }
 
     static Appointment existing(PatientAccount patient, String appointmentCode, String specialty, String doctorName,
@@ -232,6 +241,7 @@ public class Appointment {
     public String getServiceName() { return serviceName; }
     public String getVisitType() { return visitType; }
     public Integer getServiceDurationMinutes() { return serviceDurationMinutes; }
+    public boolean requiresMedicalRecord() { return requiresMedicalRecord == null || requiresMedicalRecord; }
     public LocalDate getAppointmentDate() { return appointmentDate; }
     public LocalTime getStartTime() { return startTime; }
     public String getReason() { return reason; }

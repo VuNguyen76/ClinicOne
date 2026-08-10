@@ -82,6 +82,7 @@ export interface AppointmentResponse {
   statusLabel: string;
   profileId?: string | null;
   profileName?: string | null;
+  requiresMedicalRecord?: boolean;
 }
 
 export interface ExaminationSessionResponse {
@@ -299,6 +300,7 @@ export interface ClinicServiceResponse {
   durationMinutes: number;
   active: boolean;
   eligibleDoctors: EligibleDoctorResponse[];
+  requiresMedicalRecord?: boolean;
 }
 
 export interface ClinicServiceRequest {
@@ -307,6 +309,7 @@ export interface ClinicServiceRequest {
   visitType: string;
   durationMinutes: number;
   doctorIds: string[];
+  requiresMedicalRecord?: boolean;
 }
 
 export interface ScheduleBreakRequest {
@@ -511,6 +514,7 @@ export interface DoctorExaminationResponse {
   followUpDate: string | null;
   status: string;
   signedAt: string | null;
+  requiresMedicalRecord?: boolean;
 }
 
 export interface DoctorExaminationRequest {

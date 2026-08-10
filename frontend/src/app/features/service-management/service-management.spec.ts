@@ -53,6 +53,7 @@ describe('ServiceManagement', () => {
       visitType: 'Khám thường',
       durationMinutes: 30,
       doctorIds: ['d-1'],
+      requiresMedicalRecord: true,
     });
     request.flush(service('s-1', true));
     fixture.detectChanges();

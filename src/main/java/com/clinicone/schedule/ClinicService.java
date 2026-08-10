@@ -41,6 +41,9 @@ public class ClinicService {
     @Column(name = "duration_minutes", nullable = false)
     private int durationMinutes;
 
+    @Column(name = "requires_medical_record")
+    private Boolean requiresMedicalRecord;
+
     @Column(nullable = false)
     private boolean active;
 
@@ -60,26 +63,38 @@ public class ClinicService {
     }
 
     private ClinicService(String name, String specialty, String visitType, int durationMinutes,
-                           Collection<DoctorProfile> eligibleDoctors) {
+                           boolean requiresMedicalRecord, Collection<DoctorProfile> eligibleDoctors) {
         this.name = name.trim();
         this.specialty = specialty.trim();
         this.visitType = visitType.trim();
         this.durationMinutes = durationMinutes;
+        this.requiresMedicalRecord = requiresMedicalRecord;
         this.active = true;
         replaceEligibleDoctors(eligibleDoctors);
     }
 
     public static ClinicService create(String name, String specialty, String visitType, int durationMinutes,
                                        Collection<DoctorProfile> eligibleDoctors) {
-        return new ClinicService(name, specialty, visitType, durationMinutes, eligibleDoctors);
+        return create(name, specialty, visitType, durationMinutes, true, eligibleDoctors);
+    }
+
+    public static ClinicService create(String name, String specialty, String visitType, int durationMinutes,
+                                       boolean requiresMedicalRecord, Collection<DoctorProfile> eligibleDoctors) {
+        return new ClinicService(name, specialty, visitType, durationMinutes, requiresMedicalRecord, eligibleDoctors);
     }
 
     public void update(String name, String specialty, String visitType, int durationMinutes,
                        Collection<DoctorProfile> eligibleDoctors) {
+        update(name, specialty, visitType, durationMinutes, true, eligibleDoctors);
+    }
+
+    public void update(String name, String specialty, String visitType, int durationMinutes,
+                       boolean requiresMedicalRecord, Collection<DoctorProfile> eligibleDoctors) {
         this.name = name.trim();
         this.specialty = specialty.trim();
         this.visitType = visitType.trim();
         this.durationMinutes = durationMinutes;
+        this.requiresMedicalRecord = requiresMedicalRecord;
         replaceEligibleDoctors(eligibleDoctors);
     }
 
@@ -109,6 +124,7 @@ public class ClinicService {
     public String getSpecialty() { return specialty; }
     public String getVisitType() { return visitType; }
     public int getDurationMinutes() { return durationMinutes; }
+    public boolean requiresMedicalRecord() { return requiresMedicalRecord == null || requiresMedicalRecord; }
     public boolean isActive() { return active; }
     public Set<DoctorProfile> getEligibleDoctors() { return eligibleDoctors; }
 }

@@ -52,6 +52,7 @@
         </aside>
 
         <form [formGroup]="form" data-testid="medical-form" class="border border-[#dce7ea] bg-white" (submit)="$event.preventDefault()">
+          @if (exam.requiresMedicalRecord !== false) {
           <div class="border-b border-[#e7eff1] px-5 py-4 sm:px-6">
             <h2 class="text-base font-bold text-[#0a303b]">Phiếu khám</h2>
             <p class="mt-1 text-xs text-slate-500">Lưu nháp trong lúc khám; chỉ phiếu đã ký mới được gửi cho người bệnh.</p>
@@ -66,6 +67,16 @@
             <label class="grid max-w-xs gap-1.5"><span class="text-sm font-semibold">Hẹn tái khám</span><input type="date" formControlName="followUpDate" class="min-h-10 rounded-md border border-[#d5e3e7] px-3 text-sm outline-none transition focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/15" /></label>
           </div>
           @if (!exam.signedAt) {<div class="sticky bottom-0 flex flex-col-reverse gap-2 border-t border-[#e7eff1] bg-white/95 px-5 py-4 backdrop-blur sm:flex-row sm:justify-end sm:px-6"><button data-testid="save-draft" type="button" class="min-h-10 rounded-md border border-[#cfe0e5] px-4 text-sm font-semibold text-[#173f4b] transition hover:border-[#0ea5e9] hover:text-[#0b84bd] disabled:opacity-50" [disabled]="saving() || signing()" (click)="saveDraft()">{{ saving() ? 'Đang lưu...' : 'Lưu bản nháp' }}</button><button data-testid="sign-record" type="button" class="min-h-10 rounded-md bg-[#0b3846] px-4 text-sm font-semibold text-white transition hover:bg-[#082d39] disabled:opacity-50" [disabled]="saving() || signing()" (click)="sign()">{{ signing() ? 'Đang ký...' : 'Ký phiếu khám' }}</button></div>}
+          } @else {
+            <div class="grid min-h-72 place-items-center px-6 py-12 text-center">
+              <div class="max-w-md">
+                <div class="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[#eaf7fb] text-[#0b91c9]"><mat-icon>task_alt</mat-icon></div>
+                <h2 class="mt-4 text-lg font-bold text-[#0a303b]">Lượt khám không cần phiếu</h2>
+                <p class="mt-2 text-sm leading-6 text-slate-500">Bác sĩ đã hoàn tất tư vấn. Bấm nút bên dưới để kết thúc lượt khám và chuyển sang người tiếp theo.</p>
+                @if (!exam.signedAt && exam.status !== 'COMPLETED') {<button data-testid="complete-examination" type="button" class="mt-6 min-h-10 rounded-md bg-[#0b3846] px-5 text-sm font-semibold text-white transition hover:bg-[#082d39] disabled:opacity-50" [disabled]="saving() || signing()" (click)="sign()">{{ signing() ? 'Đang kết thúc...' : 'Kết thúc lượt khám' }}</button>}
+              </div>
+            </div>
+          }
         </form>
       </div>
     }

@@ -75,7 +75,7 @@ export class DoctorExamination implements OnInit {
 
   protected saveDraft(): void {
     const ticketId = this.examination()?.ticketId;
-    if (!ticketId || this.saving() || this.signing()) return;
+    if (!ticketId || this.saving() || this.signing() || this.examination()?.requiresMedicalRecord === false) return;
     this.saving.set(true);
     this.error.set('');
     this.notice.set('');
@@ -94,7 +94,8 @@ export class DoctorExamination implements OnInit {
 
   private autosaveDraft(): void {
     const ticketId = this.examination()?.ticketId;
-    if (!ticketId || this.loading() || this.saving() || this.signing() || this.examination()?.signedAt) return;
+    if (!ticketId || this.loading() || this.saving() || this.signing() || this.examination()?.signedAt
+      || this.examination()?.requiresMedicalRecord === false) return;
     this.saving.set(true);
     this.error.set('');
     this.authApi.saveDoctorExaminationDraft(ticketId, this.request()).subscribe({
@@ -112,10 +113,12 @@ export class DoctorExamination implements OnInit {
 
   protected sign(): void {
     const ticketId = this.examination()?.ticketId;
-    if (!ticketId || this.saving() || this.signing()) return;
+    if (!ticketId || this.saving() || this.signing() || this.examination()?.status === 'COMPLETED') return;
     const required = ['reason', 'examinationNotes', 'diagnosis', 'conclusion'] as const;
-    required.forEach((name) => this.form.controls[name].markAsTouched());
-    if (required.some((name) => !this.form.controls[name].value?.trim())) {
+    if (this.examination()?.requiresMedicalRecord !== false) {
+      required.forEach((name) => this.form.controls[name].markAsTouched());
+    }
+    if (this.examination()?.requiresMedicalRecord !== false && required.some((name) => !this.form.controls[name].value?.trim())) {
       this.error.set('Nhập đủ lý do khám, ghi nhận khám, chẩn đoán và kết luận trước khi ký.');
       return;
     }
@@ -127,7 +130,7 @@ export class DoctorExamination implements OnInit {
         this.examination.set(value);
         this.form.disable();
         this.signing.set(false);
-        this.notice.set('Đã ký phiếu khám');
+        this.notice.set(value.requiresMedicalRecord !== false ? 'Đã ký phiếu khám' : 'Đã kết thúc lượt khám');
       },
       error: (response) => {
         this.signing.set(false);

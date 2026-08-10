@@ -15,6 +15,11 @@ public record UpdateClinicServiceRequest(
         @NotBlank @Size(max = 120) String specialty,
         @NotBlank @Size(max = 60) String visitType,
         @Min(5) @Max(120) int durationMinutes,
-        @NotEmpty @Size(max = 100) List<@NotNull UUID> doctorIds
+        @NotEmpty @Size(max = 100) List<@NotNull UUID> doctorIds,
+        Boolean requiresMedicalRecord
 ) {
+    public UpdateClinicServiceRequest(String name, String specialty, String visitType, int durationMinutes,
+                                      List<UUID> doctorIds) {
+        this(name, specialty, visitType, durationMinutes, doctorIds, true);
+    }
 }

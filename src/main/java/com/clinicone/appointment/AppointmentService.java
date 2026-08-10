@@ -183,7 +183,8 @@ public class AppointmentService {
                 request.reason().trim());
         if (selectedService != null) {
             appointment.applyServiceSnapshot(selectedService.getId(), selectedService.getName(),
-                    selectedService.getVisitType(), selectedService.getDurationMinutes());
+                    selectedService.getVisitType(), selectedService.getDurationMinutes(),
+                    selectedService.requiresMedicalRecord());
         }
         Appointment saved = appointmentRepository.save(appointment);
         if (hold != null) {
