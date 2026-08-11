@@ -107,7 +107,7 @@ describe('DoctorExamination', () => {
     expect(request.request.body.followUpNote).toBe('Tái khám nếu triệu chứng còn kéo dài');
   });
 
-  it('autosaves edited clinical fields after the doctor pauses typing', () => {
+  it('autosaves edited clinical fields after ten seconds when the draft changed', () => {
     vi.useFakeTimers();
     http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
     fixture.detectChanges();
@@ -117,12 +117,47 @@ describe('DoctorExamination', () => {
     reason.dispatchEvent(new Event('input'));
     fixture.detectChanges();
 
-    vi.advanceTimersByTime(1200);
+    vi.advanceTimersByTime(9_999);
+    http.expectNone('/api/v1/doctor/examinations/ticket-1/draft');
+    vi.advanceTimersByTime(1);
     const request = http.expectOne('/api/v1/doctor/examinations/ticket-1/draft');
     expect(request.request.method).toBe('PUT');
     expect(request.request.body.reason).toBe('Đau đầu kéo dài');
     expect(request.request.body.recordVersion).toBe(0);
     request.flush({ ...examination(), reason: 'Đau đầu kéo dài' });
+    vi.useRealTimers();
+  });
+
+  it('saves a changed draft when the doctor leaves a clinical field', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+
+    const reason = fixture.nativeElement.querySelector('textarea[formControlName="reason"]') as HTMLTextAreaElement;
+    reason.value = 'Đau đầu kéo dài';
+    reason.dispatchEvent(new Event('input'));
+    reason.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+
+    const request = http.expectOne('/api/v1/doctor/examinations/ticket-1/draft');
+    expect(request.request.body.reason).toBe('Đau đầu kéo dài');
+  });
+
+  it('retries a failed automatic draft save at most three times every ten seconds', () => {
+    vi.useFakeTimers();
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+
+    const reason = fixture.nativeElement.querySelector('textarea[formControlName="reason"]') as HTMLTextAreaElement;
+    reason.value = 'Đau đầu kéo dài';
+    reason.dispatchEvent(new Event('input'));
+    reason.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+    http.expectOne('/api/v1/doctor/examinations/ticket-1/draft').flush({}, { status: 503, statusText: 'Unavailable' });
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      vi.advanceTimersByTime(10_000);
+      http.expectOne('/api/v1/doctor/examinations/ticket-1/draft').flush({}, { status: 503, statusText: 'Unavailable' });
+    }
+    vi.advanceTimersByTime(10_000);
+    http.expectNone('/api/v1/doctor/examinations/ticket-1/draft');
     vi.useRealTimers();
   });
 
