@@ -41,6 +41,7 @@ export class DoctorExamination implements OnInit {
   protected readonly saving = signal(false);
   protected readonly signing = signal(false);
   protected readonly prescriptionEnabled = signal(false);
+  protected readonly followUpEnabled = signal(false);
   protected readonly medicationSuggestions = signal<Record<number, MedicationSuggestionResponse[]>>({});
   protected readonly error = signal('');
   protected readonly notice = signal('');
@@ -52,6 +53,8 @@ export class DoctorExamination implements OnInit {
     treatmentPlan: ['', [Validators.maxLength(2000)]],
     prescriptionLines: this.fb.array<PrescriptionLineForm>([]),
     followUpDate: [''],
+    followUpDays: [null as number | null, [Validators.min(1), Validators.max(365)]],
+    followUpNote: ['', [Validators.maxLength(500)]],
   });
 
   protected get prescriptionLines(): FormArray<PrescriptionLineForm> {
@@ -76,9 +79,12 @@ export class DoctorExamination implements OnInit {
           conclusion: value.conclusion ?? '',
           treatmentPlan: value.treatmentPlan ?? '',
           followUpDate: value.followUpDate ?? '',
+          followUpDays: value.followUpDays ?? null,
+          followUpNote: value.followUpNote ?? '',
         }, { emitEvent: false });
         value.prescriptionLines?.forEach((line) => this.prescriptionLines.push(this.createPrescriptionLine(line)));
         this.prescriptionEnabled.set(this.prescriptionLines.length > 0);
+        this.followUpEnabled.set(value.followUpDays != null || Boolean(value.followUpNote));
         if (value.signedAt) this.form.disable();
         this.loading.set(false);
       },
@@ -140,6 +146,7 @@ export class DoctorExamination implements OnInit {
       return;
     }
     if (!this.validatePrescriptionLines()) return;
+    if (!this.validateFollowUpBeforeSigning()) return;
     this.signing.set(true);
     this.error.set('');
     this.notice.set('');
@@ -171,6 +178,15 @@ export class DoctorExamination implements OnInit {
     if (this.examination()?.signedAt) return;
     this.prescriptionLines.removeAt(index);
     this.prescriptionEnabled.set(this.prescriptionLines.length > 0);
+  }
+
+  protected toggleFollowUp(): void {
+    if (this.examination()?.signedAt) return;
+    const enabled = !this.followUpEnabled();
+    this.followUpEnabled.set(enabled);
+    if (!enabled) {
+      this.form.patchValue({ followUpDays: null, followUpNote: '' });
+    }
   }
 
   protected findMedicationSuggestions(index: number): void {
@@ -225,6 +241,8 @@ export class DoctorExamination implements OnInit {
         instructions: line.instructions ?? '',
       })),
       followUpDate: value.followUpDate || null,
+      followUpDays: this.followUpEnabled() ? (value.followUpDays ?? null) : null,
+      followUpNote: this.followUpEnabled() ? (value.followUpNote?.trim() || null) : null,
       recordVersion: this.examination()?.recordVersion ?? null,
     };
   }
@@ -243,6 +261,15 @@ export class DoctorExamination implements OnInit {
     if (this.prescriptionLines.valid) return true;
     this.prescriptionLines.markAllAsTouched();
     this.error.set('Mỗi thuốc cần có tên, liều dùng, số lượng và hướng dẫn sử dụng hợp lệ.');
+    return false;
+  }
+
+  private validateFollowUpBeforeSigning(): boolean {
+    if (!this.followUpEnabled()) return true;
+    const days = this.form.controls.followUpDays.value;
+    if (days != null && Number.isInteger(days) && days >= 1 && days <= 365) return true;
+    this.form.controls.followUpDays.markAsTouched();
+    this.error.set('Nhập số ngày tái khám từ 1 đến 365 trước khi ký.');
     return false;
   }
 

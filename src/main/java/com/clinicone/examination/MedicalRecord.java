@@ -61,6 +61,12 @@ public class MedicalRecord {
     @Column(name = "follow_up_date")
     private LocalDate followUpDate;
 
+    @Column(name = "follow_up_days")
+    private Integer followUpDays;
+
+    @Column(name = "follow_up_note", length = 500)
+    private String followUpNote;
+
     @Column(name = "signed_at")
     private Instant signedAt;
 
@@ -99,6 +105,13 @@ public class MedicalRecord {
 
     public void saveDraft(String doctorName, String reason, String examinationNotes, String diagnosis,
                           String conclusion, String treatmentPlan, String prescription, LocalDate followUpDate) {
+        saveDraft(doctorName, reason, examinationNotes, diagnosis, conclusion, treatmentPlan, prescription,
+                followUpDate, null, null);
+    }
+
+    public void saveDraft(String doctorName, String reason, String examinationNotes, String diagnosis,
+                          String conclusion, String treatmentPlan, String prescription, LocalDate followUpDate,
+                          Integer followUpDays, String followUpNote) {
         if (signedAt != null) {
             throw new IllegalStateException("Phiếu khám đã ký, không thể sửa.");
         }
@@ -110,6 +123,8 @@ public class MedicalRecord {
         this.treatmentPlan = treatmentPlan;
         this.prescription = prescription;
         this.followUpDate = followUpDate;
+        this.followUpDays = followUpDays;
+        this.followUpNote = followUpNote;
     }
 
     public void sign(String doctorName, String reason, String examinationNotes, String diagnosis,
@@ -121,10 +136,18 @@ public class MedicalRecord {
     public void sign(String doctorName, String reason, String examinationNotes, String diagnosis,
                      String conclusion, String treatmentPlan, String prescription, LocalDate followUpDate,
                      List<PrescriptionLine> lines) {
+        sign(doctorName, reason, examinationNotes, diagnosis, conclusion, treatmentPlan, prescription, followUpDate,
+                lines, null, null);
+    }
+
+    public void sign(String doctorName, String reason, String examinationNotes, String diagnosis,
+                     String conclusion, String treatmentPlan, String prescription, LocalDate followUpDate,
+                     List<PrescriptionLine> lines, Integer followUpDays, String followUpNote) {
         if (signedAt != null) {
             throw new IllegalStateException("Phiếu khám đã ký, không thể ký lại.");
         }
-        saveDraft(doctorName, reason, examinationNotes, diagnosis, conclusion, treatmentPlan, prescription, followUpDate);
+        saveDraft(doctorName, reason, examinationNotes, diagnosis, conclusion, treatmentPlan, prescription,
+                followUpDate, followUpDays, followUpNote);
         replacePrescriptionLines(lines);
         signedAt = Instant.now();
     }
@@ -132,7 +155,15 @@ public class MedicalRecord {
     public void saveDraft(String doctorName, String reason, String examinationNotes, String diagnosis,
                           String conclusion, String treatmentPlan, String prescription, LocalDate followUpDate,
                           List<PrescriptionLine> lines) {
-        saveDraft(doctorName, reason, examinationNotes, diagnosis, conclusion, treatmentPlan, prescription, followUpDate);
+        saveDraft(doctorName, reason, examinationNotes, diagnosis, conclusion, treatmentPlan, prescription,
+                followUpDate, lines, null, null);
+    }
+
+    public void saveDraft(String doctorName, String reason, String examinationNotes, String diagnosis,
+                          String conclusion, String treatmentPlan, String prescription, LocalDate followUpDate,
+                          List<PrescriptionLine> lines, Integer followUpDays, String followUpNote) {
+        saveDraft(doctorName, reason, examinationNotes, diagnosis, conclusion, treatmentPlan, prescription,
+                followUpDate, followUpDays, followUpNote);
         replacePrescriptionLines(lines);
     }
 
@@ -165,6 +196,8 @@ public class MedicalRecord {
     public String getPrescription() { return prescription; }
     public List<PrescriptionLine> getPrescriptionLines() { return List.copyOf(prescriptionLines); }
     public LocalDate getFollowUpDate() { return followUpDate; }
+    public Integer getFollowUpDays() { return followUpDays; }
+    public String getFollowUpNote() { return followUpNote; }
     public Instant getSignedAt() { return signedAt; }
     public long getVersion() { return version; }
 }

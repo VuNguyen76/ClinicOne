@@ -167,6 +167,29 @@ class DoctorExaminationServiceTest {
     }
 
     @Test
+    void signingStoresTheFollowUpIntervalAndNote() {
+        DoctorExaminationRequest request = new DoctorExaminationRequest(
+                "Đau đầu", "Mạch ổn", "Đau đầu căng thẳng", "Theo dõi thêm", "Nghỉ ngơi", null, null, 0L,
+                List.of(), 14, "Tái khám nếu triệu chứng còn kéo dài");
+
+        DoctorExaminationResponse response = service.sign(TICKET_ID, DOCTOR_ID.toString(), request);
+
+        assertThat(response.followUpDays()).isEqualTo(14);
+        assertThat(response.followUpNote()).isEqualTo("Tái khám nếu triệu chứng còn kéo dài");
+    }
+
+    @Test
+    void signingRejectsFollowUpNoteWithoutAValidInterval() {
+        DoctorExaminationRequest request = new DoctorExaminationRequest(
+                "Đau đầu", "Mạch ổn", "Đau đầu căng thẳng", "Theo dõi thêm", "Nghỉ ngơi", null, null, 0L,
+                List.of(), null, "Tái khám nếu còn đau");
+
+        assertThatThrownBy(() -> service.sign(TICKET_ID, DOCTOR_ID.toString(), request))
+                .isInstanceOf(AuthException.class)
+                .hasMessageContaining("Số ngày tái khám");
+    }
+
+    @Test
     void signingRejectsPrescriptionLineMissingRequiredDetails() {
         DoctorExaminationRequest request = new DoctorExaminationRequest(
                 "Đau đầu", "Mạch ổn", "Đau đầu căng thẳng", "Theo dõi thêm", null, null, null, 0L,

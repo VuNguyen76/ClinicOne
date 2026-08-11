@@ -155,7 +155,7 @@ public class DoctorExaminationService {
             List<PrescriptionLine> prescriptionLines = prescriptionLines(record, request);
             record.saveDraft(doctorName(staffId, workspace.appointment()), request.reason(), request.examinationNotes(),
                     request.diagnosis(), request.conclusion(), request.treatmentPlan(), request.prescription(),
-                    request.followUpDate(), prescriptionLines);
+                    request.followUpDate(), prescriptionLines, request.followUpDays(), normalizeFollowUpNote(request.followUpNote()));
             recordRepository.saveAndFlush(record);
         } catch (IllegalStateException exception) {
             throw conflict("MEDICAL_RECORD_LOCKED", exception.getMessage());
@@ -197,13 +197,14 @@ public class DoctorExaminationService {
             return response(workspace.ticket(), workspace.session(), null);
         }
         requireRequiredFields(request);
+        validateFollowUpForSigning(request);
         MedicalRecord record = existingRecord == null ? record(workspace.session()) : existingRecord;
         requireCurrentRecordVersion(record, request);
         try {
             List<PrescriptionLine> prescriptionLines = prescriptionLines(record, request);
             record.sign(doctorName(staffId, workspace.appointment()), request.reason(), request.examinationNotes(),
                     request.diagnosis(), request.conclusion(), request.treatmentPlan(), request.prescription(),
-                    request.followUpDate(), prescriptionLines);
+                    request.followUpDate(), prescriptionLines, request.followUpDays(), normalizeFollowUpNote(request.followUpNote()));
             workspace.session().complete();
             workspace.ticket().complete();
             workspace.appointment().complete();
@@ -358,6 +359,26 @@ public class DoctorExaminationService {
         }
     }
 
+    private void validateFollowUpForSigning(DoctorExaminationRequest request) {
+        String followUpNote = normalizeFollowUpNote(request.followUpNote());
+        Integer followUpDays = request.followUpDays();
+        if (followUpDays == null) {
+            if (followUpNote != null) {
+                throw new AuthException(HttpStatus.BAD_REQUEST, "FOLLOW_UP_DAYS_REQUIRED",
+                        "Số ngày tái khám là bắt buộc khi có ghi chú tái khám.");
+            }
+            return;
+        }
+        if (followUpDays < 1 || followUpDays > 365) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "FOLLOW_UP_DAYS_INVALID",
+                    "Số ngày tái khám phải từ 1 đến 365.");
+        }
+    }
+
+    private String normalizeFollowUpNote(String value) {
+        return blank(value) ? null : value.trim();
+    }
+
     private void requireCurrentRecordVersion(MedicalRecord record, DoctorExaminationRequest request) {
         if (request.recordVersion() == null) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "MEDICAL_RECORD_VERSION_REQUIRED",
@@ -401,6 +422,7 @@ public class DoctorExaminationService {
                 record == null ? null : record.getExaminationNotes(), record == null ? null : record.getDiagnosis(),
                 record == null ? null : record.getConclusion(), record == null ? null : record.getTreatmentPlan(),
                 record == null ? null : record.getPrescription(), record == null ? null : record.getFollowUpDate(),
+                record == null ? null : record.getFollowUpDays(), record == null ? null : record.getFollowUpNote(),
                 session.getStatus().name(), record == null ? null : record.getSignedAt(),
                 record == null ? null : record.getVersion(), requiresRecord, history,
                 record == null ? List.of() : record.getPrescriptionLines().stream().map(PrescriptionLineResponse::from).toList());

@@ -58,6 +58,19 @@ describe('MedicalRecordDetail', () => {
     expect(fixture.nativeElement.querySelector('input, textarea, button[data-testid="edit-prescription"]')).toBeFalsy();
   });
 
+  it('shows the structured follow-up plan on a signed record', () => {
+    http.expectOne('/api/v1/medical-records/record-1').flush({
+      id: 'record-1', examinationId: 'exam-1', appointmentCode: 'CL-20260807-0009', doctorName: 'Bác sĩ Nguyễn An',
+      reason: 'Đau đầu', examinationNotes: 'Mạch ổn', diagnosis: 'Đau đầu căng thẳng', conclusion: 'Theo dõi thêm',
+      treatmentPlan: 'Nghỉ ngơi', prescription: null, followUpDate: null, followUpDays: 14,
+      followUpNote: 'Tái khám nếu triệu chứng còn kéo dài', signedAt: '2026-08-07T09:30:00Z',
+    });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Sau 14 ngày');
+    expect(fixture.nativeElement.textContent).toContain('Tái khám nếu triệu chứng còn kéo dài');
+  });
+
   it('does not expose a draft when the API denies the record', () => {
     http.expectOne('/api/v1/medical-records/record-1').flush({ message: 'Không tìm thấy phiếu khám đã ký.' }, {
       status: 404, statusText: 'Not Found',
