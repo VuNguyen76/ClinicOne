@@ -195,12 +195,12 @@ public class QueueService {
         }
 
         ensureBookable(appointment);
+        int nextNumber = nextNumber(room, today);
         String previousAppointmentStatus = appointment.getStatus().name();
         appointment.checkIn();
         appointment.assignCheckInRequestKey(requestKey);
         appointmentRepository.save(appointment);
 
-        int nextNumber = nextNumber(room.getCode(), today);
         try {
             QueueTicket ticket = ticketRepository.save(QueueTicket.create(appointment, room, today, nextNumber, exceptionReason));
             SessionTransition sessionTransition = ensureCheckedInSession(appointment);
@@ -434,9 +434,19 @@ public class QueueService {
         return response;
     }
 
-    private int nextNumber(String roomCode, LocalDate date) {
-        Integer currentMax = ticketRepository.findMaxQueueNumberByRoomCodeAndQueueDate(roomCode, date);
-        return currentMax == null ? 1 : currentMax + 1;
+    private int nextNumber(ClinicRoom room, LocalDate date) {
+        ClinicRoom lockedRoom = roomRepository.findByCodeAndActiveTrueForUpdate(room.getCode())
+                .orElseThrow(() -> new AuthException(HttpStatus.CONFLICT, "ROOM_NOT_AVAILABLE",
+                        "Phòng khám không còn hoạt động để cấp số."));
+        Integer currentMax = ticketRepository.findMaxQueueNumberByRoomCodeAndQueueDate(lockedRoom.getCode(), date);
+        if (currentMax == null) {
+            return 1;
+        }
+        if (currentMax >= QueueTicket.MAX_QUEUE_NUMBER) {
+            throw new AuthException(HttpStatus.CONFLICT, "QUEUE_NUMBER_LIMIT_REACHED",
+                    "Hàng đợi đã đủ 999 số trong ngày; vui lòng liên hệ quầy để được hỗ trợ.");
+        }
+        return currentMax + 1;
     }
 
     private void moveTicket(QueueTicket ticket, QueueAdjustmentRequest request) {
@@ -459,7 +469,7 @@ public class QueueService {
         // A reassignment always receives a fresh number in the destination queue,
         // including when the destination room is unchanged. The old number remains
         // visible through the business journal rather than being reused.
-        int targetNumber = nextNumber(targetRoom.getCode(), ticket.getQueueDate());
+        int targetNumber = nextNumber(targetRoom, ticket.getQueueDate());
         ticket.moveTo(targetRoom, targetDoctor.getStaffAccount().getId(), targetDoctor.getStaffAccount().getFullName(),
                 targetDoctor.getSpecialty(), targetNumber);
     }

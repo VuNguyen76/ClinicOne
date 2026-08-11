@@ -29,6 +29,8 @@ import java.util.UUID;
         @UniqueConstraint(name = "uk_queue_tickets_room_date_number", columnNames = {"room_id", "queue_date", "queue_number"})
 })
 public class QueueTicket {
+    public static final int MAX_QUEUE_NUMBER = 999;
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
@@ -110,8 +112,8 @@ public class QueueTicket {
 
     public static QueueTicket create(Appointment appointment, ClinicRoom room, LocalDate queueDate,
                                      int queueNumber, String exceptionReason) {
-        if (queueNumber < 1) {
-            throw new IllegalArgumentException("Số thứ tự phải lớn hơn 0");
+        if (queueNumber < 1 || queueNumber > MAX_QUEUE_NUMBER) {
+            throw new IllegalArgumentException("Số thứ tự phải từ 1 đến " + MAX_QUEUE_NUMBER);
         }
         QueueTicket ticket = new QueueTicket(appointment, room, queueDate, queueNumber);
         ticket.recordExceptionReason(exceptionReason);
