@@ -130,6 +130,13 @@ export interface MedicationSuggestionResponse {
   active: boolean;
 }
 
+export interface DiagnosisSuggestionResponse {
+  id: string;
+  code: string;
+  name: string;
+  active: boolean;
+}
+
 export interface MedicalRecordHistoryPageResponse {
   items: MedicalRecordResponse[];
   page: number;
@@ -952,6 +959,10 @@ export class AuthApiService {
     return this.http.get<MedicationSuggestionResponse[]>('/api/v1/doctor/medications/suggestions', { params: { query } });
   }
 
+  getDoctorDiagnosisSuggestions(query: string): Observable<DiagnosisSuggestionResponse[]> {
+    return this.http.get<DiagnosisSuggestionResponse[]>('/api/v1/doctor/diagnoses/suggestions', { params: { query } });
+  }
+
   getAdminMedications(): Observable<MedicationSuggestionResponse[]> {
     return this.http.get<MedicationSuggestionResponse[]>('/api/v1/admin/medications');
   }
@@ -966,6 +977,24 @@ export class AuthApiService {
 
   setMedicationActive(id: string, active: boolean): Observable<MedicationSuggestionResponse> {
     return this.http.patch<MedicationSuggestionResponse>(`/api/v1/admin/medications/${id}/active`, null, {
+      params: { value: String(active) },
+    });
+  }
+
+  getAdminDiagnoses(): Observable<DiagnosisSuggestionResponse[]> {
+    return this.http.get<DiagnosisSuggestionResponse[]>('/api/v1/admin/diagnoses');
+  }
+
+  createDiagnosis(code: string, name: string): Observable<DiagnosisSuggestionResponse> {
+    return this.http.post<DiagnosisSuggestionResponse>('/api/v1/admin/diagnoses', { code, name });
+  }
+
+  updateDiagnosis(id: string, code: string, name: string): Observable<DiagnosisSuggestionResponse> {
+    return this.http.put<DiagnosisSuggestionResponse>(`/api/v1/admin/diagnoses/${id}`, { code, name });
+  }
+
+  setDiagnosisActive(id: string, active: boolean): Observable<DiagnosisSuggestionResponse> {
+    return this.http.patch<DiagnosisSuggestionResponse>(`/api/v1/admin/diagnoses/${id}/active`, null, {
       params: { value: String(active) },
     });
   }

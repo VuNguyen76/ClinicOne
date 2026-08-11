@@ -35,6 +35,7 @@ export const routes: Routes = [
   { path: 'admin/configuration', loadComponent: () => import('./features/clinic-configuration/clinic-configuration').then((m) => m.ClinicConfiguration), canActivate: [adminGuard] },
   { path: 'admin/reason-catalog', loadComponent: () => import('./features/reason-catalog-management/reason-catalog-management').then((m) => m.ReasonCatalogManagement), canActivate: [adminGuard] },
   { path: 'admin/medications', loadComponent: () => import('./features/medication-catalog-management/medication-catalog-management').then((m) => m.MedicationCatalogManagement), canActivate: [adminGuard] },
+  { path: 'admin/diagnoses', loadComponent: () => import('./features/diagnosis-catalog-management/diagnosis-catalog-management').then((m) => m.DiagnosisCatalogManagement), canActivate: [adminGuard] },
   { path: 'admin/business-audit', loadComponent: () => import('./features/business-audit/business-audit').then((m) => m.BusinessAudit), canActivate: [roomManagerGuard] },
   { path: 'about', loadComponent: () => import('./features/public/public-page').then((m) => m.PublicPage), data: { page: 'about' } },
   { path: 'process', loadComponent: () => import('./features/public/public-page').then((m) => m.PublicPage), data: { page: 'process' } },

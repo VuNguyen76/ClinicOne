@@ -95,6 +95,10 @@
         [class.text-[#0284c7]]="isActive('/admin/medications')" [attr.aria-current]="isActive('/admin/medications') ? 'page' : null"
         class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]"
         role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">medication</mat-icon>Danh mục thuốc</a>}
+      @if (staffRoles().includes('ADMIN')) {<a routerLink="/admin/diagnoses" [class.bg-[#eafaff]]="isActive('/admin/diagnoses')"
+        [class.text-[#0284c7]]="isActive('/admin/diagnoses')" [attr.aria-current]="isActive('/admin/diagnoses') ? 'page' : null"
+        class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]"
+        role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">clinical_notes</mat-icon>Danh mục chẩn đoán</a>}
       <button type="button"
         class="flex w-full items-center gap-3 border-t border-slate-100 px-5 py-3 text-left text-sm text-slate-700 transition hover:bg-slate-50 hover:text-rose-600"
         role="menuitem" (click)="logout()"><mat-icon class="!text-[20px]">logout</mat-icon>Đăng xuất</button>

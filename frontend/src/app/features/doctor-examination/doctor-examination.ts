@@ -8,6 +8,7 @@ import {
   AuthApiService,
   DoctorExaminationRequest,
   DoctorExaminationResponse,
+  DiagnosisSuggestionResponse,
   MedicationSuggestionResponse,
   apiErrorMessage,
 } from '../../core/auth/auth-api.service';
@@ -43,6 +44,7 @@ export class DoctorExamination implements OnInit {
   protected readonly prescriptionEnabled = signal(false);
   protected readonly followUpEnabled = signal(false);
   protected readonly medicationSuggestions = signal<Record<number, MedicationSuggestionResponse[]>>({});
+  protected readonly diagnosisSuggestions = signal<DiagnosisSuggestionResponse[]>([]);
   protected readonly error = signal('');
   protected readonly notice = signal('');
   protected readonly form = this.fb.group({
@@ -201,6 +203,23 @@ export class DoctorExamination implements OnInit {
       next: (items) => this.setMedicationSuggestions(index, items),
       error: () => this.setMedicationSuggestions(index, []),
     });
+  }
+
+  protected findDiagnosisSuggestions(): void {
+    const query = this.form.controls.diagnosis.value?.trim() ?? '';
+    if (query.length < 2) {
+      this.diagnosisSuggestions.set([]);
+      return;
+    }
+    this.authApi.getDoctorDiagnosisSuggestions(query).subscribe({
+      next: (items) => this.diagnosisSuggestions.set(items),
+      error: () => this.diagnosisSuggestions.set([]),
+    });
+  }
+
+  protected selectDiagnosis(suggestion: DiagnosisSuggestionResponse): void {
+    this.form.controls.diagnosis.setValue(suggestion.name);
+    this.diagnosisSuggestions.set([]);
   }
 
   protected selectMedication(index: number, medication: MedicationSuggestionResponse): void {
