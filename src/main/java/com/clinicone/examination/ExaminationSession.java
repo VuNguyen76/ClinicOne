@@ -111,6 +111,17 @@ public class ExaminationSession {
         status = ExaminationSessionStatus.CANCELLED;
     }
 
+    public void resetForWrongProfile() {
+        if (status != ExaminationSessionStatus.IN_PROGRESS) {
+            throw new IllegalStateException("Chỉ có thể xử lý nhầm hồ sơ khi lượt đang khám.");
+        }
+        status = ExaminationSessionStatus.SCHEDULED;
+        startedAt = null;
+        endedAt = null;
+        startRequestKey = null;
+        signRequestKey = null;
+    }
+
     public void cancel() {
         if (status == ExaminationSessionStatus.CANCELLED) {
             return;

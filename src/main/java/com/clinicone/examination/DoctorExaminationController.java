@@ -77,6 +77,13 @@ public class DoctorExaminationController {
         return ResponseEntity.ok(service.stop(ticketId, authentication.getName(), request));
     }
 
+    @PostMapping("/{ticketId}/wrong-profile")
+    public ResponseEntity<DoctorExaminationResponse> wrongProfile(Authentication authentication,
+                                                                   @PathVariable UUID ticketId,
+                                                                   @Valid @RequestBody WrongProfileRequest request) {
+        return ResponseEntity.ok(service.wrongProfile(ticketId, authentication.getName(), request));
+    }
+
     private void recordAudit(String eventType, String actor, String outcome, String function, String ipAddress) {
         AccessAuditService service = accessAudit.getIfAvailable();
         if (service == null) {

@@ -14,6 +14,7 @@ import com.clinicone.notification.PatientNotificationService;
 import com.clinicone.queue.ClinicRoom;
 import com.clinicone.queue.QueueTicket;
 import com.clinicone.queue.QueueTicketRepository;
+import com.clinicone.queue.QueueTicketStatus;
 import com.clinicone.schedule.GeneratedClinicSlot;
 import com.clinicone.schedule.GeneratedClinicSlotRepository;
 import com.clinicone.schedule.GeneratedSlotStatus;
@@ -53,6 +54,7 @@ class DoctorExaminationServiceTest {
     private DoctorProfileRepository profileRepository;
     private PatientNotificationService notificationService;
     private GeneratedClinicSlotRepository generatedSlotRepository;
+    private WrongProfileIncidentRepository wrongProfileIncidentRepository;
     private DoctorExaminationService service;
     private QueueTicket ticket;
     private ExaminationSession session;
@@ -69,8 +71,10 @@ class DoctorExaminationServiceTest {
         profileRepository = mock(DoctorProfileRepository.class);
         notificationService = mock(PatientNotificationService.class);
         generatedSlotRepository = mock(GeneratedClinicSlotRepository.class);
+        wrongProfileIncidentRepository = mock(WrongProfileIncidentRepository.class);
         service = new DoctorExaminationService(ticketRepository, sessionRepository, recordRepository,
-                staffRepository, appointmentRepository, profileRepository, notificationService, generatedSlotRepository);
+                staffRepository, appointmentRepository, profileRepository, notificationService, generatedSlotRepository,
+                wrongProfileIncidentRepository);
 
         ClinicRoom room = ClinicRoom.create("NOI-01", "Phòng Nội 01", "Nội tổng quát");
         StaffAccount doctor = StaffAccount.create("bs.an", "hash", "Bác sĩ Nguyễn An", StaffRole.DOCTOR);
@@ -198,6 +202,25 @@ class DoctorExaminationServiceTest {
         verify(ticketRepository).save(ticket);
         verify(appointmentRepository).save(appointment);
         verify(recordRepository, never()).saveAndFlush(record);
+    }
+
+    @Test
+    void wrongProfileSealsTheDraftAndReturnsThePatientToTheSameWaitingQueue() {
+        appointment.checkIn();
+        service.saveDraft(TICKET_ID, DOCTOR_ID.toString(), request());
+
+        DoctorExaminationResponse response = service.wrongProfile(TICKET_ID, DOCTOR_ID.toString(),
+                new WrongProfileRequest("Bác sĩ phát hiện đang mở nhầm hồ sơ người bệnh."));
+
+        assertThat(response.status()).isEqualTo("SCHEDULED");
+        assertThat(ticket.getStatus()).isEqualTo(QueueTicketStatus.WAITING);
+        assertThat(ticket.getPresenceStatus().name()).isEqualTo("READY");
+        assertThat(ticket.getQueueNumber()).isEqualTo(5);
+        assertThat(ticket.getCheckedInAt()).isNotNull();
+        assertThat(session.getStartedAt()).isNull();
+        assertThat(appointment.getStatus().name()).isEqualTo("CHECKED_IN");
+        verify(wrongProfileIncidentRepository).save(any(WrongProfileIncident.class));
+        verify(recordRepository).delete(record);
     }
 
     @Test
