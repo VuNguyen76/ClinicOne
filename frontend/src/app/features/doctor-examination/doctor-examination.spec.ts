@@ -89,6 +89,24 @@ describe('DoctorExamination', () => {
     }] });
   });
 
+  it('only sends a follow-up interval and note after the doctor enables it', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('[data-testid="toggle-follow-up"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const days = fixture.nativeElement.querySelector('[data-testid="follow-up-days"]') as HTMLInputElement;
+    const note = fixture.nativeElement.querySelector('[data-testid="follow-up-note"]') as HTMLInputElement;
+    days.value = '14'; days.dispatchEvent(new Event('input'));
+    note.value = 'Tái khám nếu triệu chứng còn kéo dài'; note.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('[data-testid="save-draft"]') as HTMLButtonElement).click();
+    const request = http.expectOne('/api/v1/doctor/examinations/ticket-1/draft');
+    expect(request.request.body.followUpDays).toBe(14);
+    expect(request.request.body.followUpNote).toBe('Tái khám nếu triệu chứng còn kéo dài');
+  });
+
   it('autosaves edited clinical fields after the doctor pauses typing', () => {
     vi.useFakeTimers();
     http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());

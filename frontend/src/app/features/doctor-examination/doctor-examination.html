@@ -104,7 +104,18 @@
                 <button data-testid="add-prescription-line" type="button" class="flex min-h-16 items-center justify-center gap-2 rounded-md border border-dashed border-[#b9d9e5] bg-[#f9fcfd] text-sm font-semibold text-[#087cad] hover:bg-[#effaff]" (click)="addPrescriptionLine()"><mat-icon class="!h-5 !w-5 !text-[20px]">medication</mat-icon> Kê đơn thuốc</button>
               }
             </section>
-            <label class="grid max-w-xs gap-1.5"><span class="text-sm font-semibold">Hẹn tái khám</span><input type="date" formControlName="followUpDate" class="min-h-10 rounded-md border border-[#d5e3e7] px-3 text-sm outline-none transition focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/15" /></label>
+            <section class="grid gap-3 border-t border-[#e7eff1] pt-5 sm:col-span-2">
+              <div class="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+                <div><h3 class="text-sm font-semibold">Hẹn tái khám</h3><p class="mt-0.5 text-xs text-slate-500">Chỉ bật khi cần người bệnh quay lại.</p></div>
+                @if (!exam.signedAt) {<button data-testid="toggle-follow-up" type="button" class="inline-flex min-h-9 w-fit items-center rounded-md border px-3 text-sm font-semibold transition" [class.border-[#9bdcf4]]="!followUpEnabled()" [class.text-[#087cad]]="!followUpEnabled()" [class.bg-[#effaff]]="followUpEnabled()" [class.border-[#0ea5e9]]="followUpEnabled()" [class.text-[#087cad]]="followUpEnabled()" (click)="toggleFollowUp()">{{ followUpEnabled() ? 'Đã hẹn tái khám' : 'Bật hẹn tái khám' }}</button>}
+              </div>
+              @if (followUpEnabled()) {
+                <div class="grid gap-3 sm:grid-cols-[190px_minmax(0,1fr)]">
+                  <label class="grid gap-1.5"><span class="text-sm font-semibold">Sau bao nhiêu ngày <em class="text-red-500">*</em></span><input data-testid="follow-up-days" type="number" min="1" max="365" formControlName="followUpDays" class="min-h-10 rounded-md border border-[#d5e3e7] px-3 text-sm outline-none transition focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/15" placeholder="Ví dụ: 14" /></label>
+                  <label class="grid gap-1.5"><span class="text-sm font-semibold">Dặn dò tái khám</span><input data-testid="follow-up-note" maxlength="500" formControlName="followUpNote" class="min-h-10 rounded-md border border-[#d5e3e7] px-3 text-sm outline-none transition focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/15" placeholder="Ghi chú ngắn cho người bệnh" /></label>
+                </div>
+              } @else if (exam.followUpDate) {<p class="text-xs text-slate-500">Phiếu cũ hẹn tái khám ngày {{ formatDate(exam.followUpDate) }}.</p>}
+            </section>
           </div>
           @if (!exam.signedAt) {<div class="sticky bottom-0 flex flex-col-reverse gap-2 border-t border-[#e7eff1] bg-white/95 px-5 py-4 backdrop-blur sm:flex-row sm:justify-end sm:px-6"><button data-testid="save-draft" type="button" class="min-h-10 rounded-md border border-[#cfe0e5] px-4 text-sm font-semibold text-[#173f4b] transition hover:border-[#0ea5e9] hover:text-[#0b84bd] disabled:opacity-50" [disabled]="saving() || signing()" (click)="saveDraft()">{{ saving() ? 'Đang lưu...' : 'Lưu bản nháp' }}</button><button data-testid="sign-record" type="button" class="min-h-10 rounded-md bg-[#0b3846] px-4 text-sm font-semibold text-white transition hover:bg-[#082d39] disabled:opacity-50" [disabled]="saving() || signing()" (click)="sign()">{{ signing() ? 'Đang ký...' : 'Ký phiếu khám' }}</button></div>}
           } @else {

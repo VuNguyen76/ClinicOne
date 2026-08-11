@@ -110,6 +110,8 @@ export interface MedicalRecordResponse {
   prescription: string | null;
   prescriptionLines?: PrescriptionLineResponse[];
   followUpDate: string | null;
+  followUpDays?: number | null;
+  followUpNote?: string | null;
   signedAt: string;
 }
 
@@ -546,6 +548,8 @@ export interface DoctorExaminationResponse {
   prescription: string | null;
   prescriptionLines: PrescriptionLineResponse[];
   followUpDate: string | null;
+  followUpDays?: number | null;
+  followUpNote?: string | null;
   status: string;
   signedAt: string | null;
   recordVersion: number | null;
@@ -568,6 +572,8 @@ export interface DoctorExaminationRequest {
     instructions: string;
   }>;
   followUpDate?: string | null;
+  followUpDays?: number | null;
+  followUpNote?: string | null;
   recordVersion?: number | null;
 }
 

@@ -28,6 +28,8 @@ public record DoctorExaminationResponse(
         String treatmentPlan,
         String prescription,
         LocalDate followUpDate,
+        Integer followUpDays,
+        String followUpNote,
         String status,
         Instant signedAt,
         Long recordVersion,
@@ -44,7 +46,7 @@ public record DoctorExaminationResponse(
                                      String status, Instant signedAt) {
         this(ticketId, appointmentId, examinationId, queueNumber, roomName, appointmentCode, specialty, doctorName,
                 appointmentDate, startTime, patientName, patientDateOfBirth, patientGender, patientPhone, reason,
-                examinationNotes, diagnosis, conclusion, treatmentPlan, prescription, followUpDate, status, signedAt,
-                null, true, List.of(), List.of());
+                examinationNotes, diagnosis, conclusion, treatmentPlan, prescription, followUpDate, null, null,
+                status, signedAt, null, true, List.of(), List.of());
     }
 }
