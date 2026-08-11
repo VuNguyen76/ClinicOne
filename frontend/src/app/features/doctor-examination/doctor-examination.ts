@@ -51,9 +51,9 @@ export class DoctorExamination implements OnInit {
   protected readonly error = signal('');
   protected readonly notice = signal('');
   protected readonly form = this.fb.group({
-    reason: ['', [Validators.maxLength(500)]],
-    examinationNotes: ['', [Validators.maxLength(4000)]],
-    diagnosis: ['', [Validators.maxLength(1000)]],
+    reason: ['', [Validators.maxLength(2000)]],
+    examinationNotes: ['', [Validators.maxLength(2000)]],
+    diagnosis: ['', [Validators.maxLength(2000)]],
     conclusion: ['', [Validators.maxLength(2000)]],
     treatmentPlan: ['', [Validators.maxLength(2000)]],
     prescriptionLines: this.fb.array<PrescriptionLineForm>([]),

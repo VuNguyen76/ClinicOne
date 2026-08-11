@@ -36,13 +36,13 @@ public class MedicalRecord {
     @Column(name = "doctor_name", length = 120)
     private String doctorName;
 
-    @Column(name = "reason", length = 500)
+    @Column(name = "reason", length = 2000)
     private String reason;
 
-    @Column(name = "examination_notes", length = 4000)
+    @Column(name = "examination_notes", length = 2000)
     private String examinationNotes;
 
-    @Column(name = "diagnosis", length = 1000)
+    @Column(name = "diagnosis", length = 2000)
     private String diagnosis;
 
     @Column(name = "conclusion", length = 2000)

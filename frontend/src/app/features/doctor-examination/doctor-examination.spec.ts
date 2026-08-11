@@ -180,6 +180,16 @@ describe('DoctorExamination', () => {
     expect(diagnosis.disabled).toBe(false);
   });
 
+  it('limits every required clinical text area to two thousand characters', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+
+    for (const name of ['reason', 'examinationNotes', 'diagnosis', 'conclusion']) {
+      const field = fixture.nativeElement.querySelector(`textarea[formControlName="${name}"]`) as HTMLTextAreaElement;
+      expect(field.maxLength).toBe(2000);
+    }
+  });
+
   it('requires the four clinical fields and locks the form after signing', () => {
     http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
     fixture.detectChanges();

@@ -20,6 +20,7 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -73,6 +74,34 @@ class DoctorExaminationControllerTest {
                         .content("{\"reason\":\"Đau đầu\",\"examinationNotes\":\"Mạch ổn\",\"recordVersion\":0}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.reason").value("Đau đầu"));
+    }
+
+    @Test
+    void doctorCanSaveTwoThousandCharactersInEachRequiredClinicalField() throws Exception {
+        when(service.saveDraft(eq(TICKET_ID), eq(STAFF_ID.toString()), org.mockito.ArgumentMatchers.any()))
+                .thenReturn(response());
+        String text = "a".repeat(2000);
+
+        mockMvc.perform(put("/api/v1/doctor/examinations/" + TICKET_ID + "/draft")
+                        .with(authentication(authenticated("ROLE_DOCTOR")))
+                        .contentType("application/json")
+                        .content("{\"reason\":\"" + text + "\",\"examinationNotes\":\"" + text
+                                + "\",\"diagnosis\":\"" + text + "\",\"conclusion\":\"" + text
+                                + "\",\"recordVersion\":0}"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void doctorCannotSaveMoreThanTwoThousandCharactersInARequiredClinicalField() throws Exception {
+        String text = "a".repeat(2001);
+
+        mockMvc.perform(put("/api/v1/doctor/examinations/" + TICKET_ID + "/draft")
+                        .with(authentication(authenticated("ROLE_DOCTOR")))
+                        .contentType("application/json")
+                        .content("{\"reason\":\"" + text + "\",\"recordVersion\":0}"))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(service);
     }
 
     @Test
