@@ -49,6 +49,7 @@ export class DoctorExamination implements OnInit {
   protected readonly signing = signal(false);
   protected readonly prescriptionEnabled = signal(false);
   protected readonly followUpEnabled = signal(false);
+  protected readonly confirmingSign = signal(false);
   protected readonly medicationSuggestions = signal<Record<number, MedicationSuggestionResponse[]>>({});
   protected readonly diagnosisSuggestions = signal<DiagnosisSuggestionResponse[]>([]);
   protected readonly error = signal('');
@@ -142,19 +143,32 @@ export class DoctorExamination implements OnInit {
     this.persistDraft(false);
   }
 
-  protected sign(): void {
+  protected requestSign(): void {
     const ticketId = this.examination()?.ticketId;
     if (!ticketId || this.saving() || this.signing() || this.examination()?.status === 'COMPLETED') return;
     const required = ['reason', 'examinationNotes', 'diagnosis', 'conclusion'] as const;
     if (this.examination()?.requiresMedicalRecord !== false) {
       required.forEach((name) => this.form.controls[name].markAsTouched());
-    }
-    if (this.examination()?.requiresMedicalRecord !== false && required.some((name) => !this.form.controls[name].value?.trim())) {
-      this.error.set('Nhập đủ lý do khám, ghi nhận khám, chẩn đoán và kết luận trước khi ký.');
+      if (required.some((name) => !this.form.controls[name].value?.trim())) {
+        this.error.set('Nhập đủ lý do khám, ghi nhận khám, chẩn đoán và kết luận trước khi ký.');
+        return;
+      }
+      if (!this.validatePrescriptionLines()) return;
+      if (!this.validateFollowUpBeforeSigning()) return;
+      this.confirmingSign.set(true);
       return;
     }
-    if (!this.validatePrescriptionLines()) return;
-    if (!this.validateFollowUpBeforeSigning()) return;
+    this.sign();
+  }
+
+  protected cancelSign(): void {
+    this.confirmingSign.set(false);
+  }
+
+  protected sign(): void {
+    const ticketId = this.examination()?.ticketId;
+    if (!ticketId || this.saving() || this.signing() || this.examination()?.status === 'COMPLETED') return;
+    this.confirmingSign.set(false);
     this.signing.set(true);
     this.error.set('');
     this.notice.set('');
