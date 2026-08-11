@@ -102,13 +102,16 @@ class QueueControllerTest {
     }
 
     @Test
-    void callsTicket() throws Exception {
-        when(queueService.call(TICKET_ID)).thenReturn(response());
-
+    void receptionistCannotCallOrSkipTicket() throws Exception {
         mockMvc.perform(post("/api/v1/queue/" + TICKET_ID + "/call")
                         .with(authentication(authenticated("ROLE_RECEPTIONIST"))))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("CALLED"));
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(post("/api/v1/queue/" + TICKET_ID + "/skip")
+                        .with(authentication(authenticated("ROLE_RECEPTIONIST")))
+                        .contentType("application/json")
+                        .content("{\"reason\":\"Bệnh nhân chưa có mặt khi được gọi\"}"))
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -117,6 +120,19 @@ class QueueControllerTest {
 
         mockMvc.perform(post("/api/v1/queue/" + TICKET_ID + "/call")
                         .with(authentication(authenticated("ROLE_DOCTOR"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CALLED"));
+    }
+
+    @Test
+    void doctorCanReturnCalledTicketToQueue() throws Exception {
+        when(queueService.skip(TICKET_ID, ACCOUNT_ID.toString(), "Bệnh nhân chưa có mặt khi được gọi"))
+                .thenReturn(response());
+
+        mockMvc.perform(post("/api/v1/queue/" + TICKET_ID + "/skip")
+                        .with(authentication(authenticated("ROLE_DOCTOR")))
+                        .contentType("application/json")
+                        .content("{\"reason\":\"Bệnh nhân chưa có mặt khi được gọi\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("CALLED"));
     }

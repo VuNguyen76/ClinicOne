@@ -282,11 +282,6 @@ public class QueueService {
     }
 
     @Transactional
-    public QueueTicketResponse call(UUID ticketId) {
-        return call(ticketId, null);
-    }
-
-    @Transactional
     public QueueTicketResponse call(UUID ticketId, String staffId) {
         QueueTicket ticket = findTicket(ticketId);
         ensureDoctorOwnsTicket(ticket, staffId);
@@ -342,11 +337,6 @@ public class QueueService {
     }
 
     @Transactional
-    public QueueTicketResponse skip(UUID ticketId, String reason) {
-        return skip(ticketId, null, reason);
-    }
-
-    @Transactional
     public QueueTicketResponse skip(UUID ticketId, String staffId, String reason) {
         QueueTicket ticket = findTicket(ticketId);
         ensureDoctorOwnsTicket(ticket, staffId);
@@ -361,11 +351,6 @@ public class QueueService {
         recordTransition(UUID.randomUUID(), "QUEUE_TICKET", ticket.getId(), previousStatus,
                 ticket.getStatus().name(), "RETURN_TO_QUEUE", staffId, normalizedReason);
         return response;
-    }
-
-    @Transactional
-    public QueueTicketResponse start(UUID ticketId) {
-        return start(ticketId, null);
     }
 
     @Transactional

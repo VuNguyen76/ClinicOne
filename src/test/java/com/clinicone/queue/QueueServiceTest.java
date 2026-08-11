@@ -268,17 +268,12 @@ class QueueServiceTest {
     }
 
     @Test
-    void canCallTicketAgainAfterItWasSkipped() {
+    void cannotCallTicketAgainUntilThePatientScansAgain() {
         QueueTicket ticket = QueueTicket.create(appointment, room, TODAY, 5);
         setId(ticket, UUID.randomUUID());
         ticket.call();
         ticket.skip("Bệnh nhân chưa có mặt");
-        when(ticketRepository.findById(ticket.getId())).thenReturn(Optional.of(ticket));
-
-        AuthException exception = assertThrows(AuthException.class, () -> service.call(ticket.getId()));
-
-        assertEquals(409, exception.getStatus().value());
-        assertEquals("QUEUE_INVALID_STATE", exception.getCode());
+        assertThrows(IllegalStateException.class, ticket::call);
     }
 
     @Test
