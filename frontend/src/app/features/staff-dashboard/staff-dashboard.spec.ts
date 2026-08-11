@@ -32,19 +32,13 @@ describe('StaffDashboard', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="waiting-count"]').textContent).toContain('1');
   });
 
-  it('moves a waiting ticket when the coordinator calls the number', () => {
+  it('keeps a coordinator view read-only for waiting tickets', () => {
     createDashboard('COORDINATOR');
     http.expectOne('/api/v1/rooms').flush([room('NOI-01')]);
     http.expectOne((request) => request.url.endsWith('/queue')).flush([ticket('ticket-1', 'WAITING')]);
     fixture.detectChanges();
 
-    (fixture.nativeElement.querySelector('[data-testid="call-ticket"]') as HTMLButtonElement).click();
-    const action = http.expectOne('/api/v1/queue/ticket-1/call');
-    expect(action.request.method).toBe('POST');
-    action.flush(ticket('ticket-1', 'CALLED'));
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.querySelector('[data-testid="queue-status"]').textContent).toContain('Đã gọi');
+    expect(fixture.nativeElement.querySelector('[data-testid="call-ticket"]')).toBeNull();
   });
 
   it('shows the call-next action to a doctor for a waiting ticket', () => {

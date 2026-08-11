@@ -74,23 +74,17 @@ public class QueueController {
     }
 
     @PostMapping("/queue/{ticketId}/call")
-    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR', 'DOCTOR', 'RECEPTIONIST')")
+    @PreAuthorize("hasRole('DOCTOR')")
     public ResponseEntity<QueueTicketResponse> call(Authentication authentication, @PathVariable UUID ticketId) {
-        StaffRole role = staffRole(authentication);
-        return ResponseEntity.ok(role == StaffRole.DOCTOR
-                ? queueService.call(ticketId, authentication.getName())
-                : queueService.call(ticketId));
+        return ResponseEntity.ok(queueService.call(ticketId, authentication.getName()));
     }
 
     @PostMapping("/queue/{ticketId}/skip")
-    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR', 'DOCTOR', 'RECEPTIONIST')")
+    @PreAuthorize("hasRole('DOCTOR')")
     public ResponseEntity<QueueTicketResponse> skip(Authentication authentication, @PathVariable UUID ticketId,
                                                     @Valid @RequestBody(required = false) QueueSkipRequest request) {
-        StaffRole role = staffRole(authentication);
         String reason = request == null ? null : request.reason();
-        return ResponseEntity.ok(role == StaffRole.DOCTOR
-                ? queueService.skip(ticketId, authentication.getName(), reason)
-                : queueService.skip(ticketId, reason));
+        return ResponseEntity.ok(queueService.skip(ticketId, authentication.getName(), reason));
     }
 
     @PostMapping("/queue/{ticketId}/leave")
