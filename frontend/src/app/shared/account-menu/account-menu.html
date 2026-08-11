@@ -91,6 +91,10 @@
         [class.text-[#0284c7]]="isActive('/admin/reason-catalog')" [attr.aria-current]="isActive('/admin/reason-catalog') ? 'page' : null"
         class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]"
         role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">list_alt</mat-icon>Danh mục lý do</a>}
+      @if (staffRoles().includes('ADMIN')) {<a routerLink="/admin/medications" [class.bg-[#eafaff]]="isActive('/admin/medications')"
+        [class.text-[#0284c7]]="isActive('/admin/medications')" [attr.aria-current]="isActive('/admin/medications') ? 'page' : null"
+        class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-[#eafaff] hover:text-[#0284c7]"
+        role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">medication</mat-icon>Danh mục thuốc</a>}
       <button type="button"
         class="flex w-full items-center gap-3 border-t border-slate-100 px-5 py-3 text-left text-sm text-slate-700 transition hover:bg-slate-50 hover:text-rose-600"
         role="menuitem" (click)="logout()"><mat-icon class="!text-[20px]">logout</mat-icon>Đăng xuất</button>
