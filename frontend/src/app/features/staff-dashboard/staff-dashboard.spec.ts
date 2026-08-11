@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
+import { vi } from 'vitest';
 import { StaffDashboard } from './staff-dashboard';
 
 describe('StaffDashboard', () => {
@@ -16,8 +17,10 @@ describe('StaffDashboard', () => {
   });
 
   afterEach(() => {
+    fixture?.destroy();
     http.verify();
     sessionStorage.clear();
+    vi.useRealTimers();
   });
 
   it('loads rooms first and only requests the selected room queue', () => {
@@ -90,6 +93,51 @@ describe('StaffDashboard', () => {
     expect(numbers).toEqual(['2', '1']);
   });
 
+  it('refreshes a doctor queue every three seconds without manual input', () => {
+    vi.useFakeTimers();
+    createDashboard('DOCTOR');
+    http.expectOne((candidate) => candidate.url === '/api/v1/doctor/queue')
+      .flush(doctorQueue([ticket('first', 'WAITING', 1)]));
+
+    vi.advanceTimersByTime(3_000);
+    http.expectOne((candidate) => candidate.url === '/api/v1/doctor/queue')
+      .flush(doctorQueue([ticket('next', 'WAITING', 2)]));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[data-testid="queue-row"] td:first-child span')?.textContent?.trim())
+      .toBe('2');
+  });
+
+  it('does not start another automatic refresh while the previous request is still pending', () => {
+    vi.useFakeTimers();
+    createDashboard('DOCTOR');
+    http.expectOne((candidate) => candidate.url === '/api/v1/doctor/queue')
+      .flush(doctorQueue([ticket('first', 'WAITING', 1)]));
+
+    vi.advanceTimersByTime(3_000);
+    const pendingRefresh = http.expectOne((candidate) => candidate.url === '/api/v1/doctor/queue');
+    vi.advanceTimersByTime(3_000);
+    http.expectNone((candidate) => candidate.url === '/api/v1/doctor/queue');
+    pendingRefresh.flush(doctorQueue([ticket('first', 'WAITING', 1)]));
+  });
+
+  it('warns a doctor after ten seconds without a successful queue update', () => {
+    vi.useFakeTimers();
+    createDashboard('DOCTOR');
+    http.expectOne((candidate) => candidate.url === '/api/v1/doctor/queue')
+      .flush(doctorQueue([ticket('first', 'WAITING', 1)]));
+
+    for (const elapsed of [3_000, 3_000, 3_000]) {
+      vi.advanceTimersByTime(elapsed);
+      http.expectOne((candidate) => candidate.url === '/api/v1/doctor/queue')
+        .flush({ error: { message: 'Tạm thời không kết nối được' } }, { status: 503, statusText: 'Service Unavailable' });
+    }
+    vi.advanceTimersByTime(1_001);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[data-testid="queue-sync-warning"]')).not.toBeNull();
+  });
+
   function createDashboard(role: string): void {
     sessionStorage.setItem('clinicOneStaffRole', role);
     fixture = TestBed.createComponent(StaffDashboard);
@@ -97,6 +145,10 @@ describe('StaffDashboard', () => {
     fixture.detectChanges();
   }
 });
+
+function doctorQueue(tickets: ReturnType<typeof ticket>[]) {
+  return { roomCode: 'NOI-01', roomName: 'Phòng NOI-01', specialty: 'Nội tổng quát', tickets };
+}
 
 function room(code: string) {
   return { id: `${code}-id`, code, name: `Phòng ${code}`, specialty: 'Nội tổng quát', active: true };

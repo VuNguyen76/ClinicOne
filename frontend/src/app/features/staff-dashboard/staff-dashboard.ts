@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink, Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { AccountMenu } from '../../shared/account-menu/account-menu';
@@ -20,9 +20,13 @@ type QueueAction = 'skip' | 'start';
   templateUrl: './staff-dashboard.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class StaffDashboard implements OnInit {
+export class StaffDashboard implements OnInit, OnDestroy {
   private readonly authApi = inject(AuthApiService);
   private readonly router = inject(Router);
+  private doctorQueueRefreshTimer: ReturnType<typeof setInterval> | null = null;
+  private doctorQueueHealthTimer: ReturnType<typeof setInterval> | null = null;
+  private lastSuccessfulDoctorQueueAt: number | null = null;
+  private doctorQueueRequestInFlight = false;
 
   protected readonly rooms = signal<ClinicRoomResponse[]>([]);
   protected readonly selectedRoomCode = signal('');
@@ -33,6 +37,7 @@ export class StaffDashboard implements OnInit {
   protected readonly doctorRoomName = signal('');
   protected readonly busyTicketId = signal('');
   protected readonly error = signal('');
+  protected readonly queueSyncWarning = signal(false);
   protected readonly role = signal(sessionStorage.getItem('clinicOneStaffRole') ?? '');
   protected readonly activeRooms = computed(() => this.rooms().filter((room) => room.active));
   protected readonly waitingCount = computed(() => this.queue().filter((ticket) => ticket.status === 'WAITING').length);
@@ -46,8 +51,16 @@ export class StaffDashboard implements OnInit {
   protected readonly canManageRooms = computed(() => ['ADMIN', 'COORDINATOR'].includes(this.role()));
 
   ngOnInit(): void {
-    if (this.isOwnDoctor()) this.loadDoctorQueue();
-    else this.loadRooms();
+    if (this.isOwnDoctor()) {
+      this.loadDoctorQueue();
+      this.startDoctorQueueAutoRefresh();
+    } else {
+      this.loadRooms();
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.stopDoctorQueueAutoRefresh();
   }
 
   protected loadRooms(): void {
@@ -94,22 +107,52 @@ export class StaffDashboard implements OnInit {
     });
   }
 
-  private loadDoctorQueue(): void {
+  private loadDoctorQueue(showLoading = true): void {
+    if (this.doctorQueueRequestInFlight) return;
+    this.doctorQueueRequestInFlight = true;
     this.loadingRooms.set(false);
-    this.loadingQueue.set(true);
-    this.error.set('');
+    if (showLoading) {
+      this.loadingQueue.set(true);
+      this.error.set('');
+    }
     this.authApi.getDoctorQueue(this.selectedDate()).subscribe({
       next: (workspace) => {
+        this.doctorQueueRequestInFlight = false;
         this.selectedRoomCode.set(workspace.roomCode);
         this.doctorRoomName.set(workspace.roomName);
         this.queue.set(workspace.tickets);
-        this.loadingQueue.set(false);
+        this.lastSuccessfulDoctorQueueAt = Date.now();
+        this.queueSyncWarning.set(false);
+        if (showLoading) this.loadingQueue.set(false);
       },
       error: (response) => {
-        this.loadingQueue.set(false);
-        this.handleError(response);
+        this.doctorQueueRequestInFlight = false;
+        if (showLoading) {
+          this.loadingQueue.set(false);
+          this.handleError(response);
+        } else {
+          this.refreshQueueSyncWarning();
+        }
       },
     });
+  }
+
+  private startDoctorQueueAutoRefresh(): void {
+    this.stopDoctorQueueAutoRefresh();
+    this.doctorQueueRefreshTimer = setInterval(() => this.loadDoctorQueue(false), 3_000);
+    this.doctorQueueHealthTimer = setInterval(() => this.refreshQueueSyncWarning(), 1_000);
+  }
+
+  private stopDoctorQueueAutoRefresh(): void {
+    if (this.doctorQueueRefreshTimer !== null) clearInterval(this.doctorQueueRefreshTimer);
+    if (this.doctorQueueHealthTimer !== null) clearInterval(this.doctorQueueHealthTimer);
+    this.doctorQueueRefreshTimer = null;
+    this.doctorQueueHealthTimer = null;
+  }
+
+  private refreshQueueSyncWarning(): void {
+    if (this.lastSuccessfulDoctorQueueAt === null) return;
+    this.queueSyncWarning.set(Date.now() - this.lastSuccessfulDoctorQueueAt >= 10_000);
   }
 
   protected selectRoom(event: Event): void {
