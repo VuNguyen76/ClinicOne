@@ -413,6 +413,30 @@ class QueueServiceTest {
     }
 
     @Test
+    void doctorQueueDisplaysPriorityTicketBeforeEarlierNormalTicket() {
+        UUID doctorId = UUID.randomUUID();
+        StaffAccount staff = StaffAccount.create("doctor-priority-list", "hash", "BS. Nguyễn An", StaffRole.DOCTOR);
+        setId(staff, doctorId);
+        DoctorProfile profile = DoctorProfile.create(staff, "Nội tổng quát", room);
+        Appointment doctorAppointment = Appointment.create(appointment.getPatient(), doctorId,
+                "CL-QUEUE-PRIORITY", "Nội tổng quát", "BS. Nguyễn An", TODAY,
+                java.time.LocalTime.of(9, 0), "Đau đầu");
+        QueueTicket normal = QueueTicket.create(doctorAppointment, room, TODAY, 1);
+        QueueTicket priority = QueueTicket.create(doctorAppointment, room, TODAY, 2);
+        setId(normal, UUID.randomUUID());
+        setId(priority, UUID.randomUUID());
+        priority.setPriority(true);
+        when(doctorProfileRepository.findByStaffAccount_Id(doctorId)).thenReturn(Optional.of(profile));
+        when(ticketRepository.findByRoomCodeAndQueueDateAndAppointment_DoctorStaffIdOrderByQueueNumberAsc(
+                "NOI-01", TODAY, doctorId)).thenReturn(List.of(normal, priority));
+
+        DoctorQueueResponse response = service.doctorQueue(TODAY, doctorId.toString());
+
+        assertEquals(List.of(priority.getId(), normal.getId()),
+                response.tickets().stream().map(QueueTicketResponse::id).toList());
+    }
+
+    @Test
     void currentRoutingDoctorCanStartAReassignedTicket() {
         UUID targetDoctorId = UUID.randomUUID();
         StaffAccount targetStaff = StaffAccount.create("doctor-routed", "hash", "BS. Trần Bình", StaffRole.DOCTOR);

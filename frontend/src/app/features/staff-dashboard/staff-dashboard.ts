@@ -86,7 +86,7 @@ export class StaffDashboard implements OnInit {
     this.error.set('');
     this.authApi.getRoomQueue(roomCode, this.selectedDate()).subscribe({
       next: (tickets) => {
-        this.queue.set([...tickets].sort((a, b) => a.queueNumber - b.queueNumber));
+        this.queue.set(tickets);
         this.loadingQueue.set(false);
       },
       error: (response) => {
@@ -104,7 +104,7 @@ export class StaffDashboard implements OnInit {
       next: (workspace) => {
         this.selectedRoomCode.set(workspace.roomCode);
         this.doctorRoomName.set(workspace.roomName);
-        this.queue.set([...workspace.tickets].sort((a, b) => a.queueNumber - b.queueNumber));
+        this.queue.set(workspace.tickets);
         this.loadingQueue.set(false);
       },
       error: (response) => {

@@ -9,15 +9,10 @@ describe('StaffDashboard', () => {
   let http: HttpTestingController;
 
   beforeEach(async () => {
-    sessionStorage.setItem('clinicOneStaffRole', 'COORDINATOR');
     await TestBed.configureTestingModule({
       imports: [StaffDashboard],
       providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
     }).compileComponents();
-
-    fixture = TestBed.createComponent(StaffDashboard);
-    http = TestBed.inject(HttpTestingController);
-    fixture.detectChanges();
   });
 
   afterEach(() => {
@@ -26,6 +21,7 @@ describe('StaffDashboard', () => {
   });
 
   it('loads rooms first and only requests the selected room queue', () => {
+    createDashboard('COORDINATOR');
     http.expectOne('/api/v1/rooms').flush([room('NOI-01')]);
     const queueRequest = http.expectOne((request) => request.url === '/api/v1/rooms/NOI-01/queue');
     expect(queueRequest.request.params.get('date')).toMatch(/^\d{4}-\d{2}-\d{2}$/);
@@ -37,6 +33,7 @@ describe('StaffDashboard', () => {
   });
 
   it('moves a waiting ticket when the coordinator calls the number', () => {
+    createDashboard('COORDINATOR');
     http.expectOne('/api/v1/rooms').flush([room('NOI-01')]);
     http.expectOne((request) => request.url.endsWith('/queue')).flush([ticket('ticket-1', 'WAITING')]);
     fixture.detectChanges();
@@ -51,6 +48,7 @@ describe('StaffDashboard', () => {
   });
 
   it('shows the call-next action to a doctor for a waiting ticket', () => {
+    createDashboard('COORDINATOR');
     http.expectOne('/api/v1/rooms').flush([room('NOI-01')]);
     http.expectOne((request) => request.url.endsWith('/queue')).flush([ticket('ticket-1', 'WAITING')]);
     const component = fixture.componentInstance as any;
@@ -61,6 +59,7 @@ describe('StaffDashboard', () => {
   });
 
   it('does not expose manual completion to a doctor while a visit is in service', () => {
+    createDashboard('COORDINATOR');
     http.expectOne('/api/v1/rooms').flush([room('NOI-01')]);
     http.expectOne((request) => request.url.endsWith('/queue')).flush([ticket('ticket-1', 'IN_SERVICE')]);
     const component = fixture.componentInstance as any;
@@ -70,17 +69,39 @@ describe('StaffDashboard', () => {
     const buttons = Array.from(fixture.nativeElement.querySelectorAll('button')) as HTMLButtonElement[];
     expect(buttons.some((button) => button.textContent?.includes('Hoàn tất'))).toBe(false);
   });
+
+  it('keeps the priority order returned for the doctor queue', () => {
+    createDashboard('DOCTOR');
+    const request = http.expectOne((candidate) => candidate.url === '/api/v1/doctor/queue');
+    request.flush({
+      roomCode: 'NOI-01', roomName: 'Phòng NOI-01', specialty: 'Nội tổng quát',
+      tickets: [ticket('priority', 'WAITING', 2, true), ticket('normal', 'WAITING', 1, false)],
+    });
+    fixture.detectChanges();
+
+    const rows = fixture.nativeElement.querySelectorAll('[data-testid="queue-row"]') as NodeListOf<HTMLTableRowElement>;
+    const numbers = Array.from(rows)
+      .map((row) => row.querySelector('td:first-child span')?.textContent?.trim());
+    expect(numbers).toEqual(['2', '1']);
+  });
+
+  function createDashboard(role: string): void {
+    sessionStorage.setItem('clinicOneStaffRole', role);
+    fixture = TestBed.createComponent(StaffDashboard);
+    http = TestBed.inject(HttpTestingController);
+    fixture.detectChanges();
+  }
 });
 
 function room(code: string) {
   return { id: `${code}-id`, code, name: `Phòng ${code}`, specialty: 'Nội tổng quát', active: true };
 }
 
-function ticket(id: string, status: string) {
+function ticket(id: string, status: string, queueNumber = 1, priority = false) {
   const labels: Record<string, string> = { WAITING: 'Đang chờ', CALLED: 'Đã gọi', IN_SERVICE: 'Đang khám' };
   return {
     id,
-    queueNumber: 1,
+    queueNumber,
     roomCode: 'NOI-01',
     roomName: 'Phòng NOI-01',
     queueDate: '2026-08-06',
@@ -90,5 +111,6 @@ function ticket(id: string, status: string) {
     appointmentCode: 'CLN-0001',
     specialty: 'Nội tổng quát',
     doctorName: 'BS. Nguyễn An',
+    priority,
   };
 }
