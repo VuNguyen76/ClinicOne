@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@ang
 import { FormsModule } from '@angular/forms';
 import { RouterLink, Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
-import { ApiErrorResponse, AppointmentSlotResponse, AuthApiService, ReceptionAppointmentResponse, ReceptionPatientProfile, SpecialtyOption, apiErrorMessage } from '../../../core/auth/auth-api.service';
+import { ApiErrorResponse, AppointmentSlotResponse, AuthApiService, ReceptionAppointmentResponse, ReceptionDoctorOption, ReceptionPatientProfile, SpecialtyOption, apiErrorMessage } from '../../../core/auth/auth-api.service';
 import { AccountMenu } from '../../../shared/account-menu/account-menu';
 import { clinicTodayIso } from '../../../core/time/clinic-time';
 
@@ -56,6 +56,11 @@ export class ReceptionCheckIn implements OnInit {
   protected readonly activationPassword = signal('');
   protected readonly activationConfirmPassword = signal('');
   protected readonly activationLoading = signal(false);
+  protected readonly doctors = signal<ReceptionDoctorOption[]>([]);
+  protected readonly adjustmentTicket = signal<ReceptionAppointmentResponse | null>(null);
+  protected readonly adjustmentDoctorId = signal('');
+  protected readonly adjustmentReason = signal('');
+  protected readonly adjustmentLoading = signal(false);
 
   ngOnInit(): void {
     this.query.set('');
@@ -127,6 +132,73 @@ export class ReceptionCheckIn implements OnInit {
       },
       error: (response) => {
         this.busyId.set('');
+        this.handleError(response);
+      },
+    });
+  }
+
+  protected openAdjustment(appointment: ReceptionAppointmentResponse): void {
+    if (appointment.queueStatus !== 'WAITING' || !appointment.queueTicketId) return;
+    this.adjustmentTicket.set(appointment);
+    this.adjustmentDoctorId.set('');
+    this.adjustmentReason.set('');
+    this.error.set('');
+    if (this.doctors().length === 0) {
+      this.authApi.getReceptionDoctors().subscribe({
+        next: (doctors) => this.doctors.set(doctors),
+        error: (response) => this.handleError(response),
+      });
+    }
+  }
+
+  protected closeAdjustment(): void {
+    if (!this.adjustmentLoading()) this.adjustmentTicket.set(null);
+  }
+
+  protected adjustQueue(action: 'MOVE' | 'SET_PRIORITY' | 'CLEAR_PRIORITY'): void {
+    const appointment = this.adjustmentTicket();
+    const reason = this.adjustmentReason().trim();
+    if (!appointment?.queueTicketId) return;
+    if (reason.length < 10) {
+      this.error.set('Lý do điều chỉnh phải từ 10 ký tự.');
+      return;
+    }
+    const doctor = this.doctors().find((item) => item.staffId === this.adjustmentDoctorId());
+    if (action === 'MOVE' && !doctor) {
+      this.error.set('Chọn bác sĩ và phòng đích.');
+      return;
+    }
+    this.adjustmentLoading.set(true);
+    this.error.set('');
+    this.authApi.adjustQueueTicket(appointment.queueTicketId, {
+      action,
+      targetDoctorId: action === 'MOVE' ? doctor?.staffId : undefined,
+      targetRoomCode: action === 'MOVE' ? doctor?.roomCode : undefined,
+      targetSpecialty: action === 'MOVE' ? doctor?.specialty : undefined,
+      reason,
+    }).subscribe({
+      next: (ticket) => {
+        this.appointments.update((items) => items.map((item) => item.id === appointment.id ? {
+          ...item,
+          specialty: ticket.specialty,
+          doctorName: ticket.doctorName,
+          roomCode: ticket.roomCode,
+          roomName: ticket.roomName,
+          queueNumber: ticket.queueNumber,
+          queueStatus: ticket.status,
+          queueStatusLabel: ticket.statusLabel,
+          queuePresenceStatus: ticket.presenceStatus,
+          queuePresenceLabel: ticket.presenceLabel,
+          queueTicketId: ticket.id,
+          queuePriority: ticket.priority,
+        } : item));
+        this.adjustmentLoading.set(false);
+        this.adjustmentTicket.set(null);
+        this.adjustmentReason.set('');
+        this.notice.set(action === 'MOVE' ? 'Đã chuyển người bệnh sang hàng đợi mới.' : 'Đã cập nhật cờ ưu tiên.');
+      },
+      error: (response) => {
+        this.adjustmentLoading.set(false);
         this.handleError(response);
       },
     });

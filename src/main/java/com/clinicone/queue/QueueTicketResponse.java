@@ -19,7 +19,8 @@ public record QueueTicketResponse(
         Instant returnedAt,
         String appointmentCode,
         String specialty,
-        String doctorName
+        String doctorName,
+        boolean priority
 ) {
     public QueueTicketResponse(UUID id, int queueNumber, String roomCode, String roomName,
                                LocalDate queueDate, LocalTime appointmentTime, String status,
@@ -27,7 +28,7 @@ public record QueueTicketResponse(
                                String doctorName) {
         this(id, queueNumber, roomCode, roomName, queueDate, appointmentTime, status, statusLabel,
                 QueuePresenceStatus.READY.name(), QueuePresenceStatus.READY.label(), null,
-                appointmentCode, specialty, doctorName);
+                appointmentCode, specialty, doctorName, false);
     }
 
     public static QueueTicketResponse from(QueueTicket ticket) {
@@ -36,6 +37,6 @@ public record QueueTicketResponse(
                 ticket.getRoom().getName(), ticket.getQueueDate(), appointment.getStartTime(),
                 ticket.getStatus().name(), ticket.getStatus().label(), ticket.getPresenceStatus().name(),
                 ticket.getPresenceLabel(), ticket.getReturnedAt(), appointment.getAppointmentCode(),
-                appointment.getSpecialty(), appointment.getDoctorName());
+                ticket.getEffectiveSpecialty(), ticket.getEffectiveDoctorName(), ticket.isPriority());
     }
 }

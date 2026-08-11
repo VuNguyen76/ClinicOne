@@ -294,6 +294,85 @@ class QueueServiceTest {
         assertEquals("QUEUE_INVALID_STATE", exception.getCode());
     }
 
+    @Test
+    void receptionCanMoveWaitingTicketToAssignedDoctorQueueAndKeepOriginalAppointment() {
+        UUID ticketId = UUID.randomUUID();
+        UUID targetDoctorId = UUID.randomUUID();
+        StaffAccount targetStaff = StaffAccount.create("doctor-target", "hash", "BS. Nguyễn Bình", StaffRole.DOCTOR);
+        setId(targetStaff, targetDoctorId);
+        ClinicRoom targetRoom = ClinicRoom.create("NHI-01", "Phòng Nhi 01", "Nhi khoa");
+        setId(targetRoom, UUID.randomUUID());
+        DoctorProfile targetDoctor = DoctorProfile.create(targetStaff, "Nhi khoa", targetRoom);
+        setId(targetDoctor, UUID.randomUUID());
+        QueueTicket ticket = QueueTicket.create(appointment, room, TODAY, 5);
+        setId(ticket, ticketId);
+
+        when(ticketRepository.findById(ticketId)).thenReturn(Optional.of(ticket));
+        when(doctorProfileRepository.findById(targetDoctorId)).thenReturn(Optional.of(targetDoctor));
+        when(ticketRepository.findMaxQueueNumberByRoomCodeAndQueueDate("NHI-01", TODAY)).thenReturn(7);
+        when(ticketRepository.save(any(QueueTicket.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        QueueTicketResponse response = service.adjust(ticketId,
+                new QueueAdjustmentRequest(QueueAdjustmentAction.MOVE, targetDoctorId, "NHI-01", "Nhi khoa",
+                        "Điều chuyển theo yêu cầu của phòng khám"),
+                "reception-1");
+
+        assertEquals("NHI-01", response.roomCode());
+        assertEquals(8, response.queueNumber());
+        assertEquals("Nhi khoa", response.specialty());
+        assertEquals("BS. Nguyễn Bình", response.doctorName());
+        assertEquals("Nội tổng quát", appointment.getSpecialty());
+        assertEquals(AppointmentStatus.BOOKED, appointment.getStatus());
+    }
+
+    @Test
+    void receptionCanSetPriorityOnlyBeforeTicketIsCalled() {
+        UUID ticketId = UUID.randomUUID();
+        QueueTicket ticket = QueueTicket.create(appointment, room, TODAY, 5);
+        setId(ticket, ticketId);
+        when(ticketRepository.findById(ticketId)).thenReturn(Optional.of(ticket));
+        when(ticketRepository.save(any(QueueTicket.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        QueueTicketResponse response = service.adjust(ticketId,
+                new QueueAdjustmentRequest(QueueAdjustmentAction.SET_PRIORITY, null, null, null,
+                        "Ưu tiên theo chỉ định vận hành"),
+                "reception-1");
+
+        assertEquals(true, response.priority());
+        assertThrows(AuthException.class, () -> {
+            ticket.call();
+            service.adjust(ticketId,
+                    new QueueAdjustmentRequest(QueueAdjustmentAction.CLEAR_PRIORITY, null, null, null,
+                            "Bỏ ưu tiên sau khi đã gọi"),
+                    "reception-1");
+        });
+    }
+
+    @Test
+    void callNextChoosesPriorityTicketBeforeEarlierNormalTicket() {
+        UUID doctorId = UUID.randomUUID();
+        StaffAccount staff = StaffAccount.create("doctor-priority", "hash", "BS. Nguyễn An", StaffRole.DOCTOR);
+        setId(staff, doctorId);
+        DoctorProfile profile = DoctorProfile.create(staff, "Nội tổng quát", room);
+        Appointment doctorAppointment = Appointment.create(appointment.getPatient(), doctorId,
+                "CL-20260806-PRIORITY", "Nội tổng quát", "BS. Nguyễn An", TODAY,
+                java.time.LocalTime.of(9, 0), "Đau đầu");
+        QueueTicket normal = QueueTicket.create(doctorAppointment, room, TODAY, 1);
+        QueueTicket priority = QueueTicket.create(doctorAppointment, room, TODAY, 2);
+        setId(normal, UUID.randomUUID());
+        setId(priority, UUID.randomUUID());
+        priority.setPriority(true);
+        when(doctorProfileRepository.findByStaffAccount_Id(doctorId)).thenReturn(Optional.of(profile));
+        when(ticketRepository.findByRoomCodeAndQueueDateAndAppointment_DoctorStaffIdOrderByQueueNumberAsc(
+                "NOI-01", TODAY, doctorId)).thenReturn(List.of(normal, priority));
+        when(ticketRepository.findById(priority.getId())).thenReturn(Optional.of(priority));
+        when(ticketRepository.save(any(QueueTicket.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        QueueTicketResponse response = service.callNext(doctorId.toString(), TODAY);
+
+        assertEquals(priority.getId(), response.id());
+    }
+
     private static Appointment appointment(String specialty, LocalDate date) {
         PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
         setId(account, ACCOUNT_ID);

@@ -41,6 +41,16 @@ public class BusinessLogService {
         if (sameState(previousStatus, nextStatus)) {
             return;
         }
+        recordActivity(eventId, entityType, entityId, previousStatus, nextStatus, eventType, actor, reason);
+    }
+
+    /** Records an operational adjustment even when the lifecycle status is unchanged. */
+    @Transactional
+    public void recordActivity(UUID eventId, String entityType, UUID entityId, String previousStatus,
+                               String nextStatus, String eventType, String actor, String reason) {
+        if (eventId == null || entityType == null || entityId == null || nextStatus == null || eventType == null) {
+            throw new IllegalArgumentException("Business log requires event, entity, next state and event type");
+        }
         if (reconciliationRepository != null
                 && reconciliationRepository.existsByEntityTypeAndEntityIdAndStatus(
                 entityType, entityId, ReconciliationStatus.OPEN)) {

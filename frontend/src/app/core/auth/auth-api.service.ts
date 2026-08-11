@@ -250,6 +250,7 @@ export interface QueueTicketResponse {
   appointmentCode: string;
   specialty: string;
   doctorName: string;
+  priority?: boolean;
 }
 
 export interface DoctorQueueResponse {
@@ -546,6 +547,16 @@ export interface ReceptionAppointmentResponse {
   queueStatusLabel: string | null;
   queuePresenceStatus?: 'READY' | 'RETURN_REQUIRED' | string | null;
   queuePresenceLabel?: string | null;
+  queueTicketId?: string | null;
+  queuePriority?: boolean;
+}
+
+export interface ReceptionDoctorOption {
+  staffId: string;
+  fullName: string;
+  specialty: string;
+  roomCode: string;
+  roomName: string;
 }
 
 export interface ReceptionWalkInRequest {
@@ -814,6 +825,16 @@ export class AuthApiService {
     return this.http.post<QueueTicketResponse>(`${this.queueRoot}/${ticketId}/leave`, { reason });
   }
 
+  adjustQueueTicket(ticketId: string, request: {
+    action: 'MOVE' | 'SET_PRIORITY' | 'CLEAR_PRIORITY';
+    targetDoctorId?: string;
+    targetRoomCode?: string;
+    targetSpecialty?: string;
+    reason: string;
+  }): Observable<QueueTicketResponse> {
+    return this.http.post<QueueTicketResponse>(`${this.queueRoot}/${ticketId}/adjust`, request);
+  }
+
   startQueueTicket(ticketId: string): Observable<QueueTicketResponse> {
     return this.http.post<QueueTicketResponse>(`${this.queueRoot}/${ticketId}/start`, {});
   }
@@ -836,6 +857,10 @@ export class AuthApiService {
 
   searchReceptionAppointments(query: string, date: string): Observable<ReceptionAppointmentResponse[]> {
     return this.http.get<ReceptionAppointmentResponse[]>('/api/v1/reception/appointments', { params: { query, date } });
+  }
+
+  getReceptionDoctors(): Observable<ReceptionDoctorOption[]> {
+    return this.http.get<ReceptionDoctorOption[]>('/api/v1/reception/doctors');
   }
 
   receptionCheckIn(appointmentId: string, roomCode: string, reason: string): Observable<ReceptionAppointmentResponse> {

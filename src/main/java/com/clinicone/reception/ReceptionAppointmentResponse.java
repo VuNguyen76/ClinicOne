@@ -24,7 +24,9 @@ public record ReceptionAppointmentResponse(
         String queueStatus,
         String queueStatusLabel,
         String queuePresenceStatus,
-        String queuePresenceLabel
+        String queuePresenceLabel,
+        UUID queueTicketId,
+        boolean queuePriority
 ) {
     public ReceptionAppointmentResponse(UUID id, String appointmentCode, LocalDate appointmentDate,
                                         LocalTime startTime, String specialty, String doctorName,
@@ -33,7 +35,7 @@ public record ReceptionAppointmentResponse(
                                         Integer queueNumber, String queueStatus, String queueStatusLabel) {
         this(id, appointmentCode, appointmentDate, startTime, specialty, doctorName, roomCode, roomName,
                 patientProfileId, patientName, patientPhone, status, queueNumber, queueStatus, queueStatusLabel,
-                null, null);
+                null, null, null, false);
     }
 
     public static ReceptionAppointmentResponse from(Appointment appointment, String roomCode, String roomName,
@@ -46,7 +48,8 @@ public record ReceptionAppointmentResponse(
                 profile == null ? appointment.getPatient().getPhone() : profile.getPhone(), appointment.getStatus().name(),
                 ticket == null ? null : ticket.queueNumber(), ticket == null ? null : ticket.status(),
                 ticket == null ? null : ticket.statusLabel(), ticket == null ? null : ticket.presenceStatus(),
-                ticket == null ? null : ticket.presenceLabel());
+                ticket == null ? null : ticket.presenceLabel(), ticket == null ? null : ticket.id(),
+                ticket != null && ticket.priority());
     }
 
 }
