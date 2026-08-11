@@ -109,23 +109,16 @@ public class QueueController {
     }
 
     @PostMapping("/queue/{ticketId}/start")
-    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR', 'DOCTOR')")
+    @PreAuthorize("hasRole('DOCTOR')")
     public ResponseEntity<QueueTicketResponse> start(Authentication authentication, @PathVariable UUID ticketId) {
-        StaffRole role = staffRole(authentication);
-        return ResponseEntity.ok(role == StaffRole.DOCTOR
-                ? queueService.start(ticketId, authentication.getName())
-                : queueService.start(ticketId));
+        return ResponseEntity.ok(queueService.start(ticketId, authentication.getName()));
     }
 
     @PostMapping("/queue/{ticketId}/complete")
-    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR', 'DOCTOR')")
+    @PreAuthorize("hasRole('DOCTOR')")
     public ResponseEntity<QueueTicketResponse> complete(Authentication authentication, @PathVariable UUID ticketId) {
-        StaffRole role = staffRole(authentication);
-        if (role == StaffRole.DOCTOR) {
-            throw new AuthException(HttpStatus.CONFLICT, "DOCTOR_COMPLETE_VIA_SIGN",
-                    "Bác sĩ cần ký phiếu khám để hệ thống tự hoàn tất lượt.");
-        }
-        return ResponseEntity.ok(queueService.complete(ticketId));
+        throw new AuthException(HttpStatus.CONFLICT, "DOCTOR_COMPLETE_VIA_SIGN",
+                "Bác sĩ cần ký phiếu khám để hệ thống tự hoàn tất lượt.");
     }
 
     private StaffRole staffRole(Authentication authentication) {

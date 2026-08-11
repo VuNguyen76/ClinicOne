@@ -282,21 +282,6 @@ class QueueServiceTest {
     }
 
     @Test
-    void completingTicketCompletesAppointment() {
-        QueueTicket ticket = QueueTicket.create(appointment, room, TODAY, 5);
-        setId(ticket, UUID.randomUUID());
-        ticket.call();
-        when(ticketRepository.findById(ticket.getId())).thenReturn(Optional.of(ticket));
-        when(ticketRepository.save(any(QueueTicket.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        service.complete(ticket.getId());
-
-        assertEquals(QueueTicketStatus.COMPLETED, ticket.getStatus());
-        assertEquals(AppointmentStatus.COMPLETED, appointment.getStatus());
-        verify(appointmentRepository).save(appointment);
-    }
-
-    @Test
     void receptionCanCloseTicketWhenPatientLeavesBeforeExamination() {
         QueueTicket ticket = QueueTicket.create(appointment, room, TODAY, 5);
         setId(ticket, UUID.randomUUID());

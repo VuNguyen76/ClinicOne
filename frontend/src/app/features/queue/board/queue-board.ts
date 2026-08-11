@@ -21,7 +21,6 @@ export class QueueBoard implements OnInit {
   protected readonly roomCode = signal('');
   protected readonly queue = signal<QueueTicketResponse[]>([]);
   protected readonly loading = signal(true);
-  protected readonly busyTicketId = signal('');
   protected readonly error = signal('');
   protected readonly today = clinicTodayIso();
 
@@ -36,22 +35,6 @@ export class QueueBoard implements OnInit {
     this.authApi.getRoomQueue(this.roomCode(), this.today).subscribe({
       next: (tickets) => { this.queue.set(tickets); this.loading.set(false); },
       error: (response) => { this.loading.set(false); this.handleError(response); },
-    });
-  }
-
-  protected act(ticket: QueueTicketResponse, action: 'call' | 'skip' | 'start' | 'complete'): void {
-    this.busyTicketId.set(ticket.id);
-    this.error.set('');
-    const request = action === 'call' ? this.authApi.callQueueTicket(ticket.id)
-      : action === 'skip' ? this.authApi.skipQueueTicket(ticket.id, 'Chưa có mặt khi được gọi')
-        : action === 'start' ? this.authApi.startQueueTicket(ticket.id)
-          : this.authApi.completeQueueTicket(ticket.id);
-    request.subscribe({
-      next: (updated) => {
-        this.queue.update((items) => items.map((item) => item.id === updated.id ? updated : item));
-        this.busyTicketId.set('');
-      },
-      error: (response) => { this.busyTicketId.set(''); this.handleError(response); },
     });
   }
 

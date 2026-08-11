@@ -385,33 +385,6 @@ public class QueueService {
     }
 
     @Transactional
-    public QueueTicketResponse complete(UUID ticketId) {
-        return complete(ticketId, null);
-    }
-
-    @Transactional
-    public QueueTicketResponse complete(UUID ticketId, String staffId) {
-        QueueTicket ticket = findTicket(ticketId);
-        ensureDoctorOwnsTicket(ticket, staffId);
-        UUID eventId = UUID.randomUUID();
-        String previousTicketStatus = ticket.getStatus().name();
-        String previousAppointmentStatus = ticket.getAppointment().getStatus().name();
-        try {
-            ticket.complete();
-        } catch (IllegalStateException exception) {
-            throw queueStateConflict(exception.getMessage());
-        }
-        ticket.getAppointment().complete();
-        appointmentRepository.save(ticket.getAppointment());
-        QueueTicketResponse response = QueueTicketResponse.from(ticketRepository.save(ticket));
-        recordTransition(eventId, "QUEUE_TICKET", ticket.getId(), previousTicketStatus,
-                ticket.getStatus().name(), "COMPLETE_EXAMINATION", staffId);
-        recordTransition(eventId, "APPOINTMENT", ticket.getAppointment().getId(), previousAppointmentStatus,
-                ticket.getAppointment().getStatus().name(), "COMPLETE_EXAMINATION", staffId);
-        return response;
-    }
-
-    @Transactional
     public QueueTicketResponse leaveBeforeExam(UUID ticketId, String reason) {
         QueueTicket ticket = findTicket(ticketId);
         String normalizedReason = normalizeLeaveReason(reason);

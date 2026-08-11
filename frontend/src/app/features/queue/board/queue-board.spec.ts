@@ -35,17 +35,24 @@ describe('QueueBoard', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="queue-summary"]').textContent).toContain('1 lượt');
   });
 
-  it('calls a waiting ticket and refreshes its state', () => {
-    http.expectOne((item) => item.url === '/api/v1/rooms/NOI-01/queue').flush([ticket('WAITING', 'Đang chờ')]);
-    fixture.detectChanges();
-    (fixture.nativeElement.querySelector('[data-testid="call-ticket"]') as HTMLButtonElement).click();
-
-    const request = http.expectOne('/api/v1/queue/ticket-1/call');
-    expect(request.request.method).toBe('POST');
-    request.flush(ticket('CALLED', 'Đang được gọi'));
+  it('renders the queue as read-only outside the doctor examination workspace', () => {
+    http.expectOne((item) => item.url === '/api/v1/rooms/NOI-01/queue').flush([ticket('CALLED', 'Đang được gọi')]);
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('[data-testid="queue-status"]').textContent).toContain('Đang được gọi');
+    expect(fixture.nativeElement.querySelector('[data-testid="call-ticket"]')).toBeNull();
+  });
+
+  it('does not offer start or complete actions outside the doctor examination workspace', () => {
+    http.expectOne((item) => item.url === '/api/v1/rooms/NOI-01/queue').flush([
+      ticket('CALLED', 'Đang được gọi'),
+      ticket('IN_SERVICE', 'Đang khám'),
+    ]);
+    fixture.detectChanges();
+
+    const buttons = Array.from(fixture.nativeElement.querySelectorAll('button')) as HTMLButtonElement[];
+    expect(buttons.some((button) => button.textContent?.includes('Vào khám'))).toBe(false);
+    expect(buttons.some((button) => button.textContent?.includes('Hoàn tất'))).toBe(false);
   });
 });
 
