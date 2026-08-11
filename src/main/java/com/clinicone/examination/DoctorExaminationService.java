@@ -424,7 +424,7 @@ public class DoctorExaminationService {
                 record == null ? null : record.getPrescription(), record == null ? null : record.getFollowUpDate(),
                 record == null ? null : record.getFollowUpDays(), record == null ? null : record.getFollowUpNote(),
                 session.getStatus().name(), record == null ? null : record.getSignedAt(),
-                record == null ? null : record.getVersion(), requiresRecord, history,
+                record == null ? null : record.getDraftSavedAt(), record == null ? null : record.getVersion(), requiresRecord, history,
                 record == null ? List.of() : record.getPrescriptionLines().stream().map(PrescriptionLineResponse::from).toList());
     }
 

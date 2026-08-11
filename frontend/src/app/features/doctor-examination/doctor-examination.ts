@@ -272,6 +272,13 @@ export class DoctorExamination implements OnInit {
     return value?.slice(0, 5) ?? '';
   }
 
+  protected formatDraftSavedAt(value: string | null | undefined): string {
+    if (!value) return '';
+    return new Intl.DateTimeFormat('vi-VN', {
+      timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric',
+    }).format(new Date(value));
+  }
+
   protected fieldInvalid(name: 'reason' | 'examinationNotes' | 'diagnosis' | 'conclusion'): boolean {
     const control = this.form.controls[name];
     return control.touched && !control.value?.trim();

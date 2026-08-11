@@ -70,6 +70,9 @@ public class MedicalRecord {
     @Column(name = "signed_at")
     private Instant signedAt;
 
+    @Column(name = "draft_saved_at")
+    private Instant draftSavedAt;
+
     @Version
     @Column(name = "version")
     private long version;
@@ -125,6 +128,7 @@ public class MedicalRecord {
         this.followUpDate = followUpDate;
         this.followUpDays = followUpDays;
         this.followUpNote = followUpNote;
+        this.draftSavedAt = Instant.now();
     }
 
     public void sign(String doctorName, String reason, String examinationNotes, String diagnosis,
@@ -199,5 +203,6 @@ public class MedicalRecord {
     public Integer getFollowUpDays() { return followUpDays; }
     public String getFollowUpNote() { return followUpNote; }
     public Instant getSignedAt() { return signedAt; }
+    public Instant getDraftSavedAt() { return draftSavedAt; }
     public long getVersion() { return version; }
 }

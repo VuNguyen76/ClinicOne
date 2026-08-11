@@ -559,6 +559,7 @@ export interface DoctorExaminationResponse {
   followUpNote?: string | null;
   status: string;
   signedAt: string | null;
+  draftSavedAt?: string | null;
   recordVersion: number | null;
   requiresMedicalRecord?: boolean;
   history?: MedicalRecordResponse[];
