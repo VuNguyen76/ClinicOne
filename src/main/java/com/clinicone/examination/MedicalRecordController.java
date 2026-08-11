@@ -8,11 +8,14 @@ import org.springframework.beans.factory.ObjectProvider;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.UUID;
+import java.time.LocalDate;
+import org.springframework.format.annotation.DateTimeFormat;
 
 @RestController
 @RequestMapping("/api/v1/medical-records")
@@ -28,10 +31,16 @@ public class MedicalRecordController {
     }
 
     @GetMapping
-    public ResponseEntity<List<MedicalRecordResponse>> list(Authentication authentication,
-                                                            HttpServletRequest request) {
+    public ResponseEntity<MedicalRecordHistoryPage> list(Authentication authentication,
+                                                          @RequestParam(required = false) UUID profileId,
+                                                          @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+                                                          @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+                                                          @RequestParam(defaultValue = "0") int page,
+                                                          @RequestParam(defaultValue = "20") int size,
+                                                          HttpServletRequest request) {
         try {
-            List<MedicalRecordResponse> records = service.list(authentication.getName());
+            MedicalRecordHistoryPage records = service.listHistory(authentication.getName(),
+                    new MedicalRecordHistoryQuery(profileId, from, to, page, size));
             recordAudit("PATIENT_VIEW_MEDICAL_RECORDS", authentication.getName(), "SUCCESS",
                     request.getRequestURI(), request.getRemoteAddr());
             return ResponseEntity.ok(records);
