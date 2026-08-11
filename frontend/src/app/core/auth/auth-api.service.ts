@@ -743,8 +743,10 @@ export class AuthApiService {
     return this.http.get<AppointmentResponse[]>(this.appointmentsRoot);
   }
 
-  createAppointment(request: CreateAppointmentRequest): Observable<AppointmentResponse> {
-    return this.http.post<AppointmentResponse>(this.appointmentsRoot, request);
+  createAppointment(request: CreateAppointmentRequest, requestKey?: string): Observable<AppointmentResponse> {
+    return this.http.post<AppointmentResponse>(this.appointmentsRoot, request, {
+      headers: requestKey ? { 'Idempotency-Key': requestKey } : undefined,
+    });
   }
 
   getAppointment(id: string): Observable<AppointmentResponse> {

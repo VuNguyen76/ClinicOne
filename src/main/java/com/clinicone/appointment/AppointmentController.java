@@ -36,8 +36,12 @@ public class AppointmentController {
 
     @PostMapping
     public ResponseEntity<AppointmentResponse> create(Authentication authentication,
-                                                       @Valid @RequestBody CreateAppointmentRequest request) {
-        return ResponseEntity.status(201).body(appointmentService.create(authentication.getName(), request));
+                                                       @Valid @RequestBody CreateAppointmentRequest request,
+                                                       @RequestHeader(value = "Idempotency-Key", required = false) String requestKey) {
+        AppointmentResponse response = requestKey == null || requestKey.isBlank()
+                ? appointmentService.create(authentication.getName(), request)
+                : appointmentService.create(authentication.getName(), request, requestKey);
+        return ResponseEntity.status(201).body(response);
     }
 
     @PostMapping("/{appointmentId}/cancel")

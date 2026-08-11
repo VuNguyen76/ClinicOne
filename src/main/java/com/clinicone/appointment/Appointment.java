@@ -28,7 +28,8 @@ import java.util.UUID;
         @Index(name = "idx_appointments_slot_availability", columnList = "specialty,appointment_date,start_time,status"),
         @Index(name = "idx_appointments_doctor_slot", columnList = "doctor_staff_id,appointment_date,start_time,status")
 }, uniqueConstraints = {
-        @UniqueConstraint(name = "uk_appointments_patient_slot", columnNames = {"patient_account_id", "appointment_date", "start_time"})
+        @UniqueConstraint(name = "uk_appointments_patient_slot", columnNames = {"patient_account_id", "appointment_date", "start_time"}),
+        @UniqueConstraint(name = "uk_appointments_patient_creation_key", columnNames = {"patient_account_id", "creation_request_key"})
 })
 public class Appointment {
     @Id
@@ -91,6 +92,9 @@ public class Appointment {
 
     @Column(name = "cancellation_request_key", length = 80)
     private String cancellationRequestKey;
+
+    @Column(name = "creation_request_key", length = 80)
+    private String creationRequestKey;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
@@ -160,6 +164,10 @@ public class Appointment {
         this.cancelledAt = cancelledAt == null ? Instant.now() : cancelledAt;
         this.cancellationReason = reason == null || reason.isBlank() ? null : reason.trim();
         this.cancellationRequestKey = requestKey == null || requestKey.isBlank() ? null : requestKey.trim();
+    }
+
+    public void assignCreationRequestKey(String requestKey) {
+        this.creationRequestKey = requestKey == null || requestKey.isBlank() ? null : requestKey.trim();
     }
 
     public void checkIn() {
@@ -258,5 +266,6 @@ public class Appointment {
     public Instant getCancelledAt() { return cancelledAt; }
     public String getCancellationReason() { return cancellationReason; }
     public String getCancellationRequestKey() { return cancellationRequestKey; }
+    public String getCreationRequestKey() { return creationRequestKey; }
     public Instant getCreatedAt() { return createdAt; }
 }

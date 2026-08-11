@@ -633,7 +633,9 @@ public class QueueService {
     private void ensureDoctorOwnsTicket(QueueTicket ticket, String staffId) {
         if (staffId == null) return;
         UUID doctorId = parseStaffId(staffId);
-        if (!doctorId.equals(ticket.getAppointment().getDoctorStaffId())) {
+        // A reception reassignment changes the active queue owner while keeping
+        // the original appointment snapshot intact.
+        if (!doctorId.equals(ticket.getEffectiveDoctorStaffId())) {
             throw new AuthException(HttpStatus.FORBIDDEN, "DOCTOR_TICKET_SCOPE",
                     "Bác sĩ chỉ được thao tác trên lượt đã được phân công.");
         }

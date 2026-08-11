@@ -59,6 +59,7 @@ export class Booking implements OnInit {
   protected profilesLoading = true;
   protected busy = false;
   protected error = '';
+  private createRequestKey: string | null = null;
 
   protected readonly form = this.formBuilder.nonNullable.group({
     specialty: ['', [Validators.required, Validators.maxLength(120)]],
@@ -247,8 +248,9 @@ export class Booking implements OnInit {
 
     this.busy = true;
     const value = this.form.getRawValue();
+    this.createRequestKey ??= `booking-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
     this.authApi.createAppointment({ ...value, profileId: value.profileId || undefined,
-      holdId: this.holdId() ?? undefined, serviceId: this.selectedClinicService()?.id }).subscribe({
+      holdId: this.holdId() ?? undefined, serviceId: this.selectedClinicService()?.id }, this.createRequestKey).subscribe({
       next: () => void this.router.navigateByUrl('/dashboard'),
       error: (response) => {
         this.busy = false;

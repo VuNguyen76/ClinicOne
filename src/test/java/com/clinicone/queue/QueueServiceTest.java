@@ -373,6 +373,28 @@ class QueueServiceTest {
         assertEquals(priority.getId(), response.id());
     }
 
+    @Test
+    void currentRoutingDoctorCanStartAReassignedTicket() {
+        UUID targetDoctorId = UUID.randomUUID();
+        StaffAccount targetStaff = StaffAccount.create("doctor-routed", "hash", "BS. Trần Bình", StaffRole.DOCTOR);
+        setId(targetStaff, targetDoctorId);
+        DoctorProfile targetProfile = DoctorProfile.create(targetStaff, "Nội tổng quát", room);
+        QueueTicket routed = QueueTicket.create(appointment, room, TODAY, 6);
+        UUID ticketId = UUID.randomUUID();
+        setId(routed, ticketId);
+        setField(routed, "routingDoctorStaffId", targetDoctorId);
+        setField(routed, "routingDoctorName", "BS. Trần Bình");
+        setField(routed, "routingSpecialty", "Nội tổng quát");
+        routed.call();
+        when(ticketRepository.findById(ticketId)).thenReturn(Optional.of(routed));
+        when(doctorProfileRepository.findByStaffAccount_Id(targetDoctorId)).thenReturn(Optional.of(targetProfile));
+        when(ticketRepository.save(any(QueueTicket.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        QueueTicketResponse response = service.start(ticketId, targetDoctorId.toString());
+
+        assertEquals(QueueTicketStatus.IN_SERVICE.name(), response.status());
+    }
+
     private static Appointment appointment(String specialty, LocalDate date) {
         PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
         setId(account, ACCOUNT_ID);
@@ -391,6 +413,16 @@ class QueueServiceTest {
             var field = target.getClass().getDeclaredField("id");
             field.setAccessible(true);
             field.set(target, id);
+        } catch (ReflectiveOperationException exception) {
+            throw new AssertionError(exception);
+        }
+    }
+
+    private static void setField(Object target, String name, Object value) {
+        try {
+            var field = target.getClass().getDeclaredField(name);
+            field.setAccessible(true);
+            field.set(target, value);
         } catch (ReflectiveOperationException exception) {
             throw new AssertionError(exception);
         }
