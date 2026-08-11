@@ -12,10 +12,12 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
@@ -37,13 +39,16 @@ class MedicalRecordControllerTest {
 
     @Test
     void patientCanListSignedRecords() throws Exception {
-        when(service.list(PATIENT_ID.toString())).thenReturn(List.of(record()));
+        when(service.listHistory(eq(PATIENT_ID.toString()), any())).thenReturn(new MedicalRecordHistoryPage(
+                List.of(record()), 0, 20, 1, 1));
 
-        mockMvc.perform(get("/api/v1/medical-records")
+        mockMvc.perform(get("/api/v1/medical-records?profileId=" + UUID.randomUUID()
+                        + "&from=2026-08-01&to=2026-08-20&page=0&size=20")
                         .with(authentication(authenticated("ROLE_PATIENT"))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(RECORD_ID.toString()))
-                .andExpect(jsonPath("$[0].signedAt").isNotEmpty());
+                .andExpect(jsonPath("$.items[0].id").value(RECORD_ID.toString()))
+                .andExpect(jsonPath("$.items[0].signedAt").isNotEmpty())
+                .andExpect(jsonPath("$.totalPages").value(1));
     }
 
     @Test

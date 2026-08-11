@@ -112,6 +112,22 @@ export interface MedicalRecordResponse {
   signedAt: string;
 }
 
+export interface MedicalRecordHistoryPageResponse {
+  items: MedicalRecordResponse[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+}
+
+export interface MedicalRecordHistoryQuery {
+  profileId?: string | null;
+  from?: string | null;
+  to?: string | null;
+  page?: number;
+  size?: number;
+}
+
 export interface ReasonCatalogResponse {
   id: string;
   type: string;
@@ -773,8 +789,15 @@ export class AuthApiService {
     return this.http.get<ExaminationSessionResponse[]>(this.examinationsRoot);
   }
 
-  getMedicalRecords(): Observable<MedicalRecordResponse[]> {
-    return this.http.get<MedicalRecordResponse[]>(this.medicalRecordsRoot);
+  getMedicalRecords(query: MedicalRecordHistoryQuery = {}): Observable<MedicalRecordHistoryPageResponse> {
+    const params: Record<string, string> = {
+      page: String(query.page ?? 0),
+      size: String(query.size ?? 20),
+    };
+    if (query.profileId) params['profileId'] = query.profileId;
+    if (query.from) params['from'] = query.from;
+    if (query.to) params['to'] = query.to;
+    return this.http.get<MedicalRecordHistoryPageResponse>(this.medicalRecordsRoot, { params });
   }
 
   getMedicalRecord(id: string): Observable<MedicalRecordResponse> {

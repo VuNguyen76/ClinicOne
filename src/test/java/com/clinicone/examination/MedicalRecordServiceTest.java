@@ -2,6 +2,8 @@ package com.clinicone.examination;
 
 import com.clinicone.auth.AuthException;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -11,6 +13,8 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 class MedicalRecordServiceTest {
@@ -22,13 +26,14 @@ class MedicalRecordServiceTest {
         MedicalRecordService service = new MedicalRecordService(repository);
         MedicalRecord record = MedicalRecord.signed(null, "BS. Nguyễn An", "Đau đầu", "Khám bình thường",
                 "Đau đầu do căng thẳng", "Theo dõi thêm", "Nghỉ ngơi", null, LocalDate.of(2026, 8, 20));
-        when(repository.findBySession_Appointment_Patient_IdAndSignedAtIsNotNullOrderBySignedAtDesc(ACCOUNT_ID))
-                .thenReturn(List.of(record));
+        when(repository.findSignedHistory(eq(ACCOUNT_ID), eq(null), eq(null), eq(null),
+                eq(PageRequest.of(0, 20)))).thenReturn(new PageImpl<>(List.of(record), PageRequest.of(0, 20), 1));
 
-        List<MedicalRecordResponse> result = service.list(ACCOUNT_ID.toString());
+        MedicalRecordHistoryPage result = service.listHistory(ACCOUNT_ID.toString(),
+                new MedicalRecordHistoryQuery(null, null, null, 0, 20));
 
-        assertEquals(1, result.size());
-        assertEquals("BS. Nguyễn An", result.get(0).doctorName());
+        assertEquals(1, result.items().size());
+        assertEquals("BS. Nguyễn An", result.items().get(0).doctorName());
     }
 
     @Test
@@ -44,5 +49,35 @@ class MedicalRecordServiceTest {
 
         assertEquals(404, exception.getStatus().value());
         assertEquals("MEDICAL_RECORD_NOT_FOUND", exception.getCode());
+    }
+
+    @Test
+    void pagesOnlySignedHistoryForTheRequestedProfileAndDateRange() {
+        MedicalRecordRepository repository = mock(MedicalRecordRepository.class);
+        MedicalRecordService service = new MedicalRecordService(repository);
+        UUID profileId = UUID.randomUUID();
+        MedicalRecord record = MedicalRecord.signed(null, "BS. Nguyễn An", "Đau đầu", "Khám bình thường",
+                "Đau đầu do căng thẳng", "Theo dõi thêm", "Nghỉ ngơi", null, LocalDate.of(2026, 8, 20));
+        when(repository.findSignedHistory(eq(ACCOUNT_ID), eq(profileId), any(), any(),
+                eq(PageRequest.of(0, 20)))).thenReturn(new PageImpl<>(List.of(record), PageRequest.of(0, 20), 21));
+
+        MedicalRecordHistoryPage result = service.listHistory(ACCOUNT_ID.toString(),
+                new MedicalRecordHistoryQuery(profileId, LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 20), 0, 20));
+
+        assertEquals(1, result.items().size());
+        assertEquals(21, result.totalElements());
+        assertEquals(2, result.totalPages());
+    }
+
+    @Test
+    void rejectsAnInvalidOrOverlongHistoryDateRangeBeforeQueryingRecords() {
+        MedicalRecordRepository repository = mock(MedicalRecordRepository.class);
+        MedicalRecordService service = new MedicalRecordService(repository);
+
+        AuthException exception = assertThrows(AuthException.class, () -> service.listHistory(ACCOUNT_ID.toString(),
+                new MedicalRecordHistoryQuery(null, LocalDate.of(2026, 8, 20), LocalDate.of(2026, 8, 1), 0, 20)));
+
+        assertEquals(400, exception.getStatus().value());
+        assertEquals("MEDICAL_RECORD_DATE_RANGE_INVALID", exception.getCode());
     }
 }
