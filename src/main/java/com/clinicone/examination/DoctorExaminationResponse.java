@@ -32,7 +32,8 @@ public record DoctorExaminationResponse(
         Instant signedAt,
         Long recordVersion,
         boolean requiresMedicalRecord,
-        List<MedicalRecordResponse> history
+        List<MedicalRecordResponse> history,
+        List<PrescriptionLineResponse> prescriptionLines
 ) {
     public DoctorExaminationResponse(UUID ticketId, UUID appointmentId, UUID examinationId, int queueNumber,
                                      String roomName, String appointmentCode, String specialty, String doctorName,
@@ -44,6 +45,6 @@ public record DoctorExaminationResponse(
         this(ticketId, appointmentId, examinationId, queueNumber, roomName, appointmentCode, specialty, doctorName,
                 appointmentDate, startTime, patientName, patientDateOfBirth, patientGender, patientPhone, reason,
                 examinationNotes, diagnosis, conclusion, treatmentPlan, prescription, followUpDate, status, signedAt,
-                null, true, List.of());
+                null, true, List.of(), List.of());
     }
 }

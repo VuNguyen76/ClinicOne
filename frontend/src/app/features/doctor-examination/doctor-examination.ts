@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { ReactiveFormsModule, FormArray, FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import {
@@ -8,10 +8,19 @@ import {
   AuthApiService,
   DoctorExaminationRequest,
   DoctorExaminationResponse,
+  MedicationSuggestionResponse,
   apiErrorMessage,
 } from '../../core/auth/auth-api.service';
 import { AccountMenu } from '../../shared/account-menu/account-menu';
 import { debounceTime } from 'rxjs';
+
+type PrescriptionLineForm = FormGroup<{
+  medicationId: FormControl<string | null>;
+  medicationName: FormControl<string | null>;
+  dosage: FormControl<string | null>;
+  quantity: FormControl<number | null>;
+  instructions: FormControl<string | null>;
+}>;
 
 @Component({
   selector: 'app-doctor-examination',
@@ -31,6 +40,8 @@ export class DoctorExamination implements OnInit {
   protected readonly loading = signal(true);
   protected readonly saving = signal(false);
   protected readonly signing = signal(false);
+  protected readonly prescriptionEnabled = signal(false);
+  protected readonly medicationSuggestions = signal<Record<number, MedicationSuggestionResponse[]>>({});
   protected readonly error = signal('');
   protected readonly notice = signal('');
   protected readonly form = this.fb.group({
@@ -39,9 +50,13 @@ export class DoctorExamination implements OnInit {
     diagnosis: ['', [Validators.maxLength(1000)]],
     conclusion: ['', [Validators.maxLength(2000)]],
     treatmentPlan: ['', [Validators.maxLength(2000)]],
-    prescription: ['', [Validators.maxLength(4000)]],
+    prescriptionLines: this.fb.array<PrescriptionLineForm>([]),
     followUpDate: [''],
   });
+
+  protected get prescriptionLines(): FormArray<PrescriptionLineForm> {
+    return this.form.controls.prescriptionLines;
+  }
 
   ngOnInit(): void {
     this.form.valueChanges.pipe(debounceTime(1200), takeUntilDestroyed(this.destroyRef)).subscribe(() => this.autosaveDraft());
@@ -60,9 +75,10 @@ export class DoctorExamination implements OnInit {
           diagnosis: value.diagnosis ?? '',
           conclusion: value.conclusion ?? '',
           treatmentPlan: value.treatmentPlan ?? '',
-          prescription: value.prescription ?? '',
           followUpDate: value.followUpDate ?? '',
         }, { emitEvent: false });
+        value.prescriptionLines?.forEach((line) => this.prescriptionLines.push(this.createPrescriptionLine(line)));
+        this.prescriptionEnabled.set(this.prescriptionLines.length > 0);
         if (value.signedAt) this.form.disable();
         this.loading.set(false);
       },
@@ -76,6 +92,7 @@ export class DoctorExamination implements OnInit {
   protected saveDraft(): void {
     const ticketId = this.examination()?.ticketId;
     if (!ticketId || this.saving() || this.signing() || this.examination()?.requiresMedicalRecord === false) return;
+    if (!this.validatePrescriptionLines()) return;
     this.saving.set(true);
     this.error.set('');
     this.notice.set('');
@@ -95,7 +112,7 @@ export class DoctorExamination implements OnInit {
   private autosaveDraft(): void {
     const ticketId = this.examination()?.ticketId;
     if (!ticketId || this.loading() || this.saving() || this.signing() || this.examination()?.signedAt
-      || this.examination()?.requiresMedicalRecord === false) return;
+      || this.examination()?.requiresMedicalRecord === false || this.prescriptionLines.invalid) return;
     this.saving.set(true);
     this.error.set('');
     this.authApi.saveDoctorExaminationDraft(ticketId, this.request()).subscribe({
@@ -122,6 +139,7 @@ export class DoctorExamination implements OnInit {
       this.error.set('Nhập đủ lý do khám, ghi nhận khám, chẩn đoán và kết luận trước khi ký.');
       return;
     }
+    if (!this.validatePrescriptionLines()) return;
     this.signing.set(true);
     this.error.set('');
     this.notice.set('');
@@ -141,6 +159,38 @@ export class DoctorExamination implements OnInit {
 
   protected back(): void {
     void this.router.navigateByUrl('/doctor');
+  }
+
+  protected addPrescriptionLine(): void {
+    if (this.prescriptionLines.length >= 20 || this.examination()?.signedAt) return;
+    this.prescriptionEnabled.set(true);
+    this.prescriptionLines.push(this.createPrescriptionLine());
+  }
+
+  protected removePrescriptionLine(index: number): void {
+    if (this.examination()?.signedAt) return;
+    this.prescriptionLines.removeAt(index);
+    this.prescriptionEnabled.set(this.prescriptionLines.length > 0);
+  }
+
+  protected findMedicationSuggestions(index: number): void {
+    const line = this.prescriptionLines.at(index);
+    line.controls.medicationId.setValue(null, { emitEvent: false });
+    const query = line.controls.medicationName.value?.trim() ?? '';
+    if (query.length < 2) {
+      this.setMedicationSuggestions(index, []);
+      return;
+    }
+    this.authApi.getDoctorMedicationSuggestions(query).subscribe({
+      next: (items) => this.setMedicationSuggestions(index, items),
+      error: () => this.setMedicationSuggestions(index, []),
+    });
+  }
+
+  protected selectMedication(index: number, medication: MedicationSuggestionResponse): void {
+    const line = this.prescriptionLines.at(index);
+    line.patchValue({ medicationId: medication.id, medicationName: medication.name });
+    this.setMedicationSuggestions(index, []);
   }
 
   protected formatDate(value: string | null | undefined): string {
@@ -166,10 +216,38 @@ export class DoctorExamination implements OnInit {
       diagnosis: value.diagnosis ?? '',
       conclusion: value.conclusion ?? '',
       treatmentPlan: value.treatmentPlan ?? '',
-      prescription: value.prescription ?? '',
+      prescription: '',
+      prescriptionLines: value.prescriptionLines.map((line) => ({
+        ...(line.medicationId ? { medicationId: line.medicationId } : {}),
+        medicationName: line.medicationName ?? '',
+        dosage: line.dosage ?? '',
+        quantity: Number(line.quantity),
+        instructions: line.instructions ?? '',
+      })),
       followUpDate: value.followUpDate || null,
       recordVersion: this.examination()?.recordVersion ?? null,
     };
+  }
+
+  private createPrescriptionLine(line?: DoctorExaminationResponse['prescriptionLines'][number]): PrescriptionLineForm {
+    return this.fb.group({
+      medicationId: [line?.medicationId ?? null],
+      medicationName: [line?.medicationName ?? '', [Validators.required, Validators.maxLength(200)]],
+      dosage: [line?.dosage ?? '', [Validators.required, Validators.maxLength(100)]],
+      quantity: [line?.quantity ?? 1, [Validators.required, Validators.min(1), Validators.max(999)]],
+      instructions: [line?.instructions ?? '', [Validators.required, Validators.maxLength(500)]],
+    }) as PrescriptionLineForm;
+  }
+
+  private validatePrescriptionLines(): boolean {
+    if (this.prescriptionLines.valid) return true;
+    this.prescriptionLines.markAllAsTouched();
+    this.error.set('Mỗi thuốc cần có tên, liều dùng, số lượng và hướng dẫn sử dụng hợp lệ.');
+    return false;
+  }
+
+  private setMedicationSuggestions(index: number, suggestions: MedicationSuggestionResponse[]): void {
+    this.medicationSuggestions.update((current) => ({ ...current, [index]: suggestions }));
   }
 
   private handleError(response: { status?: number } & ApiErrorResponse): void {

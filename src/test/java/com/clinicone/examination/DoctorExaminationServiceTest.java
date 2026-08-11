@@ -151,6 +151,34 @@ class DoctorExaminationServiceTest {
     }
 
     @Test
+    void signingSnapshotsEachPrescriptionLine() {
+        DoctorExaminationRequest request = new DoctorExaminationRequest(
+                "Đau đầu", "Mạch ổn", "Đau đầu căng thẳng", "Theo dõi thêm", "Nghỉ ngơi", null, null, 0L,
+                List.of(new PrescriptionLineRequest(null, "Paracetamol 500 mg", "500 mg", 10, "Uống sau ăn")));
+
+        DoctorExaminationResponse response = service.sign(TICKET_ID, DOCTOR_ID.toString(), request);
+
+        assertThat(response.prescriptionLines()).singleElement().satisfies(line -> {
+            assertThat(line.medicationName()).isEqualTo("Paracetamol 500 mg");
+            assertThat(line.dosage()).isEqualTo("500 mg");
+            assertThat(line.quantity()).isEqualTo(10);
+            assertThat(line.instructions()).isEqualTo("Uống sau ăn");
+        });
+    }
+
+    @Test
+    void signingRejectsPrescriptionLineMissingRequiredDetails() {
+        DoctorExaminationRequest request = new DoctorExaminationRequest(
+                "Đau đầu", "Mạch ổn", "Đau đầu căng thẳng", "Theo dõi thêm", null, null, null, 0L,
+                List.of(new PrescriptionLineRequest(null, "Paracetamol 500 mg", "", 10, "Uống sau ăn")));
+
+        assertThatThrownBy(() -> service.sign(TICKET_ID, DOCTOR_ID.toString(), request))
+                .isInstanceOf(AuthException.class)
+                .satisfies(error -> assertThat(((AuthException) error).getCode()).isEqualTo("PRESCRIPTION_LINE_INVALID"));
+        assertThat(record.getSignedAt()).isNull();
+    }
+
+    @Test
     void repeatingCompletionWithoutMedicalRecordReturnsTheCompletedVisit() {
         appointment.applyServiceSnapshot(UUID.randomUUID(), "Tiếp nhận nhanh", "Tư vấn", 15, false);
         DoctorExaminationRequest emptyRequest = new DoctorExaminationRequest(null, null, null, null, null, null, null, null);
@@ -309,7 +337,8 @@ class DoctorExaminationServiceTest {
 
     private DoctorExaminationRequest request() {
         return new DoctorExaminationRequest("Đau đầu", "Mạch ổn", "Đau đầu căng thẳng",
-                "Theo dõi thêm", "Nghỉ ngơi", "Paracetamol khi đau", null, 0L);
+                "Theo dõi thêm", "Nghỉ ngơi", null, null, 0L,
+                List.of(new PrescriptionLineRequest(null, "Paracetamol", "500 mg", 10, "Uống khi đau")));
     }
 
     private static void setId(Object target, UUID id) {

@@ -43,6 +43,21 @@ describe('MedicalRecordDetail', () => {
     expect(fixture.nativeElement.textContent).toContain('20/8/2026');
   });
 
+  it('renders each signed prescription line without exposing an editable form', () => {
+    http.expectOne('/api/v1/medical-records/record-1').flush({
+      id: 'record-1', examinationId: 'exam-1', appointmentCode: 'CL-20260807-0009', doctorName: 'Bác sĩ Nguyễn An',
+      reason: 'Đau đầu', examinationNotes: 'Mạch ổn', diagnosis: 'Đau đầu do căng thẳng', conclusion: 'Theo dõi thêm',
+      treatmentPlan: 'Nghỉ ngơi', prescription: null, prescriptionLines: [{
+        medicationId: 'medicine-1', medicationName: 'Paracetamol', dosage: '500 mg', quantity: 10, instructions: 'Uống sau ăn',
+      }], followUpDate: null, signedAt: '2026-08-07T09:30:00Z',
+    });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Paracetamol');
+    expect(fixture.nativeElement.textContent).toContain('10 viên');
+    expect(fixture.nativeElement.querySelector('input, textarea, button[data-testid="edit-prescription"]')).toBeFalsy();
+  });
+
   it('does not expose a draft when the API denies the record', () => {
     http.expectOne('/api/v1/medical-records/record-1').flush({ message: 'Không tìm thấy phiếu khám đã ký.' }, {
       status: 404, statusText: 'Not Found',

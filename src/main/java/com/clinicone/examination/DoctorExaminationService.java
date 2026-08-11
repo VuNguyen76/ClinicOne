@@ -12,6 +12,8 @@ import com.clinicone.doctor.DoctorProfile;
 import com.clinicone.doctor.DoctorProfileRepository;
 import com.clinicone.notification.PatientNotificationService;
 import com.clinicone.audit.BusinessLogService;
+import com.clinicone.medication.Medication;
+import com.clinicone.medication.MedicationCatalogService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -30,6 +32,7 @@ public class DoctorExaminationService {
     private final DoctorProfileRepository doctorProfileRepository;
     private final PatientNotificationService notificationService;
     private final BusinessLogService businessLogService;
+    private final MedicationCatalogService medicationCatalogService;
 
     public DoctorExaminationService(QueueTicketRepository ticketRepository,
                                     ExaminationSessionRepository sessionRepository,
@@ -38,7 +41,7 @@ public class DoctorExaminationService {
                                     AppointmentRepository appointmentRepository,
                                     DoctorProfileRepository doctorProfileRepository) {
         this(ticketRepository, sessionRepository, recordRepository, staffRepository, appointmentRepository,
-                doctorProfileRepository, null, null);
+                doctorProfileRepository, null, null, null);
     }
 
     public DoctorExaminationService(QueueTicketRepository ticketRepository,
@@ -49,7 +52,7 @@ public class DoctorExaminationService {
                                     DoctorProfileRepository doctorProfileRepository,
                                     PatientNotificationService notificationService) {
         this(ticketRepository, sessionRepository, recordRepository, staffRepository, appointmentRepository,
-                doctorProfileRepository, notificationService, null);
+                doctorProfileRepository, notificationService, null, null);
     }
 
     @Autowired
@@ -60,7 +63,8 @@ public class DoctorExaminationService {
                                     AppointmentRepository appointmentRepository,
                                     DoctorProfileRepository doctorProfileRepository,
                                     PatientNotificationService notificationService,
-                                    BusinessLogService businessLogService) {
+                                    BusinessLogService businessLogService,
+                                    MedicationCatalogService medicationCatalogService) {
         this.ticketRepository = ticketRepository;
         this.sessionRepository = sessionRepository;
         this.recordRepository = recordRepository;
@@ -69,6 +73,7 @@ public class DoctorExaminationService {
         this.doctorProfileRepository = doctorProfileRepository;
         this.notificationService = notificationService;
         this.businessLogService = businessLogService;
+        this.medicationCatalogService = medicationCatalogService;
     }
 
     @Transactional(readOnly = true)
@@ -147,9 +152,10 @@ public class DoctorExaminationService {
         MedicalRecord record = record(workspace.session());
         requireCurrentRecordVersion(record, request);
         try {
+            List<PrescriptionLine> prescriptionLines = prescriptionLines(record, request);
             record.saveDraft(doctorName(staffId, workspace.appointment()), request.reason(), request.examinationNotes(),
                     request.diagnosis(), request.conclusion(), request.treatmentPlan(), request.prescription(),
-                    request.followUpDate());
+                    request.followUpDate(), prescriptionLines);
             recordRepository.saveAndFlush(record);
         } catch (IllegalStateException exception) {
             throw conflict("MEDICAL_RECORD_LOCKED", exception.getMessage());
@@ -194,9 +200,10 @@ public class DoctorExaminationService {
         MedicalRecord record = existingRecord == null ? record(workspace.session()) : existingRecord;
         requireCurrentRecordVersion(record, request);
         try {
+            List<PrescriptionLine> prescriptionLines = prescriptionLines(record, request);
             record.sign(doctorName(staffId, workspace.appointment()), request.reason(), request.examinationNotes(),
                     request.diagnosis(), request.conclusion(), request.treatmentPlan(), request.prescription(),
-                    request.followUpDate());
+                    request.followUpDate(), prescriptionLines);
             workspace.session().complete();
             workspace.ticket().complete();
             workspace.appointment().complete();
@@ -294,6 +301,44 @@ public class DoctorExaminationService {
                 .orElseGet(() -> recordRepository.save(MedicalRecord.draft(session)));
     }
 
+    private List<PrescriptionLine> prescriptionLines(MedicalRecord record, DoctorExaminationRequest request) {
+        if (request.prescription() != null && !request.prescription().isBlank()) {
+            throw conflict("PRESCRIPTION_LEGACY_FORMAT_NOT_ALLOWED",
+                    "Hãy nhập thuốc theo từng dòng gồm liều, số lượng và cách dùng.");
+        }
+        List<PrescriptionLineRequest> items = request.prescriptionLines();
+        if (items == null || items.isEmpty()) {
+            return List.of();
+        }
+        if (items.size() > 20) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "PRESCRIPTION_LINE_LIMIT",
+                    "Một đơn thuốc có tối đa 20 dòng.");
+        }
+        java.util.ArrayList<PrescriptionLine> lines = new java.util.ArrayList<>();
+        for (int index = 0; index < items.size(); index++) {
+            PrescriptionLineRequest item = items.get(index);
+            if (item == null || blank(item.medicationName()) || item.medicationName().trim().length() > 200
+                    || blank(item.dosage()) || item.dosage().trim().length() > 100
+                    || item.quantity() == null || item.quantity() < 1 || item.quantity() > 999
+                    || blank(item.instructions()) || item.instructions().trim().length() > 500) {
+                throw new AuthException(HttpStatus.BAD_REQUEST, "PRESCRIPTION_LINE_INVALID",
+                        "Mỗi dòng thuốc cần có tên, liều, số lượng và cách dùng hợp lệ.");
+            }
+            if (item.medicationId() == null) {
+                lines.add(PrescriptionLine.create(record, item, index + 1));
+                continue;
+            }
+            if (medicationCatalogService == null) {
+                throw new AuthException(HttpStatus.BAD_REQUEST, "MEDICATION_NOT_AVAILABLE",
+                        "Thuốc được chọn không còn trong danh mục đang sử dụng.");
+            }
+            Medication medication = medicationCatalogService.requireActive(item.medicationId());
+            lines.add(PrescriptionLine.create(record, medication.getId(), medication.getName(), item.dosage(),
+                    item.quantity(), item.instructions(), index + 1));
+        }
+        return List.copyOf(lines);
+    }
+
     private String doctorName(String staffId, Appointment appointment) {
         try {
             return staffRepository.findById(UUID.fromString(staffId))
@@ -357,7 +402,8 @@ public class DoctorExaminationService {
                 record == null ? null : record.getConclusion(), record == null ? null : record.getTreatmentPlan(),
                 record == null ? null : record.getPrescription(), record == null ? null : record.getFollowUpDate(),
                 session.getStatus().name(), record == null ? null : record.getSignedAt(),
-                record == null ? null : record.getVersion(), requiresRecord, history);
+                record == null ? null : record.getVersion(), requiresRecord, history,
+                record == null ? List.of() : record.getPrescriptionLines().stream().map(PrescriptionLineResponse::from).toList());
     }
 
     private record Workspace(QueueTicket ticket, Appointment appointment, ExaminationSession session) {
