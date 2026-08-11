@@ -12,7 +12,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface MedicalRecordRepository extends JpaRepository<MedicalRecord, UUID> {
-    List<MedicalRecord> findBySession_Appointment_Patient_IdAndSignedAtIsNotNullOrderBySignedAtDesc(UUID patientId);
+    List<MedicalRecord> findTop10BySession_Appointment_Patient_IdAndSignedAtIsNotNullOrderBySignedAtDesc(UUID patientId);
 
     Optional<MedicalRecord> findByIdAndSession_Appointment_Patient_IdAndSignedAtIsNotNull(UUID id, UUID patientId);
 

@@ -412,7 +412,7 @@ public class DoctorExaminationService {
         boolean requiresRecord = appointment.requiresMedicalRecord();
         String recordDoctorName = record == null ? null : record.getDoctorName();
         List<MedicalRecordResponse> history = recordRepository
-                .findBySession_Appointment_Patient_IdAndSignedAtIsNotNullOrderBySignedAtDesc(patient.getId())
+                .findTop10BySession_Appointment_Patient_IdAndSignedAtIsNotNullOrderBySignedAtDesc(patient.getId())
                 .stream().map(MedicalRecordResponse::from).toList();
         return new DoctorExaminationResponse(ticket.getId(), appointment.getId(), session.getId(), ticket.getQueueNumber(),
                 ticket.getRoom().getName(), appointment.getAppointmentCode(), appointment.getSpecialty(),
