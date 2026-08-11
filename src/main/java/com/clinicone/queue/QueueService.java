@@ -90,11 +90,25 @@ public class QueueService {
 
     @Transactional
     public QueueTicketResponse checkIn(String accountId, String roomCode, UUID appointmentId) {
+        return checkIn(accountId, roomCode, appointmentId, null);
+    }
+
+    @Transactional
+    public QueueTicketResponse checkIn(String accountId, String roomCode, UUID appointmentId, String requestKey) {
         UUID patientId = parseAccountId(accountId);
+        String normalizedRequestKey = normalizeRequestKey(requestKey);
+        if (normalizedRequestKey != null) {
+            appointmentRepository.findByPatientIdAndCheckInRequestKey(patientId, normalizedRequestKey)
+                    .filter(existing -> !existing.getId().equals(appointmentId))
+                    .ifPresent(existing -> {
+                        throw new AuthException(HttpStatus.CONFLICT, "IDEMPOTENCY_KEY_REUSED",
+                                "Khóa chống trùng đã được dùng cho một lượt check-in khác.");
+                    });
+        }
         Appointment appointment = appointmentRepository.findByIdAndPatientId(appointmentId, patientId)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "APPOINTMENT_NOT_FOUND",
                         "Không tìm thấy lịch hẹn."));
-        return checkInAppointment(roomCode, appointment, null, accountId);
+        return checkInAppointment(roomCode, appointment, null, accountId, normalizedRequestKey);
     }
 
     @Transactional
@@ -115,6 +129,11 @@ public class QueueService {
 
     private QueueTicketResponse checkInAppointment(String roomCode, Appointment appointment, String exceptionReason,
                                                    String actor) {
+        return checkInAppointment(roomCode, appointment, exceptionReason, actor, null);
+    }
+
+    private QueueTicketResponse checkInAppointment(String roomCode, Appointment appointment, String exceptionReason,
+                                                   String actor, String requestKey) {
         ClinicRoom room = findRoom(roomCode);
         LocalDate today = today();
         if (!appointment.getAppointmentDate().equals(today)) {
@@ -142,8 +161,11 @@ public class QueueService {
             }
             String previousAppointmentStatus = appointment.getStatus().name();
             boolean appointmentChanged = appointment.getStatus() != AppointmentStatus.CHECKED_IN;
+            String previousCheckInKey = appointment.getCheckInRequestKey();
             appointment.checkIn();
-            if (appointmentChanged) {
+            appointment.assignCheckInRequestKey(requestKey);
+            boolean checkInKeyChanged = !Objects.equals(previousCheckInKey, appointment.getCheckInRequestKey());
+            if (appointmentChanged || checkInKeyChanged) {
                 appointmentRepository.save(appointment);
             }
             boolean returned = false;
@@ -175,6 +197,7 @@ public class QueueService {
         ensureBookable(appointment);
         String previousAppointmentStatus = appointment.getStatus().name();
         appointment.checkIn();
+        appointment.assignCheckInRequestKey(requestKey);
         appointmentRepository.save(appointment);
 
         int nextNumber = nextNumber(room.getCode(), today);
@@ -538,6 +561,16 @@ public class QueueService {
         if (normalized.length() < 3 || normalized.length() > 250) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "RECEPTION_REASON_INVALID",
                     "Lý do hỗ trợ tại quầy phải từ 3 đến 250 ký tự.");
+        }
+        return normalized;
+    }
+
+    private String normalizeRequestKey(String requestKey) {
+        if (requestKey == null || requestKey.isBlank()) return null;
+        String normalized = requestKey.trim();
+        if (normalized.length() > 80) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "IDEMPOTENCY_KEY_INVALID",
+                    "Khóa chống trùng không được dài quá 80 ký tự.");
         }
         return normalized;
     }

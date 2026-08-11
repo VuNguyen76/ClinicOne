@@ -27,6 +27,7 @@ export class QueueCheckIn implements OnInit {
   protected readonly busy = signal(false);
   protected readonly error = signal('');
   protected readonly today = clinicTodayIso();
+  private checkInRequestKey: string | null = null;
 
   ngOnInit(): void {
     this.roomCode.set(this.route.snapshot.paramMap.get('roomCode') ?? '');
@@ -43,6 +44,7 @@ export class QueueCheckIn implements OnInit {
   protected chooseAppointment(appointment: AppointmentResponse): void {
     this.error.set('');
     this.selectedAppointment.set(appointment);
+    this.checkInRequestKey = null;
   }
 
   protected checkIn(): void {
@@ -53,7 +55,8 @@ export class QueueCheckIn implements OnInit {
     }
     this.error.set('');
     this.busy.set(true);
-    this.authApi.checkInToRoom(this.roomCode(), appointment.id).subscribe({
+    this.checkInRequestKey ??= `checkin-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    this.authApi.checkInToRoom(this.roomCode(), appointment.id, this.checkInRequestKey).subscribe({
       next: (ticket) => {
         this.ticket.set(ticket);
         this.busy.set(false);

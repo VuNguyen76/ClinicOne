@@ -95,6 +95,8 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
 
     Optional<Appointment> findByPatientIdAndCreationRequestKey(UUID patientId, String creationRequestKey);
 
+    Optional<Appointment> findByPatientIdAndCheckInRequestKey(UUID patientId, String checkInRequestKey);
+
     Optional<Appointment> findByAppointmentCode(String appointmentCode);
 
     List<Appointment> findByStatusAndAppointmentDateBetweenOrderByAppointmentDateAscStartTimeAsc(

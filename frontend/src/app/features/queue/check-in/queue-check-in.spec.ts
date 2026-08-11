@@ -52,6 +52,7 @@ describe('QueueCheckIn', () => {
     (fixture.nativeElement.querySelector('[data-testid="check-in-submit"]') as HTMLButtonElement).click();
 
     const request = http.expectOne('/api/v1/rooms/NOI-01/queue/check-in');
+    expect(request.request.headers.get('Idempotency-Key')).toMatch(/^checkin-/);
     expect(request.request.method).toBe('POST');
     expect(request.request.body.appointmentId).toBe('appointment-1');
     request.flush(queueTicket());
