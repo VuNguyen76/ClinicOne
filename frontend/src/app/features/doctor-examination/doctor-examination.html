@@ -66,7 +66,7 @@
           </div>
         </aside>
 
-        <form [formGroup]="form" data-testid="medical-form" class="border border-[#dce7ea] bg-white" (submit)="$event.preventDefault()">
+        <form [formGroup]="form" data-testid="medical-form" class="border border-[#dce7ea] bg-white" (submit)="$event.preventDefault()" (focusout)="saveDraftOnBlur()">
           @if (exam.requiresMedicalRecord !== false) {
           <div class="border-b border-[#e7eff1] px-5 py-4 sm:px-6">
             <h2 class="text-base font-bold text-[#0a303b]">Phiếu khám</h2>

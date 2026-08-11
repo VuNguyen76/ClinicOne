@@ -13,7 +13,7 @@ import {
   apiErrorMessage,
 } from '../../core/auth/auth-api.service';
 import { AccountMenu } from '../../shared/account-menu/account-menu';
-import { debounceTime } from 'rxjs';
+import { auditTime } from 'rxjs';
 
 type PrescriptionLineForm = FormGroup<{
   medicationId: FormControl<string | null>;
@@ -36,6 +36,9 @@ export class DoctorExamination implements OnInit {
   private readonly authApi = inject(AuthApiService);
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
+  private draftDirty = false;
+  private autosaveRetryCount = 0;
+  private autosaveRetryTimer: ReturnType<typeof setTimeout> | null = null;
 
   protected readonly examination = signal<DoctorExaminationResponse | null>(null);
   protected readonly loading = signal(true);
@@ -64,7 +67,9 @@ export class DoctorExamination implements OnInit {
   }
 
   ngOnInit(): void {
-    this.form.valueChanges.pipe(debounceTime(1200), takeUntilDestroyed(this.destroyRef)).subscribe(() => this.autosaveDraft());
+    this.form.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.markDraftChanged());
+    this.form.valueChanges.pipe(auditTime(10_000), takeUntilDestroyed(this.destroyRef)).subscribe(() => this.autosaveDraft());
+    this.destroyRef.onDestroy(() => this.clearAutosaveRetry());
     const ticketId = this.route.snapshot.paramMap.get('ticketId');
     if (!ticketId) {
       this.error.set('Không tìm thấy lượt khám.');
@@ -98,6 +103,14 @@ export class DoctorExamination implements OnInit {
   }
 
   protected saveDraft(): void {
+    this.persistDraft(true);
+  }
+
+  protected saveDraftOnBlur(): void {
+    if (this.draftDirty) this.persistDraft(false);
+  }
+
+  private persistDraft(manual: boolean): void {
     const ticketId = this.examination()?.ticketId;
     if (!ticketId || this.saving() || this.signing() || this.examination()?.requiresMedicalRecord === false) return;
     if (!this.validatePrescriptionLines()) return;
@@ -108,32 +121,22 @@ export class DoctorExamination implements OnInit {
       next: (value) => {
         this.examination.set(value);
         this.saving.set(false);
-        this.notice.set('Đã lưu bản nháp');
+        this.draftDirty = false;
+        this.autosaveRetryCount = 0;
+        this.clearAutosaveRetry();
+        this.notice.set(manual ? 'Đã lưu bản nháp' : 'Đã tự lưu bản nháp');
       },
       error: (response) => {
         this.saving.set(false);
         this.handleError(response);
+        if (!manual) this.scheduleAutosaveRetry();
       },
     });
   }
 
   private autosaveDraft(): void {
-    const ticketId = this.examination()?.ticketId;
-    if (!ticketId || this.loading() || this.saving() || this.signing() || this.examination()?.signedAt
-      || this.examination()?.requiresMedicalRecord === false || this.prescriptionLines.invalid) return;
-    this.saving.set(true);
-    this.error.set('');
-    this.authApi.saveDoctorExaminationDraft(ticketId, this.request()).subscribe({
-      next: (value) => {
-        this.examination.set(value);
-        this.saving.set(false);
-        this.notice.set('Đã tự lưu bản nháp');
-      },
-      error: (response) => {
-        this.saving.set(false);
-        this.handleError(response);
-      },
-    });
+    if (!this.draftDirty || this.loading() || this.examination()?.signedAt || this.prescriptionLines.invalid) return;
+    this.persistDraft(false);
   }
 
   protected sign(): void {
@@ -294,6 +297,28 @@ export class DoctorExamination implements OnInit {
 
   private setMedicationSuggestions(index: number, suggestions: MedicationSuggestionResponse[]): void {
     this.medicationSuggestions.update((current) => ({ ...current, [index]: suggestions }));
+  }
+
+  private markDraftChanged(): void {
+    this.draftDirty = true;
+    this.autosaveRetryCount = 0;
+    this.clearAutosaveRetry();
+  }
+
+  private scheduleAutosaveRetry(): void {
+    if (!this.draftDirty || this.autosaveRetryCount >= 3 || this.autosaveRetryTimer != null) return;
+    this.autosaveRetryCount += 1;
+    this.autosaveRetryTimer = setTimeout(() => {
+      this.autosaveRetryTimer = null;
+      this.autosaveDraft();
+    }, 10_000);
+  }
+
+  private clearAutosaveRetry(): void {
+    if (this.autosaveRetryTimer != null) {
+      clearTimeout(this.autosaveRetryTimer);
+      this.autosaveRetryTimer = null;
+    }
   }
 
   private handleError(response: { status?: number } & ApiErrorResponse): void {
