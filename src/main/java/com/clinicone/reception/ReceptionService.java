@@ -110,6 +110,14 @@ public class ReceptionService {
                 .stream().map(ReceptionPatientProfileResponse::from).toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<ReceptionDoctorOptionResponse> doctors() {
+        return doctorProfileRepository.findAllByOrderByCreatedAtDesc().stream()
+                .filter(DoctorProfile::isActive)
+                .map(ReceptionDoctorOptionResponse::from)
+                .toList();
+    }
+
     /**
      * Tiếp nhận người bệnh đến quầy mà chưa có lịch trong ngày. Hệ thống chỉ
      * cho phép chọn tài khoản đã tồn tại; việc tạo tài khoản/hồ sơ tạm cần OTP

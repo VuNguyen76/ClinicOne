@@ -78,6 +78,20 @@ public class QueueTicket {
     @Column(name = "exception_reason", length = 250)
     private String exceptionReason;
 
+    @Column(name = "routing_doctor_staff_id")
+    private UUID routingDoctorStaffId;
+
+    @Column(name = "routing_doctor_name", length = 120)
+    private String routingDoctorName;
+
+    @Column(name = "routing_specialty", length = 120)
+    private String routingSpecialty;
+
+    // Nullable keeps ddl-auto update compatible with queue rows created before
+    // priority was introduced; legacy null values are read as the Java default false.
+    @Column(name = "priority_flag")
+    private boolean priority;
+
     protected QueueTicket() {
     }
 
@@ -106,6 +120,25 @@ public class QueueTicket {
 
     public void recordExceptionReason(String reason) {
         this.exceptionReason = reason == null || reason.isBlank() ? null : reason.trim();
+    }
+
+    public void moveTo(ClinicRoom targetRoom, UUID doctorStaffId, String doctorName, String specialty,
+                       int targetQueueNumber) {
+        if (status != QueueTicketStatus.WAITING) {
+            throw new IllegalStateException("Chỉ được điều chỉnh lượt đang chờ");
+        }
+        this.room = targetRoom;
+        this.routingDoctorStaffId = doctorStaffId;
+        this.routingDoctorName = doctorName == null || doctorName.isBlank() ? null : doctorName.trim();
+        this.routingSpecialty = specialty == null || specialty.isBlank() ? null : specialty.trim();
+        this.queueNumber = targetQueueNumber;
+    }
+
+    public void setPriority(boolean priority) {
+        if (status != QueueTicketStatus.WAITING) {
+            throw new IllegalStateException("Chỉ được điều chỉnh lượt đang chờ");
+        }
+        this.priority = priority;
     }
 
     public void call() {
@@ -207,4 +240,19 @@ public class QueueTicket {
     public Instant getCompletedAt() { return completedAt; }
     public String getSkipReason() { return skipReason; }
     public String getExceptionReason() { return exceptionReason; }
+    public UUID getRoutingDoctorStaffId() { return routingDoctorStaffId; }
+    public String getRoutingDoctorName() { return routingDoctorName; }
+    public String getRoutingSpecialty() { return routingSpecialty; }
+    public boolean isPriority() { return priority; }
+    public UUID getEffectiveDoctorStaffId() {
+        return routingDoctorStaffId == null ? appointment.getDoctorStaffId() : routingDoctorStaffId;
+    }
+    public String getEffectiveDoctorName() {
+        return routingDoctorName == null || routingDoctorName.isBlank()
+                ? appointment.getDoctorName() : routingDoctorName;
+    }
+    public String getEffectiveSpecialty() {
+        return routingSpecialty == null || routingSpecialty.isBlank()
+                ? appointment.getSpecialty() : routingSpecialty;
+    }
 }

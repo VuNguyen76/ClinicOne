@@ -61,6 +61,11 @@ public class ReceptionController {
         return ResponseEntity.ok(service.profiles(phone));
     }
 
+    @GetMapping("/doctors")
+    public ResponseEntity<List<ReceptionDoctorOptionResponse>> doctors() {
+        return ResponseEntity.ok(service.doctors());
+    }
+
     @PostMapping("/patients/request-otp")
     public ResponseEntity<RequestOtpResponse> requestPatientOtp(
             @Valid @RequestBody ReceptionPatientOtpRequest request) {

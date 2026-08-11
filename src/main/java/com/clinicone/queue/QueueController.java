@@ -96,6 +96,14 @@ public class QueueController {
         return ResponseEntity.ok(queueService.leaveBeforeExam(ticketId, request.reason()));
     }
 
+    @PostMapping("/queue/{ticketId}/adjust")
+    @PreAuthorize("hasRole('RECEPTIONIST')")
+    public ResponseEntity<QueueTicketResponse> adjust(Authentication authentication,
+                                                       @PathVariable UUID ticketId,
+                                                       @Valid @RequestBody QueueAdjustmentRequest request) {
+        return ResponseEntity.ok(queueService.adjust(ticketId, request, authentication.getName()));
+    }
+
     @PostMapping("/queue/{ticketId}/start")
     @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR', 'DOCTOR')")
     public ResponseEntity<QueueTicketResponse> start(Authentication authentication, @PathVariable UUID ticketId) {

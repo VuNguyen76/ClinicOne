@@ -75,6 +75,38 @@ describe('ReceptionCheckIn', () => {
     expect(fixture.nativeElement.textContent).toContain('Rời trước khám');
   });
 
+  it('adjusts a waiting queue ticket without editing its appointment status', () => {
+    const component = fixture.componentInstance as any;
+    component.query.set('CL-20260807-1234');
+    component.search();
+    http.expectOne((item) => item.url === '/api/v1/reception/appointments').flush([{
+      ...appointment(), queueNumber: 5, queueStatus: 'WAITING', queueStatusLabel: 'Đang chờ', queueTicketId: 'ticket-1',
+    }]);
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('[data-testid="adjust-queue"]') as HTMLButtonElement).click();
+    http.expectOne('/api/v1/reception/doctors').flush([
+      { staffId: 'doctor-2', fullName: 'BS. Nguyễn Bình', specialty: 'Nhi khoa', roomCode: 'NHI-01', roomName: 'Phòng Nhi 01' },
+    ]);
+    component.adjustmentDoctorId.set('doctor-2');
+    component.adjustmentReason.set('Điều chuyển theo phân công trong ca');
+    component.adjustQueue('MOVE');
+    const request = http.expectOne('/api/v1/queue/ticket-1/adjust');
+    expect(request.request.body).toEqual({
+      action: 'MOVE', targetDoctorId: 'doctor-2', targetRoomCode: 'NHI-01', targetSpecialty: 'Nhi khoa',
+      reason: 'Điều chuyển theo phân công trong ca',
+    });
+    request.flush({
+      id: 'ticket-1', queueNumber: 8, roomCode: 'NHI-01', roomName: 'Phòng Nhi 01', queueDate: '2026-08-07',
+      appointmentTime: '09:00:00', status: 'WAITING', statusLabel: 'Đang chờ', appointmentCode: 'CL-20260807-1234',
+      specialty: 'Nhi khoa', doctorName: 'BS. Nguyễn Bình', priority: false,
+    });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Nhi khoa');
+    expect(fixture.nativeElement.textContent).toContain('BS. Nguyễn Bình');
+  });
+
   it('opens the walk-in form and creates an appointment from a selected slot', () => {
     const component = fixture.componentInstance as any;
     const openButton = Array.from(fixture.nativeElement.querySelectorAll('button'))

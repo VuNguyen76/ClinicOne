@@ -36,6 +36,20 @@ class BusinessLogServiceTest {
     }
 
     @Test
+    void writesOperationalActivityEvenWhenLifecycleStatusStaysTheSame() {
+        UUID eventId = UUID.randomUUID();
+        UUID entityId = UUID.randomUUID();
+        when(repository.existsByEventIdAndEntityTypeAndEntityId(eventId, "QUEUE_TICKET", entityId)).thenReturn(false);
+
+        service.recordActivity(eventId, "QUEUE_TICKET", entityId, "WAITING", "WAITING",
+                "QUEUE_PRIORITY_CHANGED", "reception-1", "Ưu tiên theo chỉ định vận hành");
+
+        verify(repository).save(argThat(log -> log.getPreviousStatus().equals("WAITING")
+                && log.getNextStatus().equals("WAITING")
+                && log.getEventType().equals("QUEUE_PRIORITY_CHANGED")));
+    }
+
+    @Test
     void rejectsMissingTransitionData() {
         assertThatThrownBy(() -> service.recordTransition(null, "APPOINTMENT", UUID.randomUUID(),
                 "BOOKED", "CANCELLED", "CANCEL", "staff", null))

@@ -22,6 +22,11 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -226,8 +231,7 @@ public class QueueService {
                         "Bác sĩ chỉ được xem hàng đợi của phòng được phân công.");
             }
             LocalDate queueDate = date == null ? today() : date;
-            return ticketRepository.findByRoomCodeAndQueueDateAndAppointment_DoctorStaffIdOrderByQueueNumberAsc(
-                            roomCode, queueDate, doctorId).stream()
+            return doctorTickets(roomCode, queueDate, doctorId).stream()
                     .map(QueueTicketResponse::from)
                     .toList();
         }
@@ -239,9 +243,7 @@ public class QueueService {
         UUID doctorId = parseStaffId(staffId);
         DoctorProfile profile = doctorProfile(doctorId);
         LocalDate queueDate = date == null ? today() : date;
-        List<QueueTicketResponse> tickets = ticketRepository
-                .findByRoomCodeAndQueueDateAndAppointment_DoctorStaffIdOrderByQueueNumberAsc(
-                        profile.getRoom().getCode(), queueDate, doctorId).stream()
+        List<QueueTicketResponse> tickets = doctorTickets(profile.getRoom().getCode(), queueDate, doctorId).stream()
                 .map(QueueTicketResponse::from)
                 .toList();
         return new DoctorQueueResponse(profile.getRoom().getCode(), profile.getRoom().getName(),
@@ -274,15 +276,40 @@ public class QueueService {
         UUID doctorId = parseStaffId(staffId);
         DoctorProfile profile = doctorProfile(doctorId);
         LocalDate queueDate = date == null ? today() : date;
-        QueueTicket next = ticketRepository
-                .findByRoomCodeAndQueueDateAndAppointment_DoctorStaffIdOrderByQueueNumberAsc(
-                        profile.getRoom().getCode(), queueDate, doctorId).stream()
+        QueueTicket next = doctorTickets(profile.getRoom().getCode(), queueDate, doctorId).stream()
                 .filter(ticket -> ticket.getStatus() == QueueTicketStatus.WAITING
                         && ticket.getPresenceStatus() == QueuePresenceStatus.READY)
+                .sorted(Comparator.comparing(QueueTicket::isPriority).reversed()
+                        .thenComparing(QueueTicket::getCheckedInAt)
+                        .thenComparing(QueueTicket::getQueueNumber))
                 .findFirst()
                 .orElseThrow(() -> new AuthException(HttpStatus.CONFLICT, "QUEUE_NO_NEXT_PATIENT",
                         "Không còn bệnh nhân đang chờ trong hàng đợi."));
         return call(next.getId(), staffId);
+    }
+
+    @Transactional
+    public QueueTicketResponse adjust(UUID ticketId, QueueAdjustmentRequest request, String actor) {
+        QueueTicket ticket = findTicket(ticketId);
+        if (ticket.getStatus() != QueueTicketStatus.WAITING) {
+            throw new AuthException(HttpStatus.CONFLICT, "QUEUE_ADJUSTMENT_NOT_ALLOWED",
+                    "Chỉ có thể điều chỉnh lượt đang chờ trước khi gọi.");
+        }
+        String reason = normalizeAdjustmentReason(request.reason());
+        String previousStatus = ticket.getStatus().name();
+        UUID eventId = UUID.randomUUID();
+        switch (request.action()) {
+            case SET_PRIORITY -> ticket.setPriority(true);
+            case CLEAR_PRIORITY -> ticket.setPriority(false);
+            case MOVE -> moveTicket(ticket, request);
+        }
+        QueueTicket saved = ticketRepository.save(ticket);
+        if (businessLogService != null) {
+            businessLogService.recordActivity(eventId, "QUEUE_TICKET", ticket.getId(), previousStatus,
+                    saved.getStatus().name(), request.action() == QueueAdjustmentAction.MOVE
+                            ? "QUEUE_REASSIGNED" : "QUEUE_PRIORITY_CHANGED", actor, reason);
+        }
+        return QueueTicketResponse.from(saved);
     }
 
     @Transactional
@@ -389,6 +416,69 @@ public class QueueService {
         return currentMax == null ? 1 : currentMax + 1;
     }
 
+    private void moveTicket(QueueTicket ticket, QueueAdjustmentRequest request) {
+        String requestedSpecialty = request.targetSpecialty() == null ? "" : request.targetSpecialty().trim();
+        String requestedRoom = request.targetRoomCode() == null ? "" : request.targetRoomCode().trim();
+        DoctorProfile targetDoctor = findTargetDoctor(request, requestedSpecialty, requestedRoom);
+        if (targetDoctor == null) {
+            throw new AuthException(HttpStatus.CONFLICT, "QUEUE_TARGET_DOCTOR_INVALID",
+                    "Bác sĩ đích chưa được phân công hoặc đã ngừng hoạt động.");
+        }
+        if (!requestedSpecialty.isBlank() && !requestedSpecialty.equalsIgnoreCase(targetDoctor.getSpecialty())) {
+            throw new AuthException(HttpStatus.CONFLICT, "QUEUE_TARGET_SPECIALTY_MISMATCH",
+                    "Chuyên khoa đích không khớp với phân công của bác sĩ.");
+        }
+        if (!requestedRoom.isBlank() && !requestedRoom.equalsIgnoreCase(targetDoctor.getRoom().getCode())) {
+            throw new AuthException(HttpStatus.CONFLICT, "QUEUE_TARGET_ROOM_MISMATCH",
+                    "Phòng đích không khớp với phân công của bác sĩ.");
+        }
+        ClinicRoom targetRoom = targetDoctor.getRoom();
+        // A reassignment always receives a fresh number in the destination queue,
+        // including when the destination room is unchanged. The old number remains
+        // visible through the business journal rather than being reused.
+        int targetNumber = nextNumber(targetRoom.getCode(), ticket.getQueueDate());
+        ticket.moveTo(targetRoom, targetDoctor.getStaffAccount().getId(), targetDoctor.getStaffAccount().getFullName(),
+                targetDoctor.getSpecialty(), targetNumber);
+    }
+
+    private DoctorProfile findTargetDoctor(QueueAdjustmentRequest request, String specialty, String roomCode) {
+        if (doctorProfileRepository == null) return null;
+        if (request.targetDoctorId() != null) {
+            return doctorProfileRepository.findById(request.targetDoctorId())
+                    .filter(DoctorProfile::isActive)
+                    .orElse(null);
+        }
+        if (specialty.isBlank() || roomCode.isBlank()) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "QUEUE_TARGET_DOCTOR_REQUIRED",
+                    "Cần chọn bác sĩ đích hoặc chỉ rõ chuyên khoa và phòng đích.");
+        }
+        List<DoctorProfile> candidates = doctorProfileRepository.findBySpecialtyIgnoreCaseAndActiveTrue(specialty)
+                .stream().filter(profile -> profile.getRoom().getCode().equalsIgnoreCase(roomCode)).toList();
+        if (candidates.size() > 1) {
+            throw new AuthException(HttpStatus.CONFLICT, "QUEUE_TARGET_DOCTOR_REQUIRED",
+                    "Có nhiều bác sĩ trong hàng đợi đích; cần chọn đúng bác sĩ.");
+        }
+        return candidates.isEmpty() ? null : candidates.get(0);
+    }
+
+    private List<QueueTicket> doctorTickets(String roomCode, LocalDate date, UUID doctorId) {
+        Map<UUID, QueueTicket> distinct = new LinkedHashMap<>();
+        addTickets(distinct, ticketRepository.findByRoomCodeAndQueueDateAndAppointment_DoctorStaffIdOrderByQueueNumberAsc(
+                roomCode, date, doctorId));
+        addTickets(distinct, ticketRepository.findByRoomCodeAndQueueDateAndRoutingDoctorStaffIdOrderByQueueNumberAsc(
+                roomCode, date, doctorId));
+        return distinct.values().stream()
+                .filter(ticket -> Objects.equals(ticket.getEffectiveDoctorStaffId(), doctorId))
+                .toList();
+    }
+
+    private void addTickets(Map<UUID, QueueTicket> target, List<QueueTicket> tickets) {
+        if (tickets == null) return;
+        for (QueueTicket ticket : tickets) {
+            if (ticket != null && ticket.getId() != null) target.put(ticket.getId(), ticket);
+        }
+    }
+
     private SessionTransition ensureCheckedInSession(Appointment appointment) {
         if (examinationSessionRepository == null) {
             return null;
@@ -474,6 +564,19 @@ public class QueueService {
         if (normalized.length() < 10 || normalized.length() > 500) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "QUEUE_LEAVE_REASON_INVALID",
                     "Lý do phải từ 10 đến 500 ký tự.");
+        }
+        return normalized;
+    }
+
+    private String normalizeAdjustmentReason(String reason) {
+        if (reason == null) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "QUEUE_ADJUSTMENT_REASON_REQUIRED",
+                    "Cần ghi lý do điều chỉnh hàng đợi.");
+        }
+        String normalized = reason.trim();
+        if (normalized.length() < 10 || normalized.length() > 500) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "QUEUE_ADJUSTMENT_REASON_INVALID",
+                    "Lý do điều chỉnh phải từ 10 đến 500 ký tự.");
         }
         return normalized;
     }
