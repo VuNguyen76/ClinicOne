@@ -8,6 +8,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
@@ -16,6 +17,8 @@ import jakarta.persistence.Version;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "medical_records", uniqueConstraints = {
@@ -50,6 +53,10 @@ public class MedicalRecord {
 
     @Column(name = "prescription", length = 4000)
     private String prescription;
+
+    @OneToMany(mappedBy = "medicalRecord", cascade = jakarta.persistence.CascadeType.ALL, orphanRemoval = true)
+    @jakarta.persistence.OrderBy("lineNumber asc")
+    private List<PrescriptionLine> prescriptionLines = new ArrayList<>();
 
     @Column(name = "follow_up_date")
     private LocalDate followUpDate;
@@ -107,11 +114,37 @@ public class MedicalRecord {
 
     public void sign(String doctorName, String reason, String examinationNotes, String diagnosis,
                      String conclusion, String treatmentPlan, String prescription, LocalDate followUpDate) {
+        sign(doctorName, reason, examinationNotes, diagnosis, conclusion, treatmentPlan, prescription, followUpDate,
+                List.of());
+    }
+
+    public void sign(String doctorName, String reason, String examinationNotes, String diagnosis,
+                     String conclusion, String treatmentPlan, String prescription, LocalDate followUpDate,
+                     List<PrescriptionLine> lines) {
         if (signedAt != null) {
             throw new IllegalStateException("Phiếu khám đã ký, không thể ký lại.");
         }
         saveDraft(doctorName, reason, examinationNotes, diagnosis, conclusion, treatmentPlan, prescription, followUpDate);
+        replacePrescriptionLines(lines);
         signedAt = Instant.now();
+    }
+
+    public void saveDraft(String doctorName, String reason, String examinationNotes, String diagnosis,
+                          String conclusion, String treatmentPlan, String prescription, LocalDate followUpDate,
+                          List<PrescriptionLine> lines) {
+        saveDraft(doctorName, reason, examinationNotes, diagnosis, conclusion, treatmentPlan, prescription, followUpDate);
+        replacePrescriptionLines(lines);
+    }
+
+    public void replacePrescriptionLines(List<PrescriptionLine> lines) {
+        if (signedAt != null) {
+            throw new IllegalStateException("Phiếu khám đã ký, không thể sửa.");
+        }
+        prescriptionLines.clear();
+        if (lines != null) {
+            prescriptionLines.addAll(lines);
+        }
+        prescription = null;
     }
 
     @PrePersist
@@ -130,6 +163,7 @@ public class MedicalRecord {
     public String getConclusion() { return conclusion; }
     public String getTreatmentPlan() { return treatmentPlan; }
     public String getPrescription() { return prescription; }
+    public List<PrescriptionLine> getPrescriptionLines() { return List.copyOf(prescriptionLines); }
     public LocalDate getFollowUpDate() { return followUpDate; }
     public Instant getSignedAt() { return signedAt; }
     public long getVersion() { return version; }

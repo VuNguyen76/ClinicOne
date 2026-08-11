@@ -108,8 +108,24 @@ export interface MedicalRecordResponse {
   conclusion: string;
   treatmentPlan: string;
   prescription: string | null;
+  prescriptionLines?: PrescriptionLineResponse[];
   followUpDate: string | null;
   signedAt: string;
+}
+
+export interface PrescriptionLineResponse {
+  medicationId: string | null;
+  medicationName: string;
+  dosage: string;
+  quantity: number;
+  instructions: string;
+}
+
+export interface MedicationSuggestionResponse {
+  id: string;
+  code: string;
+  name: string;
+  active: boolean;
 }
 
 export interface MedicalRecordHistoryPageResponse {
@@ -528,6 +544,7 @@ export interface DoctorExaminationResponse {
   conclusion: string | null;
   treatmentPlan: string | null;
   prescription: string | null;
+  prescriptionLines: PrescriptionLineResponse[];
   followUpDate: string | null;
   status: string;
   signedAt: string | null;
@@ -543,6 +560,13 @@ export interface DoctorExaminationRequest {
   conclusion?: string;
   treatmentPlan?: string;
   prescription?: string;
+  prescriptionLines?: Array<{
+    medicationId?: string | null;
+    medicationName: string;
+    dosage: string;
+    quantity: number;
+    instructions: string;
+  }>;
   followUpDate?: string | null;
   recordVersion?: number | null;
 }
@@ -916,6 +940,10 @@ export class AuthApiService {
 
   signDoctorExamination(ticketId: string, request: DoctorExaminationRequest): Observable<DoctorExaminationResponse> {
     return this.http.post<DoctorExaminationResponse>(`/api/v1/doctor/examinations/${ticketId}/sign`, request);
+  }
+
+  getDoctorMedicationSuggestions(query: string): Observable<MedicationSuggestionResponse[]> {
+    return this.http.get<MedicationSuggestionResponse[]>('/api/v1/doctor/medications/suggestions', { params: { query } });
   }
 
   staffLogin(username: string, password: string): Observable<StaffLoginResponse> {

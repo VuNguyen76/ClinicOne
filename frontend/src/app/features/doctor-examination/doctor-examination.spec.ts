@@ -60,6 +60,35 @@ describe('DoctorExamination', () => {
     expect(fixture.nativeElement.textContent).toContain('Đã lưu bản nháp');
   });
 
+  it('saves each prescribed medicine as a complete line', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('[data-testid="add-prescription-line"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const setValue = (name: string, value: string) => {
+      const input = fixture.nativeElement.querySelector(`[data-testid="prescription-${name}-0"]`) as HTMLInputElement;
+      input.value = value;
+      input.dispatchEvent(new Event('input'));
+    };
+    setValue('name', 'Paracetamol 500 mg');
+    setValue('dosage', '500 mg');
+    setValue('quantity', '10');
+    setValue('instructions', 'Uống sau ăn');
+    fixture.detectChanges();
+    http.expectOne('/api/v1/doctor/medications/suggestions?query=Paracetamol%20500%20mg').flush([]);
+
+    (fixture.nativeElement.querySelector('[data-testid="save-draft"]') as HTMLButtonElement).click();
+    const request = http.expectOne('/api/v1/doctor/examinations/ticket-1/draft');
+    expect(request.request.body.prescription).toBe('');
+    expect(request.request.body.prescriptionLines).toEqual([{
+      medicationName: 'Paracetamol 500 mg', dosage: '500 mg', quantity: 10, instructions: 'Uống sau ăn',
+    }]);
+    request.flush({ ...examination(), prescriptionLines: [{
+      medicationName: 'Paracetamol 500 mg', dosage: '500 mg', quantity: 10, instructions: 'Uống sau ăn',
+    }] });
+  });
+
   it('autosaves edited clinical fields after the doctor pauses typing', () => {
     vi.useFakeTimers();
     http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
@@ -134,6 +163,7 @@ function examination() {
     conclusion: '',
     treatmentPlan: '',
     prescription: '',
+    prescriptionLines: [],
     followUpDate: null,
     status: 'IN_PROGRESS',
     signedAt: null,
