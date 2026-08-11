@@ -84,6 +84,44 @@ class AppointmentServiceTest {
     }
 
     @Test
+    void repeatedCreateWithSameIdempotencyKeyReturnsTheExistingAppointment() {
+        Appointment existing = Appointment.existing(
+                new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false),
+                "CL-20260810-AB12", "Nội khoa", "BS. Nguyễn An", LocalDate.of(2026, 8, 10),
+                LocalTime.of(8, 30), "Đau đầu kéo dài");
+        UUID existingId = UUID.randomUUID();
+        setId(existing, existingId);
+        when(appointmentRepository.findByPatientIdAndCreationRequestKey(ACCOUNT_ID, "booking-key-1"))
+                .thenReturn(Optional.of(existing));
+
+        AppointmentResponse response = service.create(ACCOUNT_ID.toString(), new CreateAppointmentRequest(
+                "Nội khoa", "BS. Nguyễn An", LocalDate.of(2026, 8, 10), LocalTime.of(8, 30),
+                "Đau đầu kéo dài"), "booking-key-1");
+
+        assertEquals(existingId, response.id());
+        verify(accountRepository, never()).findById(ACCOUNT_ID);
+        verify(appointmentRepository, never()).save(any(Appointment.class));
+        verify(notificationService, never()).notifyAppointmentCreated(any(Appointment.class));
+    }
+
+    @Test
+    void rejectsReusingCreateKeyForDifferentPayload() {
+        Appointment existing = Appointment.existing(
+                new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false),
+                "CL-20260810-AB12", "Nội khoa", "BS. Nguyễn An", LocalDate.of(2026, 8, 10),
+                LocalTime.of(8, 30), "Đau đầu kéo dài");
+        when(appointmentRepository.findByPatientIdAndCreationRequestKey(ACCOUNT_ID, "booking-key-2"))
+                .thenReturn(Optional.of(existing));
+
+        AuthException exception = assertThrows(AuthException.class, () -> service.create(ACCOUNT_ID.toString(),
+                new CreateAppointmentRequest("Nội khoa", "BS. Nguyễn An", LocalDate.of(2026, 8, 10),
+                        LocalTime.of(9, 0), "Đau đầu kéo dài"), "booking-key-2"));
+
+        assertEquals("IDEMPOTENCY_KEY_REUSED", exception.getCode());
+        verify(appointmentRepository, never()).save(any(Appointment.class));
+    }
+
+    @Test
     void generatesAppointmentCodeUsingClinicTimezone() {
         PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
         setId(account, ACCOUNT_ID);

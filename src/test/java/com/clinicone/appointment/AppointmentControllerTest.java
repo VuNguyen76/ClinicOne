@@ -19,6 +19,7 @@ import java.util.UUID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -64,6 +65,23 @@ class AppointmentControllerTest {
                         .content("{\"specialty\":\"Nội khoa\",\"doctorName\":\"BS. Nguyễn An\",\"appointmentDate\":\"2099-01-01\",\"startTime\":\"08:30\",\"reason\":\"Đau đầu\"}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.appointmentCode").value("CL-20260810-1234"));
+    }
+
+    @Test
+    void forwardsIdempotencyKeyWhenCreatingAppointment() throws Exception {
+        when(appointmentService.create(eq(ACCOUNT_ID.toString()), any(), eq("booking-key-1"))).thenReturn(new AppointmentResponse(
+                UUID.randomUUID(), "CL-20260810-1234", "Nội khoa", "BS. Nguyễn An",
+                LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), "Đau đầu", "BOOKED", "Đã đặt"));
+
+        mockMvc.perform(post("/api/v1/appointments")
+                        .with(authentication(UsernamePasswordAuthenticationToken.authenticated(
+                                ACCOUNT_ID.toString(), null, List.of())))
+                        .header("Idempotency-Key", "booking-key-1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"specialty\":\"Nội khoa\",\"doctorName\":\"BS. Nguyễn An\",\"appointmentDate\":\"2099-01-01\",\"startTime\":\"08:30\",\"reason\":\"Đau đầu\"}"))
+                .andExpect(status().isCreated());
+
+        verify(appointmentService).create(eq(ACCOUNT_ID.toString()), any(), eq("booking-key-1"));
     }
 
     @Test

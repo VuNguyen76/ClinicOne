@@ -173,7 +173,10 @@ public class DoctorExaminationService {
             throw conflict("QUEUE_INVALID_STATE", "Lượt khám chưa ở trạng thái đang khám.");
         }
         UUID doctorId = parseStaffId(staffId);
-        if (!doctorId.equals(ticket.getAppointment().getDoctorStaffId())) {
+        // Queue adjustments may route a waiting patient to a different doctor
+        // without changing the original appointment snapshot. Examination scope
+        // must follow the current queue routing, not the historical booking owner.
+        if (!doctorId.equals(ticket.getEffectiveDoctorStaffId())) {
             throw new AuthException(HttpStatus.FORBIDDEN, "DOCTOR_TICKET_SCOPE",
                     "Bác sĩ chỉ được mở phiếu của lượt đã được phân công.");
         }

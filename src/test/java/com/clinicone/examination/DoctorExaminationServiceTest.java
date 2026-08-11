@@ -169,6 +169,23 @@ class DoctorExaminationServiceTest {
         assertThat(record.getSignedAt()).isNull();
     }
 
+    @Test
+    void reassignedTicketCanBeOpenedByItsCurrentRoutingDoctor() {
+        StaffAccount reassignedDoctor = StaffAccount.create("bs.binh", "hash", "Bác sĩ Trần Bình", StaffRole.DOCTOR);
+        setId(reassignedDoctor, OTHER_DOCTOR_ID);
+        DoctorProfile reassignedProfile = DoctorProfile.create(reassignedDoctor, "Nội tổng quát", ticket.getRoom());
+        setField(ticket, "routingDoctorStaffId", OTHER_DOCTOR_ID);
+        setField(ticket, "routingDoctorName", "Bác sĩ Trần Bình");
+        setField(ticket, "routingSpecialty", "Nội tổng quát");
+        when(staffRepository.findById(OTHER_DOCTOR_ID)).thenReturn(Optional.of(reassignedDoctor));
+        when(profileRepository.findByStaffAccount_Id(OTHER_DOCTOR_ID)).thenReturn(Optional.of(reassignedProfile));
+
+        DoctorExaminationResponse response = service.open(TICKET_ID, OTHER_DOCTOR_ID.toString());
+
+        assertThat(response.doctorName()).isEqualTo("Bác sĩ Trần Bình");
+        assertThat(response.status()).isEqualTo("IN_PROGRESS");
+    }
+
     private DoctorExaminationRequest request() {
         return new DoctorExaminationRequest("Đau đầu", "Mạch ổn", "Đau đầu căng thẳng",
                 "Theo dõi thêm", "Nghỉ ngơi", "Paracetamol khi đau", null);
@@ -179,6 +196,16 @@ class DoctorExaminationServiceTest {
             Field field = target.getClass().getDeclaredField("id");
             field.setAccessible(true);
             field.set(target, id);
+        } catch (ReflectiveOperationException exception) {
+            throw new AssertionError(exception);
+        }
+    }
+
+    private static void setField(Object target, String name, Object value) {
+        try {
+            Field field = target.getClass().getDeclaredField(name);
+            field.setAccessible(true);
+            field.set(target, value);
         } catch (ReflectiveOperationException exception) {
             throw new AssertionError(exception);
         }

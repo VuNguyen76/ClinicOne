@@ -135,7 +135,23 @@ public class AppointmentService {
 
     @Transactional
     public AppointmentResponse create(String accountId, CreateAppointmentRequest request) {
+        return create(accountId, request, null);
+    }
+
+    @Transactional
+    public AppointmentResponse create(String accountId, CreateAppointmentRequest request, String requestKey) {
         UUID patientId = parseAccountId(accountId);
+        String normalizedRequestKey = normalizeRequestKey(requestKey);
+        if (normalizedRequestKey != null) {
+            var existing = appointmentRepository.findByPatientIdAndCreationRequestKey(patientId, normalizedRequestKey);
+            if (existing.isPresent()) {
+                if (!sameCreateRequest(existing.get(), request)) {
+                    throw new AuthException(HttpStatus.CONFLICT, "IDEMPOTENCY_KEY_REUSED",
+                            "Khóa chống trùng đã được dùng cho một yêu cầu đặt lịch khác.");
+                }
+                return AppointmentResponse.from(existing.get());
+            }
+        }
         PatientAccount patient = accountRepository.findById(patientId)
                 .orElseThrow(() -> authenticationRequired());
         ClinicService selectedService = resolveService(request);
@@ -185,6 +201,7 @@ public class AppointmentService {
                     selectedService.getVisitType(), selectedService.getDurationMinutes(),
                     selectedService.requiresMedicalRecord());
         }
+        appointment.assignCreationRequestKey(normalizedRequestKey);
         Appointment saved = appointmentRepository.save(appointment);
         if (hold != null) {
             holdService.consume(hold);
@@ -195,6 +212,18 @@ public class AppointmentService {
             notificationService.notifyAppointmentCreated(saved);
         }
         return AppointmentResponse.from(saved);
+    }
+
+    private boolean sameCreateRequest(Appointment existing, CreateAppointmentRequest request) {
+        return existing.getSpecialty().equalsIgnoreCase(request.specialty().trim())
+                && existing.getDoctorName().equalsIgnoreCase(request.doctorName().trim())
+                && existing.getAppointmentDate().equals(request.appointmentDate())
+                && existing.getStartTime().equals(request.startTime())
+                && existing.getReason().equals(request.reason().trim())
+                && java.util.Objects.equals(existing.getDoctorStaffId(), request.doctorId())
+                && java.util.Objects.equals(existing.getServiceId(), request.serviceId())
+                && java.util.Objects.equals(existing.getPatientProfile() == null ? null : existing.getPatientProfile().getId(),
+                        request.profileId());
     }
 
     private ClinicService resolveService(CreateAppointmentRequest request) {
