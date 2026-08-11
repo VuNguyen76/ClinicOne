@@ -17,7 +17,7 @@ describe('DoctorExamination', () => {
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
-        provideRouter([]),
+        provideRouter([{ path: 'doctor', component: DoctorExamination }]),
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => 'ticket-1' } } } },
       ],
     }).compileComponents();
@@ -293,6 +293,25 @@ describe('DoctorExamination', () => {
 
     expect(fixture.nativeElement.textContent).toContain('Đã dừng lượt khám.');
     expect(fixture.nativeElement.querySelector('[data-testid="stop-examination"]')).toBeNull();
+  });
+
+  it('returns a wrongly opened profile to the waiting queue only after a reason is confirmed', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('[data-testid="wrong-profile"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-testid="confirm-wrong-profile"]')).toBeTruthy();
+
+    const reason = fixture.nativeElement.querySelector('[data-testid="wrong-profile-reason"]') as HTMLTextAreaElement;
+    reason.value = 'Bác sĩ phát hiện đang mở nhầm hồ sơ người bệnh.';
+    reason.dispatchEvent(new Event('input'));
+    (fixture.nativeElement.querySelector('[data-testid="confirm-wrong-profile"]') as HTMLButtonElement).click();
+
+    const request = http.expectOne('/api/v1/doctor/examinations/ticket-1/wrong-profile');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual({ reason: 'Bác sĩ phát hiện đang mở nhầm hồ sơ người bệnh.' });
+    request.flush({ ...examination(), status: 'SCHEDULED' });
   });
 });
 

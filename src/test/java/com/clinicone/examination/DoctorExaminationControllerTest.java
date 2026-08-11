@@ -160,6 +160,30 @@ class DoctorExaminationControllerTest {
     }
 
     @Test
+    void doctorCanReturnAWrongProfileToTheWaitingQueueWithAReason() throws Exception {
+        when(service.wrongProfile(eq(TICKET_ID), eq(STAFF_ID.toString()), any())).thenReturn(response());
+
+        mockMvc.perform(post("/api/v1/doctor/examinations/" + TICKET_ID + "/wrong-profile")
+                        .with(authentication(authenticated("ROLE_DOCTOR")))
+                        .contentType("application/json")
+                        .content("{\"reason\":\"Bác sĩ phát hiện đang mở nhầm hồ sơ người bệnh.\"}"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void doctorCannotReturnWrongProfileWithoutAnOperationalReason() throws Exception {
+        clearInvocations(service);
+
+        mockMvc.perform(post("/api/v1/doctor/examinations/" + TICKET_ID + "/wrong-profile")
+                        .with(authentication(authenticated("ROLE_DOCTOR")))
+                        .contentType("application/json")
+                        .content("{\"reason\":\"Nhầm\"}"))
+                .andExpect(status().isBadRequest());
+
+        verify(service, never()).wrongProfile(any(), any(), any());
+    }
+
+    @Test
     void doctorGetsAReadableConflictWhenAnotherTabSavedTheRecordFirst() throws Exception {
         when(service.saveDraft(eq(TICKET_ID), eq(STAFF_ID.toString()), org.mockito.ArgumentMatchers.any()))
                 .thenThrow(new ObjectOptimisticLockingFailureException(MedicalRecord.class, TICKET_ID));

@@ -22,8 +22,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.UUID;
+import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class DoctorExaminationService {
@@ -37,6 +38,7 @@ public class DoctorExaminationService {
     private final BusinessLogService businessLogService;
     private final MedicationCatalogService medicationCatalogService;
     private final GeneratedClinicSlotRepository generatedSlotRepository;
+    private final WrongProfileIncidentRepository wrongProfileIncidentRepository;
 
     public DoctorExaminationService(QueueTicketRepository ticketRepository,
                                     ExaminationSessionRepository sessionRepository,
@@ -45,7 +47,7 @@ public class DoctorExaminationService {
                                     AppointmentRepository appointmentRepository,
                                     DoctorProfileRepository doctorProfileRepository) {
         this(ticketRepository, sessionRepository, recordRepository, staffRepository, appointmentRepository,
-                doctorProfileRepository, null, null, null, null);
+                doctorProfileRepository, null, null, null, null, null);
     }
 
     public DoctorExaminationService(QueueTicketRepository ticketRepository,
@@ -56,7 +58,7 @@ public class DoctorExaminationService {
                                     DoctorProfileRepository doctorProfileRepository,
                                     PatientNotificationService notificationService) {
         this(ticketRepository, sessionRepository, recordRepository, staffRepository, appointmentRepository,
-                doctorProfileRepository, notificationService, null, null, null);
+                doctorProfileRepository, notificationService, null, null, null, null);
     }
 
     public DoctorExaminationService(QueueTicketRepository ticketRepository,
@@ -68,7 +70,21 @@ public class DoctorExaminationService {
                                     PatientNotificationService notificationService,
                                     GeneratedClinicSlotRepository generatedSlotRepository) {
         this(ticketRepository, sessionRepository, recordRepository, staffRepository, appointmentRepository,
-                doctorProfileRepository, notificationService, null, null, generatedSlotRepository);
+                doctorProfileRepository, notificationService, null, null, generatedSlotRepository, null);
+    }
+
+    public DoctorExaminationService(QueueTicketRepository ticketRepository,
+                                    ExaminationSessionRepository sessionRepository,
+                                    MedicalRecordRepository recordRepository,
+                                    StaffAccountRepository staffRepository,
+                                    AppointmentRepository appointmentRepository,
+                                    DoctorProfileRepository doctorProfileRepository,
+                                    PatientNotificationService notificationService,
+                                    GeneratedClinicSlotRepository generatedSlotRepository,
+                                    WrongProfileIncidentRepository wrongProfileIncidentRepository) {
+        this(ticketRepository, sessionRepository, recordRepository, staffRepository, appointmentRepository,
+                doctorProfileRepository, notificationService, null, null, generatedSlotRepository,
+                wrongProfileIncidentRepository);
     }
 
     @Autowired
@@ -81,7 +97,8 @@ public class DoctorExaminationService {
                                     PatientNotificationService notificationService,
                                     BusinessLogService businessLogService,
                                     MedicationCatalogService medicationCatalogService,
-                                    GeneratedClinicSlotRepository generatedSlotRepository) {
+                                    GeneratedClinicSlotRepository generatedSlotRepository,
+                                    WrongProfileIncidentRepository wrongProfileIncidentRepository) {
         this.ticketRepository = ticketRepository;
         this.sessionRepository = sessionRepository;
         this.recordRepository = recordRepository;
@@ -92,6 +109,7 @@ public class DoctorExaminationService {
         this.businessLogService = businessLogService;
         this.medicationCatalogService = medicationCatalogService;
         this.generatedSlotRepository = generatedSlotRepository;
+        this.wrongProfileIncidentRepository = wrongProfileIncidentRepository;
     }
 
     @Transactional(readOnly = true)
@@ -290,6 +308,44 @@ public class DoctorExaminationService {
         return response(workspace.ticket(), workspace.session(), record);
     }
 
+    @Transactional
+    public DoctorExaminationResponse wrongProfile(UUID ticketId, String staffId, WrongProfileRequest request) {
+        Workspace workspace = workspace(ticketId, staffId);
+        UUID doctorId = parseStaffId(staffId);
+        String reason = normalizeWrongProfileReason(request == null ? null : request.reason());
+        MedicalRecord record = workspace.appointment().requiresMedicalRecord()
+                ? recordRepository.findBySession_Id(workspace.session().getId()).orElse(null)
+                : null;
+        if (wrongProfileIncidentRepository == null) {
+            throw new IllegalStateException("Kho lưu đối soát nhầm hồ sơ chưa sẵn sàng.");
+        }
+
+        UUID eventId = UUID.randomUUID();
+        String previousSessionStatus = workspace.session().getStatus().name();
+        String previousTicketStatus = workspace.ticket().getStatus().name();
+        Instant previousStartedAt = workspace.session().getStartedAt();
+        wrongProfileIncidentRepository.save(WrongProfileIncident.seal(record, workspace.ticket(), workspace.session(),
+                doctorId, reason));
+        if (record != null) {
+            recordRepository.delete(record);
+            recordRepository.flush();
+        }
+        try {
+            workspace.session().resetForWrongProfile();
+            workspace.ticket().returnForCorrectProfile();
+            sessionRepository.save(workspace.session());
+            ticketRepository.save(workspace.ticket());
+        } catch (IllegalStateException exception) {
+            throw conflict("WRONG_PROFILE_NOT_ALLOWED", exception.getMessage());
+        }
+        String logReason = wrongProfileLogReason(reason, previousStartedAt);
+        recordTransition(eventId, "EXAMINATION", workspace.session().getId(), previousSessionStatus,
+                workspace.session().getStatus().name(), "WRONG_PATIENT_PROFILE", staffId, logReason);
+        recordTransition(eventId, "QUEUE_TICKET", workspace.ticket().getId(), previousTicketStatus,
+                workspace.ticket().getStatus().name(), "WRONG_PATIENT_PROFILE", staffId, logReason);
+        return response(workspace.ticket(), workspace.session(), null);
+    }
+
     private Workspace workspace(UUID ticketId, String staffId) {
         return workspace(ticketId, staffId, false);
     }
@@ -379,6 +435,20 @@ public class DoctorExaminationService {
                     "Lý do dừng lượt khám phải từ 10 đến 500 ký tự.");
         }
         return normalized;
+    }
+
+    private String normalizeWrongProfileReason(String reason) {
+        String normalized = reason == null ? "" : reason.trim();
+        if (normalized.length() < 10 || normalized.length() > 500) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "WRONG_PROFILE_REASON_INVALID",
+                    "Lý do bắt đầu nhầm hồ sơ phải từ 10 đến 500 ký tự.");
+        }
+        return normalized;
+    }
+
+    private String wrongProfileLogReason(String reason, Instant startedAt) {
+        String prefix = "Bắt đầu nhầm hồ sơ" + (startedAt == null ? ". " : " lúc " + startedAt + ". ");
+        return prefix + reason.substring(0, Math.min(reason.length(), 500 - prefix.length()));
     }
 
     private void markAppointmentSlotUnavailable(Appointment appointment) {

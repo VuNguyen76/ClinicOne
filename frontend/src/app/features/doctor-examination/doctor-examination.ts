@@ -54,6 +54,9 @@ export class DoctorExamination implements OnInit {
   protected readonly confirmingSign = signal(false);
   protected readonly confirmingStop = signal(false);
   protected readonly stopReason = signal('');
+  protected readonly confirmingWrongProfile = signal(false);
+  protected readonly wrongProfileReason = signal('');
+  protected readonly returningWrongProfile = signal(false);
   protected readonly medicationSuggestions = signal<Record<number, MedicationSuggestionResponse[]>>({});
   protected readonly diagnosisSuggestions = signal<DiagnosisSuggestionResponse[]>([]);
   protected readonly error = signal('');
@@ -204,6 +207,41 @@ export class DoctorExamination implements OnInit {
       },
       error: (response) => {
         this.stopping.set(false);
+        this.handleError(response);
+      },
+    });
+  }
+
+  protected requestWrongProfile(): void {
+    if (this.saving() || this.signing() || this.stopping() || this.returningWrongProfile()
+      || this.examination()?.status !== 'IN_PROGRESS') return;
+    this.wrongProfileReason.set('');
+    this.confirmingWrongProfile.set(true);
+  }
+
+  protected cancelWrongProfile(): void {
+    this.confirmingWrongProfile.set(false);
+    this.wrongProfileReason.set('');
+  }
+
+  protected confirmWrongProfile(): void {
+    const ticketId = this.examination()?.ticketId;
+    const reason = this.wrongProfileReason().trim();
+    if (!ticketId || this.returningWrongProfile()) return;
+    if (reason.length < 10 || reason.length > 500) {
+      this.error.set('Lý do bắt đầu nhầm hồ sơ phải từ 10 đến 500 ký tự.');
+      return;
+    }
+    this.returningWrongProfile.set(true);
+    this.error.set('');
+    this.authApi.markDoctorExaminationWrongProfile(ticketId, reason).subscribe({
+      next: () => {
+        this.confirmingWrongProfile.set(false);
+        this.returningWrongProfile.set(false);
+        void this.router.navigateByUrl('/doctor');
+      },
+      error: (response) => {
+        this.returningWrongProfile.set(false);
         this.handleError(response);
       },
     });

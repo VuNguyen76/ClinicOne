@@ -104,6 +104,7 @@ public class QueueTicket {
         this.queueNumber = queueNumber;
         this.status = QueueTicketStatus.WAITING;
         this.presenceStatus = QueuePresenceStatus.READY;
+        this.checkedInAt = Instant.now();
     }
 
     public static QueueTicket create(Appointment appointment, ClinicRoom room, LocalDate queueDate, int queueNumber) {
@@ -200,6 +201,16 @@ public class QueueTicket {
         status = QueueTicketStatus.COMPLETED;
         skipReason = reason == null || reason.isBlank() ? null : reason.trim();
         completedAt = Instant.now();
+    }
+
+    public void returnForCorrectProfile() {
+        if (status != QueueTicketStatus.IN_SERVICE) {
+            throw new IllegalStateException("Chỉ có thể trả lại hàng đợi từ lượt đang khám.");
+        }
+        status = QueueTicketStatus.WAITING;
+        presenceStatus = QueuePresenceStatus.READY;
+        completedAt = null;
+        skipReason = null;
     }
 
     public void leaveBeforeExam(String reason) {
