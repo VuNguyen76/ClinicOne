@@ -28,6 +28,9 @@
     @if (error()) {<p
       class="mt-4 flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700"
       role="alert"><mat-icon class="!h-5 !w-5 !text-[18px]">error_outline</mat-icon>{{ error() }}</p>}
+    @if (queueSyncWarning()) {<p data-testid="queue-sync-warning"
+      class="mt-4 flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-800"
+      role="status"><mat-icon class="!h-5 !w-5 !text-[18px]">sync_problem</mat-icon>Dữ liệu hàng đợi đang chậm cập nhật. Hệ thống vẫn giữ danh sách gần nhất và sẽ tự thử lại.</p>}
 
     <section
       class="mt-5 grid gap-3 rounded-lg border border-[#dce7ea] bg-white p-3 sm:grid-cols-[minmax(0,1fr)_170px_auto] sm:items-end"
