@@ -4,6 +4,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { finalize } from 'rxjs';
 import { apiErrorMessage, AppointmentResponse, AuthApiService, PatientProfileResponse, QueueTicketResponse } from '../../core/auth/auth-api.service';
 import { AccountMenu } from '../../shared/account-menu/account-menu';
+import { clinicTodayIso } from '../../core/time/clinic-time';
 
 @Component({
   selector: 'app-dashboard',
@@ -54,7 +55,7 @@ export class Dashboard implements OnInit {
         },
       });
 
-    this.authApi.getMyQueue(this.todayIso())
+    this.authApi.getMyQueue(clinicTodayIso())
       .subscribe({
         next: (tickets) => this.queueTickets.set(tickets),
         error: (response) => {
@@ -96,8 +97,4 @@ export class Dashboard implements OnInit {
     }
   }
 
-  private todayIso(): string {
-    const date = new Date();
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-  }
 }

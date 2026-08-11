@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } 
 import { RouterLink, Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { AccountMenu } from '../../shared/account-menu/account-menu';
+import { clinicTodayIso } from '../../core/time/clinic-time';
 import {
   ApiErrorResponse,
   AuthApiService,
@@ -25,7 +26,7 @@ export class StaffDashboard implements OnInit {
 
   protected readonly rooms = signal<ClinicRoomResponse[]>([]);
   protected readonly selectedRoomCode = signal('');
-  protected readonly selectedDate = signal(this.toIsoDate(new Date()));
+  protected readonly selectedDate = signal(clinicTodayIso());
   protected readonly queue = signal<QueueTicketResponse[]>([]);
   protected readonly loadingRooms = signal(true);
   protected readonly loadingQueue = signal(false);

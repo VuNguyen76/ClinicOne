@@ -5,6 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { finalize } from 'rxjs';
 import { apiErrorMessage, ApiErrorResponse, AppointmentResponse, AuthApiService, ReasonCatalogResponse } from '../../../core/auth/auth-api.service';
 import { AccountMenu } from '../../../shared/account-menu/account-menu';
+import { clinicTodayIso } from '../../../core/time/clinic-time';
 
 @Component({
   selector: 'app-appointment-detail',
@@ -28,7 +29,7 @@ export class AppointmentDetail implements OnInit {
   protected readonly cancellationReasons = signal<ReasonCatalogResponse[]>([]);
   protected readonly selectedCancellationReason = signal('');
   private cancellationRequestKey: string | null = null;
-  protected readonly today = new Date().toISOString().slice(0, 10);
+  protected readonly today = clinicTodayIso();
   protected readonly rescheduleForm = this.formBuilder.nonNullable.group({
     appointmentDate: ['', [Validators.required]],
     startTime: ['', [Validators.required]],

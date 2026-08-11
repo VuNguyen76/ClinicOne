@@ -4,6 +4,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { ApiErrorResponse, AuthApiService, QueueTicketResponse, apiErrorMessage } from '../../../core/auth/auth-api.service';
 import { AccountMenu } from '../../../shared/account-menu/account-menu';
+import { clinicTodayIso } from '../../../core/time/clinic-time';
 
 @Component({
   selector: 'app-queue-board',
@@ -22,7 +23,7 @@ export class QueueBoard implements OnInit {
   protected readonly loading = signal(true);
   protected readonly busyTicketId = signal('');
   protected readonly error = signal('');
-  protected readonly today = this.toIsoDate(new Date());
+  protected readonly today = clinicTodayIso();
 
   ngOnInit(): void {
     this.roomCode.set(this.route.snapshot.paramMap.get('roomCode') ?? '');

@@ -14,6 +14,7 @@ import {
   apiErrorMessage,
 } from '../../core/auth/auth-api.service';
 import { AccountMenu } from '../../shared/account-menu/account-menu';
+import { clinicTodayIso } from '../../core/time/clinic-time';
 
 @Component({
   selector: 'app-schedule-template-management',
@@ -24,7 +25,7 @@ import { AccountMenu } from '../../shared/account-menu/account-menu';
 })
 export class ScheduleTemplateManagement implements OnInit {
   private readonly authApi = inject(AuthApiService);
-  protected readonly today = new Date().toISOString().slice(0, 10);
+  protected readonly today = clinicTodayIso();
 
   protected readonly services = signal<ClinicServiceResponse[]>([]);
   protected readonly doctors = signal<DoctorAccountResponse[]>([]);

@@ -61,7 +61,7 @@ class AppointmentControllerTest {
                         .with(authentication(UsernamePasswordAuthenticationToken.authenticated(
                                 ACCOUNT_ID.toString(), null, List.of())))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"specialty\":\"Nội khoa\",\"doctorName\":\"BS. Nguyễn An\",\"appointmentDate\":\"2026-08-10\",\"startTime\":\"08:30\",\"reason\":\"Đau đầu\"}"))
+                        .content("{\"specialty\":\"Nội khoa\",\"doctorName\":\"BS. Nguyễn An\",\"appointmentDate\":\"2099-01-01\",\"startTime\":\"08:30\",\"reason\":\"Đau đầu\"}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.appointmentCode").value("CL-20260810-1234"));
     }
