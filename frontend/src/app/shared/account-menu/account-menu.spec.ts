@@ -56,4 +56,19 @@ describe('AccountMenu', () => {
     expect(fixture.nativeElement.querySelector('[role="menu"]')).toBeNull();
     expect(trigger.getAttribute('aria-expanded')).toBe('false');
   });
+
+  it('shows the medication catalog only to an administrator', async () => {
+    sessionStorage.setItem('clinicOneStaffRole', 'ADMIN');
+    sessionStorage.setItem('clinicOneStaffRoles', '["ADMIN"]');
+    await TestBed.resetTestingModule().configureTestingModule({
+      imports: [AccountMenu], providers: [provideRouter([])],
+    }).compileComponents();
+    fixture = TestBed.createComponent(AccountMenu);
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('[data-testid="account-menu-trigger"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('a[href="/admin/medications"]')?.textContent).toContain('Danh mục thuốc');
+  });
 });

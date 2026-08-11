@@ -946,6 +946,24 @@ export class AuthApiService {
     return this.http.get<MedicationSuggestionResponse[]>('/api/v1/doctor/medications/suggestions', { params: { query } });
   }
 
+  getAdminMedications(): Observable<MedicationSuggestionResponse[]> {
+    return this.http.get<MedicationSuggestionResponse[]>('/api/v1/admin/medications');
+  }
+
+  createMedication(code: string, name: string): Observable<MedicationSuggestionResponse> {
+    return this.http.post<MedicationSuggestionResponse>('/api/v1/admin/medications', { code, name });
+  }
+
+  updateMedication(id: string, code: string, name: string): Observable<MedicationSuggestionResponse> {
+    return this.http.put<MedicationSuggestionResponse>(`/api/v1/admin/medications/${id}`, { code, name });
+  }
+
+  setMedicationActive(id: string, active: boolean): Observable<MedicationSuggestionResponse> {
+    return this.http.patch<MedicationSuggestionResponse>(`/api/v1/admin/medications/${id}/active`, null, {
+      params: { value: String(active) },
+    });
+  }
+
   staffLogin(username: string, password: string): Observable<StaffLoginResponse> {
     return this.http.post<StaffLoginResponse>('/api/v1/staff/auth/login', { username, password }).pipe(tap((session) => {
       sessionStorage.setItem('clinicOneAccessToken', session.accessToken);
