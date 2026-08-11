@@ -168,6 +168,7 @@ export class DoctorExamination implements OnInit {
       treatmentPlan: value.treatmentPlan ?? '',
       prescription: value.prescription ?? '',
       followUpDate: value.followUpDate || null,
+      recordVersion: this.examination()?.recordVersion ?? null,
     };
   }
 

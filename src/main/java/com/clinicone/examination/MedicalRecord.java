@@ -11,6 +11,7 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.Version;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -55,6 +56,10 @@ public class MedicalRecord {
 
     @Column(name = "signed_at")
     private Instant signedAt;
+
+    @Version
+    @Column(name = "version")
+    private long version;
 
     protected MedicalRecord() {
     }
@@ -127,4 +132,5 @@ public class MedicalRecord {
     public String getPrescription() { return prescription; }
     public LocalDate getFollowUpDate() { return followUpDate; }
     public Instant getSignedAt() { return signedAt; }
+    public long getVersion() { return version; }
 }

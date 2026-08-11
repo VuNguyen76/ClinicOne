@@ -1,6 +1,7 @@
 package com.clinicone.examination;
 
 import com.clinicone.config.SecurityConfig;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -58,7 +59,7 @@ class DoctorExaminationControllerTest {
         mockMvc.perform(put("/api/v1/doctor/examinations/" + TICKET_ID + "/draft")
                         .with(authentication(authenticated("ROLE_DOCTOR")))
                         .contentType("application/json")
-                        .content("{\"reason\":\"Đau đầu\",\"examinationNotes\":\"Mạch ổn\"}"))
+                        .content("{\"reason\":\"Đau đầu\",\"examinationNotes\":\"Mạch ổn\",\"recordVersion\":0}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.reason").value("Đau đầu"));
     }
@@ -71,10 +72,23 @@ class DoctorExaminationControllerTest {
         mockMvc.perform(post("/api/v1/doctor/examinations/" + TICKET_ID + "/sign")
                         .with(authentication(authenticated("ROLE_DOCTOR")))
                         .contentType("application/json")
-                        .content("{\"reason\":\"Đau đầu\",\"examinationNotes\":\"Mạch ổn\",\"diagnosis\":\"Đau đầu căng thẳng\",\"conclusion\":\"Theo dõi thêm\"}"))
+                        .content("{\"reason\":\"Đau đầu\",\"examinationNotes\":\"Mạch ổn\",\"diagnosis\":\"Đau đầu căng thẳng\",\"conclusion\":\"Theo dõi thêm\",\"recordVersion\":0}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("COMPLETED"))
                 .andExpect(jsonPath("$.signedAt").isNotEmpty());
+    }
+
+    @Test
+    void doctorGetsAReadableConflictWhenAnotherTabSavedTheRecordFirst() throws Exception {
+        when(service.saveDraft(eq(TICKET_ID), eq(STAFF_ID.toString()), org.mockito.ArgumentMatchers.any()))
+                .thenThrow(new ObjectOptimisticLockingFailureException(MedicalRecord.class, TICKET_ID));
+
+        mockMvc.perform(put("/api/v1/doctor/examinations/" + TICKET_ID + "/draft")
+                        .with(authentication(authenticated("ROLE_DOCTOR")))
+                        .contentType("application/json")
+                        .content("{\"reason\":\"Đau đầu\",\"recordVersion\":0}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("MEDICAL_RECORD_VERSION_CONFLICT"));
     }
 
     @Test

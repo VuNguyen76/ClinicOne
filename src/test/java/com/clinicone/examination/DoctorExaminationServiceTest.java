@@ -85,6 +85,7 @@ class DoctorExaminationServiceTest {
         session.begin();
         record = MedicalRecord.draft(session);
         setId(record, RECORD_ID);
+        setField(record, "version", 0L);
 
         when(ticketRepository.findById(TICKET_ID)).thenReturn(Optional.of(ticket));
         when(sessionRepository.findByAppointment_Id(APPOINTMENT_ID)).thenReturn(Optional.of(session));
@@ -110,7 +111,7 @@ class DoctorExaminationServiceTest {
         verify(appointmentRepository).save(appointment);
         verify(ticketRepository).save(ticket);
         verify(sessionRepository).save(session);
-        verify(recordRepository).save(record);
+        verify(recordRepository).saveAndFlush(record);
         verify(notificationService).notifyMedicalRecordSigned(any(), any(), any(), any(), any());
     }
 
@@ -120,14 +121,14 @@ class DoctorExaminationServiceTest {
 
         DoctorExaminationRequest retriedRequest = new DoctorExaminationRequest(
                 "Nội dung không được ghi đè", "Ghi nhận khác", "Chẩn đoán khác", "Kết luận khác",
-                null, null, null);
+                null, null, null, 0L);
         DoctorExaminationResponse retried = service.sign(TICKET_ID, DOCTOR_ID.toString(), retriedRequest);
 
         assertThat(retried.status()).isEqualTo("COMPLETED");
         assertThat(retried.signedAt()).isEqualTo(first.signedAt());
         assertThat(retried.reason()).isEqualTo("Đau đầu");
         verify(notificationService, times(1)).notifyMedicalRecordSigned(any(), any(), any(), any(), any());
-        verify(recordRepository, times(1)).save(record);
+        verify(recordRepository, times(1)).saveAndFlush(record);
     }
 
     @Test
@@ -135,7 +136,7 @@ class DoctorExaminationServiceTest {
         appointment.applyServiceSnapshot(UUID.randomUUID(), "Tiếp nhận nhanh", "Tư vấn", 15, false);
 
         DoctorExaminationResponse response = service.sign(TICKET_ID, DOCTOR_ID.toString(),
-                new DoctorExaminationRequest(null, null, null, null, null, null, null));
+                new DoctorExaminationRequest(null, null, null, null, null, null, null, null));
 
         assertThat(response.status()).isEqualTo("COMPLETED");
         assertThat(response.requiresMedicalRecord()).isFalse();
@@ -151,7 +152,7 @@ class DoctorExaminationServiceTest {
     @Test
     void repeatingCompletionWithoutMedicalRecordReturnsTheCompletedVisit() {
         appointment.applyServiceSnapshot(UUID.randomUUID(), "Tiếp nhận nhanh", "Tư vấn", 15, false);
-        DoctorExaminationRequest emptyRequest = new DoctorExaminationRequest(null, null, null, null, null, null, null);
+        DoctorExaminationRequest emptyRequest = new DoctorExaminationRequest(null, null, null, null, null, null, null, null);
 
         DoctorExaminationResponse first = service.sign(TICKET_ID, DOCTOR_ID.toString(), emptyRequest);
         DoctorExaminationResponse retried = service.sign(TICKET_ID, DOCTOR_ID.toString(), emptyRequest);
@@ -200,6 +201,23 @@ class DoctorExaminationServiceTest {
     }
 
     @Test
+    void rejectsAStaleDraftInsteadOfOverwritingNewerClinicalNotes() {
+        setField(record, "version", 3L);
+        DoctorExaminationRequest staleDraft = new DoctorExaminationRequest(
+                "Đau đầu", "Ghi nhận từ tab cũ", "Đau đầu căng thẳng", "Theo dõi thêm",
+                "Nghỉ ngơi", null, null, 2L);
+
+        assertThatThrownBy(() -> service.saveDraft(TICKET_ID, DOCTOR_ID.toString(), staleDraft))
+                .isInstanceOf(AuthException.class)
+                .satisfies(error -> {
+                    AuthException exception = (AuthException) error;
+                    assertThat(exception.getCode()).isEqualTo("MEDICAL_RECORD_VERSION_CONFLICT");
+                });
+        assertThat(record.getExaminationNotes()).isNull();
+        verify(recordRepository, never()).save(record);
+    }
+
+    @Test
     void reassignedTicketCanBeOpenedByItsCurrentRoutingDoctor() {
         StaffAccount reassignedDoctor = StaffAccount.create("bs.binh", "hash", "Bác sĩ Trần Bình", StaffRole.DOCTOR);
         setId(reassignedDoctor, OTHER_DOCTOR_ID);
@@ -218,7 +236,7 @@ class DoctorExaminationServiceTest {
 
     private DoctorExaminationRequest request() {
         return new DoctorExaminationRequest("Đau đầu", "Mạch ổn", "Đau đầu căng thẳng",
-                "Theo dõi thêm", "Nghỉ ngơi", "Paracetamol khi đau", null);
+                "Theo dõi thêm", "Nghỉ ngơi", "Paracetamol khi đau", null, 0L);
     }
 
     private static void setId(Object target, UUID id) {

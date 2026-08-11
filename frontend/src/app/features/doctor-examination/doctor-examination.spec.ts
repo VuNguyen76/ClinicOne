@@ -53,6 +53,7 @@ describe('DoctorExamination', () => {
     const request = http.expectOne('/api/v1/doctor/examinations/ticket-1/draft');
     expect(request.request.method).toBe('PUT');
     expect(request.request.body.reason).toBe('Đau đầu');
+    expect(request.request.body.recordVersion).toBe(0);
     request.flush({ ...examination(), reason: 'Đau đầu' });
     fixture.detectChanges();
 
@@ -73,6 +74,7 @@ describe('DoctorExamination', () => {
     const request = http.expectOne('/api/v1/doctor/examinations/ticket-1/draft');
     expect(request.request.method).toBe('PUT');
     expect(request.request.body.reason).toBe('Đau đầu kéo dài');
+    expect(request.request.body.recordVersion).toBe(0);
     request.flush({ ...examination(), reason: 'Đau đầu kéo dài' });
     vi.useRealTimers();
   });
@@ -101,6 +103,7 @@ describe('DoctorExamination', () => {
     const request = http.expectOne('/api/v1/doctor/examinations/ticket-1/sign');
     expect(request.request.method).toBe('POST');
     expect(request.request.body).toMatchObject(fields);
+    expect(request.request.body.recordVersion).toBe(0);
     request.flush({ ...examination(), ...fields, status: 'COMPLETED', signedAt: '2026-08-07T09:30:00Z' });
     fixture.detectChanges();
 
@@ -134,5 +137,6 @@ function examination() {
     followUpDate: null,
     status: 'IN_PROGRESS',
     signedAt: null,
+    recordVersion: 0,
   };
 }
