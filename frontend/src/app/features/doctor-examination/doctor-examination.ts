@@ -42,6 +42,7 @@ export class DoctorExamination implements OnInit {
   private draftDirty = false;
   private autosaveRetryCount = 0;
   private autosaveRetryTimer: ReturnType<typeof setTimeout> | null = null;
+  private signRequestKey: string | null = null;
 
   protected readonly examination = signal<DoctorExaminationResponse | null>(null);
   protected readonly loading = signal(true);
@@ -155,14 +156,17 @@ export class DoctorExamination implements OnInit {
       }
       if (!this.validatePrescriptionLines()) return;
       if (!this.validateFollowUpBeforeSigning()) return;
+      this.ensureSignRequestKey();
       this.confirmingSign.set(true);
       return;
     }
+    this.ensureSignRequestKey();
     this.sign();
   }
 
   protected cancelSign(): void {
     this.confirmingSign.set(false);
+    this.signRequestKey = null;
   }
 
   protected sign(): void {
@@ -172,11 +176,13 @@ export class DoctorExamination implements OnInit {
     this.signing.set(true);
     this.error.set('');
     this.notice.set('');
-    this.authApi.signDoctorExamination(ticketId, this.request()).subscribe({
+    const signRequestKey = this.ensureSignRequestKey();
+    this.authApi.signDoctorExamination(ticketId, this.request(), signRequestKey).subscribe({
       next: (value) => {
         this.examination.set(value);
         this.form.disable();
         this.signing.set(false);
+        this.signRequestKey = null;
         this.notice.set(value.requiresMedicalRecord !== false ? 'Đã ký phiếu khám' : 'Đã kết thúc lượt khám');
       },
       error: (response) => {
@@ -360,8 +366,17 @@ export class DoctorExamination implements OnInit {
 
   private markDraftChanged(): void {
     this.draftDirty = true;
+    this.signRequestKey = null;
     this.autosaveRetryCount = 0;
     this.clearAutosaveRetry();
+  }
+
+  private ensureSignRequestKey(): string {
+    if (!this.signRequestKey) {
+      this.signRequestKey = globalThis.crypto?.randomUUID?.()
+        ?? `sign-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    }
+    return this.signRequestKey;
   }
 
   private scheduleAutosaveRetry(): void {

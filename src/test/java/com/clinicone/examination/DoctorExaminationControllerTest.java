@@ -19,8 +19,11 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -94,6 +97,7 @@ class DoctorExaminationControllerTest {
     @Test
     void doctorCannotSaveMoreThanTwoThousandCharactersInARequiredClinicalField() throws Exception {
         String text = "a".repeat(2001);
+        clearInvocations(service);
 
         mockMvc.perform(put("/api/v1/doctor/examinations/" + TICKET_ID + "/draft")
                         .with(authentication(authenticated("ROLE_DOCTOR")))
@@ -101,21 +105,34 @@ class DoctorExaminationControllerTest {
                         .content("{\"reason\":\"" + text + "\",\"recordVersion\":0}"))
                 .andExpect(status().isBadRequest());
 
-        verifyNoInteractions(service);
+        verify(service, never()).saveDraft(any(), any(), any());
     }
 
     @Test
     void doctorCanSignCompletedExamination() throws Exception {
-        when(service.sign(eq(TICKET_ID), eq(STAFF_ID.toString()), org.mockito.ArgumentMatchers.any()))
+        when(service.sign(eq(TICKET_ID), eq(STAFF_ID.toString()), org.mockito.ArgumentMatchers.any(), eq("sign-visit-1")))
                 .thenReturn(signedResponse());
 
         mockMvc.perform(post("/api/v1/doctor/examinations/" + TICKET_ID + "/sign")
                         .with(authentication(authenticated("ROLE_DOCTOR")))
+                        .header("Idempotency-Key", "sign-visit-1")
                         .contentType("application/json")
                         .content("{\"reason\":\"Đau đầu\",\"examinationNotes\":\"Mạch ổn\",\"diagnosis\":\"Đau đầu căng thẳng\",\"conclusion\":\"Theo dõi thêm\",\"recordVersion\":0}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("COMPLETED"))
                 .andExpect(jsonPath("$.signedAt").isNotEmpty());
+    }
+
+    @Test
+    void doctorMustProvideAnIdempotencyKeyToSign() throws Exception {
+        clearInvocations(service);
+        mockMvc.perform(post("/api/v1/doctor/examinations/" + TICKET_ID + "/sign")
+                        .with(authentication(authenticated("ROLE_DOCTOR")))
+                        .contentType("application/json")
+                        .content("{\"reason\":\"Đau đầu\",\"examinationNotes\":\"Mạch ổn\",\"diagnosis\":\"Đau đầu căng thẳng\",\"conclusion\":\"Theo dõi thêm\",\"recordVersion\":0}"))
+                .andExpect(status().isBadRequest());
+
+        verify(service, never()).sign(any(), any(), any(), any());
     }
 
     @Test

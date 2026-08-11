@@ -258,6 +258,7 @@ describe('DoctorExamination', () => {
 
     const request = http.expectOne('/api/v1/doctor/examinations/ticket-1/sign');
     expect(request.request.method).toBe('POST');
+    expect(request.request.headers.get('Idempotency-Key')).toBeTruthy();
     expect(request.request.body).toMatchObject(fields);
     expect(request.request.body.recordVersion).toBe(0);
     request.flush({ ...examination(), ...fields, status: 'COMPLETED', signedAt: '2026-08-07T09:30:00Z' });
