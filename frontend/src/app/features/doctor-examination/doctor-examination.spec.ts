@@ -126,6 +126,25 @@ describe('DoctorExamination', () => {
     vi.useRealTimers();
   });
 
+  it('suggests a diagnosis after two characters and keeps the selected text editable', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+
+    const diagnosis = fixture.nativeElement.querySelector('textarea[formControlName="diagnosis"]') as HTMLTextAreaElement;
+    diagnosis.value = 'Đau';
+    diagnosis.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    http.expectOne((request) => request.url === '/api/v1/doctor/diagnoses/suggestions' && request.params.get('query') === 'Đau')
+      .flush([{ id: 'diagnosis-1', code: 'HEADACHE_TENSION', name: 'Đau đầu căng thẳng', active: true }]);
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('[data-testid="diagnosis-suggestion-0"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(diagnosis.value).toBe('Đau đầu căng thẳng');
+    expect(diagnosis.disabled).toBe(false);
+  });
+
   it('requires the four clinical fields and locks the form after signing', () => {
     http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
     fixture.detectChanges();
@@ -144,6 +163,8 @@ describe('DoctorExamination', () => {
       control.value = value;
       control.dispatchEvent(new Event('input'));
     });
+    http.expectOne((request) => request.url === '/api/v1/doctor/diagnoses/suggestions'
+      && request.params.get('query') === 'Đau đầu căng thẳng').flush([]);
     fixture.detectChanges();
     (fixture.nativeElement.querySelector('[data-testid="sign-record"]') as HTMLButtonElement).click();
 
