@@ -795,8 +795,10 @@ export class AuthApiService {
     return this.http.post<void>(`${this.notificationsRoot}/${id}/read`, {});
   }
 
-  checkInToRoom(roomCode: string, appointmentId: string): Observable<QueueTicketResponse> {
-    return this.http.post<QueueTicketResponse>(`/api/v1/rooms/${encodeURIComponent(roomCode)}/queue/check-in`, { appointmentId });
+  checkInToRoom(roomCode: string, appointmentId: string, requestKey?: string): Observable<QueueTicketResponse> {
+    return this.http.post<QueueTicketResponse>(`/api/v1/rooms/${encodeURIComponent(roomCode)}/queue/check-in`, { appointmentId }, {
+      headers: requestKey ? { 'Idempotency-Key': requestKey } : undefined,
+    });
   }
 
   getMyQueue(date: string): Observable<QueueTicketResponse[]> {

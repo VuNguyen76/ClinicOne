@@ -29,7 +29,8 @@ import java.util.UUID;
         @Index(name = "idx_appointments_doctor_slot", columnList = "doctor_staff_id,appointment_date,start_time,status")
 }, uniqueConstraints = {
         @UniqueConstraint(name = "uk_appointments_patient_slot", columnNames = {"patient_account_id", "appointment_date", "start_time"}),
-        @UniqueConstraint(name = "uk_appointments_patient_creation_key", columnNames = {"patient_account_id", "creation_request_key"})
+        @UniqueConstraint(name = "uk_appointments_patient_creation_key", columnNames = {"patient_account_id", "creation_request_key"}),
+        @UniqueConstraint(name = "uk_appointments_patient_checkin_key", columnNames = {"patient_account_id", "checkin_request_key"})
 })
 public class Appointment {
     @Id
@@ -95,6 +96,9 @@ public class Appointment {
 
     @Column(name = "creation_request_key", length = 80)
     private String creationRequestKey;
+
+    @Column(name = "checkin_request_key", length = 80)
+    private String checkInRequestKey;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
@@ -168,6 +172,13 @@ public class Appointment {
 
     public void assignCreationRequestKey(String requestKey) {
         this.creationRequestKey = requestKey == null || requestKey.isBlank() ? null : requestKey.trim();
+    }
+
+    public void assignCheckInRequestKey(String requestKey) {
+        if ((this.checkInRequestKey == null || this.checkInRequestKey.isBlank())
+                && requestKey != null && !requestKey.isBlank()) {
+            this.checkInRequestKey = requestKey.trim();
+        }
     }
 
     public void checkIn() {
@@ -267,5 +278,6 @@ public class Appointment {
     public String getCancellationReason() { return cancellationReason; }
     public String getCancellationRequestKey() { return cancellationRequestKey; }
     public String getCreationRequestKey() { return creationRequestKey; }
+    public String getCheckInRequestKey() { return checkInRequestKey; }
     public Instant getCreatedAt() { return createdAt; }
 }

@@ -81,6 +81,15 @@ class QueueServiceTest {
     }
 
     @Test
+    void checkInStoresTheIdempotencyKeyOnTheAppointment() {
+        QueueTicketResponse response = service.checkIn(ACCOUNT_ID.toString(), "NOI-01", APPOINTMENT_ID,
+                "checkin-key-1");
+
+        assertEquals(5, response.queueNumber());
+        assertEquals("checkin-key-1", appointment.getCheckInRequestKey());
+    }
+
+    @Test
     void repeatedScanReturnsExistingTicketWithoutCreatingAnotherNumber() {
         QueueTicket existing = QueueTicket.create(appointment, room, TODAY, 5);
         setId(existing, UUID.randomUUID());
@@ -92,6 +101,22 @@ class QueueServiceTest {
         QueueTicketResponse response = service.checkIn(ACCOUNT_ID.toString(), "NOI-01", APPOINTMENT_ID);
 
         assertEquals(5, response.queueNumber());
+        verify(ticketRepository, never()).save(any(QueueTicket.class));
+    }
+
+    @Test
+    void repeatedScanCanPersistTheFirstRequestKeyWithoutCreatingAnotherTicket() {
+        QueueTicket existing = QueueTicket.create(appointment, room, TODAY, 5);
+        setId(existing, UUID.randomUUID());
+        appointment.checkIn();
+        when(ticketRepository.findByAppointmentId(APPOINTMENT_ID)).thenReturn(Optional.of(existing));
+        when(examinationSessionRepository.findByAppointment_Id(APPOINTMENT_ID))
+                .thenReturn(Optional.of(checkedInSession()));
+
+        service.checkIn(ACCOUNT_ID.toString(), "NOI-01", APPOINTMENT_ID, "checkin-key-2");
+
+        assertEquals("checkin-key-2", appointment.getCheckInRequestKey());
+        verify(appointmentRepository).save(appointment);
         verify(ticketRepository, never()).save(any(QueueTicket.class));
     }
 

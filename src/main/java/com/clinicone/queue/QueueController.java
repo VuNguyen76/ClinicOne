@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
@@ -32,8 +33,11 @@ public class QueueController {
     @PostMapping("/rooms/{roomCode}/queue/check-in")
     public ResponseEntity<QueueTicketResponse> checkIn(Authentication authentication,
                                                         @PathVariable String roomCode,
-                                                        @Valid @RequestBody QueueCheckInRequest request) {
-        return ResponseEntity.ok(queueService.checkIn(authentication.getName(), roomCode, request.appointmentId()));
+                                                        @Valid @RequestBody QueueCheckInRequest request,
+                                                        @RequestHeader(value = "Idempotency-Key", required = false) String requestKey) {
+        return ResponseEntity.ok(requestKey == null || requestKey.isBlank()
+                ? queueService.checkIn(authentication.getName(), roomCode, request.appointmentId())
+                : queueService.checkIn(authentication.getName(), roomCode, request.appointmentId(), requestKey));
     }
 
     @GetMapping("/patient/queue")
