@@ -136,6 +136,30 @@ class DoctorExaminationControllerTest {
     }
 
     @Test
+    void doctorCanStopAnInProgressExaminationWithAnOperationalReason() throws Exception {
+        when(service.stop(eq(TICKET_ID), eq(STAFF_ID.toString()), any())).thenReturn(response());
+
+        mockMvc.perform(post("/api/v1/doctor/examinations/" + TICKET_ID + "/stop")
+                        .with(authentication(authenticated("ROLE_DOCTOR")))
+                        .contentType("application/json")
+                        .content("{\"reason\":\"Người bệnh cần rời phòng khám ngay.\"}"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void doctorCannotStopAnExaminationWithAnIncompleteReason() throws Exception {
+        clearInvocations(service);
+
+        mockMvc.perform(post("/api/v1/doctor/examinations/" + TICKET_ID + "/stop")
+                        .with(authentication(authenticated("ROLE_DOCTOR")))
+                        .contentType("application/json")
+                        .content("{\"reason\":\"Ngắn\"}"))
+                .andExpect(status().isBadRequest());
+
+        verify(service, never()).stop(any(), any(), any());
+    }
+
+    @Test
     void doctorGetsAReadableConflictWhenAnotherTabSavedTheRecordFirst() throws Exception {
         when(service.saveDraft(eq(TICKET_ID), eq(STAFF_ID.toString()), org.mockito.ArgumentMatchers.any()))
                 .thenThrow(new ObjectOptimisticLockingFailureException(MedicalRecord.class, TICKET_ID));

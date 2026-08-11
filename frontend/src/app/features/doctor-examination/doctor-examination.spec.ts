@@ -267,6 +267,33 @@ describe('DoctorExamination', () => {
     expect(fixture.nativeElement.textContent).toContain('Đã ký phiếu khám');
     expect((fixture.nativeElement.querySelector('textarea[formControlName="reason"]') as HTMLTextAreaElement).disabled).toBe(true);
   });
+
+  it('requires a reason before stopping an active examination and then locks the workspace', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('[data-testid="stop-examination"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-testid="confirm-stop-examination"]')).toBeTruthy();
+
+    (fixture.nativeElement.querySelector('[data-testid="confirm-stop-examination"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Lý do dừng lượt khám phải từ 10 đến 500 ký tự.');
+    http.expectNone('/api/v1/doctor/examinations/ticket-1/stop');
+
+    const reason = fixture.nativeElement.querySelector('[data-testid="stop-examination-reason"]') as HTMLTextAreaElement;
+    reason.value = 'Người bệnh cần rời phòng khám ngay.';
+    reason.dispatchEvent(new Event('input'));
+    (fixture.nativeElement.querySelector('[data-testid="confirm-stop-examination"]') as HTMLButtonElement).click();
+
+    const request = http.expectOne('/api/v1/doctor/examinations/ticket-1/stop');
+    expect(request.request.body).toEqual({ reason: 'Người bệnh cần rời phòng khám ngay.' });
+    request.flush({ ...examination(), status: 'CANCELLED' });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Đã dừng lượt khám.');
+    expect(fixture.nativeElement.querySelector('[data-testid="stop-examination"]')).toBeNull();
+  });
 });
 
 function examination() {

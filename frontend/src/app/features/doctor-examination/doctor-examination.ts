@@ -48,9 +48,12 @@ export class DoctorExamination implements OnInit {
   protected readonly loading = signal(true);
   protected readonly saving = signal(false);
   protected readonly signing = signal(false);
+  protected readonly stopping = signal(false);
   protected readonly prescriptionEnabled = signal(false);
   protected readonly followUpEnabled = signal(false);
   protected readonly confirmingSign = signal(false);
+  protected readonly confirmingStop = signal(false);
+  protected readonly stopReason = signal('');
   protected readonly medicationSuggestions = signal<Record<number, MedicationSuggestionResponse[]>>({});
   protected readonly diagnosisSuggestions = signal<DiagnosisSuggestionResponse[]>([]);
   protected readonly error = signal('');
@@ -167,6 +170,43 @@ export class DoctorExamination implements OnInit {
   protected cancelSign(): void {
     this.confirmingSign.set(false);
     this.signRequestKey = null;
+  }
+
+  protected requestStop(): void {
+    if (this.saving() || this.signing() || this.stopping() || this.examination()?.status !== 'IN_PROGRESS') return;
+    this.stopReason.set('');
+    this.confirmingStop.set(true);
+  }
+
+  protected cancelStop(): void {
+    this.confirmingStop.set(false);
+    this.stopReason.set('');
+  }
+
+  protected stop(): void {
+    const ticketId = this.examination()?.ticketId;
+    const reason = this.stopReason().trim();
+    if (!ticketId || this.stopping()) return;
+    if (reason.length < 10 || reason.length > 500) {
+      this.error.set('Lý do dừng lượt khám phải từ 10 đến 500 ký tự.');
+      return;
+    }
+    this.stopping.set(true);
+    this.error.set('');
+    this.notice.set('');
+    this.authApi.stopDoctorExamination(ticketId, reason).subscribe({
+      next: (value) => {
+        this.examination.set(value);
+        this.form.disable();
+        this.confirmingStop.set(false);
+        this.stopping.set(false);
+        this.notice.set('Đã dừng lượt khám.');
+      },
+      error: (response) => {
+        this.stopping.set(false);
+        this.handleError(response);
+      },
+    });
   }
 
   protected sign(): void {

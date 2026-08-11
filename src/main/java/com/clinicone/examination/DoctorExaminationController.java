@@ -70,6 +70,13 @@ public class DoctorExaminationController {
         return ResponseEntity.ok(service.sign(ticketId, authentication.getName(), request, requestKey));
     }
 
+    @PostMapping("/{ticketId}/stop")
+    public ResponseEntity<DoctorExaminationResponse> stop(Authentication authentication,
+                                                           @PathVariable UUID ticketId,
+                                                           @Valid @RequestBody StopExaminationRequest request) {
+        return ResponseEntity.ok(service.stop(ticketId, authentication.getName(), request));
+    }
+
     private void recordAudit(String eventType, String actor, String outcome, String function, String ipAddress) {
         AccessAuditService service = accessAudit.getIfAvailable();
         if (service == null) {

@@ -958,6 +958,10 @@ export class AuthApiService {
     });
   }
 
+  stopDoctorExamination(ticketId: string, reason: string): Observable<DoctorExaminationResponse> {
+    return this.http.post<DoctorExaminationResponse>(`/api/v1/doctor/examinations/${ticketId}/stop`, { reason });
+  }
+
   getDoctorMedicationSuggestions(query: string): Observable<MedicationSuggestionResponse[]> {
     return this.http.get<MedicationSuggestionResponse[]>('/api/v1/doctor/medications/suggestions', { params: { query } });
   }

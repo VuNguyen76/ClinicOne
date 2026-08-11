@@ -104,6 +104,13 @@ public class ExaminationSession {
         }
     }
 
+    public void stop() {
+        if (status != ExaminationSessionStatus.IN_PROGRESS) {
+            throw new IllegalStateException("Chỉ có thể dừng lượt đang khám.");
+        }
+        status = ExaminationSessionStatus.CANCELLED;
+    }
+
     public void cancel() {
         if (status == ExaminationSessionStatus.CANCELLED) {
             return;

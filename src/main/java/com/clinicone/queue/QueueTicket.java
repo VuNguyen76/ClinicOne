@@ -193,6 +193,15 @@ public class QueueTicket {
         completedAt = Instant.now();
     }
 
+    public void stopService(String reason) {
+        if (status != QueueTicketStatus.IN_SERVICE) {
+            throw new IllegalStateException("Chỉ có thể dừng lượt đang khám.");
+        }
+        status = QueueTicketStatus.COMPLETED;
+        skipReason = reason == null || reason.isBlank() ? null : reason.trim();
+        completedAt = Instant.now();
+    }
+
     public void leaveBeforeExam(String reason) {
         if (status == QueueTicketStatus.LEFT_BEFORE_EXAM) {
             return;

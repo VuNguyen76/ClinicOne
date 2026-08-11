@@ -14,6 +14,9 @@ import com.clinicone.notification.PatientNotificationService;
 import com.clinicone.audit.BusinessLogService;
 import com.clinicone.medication.Medication;
 import com.clinicone.medication.MedicationCatalogService;
+import com.clinicone.schedule.GeneratedClinicSlot;
+import com.clinicone.schedule.GeneratedClinicSlotRepository;
+import com.clinicone.schedule.GeneratedSlotStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -33,6 +36,7 @@ public class DoctorExaminationService {
     private final PatientNotificationService notificationService;
     private final BusinessLogService businessLogService;
     private final MedicationCatalogService medicationCatalogService;
+    private final GeneratedClinicSlotRepository generatedSlotRepository;
 
     public DoctorExaminationService(QueueTicketRepository ticketRepository,
                                     ExaminationSessionRepository sessionRepository,
@@ -41,7 +45,7 @@ public class DoctorExaminationService {
                                     AppointmentRepository appointmentRepository,
                                     DoctorProfileRepository doctorProfileRepository) {
         this(ticketRepository, sessionRepository, recordRepository, staffRepository, appointmentRepository,
-                doctorProfileRepository, null, null, null);
+                doctorProfileRepository, null, null, null, null);
     }
 
     public DoctorExaminationService(QueueTicketRepository ticketRepository,
@@ -52,7 +56,19 @@ public class DoctorExaminationService {
                                     DoctorProfileRepository doctorProfileRepository,
                                     PatientNotificationService notificationService) {
         this(ticketRepository, sessionRepository, recordRepository, staffRepository, appointmentRepository,
-                doctorProfileRepository, notificationService, null, null);
+                doctorProfileRepository, notificationService, null, null, null);
+    }
+
+    public DoctorExaminationService(QueueTicketRepository ticketRepository,
+                                    ExaminationSessionRepository sessionRepository,
+                                    MedicalRecordRepository recordRepository,
+                                    StaffAccountRepository staffRepository,
+                                    AppointmentRepository appointmentRepository,
+                                    DoctorProfileRepository doctorProfileRepository,
+                                    PatientNotificationService notificationService,
+                                    GeneratedClinicSlotRepository generatedSlotRepository) {
+        this(ticketRepository, sessionRepository, recordRepository, staffRepository, appointmentRepository,
+                doctorProfileRepository, notificationService, null, null, generatedSlotRepository);
     }
 
     @Autowired
@@ -64,7 +80,8 @@ public class DoctorExaminationService {
                                     DoctorProfileRepository doctorProfileRepository,
                                     PatientNotificationService notificationService,
                                     BusinessLogService businessLogService,
-                                    MedicationCatalogService medicationCatalogService) {
+                                    MedicationCatalogService medicationCatalogService,
+                                    GeneratedClinicSlotRepository generatedSlotRepository) {
         this.ticketRepository = ticketRepository;
         this.sessionRepository = sessionRepository;
         this.recordRepository = recordRepository;
@@ -74,6 +91,7 @@ public class DoctorExaminationService {
         this.notificationService = notificationService;
         this.businessLogService = businessLogService;
         this.medicationCatalogService = medicationCatalogService;
+        this.generatedSlotRepository = generatedSlotRepository;
     }
 
     @Transactional(readOnly = true)
@@ -187,6 +205,7 @@ public class DoctorExaminationService {
         String previousAppointmentStatus = workspace.appointment().getStatus().name();
         workspace.session().begin();
         if (!workspace.appointment().requiresMedicalRecord()) {
+            markAppointmentSlotUnavailable(workspace.appointment());
             workspace.session().assignSignRequestKey(normalizedRequestKey);
             workspace.session().complete();
             workspace.ticket().complete();
@@ -211,6 +230,7 @@ public class DoctorExaminationService {
             record.sign(doctorName(staffId, workspace.appointment()), request.reason(), request.examinationNotes(),
                     request.diagnosis(), request.conclusion(), request.treatmentPlan(), request.prescription(),
                     request.followUpDate(), prescriptionLines, request.followUpDays(), normalizeFollowUpNote(request.followUpNote()));
+            markAppointmentSlotUnavailable(workspace.appointment());
             workspace.session().assignSignRequestKey(normalizedRequestKey);
             workspace.session().complete();
             workspace.ticket().complete();
@@ -232,6 +252,37 @@ public class DoctorExaminationService {
         } catch (IllegalStateException exception) {
             throw conflict("MEDICAL_RECORD_SIGN_FAILED", exception.getMessage());
         }
+        return response(workspace.ticket(), workspace.session(), record);
+    }
+
+    @Transactional
+    public DoctorExaminationResponse stop(UUID ticketId, String staffId, StopExaminationRequest request) {
+        Workspace workspace = workspace(ticketId, staffId);
+        String reason = normalizeStopReason(request == null ? null : request.reason());
+        UUID eventId = UUID.randomUUID();
+        String previousSessionStatus = workspace.session().getStatus().name();
+        String previousTicketStatus = workspace.ticket().getStatus().name();
+        String previousAppointmentStatus = workspace.appointment().getStatus().name();
+        try {
+            markAppointmentSlotUnavailable(workspace.appointment());
+            workspace.session().stop();
+            workspace.ticket().stopService(reason);
+            workspace.appointment().markNotPerformed();
+            appointmentRepository.save(workspace.appointment());
+            ticketRepository.save(workspace.ticket());
+            sessionRepository.save(workspace.session());
+        } catch (IllegalStateException exception) {
+            throw conflict("EXAMINATION_STOP_NOT_ALLOWED", exception.getMessage());
+        }
+        recordTransition(eventId, "EXAMINATION", workspace.session().getId(), previousSessionStatus,
+                workspace.session().getStatus().name(), "STOP_EXAMINATION", staffId, reason);
+        recordTransition(eventId, "QUEUE_TICKET", workspace.ticket().getId(), previousTicketStatus,
+                workspace.ticket().getStatus().name(), "STOP_EXAMINATION", staffId, reason);
+        recordTransition(eventId, "APPOINTMENT", workspace.appointment().getId(), previousAppointmentStatus,
+                workspace.appointment().getStatus().name(), "STOP_EXAMINATION", staffId, reason);
+        MedicalRecord record = workspace.appointment().requiresMedicalRecord()
+                ? recordRepository.findBySession_Id(workspace.session().getId()).orElse(null)
+                : null;
         return response(workspace.ticket(), workspace.session(), record);
     }
 
@@ -315,6 +366,28 @@ public class DoctorExaminationService {
                     "Mã chống gửi lặp không được dài quá 80 ký tự.");
         }
         return normalized;
+    }
+
+    private String normalizeStopReason(String reason) {
+        String normalized = reason == null ? "" : reason.trim();
+        if (normalized.length() < 10 || normalized.length() > 500) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "EXAMINATION_STOP_REASON_INVALID",
+                    "Lý do dừng lượt khám phải từ 10 đến 500 ký tự.");
+        }
+        return normalized;
+    }
+
+    private void markAppointmentSlotUnavailable(Appointment appointment) {
+        if (appointment.getServiceId() == null || generatedSlotRepository == null) {
+            return;
+        }
+        GeneratedClinicSlot slot = generatedSlotRepository
+                .findFirstByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(appointment.getDoctorStaffId(),
+                        appointment.getAppointmentDate(), appointment.getStartTime(), GeneratedSlotStatus.OPEN)
+                .orElseThrow(() -> conflict("APPOINTMENT_SLOT_NOT_FOUND",
+                        "Không tìm thấy khung giờ đang hoạt động của lịch hẹn."));
+        slot.cancel();
+        generatedSlotRepository.save(slot);
     }
 
     private MedicalRecord record(ExaminationSession session) {
