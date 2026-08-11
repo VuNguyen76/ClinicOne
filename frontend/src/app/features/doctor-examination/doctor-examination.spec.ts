@@ -180,14 +180,49 @@ describe('DoctorExamination', () => {
     expect(diagnosis.disabled).toBe(false);
   });
 
-  it('limits every required clinical text area to two thousand characters', () => {
+  it('keeps the valid clinical text and names the field when its limit is exceeded', () => {
     http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
     fixture.detectChanges();
 
-    for (const name of ['reason', 'examinationNotes', 'diagnosis', 'conclusion']) {
-      const field = fixture.nativeElement.querySelector(`textarea[formControlName="${name}"]`) as HTMLTextAreaElement;
-      expect(field.maxLength).toBe(2000);
-    }
+    const field = fixture.nativeElement.querySelector('textarea[formControlName="reason"]') as HTMLTextAreaElement;
+    field.value = 'a'.repeat(2001);
+    field.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    expect(field.value).toHaveLength(2000);
+    expect(fixture.nativeElement.textContent).toContain('Lý do khám tối đa 2.000 ký tự.');
+  });
+
+  it('keeps the valid prescription text and names the field when its limit is exceeded', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('[data-testid="add-prescription-line"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const field = fixture.nativeElement.querySelector('[data-testid="prescription-name-0"]') as HTMLInputElement;
+    field.value = 'a'.repeat(201);
+    field.dispatchEvent(new Event('input'));
+    http.expectOne((request) => request.url === '/api/v1/doctor/medications/suggestions'
+      && request.params.get('query') === 'a'.repeat(200)).flush([]);
+    fixture.detectChanges();
+
+    expect(field.value).toHaveLength(200);
+    expect(fixture.nativeElement.textContent).toContain('Tên thuốc tối đa 200 ký tự.');
+  });
+
+  it('keeps the maximum valid follow-up interval and explains the limit', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('[data-testid="toggle-follow-up"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const days = fixture.nativeElement.querySelector('[data-testid="follow-up-days"]') as HTMLInputElement;
+    days.value = '366';
+    days.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    expect(days.value).toBe('365');
+    expect(fixture.nativeElement.textContent).toContain('Số ngày tái khám tối đa 365.');
   });
 
   it('requires the four clinical fields and locks the form after signing', () => {
