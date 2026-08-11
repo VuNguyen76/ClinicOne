@@ -4,6 +4,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { apiErrorMessage, AuthApiService } from '../../../core/auth/auth-api.service';
 import { VietnamAddressService, VietnamAddressUnit } from '../../../core/address/vietnam-address.service';
+import { clinicTodayIso } from '../../../core/time/clinic-time';
 
 type RegisterStep = 'phone' | 'otp' | 'profile' | 'done';
 
@@ -33,7 +34,7 @@ export class Register implements OnInit {
   protected readonly districts = signal<VietnamAddressUnit[]>([]);
   protected readonly wards = signal<VietnamAddressUnit[]>([]);
   protected readonly addressLoading = signal(false);
-  protected readonly today = new Date().toISOString().slice(0, 10);
+  protected readonly today = clinicTodayIso();
   protected readonly returnUrl = this.safeReturnUrl();
 
   readonly phoneForm = this.formBuilder.nonNullable.group({

@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { ApiErrorResponse, AuthApiService, OperationalStatisticsResponse, apiErrorMessage } from '../../core/auth/auth-api.service';
 import { AccountMenu } from '../../shared/account-menu/account-menu';
+import { clinicTodayIso } from '../../core/time/clinic-time';
 
 @Component({
   selector: 'app-admin-statistics',
@@ -57,8 +58,5 @@ export class AdminStatistics implements OnInit {
   }
   protected formatAverage(value: number | null): string { return value === null ? '—' : `${value.toFixed(1)} phút`; }
 
-  private today(): string {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  }
+  private today(): string { return clinicTodayIso(); }
 }

@@ -4,6 +4,7 @@ import { RouterLink, Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { ApiErrorResponse, AppointmentSlotResponse, AuthApiService, ReceptionAppointmentResponse, ReceptionPatientProfile, SpecialtyOption, apiErrorMessage } from '../../../core/auth/auth-api.service';
 import { AccountMenu } from '../../../shared/account-menu/account-menu';
+import { clinicTodayIso } from '../../../core/time/clinic-time';
 
 @Component({
   selector: 'app-reception-check-in',
@@ -17,7 +18,7 @@ export class ReceptionCheckIn implements OnInit {
   private readonly router = inject(Router);
 
   protected readonly query = signal('');
-  protected readonly selectedDate = signal(this.toIsoDate(new Date()));
+  protected readonly selectedDate = signal(clinicTodayIso());
   protected readonly exceptionReason = signal('');
   protected readonly leaveReason = signal('');
   protected readonly appointments = signal<ReceptionAppointmentResponse[]>([]);
@@ -28,7 +29,7 @@ export class ReceptionCheckIn implements OnInit {
   protected readonly notice = signal('');
   protected readonly walkInOpen = signal(false);
   protected readonly walkInPhone = signal('');
-  protected readonly walkInDate = signal(this.toIsoDate(new Date()));
+  protected readonly walkInDate = signal(clinicTodayIso());
   protected readonly walkInProfiles = signal<ReceptionPatientProfile[]>([]);
   protected readonly walkInProfileId = signal('');
   protected readonly walkInSpecialties = signal<SpecialtyOption[]>([]);
@@ -134,7 +135,7 @@ export class ReceptionCheckIn implements OnInit {
   protected openWalkIn(): void {
     this.walkInOpen.set(true);
     this.walkInPhone.set('');
-    this.walkInDate.set(this.toIsoDate(new Date()));
+    this.walkInDate.set(clinicTodayIso());
     this.walkInProfiles.set([]);
     this.walkInProfileId.set('');
     this.walkInSpecialty.set('');

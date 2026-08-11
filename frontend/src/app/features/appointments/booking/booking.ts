@@ -4,6 +4,7 @@ import { Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { ApiErrorResponse, AppointmentSlotResponse, AuthApiService, apiErrorMessage, ClinicServiceResponse, PatientProfileItem, SpecialtyOption } from '../../../core/auth/auth-api.service';
 import { AccountMenu } from '../../../shared/account-menu/account-menu';
+import { clinicTodayDate, clinicTodayIso } from '../../../core/time/clinic-time';
 
 type BookingStep = 1 | 2 | 3;
 
@@ -37,7 +38,7 @@ export class Booking implements OnInit {
   private readonly authApi = inject(AuthApiService);
   private readonly router = inject(Router);
 
-  protected readonly today = this.toIsoDate(new Date());
+  protected readonly today = clinicTodayIso();
   protected readonly step = signal<BookingStep>(1);
   protected readonly specialtySearch = signal('');
   protected readonly selectedSpecialty = signal('');
@@ -46,7 +47,7 @@ export class Booking implements OnInit {
   protected readonly selectedSlot = signal('');
   protected readonly holdId = signal<string | null>(null);
   protected readonly holdBusy = signal(false);
-  protected readonly calendarMonth = signal(this.startOfMonth(new Date()));
+  protected readonly calendarMonth = signal(this.startOfMonth(clinicTodayDate()));
   protected readonly dates = signal(this.buildMonthDates(this.calendarMonth()));
   protected readonly specialties = signal<SpecialtyOption[]>([]);
   protected readonly specialtiesLoading = signal(true);
@@ -141,7 +142,7 @@ export class Booking implements OnInit {
   }
 
   protected isPreviousMonthDisabled(): boolean {
-    return this.calendarMonth().getTime() <= this.startOfMonth(new Date()).getTime();
+    return this.calendarMonth().getTime() <= this.startOfMonth(clinicTodayDate()).getTime();
   }
 
   protected previousMonth(): void {
