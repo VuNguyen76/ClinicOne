@@ -28,11 +28,11 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 public class AppointmentService {
     private static final ZoneId CLINIC_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
+    private static final int APPOINTMENT_CODE_MAX_ATTEMPTS = 5;
     private final PatientAccountRepository accountRepository;
     private final AppointmentRepository appointmentRepository;
     private final PatientProfileRepository profileRepository;
@@ -44,6 +44,7 @@ public class AppointmentService {
     private final ClinicConfigurationService configurationService;
     private final ReasonCatalogService reasonCatalogService;
     private final Clock clock;
+    private final AppointmentCodeGenerator appointmentCodeGenerator;
 
     public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository) {
         this(accountRepository, appointmentRepository, null, null, null, null, null, null, null, null, null);
@@ -88,13 +89,24 @@ public class AppointmentService {
                 businessLogService, holdService, clinicServiceRepository, null, null, Clock.systemUTC());
     }
 
-    @org.springframework.beans.factory.annotation.Autowired
     public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
                               PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService,
                               PatientNotificationService notificationService, BusinessLogService businessLogService,
                               AppointmentHoldService holdService, ClinicServiceRepository clinicServiceRepository,
                               ClinicConfigurationService configurationService, ReasonCatalogService reasonCatalogService,
                               Clock clock) {
+        this(accountRepository, appointmentRepository, profileRepository, availabilityService, notificationService,
+                businessLogService, holdService, clinicServiceRepository, configurationService, reasonCatalogService,
+                clock, new AppointmentCodeGenerator());
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
+                              PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService,
+                              PatientNotificationService notificationService, BusinessLogService businessLogService,
+                              AppointmentHoldService holdService, ClinicServiceRepository clinicServiceRepository,
+                              ClinicConfigurationService configurationService, ReasonCatalogService reasonCatalogService,
+                              Clock clock, AppointmentCodeGenerator appointmentCodeGenerator) {
         this.accountRepository = accountRepository;
         this.appointmentRepository = appointmentRepository;
         this.profileRepository = profileRepository;
@@ -106,6 +118,8 @@ public class AppointmentService {
         this.configurationService = configurationService;
         this.reasonCatalogService = reasonCatalogService;
         this.clock = clock == null ? Clock.systemUTC() : clock;
+        this.appointmentCodeGenerator = appointmentCodeGenerator == null
+                ? new AppointmentCodeGenerator() : appointmentCodeGenerator;
     }
 
     /** Backward-compatible constructor for isolated unit tests and integrations. */
@@ -327,9 +341,14 @@ public class AppointmentService {
     }
 
     private String nextAppointmentCode() {
-        int suffix = ThreadLocalRandom.current().nextInt(1000, 10000);
-        LocalDate clinicToday = LocalDate.now(clock.withZone(CLINIC_ZONE));
-        return "CL-" + clinicToday.toString().replace("-", "") + "-" + suffix;
+        for (int attempt = 0; attempt < APPOINTMENT_CODE_MAX_ATTEMPTS; attempt++) {
+            String candidate = appointmentCodeGenerator.nextCode();
+            if (appointmentRepository.findByAppointmentCode(candidate).isEmpty()) {
+                return candidate;
+            }
+        }
+        throw new AuthException(HttpStatus.SERVICE_UNAVAILABLE, "APPOINTMENT_CODE_UNAVAILABLE",
+                "Không thể tạo mã lịch hẹn duy nhất lúc này. Vui lòng thử lại.");
     }
 
     private UUID parseAccountId(String accountId) {

@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -37,6 +38,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 
 class AppointmentServiceTest {
     private static final UUID ACCOUNT_ID = UUID.fromString("7d9e3fb4-1045-4ca4-86d2-7d1fca4c1a13");
@@ -122,7 +124,7 @@ class AppointmentServiceTest {
     }
 
     @Test
-    void generatesAppointmentCodeUsingClinicTimezone() {
+    void generatesOpaqueAppointmentCodeWithoutDateOrPatientData() {
         PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
         setId(account, ACCOUNT_ID);
         when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
@@ -137,7 +139,57 @@ class AppointmentServiceTest {
                 "Nội khoa", "BS. Nguyễn An", LocalDate.of(2026, 8, 11), LocalTime.of(8, 30),
                 "Đau đầu kéo dài"));
 
-        assertTrue(response.appointmentCode().startsWith("CL-20260811-"));
+        assertTrue(response.appointmentCode().matches("CL-[A-Z0-9]{12}"));
+        assertFalse(response.appointmentCode().contains("20260811"));
+        assertFalse(response.appointmentCode().contains("0912345678"));
+    }
+
+    @Test
+    void retriesAppointmentCodeGenerationWhenCandidateAlreadyExists() {
+        PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
+        setId(account, ACCOUNT_ID);
+        AppointmentCodeGenerator codeGenerator = mock(AppointmentCodeGenerator.class);
+        when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
+        when(codeGenerator.nextCode()).thenReturn("CL-ALREADYUSED1", "CL-NEWCODE98765");
+        when(appointmentRepository.findByAppointmentCode("CL-ALREADYUSED1"))
+                .thenReturn(Optional.of(Appointment.existing(account, "CL-ALREADYUSED1", "Nội khoa", "BS. Nguyễn An",
+                        LocalDate.of(2026, 8, 9), LocalTime.of(8, 30), "Đau đầu")));
+        when(appointmentRepository.findByAppointmentCode("CL-NEWCODE98765")).thenReturn(Optional.empty());
+
+        service = new AppointmentService(accountRepository, appointmentRepository, null, availabilityService,
+                notificationService, null, holdService, clinicServiceRepository, null, reasonCatalogService,
+                Clock.systemUTC(), codeGenerator);
+
+        AppointmentResponse response = service.create(ACCOUNT_ID.toString(), new CreateAppointmentRequest(
+                "Nội khoa", "BS. Nguyễn An", LocalDate.of(2026, 8, 11), LocalTime.of(8, 30),
+                "Đau đầu kéo dài"));
+
+        assertEquals("CL-NEWCODE98765", response.appointmentCode());
+        verify(appointmentRepository).findByAppointmentCode("CL-ALREADYUSED1");
+        verify(appointmentRepository).findByAppointmentCode("CL-NEWCODE98765");
+    }
+
+    @Test
+    void rejectsBookingWithoutChangingDataWhenAllCodeRetriesCollide() {
+        PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
+        setId(account, ACCOUNT_ID);
+        AppointmentCodeGenerator codeGenerator = mock(AppointmentCodeGenerator.class);
+        when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
+        when(codeGenerator.nextCode()).thenReturn("CL-COLLISION01");
+        when(appointmentRepository.findByAppointmentCode("CL-COLLISION01"))
+                .thenReturn(Optional.of(Appointment.existing(account, "CL-COLLISION01", "Nội khoa", "BS. Nguyễn An",
+                        LocalDate.of(2026, 8, 9), LocalTime.of(8, 30), "Đau đầu")));
+        service = new AppointmentService(accountRepository, appointmentRepository, null, availabilityService,
+                notificationService, null, holdService, clinicServiceRepository, null, reasonCatalogService,
+                Clock.systemUTC(), codeGenerator);
+
+        AuthException exception = assertThrows(AuthException.class, () -> service.create(ACCOUNT_ID.toString(),
+                new CreateAppointmentRequest("Nội khoa", "BS. Nguyễn An", LocalDate.of(2026, 8, 11),
+                        LocalTime.of(8, 30), "Đau đầu kéo dài")));
+
+        assertEquals("APPOINTMENT_CODE_UNAVAILABLE", exception.getCode());
+        verify(appointmentRepository, times(5)).findByAppointmentCode("CL-COLLISION01");
+        verify(appointmentRepository, never()).save(any(Appointment.class));
     }
 
     @Test
