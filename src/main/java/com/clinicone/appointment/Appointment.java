@@ -158,6 +158,13 @@ public class Appointment {
         }
     }
 
+    public void checkIn() {
+    if (this.status != AppointmentStatus.BOOKED) {
+        throw new IllegalStateException("Chỉ có thể check-in lịch hẹn đang được đặt");
+    }
+    this.status = AppointmentStatus.CHECKED_IN;
+}
+
     public UUID getId() { return id; }
     public PatientAccount getPatient() { return patient; }
     public String getAppointmentCode() { return appointmentCode; }

@@ -28,7 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(QueueController.class)
-@Import({SecurityConfig.class, QueueControllerTest.MockBeans.class})
+@Import({ SecurityConfig.class, QueueControllerTest.MockBeans.class })
 class QueueControllerTest {
     private static final UUID ACCOUNT_ID = UUID.fromString("7d9e3fb4-1045-4ca4-86d2-7d1fca4c1a13");
     private static final UUID APPOINTMENT_ID = UUID.fromString("ad9e3fb4-1045-4ca4-86d2-7d1fca4c1a13");
@@ -46,21 +46,36 @@ class QueueControllerTest {
                 .thenReturn(response());
 
         mockMvc.perform(post("/api/v1/rooms/NOI-01/queue/check-in")
-                        .with(authentication(authenticated("ROLE_PATIENT")))
-                        .contentType("application/json")
-                        .content("{\"appointmentId\":\"" + APPOINTMENT_ID + "\"}"))
+                .with(authentication(authenticated("ROLE_PATIENT")))
+                .contentType("application/json")
+                .content("{\"appointmentId\":\"" + APPOINTMENT_ID + "\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.queueNumber").value(5))
                 .andExpect(jsonPath("$.roomCode").value("NOI-01"));
-    }
+    }// luồng chính REC 01 checkin mã QR
+
+    @Test
+    void receptionistCanCheckInForPatient() throws Exception {
+        when(queueService.checkIn(eq(ACCOUNT_ID.toString()), eq("NOI-01"), eq(APPOINTMENT_ID)))
+                .thenReturn(response());
+
+        mockMvc.perform(post("/api/v1/rooms/NOI-01/queue/check-in")
+                .with(authentication(authenticated("ROLE_RECEPTIONIST"))) // Quyền Lễ tân xử lý luồng phụ
+                .contentType("application/json")
+                .content("{\"appointmentId\":\"" + APPOINTMENT_ID + "\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.queueNumber").value(5))
+                .andExpect(jsonPath("$.roomCode").value("NOI-01"));
+    }// luồng phụ REC 1 check in bằng mã lịch hẹn
 
     @Test
     void listsRoomQueueForStaffScreen() throws Exception {
-        when(queueService.listForStaff(eq("NOI-01"), eq(LocalDate.of(2026, 8, 6)), eq(ACCOUNT_ID.toString()), eq(StaffRole.COORDINATOR)))
+        when(queueService.listForStaff(eq("NOI-01"), eq(LocalDate.of(2026, 8, 6)), eq(ACCOUNT_ID.toString()),
+                eq(StaffRole.COORDINATOR)))
                 .thenReturn(List.of(response()));
 
         mockMvc.perform(get("/api/v1/rooms/NOI-01/queue?date=2026-08-06")
-                        .with(authentication(authenticated("ROLE_COORDINATOR"))))
+                .with(authentication(authenticated("ROLE_COORDINATOR"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].queueNumber").value(5));
     }
@@ -68,10 +83,11 @@ class QueueControllerTest {
     @Test
     void doctorGetsOnlyOwnWorkspaceQueue() throws Exception {
         when(queueService.doctorQueue(eq(LocalDate.of(2026, 8, 6)), eq(ACCOUNT_ID.toString())))
-                .thenReturn(new DoctorQueueResponse("NOI-01", "Phòng Nội tổng quát 01", "Nội tổng quát", List.of(response())));
+                .thenReturn(new DoctorQueueResponse("NOI-01", "Phòng Nội tổng quát 01", "Nội tổng quát",
+                        List.of(response())));
 
         mockMvc.perform(get("/api/v1/doctor/queue?date=2026-08-06")
-                        .with(authentication(authenticated("ROLE_DOCTOR"))))
+                .with(authentication(authenticated("ROLE_DOCTOR"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.roomCode").value("NOI-01"))
                 .andExpect(jsonPath("$.tickets[0].queueNumber").value(5));
@@ -82,7 +98,7 @@ class QueueControllerTest {
         when(queueService.call(TICKET_ID)).thenReturn(response());
 
         mockMvc.perform(post("/api/v1/queue/" + TICKET_ID + "/call")
-                        .with(authentication(authenticated("ROLE_RECEPTIONIST"))))
+                .with(authentication(authenticated("ROLE_RECEPTIONIST"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("CALLED"));
     }
