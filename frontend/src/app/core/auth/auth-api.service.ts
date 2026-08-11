@@ -952,8 +952,10 @@ export class AuthApiService {
     return this.http.put<DoctorExaminationResponse>(`/api/v1/doctor/examinations/${ticketId}/draft`, request);
   }
 
-  signDoctorExamination(ticketId: string, request: DoctorExaminationRequest): Observable<DoctorExaminationResponse> {
-    return this.http.post<DoctorExaminationResponse>(`/api/v1/doctor/examinations/${ticketId}/sign`, request);
+  signDoctorExamination(ticketId: string, request: DoctorExaminationRequest, requestKey: string): Observable<DoctorExaminationResponse> {
+    return this.http.post<DoctorExaminationResponse>(`/api/v1/doctor/examinations/${ticketId}/sign`, request, {
+      headers: { 'Idempotency-Key': requestKey },
+    });
   }
 
   getDoctorMedicationSuggestions(query: string): Observable<MedicationSuggestionResponse[]> {

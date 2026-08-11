@@ -65,8 +65,9 @@ public class DoctorExaminationController {
     @PostMapping("/{ticketId}/sign")
     public ResponseEntity<DoctorExaminationResponse> sign(Authentication authentication,
                                                            @PathVariable UUID ticketId,
+                                                           @RequestHeader("Idempotency-Key") String requestKey,
                                                            @Valid @RequestBody DoctorExaminationRequest request) {
-        return ResponseEntity.ok(service.sign(ticketId, authentication.getName(), request));
+        return ResponseEntity.ok(service.sign(ticketId, authentication.getName(), request, requestKey));
     }
 
     private void recordAudit(String eventType, String actor, String outcome, String function, String ipAddress) {

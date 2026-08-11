@@ -110,7 +110,7 @@ class DoctorExaminationServiceTest {
 
     @Test
     void signingCompletesTheWholeExaminationAndNotifiesPatient() {
-        DoctorExaminationResponse response = service.sign(TICKET_ID, DOCTOR_ID.toString(), request());
+        DoctorExaminationResponse response = service.sign(TICKET_ID, DOCTOR_ID.toString(), request(), "sign-visit-1");
 
         assertThat(response.status()).isEqualTo("COMPLETED");
         assertThat(response.signedAt()).isNotNull();
@@ -127,12 +127,12 @@ class DoctorExaminationServiceTest {
 
     @Test
     void repeatingSignReturnsTheExistingSignedRecordWithoutChangingItOrNotifyingAgain() {
-        DoctorExaminationResponse first = service.sign(TICKET_ID, DOCTOR_ID.toString(), request());
+        DoctorExaminationResponse first = service.sign(TICKET_ID, DOCTOR_ID.toString(), request(), "sign-visit-1");
 
         DoctorExaminationRequest retriedRequest = new DoctorExaminationRequest(
                 "Nội dung không được ghi đè", "Ghi nhận khác", "Chẩn đoán khác", "Kết luận khác",
                 null, null, null, 0L);
-        DoctorExaminationResponse retried = service.sign(TICKET_ID, DOCTOR_ID.toString(), retriedRequest);
+        DoctorExaminationResponse retried = service.sign(TICKET_ID, DOCTOR_ID.toString(), retriedRequest, "sign-visit-1");
 
         assertThat(retried.status()).isEqualTo("COMPLETED");
         assertThat(retried.signedAt()).isEqualTo(first.signedAt());
@@ -142,11 +142,20 @@ class DoctorExaminationServiceTest {
     }
 
     @Test
+    void rejectsANewSigningRequestAfterTheExaminationIsCompleted() {
+        service.sign(TICKET_ID, DOCTOR_ID.toString(), request(), "sign-visit-1");
+
+        assertThatThrownBy(() -> service.sign(TICKET_ID, DOCTOR_ID.toString(), request(), "sign-visit-2"))
+                .isInstanceOf(AuthException.class)
+                .satisfies(error -> assertThat(((AuthException) error).getCode()).isEqualTo("EXAMINATION_ALREADY_COMPLETED"));
+    }
+
+    @Test
     void endingVisitWithoutMedicalRecordCompletesOnlyAfterDoctorAction() {
         appointment.applyServiceSnapshot(UUID.randomUUID(), "Tiếp nhận nhanh", "Tư vấn", 15, false);
 
         DoctorExaminationResponse response = service.sign(TICKET_ID, DOCTOR_ID.toString(),
-                new DoctorExaminationRequest(null, null, null, null, null, null, null, null));
+                new DoctorExaminationRequest(null, null, null, null, null, null, null, null), "sign-visit-1");
 
         assertThat(response.status()).isEqualTo("COMPLETED");
         assertThat(response.requiresMedicalRecord()).isFalse();
@@ -165,7 +174,7 @@ class DoctorExaminationServiceTest {
                 "Đau đầu", "Mạch ổn", "Đau đầu căng thẳng", "Theo dõi thêm", "Nghỉ ngơi", null, null, 0L,
                 List.of(new PrescriptionLineRequest(null, "Paracetamol 500 mg", "500 mg", 10, "Uống sau ăn")));
 
-        DoctorExaminationResponse response = service.sign(TICKET_ID, DOCTOR_ID.toString(), request);
+        DoctorExaminationResponse response = service.sign(TICKET_ID, DOCTOR_ID.toString(), request, "sign-visit-1");
 
         assertThat(response.prescriptionLines()).singleElement().satisfies(line -> {
             assertThat(line.medicationName()).isEqualTo("Paracetamol 500 mg");
@@ -181,7 +190,7 @@ class DoctorExaminationServiceTest {
                 "Đau đầu", "Mạch ổn", "Đau đầu căng thẳng", "Theo dõi thêm", "Nghỉ ngơi", null, null, 0L,
                 List.of(), 14, "Tái khám nếu triệu chứng còn kéo dài");
 
-        DoctorExaminationResponse response = service.sign(TICKET_ID, DOCTOR_ID.toString(), request);
+        DoctorExaminationResponse response = service.sign(TICKET_ID, DOCTOR_ID.toString(), request, "sign-visit-1");
 
         assertThat(response.followUpDays()).isEqualTo(14);
         assertThat(response.followUpNote()).isEqualTo("Tái khám nếu triệu chứng còn kéo dài");
@@ -193,7 +202,7 @@ class DoctorExaminationServiceTest {
                 "Đau đầu", "Mạch ổn", "Đau đầu căng thẳng", "Theo dõi thêm", "Nghỉ ngơi", null, null, 0L,
                 List.of(), null, "Tái khám nếu còn đau");
 
-        assertThatThrownBy(() -> service.sign(TICKET_ID, DOCTOR_ID.toString(), request))
+        assertThatThrownBy(() -> service.sign(TICKET_ID, DOCTOR_ID.toString(), request, "sign-visit-1"))
                 .isInstanceOf(AuthException.class)
                 .hasMessageContaining("Số ngày tái khám");
     }
@@ -204,7 +213,7 @@ class DoctorExaminationServiceTest {
                 "Đau đầu", "Mạch ổn", "Đau đầu căng thẳng", "Theo dõi thêm", null, null, null, 0L,
                 List.of(new PrescriptionLineRequest(null, "Paracetamol 500 mg", "", 10, "Uống sau ăn")));
 
-        assertThatThrownBy(() -> service.sign(TICKET_ID, DOCTOR_ID.toString(), request))
+        assertThatThrownBy(() -> service.sign(TICKET_ID, DOCTOR_ID.toString(), request, "sign-visit-1"))
                 .isInstanceOf(AuthException.class)
                 .satisfies(error -> assertThat(((AuthException) error).getCode()).isEqualTo("PRESCRIPTION_LINE_INVALID"));
         assertThat(record.getSignedAt()).isNull();
@@ -215,8 +224,8 @@ class DoctorExaminationServiceTest {
         appointment.applyServiceSnapshot(UUID.randomUUID(), "Tiếp nhận nhanh", "Tư vấn", 15, false);
         DoctorExaminationRequest emptyRequest = new DoctorExaminationRequest(null, null, null, null, null, null, null, null);
 
-        DoctorExaminationResponse first = service.sign(TICKET_ID, DOCTOR_ID.toString(), emptyRequest);
-        DoctorExaminationResponse retried = service.sign(TICKET_ID, DOCTOR_ID.toString(), emptyRequest);
+        DoctorExaminationResponse first = service.sign(TICKET_ID, DOCTOR_ID.toString(), emptyRequest, "sign-visit-1");
+        DoctorExaminationResponse retried = service.sign(TICKET_ID, DOCTOR_ID.toString(), emptyRequest, "sign-visit-1");
 
         assertThat(retried.status()).isEqualTo("COMPLETED");
         assertThat(retried.examinationId()).isEqualTo(first.examinationId());
@@ -329,7 +338,7 @@ class DoctorExaminationServiceTest {
 
     @Test
     void anotherDoctorCannotOpenOrSignTheTicket() {
-        assertThatThrownBy(() -> service.sign(TICKET_ID, OTHER_DOCTOR_ID.toString(), request()))
+        assertThatThrownBy(() -> service.sign(TICKET_ID, OTHER_DOCTOR_ID.toString(), request(), "sign-visit-1"))
                 .isInstanceOf(AuthException.class)
                 .hasMessage("Bác sĩ chỉ được mở phiếu của lượt đã được phân công.");
         assertThat(record.getSignedAt()).isNull();

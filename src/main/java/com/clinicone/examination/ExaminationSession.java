@@ -48,6 +48,9 @@ public class ExaminationSession {
     @Column(name = "start_request_key", length = 80)
     private String startRequestKey;
 
+    @Column(name = "sign_request_key", length = 80)
+    private String signRequestKey;
+
     protected ExaminationSession() {
     }
 
@@ -87,6 +90,13 @@ public class ExaminationSession {
         }
     }
 
+    public void assignSignRequestKey(String requestKey) {
+        if ((signRequestKey == null || signRequestKey.isBlank())
+                && requestKey != null && !requestKey.isBlank()) {
+            signRequestKey = requestKey.trim();
+        }
+    }
+
     public void complete() {
         status = ExaminationSessionStatus.COMPLETED;
         if (endedAt == null) {
@@ -118,4 +128,5 @@ public class ExaminationSession {
     public Instant getStartedAt() { return startedAt; }
     public Instant getEndedAt() { return endedAt; }
     public String getStartRequestKey() { return startRequestKey; }
+    public String getSignRequestKey() { return signRequestKey; }
 }

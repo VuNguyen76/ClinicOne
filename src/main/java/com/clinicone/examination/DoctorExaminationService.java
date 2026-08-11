@@ -166,7 +166,9 @@ public class DoctorExaminationService {
     }
 
     @Transactional
-    public DoctorExaminationResponse sign(UUID ticketId, String staffId, DoctorExaminationRequest request) {
+    public DoctorExaminationResponse sign(UUID ticketId, String staffId, DoctorExaminationRequest request,
+                                          String requestKey) {
+        String normalizedRequestKey = normalizeSigningRequestKey(requestKey);
         Workspace workspace = workspace(ticketId, staffId, true);
         MedicalRecord existingRecord = workspace.appointment().requiresMedicalRecord()
                 ? recordRepository.findBySession_Id(workspace.session().getId()).orElse(null)
@@ -174,7 +176,10 @@ public class DoctorExaminationService {
         if (workspace.ticket().getStatus() == QueueTicketStatus.COMPLETED
                 && (!workspace.appointment().requiresMedicalRecord()
                 || (existingRecord != null && existingRecord.getSignedAt() != null))) {
-            return response(workspace.ticket(), workspace.session(), existingRecord);
+            if (normalizedRequestKey.equals(workspace.session().getSignRequestKey())) {
+                return response(workspace.ticket(), workspace.session(), existingRecord);
+            }
+            throw conflict("EXAMINATION_ALREADY_COMPLETED", "Lượt khám đã hoàn tất và phiếu khám đang ở chế độ chỉ đọc.");
         }
         UUID eventId = UUID.randomUUID();
         String previousSessionStatus = workspace.session().getStatus().name();
@@ -182,6 +187,7 @@ public class DoctorExaminationService {
         String previousAppointmentStatus = workspace.appointment().getStatus().name();
         workspace.session().begin();
         if (!workspace.appointment().requiresMedicalRecord()) {
+            workspace.session().assignSignRequestKey(normalizedRequestKey);
             workspace.session().complete();
             workspace.ticket().complete();
             workspace.appointment().complete();
@@ -205,6 +211,7 @@ public class DoctorExaminationService {
             record.sign(doctorName(staffId, workspace.appointment()), request.reason(), request.examinationNotes(),
                     request.diagnosis(), request.conclusion(), request.treatmentPlan(), request.prescription(),
                     request.followUpDate(), prescriptionLines, request.followUpDays(), normalizeFollowUpNote(request.followUpNote()));
+            workspace.session().assignSignRequestKey(normalizedRequestKey);
             workspace.session().complete();
             workspace.ticket().complete();
             workspace.appointment().complete();
@@ -288,6 +295,19 @@ public class DoctorExaminationService {
         if (requestKey == null || requestKey.isBlank()) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "IDEMPOTENCY_KEY_REQUIRED",
                     "Cần mã chống gửi lặp để bắt đầu khám.");
+        }
+        String normalized = requestKey.trim();
+        if (normalized.length() > 80) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "IDEMPOTENCY_KEY_INVALID",
+                    "Mã chống gửi lặp không được dài quá 80 ký tự.");
+        }
+        return normalized;
+    }
+
+    private String normalizeSigningRequestKey(String requestKey) {
+        if (requestKey == null || requestKey.isBlank()) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "IDEMPOTENCY_KEY_REQUIRED",
+                    "Cần mã chống gửi lặp để ký phiếu khám.");
         }
         String normalized = requestKey.trim();
         if (normalized.length() > 80) {
