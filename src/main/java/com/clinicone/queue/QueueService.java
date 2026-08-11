@@ -32,6 +32,14 @@ import java.util.UUID;
 @Service
 public class QueueService {
     private static final ZoneId CLINIC_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
+    private static final Comparator<QueueTicket> NEXT_WAITING_ORDER = Comparator
+            .comparing(QueueTicket::isPriority).reversed()
+            .thenComparing(QueueTicket::getCheckedInAt, Comparator.nullsLast(Comparator.naturalOrder()))
+            .thenComparingInt(QueueTicket::getQueueNumber);
+    private static final Comparator<QueueTicket> DISPLAY_ORDER = Comparator
+            .comparingInt(QueueService::displayGroup)
+            .thenComparing(QueueTicket::getCheckedInAt, Comparator.nullsLast(Comparator.naturalOrder()))
+            .thenComparingInt(QueueTicket::getQueueNumber);
 
     private final ClinicRoomRepository roomRepository;
     private final QueueTicketRepository ticketRepository;
@@ -229,7 +237,7 @@ public class QueueService {
     public List<QueueTicketResponse> list(String roomCode, LocalDate date) {
         findRoom(roomCode);
         LocalDate queueDate = date == null ? today() : date;
-        return ticketRepository.findByRoomCodeAndQueueDateOrderByQueueNumberAsc(roomCode, queueDate).stream()
+        return orderForDisplay(ticketRepository.findByRoomCodeAndQueueDateOrderByQueueNumberAsc(roomCode, queueDate)).stream()
                 .map(QueueTicketResponse::from)
                 .toList();
     }
@@ -302,9 +310,7 @@ public class QueueService {
         QueueTicket next = doctorTickets(profile.getRoom().getCode(), queueDate, doctorId).stream()
                 .filter(ticket -> ticket.getStatus() == QueueTicketStatus.WAITING
                         && ticket.getPresenceStatus() == QueuePresenceStatus.READY)
-                .sorted(Comparator.comparing(QueueTicket::isPriority).reversed()
-                        .thenComparing(QueueTicket::getCheckedInAt)
-                        .thenComparing(QueueTicket::getQueueNumber))
+                .sorted(NEXT_WAITING_ORDER)
                 .findFirst()
                 .orElseThrow(() -> new AuthException(HttpStatus.CONFLICT, "QUEUE_NO_NEXT_PATIENT",
                         "Không còn bệnh nhân đang chờ trong hàng đợi."));
@@ -502,7 +508,26 @@ public class QueueService {
                 roomCode, date, doctorId));
         return distinct.values().stream()
                 .filter(ticket -> Objects.equals(ticket.getEffectiveDoctorStaffId(), doctorId))
+                .sorted(DISPLAY_ORDER)
                 .toList();
+    }
+
+    private static List<QueueTicket> orderForDisplay(List<QueueTicket> tickets) {
+        if (tickets == null || tickets.isEmpty()) {
+            return List.of();
+        }
+        return tickets.stream().filter(Objects::nonNull).sorted(DISPLAY_ORDER).toList();
+    }
+
+    private static int displayGroup(QueueTicket ticket) {
+        return switch (ticket.getStatus()) {
+            case IN_SERVICE -> 0;
+            case CALLED -> 1;
+            case WAITING -> ticket.getPresenceStatus() == QueuePresenceStatus.READY
+                    ? (ticket.isPriority() ? 2 : 3) : 4;
+            case SKIPPED -> 4;
+            case LEFT_BEFORE_EXAM, COMPLETED -> 5;
+        };
     }
 
     private void addTickets(Map<UUID, QueueTicket> target, List<QueueTicket> tickets) {
