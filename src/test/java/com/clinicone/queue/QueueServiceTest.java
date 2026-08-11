@@ -58,6 +58,7 @@ class QueueServiceTest {
         appointment = appointment("Nội tổng quát", TODAY);
         setId(appointment, APPOINTMENT_ID);
         when(roomRepository.findByCodeAndActiveTrue("NOI-01")).thenReturn(Optional.of(room));
+        when(roomRepository.findByCodeAndActiveTrueForUpdate("NOI-01")).thenReturn(Optional.of(room));
         when(appointmentRepository.findByIdAndPatientId(APPOINTMENT_ID, ACCOUNT_ID)).thenReturn(Optional.of(appointment));
         when(ticketRepository.findByAppointmentId(APPOINTMENT_ID)).thenReturn(Optional.empty());
         when(ticketRepository.findMaxQueueNumberByRoomCodeAndQueueDate("NOI-01", TODAY)).thenReturn(4);
@@ -87,6 +88,18 @@ class QueueServiceTest {
 
         assertEquals(5, response.queueNumber());
         assertEquals("checkin-key-1", appointment.getCheckInRequestKey());
+    }
+
+    @Test
+    void refusesToIssueAThousandthQueueNumber() {
+        when(ticketRepository.findMaxQueueNumberByRoomCodeAndQueueDate("NOI-01", TODAY)).thenReturn(999);
+
+        AuthException exception = assertThrows(AuthException.class,
+                () -> service.checkIn(ACCOUNT_ID.toString(), "NOI-01", APPOINTMENT_ID));
+
+        assertEquals("QUEUE_NUMBER_LIMIT_REACHED", exception.getCode());
+        assertEquals(AppointmentStatus.BOOKED, appointment.getStatus());
+        verify(ticketRepository, never()).save(any(QueueTicket.class));
     }
 
     @Test
@@ -334,6 +347,7 @@ class QueueServiceTest {
 
         when(ticketRepository.findById(ticketId)).thenReturn(Optional.of(ticket));
         when(doctorProfileRepository.findById(targetDoctorId)).thenReturn(Optional.of(targetDoctor));
+        when(roomRepository.findByCodeAndActiveTrueForUpdate("NHI-01")).thenReturn(Optional.of(targetRoom));
         when(ticketRepository.findMaxQueueNumberByRoomCodeAndQueueDate("NHI-01", TODAY)).thenReturn(7);
         when(ticketRepository.save(any(QueueTicket.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
