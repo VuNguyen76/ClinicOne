@@ -100,6 +100,15 @@ class DoctorExaminationServiceTest {
     }
 
     @Test
+    void reopeningAnInProgressExaminationReturnsTheLastDraftSaveTime() {
+        service.saveDraft(TICKET_ID, DOCTOR_ID.toString(), request());
+
+        DoctorExaminationResponse response = service.open(TICKET_ID, DOCTOR_ID.toString());
+
+        assertThat(response.draftSavedAt()).isNotNull();
+    }
+
+    @Test
     void signingCompletesTheWholeExaminationAndNotifiesPatient() {
         DoctorExaminationResponse response = service.sign(TICKET_ID, DOCTOR_ID.toString(), request());
 

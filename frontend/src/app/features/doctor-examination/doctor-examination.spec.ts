@@ -33,12 +33,15 @@ describe('DoctorExamination', () => {
   });
 
   it('loads the active examination and renders the patient summary', () => {
-    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush({
+      ...examination(), draftSavedAt: '2026-08-11T09:30:00Z',
+    });
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('[data-testid="patient-summary"]').textContent)
       .toContain('Nguyễn Thanh Vũ');
     expect(fixture.nativeElement.querySelector('[data-testid="medical-form"]')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('[data-testid="draft-saved-at"]')).toBeTruthy();
   });
 
   it('saves a draft without leaving the workspace', () => {

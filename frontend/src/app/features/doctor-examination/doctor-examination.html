@@ -69,7 +69,7 @@
         <form [formGroup]="form" data-testid="medical-form" class="border border-[#dce7ea] bg-white" (submit)="$event.preventDefault()" (focusout)="saveDraftOnBlur()">
           @if (exam.requiresMedicalRecord !== false) {
           <div class="border-b border-[#e7eff1] px-5 py-4 sm:px-6">
-            <h2 class="text-base font-bold text-[#0a303b]">Phiếu khám</h2>
+            <div class="flex flex-wrap items-center justify-between gap-2"><h2 class="text-base font-bold text-[#0a303b]">Phiếu khám</h2>@if (!exam.signedAt && exam.draftSavedAt) {<span data-testid="draft-saved-at" class="text-xs font-medium text-slate-500">Bản nháp lưu lúc {{ formatDraftSavedAt(exam.draftSavedAt) }}</span>}</div>
             <p class="mt-1 text-xs text-slate-500">Lưu nháp trong lúc khám; chỉ phiếu đã ký mới được gửi cho người bệnh.</p>
           </div>
           <div class="grid gap-5 p-5 sm:grid-cols-2 sm:p-6">

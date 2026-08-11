@@ -32,6 +32,7 @@ public record DoctorExaminationResponse(
         String followUpNote,
         String status,
         Instant signedAt,
+        Instant draftSavedAt,
         Long recordVersion,
         boolean requiresMedicalRecord,
         List<MedicalRecordResponse> history,
@@ -47,6 +48,6 @@ public record DoctorExaminationResponse(
         this(ticketId, appointmentId, examinationId, queueNumber, roomName, appointmentCode, specialty, doctorName,
                 appointmentDate, startTime, patientName, patientDateOfBirth, patientGender, patientPhone, reason,
                 examinationNotes, diagnosis, conclusion, treatmentPlan, prescription, followUpDate, null, null,
-                status, signedAt, null, true, List.of(), List.of());
+                status, signedAt, null, null, true, List.of(), List.of());
     }
 }
