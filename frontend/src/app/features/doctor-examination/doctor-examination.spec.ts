@@ -250,6 +250,11 @@ describe('DoctorExamination', () => {
       && request.params.get('query') === 'Đau đầu căng thẳng').flush([]);
     fixture.detectChanges();
     (fixture.nativeElement.querySelector('[data-testid="sign-record"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[data-testid="confirm-sign-record"]')).toBeTruthy();
+    http.expectNone('/api/v1/doctor/examinations/ticket-1/sign');
+    (fixture.nativeElement.querySelector('[data-testid="confirm-sign-record"]') as HTMLButtonElement).click();
 
     const request = http.expectOne('/api/v1/doctor/examinations/ticket-1/sign');
     expect(request.request.method).toBe('POST');
