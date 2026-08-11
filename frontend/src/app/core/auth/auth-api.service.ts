@@ -856,8 +856,10 @@ export class AuthApiService {
     return this.http.post<QueueTicketResponse>(`${this.queueRoot}/${ticketId}/adjust`, request);
   }
 
-  startQueueTicket(ticketId: string): Observable<QueueTicketResponse> {
-    return this.http.post<QueueTicketResponse>(`${this.queueRoot}/${ticketId}/start`, {});
+  startExamination(ticketId: string, requestKey: string): Observable<DoctorExaminationResponse> {
+    return this.http.post<DoctorExaminationResponse>(`/api/v1/doctor/examinations/${ticketId}/start`, {}, {
+      headers: { 'Idempotency-Key': requestKey },
+    });
   }
 
   getRooms(): Observable<ClinicRoomResponse[]> {

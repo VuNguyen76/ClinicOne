@@ -12,7 +12,9 @@ describe('StaffDashboard', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [StaffDashboard],
-      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([
+        { path: 'doctor/examinations/:ticketId', component: StaffDashboard },
+      ])],
     }).compileComponents();
   });
 
@@ -53,6 +55,19 @@ describe('StaffDashboard', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('[data-testid="call-next"]')).not.toBeNull();
+  });
+
+  it('starts an examination with one retry-safe request key', () => {
+    createDashboard('DOCTOR');
+    http.expectOne((candidate) => candidate.url === '/api/v1/doctor/queue')
+      .flush(doctorQueue([ticket('ticket-1', 'CALLED')]));
+    const component = fixture.componentInstance as any;
+
+    component.act(ticket('ticket-1', 'CALLED'), 'start');
+
+    const request = http.expectOne('/api/v1/doctor/examinations/ticket-1/start');
+    expect(request.request.headers.get('Idempotency-Key')).toMatch(/^start-/);
+    request.flush({ ticketId: 'ticket-1', status: 'IN_PROGRESS' });
   });
 
   it('does not expose manual completion to a doctor while a visit is in service', () => {

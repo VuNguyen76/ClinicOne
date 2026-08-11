@@ -52,6 +52,17 @@ class DoctorExaminationControllerTest {
     }
 
     @Test
+    void doctorCanStartAnExaminationWithAnIdempotencyKey() throws Exception {
+        when(service.start(TICKET_ID, STAFF_ID.toString(), "start-visit-1")).thenReturn(response());
+
+        mockMvc.perform(post("/api/v1/doctor/examinations/" + TICKET_ID + "/start")
+                        .with(authentication(authenticated("ROLE_DOCTOR")))
+                        .header("Idempotency-Key", "start-visit-1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("IN_PROGRESS"));
+    }
+
+    @Test
     void doctorCanSaveDraft() throws Exception {
         when(service.saveDraft(eq(TICKET_ID), eq(STAFF_ID.toString()), org.mockito.ArgumentMatchers.any()))
                 .thenReturn(response());

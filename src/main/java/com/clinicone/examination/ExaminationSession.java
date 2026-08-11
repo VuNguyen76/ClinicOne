@@ -20,7 +20,8 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "examination_sessions", uniqueConstraints = {
-        @UniqueConstraint(name = "uk_examination_sessions_appointment", columnNames = "appointment_id")
+        @UniqueConstraint(name = "uk_examination_sessions_appointment", columnNames = "appointment_id"),
+        @UniqueConstraint(name = "uk_examination_sessions_start_key", columnNames = "start_request_key")
 })
 public class ExaminationSession {
     @Id
@@ -43,6 +44,9 @@ public class ExaminationSession {
 
     @Column(name = "ended_at")
     private Instant endedAt;
+
+    @Column(name = "start_request_key", length = 80)
+    private String startRequestKey;
 
     protected ExaminationSession() {
     }
@@ -76,6 +80,13 @@ public class ExaminationSession {
         }
     }
 
+    public void assignStartRequestKey(String requestKey) {
+        if ((startRequestKey == null || startRequestKey.isBlank())
+                && requestKey != null && !requestKey.isBlank()) {
+            startRequestKey = requestKey.trim();
+        }
+    }
+
     public void complete() {
         status = ExaminationSessionStatus.COMPLETED;
         if (endedAt == null) {
@@ -106,4 +117,5 @@ public class ExaminationSession {
     public Instant getCreatedAt() { return createdAt; }
     public Instant getStartedAt() { return startedAt; }
     public Instant getEndedAt() { return endedAt; }
+    public String getStartRequestKey() { return startRequestKey; }
 }

@@ -105,7 +105,8 @@ public class QueueController {
     @PostMapping("/queue/{ticketId}/start")
     @PreAuthorize("hasRole('DOCTOR')")
     public ResponseEntity<QueueTicketResponse> start(Authentication authentication, @PathVariable UUID ticketId) {
-        return ResponseEntity.ok(queueService.start(ticketId, authentication.getName()));
+        throw new AuthException(HttpStatus.GONE, "DOCTOR_START_ENDPOINT_REPLACED",
+                "Hãy dùng chức năng bắt đầu khám trong hồ sơ bác sĩ.");
     }
 
     @PostMapping("/queue/{ticketId}/complete")
