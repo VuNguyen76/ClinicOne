@@ -14,6 +14,9 @@ import com.clinicone.notification.PatientNotificationService;
 import com.clinicone.queue.ClinicRoom;
 import com.clinicone.queue.QueueTicket;
 import com.clinicone.queue.QueueTicketRepository;
+import com.clinicone.schedule.GeneratedClinicSlot;
+import com.clinicone.schedule.GeneratedClinicSlotRepository;
+import com.clinicone.schedule.GeneratedSlotStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -48,6 +51,7 @@ class DoctorExaminationServiceTest {
     private AppointmentRepository appointmentRepository;
     private DoctorProfileRepository profileRepository;
     private PatientNotificationService notificationService;
+    private GeneratedClinicSlotRepository generatedSlotRepository;
     private DoctorExaminationService service;
     private QueueTicket ticket;
     private ExaminationSession session;
@@ -63,8 +67,9 @@ class DoctorExaminationServiceTest {
         appointmentRepository = mock(AppointmentRepository.class);
         profileRepository = mock(DoctorProfileRepository.class);
         notificationService = mock(PatientNotificationService.class);
+        generatedSlotRepository = mock(GeneratedClinicSlotRepository.class);
         service = new DoctorExaminationService(ticketRepository, sessionRepository, recordRepository,
-                staffRepository, appointmentRepository, profileRepository, notificationService);
+                staffRepository, appointmentRepository, profileRepository, notificationService, generatedSlotRepository);
 
         ClinicRoom room = ClinicRoom.create("NOI-01", "Phòng Nội 01", "Nội tổng quát");
         StaffAccount doctor = StaffAccount.create("bs.an", "hash", "Bác sĩ Nguyễn An", StaffRole.DOCTOR);
@@ -126,6 +131,20 @@ class DoctorExaminationServiceTest {
     }
 
     @Test
+    void signingAConfiguredAppointmentMarksItsGeneratedSlotUnavailable() {
+        appointment.applyServiceSnapshot(UUID.randomUUID(), "Khám nội tổng quát", "Khám mới", 30, true);
+        GeneratedClinicSlot slot = mock(GeneratedClinicSlot.class);
+        when(generatedSlotRepository.findFirstByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
+                DOCTOR_ID, appointment.getAppointmentDate(), appointment.getStartTime(), GeneratedSlotStatus.OPEN))
+                .thenReturn(Optional.of(slot));
+
+        service.sign(TICKET_ID, DOCTOR_ID.toString(), request(), "sign-visit-1");
+
+        verify(slot).cancel();
+        verify(generatedSlotRepository).save(slot);
+    }
+
+    @Test
     void repeatingSignReturnsTheExistingSignedRecordWithoutChangingItOrNotifyingAgain() {
         DoctorExaminationResponse first = service.sign(TICKET_ID, DOCTOR_ID.toString(), request(), "sign-visit-1");
 
@@ -151,8 +170,53 @@ class DoctorExaminationServiceTest {
     }
 
     @Test
+    void stoppingAnInProgressExaminationClosesTheVisitWithoutSigningItsDraft() {
+        DoctorExaminationResponse response = service.stop(TICKET_ID, DOCTOR_ID.toString(),
+                new StopExaminationRequest("Người bệnh cần rời phòng khám ngay."));
+
+        assertThat(response.status()).isEqualTo("CANCELLED");
+        assertThat(session.getStatus()).isEqualTo(ExaminationSessionStatus.CANCELLED);
+        assertThat(ticket.getStatus()).isEqualTo(com.clinicone.queue.QueueTicketStatus.COMPLETED);
+        assertThat(appointment.getStatus()).isEqualTo(com.clinicone.appointment.AppointmentStatus.NOT_PERFORMED);
+        assertThat(record.getSignedAt()).isNull();
+        verify(sessionRepository).save(session);
+        verify(ticketRepository).save(ticket);
+        verify(appointmentRepository).save(appointment);
+        verify(recordRepository, never()).saveAndFlush(record);
+    }
+
+    @Test
+    void stoppingRequiresAnOperationalReasonAndKeepsTheVisitOpenWhenItIsTooShort() {
+        assertThatThrownBy(() -> service.stop(TICKET_ID, DOCTOR_ID.toString(),
+                new StopExaminationRequest("Quá ngắn")))
+                .isInstanceOf(AuthException.class)
+                .satisfies(error -> assertThat(((AuthException) error).getCode())
+                        .isEqualTo("EXAMINATION_STOP_REASON_INVALID"));
+
+        assertThat(session.getStatus()).isEqualTo(ExaminationSessionStatus.IN_PROGRESS);
+        assertThat(ticket.getStatus()).isEqualTo(com.clinicone.queue.QueueTicketStatus.IN_SERVICE);
+        assertThat(appointment.getStatus()).isEqualTo(com.clinicone.appointment.AppointmentStatus.BOOKED);
+    }
+
+    @Test
+    void stoppingAConfiguredAppointmentMarksItsGeneratedSlotUnavailable() {
+        UUID serviceId = UUID.randomUUID();
+        appointment.applyServiceSnapshot(serviceId, "Khám nội tổng quát", "Khám mới", 30, true);
+        GeneratedClinicSlot slot = mock(GeneratedClinicSlot.class);
+        when(generatedSlotRepository.findFirstByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
+                DOCTOR_ID, appointment.getAppointmentDate(), appointment.getStartTime(), GeneratedSlotStatus.OPEN))
+                .thenReturn(Optional.of(slot));
+
+        service.stop(TICKET_ID, DOCTOR_ID.toString(), new StopExaminationRequest("Phòng khám cần tạm ngưng phục vụ."));
+
+        verify(slot).cancel();
+        verify(generatedSlotRepository).save(slot);
+    }
+
+    @Test
     void endingVisitWithoutMedicalRecordCompletesOnlyAfterDoctorAction() {
         appointment.applyServiceSnapshot(UUID.randomUUID(), "Tiếp nhận nhanh", "Tư vấn", 15, false);
+        stubCurrentGeneratedSlot();
 
         DoctorExaminationResponse response = service.sign(TICKET_ID, DOCTOR_ID.toString(),
                 new DoctorExaminationRequest(null, null, null, null, null, null, null, null), "sign-visit-1");
@@ -222,6 +286,7 @@ class DoctorExaminationServiceTest {
     @Test
     void repeatingCompletionWithoutMedicalRecordReturnsTheCompletedVisit() {
         appointment.applyServiceSnapshot(UUID.randomUUID(), "Tiếp nhận nhanh", "Tư vấn", 15, false);
+        stubCurrentGeneratedSlot();
         DoctorExaminationRequest emptyRequest = new DoctorExaminationRequest(null, null, null, null, null, null, null, null);
 
         DoctorExaminationResponse first = service.sign(TICKET_ID, DOCTOR_ID.toString(), emptyRequest, "sign-visit-1");
@@ -382,6 +447,12 @@ class DoctorExaminationServiceTest {
         return new DoctorExaminationRequest("Đau đầu", "Mạch ổn", "Đau đầu căng thẳng",
                 "Theo dõi thêm", "Nghỉ ngơi", null, null, 0L,
                 List.of(new PrescriptionLineRequest(null, "Paracetamol", "500 mg", 10, "Uống khi đau")));
+    }
+
+    private void stubCurrentGeneratedSlot() {
+        when(generatedSlotRepository.findFirstByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
+                DOCTOR_ID, appointment.getAppointmentDate(), appointment.getStartTime(), GeneratedSlotStatus.OPEN))
+                .thenReturn(Optional.of(mock(GeneratedClinicSlot.class)));
     }
 
     private static void setId(Object target, UUID id) {
