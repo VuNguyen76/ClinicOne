@@ -23,6 +23,9 @@ type PrescriptionLineForm = FormGroup<{
   instructions: FormControl<string | null>;
 }>;
 
+type ClinicalTextField = 'reason' | 'examinationNotes' | 'diagnosis' | 'conclusion' | 'treatmentPlan';
+type PrescriptionTextField = 'medicationName' | 'dosage' | 'instructions';
+
 @Component({
   selector: 'app-doctor-examination',
   standalone: true,
@@ -196,6 +199,7 @@ export class DoctorExamination implements OnInit {
 
   protected findMedicationSuggestions(index: number): void {
     const line = this.prescriptionLines.at(index);
+    this.limitPrescriptionText(index, 'medicationName', 'Tên thuốc', 200);
     line.controls.medicationId.setValue(null, { emitEvent: false });
     const query = line.controls.medicationName.value?.trim() ?? '';
     if (query.length < 2) {
@@ -209,6 +213,7 @@ export class DoctorExamination implements OnInit {
   }
 
   protected findDiagnosisSuggestions(): void {
+    this.limitClinicalText('diagnosis', 'Chẩn đoán');
     const query = this.form.controls.diagnosis.value?.trim() ?? '';
     if (query.length < 2) {
       this.diagnosisSuggestions.set([]);
@@ -223,6 +228,32 @@ export class DoctorExamination implements OnInit {
   protected selectDiagnosis(suggestion: DiagnosisSuggestionResponse): void {
     this.form.controls.diagnosis.setValue(suggestion.name);
     this.diagnosisSuggestions.set([]);
+  }
+
+  protected limitClinicalText(field: ClinicalTextField, label: string): void {
+    this.limitText(this.form.controls[field], label, 2000);
+  }
+
+  protected limitPrescriptionText(index: number, field: PrescriptionTextField, label: string, limit: number): void {
+    this.limitText(this.prescriptionLines.at(index).controls[field], label, limit);
+  }
+
+  protected limitPrescriptionQuantity(index: number): void {
+    const control = this.prescriptionLines.at(index).controls.quantity;
+    if ((control.value ?? 0) <= 999) return;
+    control.setValue(999);
+    this.notice.set('Số lượng thuốc tối đa 999.');
+  }
+
+  protected limitFollowUpDays(): void {
+    const control = this.form.controls.followUpDays;
+    if ((control.value ?? 0) <= 365) return;
+    control.setValue(365);
+    this.notice.set('Số ngày tái khám tối đa 365.');
+  }
+
+  protected limitFollowUpNote(): void {
+    this.limitText(this.form.controls.followUpNote, 'Dặn dò tái khám', 500);
   }
 
   protected selectMedication(index: number, medication: MedicationSuggestionResponse): void {
@@ -293,6 +324,13 @@ export class DoctorExamination implements OnInit {
     this.form.controls.followUpDays.markAsTouched();
     this.error.set('Nhập số ngày tái khám từ 1 đến 365 trước khi ký.');
     return false;
+  }
+
+  private limitText(control: FormControl<string | null>, label: string, limit: number): void {
+    const value = control.value ?? '';
+    if (value.length <= limit) return;
+    control.setValue(value.slice(0, limit));
+    this.notice.set(`${label} tối đa ${limit.toLocaleString('vi-VN')} ký tự.`);
   }
 
   private setMedicationSuggestions(index: number, suggestions: MedicationSuggestionResponse[]): void {
