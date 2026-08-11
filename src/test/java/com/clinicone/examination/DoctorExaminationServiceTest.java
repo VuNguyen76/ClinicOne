@@ -29,6 +29,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -114,6 +115,22 @@ class DoctorExaminationServiceTest {
     }
 
     @Test
+    void repeatingSignReturnsTheExistingSignedRecordWithoutChangingItOrNotifyingAgain() {
+        DoctorExaminationResponse first = service.sign(TICKET_ID, DOCTOR_ID.toString(), request());
+
+        DoctorExaminationRequest retriedRequest = new DoctorExaminationRequest(
+                "Nội dung không được ghi đè", "Ghi nhận khác", "Chẩn đoán khác", "Kết luận khác",
+                null, null, null);
+        DoctorExaminationResponse retried = service.sign(TICKET_ID, DOCTOR_ID.toString(), retriedRequest);
+
+        assertThat(retried.status()).isEqualTo("COMPLETED");
+        assertThat(retried.signedAt()).isEqualTo(first.signedAt());
+        assertThat(retried.reason()).isEqualTo("Đau đầu");
+        verify(notificationService, times(1)).notifyMedicalRecordSigned(any(), any(), any(), any(), any());
+        verify(recordRepository, times(1)).save(record);
+    }
+
+    @Test
     void endingVisitWithoutMedicalRecordCompletesOnlyAfterDoctorAction() {
         appointment.applyServiceSnapshot(UUID.randomUUID(), "Tiếp nhận nhanh", "Tư vấn", 15, false);
 
@@ -128,6 +145,19 @@ class DoctorExaminationServiceTest {
         assertThat(session.getStatus()).isEqualTo(ExaminationSessionStatus.COMPLETED);
         verify(recordRepository, never()).findBySession_Id(SESSION_ID);
         verify(recordRepository, never()).save(any(MedicalRecord.class));
+        verify(notificationService, never()).notifyMedicalRecordSigned(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void repeatingCompletionWithoutMedicalRecordReturnsTheCompletedVisit() {
+        appointment.applyServiceSnapshot(UUID.randomUUID(), "Tiếp nhận nhanh", "Tư vấn", 15, false);
+        DoctorExaminationRequest emptyRequest = new DoctorExaminationRequest(null, null, null, null, null, null, null);
+
+        DoctorExaminationResponse first = service.sign(TICKET_ID, DOCTOR_ID.toString(), emptyRequest);
+        DoctorExaminationResponse retried = service.sign(TICKET_ID, DOCTOR_ID.toString(), emptyRequest);
+
+        assertThat(retried.status()).isEqualTo("COMPLETED");
+        assertThat(retried.examinationId()).isEqualTo(first.examinationId());
         verify(notificationService, never()).notifyMedicalRecordSigned(any(), any(), any(), any(), any());
     }
 

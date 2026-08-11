@@ -115,7 +115,15 @@ public class DoctorExaminationService {
 
     @Transactional
     public DoctorExaminationResponse sign(UUID ticketId, String staffId, DoctorExaminationRequest request) {
-        Workspace workspace = workspace(ticketId, staffId);
+        Workspace workspace = workspace(ticketId, staffId, true);
+        MedicalRecord existingRecord = workspace.appointment().requiresMedicalRecord()
+                ? recordRepository.findBySession_Id(workspace.session().getId()).orElse(null)
+                : null;
+        if (workspace.ticket().getStatus() == QueueTicketStatus.COMPLETED
+                && (!workspace.appointment().requiresMedicalRecord()
+                || (existingRecord != null && existingRecord.getSignedAt() != null))) {
+            return response(workspace.ticket(), workspace.session(), existingRecord);
+        }
         UUID eventId = UUID.randomUUID();
         String previousSessionStatus = workspace.session().getStatus().name();
         String previousTicketStatus = workspace.ticket().getStatus().name();
@@ -137,7 +145,7 @@ public class DoctorExaminationService {
             return response(workspace.ticket(), workspace.session(), null);
         }
         requireRequiredFields(request);
-        MedicalRecord record = record(workspace.session());
+        MedicalRecord record = existingRecord == null ? record(workspace.session()) : existingRecord;
         try {
             record.sign(doctorName(staffId, workspace.appointment()), request.reason(), request.examinationNotes(),
                     request.diagnosis(), request.conclusion(), request.treatmentPlan(), request.prescription(),
@@ -166,12 +174,13 @@ public class DoctorExaminationService {
     }
 
     private Workspace workspace(UUID ticketId, String staffId) {
+        return workspace(ticketId, staffId, false);
+    }
+
+    private Workspace workspace(UUID ticketId, String staffId, boolean allowSignedCompletion) {
         QueueTicket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "QUEUE_TICKET_NOT_FOUND",
                         "Không tìm thấy lượt trong hàng đợi."));
-        if (ticket.getStatus() != QueueTicketStatus.IN_SERVICE) {
-            throw conflict("QUEUE_INVALID_STATE", "Lượt khám chưa ở trạng thái đang khám.");
-        }
         UUID doctorId = parseStaffId(staffId);
         // Queue adjustments may route a waiting patient to a different doctor
         // without changing the original appointment snapshot. Examination scope
@@ -185,7 +194,24 @@ public class DoctorExaminationService {
                 .filter(profile -> profile.getRoom().getCode().equalsIgnoreCase(ticket.getRoom().getCode()))
                 .orElseThrow(() -> new AuthException(HttpStatus.FORBIDDEN, "DOCTOR_ASSIGNMENT_REQUIRED",
                         "Bác sĩ chưa được gán đúng chuyên khoa và phòng khám."));
-        return new Workspace(ticket, ticket.getAppointment(), session(ticket.getAppointment()));
+        ExaminationSession session = sessionRepository.findByAppointment_Id(ticket.getAppointment().getId())
+                .orElseGet(() -> {
+                    if (ticket.getStatus() != QueueTicketStatus.IN_SERVICE) {
+                        throw conflict("QUEUE_INVALID_STATE", "Lượt khám chưa ở trạng thái đang khám.");
+                    }
+                    return sessionRepository.save(ExaminationSession.create(ticket.getAppointment()));
+                });
+        if (ticket.getStatus() == QueueTicketStatus.IN_SERVICE) {
+            return new Workspace(ticket, ticket.getAppointment(), session);
+        }
+        if (allowSignedCompletion && ticket.getStatus() == QueueTicketStatus.COMPLETED
+                && session.getStatus() == ExaminationSessionStatus.COMPLETED) {
+            if (!ticket.getAppointment().requiresMedicalRecord()
+                    || recordRepository.findBySession_Id(session.getId()).map(MedicalRecord::getSignedAt).isPresent()) {
+                return new Workspace(ticket, ticket.getAppointment(), session);
+            }
+        }
+        throw conflict("QUEUE_INVALID_STATE", "Lượt khám chưa ở trạng thái đang khám.");
     }
 
     private UUID parseStaffId(String staffId) {
@@ -195,11 +221,6 @@ public class DoctorExaminationService {
             throw new AuthException(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_REQUIRED",
                     "Phiên đăng nhập bác sĩ không hợp lệ.");
         }
-    }
-
-    private ExaminationSession session(Appointment appointment) {
-        return sessionRepository.findByAppointment_Id(appointment.getId())
-                .orElseGet(() -> sessionRepository.save(ExaminationSession.create(appointment)));
     }
 
     private MedicalRecord record(ExaminationSession session) {
