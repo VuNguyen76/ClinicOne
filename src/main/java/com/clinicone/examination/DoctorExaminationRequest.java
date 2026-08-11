@@ -11,6 +11,7 @@ public record DoctorExaminationRequest(
         @Size(max = 2000) String conclusion,
         @Size(max = 2000) String treatmentPlan,
         @Size(max = 4000) String prescription,
-        LocalDate followUpDate
+        LocalDate followUpDate,
+        Long recordVersion
 ) {
 }

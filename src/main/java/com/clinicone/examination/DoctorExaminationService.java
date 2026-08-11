@@ -101,10 +101,12 @@ public class DoctorExaminationService {
         String previousSessionStatus = workspace.session().getStatus().name();
         workspace.session().begin();
         MedicalRecord record = record(workspace.session());
+        requireCurrentRecordVersion(record, request);
         try {
             record.saveDraft(doctorName(staffId, workspace.appointment()), request.reason(), request.examinationNotes(),
                     request.diagnosis(), request.conclusion(), request.treatmentPlan(), request.prescription(),
                     request.followUpDate());
+            recordRepository.saveAndFlush(record);
         } catch (IllegalStateException exception) {
             throw conflict("MEDICAL_RECORD_LOCKED", exception.getMessage());
         }
@@ -146,6 +148,7 @@ public class DoctorExaminationService {
         }
         requireRequiredFields(request);
         MedicalRecord record = existingRecord == null ? record(workspace.session()) : existingRecord;
+        requireCurrentRecordVersion(record, request);
         try {
             record.sign(doctorName(staffId, workspace.appointment()), request.reason(), request.examinationNotes(),
                     request.diagnosis(), request.conclusion(), request.treatmentPlan(), request.prescription(),
@@ -156,7 +159,7 @@ public class DoctorExaminationService {
             appointmentRepository.save(workspace.appointment());
             ticketRepository.save(workspace.ticket());
             sessionRepository.save(workspace.session());
-            recordRepository.save(record);
+            recordRepository.saveAndFlush(record);
             recordTransition(eventId, "EXAMINATION", workspace.session().getId(), previousSessionStatus,
                     workspace.session().getStatus().name(), "SIGN_MEDICAL_RECORD", staffId, null);
             recordTransition(eventId, "QUEUE_TICKET", workspace.ticket().getId(), previousTicketStatus,
@@ -247,6 +250,17 @@ public class DoctorExaminationService {
         }
     }
 
+    private void requireCurrentRecordVersion(MedicalRecord record, DoctorExaminationRequest request) {
+        if (request.recordVersion() == null) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "MEDICAL_RECORD_VERSION_REQUIRED",
+                    "Thiếu phiên bản phiếu khám. Hãy tải lại trang trước khi lưu.");
+        }
+        if (request.recordVersion() != record.getVersion()) {
+            throw conflict("MEDICAL_RECORD_VERSION_CONFLICT",
+                    "Phiếu khám đã được cập nhật ở một cửa sổ khác. Hãy tải lại trang trước khi tiếp tục.");
+        }
+    }
+
     private boolean blank(String value) {
         return value == null || value.isBlank();
     }
@@ -279,7 +293,8 @@ public class DoctorExaminationService {
                 record == null ? null : record.getExaminationNotes(), record == null ? null : record.getDiagnosis(),
                 record == null ? null : record.getConclusion(), record == null ? null : record.getTreatmentPlan(),
                 record == null ? null : record.getPrescription(), record == null ? null : record.getFollowUpDate(),
-                session.getStatus().name(), record == null ? null : record.getSignedAt(), requiresRecord, history);
+                session.getStatus().name(), record == null ? null : record.getSignedAt(),
+                record == null ? null : record.getVersion(), requiresRecord, history);
     }
 
     private record Workspace(QueueTicket ticket, Appointment appointment, ExaminationSession session) {

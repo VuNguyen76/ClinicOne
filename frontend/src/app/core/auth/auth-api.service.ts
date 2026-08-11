@@ -515,6 +515,7 @@ export interface DoctorExaminationResponse {
   followUpDate: string | null;
   status: string;
   signedAt: string | null;
+  recordVersion: number | null;
   requiresMedicalRecord?: boolean;
   history?: MedicalRecordResponse[];
 }
@@ -527,6 +528,7 @@ export interface DoctorExaminationRequest {
   treatmentPlan?: string;
   prescription?: string;
   followUpDate?: string | null;
+  recordVersion?: number | null;
 }
 
 export interface ReceptionAppointmentResponse {
