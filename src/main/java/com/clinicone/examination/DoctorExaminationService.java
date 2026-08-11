@@ -246,8 +246,12 @@ public class DoctorExaminationService {
             recordTransition(eventId, "APPOINTMENT", workspace.appointment().getId(), previousAppointmentStatus,
                     workspace.appointment().getStatus().name(), "SIGN_MEDICAL_RECORD", staffId, null);
             if (notificationService != null) {
-                notificationService.notifyMedicalRecordSigned(workspace.appointment().getPatient().getId(), record.getId(),
-                        workspace.appointment().getAppointmentCode(), record.getDoctorName(), workspace.appointment().getSpecialty());
+                try {
+                    notificationService.notifyMedicalRecordSigned(workspace.appointment().getPatient().getId(), record.getId(),
+                            workspace.appointment().getAppointmentCode(), record.getDoctorName(), workspace.appointment().getSpecialty());
+                } catch (RuntimeException ignored) {
+                    // Notification delivery must not compromise the clinical transaction.
+                }
             }
         } catch (IllegalStateException exception) {
             throw conflict("MEDICAL_RECORD_SIGN_FAILED", exception.getMessage());

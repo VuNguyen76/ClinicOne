@@ -31,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -142,6 +143,20 @@ class DoctorExaminationServiceTest {
 
         verify(slot).cancel();
         verify(generatedSlotRepository).save(slot);
+    }
+
+    @Test
+    void notificationFailureDoesNotRollBackACompletedSignedExamination() {
+        doThrow(new RuntimeException("TextBee unavailable"))
+                .when(notificationService).notifyMedicalRecordSigned(any(), any(), any(), any(), any());
+
+        DoctorExaminationResponse response = service.sign(TICKET_ID, DOCTOR_ID.toString(), request(), "sign-visit-1");
+
+        assertThat(response.status()).isEqualTo("COMPLETED");
+        assertThat(session.getStatus()).isEqualTo(ExaminationSessionStatus.COMPLETED);
+        assertThat(ticket.getStatus()).isEqualTo(com.clinicone.queue.QueueTicketStatus.COMPLETED);
+        assertThat(appointment.getStatus()).isEqualTo(com.clinicone.appointment.AppointmentStatus.COMPLETED);
+        assertThat(record.getSignedAt()).isNotNull();
     }
 
     @Test
