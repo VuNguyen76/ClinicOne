@@ -11,7 +11,7 @@ import {
   apiErrorMessage,
 } from '../../core/auth/auth-api.service';
 
-type QueueAction = 'call' | 'skip' | 'start' | 'complete' | 'leave';
+type QueueAction = 'call' | 'skip' | 'start' | 'leave';
 
 @Component({
   selector: 'app-staff-dashboard',
@@ -43,7 +43,6 @@ export class StaffDashboard implements OnInit {
     (ticket.status === 'WAITING' && ticket.presenceStatus !== 'RETURN_REQUIRED') || ticket.status === 'SKIPPED'));
 
   protected readonly isDispatcher = computed(() => ['ADMIN', 'COORDINATOR', 'RECEPTIONIST'].includes(this.role()));
-  protected readonly isDoctor = computed(() => ['ADMIN', 'COORDINATOR', 'DOCTOR'].includes(this.role()));
   protected readonly isOwnDoctor = computed(() => this.role() === 'DOCTOR');
   protected readonly canManageRooms = computed(() => ['ADMIN', 'COORDINATOR'].includes(this.role()));
 
@@ -136,9 +135,7 @@ export class StaffDashboard implements OnInit {
         ? this.authApi.skipQueueTicket(ticket.id, 'Không có mặt khi được gọi')
         : action === 'leave'
           ? this.authApi.leaveQueueTicket(ticket.id, leaveReason ?? '')
-        : action === 'start'
-          ? this.authApi.startQueueTicket(ticket.id)
-          : this.authApi.completeQueueTicket(ticket.id);
+        : this.authApi.startQueueTicket(ticket.id);
     request.subscribe({
       next: (updated) => {
         this.queue.update((items) => items.map((item) => item.id === updated.id ? updated : item));

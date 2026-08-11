@@ -843,10 +843,6 @@ export class AuthApiService {
     return this.http.post<QueueTicketResponse>(`${this.queueRoot}/${ticketId}/start`, {});
   }
 
-  completeQueueTicket(ticketId: string): Observable<QueueTicketResponse> {
-    return this.http.post<QueueTicketResponse>(`${this.queueRoot}/${ticketId}/complete`, {});
-  }
-
   getRooms(): Observable<ClinicRoomResponse[]> {
     return this.http.get<ClinicRoomResponse[]>('/api/v1/rooms');
   }

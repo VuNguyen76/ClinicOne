@@ -70,6 +70,17 @@ describe('StaffDashboard', () => {
     expect(buttons.some((button) => button.textContent?.includes('Hoàn tất'))).toBe(false);
   });
 
+  it('does not expose clinical start or completion actions to a coordinator', () => {
+    createDashboard('COORDINATOR');
+    http.expectOne('/api/v1/rooms').flush([room('NOI-01')]);
+    http.expectOne((request) => request.url.endsWith('/queue')).flush([ticket('ticket-1', 'IN_SERVICE')]);
+    fixture.detectChanges();
+
+    const buttons = Array.from(fixture.nativeElement.querySelectorAll('button')) as HTMLButtonElement[];
+    expect(buttons.some((button) => button.textContent?.includes('Vào khám'))).toBe(false);
+    expect(buttons.some((button) => button.textContent?.includes('Hoàn tất'))).toBe(false);
+  });
+
   it('keeps the priority order returned for the doctor queue', () => {
     createDashboard('DOCTOR');
     const request = http.expectOne((candidate) => candidate.url === '/api/v1/doctor/queue');

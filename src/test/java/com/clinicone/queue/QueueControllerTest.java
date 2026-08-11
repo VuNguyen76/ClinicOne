@@ -156,6 +156,17 @@ class QueueControllerTest {
     }
 
     @Test
+    void coordinatorCannotStartOrCompleteAnExamination() throws Exception {
+        mockMvc.perform(post("/api/v1/queue/" + TICKET_ID + "/start")
+                        .with(authentication(authenticated("ROLE_COORDINATOR"))))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(post("/api/v1/queue/" + TICKET_ID + "/complete")
+                        .with(authentication(authenticated("ROLE_COORDINATOR"))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void receptionistCanCloseQueueTicketWhenPatientLeavesBeforeExam() throws Exception {
         when(queueService.leaveBeforeExam(eq(TICKET_ID), eq("Bệnh nhân bận việc")))
                 .thenReturn(new QueueTicketResponse(TICKET_ID, 5, "NOI-01", "Phòng Nội tổng quát 01",
