@@ -27,6 +27,7 @@ export class StaffDashboard implements OnInit, OnDestroy {
   private doctorQueueHealthTimer: ReturnType<typeof setInterval> | null = null;
   private lastSuccessfulDoctorQueueAt: number | null = null;
   private doctorQueueRequestInFlight = false;
+  private readonly startRequestKeys = new Map<string, string>();
 
   protected readonly rooms = signal<ClinicRoomResponse[]>([]);
   protected readonly selectedRoomCode = signal('');
@@ -169,22 +170,37 @@ export class StaffDashboard implements OnInit, OnDestroy {
   protected act(ticket: QueueTicketResponse, action: QueueAction): void {
     this.busyTicketId.set(ticket.id);
     this.error.set('');
-    const request = action === 'skip'
-      ? this.authApi.skipQueueTicket(ticket.id, 'Không có mặt khi được gọi')
-      : this.authApi.startQueueTicket(ticket.id);
-    request.subscribe({
+    if (action === 'start') {
+      this.authApi.startExamination(ticket.id, this.startRequestKey(ticket.id)).subscribe({
+        next: () => {
+          this.busyTicketId.set('');
+          void this.router.navigate(['/doctor/examinations', ticket.id]);
+        },
+        error: (response) => {
+          this.busyTicketId.set('');
+          this.handleError(response);
+        },
+      });
+      return;
+    }
+    this.authApi.skipQueueTicket(ticket.id, 'Không có mặt khi được gọi').subscribe({
       next: (updated) => {
         this.queue.update((items) => items.map((item) => item.id === updated.id ? updated : item));
         this.busyTicketId.set('');
-        if (action === 'start') {
-          void this.router.navigate(['/doctor/examinations', ticket.id]);
-        }
       },
       error: (response) => {
         this.busyTicketId.set('');
         this.handleError(response);
       },
     });
+  }
+
+  private startRequestKey(ticketId: string): string {
+    const existing = this.startRequestKeys.get(ticketId);
+    if (existing) return existing;
+    const generated = `start-${crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`}`;
+    this.startRequestKeys.set(ticketId, generated);
+    return generated;
   }
 
   protected callNextDoctor(): void {

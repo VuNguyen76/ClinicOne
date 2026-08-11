@@ -71,24 +71,68 @@ public class DoctorExaminationService {
         this.businessLogService = businessLogService;
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public DoctorExaminationResponse open(UUID ticketId, String staffId) {
         Workspace workspace = workspace(ticketId, staffId);
+        MedicalRecord record = workspace.appointment().requiresMedicalRecord()
+                ? recordRepository.findBySession_Id(workspace.session().getId()).orElse(null)
+                : null;
+        return response(workspace.ticket(), workspace.session(), record);
+    }
+
+    @Transactional
+    public DoctorExaminationResponse start(UUID ticketId, String staffId, String requestKey) {
+        String normalizedRequestKey = normalizeRequiredRequestKey(requestKey);
+        QueueTicket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "QUEUE_TICKET_NOT_FOUND",
+                        "Không tìm thấy lượt trong hàng đợi."));
+        UUID doctorId = lockDoctorAssignment(ticket, staffId);
+        ExaminationSession session = sessionRepository.findByAppointment_IdForUpdate(ticket.getAppointment().getId())
+                .orElseThrow(() -> conflict("EXAMINATION_NOT_CREATED", "Lượt khám chưa được tạo từ lần check-in."));
+
+        sessionRepository.findByStartRequestKey(normalizedRequestKey)
+                .filter(existing -> !existing.getId().equals(session.getId()))
+                .ifPresent(existing -> {
+                    throw conflict("IDEMPOTENCY_CONFLICT", "Mã chống gửi lặp đã được dùng cho lượt khám khác.");
+                });
+        if (ticket.getStatus() == QueueTicketStatus.IN_SERVICE
+                && session.getStatus() == ExaminationSessionStatus.IN_PROGRESS
+                && normalizedRequestKey.equals(session.getStartRequestKey())) {
+            MedicalRecord existingRecord = ticket.getAppointment().requiresMedicalRecord()
+                    ? recordRepository.findBySession_Id(session.getId()).orElse(null)
+                    : null;
+            return response(ticket, session, existingRecord);
+        }
+        if (ticket.getStatus() != QueueTicketStatus.CALLED || session.getStatus() != ExaminationSessionStatus.SCHEDULED) {
+            throw conflict("QUEUE_INVALID_STATE", "Chỉ có thể bắt đầu khi bệnh nhân đang được gọi và chưa bắt đầu khám.");
+        }
+        if (ticketRepository.countInServiceForDoctorExcludingTicket(doctorId, ticketId) > 0) {
+            throw conflict("DOCTOR_ACTIVE_EXAMINATION", "Bác sĩ đang có một lượt khám khác chưa hoàn thành.");
+        }
+
         UUID eventId = UUID.randomUUID();
-        String previousSessionStatus = workspace.session().getStatus().name();
-        workspace.session().begin();
+        String previousTicketStatus = ticket.getStatus().name();
+        String previousSessionStatus = session.getStatus().name();
+        ticket.startService();
+        session.begin();
+        session.assignStartRequestKey(normalizedRequestKey);
+        ticketRepository.save(ticket);
+        sessionRepository.save(session);
+
         MedicalRecord record = null;
-        if (workspace.appointment().requiresMedicalRecord()) {
-            record = record(workspace.session());
+        if (ticket.getAppointment().requiresMedicalRecord()) {
+            record = record(session);
             if (record.getDoctorName() == null || record.getDoctorName().isBlank()) {
-                record.saveDraft(doctorName(staffId, workspace.appointment()), record.getReason(),
+                record.saveDraft(doctorName(staffId, ticket.getAppointment()), record.getReason(),
                         record.getExaminationNotes(), record.getDiagnosis(), record.getConclusion(),
                         record.getTreatmentPlan(), record.getPrescription(), record.getFollowUpDate());
             }
         }
-        recordTransition(eventId, "EXAMINATION", workspace.session().getId(), previousSessionStatus,
-                workspace.session().getStatus().name(), "START_EXAMINATION", staffId, null);
-        return response(workspace.ticket(), workspace.session(), record);
+        recordTransition(eventId, "QUEUE_TICKET", ticket.getId(), previousTicketStatus,
+                ticket.getStatus().name(), "START_EXAMINATION", staffId, null);
+        recordTransition(eventId, "EXAMINATION", session.getId(), previousSessionStatus,
+                session.getStatus().name(), "START_EXAMINATION", staffId, null);
+        return response(ticket, session, record);
     }
 
     @Transactional
@@ -184,27 +228,11 @@ public class DoctorExaminationService {
         QueueTicket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "QUEUE_TICKET_NOT_FOUND",
                         "Không tìm thấy lượt trong hàng đợi."));
-        UUID doctorId = parseStaffId(staffId);
-        // Queue adjustments may route a waiting patient to a different doctor
-        // without changing the original appointment snapshot. Examination scope
-        // must follow the current queue routing, not the historical booking owner.
-        if (!doctorId.equals(ticket.getEffectiveDoctorStaffId())) {
-            throw new AuthException(HttpStatus.FORBIDDEN, "DOCTOR_TICKET_SCOPE",
-                    "Bác sĩ chỉ được mở phiếu của lượt đã được phân công.");
-        }
-        doctorProfileRepository.findByStaffAccount_Id(doctorId)
-                .filter(DoctorProfile::isActive)
-                .filter(profile -> profile.getRoom().getCode().equalsIgnoreCase(ticket.getRoom().getCode()))
-                .orElseThrow(() -> new AuthException(HttpStatus.FORBIDDEN, "DOCTOR_ASSIGNMENT_REQUIRED",
-                        "Bác sĩ chưa được gán đúng chuyên khoa và phòng khám."));
+        ensureDoctorAssignment(ticket, staffId);
         ExaminationSession session = sessionRepository.findByAppointment_Id(ticket.getAppointment().getId())
-                .orElseGet(() -> {
-                    if (ticket.getStatus() != QueueTicketStatus.IN_SERVICE) {
-                        throw conflict("QUEUE_INVALID_STATE", "Lượt khám chưa ở trạng thái đang khám.");
-                    }
-                    return sessionRepository.save(ExaminationSession.create(ticket.getAppointment()));
-                });
-        if (ticket.getStatus() == QueueTicketStatus.IN_SERVICE) {
+                .orElseThrow(() -> conflict("EXAMINATION_NOT_CREATED", "Lượt khám chưa được tạo từ lần check-in."));
+        if (ticket.getStatus() == QueueTicketStatus.IN_SERVICE
+                && session.getStatus() == ExaminationSessionStatus.IN_PROGRESS) {
             return new Workspace(ticket, ticket.getAppointment(), session);
         }
         if (allowSignedCompletion && ticket.getStatus() == QueueTicketStatus.COMPLETED
@@ -224,6 +252,41 @@ public class DoctorExaminationService {
             throw new AuthException(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_REQUIRED",
                     "Phiên đăng nhập bác sĩ không hợp lệ.");
         }
+    }
+
+    private UUID ensureDoctorAssignment(QueueTicket ticket, String staffId) {
+        return validateDoctorAssignment(ticket, parseStaffId(staffId), false);
+    }
+
+    private UUID lockDoctorAssignment(QueueTicket ticket, String staffId) {
+        return validateDoctorAssignment(ticket, parseStaffId(staffId), true);
+    }
+
+    private UUID validateDoctorAssignment(QueueTicket ticket, UUID doctorId, boolean lockDoctor) {
+        if (!doctorId.equals(ticket.getEffectiveDoctorStaffId())) {
+            throw new AuthException(HttpStatus.FORBIDDEN, "DOCTOR_TICKET_SCOPE",
+                    "Bác sĩ chỉ được mở phiếu của lượt đã được phân công.");
+        }
+        (lockDoctor ? doctorProfileRepository.findByStaffAccount_IdForUpdate(doctorId)
+                : doctorProfileRepository.findByStaffAccount_Id(doctorId))
+                .filter(DoctorProfile::isActive)
+                .filter(profile -> profile.getRoom().getCode().equalsIgnoreCase(ticket.getRoom().getCode()))
+                .orElseThrow(() -> new AuthException(HttpStatus.FORBIDDEN, "DOCTOR_ASSIGNMENT_REQUIRED",
+                        "Bác sĩ chưa được gán đúng chuyên khoa và phòng khám."));
+        return doctorId;
+    }
+
+    private String normalizeRequiredRequestKey(String requestKey) {
+        if (requestKey == null || requestKey.isBlank()) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "IDEMPOTENCY_KEY_REQUIRED",
+                    "Cần mã chống gửi lặp để bắt đầu khám.");
+        }
+        String normalized = requestKey.trim();
+        if (normalized.length() > 80) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "IDEMPOTENCY_KEY_INVALID",
+                    "Mã chống gửi lặp không được dài quá 80 ký tự.");
+        }
+        return normalized;
     }
 
     private MedicalRecord record(ExaminationSession session) {
@@ -287,7 +350,7 @@ public class DoctorExaminationService {
                 .stream().map(MedicalRecordResponse::from).toList();
         return new DoctorExaminationResponse(ticket.getId(), appointment.getId(), session.getId(), ticket.getQueueNumber(),
                 ticket.getRoom().getName(), appointment.getAppointmentCode(), appointment.getSpecialty(),
-                recordDoctorName == null ? appointment.getDoctorName() : recordDoctorName,
+                recordDoctorName == null ? ticket.getEffectiveDoctorName() : recordDoctorName,
                 appointment.getAppointmentDate(), appointment.getStartTime(), patient.getFullName(),
                 patient.getDateOfBirth(), patient.getGender(), patient.getPhone(), record == null ? null : record.getReason(),
                 record == null ? null : record.getExaminationNotes(), record == null ? null : record.getDiagnosis(),

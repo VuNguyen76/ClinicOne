@@ -92,6 +92,7 @@ class DoctorExaminationServiceTest {
         when(recordRepository.findBySession_Id(SESSION_ID)).thenReturn(Optional.of(record));
         when(staffRepository.findById(DOCTOR_ID)).thenReturn(Optional.of(doctor));
         when(profileRepository.findByStaffAccount_Id(DOCTOR_ID)).thenReturn(Optional.of(profile));
+        when(profileRepository.findByStaffAccount_IdForUpdate(DOCTOR_ID)).thenReturn(Optional.of(profile));
         when(appointmentRepository.save(any(Appointment.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(ticketRepository.save(any(QueueTicket.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(sessionRepository.save(any(ExaminationSession.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -173,6 +174,78 @@ class DoctorExaminationServiceTest {
         assertThat(response.reason()).isNull();
         verify(recordRepository, never()).findBySession_Id(SESSION_ID);
         verify(recordRepository, never()).save(any(MedicalRecord.class));
+    }
+
+    @Test
+    void repeatedStartWithTheSameKeyKeepsOneStartTimeAndOneDraft() {
+        ticket = QueueTicket.create(appointment, ticket.getRoom(), appointment.getAppointmentDate(), 5);
+        setId(ticket, TICKET_ID);
+        ticket.call();
+        session = ExaminationSession.create(appointment);
+        setId(session, SESSION_ID);
+        when(ticketRepository.findById(TICKET_ID)).thenReturn(Optional.of(ticket));
+        when(sessionRepository.findByAppointment_Id(APPOINTMENT_ID)).thenReturn(Optional.of(session));
+        when(sessionRepository.findByAppointment_IdForUpdate(APPOINTMENT_ID)).thenReturn(Optional.of(session));
+        when(sessionRepository.findByStartRequestKey("start-visit-1")).thenReturn(Optional.empty());
+        when(recordRepository.findBySession_Id(SESSION_ID)).thenReturn(Optional.empty());
+
+        DoctorExaminationResponse started = service.start(TICKET_ID, DOCTOR_ID.toString(), "start-visit-1");
+        DoctorExaminationResponse retried = service.start(TICKET_ID, DOCTOR_ID.toString(), "start-visit-1");
+
+        assertThat(started.status()).isEqualTo("IN_PROGRESS");
+        assertThat(retried.status()).isEqualTo("IN_PROGRESS");
+        assertThat(session.getStartedAt()).isNotNull();
+        assertThat(session.getStartRequestKey()).isEqualTo("start-visit-1");
+        verify(ticketRepository, times(1)).save(ticket);
+        verify(sessionRepository, times(1)).save(session);
+        verify(recordRepository, times(1)).save(any(MedicalRecord.class));
+    }
+
+    @Test
+    void startingRequiresAnIdempotencyKey() {
+        assertThatThrownBy(() -> service.start(TICKET_ID, DOCTOR_ID.toString(), null))
+                .isInstanceOf(AuthException.class)
+                .satisfies(error -> assertThat(((AuthException) error).getCode()).isEqualTo("IDEMPOTENCY_KEY_REQUIRED"));
+    }
+
+    @Test
+    void openingACalledTicketCannotStartTheVisitByItself() {
+        ticket = QueueTicket.create(appointment, ticket.getRoom(), appointment.getAppointmentDate(), 5);
+        setId(ticket, TICKET_ID);
+        ticket.call();
+        session = ExaminationSession.create(appointment);
+        setId(session, SESSION_ID);
+        when(ticketRepository.findById(TICKET_ID)).thenReturn(Optional.of(ticket));
+        when(sessionRepository.findByAppointment_Id(APPOINTMENT_ID)).thenReturn(Optional.of(session));
+        when(sessionRepository.findByAppointment_IdForUpdate(APPOINTMENT_ID)).thenReturn(Optional.of(session));
+
+        assertThatThrownBy(() -> service.open(TICKET_ID, DOCTOR_ID.toString()))
+                .isInstanceOf(AuthException.class)
+                .satisfies(error -> assertThat(((AuthException) error).getCode()).isEqualTo("QUEUE_INVALID_STATE"));
+        assertThat(session.getStatus()).isEqualTo(ExaminationSessionStatus.SCHEDULED);
+        verify(ticketRepository, never()).save(ticket);
+        verify(sessionRepository, never()).save(session);
+    }
+
+    @Test
+    void startingASecondVisitForTheSameDoctorIsRejected() {
+        ticket = QueueTicket.create(appointment, ticket.getRoom(), appointment.getAppointmentDate(), 5);
+        setId(ticket, TICKET_ID);
+        ticket.call();
+        session = ExaminationSession.create(appointment);
+        setId(session, SESSION_ID);
+        when(ticketRepository.findById(TICKET_ID)).thenReturn(Optional.of(ticket));
+        when(sessionRepository.findByAppointment_Id(APPOINTMENT_ID)).thenReturn(Optional.of(session));
+        when(sessionRepository.findByAppointment_IdForUpdate(APPOINTMENT_ID)).thenReturn(Optional.of(session));
+        when(sessionRepository.findByStartRequestKey("start-visit-2")).thenReturn(Optional.empty());
+        when(ticketRepository.countInServiceForDoctorExcludingTicket(DOCTOR_ID, TICKET_ID)).thenReturn(1L);
+
+        assertThatThrownBy(() -> service.start(TICKET_ID, DOCTOR_ID.toString(), "start-visit-2"))
+                .isInstanceOf(AuthException.class)
+                .satisfies(error -> assertThat(((AuthException) error).getCode())
+                        .isEqualTo("DOCTOR_ACTIVE_EXAMINATION"));
+        verify(ticketRepository, never()).save(ticket);
+        verify(sessionRepository, never()).save(session);
     }
 
     @Test

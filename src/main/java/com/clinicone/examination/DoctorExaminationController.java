@@ -10,6 +10,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -44,6 +45,14 @@ public class DoctorExaminationController {
                     request.getRequestURI(), request.getRemoteAddr());
             throw exception;
         }
+    }
+
+    @PostMapping("/{ticketId}/start")
+    public ResponseEntity<DoctorExaminationResponse> start(Authentication authentication,
+                                                            @PathVariable UUID ticketId,
+                                                            @RequestHeader(value = "Idempotency-Key", required = false)
+                                                            String requestKey) {
+        return ResponseEntity.ok(service.start(ticketId, authentication.getName(), requestKey));
     }
 
     @PutMapping("/{ticketId}/draft")
