@@ -38,42 +38,70 @@ public class StaffManagementController {
     @PostMapping
     public ResponseEntity<StaffAccountCreatedResponse> create(@Valid @RequestBody CreateStaffAccountRequest request,
                                                                Principal principal, HttpServletRequest httpRequest) {
-        StaffAccountCreatedResponse response = service.create(request);
-        recordAudit("STAFF_CREATE", principal == null ? "SYSTEM" : principal.getName(), "SUCCESS",
-                "/api/v1/admin/staff", httpRequest.getRemoteAddr());
-        return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED).body(response);
+        String actor = actor(principal);
+        try {
+            StaffAccountCreatedResponse response = service.create(request);
+            recordAudit("STAFF_CREATE", actor, "SUCCESS", "/api/v1/admin/staff", httpRequest.getRemoteAddr());
+            return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED).body(response);
+        } catch (RuntimeException failure) {
+            recordAudit("STAFF_CREATE", actor, "FAILED", "/api/v1/admin/staff", httpRequest.getRemoteAddr());
+            throw failure;
+        }
     }
 
     @PutMapping("/{staffId}/roles")
     public ResponseEntity<StaffAccountResponse> updateRoles(@PathVariable @NotNull UUID staffId,
                                                             @Valid @RequestBody UpdateStaffRolesRequest request,
                                                             Principal principal, HttpServletRequest httpRequest) {
-        StaffAccountResponse response = service.updateRoles(staffId, request);
-        recordAudit("STAFF_ROLE_UPDATE", principal == null ? "SYSTEM" : principal.getName(), "SUCCESS",
-                "/api/v1/admin/staff/{id}/roles", httpRequest.getRemoteAddr());
-        return ResponseEntity.ok(response);
+        String actor = actor(principal);
+        try {
+            StaffAccountResponse response = service.updateRoles(staffId, request);
+            recordAudit("STAFF_ROLE_UPDATE", actor, "SUCCESS", "/api/v1/admin/staff/{id}/roles",
+                    httpRequest.getRemoteAddr());
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException failure) {
+            recordAudit("STAFF_ROLE_UPDATE", actor, "FAILED", "/api/v1/admin/staff/{id}/roles",
+                    httpRequest.getRemoteAddr());
+            throw failure;
+        }
     }
 
     @PostMapping("/{staffId}/lock")
     public ResponseEntity<StaffAccountResponse> lock(@PathVariable @NotNull UUID staffId, Principal principal,
                                                      HttpServletRequest request) {
-        StaffAccountResponse response = service.lock(staffId, principal == null ? "SYSTEM" : principal.getName());
-        recordAudit("STAFF_LOCK", principal == null ? "SYSTEM" : principal.getName(), "SUCCESS",
-                "/api/v1/admin/staff/{id}/lock", request.getRemoteAddr());
-        return ResponseEntity.ok(response);
+        String actor = actor(principal);
+        try {
+            StaffAccountResponse response = service.lock(staffId, actor);
+            recordAudit("STAFF_LOCK", actor, "SUCCESS", "/api/v1/admin/staff/{id}/lock", request.getRemoteAddr());
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException failure) {
+            recordAudit("STAFF_LOCK", actor, "FAILED", "/api/v1/admin/staff/{id}/lock", request.getRemoteAddr());
+            throw failure;
+        }
     }
 
     @PostMapping("/{staffId}/unlock")
     public ResponseEntity<StaffAccountResponse> unlock(@PathVariable @NotNull UUID staffId, Principal principal,
                                                        HttpServletRequest request) {
-        StaffAccountResponse response = service.unlock(staffId, principal == null ? "SYSTEM" : principal.getName());
-        recordAudit("STAFF_UNLOCK", principal == null ? "SYSTEM" : principal.getName(), "SUCCESS",
-                "/api/v1/admin/staff/{id}/unlock", request.getRemoteAddr());
-        return ResponseEntity.ok(response);
+        String actor = actor(principal);
+        try {
+            StaffAccountResponse response = service.unlock(staffId, actor);
+            recordAudit("STAFF_UNLOCK", actor, "SUCCESS", "/api/v1/admin/staff/{id}/unlock",
+                    request.getRemoteAddr());
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException failure) {
+            recordAudit("STAFF_UNLOCK", actor, "FAILED", "/api/v1/admin/staff/{id}/unlock",
+                    request.getRemoteAddr());
+            throw failure;
+        }
     }
 
     private void recordAudit(String eventType, String actor, String outcome, String function, String ipAddress) {
         try { accessAuditService.record(eventType, actor, outcome, function, ipAddress); }
         catch (RuntimeException ignored) { }
+    }
+
+    private String actor(Principal principal) {
+        return principal == null ? "SYSTEM" : principal.getName();
     }
 }
