@@ -38,7 +38,9 @@ export class Notifications implements OnInit {
           item.id === notification.id ? { ...item, read: true } : item)),
       });
     }
-    void this.router.navigateByUrl(notification.targetUrl);
+    if (notification.targetUrl) {
+      void this.router.navigateByUrl(notification.targetUrl);
+    }
   }
 
   protected formatDate(value: string): string {

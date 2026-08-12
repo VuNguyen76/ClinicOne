@@ -56,7 +56,49 @@ class PatientNotificationServiceTest {
         setAppointmentId(appointment, appointmentId);
         smsService.notifyAppointmentCreated(appointment);
 
-        verify(smsSender).sendText("0912345678", "Lịch hẹn CL-001 với Bác sĩ An đã được ghi nhận vào 2026-08-08 lúc 08:30.");
+        verify(smsSender).sendText("0912345678",
+                "ClinicOne: Đặt lịch thành công. Lịch hẹn CL-001 với Bác sĩ An đã được ghi nhận vào 2026-08-08 lúc 08:30. Mở ứng dụng ClinicOne để xem.");
+    }
+
+    @Test
+    void hidesAppointmentDetailsUntilPatientCompletesActivation() {
+        PatientNotificationService smsService = new PatientNotificationService(repository, accountRepository, smsSender);
+        UUID patientId = UUID.randomUUID();
+        UUID appointmentId = UUID.randomUUID();
+        PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, true);
+        setId(account, patientId);
+        when(repository.existsByEventKey("APPOINTMENT_CREATED:" + appointmentId)).thenReturn(false);
+        when(repository.save(any(PatientNotification.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(accountRepository.findById(patientId)).thenReturn(Optional.of(account));
+
+        var appointment = com.clinicone.appointment.Appointment.create(account, appointmentId,
+                "CL-001", "Nội khoa", "Bác sĩ An", java.time.LocalDate.of(2026, 8, 8),
+                java.time.LocalTime.of(8, 30), "Đau đầu");
+        setAppointmentId(appointment, appointmentId);
+        smsService.notifyAppointmentCreated(appointment);
+
+        verify(smsSender).sendText("0912345678",
+                "ClinicOne: Bạn có thông báo mới. Vui lòng hoàn tất kích hoạt tài khoản để xem trong ứng dụng.");
+    }
+
+    @Test
+    void masksInAppNotificationUntilPatientCompletesActivation() {
+        UUID patientId = UUID.randomUUID();
+        UUID appointmentId = UUID.randomUUID();
+        PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, true);
+        setId(account, patientId);
+        PatientNotification notification = PatientNotification.appointmentCreated(patientId, appointmentId,
+                "CL-001", "Nội khoa", "Bác sĩ An", "2026-08-08", "08:30");
+        when(accountRepository.findById(patientId)).thenReturn(Optional.of(account));
+        when(repository.findByPatientAccountIdOrderByCreatedAtDesc(patientId)).thenReturn(java.util.List.of(notification));
+
+        PatientNotificationService notificationService = new PatientNotificationService(repository, accountRepository, smsSender);
+        PatientNotificationResponse response = notificationService.list(patientId.toString()).get(0);
+
+        org.assertj.core.api.Assertions.assertThat(response.title()).isEqualTo("Bạn có thông báo mới");
+        org.assertj.core.api.Assertions.assertThat(response.message()).contains("hoàn tất kích hoạt")
+                .doesNotContain("Bác sĩ An", "2026-08-08", "08:30");
+        org.assertj.core.api.Assertions.assertThat(response.targetUrl()).isNull();
     }
 
     private static void setId(PatientAccount account, UUID id) {
