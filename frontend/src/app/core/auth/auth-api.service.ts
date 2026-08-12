@@ -166,7 +166,7 @@ export interface PatientNotificationResponse {
   type: string;
   title: string;
   message: string;
-  targetUrl: string;
+  targetUrl: string | null;
   read: boolean;
   createdAt: string;
 }

@@ -46,4 +46,18 @@ describe('Notifications', () => {
     expect(request.request.method).toBe('POST');
     request.flush(null);
   });
+
+  it('marks a restricted notification read without navigating when it has no target', () => {
+    http.expectOne('/api/v1/notifications').flush([{
+      id: 'notification-2', type: 'APPOINTMENT_CREATED', title: 'Bạn có thông báo mới',
+      message: 'Vui lòng hoàn tất kích hoạt tài khoản để xem trong ứng dụng.', targetUrl: null,
+      read: false, createdAt: '2026-08-07T09:30:00Z',
+    }]);
+    fixture.detectChanges();
+
+    expect(() => (fixture.nativeElement.querySelector('button') as HTMLButtonElement).click()).not.toThrow();
+    const request = http.expectOne('/api/v1/notifications/notification-2/read');
+    expect(request.request.method).toBe('POST');
+    request.flush(null);
+  });
 });
