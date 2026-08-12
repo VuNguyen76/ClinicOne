@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -15,6 +16,7 @@ import java.io.IOException;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import java.util.Arrays;
 
 @Component
 public class SessionAuthenticationFilter extends OncePerRequestFilter {
@@ -40,7 +42,12 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
                         .orElse(null);
                 if (session != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                     var authentication = UsernamePasswordAuthenticationToken.authenticated(
-                            session.getAccountId().toString(), null, List.of());
+                            session.getAccountId().toString(), null,
+                            Arrays.stream(session.getRole().split(","))
+                                    .map(String::trim)
+                                    .filter(value -> !value.isBlank())
+                                    .map(SimpleGrantedAuthority::new)
+                                    .toList());
                     authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 }

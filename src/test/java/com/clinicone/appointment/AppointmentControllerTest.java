@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
@@ -19,6 +20,7 @@ import java.util.UUID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -45,7 +47,7 @@ class AppointmentControllerTest {
 
         mockMvc.perform(get("/api/v1/appointments")
                         .with(authentication(UsernamePasswordAuthenticationToken.authenticated(
-                                ACCOUNT_ID.toString(), null, List.of()))))
+                                ACCOUNT_ID.toString(), null, List.of(new SimpleGrantedAuthority("ROLE_PATIENT"))))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].appointmentCode").value("CL-20260810-1234"))
                 .andExpect(jsonPath("$[0].statusLabel").value("Đã đặt"));
@@ -59,11 +61,28 @@ class AppointmentControllerTest {
 
         mockMvc.perform(post("/api/v1/appointments")
                         .with(authentication(UsernamePasswordAuthenticationToken.authenticated(
-                                ACCOUNT_ID.toString(), null, List.of())))
+                                ACCOUNT_ID.toString(), null, List.of(new SimpleGrantedAuthority("ROLE_PATIENT")))))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"specialty\":\"Nội khoa\",\"doctorName\":\"BS. Nguyễn An\",\"appointmentDate\":\"2026-08-10\",\"startTime\":\"08:30\",\"reason\":\"Đau đầu\"}"))
+                        .content("{\"specialty\":\"Nội khoa\",\"doctorName\":\"BS. Nguyễn An\",\"appointmentDate\":\"2099-01-01\",\"startTime\":\"08:30\",\"reason\":\"Đau đầu\"}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.appointmentCode").value("CL-20260810-1234"));
+    }
+
+    @Test
+    void forwardsIdempotencyKeyWhenCreatingAppointment() throws Exception {
+        when(appointmentService.create(eq(ACCOUNT_ID.toString()), any(), eq("booking-key-1"))).thenReturn(new AppointmentResponse(
+                UUID.randomUUID(), "CL-20260810-1234", "Nội khoa", "BS. Nguyễn An",
+                LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), "Đau đầu", "BOOKED", "Đã đặt"));
+
+        mockMvc.perform(post("/api/v1/appointments")
+                        .with(authentication(UsernamePasswordAuthenticationToken.authenticated(
+                                ACCOUNT_ID.toString(), null, List.of(new SimpleGrantedAuthority("ROLE_PATIENT")))))
+                        .header("Idempotency-Key", "booking-key-1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"specialty\":\"Nội khoa\",\"doctorName\":\"BS. Nguyễn An\",\"appointmentDate\":\"2099-01-01\",\"startTime\":\"08:30\",\"reason\":\"Đau đầu\"}"))
+                .andExpect(status().isCreated());
+
+        verify(appointmentService).create(eq(ACCOUNT_ID.toString()), any(), eq("booking-key-1"));
     }
 
     @Test
@@ -75,7 +94,7 @@ class AppointmentControllerTest {
 
         mockMvc.perform(get("/api/v1/appointments/" + appointmentId)
                         .with(authentication(UsernamePasswordAuthenticationToken.authenticated(
-                                ACCOUNT_ID.toString(), null, List.of()))))
+                                ACCOUNT_ID.toString(), null, List.of(new SimpleGrantedAuthority("ROLE_PATIENT"))))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.appointmentCode").value("CL-20260810-1234"));
     }
@@ -86,7 +105,7 @@ class AppointmentControllerTest {
 
         mockMvc.perform(post("/api/v1/appointments/" + appointmentId + "/cancel")
                         .with(authentication(UsernamePasswordAuthenticationToken.authenticated(
-                                ACCOUNT_ID.toString(), null, List.of())))
+                                ACCOUNT_ID.toString(), null, List.of(new SimpleGrantedAuthority("ROLE_PATIENT")))))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"reason\":\"Bận việc\"}"))
                 .andExpect(status().isNoContent());
@@ -97,15 +116,23 @@ class AppointmentControllerTest {
         UUID appointmentId = UUID.randomUUID();
         when(appointmentService.reschedule(eq(ACCOUNT_ID.toString()), eq(appointmentId.toString()), any())).thenReturn(new AppointmentResponse(
                 appointmentId, "CL-20260810-1234", "Nội khoa", "BS. Nguyễn An",
-                LocalDate.of(2026, 8, 11), LocalTime.of(10, 0), "Đau đầu", "BOOKED", "Đã đặt"));
+                LocalDate.of(2099, 1, 2), LocalTime.of(10, 0), "Đau đầu", "BOOKED", "Đã đặt"));
 
         mockMvc.perform(post("/api/v1/appointments/" + appointmentId + "/reschedule")
                         .with(authentication(UsernamePasswordAuthenticationToken.authenticated(
-                                ACCOUNT_ID.toString(), null, List.of())))
+                                ACCOUNT_ID.toString(), null, List.of(new SimpleGrantedAuthority("ROLE_PATIENT")))))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"appointmentDate\":\"2026-08-11\",\"startTime\":\"10:00\"}"))
+                .content("{\"appointmentDate\":\"2099-01-02\",\"startTime\":\"10:00\"}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.appointmentDate").value("2026-08-11"));
+                .andExpect(jsonPath("$.appointmentDate").value("2099-01-02"));
+    }
+
+    @Test
+    void doctorCannotUsePatientAppointmentApi() throws Exception {
+        mockMvc.perform(get("/api/v1/appointments")
+                        .with(authentication(UsernamePasswordAuthenticationToken.authenticated(
+                                "doctor-1", null, List.of(new SimpleGrantedAuthority("ROLE_DOCTOR"))))))
+                .andExpect(status().isForbidden());
     }
 
     @TestConfiguration

@@ -1,0 +1,346 @@
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { provideRouter } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
+import { DoctorExamination } from './doctor-examination';
+
+describe('DoctorExamination', () => {
+  let fixture: ComponentFixture<DoctorExamination>;
+  let http: HttpTestingController;
+
+  beforeEach(async () => {
+    sessionStorage.setItem('clinicOneAccessToken', 'doctor-token');
+    sessionStorage.setItem('clinicOneStaffRole', 'DOCTOR');
+    await TestBed.configureTestingModule({
+      imports: [DoctorExamination],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([{ path: 'doctor', component: DoctorExamination }]),
+        { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => 'ticket-1' } } } },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(DoctorExamination);
+    http = TestBed.inject(HttpTestingController);
+    fixture.detectChanges();
+  });
+
+  afterEach(() => {
+    http.verify();
+    sessionStorage.clear();
+  });
+
+  it('loads the active examination and renders the patient summary', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush({
+      ...examination(), draftSavedAt: '2026-08-11T09:30:00Z',
+    });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[data-testid="patient-summary"]').textContent)
+      .toContain('Nguyễn Thanh Vũ');
+    expect(fixture.nativeElement.querySelector('[data-testid="medical-form"]')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('[data-testid="draft-saved-at"]')).toBeTruthy();
+  });
+
+  it('saves a draft without leaving the workspace', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+    const reason = fixture.nativeElement.querySelector('textarea[formControlName="reason"]') as HTMLTextAreaElement;
+    reason.value = 'Đau đầu';
+    reason.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('[data-testid="save-draft"]') as HTMLButtonElement).click();
+    const request = http.expectOne('/api/v1/doctor/examinations/ticket-1/draft');
+    expect(request.request.method).toBe('PUT');
+    expect(request.request.body.reason).toBe('Đau đầu');
+    expect(request.request.body.recordVersion).toBe(0);
+    request.flush({ ...examination(), reason: 'Đau đầu' });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Đã lưu bản nháp');
+  });
+
+  it('saves each prescribed medicine as a complete line', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('[data-testid="add-prescription-line"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const setValue = (name: string, value: string) => {
+      const input = fixture.nativeElement.querySelector(`[data-testid="prescription-${name}-0"]`) as HTMLInputElement;
+      input.value = value;
+      input.dispatchEvent(new Event('input'));
+    };
+    setValue('name', 'Paracetamol 500 mg');
+    setValue('dosage', '500 mg');
+    setValue('quantity', '10');
+    setValue('instructions', 'Uống sau ăn');
+    fixture.detectChanges();
+    http.expectOne('/api/v1/doctor/medications/suggestions?query=Paracetamol%20500%20mg').flush([]);
+
+    (fixture.nativeElement.querySelector('[data-testid="save-draft"]') as HTMLButtonElement).click();
+    const request = http.expectOne('/api/v1/doctor/examinations/ticket-1/draft');
+    expect(request.request.body.prescription).toBe('');
+    expect(request.request.body.prescriptionLines).toEqual([{
+      medicationName: 'Paracetamol 500 mg', dosage: '500 mg', quantity: 10, instructions: 'Uống sau ăn',
+    }]);
+    request.flush({ ...examination(), prescriptionLines: [{
+      medicationName: 'Paracetamol 500 mg', dosage: '500 mg', quantity: 10, instructions: 'Uống sau ăn',
+    }] });
+  });
+
+  it('only sends a follow-up interval and note after the doctor enables it', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('[data-testid="toggle-follow-up"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const days = fixture.nativeElement.querySelector('[data-testid="follow-up-days"]') as HTMLInputElement;
+    const note = fixture.nativeElement.querySelector('[data-testid="follow-up-note"]') as HTMLInputElement;
+    days.value = '14'; days.dispatchEvent(new Event('input'));
+    note.value = 'Tái khám nếu triệu chứng còn kéo dài'; note.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('[data-testid="save-draft"]') as HTMLButtonElement).click();
+    const request = http.expectOne('/api/v1/doctor/examinations/ticket-1/draft');
+    expect(request.request.body.followUpDays).toBe(14);
+    expect(request.request.body.followUpNote).toBe('Tái khám nếu triệu chứng còn kéo dài');
+  });
+
+  it('autosaves edited clinical fields after ten seconds when the draft changed', () => {
+    vi.useFakeTimers();
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+
+    const reason = fixture.nativeElement.querySelector('textarea[formControlName="reason"]') as HTMLTextAreaElement;
+    reason.value = 'Đau đầu kéo dài';
+    reason.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    vi.advanceTimersByTime(9_999);
+    http.expectNone('/api/v1/doctor/examinations/ticket-1/draft');
+    vi.advanceTimersByTime(1);
+    const request = http.expectOne('/api/v1/doctor/examinations/ticket-1/draft');
+    expect(request.request.method).toBe('PUT');
+    expect(request.request.body.reason).toBe('Đau đầu kéo dài');
+    expect(request.request.body.recordVersion).toBe(0);
+    request.flush({ ...examination(), reason: 'Đau đầu kéo dài' });
+    vi.useRealTimers();
+  });
+
+  it('saves a changed draft when the doctor leaves a clinical field', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+
+    const reason = fixture.nativeElement.querySelector('textarea[formControlName="reason"]') as HTMLTextAreaElement;
+    reason.value = 'Đau đầu kéo dài';
+    reason.dispatchEvent(new Event('input'));
+    reason.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+
+    const request = http.expectOne('/api/v1/doctor/examinations/ticket-1/draft');
+    expect(request.request.body.reason).toBe('Đau đầu kéo dài');
+  });
+
+  it('retries a failed automatic draft save at most three times every ten seconds', () => {
+    vi.useFakeTimers();
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+
+    const reason = fixture.nativeElement.querySelector('textarea[formControlName="reason"]') as HTMLTextAreaElement;
+    reason.value = 'Đau đầu kéo dài';
+    reason.dispatchEvent(new Event('input'));
+    reason.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+    http.expectOne('/api/v1/doctor/examinations/ticket-1/draft').flush({}, { status: 503, statusText: 'Unavailable' });
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      vi.advanceTimersByTime(10_000);
+      http.expectOne('/api/v1/doctor/examinations/ticket-1/draft').flush({}, { status: 503, statusText: 'Unavailable' });
+    }
+    vi.advanceTimersByTime(10_000);
+    http.expectNone('/api/v1/doctor/examinations/ticket-1/draft');
+    vi.useRealTimers();
+  });
+
+  it('suggests a diagnosis after two characters and keeps the selected text editable', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+
+    const diagnosis = fixture.nativeElement.querySelector('textarea[formControlName="diagnosis"]') as HTMLTextAreaElement;
+    diagnosis.value = 'Đau';
+    diagnosis.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    http.expectOne((request) => request.url === '/api/v1/doctor/diagnoses/suggestions' && request.params.get('query') === 'Đau')
+      .flush([{ id: 'diagnosis-1', code: 'HEADACHE_TENSION', name: 'Đau đầu căng thẳng', active: true }]);
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('[data-testid="diagnosis-suggestion-0"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(diagnosis.value).toBe('Đau đầu căng thẳng');
+    expect(diagnosis.disabled).toBe(false);
+  });
+
+  it('keeps the valid clinical text and names the field when its limit is exceeded', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+
+    const field = fixture.nativeElement.querySelector('textarea[formControlName="reason"]') as HTMLTextAreaElement;
+    field.value = 'a'.repeat(2001);
+    field.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    expect(field.value).toHaveLength(2000);
+    expect(fixture.nativeElement.textContent).toContain('Lý do khám tối đa 2.000 ký tự.');
+  });
+
+  it('keeps the valid prescription text and names the field when its limit is exceeded', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('[data-testid="add-prescription-line"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const field = fixture.nativeElement.querySelector('[data-testid="prescription-name-0"]') as HTMLInputElement;
+    field.value = 'a'.repeat(201);
+    field.dispatchEvent(new Event('input'));
+    http.expectOne((request) => request.url === '/api/v1/doctor/medications/suggestions'
+      && request.params.get('query') === 'a'.repeat(200)).flush([]);
+    fixture.detectChanges();
+
+    expect(field.value).toHaveLength(200);
+    expect(fixture.nativeElement.textContent).toContain('Tên thuốc tối đa 200 ký tự.');
+  });
+
+  it('keeps the maximum valid follow-up interval and explains the limit', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('[data-testid="toggle-follow-up"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const days = fixture.nativeElement.querySelector('[data-testid="follow-up-days"]') as HTMLInputElement;
+    days.value = '366';
+    days.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    expect(days.value).toBe('365');
+    expect(fixture.nativeElement.textContent).toContain('Số ngày tái khám tối đa 365.');
+  });
+
+  it('requires the four clinical fields and locks the form after signing', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('[data-testid="sign-record"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="alert"]').textContent)
+      .toContain('Nhập đủ lý do khám');
+    http.expectNone('/api/v1/doctor/examinations/ticket-1/sign');
+
+    const fields: Record<string, string> = {
+      reason: 'Đau đầu', examinationNotes: 'Mạch ổn', diagnosis: 'Đau đầu căng thẳng', conclusion: 'Theo dõi thêm',
+    };
+    Object.entries(fields).forEach(([name, value]) => {
+      const control = fixture.nativeElement.querySelector(`textarea[formControlName="${name}"]`) as HTMLTextAreaElement;
+      control.value = value;
+      control.dispatchEvent(new Event('input'));
+    });
+    http.expectOne((request) => request.url === '/api/v1/doctor/diagnoses/suggestions'
+      && request.params.get('query') === 'Đau đầu căng thẳng').flush([]);
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('[data-testid="sign-record"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[data-testid="confirm-sign-record"]')).toBeTruthy();
+    http.expectNone('/api/v1/doctor/examinations/ticket-1/sign');
+    (fixture.nativeElement.querySelector('[data-testid="confirm-sign-record"]') as HTMLButtonElement).click();
+
+    const request = http.expectOne('/api/v1/doctor/examinations/ticket-1/sign');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.headers.get('Idempotency-Key')).toBeTruthy();
+    expect(request.request.body).toMatchObject(fields);
+    expect(request.request.body.recordVersion).toBe(0);
+    request.flush({ ...examination(), ...fields, status: 'COMPLETED', signedAt: '2026-08-07T09:30:00Z' });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Đã ký phiếu khám');
+    expect((fixture.nativeElement.querySelector('textarea[formControlName="reason"]') as HTMLTextAreaElement).disabled).toBe(true);
+  });
+
+  it('requires a reason before stopping an active examination and then locks the workspace', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('[data-testid="stop-examination"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-testid="confirm-stop-examination"]')).toBeTruthy();
+
+    (fixture.nativeElement.querySelector('[data-testid="confirm-stop-examination"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Lý do dừng lượt khám phải từ 10 đến 500 ký tự.');
+    http.expectNone('/api/v1/doctor/examinations/ticket-1/stop');
+
+    const reason = fixture.nativeElement.querySelector('[data-testid="stop-examination-reason"]') as HTMLTextAreaElement;
+    reason.value = 'Người bệnh cần rời phòng khám ngay.';
+    reason.dispatchEvent(new Event('input'));
+    (fixture.nativeElement.querySelector('[data-testid="confirm-stop-examination"]') as HTMLButtonElement).click();
+
+    const request = http.expectOne('/api/v1/doctor/examinations/ticket-1/stop');
+    expect(request.request.body).toEqual({ reason: 'Người bệnh cần rời phòng khám ngay.' });
+    request.flush({ ...examination(), status: 'CANCELLED' });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Đã dừng lượt khám.');
+    expect(fixture.nativeElement.querySelector('[data-testid="stop-examination"]')).toBeNull();
+  });
+
+  it('returns a wrongly opened profile to the waiting queue only after a reason is confirmed', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('[data-testid="wrong-profile"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-testid="confirm-wrong-profile"]')).toBeTruthy();
+
+    const reason = fixture.nativeElement.querySelector('[data-testid="wrong-profile-reason"]') as HTMLTextAreaElement;
+    reason.value = 'Bác sĩ phát hiện đang mở nhầm hồ sơ người bệnh.';
+    reason.dispatchEvent(new Event('input'));
+    (fixture.nativeElement.querySelector('[data-testid="confirm-wrong-profile"]') as HTMLButtonElement).click();
+
+    const request = http.expectOne('/api/v1/doctor/examinations/ticket-1/wrong-profile');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual({ reason: 'Bác sĩ phát hiện đang mở nhầm hồ sơ người bệnh.' });
+    request.flush({ ...examination(), status: 'SCHEDULED' });
+  });
+});
+
+function examination() {
+  return {
+    ticketId: 'ticket-1',
+    appointmentId: 'appointment-1',
+    examinationId: 'examination-1',
+    queueNumber: 5,
+    roomName: 'Phòng Nội tổng quát 01',
+    appointmentCode: 'CLN-0001',
+    specialty: 'Nội tổng quát',
+    doctorName: 'BS. Nguyễn An',
+    appointmentDate: '2026-08-06',
+    startTime: '09:00:00',
+    patientName: 'Nguyễn Thanh Vũ',
+    patientDateOfBirth: '2005-06-07',
+    patientGender: 'Nam',
+    patientPhone: '0862764830',
+    reason: '',
+    examinationNotes: '',
+    diagnosis: '',
+    conclusion: '',
+    treatmentPlan: '',
+    prescription: '',
+    prescriptionLines: [],
+    followUpDate: null,
+    status: 'IN_PROGRESS',
+    signedAt: null,
+    recordVersion: 0,
+  };
+}

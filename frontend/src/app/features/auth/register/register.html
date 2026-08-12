@@ -6,7 +6,7 @@
           <img class="h-10 w-10 object-contain" src="clinicone-mark.png" alt="" aria-hidden="true" />
           <span class="text-xl font-semibold tracking-[-0.03em]">ClinicOne</span>
         </a>
-        <a routerLink="/login" class="text-sm font-medium text-[#0e6872] underline-offset-4 hover:underline">Đăng nhập</a>
+        <a routerLink="/login" [queryParams]="returnUrl ? { returnUrl: returnUrl } : null" class="text-sm font-medium text-[#0e6872] underline-offset-4 hover:underline">Đăng nhập</a>
       </header>
 
       <div class="flex flex-1 items-center py-8 lg:py-12">

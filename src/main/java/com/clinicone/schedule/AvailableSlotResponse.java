@@ -2,6 +2,7 @@ package com.clinicone.schedule;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.UUID;
 
 public record AvailableSlotResponse(
         String specialty,
@@ -9,6 +10,8 @@ public record AvailableSlotResponse(
         LocalTime startTime,
         LocalTime endTime,
         String doctorName,
-        int remainingCapacity
+        int remainingCapacity,
+        UUID doctorId,
+        String roomCode
 ) {
 }

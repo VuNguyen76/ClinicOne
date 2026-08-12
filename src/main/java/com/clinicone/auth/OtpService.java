@@ -69,6 +69,19 @@ public class OtpService {
                 .orElse(false);
     }
 
+    /** Checks the time elapsed since a successful OTP verification, independent
+     * of the short OTP-code validity window. This is used by the 30-minute
+     * reception activation step and never exposes the OTP value. */
+    public boolean isPhoneVerifiedWithin(String phone, OtpPurpose purpose, Duration window) {
+        if (window == null || window.isNegative() || window.isZero()) return false;
+        Instant now = Instant.now(clock);
+        return repository.findTopByDestinationAndPurposeOrderByCreatedAtDesc(normalizePhone(phone), purpose)
+                .map(challenge -> challenge.getVerifiedAt() != null
+                        && !challenge.getVerifiedAt().isAfter(now)
+                        && !challenge.getVerifiedAt().plus(window).isBefore(now))
+                .orElse(false);
+    }
+
     private OtpException invalidOtp() {
         return new OtpException(HttpStatus.BAD_REQUEST, "OTP_INVALID", "Mã xác thực không hợp lệ hoặc đã hết hạn.");
     }
