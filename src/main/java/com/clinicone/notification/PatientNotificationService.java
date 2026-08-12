@@ -54,8 +54,17 @@ public class PatientNotificationService {
     @Transactional(readOnly = true)
     public List<PatientNotificationResponse> list(String accountId) {
         UUID patientId = parseAccountId(accountId);
+        com.clinicone.auth.PatientAccount account = accountRepository == null
+                ? null : accountRepository.findById(patientId).orElse(null);
+        boolean locked = account != null && account.getStatus() == com.clinicone.auth.AccountStatus.LOCKED;
+        boolean pendingActivation = account != null && account.isMustChangePassword();
+        String guidance = locked
+                ? "Vui lòng mở khóa tài khoản để xem trong ứng dụng."
+                : "Vui lòng hoàn tất kích hoạt tài khoản để xem trong ứng dụng.";
         return repository.findByPatientAccountIdOrderByCreatedAtDesc(patientId).stream()
-                .map(PatientNotificationResponse::from)
+                .map(notification -> locked || pendingActivation
+                        ? PatientNotificationResponse.restricted(notification, guidance)
+                        : PatientNotificationResponse.from(notification))
                 .toList();
     }
 
@@ -156,10 +165,10 @@ public class PatientNotificationService {
                     if (phone == null || phone.isBlank()) return;
                     if (smsDeliveryService != null) {
                         smsDeliveryService.enqueue(account.getId(), notification.getEventKey(), phone,
-                                smsMessage(account.getStatus(), notification));
+                                smsMessage(account.getStatus(), account.isMustChangePassword(), notification));
                     } else if (smsSender != null) {
                         try {
-                            smsSender.sendText(phone, notification.getMessage());
+                            smsSender.sendText(phone, smsMessage(account.getStatus(), account.isMustChangePassword(), notification));
                         } catch (RuntimeException ignored) {
                             // Legacy direct sender is best-effort; production uses the outbox worker.
                         }
@@ -167,9 +176,13 @@ public class PatientNotificationService {
                 });
     }
 
-    private String smsMessage(com.clinicone.auth.AccountStatus status, PatientNotification notification) {
+    private String smsMessage(com.clinicone.auth.AccountStatus status, boolean mustChangePassword,
+                              PatientNotification notification) {
         if (status == com.clinicone.auth.AccountStatus.LOCKED) {
             return "ClinicOne: Bạn có thông báo mới. Vui lòng mở khóa tài khoản để xem trong ứng dụng.";
+        }
+        if (mustChangePassword) {
+            return "ClinicOne: Bạn có thông báo mới. Vui lòng hoàn tất kích hoạt tài khoản để xem trong ứng dụng.";
         }
         if (notification.getType() == PatientNotificationType.MEDICAL_RECORD_SIGNED) {
             return "ClinicOne: Kết quả khám đã sẵn sàng. Mở ứng dụng ClinicOne để xem.";

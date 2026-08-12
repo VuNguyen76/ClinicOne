@@ -17,4 +17,10 @@ public record PatientNotificationResponse(
                 notification.getTitle(), notification.getMessage(), notification.getTargetUrl(),
                 notification.getReadAt() != null, notification.getCreatedAt());
     }
+
+    public static PatientNotificationResponse restricted(PatientNotification notification, String guidance) {
+        return new PatientNotificationResponse(notification.getId(), notification.getType().name(),
+                "Bạn có thông báo mới", guidance, null, notification.getReadAt() != null,
+                notification.getCreatedAt());
+    }
 }
