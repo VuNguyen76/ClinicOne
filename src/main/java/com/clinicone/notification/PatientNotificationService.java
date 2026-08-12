@@ -150,8 +150,16 @@ public class PatientNotificationService {
     }
 
     private void saveOnce(PatientNotification notification) {
-        PatientNotification saved = repository.findByEventKey(notification.getEventKey())
-                .orElseGet(() -> repository.save(notification));
+        java.util.Optional<PatientNotification> existing = repository.findByEventKey(notification.getEventKey());
+        if (existing.isPresent()) {
+            // The outbox may still need to be created after a previous transaction committed
+            // the in-app notification, but the legacy direct sender must never resend it.
+            if (smsDeliveryService != null) {
+                enqueueSms(existing.get());
+            }
+            return;
+        }
+        PatientNotification saved = repository.save(notification);
         enqueueSms(saved);
     }
 
