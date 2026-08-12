@@ -50,4 +50,13 @@ describe('ClinicOne route guards', () => {
     sessionStorage.setItem('clinicOneStaffRole', 'DOCTOR');
     expect(TestBed.runInInjectionContext(() => homeGuard(null as never, { url: '/home' } as never))).toEqual({ commands: ['/doctor'] });
   });
+
+  it('sends reception staff to the reception workspace instead of the patient home page', () => {
+    sessionStorage.setItem('clinicOneAccessToken', 'staff-token');
+    sessionStorage.setItem('clinicOneStaffRole', 'RECEPTIONIST');
+
+    expect(TestBed.runInInjectionContext(() => homeGuard(null as never, { url: '/home' } as never))).toEqual({
+      commands: ['/reception/check-in'],
+    });
+  });
 });
