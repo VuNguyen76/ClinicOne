@@ -19,7 +19,7 @@ describe('PatientProfiles', () => {
     component = fixture.componentInstance;
     http = TestBed.inject(HttpTestingController);
     fixture.detectChanges();
-    http.expectOne('https://tinhthanhpho.com/api/v1/provinces?page=1&limit=100').flush({ success: true, message: 'Success', data: [] });
+    http.expectOne('/api/v1/addresses/provinces?page=1&limit=100').flush([]);
     http.expectOne('/api/v1/patient-profiles').flush([{ id: 'p-1', fullName: 'Nguyễn An', relationship: 'Bản thân', dateOfBirth: '2000-01-01', gender: 'Nam', phone: null, identityNumber: null, nationality: 'Việt Nam', ethnicity: 'Kinh', address: null, provinceCode: null, provinceName: null, districtCode: null, districtName: null, wardCode: null, wardName: null, streetAddress: null, primaryProfile: true }]);
     fixture.detectChanges();
   });

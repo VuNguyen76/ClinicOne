@@ -19,7 +19,7 @@ describe('Register', () => {
     component = fixture.componentInstance;
     http = TestBed.inject(HttpTestingController);
     fixture.detectChanges();
-    http.expectOne('https://tinhthanhpho.com/api/v1/provinces?page=1&limit=100').flush({ success: true, message: 'Success', data: [] });
+    http.expectOne('/api/v1/addresses/provinces?page=1&limit=100').flush([]);
   });
 
   afterEach(() => http.verify());
