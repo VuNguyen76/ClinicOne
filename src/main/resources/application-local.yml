@@ -6,9 +6,12 @@ spring:
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: ${JPA_DDL_AUTO:update}
+      ddl-auto: ${JPA_DDL_AUTO:validate}
   flyway:
-    enabled: false
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 1
+    baseline-description: ClinicOne existing schema
 app:
   otp:
     provider: ${OTP_PROVIDER:textbee}
