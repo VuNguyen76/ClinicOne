@@ -88,14 +88,19 @@ public class AppointmentLifecycleJob {
             }
             if (!now.isBefore(scheduledEndAt.plus(ABSENT_THRESHOLD))
                     && appointment.getStatus() == AppointmentStatus.BOOKED) {
-                markAbsent(appointment);
-                absent++;
+                if (markAbsent(appointment.getId())) {
+                    absent++;
+                }
             }
         }
         return new LifecycleJobResult(appointments.size(), reminders, lateWarnings, absent);
     }
 
-    private void markAbsent(Appointment appointment) {
+    private boolean markAbsent(UUID appointmentId) {
+        Appointment appointment = appointmentRepository.findByIdForUpdate(appointmentId).orElse(null);
+        if (appointment == null || appointment.getStatus() != AppointmentStatus.BOOKED) {
+            return false;
+        }
         String previousStatus = appointment.getStatus().name();
         UUID eventId = UUID.randomUUID();
         appointment.markAbsent();
@@ -103,6 +108,7 @@ public class AppointmentLifecycleJob {
         businessLogService.recordTransition(eventId, "APPOINTMENT", appointment.getId(), previousStatus,
                 appointment.getStatus().name(), "MARK_ABSENT", "SYSTEM", "Tự động sau quá thời hạn vắng mặt");
         notificationService.notifyAppointmentAbsent(appointment);
+        return true;
     }
 
     private boolean shouldSendReminder(Appointment appointment, Instant appointmentAt, Instant now, int hours) {
