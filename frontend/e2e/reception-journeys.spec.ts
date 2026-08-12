@@ -61,7 +61,7 @@ async function fillWalkInDetails(dialog: Locator, phone: string, reason: string)
   await dialog.getByLabel('Chuyên khoa').selectOption({ label: 'Nội tổng quát' });
   await dialog.getByLabel('Khung giờ còn trống').selectOption('09:00:00');
   await dialog.getByLabel('Lý do khám').fill(reason);
-  await dialog.getByLabel('Lý do tiếp nhận ngoại lệ').fill('Người bệnh đến quầy cần hỗ trợ');
+  await dialog.locator('input[name="walkInExceptionReason"]').fill('Người bệnh đến quầy cần hỗ trợ');
   await expect(dialog.getByLabel('Số điện thoại')).toHaveValue(phone);
 }
 
