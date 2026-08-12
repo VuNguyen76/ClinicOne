@@ -196,6 +196,7 @@ public class ReceptionService {
                 throw new AuthException(HttpStatus.CONFLICT, "TEMPORARY_PROFILE_PHONE_MISMATCH",
                         "Số điện thoại không khớp với hồ sơ tạm.");
             }
+            validateTemporaryExceptionReason(request.exceptionReason());
         }
 
         LocalDate appointmentDate = request.appointmentDate();
@@ -257,6 +258,14 @@ public class ReceptionService {
 
     private String phoneValue(String value) {
         return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private void validateTemporaryExceptionReason(String reason) {
+        String normalized = reason == null ? "" : reason.trim();
+        if (normalized.length() < 10 || normalized.length() > 500) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "TEMPORARY_EXCEPTION_REASON_INVALID",
+                    "Lý do không thể xác thực phải dài từ 10 đến 500 ký tự.");
+        }
     }
 
     private LocalDate today() {

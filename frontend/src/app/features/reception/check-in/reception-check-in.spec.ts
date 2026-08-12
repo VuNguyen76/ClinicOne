@@ -208,6 +208,28 @@ describe('ReceptionCheckIn', () => {
     expect(fixture.nativeElement.textContent).toContain('Đã tạo hồ sơ tạm');
     expect(component.walkInProfileId()).toBe('temp-1');
   });
+
+  it('requires a detailed reason when checking in a temporary profile', () => {
+    const component = fixture.componentInstance as any;
+    component.walkInPhone.set('0912345678');
+    component.walkInProfiles.set([{
+      id: 'temp-1', fullName: 'Nguyễn Văn Tạm', relationship: 'Tạm tại quầy',
+      accountStatus: null, mustChangePassword: false,
+    }]);
+    component.walkInProfileId.set('temp-1');
+    component.walkInSlots.set([{
+      specialty: 'Nội tổng quát', appointmentDate: component.walkInDate(), startTime: '09:00:00',
+      endTime: '09:30:00', doctorName: 'BS. Nguyễn An', doctorId: 'd-1', roomCode: 'NOI-01', remainingCapacity: 1,
+    }]);
+    component.walkInStartTime.set('09:00:00');
+    component.walkInReason.set('Đau đầu từ sáng');
+    component.walkInExceptionReason.set('Không rõ');
+
+    component.submitWalkIn();
+
+    expect(http.match('/api/v1/reception/walk-in')).toHaveLength(0);
+    expect(component.error()).toContain('10 đến 500 ký tự');
+  });
 });
 
 function appointment() {

@@ -23,6 +23,6 @@ public record ReceptionWalkInRequest(
         @NotNull @FutureOrPresent LocalDate appointmentDate,
         @NotNull LocalTime startTime,
         @NotBlank @Size(min = 3, max = 500) String reason,
-        @NotBlank @Size(min = 3, max = 250) String exceptionReason
+        @NotBlank @Size(min = 3, max = 500) String exceptionReason
 ) {
 }
