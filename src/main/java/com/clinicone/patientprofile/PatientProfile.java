@@ -24,8 +24,8 @@ public class PatientProfile {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "owner_account_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_account_id")
     private PatientAccount owner;
 
     @Column(name = "full_name", nullable = false, length = 100)
@@ -79,6 +79,9 @@ public class PatientProfile {
     @Column(name = "primary_profile", nullable = false)
     private boolean primaryProfile;
 
+    @Column(name = "temporary_profile")
+    private Boolean temporaryProfile = false;
+
     @Column(nullable = false)
     private boolean active;
 
@@ -95,7 +98,7 @@ public class PatientProfile {
                            String gender, String phone, String identityNumber, String nationality,
                            String ethnicity, String address, String provinceCode, String provinceName,
                            String districtCode, String districtName, String wardCode, String wardName,
-                           String streetAddress, boolean primaryProfile) {
+                           String streetAddress, boolean primaryProfile, boolean temporaryProfile) {
         this.owner = owner;
         this.fullName = fullName;
         this.relationship = relationship;
@@ -114,6 +117,7 @@ public class PatientProfile {
         this.wardName = wardName;
         this.streetAddress = streetAddress;
         this.primaryProfile = primaryProfile;
+        this.temporaryProfile = temporaryProfile;
         this.active = true;
     }
 
@@ -131,7 +135,14 @@ public class PatientProfile {
                                          String wardName, String streetAddress, boolean primaryProfile) {
         return new PatientProfile(owner, fullName, relationship, dateOfBirth, gender, phone, identityNumber,
                 nationality, ethnicity, address, provinceCode, provinceName, districtCode, districtName, wardCode,
-                wardName, streetAddress, primaryProfile);
+                wardName, streetAddress, primaryProfile, false);
+    }
+
+    public static PatientProfile createTemporary(String fullName, LocalDate dateOfBirth, String gender,
+                                                 String phone, String identityNumber, String nationality,
+                                                 String ethnicity, String address) {
+        return new PatientProfile(null, fullName, "Tạm tại quầy", dateOfBirth, gender, phone, identityNumber,
+                nationality, ethnicity, address, null, null, null, null, null, null, null, false, true);
     }
 
     static PatientProfile forTest(UUID id, PatientAccount owner, String fullName, String relationship,
@@ -174,8 +185,19 @@ public class PatientProfile {
         this.active = false;
     }
 
+    public void linkToAccount(PatientAccount account) {
+        if (!isTemporaryProfile()) {
+            throw new IllegalStateException("Hồ sơ đã thuộc về một tài khoản.");
+        }
+        this.owner = account;
+        this.temporaryProfile = false;
+    }
+
     @PrePersist
     void onCreate() {
+        if (temporaryProfile == null) {
+            temporaryProfile = false;
+        }
         Instant now = Instant.now();
         createdAt = now;
         updatedAt = now;
@@ -205,5 +227,6 @@ public class PatientProfile {
     public String getWardName() { return wardName; }
     public String getStreetAddress() { return streetAddress; }
     public boolean isPrimaryProfile() { return primaryProfile; }
+    public boolean isTemporaryProfile() { return Boolean.TRUE.equals(temporaryProfile); }
     public boolean isActive() { return active; }
 }
