@@ -14,6 +14,7 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -88,6 +89,7 @@ class AppointmentLifecycleJobTest {
         }).when(appointment).markAbsent();
         when(appointmentRepository.findByStatusAndAppointmentDateBetweenOrderByAppointmentDateAscStartTimeAsc(
                 eq(AppointmentStatus.BOOKED), any(), any())).thenReturn(List.of(appointment));
+        when(appointmentRepository.findByIdForUpdate(appointment.getId())).thenReturn(Optional.of(appointment));
         when(appointmentRepository.save(appointment)).thenReturn(appointment);
 
         AppointmentLifecycleJob.LifecycleJobResult result = job(now).runOnce();
@@ -97,6 +99,27 @@ class AppointmentLifecycleJobTest {
         verify(businessLogService).recordTransition(any(), eq("APPOINTMENT"), any(), eq("BOOKED"),
                 eq("ABSENT"), eq("MARK_ABSENT"), eq("SYSTEM"), any());
         verify(notificationService).notifyAppointmentAbsent(appointment);
+    }
+
+    @Test
+    void skipsAbsentTransitionWhenAppointmentWasChangedBeforeTheLifecycleLock() {
+        Instant now = Instant.parse("2026-08-10T01:45:00Z");
+        Appointment listed = appointment(AppointmentStatus.BOOKED, LocalDate.of(2026, 8, 9),
+                LocalTime.of(8, 0), now.minusSeconds(30 * 3600L), 30);
+        UUID appointmentId = listed.getId();
+        Appointment current = mock(Appointment.class);
+        when(current.getId()).thenReturn(appointmentId);
+        when(current.getStatus()).thenReturn(AppointmentStatus.CANCELLED);
+        when(appointmentRepository.findByStatusAndAppointmentDateBetweenOrderByAppointmentDateAscStartTimeAsc(
+                eq(AppointmentStatus.BOOKED), any(), any())).thenReturn(List.of(listed));
+        when(appointmentRepository.findByIdForUpdate(appointmentId)).thenReturn(Optional.of(current));
+
+        AppointmentLifecycleJob.LifecycleJobResult result = job(now).runOnce();
+
+        assertThat(result.absentTransitions()).isZero();
+        verify(current, never()).markAbsent();
+        verify(businessLogService, never()).recordTransition(any(), any(), any(), any(), any(), any(), any(), any());
+        verify(notificationService).notifyAppointmentLate(listed);
     }
 
     @Test

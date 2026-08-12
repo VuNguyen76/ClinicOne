@@ -2,7 +2,9 @@ package com.clinicone.appointment;
 
 import com.clinicone.schedule.SlotBookingCount;
 import com.clinicone.schedule.DoctorSlotBookingCount;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -104,6 +106,10 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
             Collection<AppointmentStatus> statuses);
 
     Optional<Appointment> findByAppointmentCode(String appointmentCode);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select a from Appointment a where a.id = :id")
+    Optional<Appointment> findByIdForUpdate(@Param("id") UUID id);
 
     List<Appointment> findByStatusAndAppointmentDateBetweenOrderByAppointmentDateAscStartTimeAsc(
             AppointmentStatus status, LocalDate from, LocalDate to);
