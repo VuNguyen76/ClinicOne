@@ -230,6 +230,20 @@ describe('ReceptionCheckIn', () => {
     expect(http.match('/api/v1/reception/walk-in')).toHaveLength(0);
     expect(component.error()).toContain('10 đến 500 ký tự');
   });
+
+  it('shows the regular exception prompt for an existing patient profile', () => {
+    const component = fixture.componentInstance as any;
+    component.walkInOpen.set(true);
+    component.walkInProfiles.set([{
+      id: 'patient-1', fullName: 'Nguyễn Thanh Vũ', relationship: 'Bản thân',
+      accountStatus: 'ACTIVE', mustChangePassword: false,
+    }]);
+    component.walkInProfileId.set('patient-1');
+    fixture.detectChanges();
+
+    const input = fixture.nativeElement.querySelector('input[name="walkInExceptionReason"]') as HTMLInputElement;
+    expect(input.placeholder).toBe('Ví dụ: Người bệnh đến quầy chưa đặt lịch');
+  });
 });
 
 function appointment() {
