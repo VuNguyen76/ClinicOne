@@ -50,6 +50,14 @@ public class ReceptionController {
         return ResponseEntity.ok(service.leaveBeforeExam(appointmentId, request.reason()));
     }
 
+    @PostMapping("/appointments/{appointmentId}/facility-unavailable")
+    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'COORDINATOR')")
+    public ResponseEntity<ReceptionAppointmentResponse> markFacilityUnavailable(
+            @PathVariable UUID appointmentId, @Valid @RequestBody QueueLeaveRequest request,
+            org.springframework.security.core.Authentication authentication) {
+        return ResponseEntity.ok(service.markFacilityUnavailable(appointmentId, request.reason(), authentication.getName()));
+    }
+
     @PostMapping("/walk-in")
     public ResponseEntity<ReceptionAppointmentResponse> createWalkIn(
             @Valid @RequestBody ReceptionWalkInRequest request) {
