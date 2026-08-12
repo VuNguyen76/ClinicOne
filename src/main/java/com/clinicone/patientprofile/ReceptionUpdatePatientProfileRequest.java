@@ -25,9 +25,13 @@ public record ReceptionUpdatePatientProfileRequest(
         @Size(max = 500) String streetAddress
 ) {
     public boolean isEmpty() {
-        return fullName == null && dateOfBirth == null && gender == null && phone == null
-                && identityNumber == null && nationality == null && ethnicity == null && address == null
-                && provinceCode == null && provinceName == null && districtCode == null && districtName == null
-                && wardCode == null && wardName == null && streetAddress == null;
+        return blank(fullName) && dateOfBirth == null && blank(gender) && blank(phone)
+                && blank(identityNumber) && blank(nationality) && blank(ethnicity) && blank(address)
+                && blank(provinceCode) && blank(provinceName) && blank(districtCode) && blank(districtName)
+                && blank(wardCode) && blank(wardName) && blank(streetAddress);
+    }
+
+    private static boolean blank(String value) {
+        return value == null || value.isBlank();
     }
 }
