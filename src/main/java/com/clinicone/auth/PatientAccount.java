@@ -19,6 +19,10 @@ import java.util.UUID;
 @Table(name = "patient_accounts")
 public class PatientAccount {
 
+    private static final int MAX_PASSWORD_FAILURES = 5;
+    private static final java.time.Duration PASSWORD_FAILURE_WINDOW = java.time.Duration.ofMinutes(15);
+    private static final java.time.Duration TEMPORARY_LOCK_DURATION = java.time.Duration.ofMinutes(15);
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
@@ -78,6 +82,15 @@ public class PatientAccount {
     @Column(name = "must_change_password", nullable = false)
     private boolean mustChangePassword;
 
+    @Column(name = "failed_password_attempts", nullable = false)
+    private int failedPasswordAttempts;
+
+    @Column(name = "password_failure_window_started_at")
+    private Instant passwordFailureWindowStartedAt;
+
+    @Column(name = "locked_until")
+    private Instant lockedUntil;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -111,6 +124,45 @@ public class PatientAccount {
     public void changePassword(String passwordHash) {
         this.passwordHash = passwordHash;
         this.mustChangePassword = false;
+        clearPasswordFailures();
+    }
+
+    /** Records one failed password attempt and returns whether the account was locked. */
+    public boolean recordPasswordFailure(Instant now) {
+        if (passwordFailureWindowStartedAt == null
+                || !now.isBefore(passwordFailureWindowStartedAt.plus(PASSWORD_FAILURE_WINDOW))) {
+            failedPasswordAttempts = 0;
+            passwordFailureWindowStartedAt = now;
+        }
+        failedPasswordAttempts++;
+        if (failedPasswordAttempts < MAX_PASSWORD_FAILURES) {
+            return false;
+        }
+        status = AccountStatus.LOCKED;
+        lockedUntil = now.plus(TEMPORARY_LOCK_DURATION);
+        return true;
+    }
+
+    /** Re-opens an automatically locked account once its 15-minute lock has elapsed. */
+    public boolean unlockExpiredTemporaryLock(Instant now) {
+        if (status != AccountStatus.LOCKED || lockedUntil == null || now.isBefore(lockedUntil)) {
+            return false;
+        }
+        status = AccountStatus.ACTIVE;
+        lockedUntil = null;
+        clearPasswordFailures();
+        return true;
+    }
+
+    public void clearPasswordFailures() {
+        failedPasswordAttempts = 0;
+        passwordFailureWindowStartedAt = null;
+    }
+
+    public void unlockAfterPasswordReset() {
+        status = AccountStatus.ACTIVE;
+        lockedUntil = null;
+        clearPasswordFailures();
     }
 
     public void updateFullName(String fullName) {
@@ -199,4 +251,7 @@ public class PatientAccount {
     public String getStreetAddress() { return streetAddress; }
     public AccountStatus getStatus() { return status; }
     public boolean isMustChangePassword() { return mustChangePassword; }
+    public int getFailedPasswordAttempts() { return failedPasswordAttempts; }
+    public Instant getPasswordFailureWindowStartedAt() { return passwordFailureWindowStartedAt; }
+    public Instant getLockedUntil() { return lockedUntil; }
 }

@@ -21,6 +21,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -131,6 +132,48 @@ class AccountAuthServiceTest {
 
         assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatus());
         assertEquals("AUTH_INVALID_CREDENTIALS", exception.getCode());
+    }
+
+    @Test
+    void fifthWrongPasswordTemporarilyLocksAccountAndRevokesSessions() {
+        PatientAccount account = new PatientAccount("0912345678", "password-hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
+        setId(account, ACCOUNT_ID);
+        when(accountRepository.findByPhone("0912345678")).thenReturn(Optional.of(account));
+        when(passwordEncoder.matches("wrong-password", "password-hash")).thenReturn(false);
+
+        for (int attempt = 1; attempt <= 5; attempt++) {
+            AuthException exception = assertThrows(AuthException.class,
+                    () -> service.login(new PasswordLoginRequest("0912345678", "wrong-password")));
+            assertEquals(attempt == 5 ? "ACCOUNT_TEMPORARILY_LOCKED" : "AUTH_INVALID_CREDENTIALS", exception.getCode());
+        }
+
+        assertEquals(AccountStatus.LOCKED, account.getStatus());
+        assertTrue(account.getLockedUntil().isAfter(NOW));
+        verify(sessionRepository).revokeActiveByAccountId(eq(ACCOUNT_ID), eq(NOW));
+        verify(accountRepository, org.mockito.Mockito.times(5)).save(account);
+    }
+
+    @Test
+    void expiredTemporaryLockReopensAccountForSuccessfulLogin() {
+        PatientAccount account = new PatientAccount("0912345678", "password-hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
+        setId(account, ACCOUNT_ID);
+        account.recordPasswordFailure(NOW);
+        account.recordPasswordFailure(NOW.plusSeconds(1));
+        account.recordPasswordFailure(NOW.plusSeconds(2));
+        account.recordPasswordFailure(NOW.plusSeconds(3));
+        account.recordPasswordFailure(NOW.plusSeconds(4));
+        Clock afterLock = Clock.fixed(NOW.plusSeconds(15 * 60 + 5), ZoneOffset.UTC);
+        AccountAuthService afterLockService = new AccountAuthService(accountRepository, sessionRepository, otpService,
+                passwordEncoder, tokenGenerator, afterLock, patientProfileRepository);
+        when(accountRepository.findByPhone("0912345678")).thenReturn(Optional.of(account));
+        when(passwordEncoder.matches("password123", "password-hash")).thenReturn(true);
+        when(tokenGenerator.generate()).thenReturn("raw-session-token");
+
+        LoginResponse response = afterLockService.login(new PasswordLoginRequest("0912345678", "password123"));
+
+        assertEquals("raw-session-token", response.accessToken());
+        assertEquals(AccountStatus.ACTIVE, account.getStatus());
+        assertEquals(0, account.getFailedPasswordAttempts());
     }
 
     @Test
