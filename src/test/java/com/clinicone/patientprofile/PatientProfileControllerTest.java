@@ -41,7 +41,7 @@ class PatientProfileControllerTest {
     @Test
     void receptionistCanUpdateMissingProfileData() throws Exception {
         // Giả lập logic trả về thành công từ Service
-        when(service.updateMissingDataByReceptionist(eq(PROFILE_ID.toString()), any(UpdatePatientProfileRequest.class)))
+        when(service.updateMissingDataByReceptionist(eq(PROFILE_ID.toString()), any(ReceptionUpdatePatientProfileRequest.class)))
                 .thenReturn(new PatientProfileResponse(
                         PROFILE_ID, "Lê Văn C", "Bản thân", LocalDate.of(1995, 10, 10), "Nam",
                         null, null, null, null, "Hà Nội",
@@ -58,6 +58,33 @@ class PatientProfileControllerTest {
                 .content(requestJson))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.fullName").value("Lê Văn C"));
+    }
+
+    @Test
+    void patientCannotUseReceptionUpdateEndpoint() throws Exception {
+        mockMvc.perform(patch("/api/v1/patient-profiles/" + PROFILE_ID + "/reception-update")
+                .with(authentication(authenticated("ROLE_PATIENT")))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"fullName\":\"Lê Văn C\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void doctorCannotUseReceptionUpdateEndpoint() throws Exception {
+        mockMvc.perform(patch("/api/v1/patient-profiles/" + PROFILE_ID + "/reception-update")
+                .with(authentication(authenticated("ROLE_DOCTOR")))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"fullName\":\"Lê Văn C\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void adminCannotUseReceptionUpdateEndpoint() throws Exception {
+        mockMvc.perform(patch("/api/v1/patient-profiles/" + PROFILE_ID + "/reception-update")
+                .with(authentication(authenticated("ROLE_ADMIN")))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"fullName\":\"Lê Văn C\"}"))
+                .andExpect(status().isForbidden());
     }
 
     private static UsernamePasswordAuthenticationToken authenticated(String role) {
