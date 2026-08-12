@@ -93,24 +93,14 @@ public class AccountAuthService {
         otpService.verifySmsOtp(request.phone(), OtpPurpose.LOGIN, request.code());
         PatientAccount account = accountRepository.findByPhone(request.phone().trim())
                 .orElseThrow(this::invalidCredentials);
-        if (account.getStatus() != AccountStatus.ACTIVE) {
-            throw invalidCredentials();
-        }
-        if (!passwordEncoder.matches(request.password(), account.getPasswordHash())) {
-            throw invalidCredentials();
-        }
-        return createSession(account);
+        return authenticateWithPassword(account, request.password());
     }
 
     @Transactional
     public LoginResponse login(PasswordLoginRequest request) {
         PatientAccount account = accountRepository.findByPhone(request.phone().trim())
                 .orElseThrow(this::invalidCredentials);
-        if (account.getStatus() != AccountStatus.ACTIVE
-                || !passwordEncoder.matches(request.password(), account.getPasswordHash())) {
-            throw invalidCredentials();
-        }
-        return createSession(account);
+        return authenticateWithPassword(account, request.password());
     }
 
     @Transactional(readOnly = true)
@@ -232,6 +222,35 @@ public class AccountAuthService {
     private AuthException invalidCredentials() {
         return new AuthException(HttpStatus.UNAUTHORIZED, "AUTH_INVALID_CREDENTIALS",
                 "Số điện thoại hoặc mật khẩu không đúng.");
+    }
+
+    private AuthException temporarilyLocked() {
+        return new AuthException(HttpStatus.LOCKED, "ACCOUNT_TEMPORARILY_LOCKED",
+                "Tài khoản tạm thời bị khóa. Vui lòng thử lại sau 15 phút hoặc khôi phục bằng mã OTP.");
+    }
+
+    private LoginResponse authenticateWithPassword(PatientAccount account, String password) {
+        Instant now = Instant.now(clock);
+        if (account.unlockExpiredTemporaryLock(now)) {
+            accountRepository.save(account);
+        }
+        if (account.getStatus() != AccountStatus.ACTIVE) {
+            throw invalidCredentials();
+        }
+        if (!passwordEncoder.matches(password, account.getPasswordHash())) {
+            boolean locked = account.recordPasswordFailure(now);
+            accountRepository.save(account);
+            if (locked) {
+                sessionRepository.revokeActiveByAccountId(account.getId(), now);
+                throw temporarilyLocked();
+            }
+            throw invalidCredentials();
+        }
+        if (account.getFailedPasswordAttempts() > 0) {
+            account.clearPasswordFailures();
+            accountRepository.save(account);
+        }
+        return createSession(account);
     }
 
     private PatientAccount findAccount(String accountId) {
