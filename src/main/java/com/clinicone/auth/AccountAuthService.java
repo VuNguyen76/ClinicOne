@@ -18,6 +18,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.util.Set;
 import java.util.HexFormat;
+import com.clinicone.notification.PatientNotificationBackfillService;
 import com.clinicone.notification.PatientNotificationService;
 
 @Service
@@ -36,6 +37,7 @@ public class AccountAuthService {
     private final PatientProfileRepository patientProfileRepository;
     private final AppointmentRepository appointmentRepository;
     private final PatientNotificationService patientNotificationService;
+    private final PatientNotificationBackfillService patientNotificationBackfillService;
 
     public AccountAuthService(PatientAccountRepository accountRepository, LoginSessionRepository sessionRepository,
                               OtpService otpService, PasswordEncoder passwordEncoder,
@@ -60,13 +62,24 @@ public class AccountAuthService {
                 patientProfileRepository, appointmentRepository, null);
     }
 
-    @Autowired
     public AccountAuthService(PatientAccountRepository accountRepository, LoginSessionRepository sessionRepository,
                               OtpService otpService, PasswordEncoder passwordEncoder,
                               SessionTokenGenerator tokenGenerator, Clock clock,
                               PatientProfileRepository patientProfileRepository,
                               AppointmentRepository appointmentRepository,
                               PatientNotificationService patientNotificationService) {
+        this(accountRepository, sessionRepository, otpService, passwordEncoder, tokenGenerator, clock,
+                patientProfileRepository, appointmentRepository, patientNotificationService, null);
+    }
+
+    @Autowired
+    public AccountAuthService(PatientAccountRepository accountRepository, LoginSessionRepository sessionRepository,
+                              OtpService otpService, PasswordEncoder passwordEncoder,
+                              SessionTokenGenerator tokenGenerator, Clock clock,
+                              PatientProfileRepository patientProfileRepository,
+                              AppointmentRepository appointmentRepository,
+                              PatientNotificationService patientNotificationService,
+                              PatientNotificationBackfillService patientNotificationBackfillService) {
         this.accountRepository = accountRepository;
         this.sessionRepository = sessionRepository;
         this.otpService = otpService;
@@ -76,6 +89,7 @@ public class AccountAuthService {
         this.patientProfileRepository = patientProfileRepository;
         this.appointmentRepository = appointmentRepository;
         this.patientNotificationService = patientNotificationService;
+        this.patientNotificationBackfillService = patientNotificationBackfillService;
     }
 
     @Transactional
@@ -175,6 +189,10 @@ public class AccountAuthService {
                             appointment.assignPatient(account);
                             appointmentRepository.save(appointment);
                         });
+                    }
+                    if (patientNotificationBackfillService != null && account.getId() != null
+                            && profile.getId() != null) {
+                        patientNotificationBackfillService.notifyRecentSignedRecords(account.getId(), profile.getId());
                     }
                 });
     }
