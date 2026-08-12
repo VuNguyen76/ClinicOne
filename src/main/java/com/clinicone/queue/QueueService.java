@@ -291,6 +291,7 @@ public class QueueService {
     public QueueTicketResponse call(UUID ticketId, String staffId) {
         QueueTicket ticket = findTicket(ticketId);
         ensureDoctorOwnsTicket(ticket, staffId);
+        ensureDoctorCanOperateQueue(ticket);
         String previousStatus = ticket.getStatus().name();
         try {
             ticket.call();
@@ -308,6 +309,10 @@ public class QueueService {
         UUID doctorId = parseStaffId(staffId);
         DoctorProfile profile = doctorProfile(doctorId);
         LocalDate queueDate = date == null ? today() : date;
+        if (!hasActiveShift(profile, queueDate)) {
+            throw new AuthException(HttpStatus.CONFLICT, "DOCTOR_SHIFT_INACTIVE",
+                    "Bác sĩ không có ca làm việc đang hiệu lực để gọi bệnh nhân.");
+        }
         QueueTicket next = doctorTickets(profile.getRoom().getCode(), queueDate, doctorId).stream()
                 .filter(ticket -> ticket.getStatus() == QueueTicketStatus.WAITING
                         && ticket.getPresenceStatus() == QueuePresenceStatus.READY)
@@ -577,12 +582,23 @@ public class QueueService {
         if (profile == null) {
             return false;
         }
-        LocalDate today = today();
+        return hasActiveShift(profile, today());
+    }
+
+    private boolean hasActiveShift(DoctorProfile profile, LocalDate date) {
+        if (doctorScheduleRepository == null) {
+            return true;
+        }
+        if (!date.equals(today())) {
+            return false;
+        }
         var now = java.time.LocalTime.now(clock.withZone(CLINIC_ZONE));
-        return doctorScheduleRepository.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(
-                        profile.getId(), today.getDayOfWeek()).stream()
-                .anyMatch(schedule -> !now.isBefore(schedule.getStartTime())
-                        && now.isBefore(schedule.getEndTime()));
+        long activeSchedules = doctorScheduleRepository.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(
+                        profile.getId(), date.getDayOfWeek()).stream()
+                .filter(schedule -> !now.isBefore(schedule.getStartTime())
+                        && now.isBefore(schedule.getEndTime()))
+                .count();
+        return activeSchedules == 1;
     }
 
     private void recordTransition(UUID eventId, String entityType, UUID entityId, String previousStatus,
@@ -721,6 +737,13 @@ public class QueueService {
         if (!profile.getRoom().getCode().equalsIgnoreCase(ticket.getRoom().getCode())) {
             throw new AuthException(HttpStatus.FORBIDDEN, "DOCTOR_ROOM_SCOPE",
                     "Bác sĩ chỉ được thao tác trong phòng được phân công.");
+        }
+    }
+
+    private void ensureDoctorCanOperateQueue(QueueTicket ticket) {
+        if (!ticket.getQueueDate().equals(today()) || !doctorHasActiveShift(ticket.getAppointment(), ticket.getRoom())) {
+            throw new AuthException(HttpStatus.CONFLICT, "DOCTOR_SHIFT_INACTIVE",
+                    "Bác sĩ không có ca làm việc đang hiệu lực để gọi bệnh nhân.");
         }
     }
 

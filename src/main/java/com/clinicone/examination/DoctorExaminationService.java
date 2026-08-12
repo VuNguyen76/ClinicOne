@@ -10,6 +10,7 @@ import com.clinicone.queue.QueueTicketRepository;
 import com.clinicone.queue.QueueTicketStatus;
 import com.clinicone.doctor.DoctorProfile;
 import com.clinicone.doctor.DoctorProfileRepository;
+import com.clinicone.doctor.DoctorScheduleRepository;
 import com.clinicone.notification.PatientNotificationService;
 import com.clinicone.audit.BusinessLogService;
 import com.clinicone.medication.Medication;
@@ -23,6 +24,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.Clock;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 
@@ -39,6 +43,8 @@ public class DoctorExaminationService {
     private final MedicationCatalogService medicationCatalogService;
     private final GeneratedClinicSlotRepository generatedSlotRepository;
     private final WrongProfileIncidentRepository wrongProfileIncidentRepository;
+    private final DoctorScheduleRepository doctorScheduleRepository;
+    private final Clock clock;
 
     public DoctorExaminationService(QueueTicketRepository ticketRepository,
                                     ExaminationSessionRepository sessionRepository,
@@ -47,7 +53,7 @@ public class DoctorExaminationService {
                                     AppointmentRepository appointmentRepository,
                                     DoctorProfileRepository doctorProfileRepository) {
         this(ticketRepository, sessionRepository, recordRepository, staffRepository, appointmentRepository,
-                doctorProfileRepository, null, null, null, null, null);
+                doctorProfileRepository, null, null, null, null, null, null, Clock.systemUTC());
     }
 
     public DoctorExaminationService(QueueTicketRepository ticketRepository,
@@ -58,7 +64,7 @@ public class DoctorExaminationService {
                                     DoctorProfileRepository doctorProfileRepository,
                                     PatientNotificationService notificationService) {
         this(ticketRepository, sessionRepository, recordRepository, staffRepository, appointmentRepository,
-                doctorProfileRepository, notificationService, null, null, null, null);
+                doctorProfileRepository, notificationService, null, null, null, null, null, Clock.systemUTC());
     }
 
     public DoctorExaminationService(QueueTicketRepository ticketRepository,
@@ -70,7 +76,8 @@ public class DoctorExaminationService {
                                     PatientNotificationService notificationService,
                                     GeneratedClinicSlotRepository generatedSlotRepository) {
         this(ticketRepository, sessionRepository, recordRepository, staffRepository, appointmentRepository,
-                doctorProfileRepository, notificationService, null, null, generatedSlotRepository, null);
+                doctorProfileRepository, notificationService, null, null, generatedSlotRepository, null, null,
+                Clock.systemUTC());
     }
 
     public DoctorExaminationService(QueueTicketRepository ticketRepository,
@@ -84,7 +91,7 @@ public class DoctorExaminationService {
                                     WrongProfileIncidentRepository wrongProfileIncidentRepository) {
         this(ticketRepository, sessionRepository, recordRepository, staffRepository, appointmentRepository,
                 doctorProfileRepository, notificationService, null, null, generatedSlotRepository,
-                wrongProfileIncidentRepository);
+                wrongProfileIncidentRepository, null, Clock.systemUTC());
     }
 
     @Autowired
@@ -98,7 +105,9 @@ public class DoctorExaminationService {
                                     BusinessLogService businessLogService,
                                     MedicationCatalogService medicationCatalogService,
                                     GeneratedClinicSlotRepository generatedSlotRepository,
-                                    WrongProfileIncidentRepository wrongProfileIncidentRepository) {
+                                    WrongProfileIncidentRepository wrongProfileIncidentRepository,
+                                    DoctorScheduleRepository doctorScheduleRepository,
+                                    Clock clock) {
         this.ticketRepository = ticketRepository;
         this.sessionRepository = sessionRepository;
         this.recordRepository = recordRepository;
@@ -110,6 +119,8 @@ public class DoctorExaminationService {
         this.medicationCatalogService = medicationCatalogService;
         this.generatedSlotRepository = generatedSlotRepository;
         this.wrongProfileIncidentRepository = wrongProfileIncidentRepository;
+        this.doctorScheduleRepository = doctorScheduleRepository;
+        this.clock = clock == null ? Clock.systemUTC() : clock;
     }
 
     @Transactional(readOnly = true)
@@ -128,6 +139,7 @@ public class DoctorExaminationService {
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "QUEUE_TICKET_NOT_FOUND",
                         "Không tìm thấy lượt trong hàng đợi."));
         UUID doctorId = lockDoctorAssignment(ticket, staffId);
+        ensureDoctorHasActiveShift(ticket, doctorId);
         ExaminationSession session = sessionRepository.findByAppointment_IdForUpdate(ticket.getAppointment().getId())
                 .orElseThrow(() -> conflict("EXAMINATION_NOT_CREATED", "Lượt khám chưa được tạo từ lần check-in."));
 
@@ -400,6 +412,30 @@ public class DoctorExaminationService {
                 .orElseThrow(() -> new AuthException(HttpStatus.FORBIDDEN, "DOCTOR_ASSIGNMENT_REQUIRED",
                         "Bác sĩ chưa được gán đúng chuyên khoa và phòng khám."));
         return doctorId;
+    }
+
+    private void ensureDoctorHasActiveShift(QueueTicket ticket, UUID doctorId) {
+        if (doctorScheduleRepository == null) {
+            return;
+        }
+        ZoneId clinicZone = ZoneId.of("Asia/Ho_Chi_Minh");
+        LocalDate today = LocalDate.now(clock.withZone(clinicZone));
+        if (!today.equals(ticket.getAppointment().getAppointmentDate())) {
+            throw conflict("DOCTOR_SHIFT_INACTIVE", "Bác sĩ không có ca làm việc đang hiệu lực cho ngày khám.");
+        }
+        var now = java.time.LocalTime.now(clock.withZone(clinicZone));
+        DoctorProfile profile = doctorProfileRepository.findByStaffAccount_Id(doctorId)
+                .filter(DoctorProfile::isActive)
+                .orElseThrow(() -> conflict("DOCTOR_ASSIGNMENT_REQUIRED",
+                        "Bác sĩ chưa được gán đúng chuyên khoa và phòng khám."));
+        long activeSchedules = doctorScheduleRepository
+                .findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(profile.getId(), today.getDayOfWeek()).stream()
+                .filter(schedule -> !now.isBefore(schedule.getStartTime())
+                        && now.isBefore(schedule.getEndTime()))
+                .count();
+        if (activeSchedules != 1) {
+            throw conflict("DOCTOR_SHIFT_INACTIVE", "Bác sĩ không có đúng một ca làm việc đang hiệu lực.");
+        }
     }
 
     private String normalizeRequiredRequestKey(String requestKey) {
