@@ -9,9 +9,12 @@ import org.springframework.context.annotation.Import;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import java.time.Instant;
 import java.util.UUID;
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -46,6 +49,16 @@ class StaffAuthControllerTest {
                 .andExpect(jsonPath("$.accessToken").value("staff-token"))
                 .andExpect(jsonPath("$.role").value("ADMIN"));
         verify(accessAuditService).record("STAFF_LOGIN", "admin", "SUCCESS", "/api/v1/staff/auth/login", "127.0.0.1");
+    }
+
+    @Test
+    void patientCannotUseStaffLogoutEndpoint() throws Exception {
+        mockMvc.perform(post("/api/v1/staff/auth/logout")
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication(
+                                UsernamePasswordAuthenticationToken.authenticated(
+                                        UUID.randomUUID().toString(), null,
+                                        List.of(new SimpleGrantedAuthority("ROLE_PATIENT"))))))
+                .andExpect(status().isForbidden());
     }
 
     @TestConfiguration
