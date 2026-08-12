@@ -5,6 +5,7 @@ import jakarta.validation.Valid;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -44,6 +45,7 @@ public class StaffAuthController {
     }
 
     @PostMapping("/logout")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR', 'RECEPTIONIST', 'DOCTOR')")
     public ResponseEntity<Void> logout(Authentication authentication, HttpServletRequest servletRequest) {
         service.logout(authentication.getName());
         recordAudit("STAFF_LOGOUT", authentication.getName(), "SUCCESS", "/api/v1/staff/auth/logout",
