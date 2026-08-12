@@ -6,7 +6,7 @@ import { apiErrorMessage, AppointmentResponse, AuthApiService } from '../../../c
 import { AccountMenu } from '../../../shared/account-menu/account-menu';
 import { AccountNav } from '../../../shared/account-nav/account-nav';
 
-type AppointmentFilter = 'ALL' | 'BOOKED' | 'COMPLETED' | 'CANCELLED';
+type AppointmentFilter = 'ALL' | 'BOOKED' | 'CHECKED_IN' | 'COMPLETED' | 'CANCELLED' | 'ABSENT' | 'NOT_PERFORMED';
 
 @Component({
   selector: 'app-appointments-list',
@@ -70,6 +70,12 @@ export class AppointmentsList implements OnInit {
     }
     if (status === 'COMPLETED') {
       return 'bg-emerald-50 text-emerald-700';
+    }
+    if (status === 'CHECKED_IN') {
+      return 'bg-sky-50 text-sky-700';
+    }
+    if (status === 'ABSENT' || status === 'NOT_PERFORMED') {
+      return 'bg-slate-100 text-slate-600';
     }
     return 'bg-sky-50 text-sky-700';
   }

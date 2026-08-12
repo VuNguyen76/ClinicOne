@@ -1,0 +1,136 @@
+package com.clinicone.rescheduling;
+
+import com.clinicone.appointment.Appointment;
+import com.clinicone.appointment.AppointmentRepository;
+import com.clinicone.appointment.AppointmentStatus;
+import com.clinicone.auth.AccountStatus;
+import com.clinicone.auth.PatientAccount;
+import com.clinicone.auth.StaffAccount;
+import com.clinicone.auth.StaffRole;
+import com.clinicone.doctor.DoctorProfile;
+import com.clinicone.doctor.DoctorSchedule;
+import com.clinicone.notification.PatientNotificationService;
+import com.clinicone.schedule.AppointmentAvailabilityService;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.lang.reflect.Field;
+import java.time.Clock;
+import java.time.DayOfWeek;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneOffset;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+class ReschedulingServiceTest {
+    private static final UUID DOCTOR_ID = UUID.fromString("c5e4f7d2-9d7a-4bcb-95c7-1d9a8c1e31d5");
+    private static final UUID APPOINTMENT_ID = UUID.fromString("c6b7d8e9-f0a1-4234-8567-9a0b1c2d3e4f");
+    private final AppointmentRepository appointmentRepository = mock(AppointmentRepository.class);
+    private final RescheduleCaseRepository caseRepository = mock(RescheduleCaseRepository.class);
+    private final AppointmentAvailabilityService availabilityService = mock(AppointmentAvailabilityService.class);
+    private final PatientNotificationService notificationService = mock(PatientNotificationService.class);
+    private ReschedulingService service;
+
+    @BeforeEach
+    void setUp() {
+        service = new ReschedulingService(appointmentRepository, caseRepository, availabilityService,
+                notificationService, Clock.fixed(Instant.parse("2026-08-10T01:00:00Z"), ZoneOffset.UTC));
+        when(caseRepository.findByAppointmentIdAndStatus(any(), any())).thenReturn(Optional.empty());
+        when(caseRepository.save(any(RescheduleCase.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    }
+
+    @Test
+    void opensOneCaseAndLeavesBookedAppointmentUntouchedWhenScheduleIsRemoved() throws Exception {
+        Appointment appointment = appointment();
+        DoctorSchedule schedule = schedule();
+        when(appointmentRepository.findByDoctorStaffIdAndAppointmentDateBetweenAndStatusOrderByAppointmentDateAscStartTimeAsc(
+                DOCTOR_ID, LocalDate.of(2026, 8, 10), LocalDate.of(2026, 9, 9), AppointmentStatus.BOOKED))
+                .thenReturn(List.of(appointment));
+
+        int opened = service.openForScheduleRemoval(schedule);
+
+        assertEquals(1, opened);
+        assertEquals(AppointmentStatus.BOOKED, appointment.getStatus());
+        verify(caseRepository).save(any(RescheduleCase.class));
+    }
+
+    @Test
+    void doesNotDuplicateAnAlreadyOpenCase() throws Exception {
+        Appointment appointment = appointment();
+        DoctorSchedule schedule = schedule();
+        when(appointmentRepository.findByDoctorStaffIdAndAppointmentDateBetweenAndStatusOrderByAppointmentDateAscStartTimeAsc(
+                DOCTOR_ID, LocalDate.of(2026, 8, 10), LocalDate.of(2026, 9, 9), AppointmentStatus.BOOKED))
+                .thenReturn(List.of(appointment));
+        when(caseRepository.findByAppointmentIdAndStatus(APPOINTMENT_ID, RescheduleCaseStatus.OPEN))
+                .thenReturn(Optional.of(RescheduleCase.open(appointment, "existing")));
+
+        assertEquals(0, service.openForScheduleRemoval(schedule));
+        verify(caseRepository, never()).save(any(RescheduleCase.class));
+    }
+
+    @Test
+    void resolvesCaseAfterCoordinatorChoosesAvailableReplacement() throws Exception {
+        Appointment appointment = appointment();
+        RescheduleCase rescheduleCase = RescheduleCase.open(appointment, "Bác sĩ nghỉ");
+        UUID caseId = UUID.randomUUID();
+        setId(rescheduleCase, caseId);
+        when(caseRepository.findByIdForUpdate(caseId)).thenReturn(Optional.of(rescheduleCase));
+        when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
+        when(caseRepository.save(any(RescheduleCase.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        RescheduleCaseResponse response = service.resolve(caseId, new ResolveRescheduleRequest(
+                LocalDate.of(2026, 8, 11), LocalTime.of(9, 30), "Bác sĩ An", DOCTOR_ID), "coordinator");
+
+        assertEquals(RescheduleCaseStatus.RESOLVED, response.status());
+        assertEquals(LocalDate.of(2026, 8, 11), appointment.getAppointmentDate());
+        assertEquals(LocalTime.of(9, 30), appointment.getStartTime());
+        verify(notificationService).notifyAppointmentRescheduled(appointment, "2026-08-10", "08:30");
+    }
+
+    @Test
+    void rejectsResolvingAClosedCase() throws Exception {
+        Appointment appointment = appointment();
+        RescheduleCase closed = RescheduleCase.open(appointment, "Bác sĩ nghỉ");
+        closed.resolve(LocalDate.of(2026, 8, 11), LocalTime.of(9, 30), DOCTOR_ID, "Bác sĩ An", Instant.now());
+        UUID caseId = UUID.randomUUID();
+        setId(closed, caseId);
+        when(caseRepository.findByIdForUpdate(caseId)).thenReturn(Optional.of(closed));
+
+        assertThrows(RuntimeException.class, () -> service.resolve(caseId, new ResolveRescheduleRequest(
+                LocalDate.of(2026, 8, 12), LocalTime.of(9, 30), "Bác sĩ An", DOCTOR_ID), "coordinator"));
+    }
+
+    private Appointment appointment() throws Exception {
+        PatientAccount patient = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
+        Appointment appointment = Appointment.create(patient, DOCTOR_ID, "CL-20260810-AB12", "Nội tổng quát",
+                "Bác sĩ An", LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), "Đau đầu");
+        setId(appointment, APPOINTMENT_ID);
+        setId(patient, UUID.randomUUID());
+        return appointment;
+    }
+
+    private DoctorSchedule schedule() throws Exception {
+        StaffAccount staff = StaffAccount.create("bs.an", "hash", "Bác sĩ An", StaffRole.DOCTOR);
+        setId(staff, DOCTOR_ID);
+        DoctorProfile profile = DoctorProfile.create(staff, "Nội tổng quát", null);
+        setId(profile, UUID.randomUUID());
+        return DoctorSchedule.create(profile, DayOfWeek.MONDAY, LocalTime.of(8, 30), LocalTime.of(10, 30), 60);
+    }
+
+    private static void setId(Object target, UUID id) throws Exception {
+        Field field = target.getClass().getDeclaredField("id");
+        field.setAccessible(true);
+        field.set(target, id);
+    }
+}

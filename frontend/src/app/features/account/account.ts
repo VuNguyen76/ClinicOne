@@ -8,6 +8,7 @@ import { apiErrorMessage, AuthApiService, PatientProfileResponse } from '../../c
 import { VietnamAddressService, VietnamAddressUnit } from '../../core/address/vietnam-address.service';
 import { AccountMenu } from '../../shared/account-menu/account-menu';
 import { AccountNav } from '../../shared/account-nav/account-nav';
+import { clinicTodayIso } from '../../core/time/clinic-time';
 
 @Component({
   selector: 'app-account',
@@ -27,7 +28,7 @@ export class Account implements OnInit {
   protected readonly busy = signal(false);
   protected readonly error = signal('');
   protected readonly notice = signal('');
-  protected readonly today = new Date().toISOString().slice(0, 10);
+  protected readonly today = clinicTodayIso();
   protected readonly provinces = signal<VietnamAddressUnit[]>([]);
   protected readonly districts = signal<VietnamAddressUnit[]>([]);
   protected readonly wards = signal<VietnamAddressUnit[]>([]);

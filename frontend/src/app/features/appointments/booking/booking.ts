@@ -2,8 +2,9 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@ang
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
-import { ApiErrorResponse, AppointmentSlotResponse, AuthApiService, apiErrorMessage, PatientProfileItem, SpecialtyOption } from '../../../core/auth/auth-api.service';
+import { ApiErrorResponse, AppointmentSlotResponse, AuthApiService, apiErrorMessage, ClinicServiceResponse, PatientProfileItem, SpecialtyOption } from '../../../core/auth/auth-api.service';
 import { AccountMenu } from '../../../shared/account-menu/account-menu';
+import { clinicTodayDate, clinicTodayIso } from '../../../core/time/clinic-time';
 
 type BookingStep = 1 | 2 | 3;
 
@@ -17,9 +18,12 @@ interface DateOption {
 
 interface TimeSlot {
   label: string;
-  value: string;
+  key: string;
+  startTime: string;
   period: 'Buổi sáng' | 'Buổi chiều';
   doctorName: string;
+  doctorId: string | null;
+  roomCode: string | null;
 }
 
 @Component({
@@ -34,26 +38,33 @@ export class Booking implements OnInit {
   private readonly authApi = inject(AuthApiService);
   private readonly router = inject(Router);
 
-  protected readonly today = this.toIsoDate(new Date());
+  protected readonly today = clinicTodayIso();
   protected readonly step = signal<BookingStep>(1);
   protected readonly specialtySearch = signal('');
   protected readonly selectedSpecialty = signal('');
+  protected readonly selectedClinicService = signal<ClinicServiceResponse | null>(null);
   protected readonly selectedDate = signal('');
   protected readonly selectedSlot = signal('');
-  protected readonly calendarMonth = signal(this.startOfMonth(new Date()));
+  protected readonly holdId = signal<string | null>(null);
+  protected readonly holdBusy = signal(false);
+  protected readonly calendarMonth = signal(this.startOfMonth(clinicTodayDate()));
   protected readonly dates = signal(this.buildMonthDates(this.calendarMonth()));
   protected readonly specialties = signal<SpecialtyOption[]>([]);
   protected readonly specialtiesLoading = signal(true);
+  protected readonly clinicServices = signal<ClinicServiceResponse[]>([]);
+  protected readonly clinicServicesLoading = signal(true);
   protected readonly availableSlots = signal<TimeSlot[]>([]);
   protected readonly slotsLoading = signal(false);
   protected profiles: PatientProfileItem[] = [];
   protected profilesLoading = true;
   protected busy = false;
   protected error = '';
+  private createRequestKey: string | null = null;
 
   protected readonly form = this.formBuilder.nonNullable.group({
     specialty: ['', [Validators.required, Validators.maxLength(120)]],
     doctorName: ['Bác sĩ chuyên khoa', [Validators.required, Validators.maxLength(120)]],
+    doctorId: [''],
     appointmentDate: ['', [Validators.required]],
     startTime: ['', [Validators.required]],
     reason: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(500)]],
@@ -64,6 +75,10 @@ export class Booking implements OnInit {
     this.authApi.getSpecialties().subscribe({
       next: (specialties) => { this.specialties.set(specialties); this.specialtiesLoading.set(false); },
       error: (response) => { this.specialtiesLoading.set(false); this.handleAuthError(response); },
+    });
+    this.authApi.getActiveClinicServices().subscribe({
+      next: (services) => { this.clinicServices.set(services); this.clinicServicesLoading.set(false); },
+      error: (response) => { this.clinicServicesLoading.set(false); this.handleAuthError(response); },
     });
     this.authApi.getPatientProfiles().subscribe({
       next: (profiles) => {
@@ -84,14 +99,38 @@ export class Booking implements OnInit {
     return query ? this.specialties().filter((item) => `${item.name} ${item.description}`.toLocaleLowerCase('vi-VN').includes(query)) : this.specialties();
   }
 
+  protected filteredClinicServices(): ClinicServiceResponse[] {
+    const query = this.specialtySearch().trim().toLocaleLowerCase('vi-VN');
+    return query
+      ? this.clinicServices().filter((item) => `${item.name} ${item.specialty} ${item.visitType}`.toLocaleLowerCase('vi-VN').includes(query))
+      : this.clinicServices();
+  }
+
+  protected chooseClinicService(service: ClinicServiceResponse): void {
+    this.clearError();
+    this.selectedClinicService.set(service);
+    this.selectedSpecialty.set(service.specialty);
+    this.form.controls.specialty.setValue(service.specialty);
+    this.form.controls.appointmentDate.reset('');
+    this.form.controls.startTime.reset('');
+    this.selectedDate.set('');
+    this.selectedSlot.set('');
+    this.holdId.set(null);
+    this.monthSlots.set([]);
+    this.step.set(2);
+    this.loadMonthAvailability();
+  }
+
   protected chooseSpecialty(specialty: SpecialtyOption): void {
     this.clearError();
+    this.selectedClinicService.set(null);
     this.selectedSpecialty.set(specialty.name);
     this.form.controls.specialty.setValue(specialty.name);
     this.form.controls.appointmentDate.reset('');
     this.form.controls.startTime.reset('');
     this.selectedDate.set('');
     this.selectedSlot.set('');
+    this.holdId.set(null);
     this.monthSlots.set([]);
     this.step.set(2);
     this.loadMonthAvailability();
@@ -104,7 +143,7 @@ export class Booking implements OnInit {
   }
 
   protected isPreviousMonthDisabled(): boolean {
-    return this.calendarMonth().getTime() <= this.startOfMonth(new Date()).getTime();
+    return this.calendarMonth().getTime() <= this.startOfMonth(clinicTodayDate()).getTime();
   }
 
   protected previousMonth(): void {
@@ -136,9 +175,22 @@ export class Booking implements OnInit {
 
   protected chooseSlot(slot: TimeSlot): void {
     this.clearError();
-    this.selectedSlot.set(slot.value);
-    this.form.controls.startTime.setValue(slot.value);
+    if (this.selectedSlot() !== slot.key) {
+      this.holdId.set(null);
+    }
+    this.selectedSlot.set(slot.key);
+    this.form.controls.startTime.setValue(slot.startTime);
     this.form.controls.doctorName.setValue(slot.doctorName);
+    this.form.controls.doctorId.setValue(slot.doctorId ?? '');
+  }
+
+  protected selectedSlotLabel(): string {
+    const selected = this.availableSlots().find((slot) => slot.key === this.selectedSlot());
+    return selected ? `${selected.label} · ${selected.doctorName}${selected.roomCode ? ` · ${selected.roomCode}` : ''}` : '';
+  }
+
+  protected selectedSlotDetails(): TimeSlot | null {
+    return this.availableSlots().find((slot) => slot.key === this.selectedSlot()) ?? null;
   }
 
   protected slotsFor(period: TimeSlot['period']): TimeSlot[] {
@@ -151,7 +203,30 @@ export class Booking implements OnInit {
       this.error = 'Vui lòng chọn ngày và khung giờ khám.';
       return;
     }
-    this.step.set(3);
+    if (this.holdId()) {
+      this.step.set(3);
+      return;
+    }
+    const value = this.form.getRawValue();
+    this.holdBusy.set(true);
+    this.authApi.holdAppointmentSlot({
+      specialty: value.specialty,
+      doctorName: value.doctorName,
+      doctorId: value.doctorId || undefined,
+      appointmentDate: value.appointmentDate,
+      startTime: value.startTime,
+      serviceId: this.selectedClinicService()?.id,
+    }).subscribe({
+      next: (hold) => {
+        this.holdBusy.set(false);
+        this.holdId.set(hold.id);
+        this.step.set(3);
+      },
+      error: (response) => {
+        this.holdBusy.set(false);
+        this.handleAuthError(response);
+      },
+    });
   }
 
   protected back(): void {
@@ -173,7 +248,9 @@ export class Booking implements OnInit {
 
     this.busy = true;
     const value = this.form.getRawValue();
-    this.authApi.createAppointment({ ...value, profileId: value.profileId || undefined }).subscribe({
+    this.createRequestKey ??= `booking-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    this.authApi.createAppointment({ ...value, profileId: value.profileId || undefined,
+      holdId: this.holdId() ?? undefined, serviceId: this.selectedClinicService()?.id }, this.createRequestKey).subscribe({
       next: () => void this.router.navigateByUrl('/dashboard'),
       error: (response) => {
         this.busy = false;
@@ -203,7 +280,7 @@ export class Booking implements OnInit {
   private toTimeSlot(slot: AppointmentSlotResponse): TimeSlot {
     const startTime = slot.startTime.slice(0, 5);
     const endTime = slot.endTime.slice(0, 5);
-    return { label: `${startTime} - ${endTime}`, value: startTime, period: Number(startTime.slice(0, 2)) < 12 ? 'Buổi sáng' : 'Buổi chiều', doctorName: slot.doctorName };
+    return { label: `${startTime} - ${endTime}`, key: `${slot.doctorId ?? slot.doctorName}|${startTime}`, startTime, period: Number(startTime.slice(0, 2)) < 12 ? 'Buổi sáng' : 'Buổi chiều', doctorName: slot.doctorName, doctorId: slot.doctorId ?? null, roomCode: slot.roomCode ?? null };
   }
 
   private handleAuthError(response: { status?: number } & ApiErrorResponse): void {
@@ -221,6 +298,7 @@ export class Booking implements OnInit {
     this.dates.set(this.buildMonthDates(this.calendarMonth()));
     this.selectedDate.set('');
     this.selectedSlot.set('');
+    this.holdId.set(null);
     this.availableSlots.set([]);
     this.form.controls.appointmentDate.reset('');
     this.form.controls.startTime.reset('');
@@ -235,7 +313,7 @@ export class Booking implements OnInit {
     const monthStart = this.toIsoDate(month);
     const monthEnd = this.toIsoDate(new Date(month.getFullYear(), month.getMonth() + 1, 0));
     this.slotsLoading.set(true);
-    this.authApi.getAppointmentSlots(specialty, monthStart, monthEnd).subscribe({
+    this.authApi.getAppointmentSlots(specialty, monthStart, monthEnd, this.selectedClinicService()?.id).subscribe({
       next: (slots) => { this.monthSlots.set(slots); this.slotsLoading.set(false); },
       error: (response) => { this.slotsLoading.set(false); this.handleAuthError(response); },
     });

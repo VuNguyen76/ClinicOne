@@ -61,6 +61,7 @@ async function mockExistingAccount(page: Page): Promise<void> {
   }));
   await page.route('**/api/v1/auth/me', (route) => fulfillJson(route, profile));
   await page.route('**/api/v1/appointments', (route) => fulfillJson(route, []));
+  await page.route('**/api/v1/patient/queue**', (route) => fulfillJson(route, []));
 }
 
 test.describe('luồng người dùng ClinicOne', () => {
@@ -164,5 +165,59 @@ test.describe('luồng người dùng ClinicOne', () => {
     await page.getByRole('button', { name: 'Xác nhận đặt lịch' }).click();
 
     await expect(page).toHaveURL(/\/dashboard$/);
+  });
+
+  test('đăng nhập từ QR phòng quay lại đúng phòng', async ({ page }) => {
+    const qrToken = 'room-qr-token';
+    const today = new Date();
+    const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    await mockExistingAccount(page);
+    await page.route(`**/api/v1/rooms/${qrToken}/check-in`, (route) => fulfillJson(route, {
+      code: 'NOI-01', name: 'Phòng Nội tổng quát 01', specialty: 'Nội tổng quát',
+    }));
+    await page.route('**/api/v1/appointments', (route) => fulfillJson(route, [{
+      id: 'appointment-1', appointmentCode: 'CL-E2E-001', specialty: 'Nội tổng quát',
+      doctorName: 'BS. Nguyễn An', appointmentDate: todayIso, startTime: '09:00:00',
+      reason: 'Đau đầu', status: 'BOOKED', statusLabel: 'Đã đặt',
+    }]));
+
+    await page.goto(`/queue/check-in/${qrToken}`);
+    await expect(page).toHaveURL(new RegExp(`/login\\?returnUrl=${encodeURIComponent(`/queue/check-in/${qrToken}`)}`));
+    await page.getByLabel('Số điện thoại').fill(profile.phone);
+    await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
+    await page.getByLabel('Mật khẩu').fill('correct-password');
+    await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
+    await expect(page).toHaveURL(new RegExp(`/queue/check-in/${qrToken}$`));
+    await expect(page.getByText('Phòng Nội tổng quát 01')).toBeVisible();
+  });
+
+  test('bệnh nhân quét mã phòng và nhận số thứ tự', async ({ page }) => {
+    const today = new Date();
+    const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    const qrToken = 'room-qr-token';
+    await page.addInitScript(() => {
+      sessionStorage.setItem('clinicOneAccessToken', 'e2e-token');
+      sessionStorage.setItem('clinicOnePatientName', 'Nguyễn An');
+    });
+    await page.route('**/api/v1/appointments', (route) => fulfillJson(route, [{
+      id: 'appointment-1', appointmentCode: 'CL-E2E-001', specialty: 'Nội tổng quát',
+      doctorName: 'BS. Nguyễn An', appointmentDate: todayIso, startTime: '09:00:00',
+      reason: 'Đau đầu', status: 'BOOKED', statusLabel: 'Đã đặt',
+    }]));
+    await page.route(`**/api/v1/rooms/${qrToken}/check-in`, (route) => fulfillJson(route, {
+      code: 'NOI-01', name: 'Phòng Nội tổng quát 01', specialty: 'Nội tổng quát',
+    }));
+    await page.route(`**/api/v1/rooms/${qrToken}/queue/check-in`, (route) => fulfillJson(route, {
+      id: 'ticket-1', queueNumber: 5, roomCode: 'NOI-01', roomName: 'Phòng Nội tổng quát 01',
+      queueDate: todayIso, appointmentTime: '09:00:00', status: 'WAITING', statusLabel: 'Đang chờ',
+      appointmentCode: 'CL-E2E-001', specialty: 'Nội tổng quát', doctorName: 'BS. Nguyễn An',
+    }));
+
+    await page.goto(`/queue/check-in/${qrToken}`);
+    await page.getByTestId('check-in-appointment').click();
+    await page.getByTestId('check-in-submit').click();
+
+    await expect(page.getByTestId('queue-number')).toHaveText('05');
+    await expect(page.getByTestId('queue-status')).toContainText('Đang chờ');
   });
 });

@@ -15,10 +15,29 @@ public record CreateAppointmentRequest(
         @NotNull @FutureOrPresent LocalDate appointmentDate,
         @NotNull LocalTime startTime,
         @NotBlank @Size(min = 3, max = 500) String reason,
-        UUID profileId
+        UUID profileId,
+        UUID doctorId,
+        UUID holdId,
+        UUID serviceId
 ) {
     public CreateAppointmentRequest(String specialty, String doctorName, LocalDate appointmentDate,
                                     LocalTime startTime, String reason) {
-        this(specialty, doctorName, appointmentDate, startTime, reason, null);
+        this(specialty, doctorName, appointmentDate, startTime, reason, null, null, null, null);
+    }
+
+    public CreateAppointmentRequest(String specialty, String doctorName, LocalDate appointmentDate,
+                                    LocalTime startTime, String reason, UUID profileId) {
+        this(specialty, doctorName, appointmentDate, startTime, reason, profileId, null, null, null);
+    }
+
+    public CreateAppointmentRequest(String specialty, String doctorName, LocalDate appointmentDate,
+                                    LocalTime startTime, String reason, UUID profileId, UUID doctorId) {
+        this(specialty, doctorName, appointmentDate, startTime, reason, profileId, doctorId, null, null);
+    }
+
+    public CreateAppointmentRequest(String specialty, String doctorName, LocalDate appointmentDate,
+                                    LocalTime startTime, String reason, UUID profileId, UUID doctorId,
+                                    UUID holdId) {
+        this(specialty, doctorName, appointmentDate, startTime, reason, profileId, doctorId, holdId, null);
     }
 }

@@ -157,6 +157,38 @@ public class AccountAuthService {
         accountRepository.save(account);
     }
 
+    @Transactional
+    public void activatePendingAccount(ActivateAccountRequest request) {
+        String phone = request.phone().trim();
+        if (!request.newPassword().equals(request.confirmPassword())) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "PASSWORD_MISMATCH",
+                    "Hai lần nhập mật khẩu mới không giống nhau.");
+        }
+        if (!otpService.isPhoneVerifiedWithin(phone, OtpPurpose.REGISTRATION, Duration.ofMinutes(30))) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "ACTIVATION_OTP_REQUIRED",
+                    "Mã xác thực kích hoạt đã hết thời gian. Vui lòng xác thực lại số điện thoại.");
+        }
+        PatientAccount account = accountRepository.findByPhone(phone)
+                .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "PATIENT_ACCOUNT_NOT_FOUND",
+                        "Không tìm thấy tài khoản người bệnh."));
+        if (!account.isMustChangePassword()) {
+            throw new AuthException(HttpStatus.CONFLICT, "ACCOUNT_ALREADY_ACTIVE",
+                    "Tài khoản đã được kích hoạt.");
+        }
+        account.changePassword(passwordEncoder.encode(request.newPassword()));
+        accountRepository.save(account);
+    }
+
+    @Transactional
+    public void logout(String accountId) {
+        try {
+            sessionRepository.revokeActiveByAccountId(java.util.UUID.fromString(accountId), Instant.now(clock));
+        } catch (IllegalArgumentException exception) {
+            throw new AuthException(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_REQUIRED",
+                    "Phiên đăng nhập không hợp lệ.");
+        }
+    }
+
     static String hashToken(String token) {
         try {
             return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")

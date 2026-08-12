@@ -3,8 +3,9 @@ import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { finalize } from 'rxjs';
-import { apiErrorMessage, ApiErrorResponse, AppointmentResponse, AuthApiService } from '../../../core/auth/auth-api.service';
+import { apiErrorMessage, ApiErrorResponse, AppointmentResponse, AuthApiService, ReasonCatalogResponse } from '../../../core/auth/auth-api.service';
 import { AccountMenu } from '../../../shared/account-menu/account-menu';
+import { clinicTodayIso } from '../../../core/time/clinic-time';
 
 @Component({
   selector: 'app-appointment-detail',
@@ -25,7 +26,10 @@ export class AppointmentDetail implements OnInit {
   protected readonly confirmCancel = signal(false);
   protected readonly notice = signal('');
   protected readonly error = signal('');
-  protected readonly today = new Date().toISOString().slice(0, 10);
+  protected readonly cancellationReasons = signal<ReasonCatalogResponse[]>([]);
+  protected readonly selectedCancellationReason = signal('');
+  private cancellationRequestKey: string | null = null;
+  protected readonly today = clinicTodayIso();
   protected readonly rescheduleForm = this.formBuilder.nonNullable.group({
     appointmentDate: ['', [Validators.required]],
     startTime: ['', [Validators.required]],
@@ -46,6 +50,9 @@ export class AppointmentDetail implements OnInit {
         },
         error: (response) => this.handleError(response),
       });
+    this.authApi.getCancellationReasons().subscribe({
+      next: (reasons) => this.cancellationReasons.set(reasons),
+    });
   }
 
   protected formatDate(value: string): string {
@@ -67,7 +74,9 @@ export class AppointmentDetail implements OnInit {
       return;
     }
     this.busy.set(true);
-    this.authApi.cancelAppointment(appointment.id)
+    this.cancellationRequestKey ??= crypto.randomUUID();
+    this.authApi.cancelAppointment(appointment.id, this.selectedCancellationReason() || undefined,
+      this.cancellationRequestKey)
       .pipe(finalize(() => this.busy.set(false)))
       .subscribe({
         next: () => void this.router.navigateByUrl('/dashboard'),

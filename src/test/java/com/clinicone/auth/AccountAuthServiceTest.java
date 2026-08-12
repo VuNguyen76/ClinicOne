@@ -144,6 +144,35 @@ class AccountAuthServiceTest {
     }
 
     @Test
+    void activatesPendingAccountAfterRecentReceptionOtp() {
+        PatientAccount account = new PatientAccount("0912345678", "pending-hash", "Nguyen Van A", AccountStatus.ACTIVE, true);
+        setId(account, ACCOUNT_ID);
+        when(accountRepository.findByPhone("0912345678")).thenReturn(Optional.of(account));
+        when(otpService.isPhoneVerifiedWithin("0912345678", OtpPurpose.REGISTRATION,
+                java.time.Duration.ofMinutes(30))).thenReturn(true);
+        when(passwordEncoder.encode("new-password")).thenReturn("new-hash");
+
+        service.activatePendingAccount(new ActivateAccountRequest("0912345678", "new-password", "new-password"));
+
+        assertFalse(account.isMustChangePassword());
+        assertEquals("new-hash", account.getPasswordHash());
+        verify(accountRepository).save(account);
+    }
+
+    @Test
+    void rejectsPendingActivationWhenOtpWindowHasExpired() {
+        PatientAccount account = new PatientAccount("0912345678", "pending-hash", "Nguyen Van A", AccountStatus.ACTIVE, true);
+        when(accountRepository.findByPhone("0912345678")).thenReturn(Optional.of(account));
+        when(otpService.isPhoneVerifiedWithin("0912345678", OtpPurpose.REGISTRATION,
+                java.time.Duration.ofMinutes(30))).thenReturn(false);
+
+        AuthException exception = assertThrows(AuthException.class, () -> service.activatePendingAccount(
+                new ActivateAccountRequest("0912345678", "new-password", "new-password")));
+
+        assertEquals("ACTIVATION_OTP_REQUIRED", exception.getCode());
+    }
+
+    @Test
     void updatesFullNameWithoutChangingPhone() {
         PatientAccount account = new PatientAccount("0912345678", "password-hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
         setId(account, ACCOUNT_ID);
@@ -171,6 +200,13 @@ class AccountAuthServiceTest {
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
         verify(accountRepository, org.mockito.Mockito.never()).save(any(PatientAccount.class));
+    }
+
+    @Test
+    void logoutRevokesAllActiveSessions() {
+        service.logout(ACCOUNT_ID.toString());
+
+        verify(sessionRepository).revokeActiveByAccountId(eq(ACCOUNT_ID), eq(NOW));
     }
 
     private static void setId(PatientAccount account, UUID id) {

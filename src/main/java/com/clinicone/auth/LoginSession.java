@@ -33,14 +33,25 @@ public class LoginSession {
     @Column(name = "revoked_at")
     private Instant revokedAt;
 
+    // Legacy patient sessions predate role-based sessions and legitimately have no role.
+    // Keep the column nullable so Hibernate can update an existing database without
+    // failing on those rows; getRole() applies the patient fallback when reading them.
+    @Column(length = 200)
+    private String role;
+
     protected LoginSession() {
     }
 
     public LoginSession(UUID accountId, String tokenHash, Instant issuedAt, Instant expiresAt) {
+        this(accountId, tokenHash, issuedAt, expiresAt, "ROLE_PATIENT");
+    }
+
+    public LoginSession(UUID accountId, String tokenHash, Instant issuedAt, Instant expiresAt, String role) {
         this.accountId = accountId;
         this.tokenHash = tokenHash;
         this.issuedAt = issuedAt;
         this.expiresAt = expiresAt;
+        this.role = role;
     }
 
     public void revoke(Instant now) { revokedAt = now; }
@@ -49,4 +60,5 @@ public class LoginSession {
     public Instant getIssuedAt() { return issuedAt; }
     public Instant getExpiresAt() { return expiresAt; }
     public Instant getRevokedAt() { return revokedAt; }
+    public String getRole() { return role == null || role.isBlank() ? "ROLE_PATIENT" : role; }
 }

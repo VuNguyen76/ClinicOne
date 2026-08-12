@@ -1,0 +1,126 @@
+package com.clinicone.schedule;
+
+import com.clinicone.appointment.Appointment;
+import com.clinicone.appointment.AppointmentRepository;
+import com.clinicone.appointment.AppointmentStatus;
+import com.clinicone.audit.BusinessLogService;
+import com.clinicone.notification.PatientNotificationService;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * Applies the fixed lifecycle rules for a booked appointment. The job is
+ * deliberately idempotent: notification event keys and the BOOKED guard make
+ * reruns safe, while only the 24-hour rule changes appointment state.
+ */
+@Component
+public class AppointmentLifecycleJob {
+    private static final ZoneId CLINIC_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
+    private static final Duration LATE_THRESHOLD = Duration.ofMinutes(15);
+    private static final Duration ABSENT_THRESHOLD = Duration.ofHours(24);
+
+    private final AppointmentRepository appointmentRepository;
+    private final PatientNotificationService notificationService;
+    private final BusinessLogService businessLogService;
+    private final Clock clock;
+    private final AppointmentHoldService holdService;
+
+    public AppointmentLifecycleJob(AppointmentRepository appointmentRepository,
+                                   PatientNotificationService notificationService,
+                                   BusinessLogService businessLogService, Clock clock) {
+        this(appointmentRepository, notificationService, businessLogService, clock, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public AppointmentLifecycleJob(AppointmentRepository appointmentRepository,
+                                   PatientNotificationService notificationService,
+                                   BusinessLogService businessLogService, Clock clock,
+                                   AppointmentHoldService holdService) {
+        this.appointmentRepository = appointmentRepository;
+        this.notificationService = notificationService;
+        this.businessLogService = businessLogService;
+        this.clock = clock;
+        this.holdService = holdService;
+    }
+
+    @Scheduled(fixedDelayString = "${app.appointments.lifecycle-job-delay-ms:60000}")
+    public void runScheduled() {
+        runOnce();
+    }
+
+    @Transactional
+    public LifecycleJobResult runOnce() {
+        if (holdService != null) {
+            holdService.releaseExpired();
+        }
+        Instant now = Instant.now(clock);
+        LocalDate today = now.atZone(CLINIC_ZONE).toLocalDate();
+        List<Appointment> appointments = appointmentRepository
+                .findByStatusAndAppointmentDateBetweenOrderByAppointmentDateAscStartTimeAsc(
+                        AppointmentStatus.BOOKED, today.minusDays(31), today.plusDays(31));
+        int reminders = 0;
+        int lateWarnings = 0;
+        int absent = 0;
+        for (Appointment appointment : appointments) {
+            Instant appointmentAt = appointmentAt(appointment);
+            if (shouldSendReminder(appointment, appointmentAt, now, 24)) {
+                notificationService.notifyAppointmentReminder(appointment, 24);
+                reminders++;
+            }
+            if (shouldSendReminder(appointment, appointmentAt, now, 2)) {
+                notificationService.notifyAppointmentReminder(appointment, 2);
+                reminders++;
+            }
+            if (!now.isBefore(appointmentAt.plus(LATE_THRESHOLD))) {
+                notificationService.notifyAppointmentLate(appointment);
+                lateWarnings++;
+            }
+            if (!now.isBefore(appointmentAt.plus(ABSENT_THRESHOLD))
+                    && appointment.getStatus() == AppointmentStatus.BOOKED) {
+                markAbsent(appointment);
+                absent++;
+            }
+        }
+        return new LifecycleJobResult(appointments.size(), reminders, lateWarnings, absent);
+    }
+
+    private void markAbsent(Appointment appointment) {
+        String previousStatus = appointment.getStatus().name();
+        UUID eventId = UUID.randomUUID();
+        appointment.markAbsent();
+        appointmentRepository.save(appointment);
+        businessLogService.recordTransition(eventId, "APPOINTMENT", appointment.getId(), previousStatus,
+                appointment.getStatus().name(), "MARK_ABSENT", "SYSTEM", "Tự động sau quá thời hạn vắng mặt");
+        notificationService.notifyAppointmentAbsent(appointment);
+    }
+
+    private boolean shouldSendReminder(Appointment appointment, Instant appointmentAt, Instant now, int hours) {
+        Duration remaining = Duration.between(now, appointmentAt);
+        Duration threshold = Duration.ofHours(hours);
+        if (remaining.isNegative() || remaining.compareTo(threshold) > 0
+                || appointment.getStatus() != AppointmentStatus.BOOKED) {
+            return false;
+        }
+        Instant createdAt = appointment.getCreatedAt();
+        return createdAt == null || !createdAt.isAfter(appointmentAt.minus(threshold));
+    }
+
+    private Instant appointmentAt(Appointment appointment) {
+        return ZonedDateTime.of(appointment.getAppointmentDate(), appointment.getStartTime(), CLINIC_ZONE)
+                .toInstant();
+    }
+
+    public record LifecycleJobResult(int inspected, int reminderCandidates, int lateWarningCandidates,
+                                     int absentTransitions) {
+    }
+}
