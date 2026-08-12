@@ -97,6 +97,18 @@ public class ReceptionService {
         return toResponse(appointment, existingTicket);
     }
 
+    @Transactional
+    public ReceptionAppointmentResponse markFacilityUnavailable(UUID appointmentId, String reason, String actor) {
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "APPOINTMENT_NOT_FOUND",
+                        "Không tìm thấy lịch hẹn."));
+        QueueTicketResponse ticket = ticketRepository.findByAppointmentId(appointmentId)
+                .map(value -> queueService.markFacilityUnavailable(value.getId(), reason, actor))
+                .orElseThrow(() -> new AuthException(HttpStatus.CONFLICT, "QUEUE_NOT_FOUND",
+                        "Lịch hẹn chưa có lượt trong hàng đợi."));
+        return toResponse(appointment, ticket);
+    }
+
     @Transactional(readOnly = true)
     public List<ReceptionPatientProfileResponse> profiles(String phone) {
         if (patientAccountRepository == null || patientProfileRepository == null) {

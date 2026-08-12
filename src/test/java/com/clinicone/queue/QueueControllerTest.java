@@ -197,6 +197,18 @@ class QueueControllerTest {
                 .andExpect(jsonPath("$.status").value("LEFT_BEFORE_EXAM"));
     }
 
+    @Test
+    void receptionistCanCloseQueueTicketWhenFacilityCannotServeThePatient() throws Exception {
+        when(queueService.markFacilityUnavailable(eq(TICKET_ID), eq("Phòng khám tạm ngưng phục vụ."),
+                eq(ACCOUNT_ID.toString()))).thenReturn(response());
+
+        mockMvc.perform(post("/api/v1/queue/" + TICKET_ID + "/facility-unavailable")
+                        .with(authentication(authenticated("ROLE_RECEPTIONIST")))
+                        .contentType("application/json")
+                        .content("{\"reason\":\"Phòng khám tạm ngưng phục vụ.\"}"))
+                .andExpect(status().isOk());
+    }
+
     private static UsernamePasswordAuthenticationToken authenticated(String role) {
         return authenticated(new String[]{role});
     }

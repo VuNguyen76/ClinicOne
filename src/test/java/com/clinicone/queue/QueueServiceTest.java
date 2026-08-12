@@ -313,6 +313,27 @@ class QueueServiceTest {
     }
 
     @Test
+    void facilityUnavailableClosesWaitingTicketWithSpecificOutcome() {
+        QueueTicket ticket = QueueTicket.create(appointment, room, TODAY, 5);
+        setId(ticket, UUID.randomUUID());
+        ExaminationSession session = ExaminationSession.create(appointment);
+        when(ticketRepository.findById(ticket.getId())).thenReturn(Optional.of(ticket));
+        when(examinationSessionRepository.findByAppointment_Id(APPOINTMENT_ID)).thenReturn(Optional.of(session));
+        when(ticketRepository.save(any(QueueTicket.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(appointmentRepository.save(any(Appointment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(examinationSessionRepository.save(any(ExaminationSession.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        QueueTicketResponse response = service.markFacilityUnavailable(ticket.getId(),
+                "Phòng khám phải tạm ngưng phục vụ hôm nay.", "receptionist-1");
+
+        assertEquals(QueueTicketStatus.COMPLETED.name(), response.status());
+        assertEquals(QueueClosureOutcome.FACILITY_UNAVAILABLE.name(), response.closureOutcome());
+        assertEquals(AppointmentStatus.NOT_PERFORMED, appointment.getStatus());
+        assertEquals(ExaminationSessionStatus.CANCELLED, session.getStatus());
+    }
+
+    @Test
     void receptionCanMoveWaitingTicketToAssignedDoctorQueueAndKeepOriginalAppointment() {
         UUID ticketId = UUID.randomUUID();
         UUID targetDoctorId = UUID.randomUUID();

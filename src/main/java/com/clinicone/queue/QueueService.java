@@ -11,6 +11,9 @@ import com.clinicone.doctor.DoctorScheduleRepository;
 import com.clinicone.examination.ExaminationSession;
 import com.clinicone.examination.ExaminationSessionRepository;
 import com.clinicone.audit.BusinessLogService;
+import com.clinicone.schedule.GeneratedClinicSlot;
+import com.clinicone.schedule.GeneratedClinicSlotRepository;
+import com.clinicone.schedule.GeneratedSlotStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -48,29 +51,30 @@ public class QueueService {
     private final ExaminationSessionRepository examinationSessionRepository;
     private final DoctorScheduleRepository doctorScheduleRepository;
     private final BusinessLogService businessLogService;
+    private final GeneratedClinicSlotRepository generatedSlotRepository;
     private final Clock clock;
 
     public QueueService(ClinicRoomRepository roomRepository, QueueTicketRepository ticketRepository,
                         AppointmentRepository appointmentRepository) {
-        this(roomRepository, ticketRepository, appointmentRepository, null, null, null, null, Clock.systemUTC());
+        this(roomRepository, ticketRepository, appointmentRepository, null, null, null, null, null, Clock.systemUTC());
     }
 
     public QueueService(ClinicRoomRepository roomRepository, QueueTicketRepository ticketRepository,
                         AppointmentRepository appointmentRepository, Clock clock) {
-        this(roomRepository, ticketRepository, appointmentRepository, null, null, null, null, clock);
+        this(roomRepository, ticketRepository, appointmentRepository, null, null, null, null, null, clock);
     }
 
     public QueueService(ClinicRoomRepository roomRepository, QueueTicketRepository ticketRepository,
                         AppointmentRepository appointmentRepository, DoctorProfileRepository doctorProfileRepository,
                         Clock clock) {
-        this(roomRepository, ticketRepository, appointmentRepository, doctorProfileRepository, null, null, null, clock);
+        this(roomRepository, ticketRepository, appointmentRepository, doctorProfileRepository, null, null, null, null, clock);
     }
 
     public QueueService(ClinicRoomRepository roomRepository, QueueTicketRepository ticketRepository,
                         AppointmentRepository appointmentRepository, DoctorProfileRepository doctorProfileRepository,
                         ExaminationSessionRepository examinationSessionRepository, Clock clock) {
         this(roomRepository, ticketRepository, appointmentRepository, doctorProfileRepository,
-                examinationSessionRepository, null, null, clock);
+                examinationSessionRepository, null, null, null, clock);
     }
 
     public QueueService(ClinicRoomRepository roomRepository, QueueTicketRepository ticketRepository,
@@ -78,14 +82,15 @@ public class QueueService {
                         ExaminationSessionRepository examinationSessionRepository, BusinessLogService businessLogService,
                         Clock clock) {
         this(roomRepository, ticketRepository, appointmentRepository, doctorProfileRepository,
-                examinationSessionRepository, businessLogService, null, clock);
+                examinationSessionRepository, businessLogService, null, null, clock);
     }
 
     @Autowired
     public QueueService(ClinicRoomRepository roomRepository, QueueTicketRepository ticketRepository,
                         AppointmentRepository appointmentRepository, DoctorProfileRepository doctorProfileRepository,
                         ExaminationSessionRepository examinationSessionRepository, BusinessLogService businessLogService,
-                        DoctorScheduleRepository doctorScheduleRepository, Clock clock) {
+                        DoctorScheduleRepository doctorScheduleRepository, GeneratedClinicSlotRepository generatedSlotRepository,
+                        Clock clock) {
         this.roomRepository = roomRepository;
         this.ticketRepository = ticketRepository;
         this.appointmentRepository = appointmentRepository;
@@ -94,6 +99,7 @@ public class QueueService {
         this.businessLogService = businessLogService;
         this.doctorScheduleRepository = doctorScheduleRepository;
         this.clock = clock;
+        this.generatedSlotRepository = generatedSlotRepository;
     }
 
     @Transactional
@@ -398,6 +404,40 @@ public class QueueService {
         return response;
     }
 
+    @Transactional
+    public QueueTicketResponse markFacilityUnavailable(UUID ticketId, String reason, String actor) {
+        QueueTicket ticket = findTicket(ticketId);
+        String normalizedReason = normalizeLeaveReason(reason);
+        UUID eventId = UUID.randomUUID();
+        String previousTicketStatus = ticket.getStatus().name();
+        String previousAppointmentStatus = ticket.getAppointment().getStatus().name();
+        ExaminationSession session = examinationSessionRepository == null ? null
+                : examinationSessionRepository.findByAppointment_Id(ticket.getAppointment().getId()).orElse(null);
+        String previousSessionStatus = session == null ? null : session.getStatus().name();
+        markAppointmentSlotUnavailable(ticket.getAppointment());
+        try {
+            ticket.closeFacilityUnavailable(normalizedReason);
+            ticket.getAppointment().markNotPerformed();
+            if (session != null) {
+                session.cancel();
+                examinationSessionRepository.save(session);
+            }
+            appointmentRepository.save(ticket.getAppointment());
+            QueueTicketResponse response = QueueTicketResponse.from(ticketRepository.save(ticket));
+            recordTransition(eventId, "QUEUE_TICKET", ticket.getId(), previousTicketStatus,
+                    ticket.getStatus().name(), "FACILITY_UNAVAILABLE", actor, normalizedReason);
+            recordTransition(eventId, "APPOINTMENT", ticket.getAppointment().getId(), previousAppointmentStatus,
+                    ticket.getAppointment().getStatus().name(), "FACILITY_UNAVAILABLE", actor, normalizedReason);
+            if (session != null) {
+                recordTransition(eventId, "EXAMINATION", session.getId(), previousSessionStatus,
+                        session.getStatus().name(), "FACILITY_UNAVAILABLE", actor, normalizedReason);
+            }
+            return response;
+        } catch (IllegalStateException exception) {
+            throw queueStateConflict(exception.getMessage());
+        }
+    }
+
     private int nextNumber(ClinicRoom room, LocalDate date) {
         ClinicRoom lockedRoom = roomRepository.findByCodeAndActiveTrueForUpdate(room.getCode())
                 .orElseThrow(() -> new AuthException(HttpStatus.CONFLICT, "ROOM_NOT_AVAILABLE",
@@ -436,6 +476,18 @@ public class QueueService {
         int targetNumber = nextNumber(targetRoom, ticket.getQueueDate());
         ticket.moveTo(targetRoom, targetDoctor.getStaffAccount().getId(), targetDoctor.getStaffAccount().getFullName(),
                 targetDoctor.getSpecialty(), targetNumber);
+    }
+
+    private void markAppointmentSlotUnavailable(Appointment appointment) {
+        if (appointment.getServiceId() == null || generatedSlotRepository == null) {
+            return;
+        }
+        GeneratedClinicSlot slot = generatedSlotRepository
+                .findFirstByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(appointment.getDoctorStaffId(),
+                        appointment.getAppointmentDate(), appointment.getStartTime(), GeneratedSlotStatus.OPEN)
+                .orElseThrow(() -> queueStateConflict("Không tìm thấy khung giờ đang hoạt động của lịch hẹn."));
+        slot.cancel();
+        generatedSlotRepository.save(slot);
     }
 
     private DoctorProfile findTargetDoctor(QueueAdjustmentRequest request, String specialty, String roomCode) {
