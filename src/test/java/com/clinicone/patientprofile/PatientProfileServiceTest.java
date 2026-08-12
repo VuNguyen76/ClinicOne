@@ -15,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.ArgumentMatchers.any;
 
 class PatientProfileServiceTest {
@@ -166,5 +167,21 @@ class PatientProfileServiceTest {
         assertEquals("Nam", profile.getGender());
         assertEquals("Tên mới", account.getFullName());
         verify(accountRepository).save(account);
+    }
+
+    @Test
+    void rejectsReceptionUpdateContainingOnlyBlankValues() {
+        PatientAccountRepository accountRepository = mock(PatientAccountRepository.class);
+        PatientProfileRepository profileRepository = mock(PatientProfileRepository.class);
+        ReceptionUpdatePatientProfileRequest request = new ReceptionUpdatePatientProfileRequest(
+                "   ", null, "", " ", "", " ", "", "   ", "", " ", "", " ", "", " ", ""
+        );
+
+        AuthException exception = assertThrows(AuthException.class, () ->
+                new PatientProfileService(accountRepository, profileRepository)
+                        .updateMissingDataByReceptionist(PROFILE_ID.toString(), request));
+
+        assertEquals("RECEPTION_UPDATE_EMPTY", exception.getCode());
+        verifyNoInteractions(profileRepository, accountRepository);
     }
 }
