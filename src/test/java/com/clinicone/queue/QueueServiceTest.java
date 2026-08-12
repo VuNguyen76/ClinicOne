@@ -69,6 +69,25 @@ class QueueServiceTest {
     }
 
     @Test
+    void pendingActivationPatientCannotCheckInBeforeChangingTemporaryPassword() {
+        PatientAccount pending = new PatientAccount("0912345678", "hash", "Nguyen Van A",
+                AccountStatus.ACTIVE, true);
+        setId(pending, ACCOUNT_ID);
+        appointment = Appointment.create(pending, "CL-20260806-1234", "Nội tổng quát", "BS. Nguyễn An",
+                TODAY, java.time.LocalTime.of(9, 0), "Đau đầu");
+        setId(appointment, APPOINTMENT_ID);
+        when(appointmentRepository.findByIdAndPatientId(APPOINTMENT_ID, ACCOUNT_ID))
+                .thenReturn(Optional.of(appointment));
+
+        AuthException exception = assertThrows(AuthException.class,
+                () -> service.checkIn(ACCOUNT_ID.toString(), "NOI-01", APPOINTMENT_ID));
+
+        assertEquals("PASSWORD_CHANGE_REQUIRED", exception.getCode());
+        assertEquals(AppointmentStatus.BOOKED, appointment.getStatus());
+        verify(ticketRepository, never()).save(any(QueueTicket.class));
+    }
+
+    @Test
     void checkInCreatesOneNumberForTodaysAppointment() {
         QueueTicketResponse response = service.checkIn(ACCOUNT_ID.toString(), "NOI-01", APPOINTMENT_ID);
 
