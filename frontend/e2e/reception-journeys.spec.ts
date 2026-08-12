@@ -108,6 +108,7 @@ test.describe('liên thông tiếp nhận và hàng đợi bác sĩ', () => {
     await page.route('**/api/v1/reception/patients', (route) => json(route, {
       accountId: 'patient-new', phone: '0900000001', fullName: 'Trần Bình', mustChangePassword: true,
     }, 201));
+    await page.route('**/api/v1/auth/activate', (route) => json(route, null, 204));
     await page.route('**/api/v1/reception/walk-in', (route) => json(route, walkInAppointment('Trần Bình', '0900000001', 8), 201));
 
     await signInAsReceptionist(page);
@@ -122,8 +123,10 @@ test.describe('liên thông tiếp nhận và hàng đợi bác sĩ', () => {
     await dialog.getByLabel('Ngày sinh').fill('1995-05-05');
     await dialog.getByLabel('Giới tính').selectOption('Nam');
     await dialog.getByRole('button', { name: 'Tạo tài khoản' }).click();
-    await expect(dialog).toContainText('cần đăng nhập bằng mật khẩu tạm');
-    await dialog.getByRole('button', { name: 'Đã đổi mật khẩu' }).click();
+    await expect(dialog).toContainText('Người bệnh cần tự đặt mật khẩu mới trước khi check-in');
+    await dialog.getByLabel('Mật khẩu mới').fill('correct-password');
+    await dialog.getByLabel('Nhập lại mật khẩu').fill('correct-password');
+    await dialog.getByRole('button', { name: 'Đặt mật khẩu và tiếp tục' }).click();
     await expect(dialog.getByLabel('Hồ sơ người đi khám')).toBeVisible();
     await fillWalkInDetails(dialog, '0900000001', 'Người bệnh mới được hỗ trợ tại quầy');
     await dialog.getByRole('button', { name: 'Tạo lịch và cấp số' }).click();
@@ -147,7 +150,7 @@ test.describe('liên thông tiếp nhận và hàng đợi bác sĩ', () => {
       queueState = 'CALLED';
       return json(route, ticket());
     });
-    await page.route('**/api/v1/queue/ticket-9/start', (route) => {
+    await page.route('**/api/v1/doctor/examinations/ticket-9/start', (route) => {
       queueState = 'IN_SERVICE';
       return json(route, ticket());
     });
@@ -181,6 +184,7 @@ test.describe('liên thông tiếp nhận và hàng đợi bác sĩ', () => {
     await form.getByTestId('save-draft').click();
     await expect(page.getByText('Đã lưu bản nháp')).toBeVisible();
     await form.getByTestId('sign-record').click();
+    await page.getByTestId('confirm-sign-record').click();
     await expect(page.getByText('Đã ký phiếu khám')).toBeVisible();
     await expect(form.locator('textarea[formcontrolname="reason"]')).toBeDisabled();
     await expect(page.getByText('Đã hoàn thành')).toBeVisible();
