@@ -20,21 +20,29 @@ public class SmsDeliveryService {
     private final SmsContentPolicy contentPolicy;
     private final Clock clock;
     private final SmsDeliveryStateService stateService;
+    private final SmsDeliveryMetrics metrics;
 
     public SmsDeliveryService(SmsDeliveryRepository repository, ObjectProvider<SmsSender> smsSenders,
                               SmsContentPolicy contentPolicy, Clock clock) {
-        this(repository, smsSenders, contentPolicy, clock, new SmsDeliveryStateService(repository, clock));
+        this(repository, smsSenders, contentPolicy, clock, new SmsDeliveryStateService(repository, clock), null);
+    }
+
+    public SmsDeliveryService(SmsDeliveryRepository repository, ObjectProvider<SmsSender> smsSenders,
+                              SmsContentPolicy contentPolicy, Clock clock,
+                              SmsDeliveryStateService stateService) {
+        this(repository, smsSenders, contentPolicy, clock, stateService, null);
     }
 
     @Autowired
     public SmsDeliveryService(SmsDeliveryRepository repository, ObjectProvider<SmsSender> smsSenders,
                               SmsContentPolicy contentPolicy, Clock clock,
-                              SmsDeliveryStateService stateService) {
+                              SmsDeliveryStateService stateService, SmsDeliveryMetrics metrics) {
         this.repository = repository;
         this.smsSender = smsSenders.getIfAvailable();
         this.contentPolicy = contentPolicy;
         this.clock = clock;
         this.stateService = stateService;
+        this.metrics = metrics;
     }
 
     @Transactional
@@ -45,6 +53,7 @@ public class SmsDeliveryService {
         contentPolicy.validate(message);
         if (repository.findByEventKey(eventKey).isEmpty()) {
             repository.save(SmsDelivery.pending(patientAccountId, eventKey, phone.trim(), message.trim(), now()));
+            if (metrics != null) metrics.enqueued();
         }
     }
 
@@ -56,6 +65,7 @@ public class SmsDeliveryService {
         for (SmsDelivery candidate : due) {
             if (claim(candidate.getId(), current)) {
                 processed++;
+                if (metrics != null) metrics.claimed(1);
                 deliver(candidate.getId());
             }
         }
@@ -85,8 +95,10 @@ public class SmsDeliveryService {
         try {
             smsSender.sendText(delivery.getPhone(), delivery.getMessage());
             markSent(deliveryId);
+            if (metrics != null) metrics.sent();
         } catch (RuntimeException failure) {
             markFailed(deliveryId, failure);
+            if (metrics != null) metrics.failed();
         }
     }
 
