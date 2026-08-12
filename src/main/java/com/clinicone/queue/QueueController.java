@@ -31,6 +31,7 @@ public class QueueController {
     }
 
     @PostMapping("/rooms/{roomCode}/queue/check-in")
+    @PreAuthorize("hasRole('PATIENT')")
     public ResponseEntity<QueueTicketResponse> checkIn(Authentication authentication,
                                                         @PathVariable String roomCode,
                                                         @Valid @RequestBody QueueCheckInRequest request,

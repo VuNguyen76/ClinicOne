@@ -68,6 +68,15 @@ class QueueControllerTest {
     }
 
     @Test
+    void staffCannotUsePatientQrCheckInEndpoint() throws Exception {
+        mockMvc.perform(post("/api/v1/rooms/NOI-01/queue/check-in")
+                        .with(authentication(authenticated("ROLE_RECEPTIONIST")))
+                        .contentType("application/json")
+                        .content("{\"appointmentId\":\"" + APPOINTMENT_ID + "\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void listsPatientsOwnQueueForToday() throws Exception {
         when(queueService.listForPatient(eq(ACCOUNT_ID.toString()), eq(LocalDate.of(2026, 8, 6))))
                 .thenReturn(List.of(response()));
