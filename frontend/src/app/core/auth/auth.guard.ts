@@ -1,5 +1,5 @@
 import { inject } from '@angular/core';
-import { CanActivateFn, Router } from '@angular/router';
+import { CanActivateFn, RedirectFunction, Router } from '@angular/router';
 
 export const authGuard: CanActivateFn = (_route, state) => {
   const router = inject(Router);
@@ -69,6 +69,15 @@ export const homeGuard: CanActivateFn = () => {
     return router.createUrlTree(['/reception/check-in']);
   }
   return router.createUrlTree(['/staff/login']);
+};
+
+export const staffLandingRedirect: RedirectFunction = () => {
+  const roles = staffRoles();
+  if (!sessionToken() || !roles.length) return '/staff/login';
+  if (roles.includes('DOCTOR')) return '/doctor';
+  if (roles.includes('ADMIN') || roles.includes('COORDINATOR')) return '/admin/rooms';
+  if (roles.includes('RECEPTIONIST')) return '/reception/check-in';
+  return '/staff/login';
 };
 
 export const roomManagerGuard: CanActivateFn = (_route, state) => {

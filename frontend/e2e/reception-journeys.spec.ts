@@ -72,8 +72,10 @@ test.describe('liên thông tiếp nhận và hàng đợi bác sĩ', () => {
       sessionStorage.setItem('clinicOneStaffRole', 'RECEPTIONIST');
     });
 
-    await page.goto('/home');
-    await expect(page).toHaveURL(/\/reception\/check-in$/);
+    for (const entryPath of ['/staff', '/home']) {
+      await page.goto(entryPath);
+      await expect(page).toHaveURL(/\/reception\/check-in$/);
+    }
   });
   test('tài khoản đã có hồ sơ được tiếp nhận và lượt khám hiện ở màn hình bác sĩ', async ({ page, context }) => {
     await mockReceptionApis(page);
