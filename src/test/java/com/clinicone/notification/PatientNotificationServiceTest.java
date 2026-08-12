@@ -61,6 +61,28 @@ class PatientNotificationServiceTest {
     }
 
     @Test
+    void doesNotSendDuplicateSmsWhenNotificationEventAlreadyExists() {
+        PatientNotificationService smsService = new PatientNotificationService(repository, accountRepository, smsSender);
+        UUID patientId = UUID.randomUUID();
+        UUID appointmentId = UUID.randomUUID();
+        PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
+        setId(account, patientId);
+        PatientNotification existing = PatientNotification.appointmentCreated(patientId, appointmentId,
+                "CL-001", "Nội khoa", "Bác sĩ An", "2026-08-08", "08:30");
+        when(repository.findByEventKey("APPOINTMENT_CREATED:" + appointmentId)).thenReturn(Optional.of(existing));
+        when(accountRepository.findById(patientId)).thenReturn(Optional.of(account));
+
+        var appointment = com.clinicone.appointment.Appointment.create(account, appointmentId,
+                "CL-001", "Nội khoa", "Bác sĩ An", java.time.LocalDate.of(2026, 8, 8),
+                java.time.LocalTime.of(8, 30), "Đau đầu");
+        setAppointmentId(appointment, appointmentId);
+        smsService.notifyAppointmentCreated(appointment);
+
+        verify(repository, never()).save(any(PatientNotification.class));
+        verify(smsSender, never()).sendText(any(), any());
+    }
+
+    @Test
     void hidesAppointmentDetailsUntilPatientCompletesActivation() {
         PatientNotificationService smsService = new PatientNotificationService(repository, accountRepository, smsSender);
         UUID patientId = UUID.randomUUID();
