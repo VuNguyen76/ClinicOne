@@ -62,6 +62,16 @@ describe('Rescheduling', () => {
 
     expect(fixture.nativeElement.textContent).toContain('Đã sắp xếp lại lịch CL-0001.');
   });
+
+  it('keeps the resolution form hidden for administrators', () => {
+    http.expectOne('/api/v1/admin/rescheduling').flush([rescheduleCase()]);
+    http.expectOne('/api/v1/admin/rescheduling/case-1/alternatives').flush([]);
+    sessionStorage.setItem('clinicOneStaffRole', 'ADMIN');
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('form')).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Chỉ Điều phối viên mới có thể xác nhận');
+  });
 });
 
 function rescheduleCase() {
