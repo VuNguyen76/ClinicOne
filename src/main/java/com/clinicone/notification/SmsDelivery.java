@@ -23,7 +23,7 @@ import java.util.UUID;
         @UniqueConstraint(name = "uk_sms_deliveries_event", columnNames = "event_key")
 })
 public class SmsDelivery {
-    private static final int MAX_ATTEMPTS = 3;
+    static final int MAX_ATTEMPTS = 3;
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

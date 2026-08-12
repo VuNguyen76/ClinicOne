@@ -68,6 +68,11 @@ public class SmsDeliveryService {
                 || delivery.getStatus() == SmsDeliveryStatus.RETRY_WAITING;
         if (!ready && !staleProcessing) return false;
         if (ready && delivery.getAvailableAt().isAfter(current)) return false;
+        if (staleProcessing && delivery.getAttempts() >= SmsDelivery.MAX_ATTEMPTS) {
+            delivery.markFailed(current, "SMS delivery lease expired after final attempt");
+            repository.save(delivery);
+            return false;
+        }
         delivery.claim(current, current.plusSeconds(CLAIM_SECONDS));
         repository.save(delivery);
         return true;
