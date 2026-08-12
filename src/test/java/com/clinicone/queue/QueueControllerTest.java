@@ -99,6 +99,13 @@ class QueueControllerTest {
     }
 
     @Test
+    void adminCannotReadOperationalQueue() throws Exception {
+        mockMvc.perform(get("/api/v1/rooms/NOI-01/queue?date=2026-08-06")
+                        .with(authentication(authenticated("ROLE_ADMIN"))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void doctorGetsOnlyOwnWorkspaceQueue() throws Exception {
         when(queueService.doctorQueue(eq(LocalDate.of(2026, 8, 6)), eq(ACCOUNT_ID.toString())))
                 .thenReturn(new DoctorQueueResponse("NOI-01", "Phòng Nội tổng quát 01", "Nội tổng quát", List.of(response())));
