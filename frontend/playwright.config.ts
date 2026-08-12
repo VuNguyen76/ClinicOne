@@ -16,7 +16,10 @@ export default defineConfig({
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
   ],
   webServer: {
-    command: 'npm run start:frontend',
+    // Critical journeys exercise both the Angular app and the Spring API.
+    // Starting only the frontend makes every unmocked API request fail with
+    // ECONNREFUSED and hides real integration regressions.
+    command: 'npm run start',
     url: 'http://localhost:4200',
     reuseExistingServer: true,
     timeout: 120_000,
