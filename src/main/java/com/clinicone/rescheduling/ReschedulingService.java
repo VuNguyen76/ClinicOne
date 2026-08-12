@@ -111,6 +111,35 @@ public class ReschedulingService {
     @Transactional(readOnly = true)
     public List<AvailableSlotResponse> alternatives(UUID caseId, LocalDate from, LocalDate to) {
         RescheduleCase item = findCase(caseId);
+        return alternatives(item, from, to);
+    }
+
+    @Transactional(readOnly = true)
+    public RescheduleCaseResponse findForPatient(String accountId, UUID appointmentId) {
+        UUID patientId = parseAccountId(accountId);
+        RescheduleCase item = findOpenCaseForPatient(appointmentId, patientId);
+        return RescheduleCaseResponse.from(item);
+    }
+
+    @Transactional(readOnly = true)
+    public List<AvailableSlotResponse> alternativesForPatient(String accountId, UUID appointmentId,
+                                                              LocalDate from, LocalDate to) {
+        UUID patientId = parseAccountId(accountId);
+        RescheduleCase item = findOpenCaseForPatient(appointmentId, patientId);
+        return alternatives(item, from, to);
+    }
+
+    @Transactional
+    public RescheduleCaseResponse resolveForPatient(String accountId, UUID appointmentId,
+                                                    ResolveRescheduleRequest request) {
+        UUID patientId = parseAccountId(accountId);
+        RescheduleCase openCase = findOpenCaseForPatient(appointmentId, patientId);
+        RescheduleCase item = caseRepository.findByIdForUpdate(openCase.getId()).orElseThrow(this::notFound);
+        ensurePatientOwns(item, patientId);
+        return resolveLocked(item, request, "PATIENT:" + patientId);
+    }
+
+    private List<AvailableSlotResponse> alternatives(RescheduleCase item, LocalDate from, LocalDate to) {
         LocalDate start = from == null ? item.getOldAppointmentDate() : from;
         LocalDate end = to == null ? start.plusDays(SEARCH_DAYS) : to;
         if (item.getAppointment().getServiceId() == null) {
@@ -122,6 +151,10 @@ public class ReschedulingService {
     @Transactional
     public RescheduleCaseResponse resolve(UUID caseId, ResolveRescheduleRequest request, String actor) {
         RescheduleCase item = caseRepository.findByIdForUpdate(caseId).orElseThrow(this::notFound);
+        return resolveLocked(item, request, actor);
+    }
+
+    private RescheduleCaseResponse resolveLocked(RescheduleCase item, ResolveRescheduleRequest request, String actor) {
         if (item.getStatus() != RescheduleCaseStatus.OPEN) {
             throw conflict("RESCHEDULE_CASE_ALREADY_RESOLVED", "Lịch cần sắp xếp lại đã được xử lý.");
         }
@@ -153,6 +186,29 @@ public class ReschedulingService {
             notificationService.notifyAppointmentRescheduled(appointment, previousDate, previousTime);
         }
         return response;
+    }
+
+    private RescheduleCase findOpenCaseForPatient(UUID appointmentId, UUID patientId) {
+        RescheduleCase item = caseRepository.findByAppointmentIdAndStatus(appointmentId, RescheduleCaseStatus.OPEN)
+                .orElseThrow(this::notFound);
+        ensurePatientOwns(item, patientId);
+        return item;
+    }
+
+    private void ensurePatientOwns(RescheduleCase item, UUID patientId) {
+        if (item.getAppointment().getPatient() == null
+                || !patientId.equals(item.getAppointment().getPatient().getId())) {
+            throw notFound();
+        }
+    }
+
+    private UUID parseAccountId(String accountId) {
+        try {
+            return UUID.fromString(accountId);
+        } catch (IllegalArgumentException exception) {
+            throw new AuthException(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_REQUIRED",
+                    "Phiên đăng nhập không hợp lệ.");
+        }
     }
 
     private boolean matchesSchedule(Appointment appointment, DoctorSchedule schedule) {
