@@ -3,6 +3,7 @@ package com.clinicone.notification;
 import org.springframework.beans.factory.ObjectProvider;
 import org.junit.jupiter.api.Test;
 import org.springframework.transaction.annotation.Transactional;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -89,5 +90,20 @@ class SmsDeliveryTest {
                 .isAnnotationPresent(Transactional.class)).isTrue();
         assertThat(SmsDeliveryStateService.class.getMethod("markFailed", UUID.class, RuntimeException.class)
                 .isAnnotationPresent(Transactional.class)).isTrue();
+    }
+
+    @Test
+    void metricsExposeDeliveryCountersWithStableNames() {
+        SmsDeliveryMetrics metrics = new SmsDeliveryMetrics(new SimpleMeterRegistry());
+
+        metrics.enqueued();
+        metrics.claimed(2);
+        metrics.sent();
+        metrics.failed();
+
+        assertThat(metrics.registry().counter("clinicone.sms.delivery.enqueued").count()).isEqualTo(1);
+        assertThat(metrics.registry().counter("clinicone.sms.delivery.claimed").count()).isEqualTo(2);
+        assertThat(metrics.registry().counter("clinicone.sms.delivery.sent").count()).isEqualTo(1);
+        assertThat(metrics.registry().counter("clinicone.sms.delivery.failed").count()).isEqualTo(1);
     }
 }
