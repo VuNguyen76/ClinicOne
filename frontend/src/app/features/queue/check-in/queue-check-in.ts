@@ -37,7 +37,7 @@ export class QueueCheckIn implements OnInit {
   protected todayAppointments(): AppointmentResponse[] {
     const specialty = this.room()?.specialty.toLowerCase();
     return this.appointments().filter((appointment) => appointment.appointmentDate === this.today
-      && (appointment.status === 'BOOKED' || appointment.status === 'CHECKED_IN')
+      && ['BOOKED', 'CHECKED_IN', 'COMPLETED', 'NOT_PERFORMED'].includes(appointment.status)
       && (!specialty || appointment.specialty.toLowerCase() === specialty));
   }
 
@@ -45,6 +45,14 @@ export class QueueCheckIn implements OnInit {
     this.error.set('');
     this.selectedAppointment.set(appointment);
     this.checkInRequestKey = null;
+  }
+
+  protected submitLabel(): string {
+    const status = this.selectedAppointment()?.status;
+    if (status === 'COMPLETED' || status === 'NOT_PERFORMED') {
+      return 'Xem kết quả đã có';
+    }
+    return status === 'CHECKED_IN' ? 'Báo đã quay lại' : 'Nhận số thứ tự';
   }
 
   protected checkIn(): void {
