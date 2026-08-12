@@ -67,7 +67,6 @@ public class SmsDeliveryService {
         return repository.findTop100ByOrderByCreatedAtDesc();
     }
 
-    @Transactional
     boolean claim(UUID deliveryId, Instant current) {
         return stateService.claim(deliveryId, current);
     }

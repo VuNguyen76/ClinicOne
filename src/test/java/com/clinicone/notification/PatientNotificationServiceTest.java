@@ -17,7 +17,7 @@ import static org.mockito.Mockito.mock;
 class PatientNotificationServiceTest {
     private final PatientNotificationRepository repository = mock(PatientNotificationRepository.class);
     private final PatientAccountRepository accountRepository = mock(PatientAccountRepository.class);
-    private final SmsSender smsSender = mock(SmsSender.class);
+    private final SmsDeliveryService smsDeliveryService = mock(SmsDeliveryService.class);
     private final PatientNotificationService service = new PatientNotificationService(repository);
 
     @Test
@@ -40,8 +40,29 @@ class PatientNotificationServiceTest {
     }
 
     @Test
-    void sendsAppointmentNotificationBySmsWhenPhoneIsAvailable() {
-        PatientNotificationService smsService = new PatientNotificationService(repository, accountRepository, smsSender);
+    void stillStoresInAppNotificationWhenOutboxBeanIsUnavailable() {
+        PatientNotificationService notificationService = new PatientNotificationService(
+                repository, accountRepository, (SmsDeliveryService) null);
+        UUID patientId = UUID.randomUUID();
+        UUID appointmentId = UUID.randomUUID();
+        PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
+        setId(account, patientId);
+        when(repository.findByEventKey("APPOINTMENT_CREATED:" + appointmentId)).thenReturn(Optional.empty());
+        when(repository.save(any(PatientNotification.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(accountRepository.findById(patientId)).thenReturn(Optional.of(account));
+
+        var appointment = com.clinicone.appointment.Appointment.create(account, appointmentId,
+                "CL-001", "Nội khoa", "Bác sĩ An", java.time.LocalDate.of(2026, 8, 8),
+                java.time.LocalTime.of(8, 30), "Đau đầu");
+        setAppointmentId(appointment, appointmentId);
+        notificationService.notifyAppointmentCreated(appointment);
+
+        verify(repository).save(any(PatientNotification.class));
+    }
+
+    @Test
+    void enqueuesAppointmentNotificationWhenPhoneIsAvailable() {
+        PatientNotificationService smsService = serviceWithOutbox();
         UUID patientId = UUID.randomUUID();
         UUID appointmentId = UUID.randomUUID();
         PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
@@ -56,13 +77,13 @@ class PatientNotificationServiceTest {
         setAppointmentId(appointment, appointmentId);
         smsService.notifyAppointmentCreated(appointment);
 
-        verify(smsSender).sendText("0912345678",
+        verify(smsDeliveryService).enqueue(patientId, "APPOINTMENT_CREATED:" + appointmentId, "0912345678",
                 "ClinicOne: Đặt lịch thành công. Lịch hẹn CL-001 với Bác sĩ An đã được ghi nhận vào 2026-08-08 lúc 08:30. Mở ứng dụng ClinicOne để xem.");
     }
 
     @Test
-    void doesNotSendDuplicateSmsWhenNotificationEventAlreadyExists() {
-        PatientNotificationService smsService = new PatientNotificationService(repository, accountRepository, smsSender);
+    void rechecksOutboxForExistingNotificationEvent() {
+        PatientNotificationService smsService = serviceWithOutbox();
         UUID patientId = UUID.randomUUID();
         UUID appointmentId = UUID.randomUUID();
         PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
@@ -79,12 +100,13 @@ class PatientNotificationServiceTest {
         smsService.notifyAppointmentCreated(appointment);
 
         verify(repository, never()).save(any(PatientNotification.class));
-        verify(smsSender, never()).sendText(any(), any());
+        verify(smsDeliveryService).enqueue(patientId, existing.getEventKey(), "0912345678",
+                "ClinicOne: Đặt lịch thành công. Lịch hẹn CL-001 với Bác sĩ An đã được ghi nhận vào 2026-08-08 lúc 08:30. Mở ứng dụng ClinicOne để xem.");
     }
 
     @Test
     void hidesAppointmentDetailsUntilPatientCompletesActivation() {
-        PatientNotificationService smsService = new PatientNotificationService(repository, accountRepository, smsSender);
+        PatientNotificationService smsService = serviceWithOutbox();
         UUID patientId = UUID.randomUUID();
         UUID appointmentId = UUID.randomUUID();
         PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, true);
@@ -99,7 +121,7 @@ class PatientNotificationServiceTest {
         setAppointmentId(appointment, appointmentId);
         smsService.notifyAppointmentCreated(appointment);
 
-        verify(smsSender).sendText("0912345678",
+        verify(smsDeliveryService).enqueue(patientId, "APPOINTMENT_CREATED:" + appointmentId, "0912345678",
                 "ClinicOne: Bạn có thông báo mới. Vui lòng hoàn tất kích hoạt tài khoản để xem trong ứng dụng.");
     }
 
@@ -114,13 +136,17 @@ class PatientNotificationServiceTest {
         when(accountRepository.findById(patientId)).thenReturn(Optional.of(account));
         when(repository.findByPatientAccountIdOrderByCreatedAtDesc(patientId)).thenReturn(java.util.List.of(notification));
 
-        PatientNotificationService notificationService = new PatientNotificationService(repository, accountRepository, smsSender);
+        PatientNotificationService notificationService = serviceWithOutbox();
         PatientNotificationResponse response = notificationService.list(patientId.toString()).get(0);
 
         org.assertj.core.api.Assertions.assertThat(response.title()).isEqualTo("Bạn có thông báo mới");
         org.assertj.core.api.Assertions.assertThat(response.message()).contains("hoàn tất kích hoạt")
                 .doesNotContain("Bác sĩ An", "2026-08-08", "08:30");
         org.assertj.core.api.Assertions.assertThat(response.targetUrl()).isNull();
+    }
+
+    private PatientNotificationService serviceWithOutbox() {
+        return new PatientNotificationService(repository, accountRepository, smsDeliveryService);
     }
 
     private static void setId(PatientAccount account, UUID id) {
