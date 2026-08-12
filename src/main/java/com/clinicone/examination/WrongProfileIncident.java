@@ -6,7 +6,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
@@ -59,8 +58,7 @@ public class WrongProfileIncident {
     @Column(name = "treatment_plan", length = 2000)
     private String treatmentPlan;
 
-    @Lob
-    @Column(name = "prescription_snapshot")
+    @Column(name = "prescription_snapshot", columnDefinition = "text")
     private String prescriptionSnapshot;
 
     @Column(name = "follow_up_date")
