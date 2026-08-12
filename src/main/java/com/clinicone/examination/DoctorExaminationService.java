@@ -1,6 +1,7 @@
 package com.clinicone.examination;
 
 import com.clinicone.auth.AuthException;
+import com.clinicone.auth.AccountStatus;
 import com.clinicone.auth.StaffAccount;
 import com.clinicone.auth.StaffAccountRepository;
 import com.clinicone.appointment.Appointment;
@@ -405,12 +406,19 @@ public class DoctorExaminationService {
             throw new AuthException(HttpStatus.FORBIDDEN, "DOCTOR_TICKET_SCOPE",
                     "Bác sĩ chỉ được mở phiếu của lượt đã được phân công.");
         }
-        (lockDoctor ? doctorProfileRepository.findByStaffAccount_IdForUpdate(doctorId)
+        DoctorProfile profile = (lockDoctor ? doctorProfileRepository.findByStaffAccount_IdForUpdate(doctorId)
                 : doctorProfileRepository.findByStaffAccount_Id(doctorId))
-                .filter(DoctorProfile::isActive)
-                .filter(profile -> profile.getRoom().getCode().equalsIgnoreCase(ticket.getRoom().getCode()))
                 .orElseThrow(() -> new AuthException(HttpStatus.FORBIDDEN, "DOCTOR_ASSIGNMENT_REQUIRED",
                         "Bác sĩ chưa được gán đúng chuyên khoa và phòng khám."));
+        if (profile.getStaffAccount().getStatus() == AccountStatus.LOCKED) {
+            throw new AuthException(HttpStatus.FORBIDDEN, "STAFF_ACCOUNT_LOCKED",
+                    "Tài khoản nhân viên đã bị khóa và không thể thực hiện lượt khám.");
+        }
+        if (!profile.isActive()
+                || !profile.getRoom().getCode().equalsIgnoreCase(ticket.getRoom().getCode())) {
+            throw new AuthException(HttpStatus.FORBIDDEN, "DOCTOR_ASSIGNMENT_REQUIRED",
+                    "Bác sĩ chưa được gán đúng chuyên khoa và phòng khám.");
+        }
         return doctorId;
     }
 

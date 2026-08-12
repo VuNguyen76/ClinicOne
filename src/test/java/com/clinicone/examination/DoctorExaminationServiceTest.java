@@ -60,6 +60,7 @@ class DoctorExaminationServiceTest {
     private ExaminationSession session;
     private MedicalRecord record;
     private Appointment appointment;
+    private StaffAccount doctor;
 
     @BeforeEach
     void setUp() {
@@ -79,6 +80,7 @@ class DoctorExaminationServiceTest {
         ClinicRoom room = ClinicRoom.create("NOI-01", "Phòng Nội 01", "Nội tổng quát");
         StaffAccount doctor = StaffAccount.create("bs.an", "hash", "Bác sĩ Nguyễn An", StaffRole.DOCTOR);
         setId(doctor, DOCTOR_ID);
+        this.doctor = doctor;
         DoctorProfile profile = DoctorProfile.create(doctor, "Nội tổng quát", room);
         PatientAccount patient = new PatientAccount("0912345678", "hash", "Nguyễn Thanh Vũ",
                 AccountStatus.ACTIVE, false);
@@ -107,6 +109,32 @@ class DoctorExaminationServiceTest {
         when(ticketRepository.save(any(QueueTicket.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(sessionRepository.save(any(ExaminationSession.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(recordRepository.save(any(MedicalRecord.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    }
+
+    @Test
+    void lockedDoctorCannotStartAnExaminationEvenWithAnExistingSession() {
+        doctor.lock();
+        when(sessionRepository.findByAppointment_IdForUpdate(APPOINTMENT_ID)).thenReturn(Optional.of(session));
+
+        assertThatThrownBy(() -> service.start(TICKET_ID, DOCTOR_ID.toString(), "start-locked-doctor"))
+                .isInstanceOf(AuthException.class)
+                .satisfies(error -> assertThat(((AuthException) error).getCode())
+                        .isEqualTo("STAFF_ACCOUNT_LOCKED"));
+        verify(ticketRepository, never()).save(ticket);
+        verify(sessionRepository, never()).save(session);
+    }
+
+    @Test
+    void lockedDoctorCannotSignAnExaminationFromAnExistingSession() {
+        doctor.lock();
+
+        assertThatThrownBy(() -> service.sign(TICKET_ID, DOCTOR_ID.toString(), request(), "sign-locked-doctor"))
+                .isInstanceOf(AuthException.class)
+                .satisfies(error -> assertThat(((AuthException) error).getCode())
+                        .isEqualTo("STAFF_ACCOUNT_LOCKED"));
+        verify(ticketRepository, never()).save(ticket);
+        verify(sessionRepository, never()).save(session);
+        verify(recordRepository, never()).saveAndFlush(record);
     }
 
     @Test
