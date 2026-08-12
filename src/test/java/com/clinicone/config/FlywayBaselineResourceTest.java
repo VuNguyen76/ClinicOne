@@ -1,6 +1,7 @@
 package com.clinicone.config;
 
 import com.clinicone.notification.PatientNotificationType;
+import com.clinicone.queue.QueueTicketStatus;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -53,6 +54,21 @@ class FlywayBaselineResourceTest {
                 .map(Enum::name)
                 .toList()) {
             assertThat(sql).contains("'" + type + "'");
+        }
+    }
+
+    @Test
+    void queueStatusMigrationAllowsEveryPersistedQueueStatus() throws IOException {
+        String sql;
+        try (InputStream input = getClass().getResourceAsStream("/db/migration/V3__expand_queue_ticket_status.sql")) {
+            assertThat(input).as("queue status migration resource").isNotNull();
+            sql = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+        }
+
+        assertThat(sql).contains("DROP CONSTRAINT IF EXISTS queue_tickets_status_check");
+        assertThat(sql).contains("ADD CONSTRAINT queue_tickets_status_check CHECK");
+        for (String status : Arrays.stream(QueueTicketStatus.values()).map(Enum::name).toList()) {
+            assertThat(sql).contains("'" + status + "'");
         }
     }
 }
