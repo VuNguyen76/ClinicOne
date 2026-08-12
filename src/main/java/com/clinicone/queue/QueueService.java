@@ -154,6 +154,10 @@ public class QueueService {
             throw new AuthException(HttpStatus.CONFLICT, "QUEUE_DATE_NOT_OPEN",
                     "Chỉ có thể lấy số cho lịch hẹn trong ngày hôm nay.");
         }
+        if (appointment.getPatient() != null && appointment.getPatient().isMustChangePassword()) {
+            throw new AuthException(HttpStatus.CONFLICT, "PASSWORD_CHANGE_REQUIRED",
+                    "Người bệnh cần đổi mật khẩu tạm trước khi check-in.");
+        }
         if (!room.getSpecialty().equalsIgnoreCase(appointment.getSpecialty())) {
             throw new AuthException(HttpStatus.CONFLICT, "QUEUE_ROOM_MISMATCH",
                     "Phòng này không thuộc chuyên khoa của lịch hẹn.");
