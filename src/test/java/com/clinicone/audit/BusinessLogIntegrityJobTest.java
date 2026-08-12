@@ -11,6 +11,7 @@ import com.clinicone.reconciliation.ReconciliationIncidentRepository;
 import com.clinicone.reconciliation.ReconciliationStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.lang.reflect.Field;
 import java.time.Clock;
@@ -81,6 +82,14 @@ class BusinessLogIntegrityJobTest {
         assertEquals(1, result.inspected());
         assertEquals(0, result.incidentsOpened());
         verify(incidentRepository, never()).save(any());
+    }
+
+    @Test
+    void scheduledAndRecoveryEntryPointsKeepIntegrityCheckInsideATransaction() throws Exception {
+        assertEquals(true, BusinessLogIntegrityJob.class.getMethod("runScheduled")
+                .isAnnotationPresent(Transactional.class));
+        assertEquals(true, BusinessLogIntegrityJob.class.getMethod("runAfterRecovery")
+                .isAnnotationPresent(Transactional.class));
     }
 
     private static void setId(Appointment appointment, UUID id) throws Exception {

@@ -6,6 +6,7 @@ import com.clinicone.appointment.AppointmentStatus;
 import com.clinicone.audit.BusinessLogService;
 import com.clinicone.notification.PatientNotificationService;
 import org.junit.jupiter.api.Test;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -136,6 +137,12 @@ class AppointmentLifecycleJobTest {
         assertThat(result.absentTransitions()).isZero();
         verify(notificationService).notifyAppointmentLate(appointment);
         verify(appointmentRepository, never()).save(any());
+    }
+
+    @Test
+    void scheduledEntryPointKeepsLifecycleWorkInsideATransaction() throws Exception {
+        assertThat(AppointmentLifecycleJob.class.getMethod("runScheduled")
+                .isAnnotationPresent(Transactional.class)).isTrue();
     }
 
     private AppointmentLifecycleJob job(Instant now) {

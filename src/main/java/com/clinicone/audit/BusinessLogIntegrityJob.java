@@ -50,12 +50,14 @@ public class BusinessLogIntegrityJob {
         this.clock = clock;
     }
 
+    @Transactional
     @Scheduled(fixedDelayString = "${app.audit.integrity-job-delay-ms:300000}")
     public void runScheduled() {
         runOnce();
     }
 
     /** Runs once after persistence has recovered and the application is ready. */
+    @Transactional
     @EventListener(ApplicationReadyEvent.class)
     public void runAfterRecovery() {
         runOnce();

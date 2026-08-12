@@ -53,6 +53,7 @@ public class AppointmentLifecycleJob {
         this.holdService = holdService;
     }
 
+    @Transactional
     @Scheduled(fixedDelayString = "${app.appointments.lifecycle-job-delay-ms:60000}")
     public void runScheduled() {
         runOnce();
