@@ -50,7 +50,7 @@ public class QueueController {
     }
 
     @GetMapping("/rooms/{roomCode}/queue")
-    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR', 'DOCTOR', 'RECEPTIONIST')")
+    @PreAuthorize("hasAnyRole('COORDINATOR', 'DOCTOR', 'RECEPTIONIST')")
     public ResponseEntity<List<QueueTicketResponse>> list(
             Authentication authentication,
             @PathVariable String roomCode,
