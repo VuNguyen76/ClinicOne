@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -88,7 +89,7 @@ class AccountAuthControllerTest {
 
         mockMvc.perform(get("/api/v1/auth/me")
                         .with(authentication(UsernamePasswordAuthenticationToken.authenticated(
-                                ACCOUNT_ID.toString(), null, List.of()))))
+                                ACCOUNT_ID.toString(), null, List.of(new SimpleGrantedAuthority("ROLE_PATIENT"))))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.phone").value("0912345678"))
                 .andExpect(jsonPath("$.fullName").value("Nguyen Van A"));
@@ -101,11 +102,51 @@ class AccountAuthControllerTest {
 
         mockMvc.perform(patch("/api/v1/auth/me")
                         .with(authentication(UsernamePasswordAuthenticationToken.authenticated(
-                                ACCOUNT_ID.toString(), null, List.of())))
+                                ACCOUNT_ID.toString(), null, List.of(new SimpleGrantedAuthority("ROLE_PATIENT")))))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"fullName\":\"Nguyen Thi B\",\"dateOfBirth\":\"2005-06-07\",\"gender\":\"Nam\",\"address\":\"Tay Ninh\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.fullName").value("Nguyen Thi B"));
+    }
+
+    @Test
+    void staffCannotReadPatientProfile() throws Exception {
+        mockMvc.perform(get("/api/v1/auth/me")
+                        .with(authentication(UsernamePasswordAuthenticationToken.authenticated(
+                                ACCOUNT_ID.toString(), null,
+                                List.of(new SimpleGrantedAuthority("ROLE_DOCTOR"))))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void staffCannotUpdatePatientProfile() throws Exception {
+        mockMvc.perform(patch("/api/v1/auth/me")
+                        .with(authentication(UsernamePasswordAuthenticationToken.authenticated(
+                                ACCOUNT_ID.toString(), null,
+                                List.of(new SimpleGrantedAuthority("ROLE_RECEPTIONIST")))))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"fullName\":\"Nguyen Thi B\",\"dateOfBirth\":\"2005-06-07\",\"gender\":\"Nam\",\"address\":\"Tay Ninh\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void staffCannotChangePatientPassword() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/me/password")
+                        .with(authentication(UsernamePasswordAuthenticationToken.authenticated(
+                                ACCOUNT_ID.toString(), null,
+                                List.of(new SimpleGrantedAuthority("ROLE_DOCTOR")))))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"currentPassword\":\"oldPassword\",\"newPassword\":\"newPassword123\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void staffCannotUsePatientLogout() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/logout")
+                        .with(authentication(UsernamePasswordAuthenticationToken.authenticated(
+                                ACCOUNT_ID.toString(), null,
+                                List.of(new SimpleGrantedAuthority("ROLE_COORDINATOR"))))))
+                .andExpect(status().isForbidden());
     }
 
     @TestConfiguration
