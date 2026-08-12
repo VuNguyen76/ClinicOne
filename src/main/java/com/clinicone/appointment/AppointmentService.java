@@ -16,6 +16,8 @@ import com.clinicone.audit.BusinessLogService;
 import com.clinicone.reason.ReasonCatalog;
 import com.clinicone.reason.ReasonCatalogService;
 import com.clinicone.reason.ReasonCatalogType;
+import com.clinicone.rescheduling.RescheduleCaseRepository;
+import com.clinicone.rescheduling.RescheduleCaseStatus;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,6 +47,7 @@ public class AppointmentService {
     private final ReasonCatalogService reasonCatalogService;
     private final Clock clock;
     private final AppointmentCodeGenerator appointmentCodeGenerator;
+    private final RescheduleCaseRepository rescheduleCaseRepository;
 
     public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository) {
         this(accountRepository, appointmentRepository, null, null, null, null, null, null, null, null, null);
@@ -100,13 +103,25 @@ public class AppointmentService {
                 clock, new AppointmentCodeGenerator());
     }
 
-    @org.springframework.beans.factory.annotation.Autowired
     public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
                               PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService,
                               PatientNotificationService notificationService, BusinessLogService businessLogService,
                               AppointmentHoldService holdService, ClinicServiceRepository clinicServiceRepository,
                               ClinicConfigurationService configurationService, ReasonCatalogService reasonCatalogService,
                               Clock clock, AppointmentCodeGenerator appointmentCodeGenerator) {
+        this(accountRepository, appointmentRepository, profileRepository, availabilityService, notificationService,
+                businessLogService, holdService, clinicServiceRepository, configurationService, reasonCatalogService,
+                clock, appointmentCodeGenerator, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
+                              PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService,
+                              PatientNotificationService notificationService, BusinessLogService businessLogService,
+                              AppointmentHoldService holdService, ClinicServiceRepository clinicServiceRepository,
+                              ClinicConfigurationService configurationService, ReasonCatalogService reasonCatalogService,
+                              Clock clock, AppointmentCodeGenerator appointmentCodeGenerator,
+                              RescheduleCaseRepository rescheduleCaseRepository) {
         this.accountRepository = accountRepository;
         this.appointmentRepository = appointmentRepository;
         this.profileRepository = profileRepository;
@@ -120,6 +135,7 @@ public class AppointmentService {
         this.clock = clock == null ? Clock.systemUTC() : clock;
         this.appointmentCodeGenerator = appointmentCodeGenerator == null
                 ? new AppointmentCodeGenerator() : appointmentCodeGenerator;
+        this.rescheduleCaseRepository = rescheduleCaseRepository;
     }
 
     /** Backward-compatible constructor for isolated unit tests and integrations. */
@@ -314,6 +330,12 @@ public class AppointmentService {
         UUID patientId = parseAccountId(accountId);
         Appointment appointment = findOwned(parseAppointmentId(appointmentId), patientId);
         ensureBookable(appointment);
+        if (rescheduleCaseRepository != null
+                && rescheduleCaseRepository.findByAppointmentIdAndStatus(appointment.getId(), RescheduleCaseStatus.OPEN)
+                .isPresent()) {
+            throw new AuthException(HttpStatus.CONFLICT, "RESCHEDULE_CASE_PENDING",
+                    "Lịch hẹn đang chờ xác nhận khung giờ thay thế.");
+        }
         boolean sameSlot = appointment.getAppointmentDate().equals(request.appointmentDate())
                 && appointment.getStartTime().equals(request.startTime());
         if (availabilityService != null && !sameSlot) {

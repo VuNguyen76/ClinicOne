@@ -14,6 +14,9 @@ import com.clinicone.config.ClinicConfigurationService;
 import com.clinicone.reason.ReasonCatalog;
 import com.clinicone.reason.ReasonCatalogService;
 import com.clinicone.reason.ReasonCatalogType;
+import com.clinicone.rescheduling.RescheduleCase;
+import com.clinicone.rescheduling.RescheduleCaseRepository;
+import com.clinicone.rescheduling.RescheduleCaseStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -50,6 +53,7 @@ class AppointmentServiceTest {
     private AppointmentHoldService holdService;
     private com.clinicone.schedule.ClinicServiceRepository clinicServiceRepository;
     private ReasonCatalogService reasonCatalogService;
+    private RescheduleCaseRepository rescheduleCaseRepository;
     private AppointmentService service;
 
     @BeforeEach
@@ -61,6 +65,7 @@ class AppointmentServiceTest {
         holdService = mock(AppointmentHoldService.class);
         clinicServiceRepository = mock(com.clinicone.schedule.ClinicServiceRepository.class);
         reasonCatalogService = mock(ReasonCatalogService.class);
+        rescheduleCaseRepository = mock(RescheduleCaseRepository.class);
         service = new AppointmentService(accountRepository, appointmentRepository, null, availabilityService,
                 notificationService, null, holdService, clinicServiceRepository);
         when(appointmentRepository.save(any(Appointment.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -436,6 +441,31 @@ class AppointmentServiceTest {
         assertEquals(LocalDate.of(2026, 8, 11), response.appointmentDate());
         assertEquals(LocalTime.of(10, 0), response.startTime());
         verify(notificationService).notifyAppointmentRescheduled(appointment, "2026-08-10", "08:30");
+    }
+
+    @Test
+    void rejectsLegacyRescheduleWhenAnOpenReschedulingCaseExists() {
+        PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
+        setId(account, ACCOUNT_ID);
+        Appointment appointment = Appointment.existing(account, "CL-20260810-AB12", "Nội khoa", "BS. Nguyễn An",
+                LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), "Đau đầu");
+        UUID appointmentId = UUID.randomUUID();
+        setId(appointment, appointmentId);
+        when(appointmentRepository.findByIdAndPatientId(appointmentId, ACCOUNT_ID)).thenReturn(Optional.of(appointment));
+        when(rescheduleCaseRepository.findByAppointmentIdAndStatus(appointmentId, RescheduleCaseStatus.OPEN))
+                .thenReturn(Optional.of(RescheduleCase.open(appointment, "Bác sĩ nghỉ")));
+
+        AppointmentService guardedService = new AppointmentService(accountRepository, appointmentRepository, null,
+                availabilityService, notificationService, null, holdService, clinicServiceRepository, null,
+                reasonCatalogService, Clock.systemUTC(), new AppointmentCodeGenerator(), rescheduleCaseRepository);
+
+        AuthException exception = assertThrows(AuthException.class, () -> guardedService.reschedule(
+                ACCOUNT_ID.toString(), appointmentId.toString(),
+                new RescheduleAppointmentRequest(LocalDate.of(2026, 8, 11), LocalTime.of(10, 0))));
+
+        assertEquals("RESCHEDULE_CASE_PENDING", exception.getCode());
+        verify(appointmentRepository, never()).save(any(Appointment.class));
+        verify(availabilityService, never()).ensureBookable(any(), any(), any(), any(), any());
     }
 
     @Test
