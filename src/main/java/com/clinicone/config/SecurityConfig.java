@@ -38,6 +38,7 @@ public class SecurityConfig {
                                 "/api/v1/auth/login-sms",
                                 "/api/v1/auth/login",
                                 "/api/v1/auth/activate",
+                                "/api/v1/auth/recover-password",
                                 "/api/v1/addresses/**",
                                 "/api/v1/staff/auth/login",
                                 "/actuator/health"

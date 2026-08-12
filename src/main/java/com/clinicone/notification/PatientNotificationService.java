@@ -7,6 +7,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
 
 import java.util.List;
 import java.util.UUID;
@@ -147,6 +148,12 @@ public class PatientNotificationService {
         if (appointment.getPatient() == null) return;
         saveOnce(PatientNotification.appointmentAbsent(appointment.getPatient().getId(), appointment.getId(),
                 appointment.getAppointmentCode()));
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void notifyAccountSecurityLocked(UUID patientId, java.time.Instant lockedUntil) {
+        if (patientId == null || lockedUntil == null) return;
+        saveOnce(PatientNotification.accountSecurityLocked(patientId, lockedUntil));
     }
 
     private void saveOnce(PatientNotification notification) {

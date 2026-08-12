@@ -62,6 +62,12 @@ public class AccountAuthController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/recover-password")
+    public ResponseEntity<Void> recoverPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/logout")
     @PreAuthorize("hasRole('PATIENT')")
     public ResponseEntity<Void> logout(Authentication authentication, HttpServletRequest servletRequest) {
