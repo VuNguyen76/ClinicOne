@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import java.util.EnumSet;
 import java.util.UUID;
 
 @Service
@@ -59,17 +60,23 @@ public class SmsDeliveryService {
 
     public int processDue() {
         if (smsSender == null) return 0;
-        Instant current = now();
-        List<SmsDelivery> due = repository.findDue(current, PageRequest.of(0, BATCH_SIZE));
-        int processed = 0;
-        for (SmsDelivery candidate : due) {
-            if (claim(candidate.getId(), current)) {
-                processed++;
-                if (metrics != null) metrics.claimed(1);
-                deliver(candidate.getId());
+        var sample = metrics == null ? null : metrics.workerStarted();
+        try {
+            Instant current = now();
+            List<SmsDelivery> due = repository.findDue(current, PageRequest.of(0, BATCH_SIZE));
+            int processed = 0;
+            for (SmsDelivery candidate : due) {
+                if (claim(candidate.getId(), current)) {
+                    processed++;
+                    if (metrics != null) metrics.claimed(1);
+                    deliver(candidate.getId());
+                }
             }
+            updateBacklogMetric();
+            return processed;
+        } finally {
+            if (metrics != null) metrics.workerFinished(sample);
         }
-        return processed;
     }
 
     @Transactional(readOnly = true)
@@ -98,8 +105,17 @@ public class SmsDeliveryService {
             if (metrics != null) metrics.sent();
         } catch (RuntimeException failure) {
             markFailed(deliveryId, failure);
-            if (metrics != null) metrics.failed();
+            if (metrics != null) {
+                metrics.failed();
+                metrics.retry();
+            }
         }
+    }
+
+    private void updateBacklogMetric() {
+        if (metrics == null) return;
+        metrics.backlog(repository.countByStatusIn(EnumSet.of(SmsDeliveryStatus.PENDING,
+                SmsDeliveryStatus.PROCESSING, SmsDeliveryStatus.RETRY_WAITING)));
     }
 
     private Instant now() {
