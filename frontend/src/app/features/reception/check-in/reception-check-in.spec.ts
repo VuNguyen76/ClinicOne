@@ -180,6 +180,34 @@ describe('ReceptionCheckIn', () => {
     const profilesAfterActivation = http.expectOne('/api/v1/reception/profiles?phone=0912345678');
     profilesAfterActivation.flush([]);
   });
+
+  it('creates a temporary profile when the phone cannot be verified', () => {
+    const component = fixture.componentInstance as any;
+    (fixture.nativeElement.querySelector('[data-testid="open-walk-in"]') as HTMLButtonElement).click();
+    http.expectOne((item) => item.url === '/api/v1/specialties').flush([]);
+    component.walkInPhone.set('0912345678');
+    component.loadWalkInProfiles();
+    http.expectOne((item) => item.url === '/api/v1/reception/profiles').flush(
+      { error: { message: 'Chưa tìm thấy tài khoản' } },
+      { status: 404, statusText: 'Not Found' },
+    );
+
+    component.openTemporaryProfileForm();
+    component.registrationFullName.set('Nguyễn Văn Tạm');
+    component.registrationDateOfBirth.set('1990-01-01');
+    component.registrationGender.set('Nam');
+    component.submitRegistration();
+    const request = http.expectOne('/api/v1/reception/temporary-profiles');
+    expect(request.request.body).toEqual({
+      phone: '0912345678', fullName: 'Nguyễn Văn Tạm', dateOfBirth: '1990-01-01', gender: 'Nam',
+      identityNumber: undefined, nationality: 'Việt Nam', ethnicity: 'Kinh', address: undefined,
+    });
+    request.flush({ id: 'temp-1', fullName: 'Nguyễn Văn Tạm', relationship: 'Tạm tại quầy', primaryProfile: false });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Đã tạo hồ sơ tạm');
+    expect(component.walkInProfileId()).toBe('temp-1');
+  });
 });
 
 function appointment() {

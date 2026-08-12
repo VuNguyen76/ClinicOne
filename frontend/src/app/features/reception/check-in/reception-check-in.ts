@@ -42,6 +42,7 @@ export class ReceptionCheckIn implements OnInit {
   protected readonly walkInProfilesLoading = signal(false);
   protected readonly walkInSlotsLoading = signal(false);
   protected readonly walkInRegistration = signal(false);
+  protected readonly walkInTemporaryProfile = signal(false);
   protected readonly walkInNeedsPasswordChange = signal(false);
   protected readonly walkInOtp = signal('');
   protected readonly registrationFullName = signal('');
@@ -216,6 +217,7 @@ export class ReceptionCheckIn implements OnInit {
     this.walkInReason.set('');
     this.walkInExceptionReason.set('');
     this.walkInRegistration.set(false);
+    this.walkInTemporaryProfile.set(false);
     this.walkInNeedsPasswordChange.set(false);
     this.walkInOtp.set('');
     this.registrationFullName.set('');
@@ -241,6 +243,14 @@ export class ReceptionCheckIn implements OnInit {
     if (!this.walkInLoading()) this.walkInOpen.set(false);
   }
 
+  protected openTemporaryProfileForm(): void {
+    this.walkInTemporaryProfile.set(true);
+    this.registrationOtpSent.set(false);
+    this.walkInOtp.set('');
+    this.error.set('');
+    this.notice.set('Tạo hồ sơ tạm để tiếp nhận ngay; hồ sơ chỉ hiển thị tại quầy cho tới khi xác thực số điện thoại.');
+  }
+
   protected requestRegistrationOtp(): void {
     const phone = this.walkInPhone().trim();
     if (!/^0\d{9}$/.test(phone)) {
@@ -264,14 +274,42 @@ export class ReceptionCheckIn implements OnInit {
 
   protected submitRegistration(): void {
     const phone = this.walkInPhone().trim();
-    if (!/^0\d{9}$/.test(phone) || !/^\d{6}$/.test(this.walkInOtp())
+    if (!/^0\d{9}$/.test(phone) || (!this.walkInTemporaryProfile() && !/^\d{6}$/.test(this.walkInOtp()))
       || this.registrationFullName().trim().length < 2 || !this.registrationDateOfBirth()
       || !this.registrationGender()) {
-      this.error.set('Nhập đủ họ tên, ngày sinh, giới tính và mã OTP 6 số.');
+      this.error.set(this.walkInTemporaryProfile()
+        ? 'Nhập đủ họ tên, ngày sinh và giới tính.'
+        : 'Nhập đủ họ tên, ngày sinh, giới tính và mã OTP 6 số.');
       return;
     }
     this.registrationLoading.set(true);
     this.error.set('');
+    if (this.walkInTemporaryProfile()) {
+      this.authApi.createReceptionTemporaryProfile({
+        phone,
+        fullName: this.registrationFullName().trim(),
+        dateOfBirth: this.registrationDateOfBirth(),
+        gender: this.registrationGender(),
+        identityNumber: this.registrationIdentityNumber().trim() || undefined,
+        nationality: this.registrationNationality().trim() || undefined,
+        ethnicity: this.registrationEthnicity().trim() || undefined,
+        address: this.registrationAddress().trim() || undefined,
+      }).subscribe({
+        next: (profile) => {
+          this.registrationLoading.set(false);
+          this.walkInRegistration.set(false);
+          this.walkInTemporaryProfile.set(false);
+          this.walkInProfiles.set([profile]);
+          this.walkInProfileId.set(profile.id);
+          this.notice.set(`Đã tạo hồ sơ tạm cho ${profile.fullName}.`);
+        },
+        error: (response) => {
+          this.registrationLoading.set(false);
+          this.handleError(response);
+        },
+      });
+      return;
+    }
     this.authApi.registerReceptionPatient({
       phone,
       otpCode: this.walkInOtp(),
@@ -350,7 +388,8 @@ export class ReceptionCheckIn implements OnInit {
       error: (response) => {
         this.walkInProfilesLoading.set(false);
         if (response.status === 404) {
-          this.walkInRegistration.set(true);
+        this.walkInRegistration.set(true);
+          this.walkInTemporaryProfile.set(false);
           this.error.set('');
           return;
         }
