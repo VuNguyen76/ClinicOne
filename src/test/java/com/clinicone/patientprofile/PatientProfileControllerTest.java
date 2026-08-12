@@ -87,6 +87,14 @@ class PatientProfileControllerTest {
                 .andExpect(status().isForbidden());
     }
 
+    @Test
+    void receptionistCannotReadPatientProfileListEndpoint() throws Exception {
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(
+                        "/api/v1/patient-profiles")
+                .with(authentication(authenticated("ROLE_RECEPTIONIST"))))
+                .andExpect(status().isForbidden());
+    }
+
     private static UsernamePasswordAuthenticationToken authenticated(String role) {
         return UsernamePasswordAuthenticationToken.authenticated(ACCOUNT_ID.toString(), null,
                 List.of(new SimpleGrantedAuthority(role)));

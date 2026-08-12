@@ -2,6 +2,7 @@ package com.clinicone.patientprofile;
 
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,17 +26,20 @@ public class PatientProfileController {
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('PATIENT')")
     public ResponseEntity<List<PatientProfileResponse>> list(Authentication authentication) {
         return ResponseEntity.ok(service.list(authentication.getName()));
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('PATIENT')")
     public ResponseEntity<PatientProfileResponse> create(Authentication authentication,
                                                           @Valid @RequestBody CreatePatientProfileRequest request) {
         return ResponseEntity.status(201).body(service.create(authentication.getName(), request));
     }
 
     @PatchMapping("/{profileId}")
+    @PreAuthorize("hasRole('PATIENT')")
     public ResponseEntity<PatientProfileResponse> update(Authentication authentication,
                                                          @PathVariable String profileId,
                                                          @Valid @RequestBody UpdatePatientProfileRequest request) {
@@ -52,6 +56,7 @@ public class PatientProfileController {
     }
 
     @DeleteMapping("/{profileId}")
+    @PreAuthorize("hasRole('PATIENT')")
     public ResponseEntity<Void> delete(Authentication authentication, @PathVariable String profileId) {
         service.delete(authentication.getName(), profileId);
         return ResponseEntity.noContent().build();
