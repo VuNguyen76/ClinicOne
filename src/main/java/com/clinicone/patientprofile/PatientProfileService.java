@@ -79,40 +79,64 @@ public class PatientProfileService {
 
     @Transactional
     public PatientProfileResponse updateMissingDataByReceptionist(String profileId, UpdatePatientProfileRequest request) {
-        // 1. Lễ tân không bị ràng buộc bởi ownerId, tìm hồ sơ trực tiếp bằng ID
-        PatientProfile profile = profileRepository.findById(UUID.fromString(profileId))
-                .orElseThrow(this::profileNotFound);
+        return updateMissingDataByReceptionist(profileId, new ReceptionUpdatePatientProfileRequest(
+                request.fullName(), request.dateOfBirth(), request.gender(), request.phone(),
+                request.identityNumber(), request.nationality(), request.ethnicity(), request.address(),
+                request.provinceCode(), request.provinceName(), request.districtCode(), request.districtName(),
+                request.wardCode(), request.wardName(), request.streetAddress()));
+    }
 
-        // 2. AC-REC-02-01: Khóa trường đã có 
-        // Chỉ lấy giá trị từ request nếu dữ liệu cũ đang thực sự trống (legacy data)
-        String newFullName = (profile.getFullName() == null || profile.getFullName().isBlank()) ? normalize(request.fullName()) : profile.getFullName();
-        LocalDate newDob = (profile.getDateOfBirth() == null) ? request.dateOfBirth() : profile.getDateOfBirth();
-        String newGender = (profile.getGender() == null || profile.getGender().isBlank()) ? normalize(request.gender()) : profile.getGender();
+    @Transactional
+    public PatientProfileResponse updateMissingDataByReceptionist(
+            String profileId, ReceptionUpdatePatientProfileRequest request) {
+        if (request.isEmpty()) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "RECEPTION_UPDATE_EMPTY",
+                    "Cần nhập ít nhất một trường còn thiếu của hồ sơ.");
+        }
 
-        // 3. AC-REC-02-02: Địa chỉ có thể nhập thêm (nếu có thì lấy, không thì giữ cũ)
-        String newAddress = request.address() != null ? normalize(request.address()) : profile.getAddress();
+        PatientProfile profile = findByIdForReception(profileId);
+        String fullName = fillMissing(profile.getFullName(), request.fullName());
+        LocalDate dateOfBirth = profile.getDateOfBirth() == null && request.dateOfBirth() != null
+                ? request.dateOfBirth() : profile.getDateOfBirth();
+        String gender = fillMissing(profile.getGender(), request.gender());
+        String phone = fillMissing(profile.getPhone(), request.phone());
+        String identityNumber = fillMissing(profile.getIdentityNumber(), request.identityNumber());
+        String nationality = fillMissing(profile.getNationality(), request.nationality());
+        String ethnicity = fillMissing(profile.getEthnicity(), request.ethnicity());
+        String provinceCode = fillMissing(profile.getProvinceCode(), request.provinceCode());
+        String provinceName = fillMissing(profile.getProvinceName(), request.provinceName());
+        String districtCode = fillMissing(profile.getDistrictCode(), request.districtCode());
+        String districtName = fillMissing(profile.getDistrictName(), request.districtName());
+        String wardCode = fillMissing(profile.getWardCode(), request.wardCode());
+        String wardName = fillMissing(profile.getWardName(), request.wardName());
+        String streetAddress = fillMissing(profile.getStreetAddress(), request.streetAddress());
+        String address = fillMissing(profile.getAddress(), composeAddress(request.address(), streetAddress,
+                wardName, districtName, provinceName));
 
-        // 4. Cập nhật vào Entity. Các trường khác (Relationship, Identity,...) giữ nguyên như cũ.
-        profile.update(
-                newFullName,
-                profile.getRelationship(), 
-                newDob,
-                newGender,
-                profile.getPhone(),
-                profile.getIdentityNumber(),
-                profile.getNationality(),
-                profile.getEthnicity(),
-                newAddress,
-                profile.getProvinceCode(),
-                profile.getProvinceName(),
-                profile.getDistrictCode(),
-                profile.getDistrictName(),
-                profile.getWardCode(),
-                profile.getWardName(),
-                profile.getStreetAddress()
-        );
-
+        profile.update(fullName, profile.getRelationship(), dateOfBirth, gender, phone, identityNumber,
+                nationality, ethnicity, address, provinceCode, provinceName, districtCode, districtName,
+                wardCode, wardName, streetAddress);
+        if (profile.isPrimaryProfile()) {
+            PatientAccount owner = profile.getOwner();
+            owner.syncFromPrimaryProfile(profile.getFullName(), profile.getDateOfBirth(), profile.getGender(),
+                    profile.getPhone(), profile.getIdentityNumber(), profile.getNationality(), profile.getEthnicity(),
+                    profile.getAddress(), profile.getProvinceCode(), profile.getProvinceName(), profile.getDistrictCode(),
+                    profile.getDistrictName(), profile.getWardCode(), profile.getWardName(), profile.getStreetAddress());
+            accountRepository.save(owner);
+        }
         return PatientProfileResponse.from(profileRepository.save(profile));
+    }
+
+    private PatientProfile findByIdForReception(String profileId) {
+        try {
+            return profileRepository.findById(UUID.fromString(profileId)).orElseThrow(this::profileNotFound);
+        } catch (IllegalArgumentException exception) {
+            throw profileNotFound();
+        }
+    }
+
+    private String fillMissing(String existing, String candidate) {
+        return existing == null || existing.isBlank() ? normalize(candidate) : existing;
     }
 
     @Transactional

@@ -144,4 +144,27 @@ class PatientProfileServiceTest {
         assertEquals("Nguyễn Văn A", response.fullName());
         verify(profileRepository).save(profile);
     }
+
+    @Test
+    void receptionistFillsOnlyMissingFieldsAndSynchronizesPrimaryAccount() {
+        PatientAccountRepository accountRepository = mock(PatientAccountRepository.class);
+        PatientProfileRepository profileRepository = mock(PatientProfileRepository.class);
+        PatientAccount account = new PatientAccount("0912345678", "hash", "Tên cũ",
+                com.clinicone.auth.AccountStatus.ACTIVE, false);
+        PatientProfile profile = PatientProfile.forTest(PROFILE_ID, account, null, "Bản thân",
+                null, null, true);
+        when(profileRepository.findById(PROFILE_ID)).thenReturn(Optional.of(profile));
+        when(profileRepository.save(any(PatientProfile.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        new PatientProfileService(accountRepository, profileRepository)
+                .updateMissingDataByReceptionist(PROFILE_ID.toString(), new ReceptionUpdatePatientProfileRequest(
+                        "Tên mới", LocalDate.of(1990, 1, 1), "Nam", null, null, "Việt Nam", "Kinh",
+                        "Hà Nội", null, null, null, null, null, null, null));
+
+        assertEquals("Tên mới", profile.getFullName());
+        assertEquals(LocalDate.of(1990, 1, 1), profile.getDateOfBirth());
+        assertEquals("Nam", profile.getGender());
+        assertEquals("Tên mới", account.getFullName());
+        verify(accountRepository).save(account);
+    }
 }

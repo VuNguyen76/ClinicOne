@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 
@@ -43,9 +44,10 @@ public class PatientProfileController {
 
     // Endpoint dành riêng cho Lễ tân cập nhật hồ sơ thiếu
     @PatchMapping("/{profileId}/reception-update")
+    @PreAuthorize("hasRole('RECEPTIONIST')")
     public ResponseEntity<PatientProfileResponse> updateByReceptionist(
             @PathVariable String profileId,
-            @Valid @RequestBody UpdatePatientProfileRequest request) {
+            @Valid @RequestBody ReceptionUpdatePatientProfileRequest request) {
         return ResponseEntity.ok(service.updateMissingDataByReceptionist(profileId, request));
     }
 
