@@ -180,6 +180,23 @@ class ReceptionServiceTest {
     }
 
     @Test
+    void rejectsTemporaryWalkInWhenVerificationReasonIsTooShort() {
+        UUID profileId = UUID.randomUUID();
+        PatientProfile temporaryProfile = PatientProfile.createTemporary(
+                "Nguyen Van Tam", LocalDate.of(1990, 1, 1), "Nam", "0912345678", null, null, null, null);
+        when(patientAccountRepository.findByPhone("0912345678")).thenReturn(Optional.empty());
+        when(patientProfileRepository.findById(profileId)).thenReturn(Optional.of(temporaryProfile));
+
+        assertThatThrownBy(() -> service.createWalkIn(new ReceptionWalkInRequest(
+                "0912345678", profileId, DOCTOR_ID, TODAY, LocalTime.of(9, 0), "Dau dau", "Khong ro")))
+                .isInstanceOf(com.clinicone.auth.AuthException.class)
+                .hasMessageContaining("Lý do không thể xác thực")
+                .extracting("code").isEqualTo("TEMPORARY_EXCEPTION_REASON_INVALID");
+
+        verifyNoInteractions(doctorProfileRepository, appointmentService, queueService);
+    }
+
+    @Test
     void createsAReusableTemporaryProfileAtReception() {
         when(patientAccountRepository.findByPhone("0912345678")).thenReturn(Optional.empty());
         when(patientProfileRepository.findFirstByTemporaryProfileTrueAndOwnerIsNullAndPhone("0912345678"))

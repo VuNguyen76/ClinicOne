@@ -425,6 +425,7 @@ export class ReceptionCheckIn implements OnInit {
     const slot = this.walkInSlots().find((item) => item.startTime === this.walkInStartTime());
     const reason = this.walkInReason().trim();
     const exceptionReason = this.walkInExceptionReason().trim();
+    const temporaryProfile = this.temporaryProfileSelected();
     if (!/^0\d{9}$/.test(phone)) {
       this.error.set('Nhập số điện thoại hợp lệ trước khi tiếp nhận.');
       return;
@@ -433,8 +434,10 @@ export class ReceptionCheckIn implements OnInit {
       this.error.set('Chọn một khung giờ còn trống.');
       return;
     }
-    if (reason.length < 3 || exceptionReason.length < 3) {
-      this.error.set('Nhập lý do khám và lý do tiếp nhận tại quầy.');
+    if (reason.length < 3 || exceptionReason.length < (temporaryProfile ? 10 : 3)) {
+      this.error.set(temporaryProfile
+        ? 'Nhập lý do không thể xác thực (từ 10 đến 500 ký tự).'
+        : 'Nhập lý do khám và lý do tiếp nhận tại quầy.');
       return;
     }
     this.walkInLoading.set(true);
@@ -463,6 +466,14 @@ export class ReceptionCheckIn implements OnInit {
 
   protected formatTime(value: string): string {
     return value?.slice(0, 5) ?? '';
+  }
+
+  protected temporaryProfileSelected(): boolean {
+    const profileId = this.walkInProfileId();
+    if (!profileId) {
+      return false;
+    }
+    return this.walkInProfiles().find((profile) => profile.id === profileId)?.accountStatus === null;
   }
 
   protected queueLabel(appointment: ReceptionAppointmentResponse): string {
