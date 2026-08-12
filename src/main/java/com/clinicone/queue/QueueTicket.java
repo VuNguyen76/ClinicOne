@@ -53,6 +53,10 @@ public class QueueTicket {
     @Column(nullable = false, length = 20)
     private QueueTicketStatus status;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "closure_outcome", length = 40)
+    private QueueClosureOutcome closureOutcome;
+
     /** Read-only presence signal; it is not a second queue lifecycle status. */
     @Enumerated(EnumType.STRING)
     @Column(name = "presence_status", length = 24)
@@ -191,6 +195,7 @@ public class QueueTicket {
             throw new IllegalStateException("Lượt chưa sẵn sàng để hoàn tất");
         }
         status = QueueTicketStatus.COMPLETED;
+        closureOutcome = QueueClosureOutcome.EXAMINATION_COMPLETED;
         completedAt = Instant.now();
     }
 
@@ -199,6 +204,7 @@ public class QueueTicket {
             throw new IllegalStateException("Chỉ có thể dừng lượt đang khám.");
         }
         status = QueueTicketStatus.COMPLETED;
+        closureOutcome = QueueClosureOutcome.EXAMINATION_STOPPED;
         skipReason = reason == null || reason.isBlank() ? null : reason.trim();
         completedAt = Instant.now();
     }
@@ -211,6 +217,7 @@ public class QueueTicket {
         presenceStatus = QueuePresenceStatus.READY;
         completedAt = null;
         skipReason = null;
+        closureOutcome = null;
     }
 
     public void leaveBeforeExam(String reason) {
@@ -221,6 +228,7 @@ public class QueueTicket {
             throw new IllegalStateException("Chỉ có thể đóng lượt trước khi bắt đầu khám.");
         }
         status = QueueTicketStatus.LEFT_BEFORE_EXAM;
+        closureOutcome = QueueClosureOutcome.LEFT_BEFORE_EXAM;
         skipReason = reason == null || reason.isBlank() ? null : reason.trim();
         completedAt = Instant.now();
     }
@@ -251,6 +259,8 @@ public class QueueTicket {
     public LocalDate getQueueDate() { return queueDate; }
     public int getQueueNumber() { return queueNumber; }
     public QueueTicketStatus getStatus() { return status; }
+    public QueueClosureOutcome getClosureOutcome() { return closureOutcome; }
+    public String getClosureOutcomeLabel() { return closureOutcome == null ? null : closureOutcome.label(); }
     public QueuePresenceStatus getPresenceStatus() {
         return presenceStatus == null ? QueuePresenceStatus.READY : presenceStatus;
     }

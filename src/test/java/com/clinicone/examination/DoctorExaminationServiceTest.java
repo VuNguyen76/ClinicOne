@@ -125,6 +125,7 @@ class DoctorExaminationServiceTest {
         assertThat(response.status()).isEqualTo("COMPLETED");
         assertThat(response.signedAt()).isNotNull();
         assertThat(ticket.getStatus()).isEqualTo(com.clinicone.queue.QueueTicketStatus.COMPLETED);
+        assertThat(ticket.getClosureOutcome().name()).isEqualTo("EXAMINATION_COMPLETED");
         assertThat(appointment.getStatus()).isEqualTo(com.clinicone.appointment.AppointmentStatus.COMPLETED);
         assertThat(session.getStatus()).isEqualTo(ExaminationSessionStatus.COMPLETED);
         assertThat(record.getSignedAt()).isNotNull();
@@ -159,6 +160,7 @@ class DoctorExaminationServiceTest {
         assertThat(response.status()).isEqualTo("COMPLETED");
         assertThat(session.getStatus()).isEqualTo(ExaminationSessionStatus.COMPLETED);
         assertThat(ticket.getStatus()).isEqualTo(com.clinicone.queue.QueueTicketStatus.COMPLETED);
+        assertThat(ticket.getClosureOutcome().name()).isEqualTo("EXAMINATION_COMPLETED");
         assertThat(appointment.getStatus()).isEqualTo(com.clinicone.appointment.AppointmentStatus.COMPLETED);
         assertThat(record.getSignedAt()).isNotNull();
     }
@@ -196,6 +198,7 @@ class DoctorExaminationServiceTest {
         assertThat(response.status()).isEqualTo("CANCELLED");
         assertThat(session.getStatus()).isEqualTo(ExaminationSessionStatus.CANCELLED);
         assertThat(ticket.getStatus()).isEqualTo(com.clinicone.queue.QueueTicketStatus.COMPLETED);
+        assertThat(ticket.getClosureOutcome().name()).isEqualTo("EXAMINATION_STOPPED");
         assertThat(appointment.getStatus()).isEqualTo(com.clinicone.appointment.AppointmentStatus.NOT_PERFORMED);
         assertThat(record.getSignedAt()).isNull();
         verify(sessionRepository).save(session);
@@ -214,6 +217,7 @@ class DoctorExaminationServiceTest {
 
         assertThat(response.status()).isEqualTo("SCHEDULED");
         assertThat(ticket.getStatus()).isEqualTo(QueueTicketStatus.WAITING);
+        assertThat(ticket.getClosureOutcome()).isNull();
         assertThat(ticket.getPresenceStatus().name()).isEqualTo("READY");
         assertThat(ticket.getQueueNumber()).isEqualTo(5);
         assertThat(ticket.getCheckedInAt()).isNotNull();
