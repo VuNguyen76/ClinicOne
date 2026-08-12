@@ -90,6 +90,7 @@ public class PatientNotificationService {
 
     @Transactional
     public void notifyAppointmentCreated(Appointment appointment) {
+        if (appointment.getPatient() == null) return;
         saveOnce(PatientNotification.appointmentCreated(appointment.getPatient().getId(), appointment.getId(),
                 appointment.getAppointmentCode(), appointment.getSpecialty(), appointment.getDoctorName(),
                 appointment.getAppointmentDate().toString(), appointment.getStartTime().toString()));
@@ -97,12 +98,14 @@ public class PatientNotificationService {
 
     @Transactional
     public void notifyAppointmentCancelled(Appointment appointment) {
+        if (appointment.getPatient() == null) return;
         saveOnce(PatientNotification.appointmentCancelled(appointment.getPatient().getId(), appointment.getId(),
                 appointment.getAppointmentCode()));
     }
 
     @Transactional
     public void notifyAppointmentRescheduled(Appointment appointment, String previousDate, String previousTime) {
+        if (appointment.getPatient() == null) return;
         saveOnce(PatientNotification.appointmentRescheduled(appointment.getPatient().getId(), appointment.getId(),
                 appointment.getAppointmentCode(), appointment.getAppointmentDate().toString(),
                 appointment.getStartTime().toString(), previousDate, previousTime));
@@ -110,12 +113,14 @@ public class PatientNotificationService {
 
     @Transactional
     public void notifyAppointmentRescheduleRequired(Appointment appointment) {
+        if (appointment.getPatient() == null) return;
         saveOnce(PatientNotification.appointmentRescheduleRequired(appointment.getPatient().getId(),
                 appointment.getId(), appointment.getAppointmentCode()));
     }
 
     @Transactional
     public void notifyAppointmentReminder(Appointment appointment, int hours) {
+        if (appointment.getPatient() == null) return;
         saveOnce(PatientNotification.appointmentReminder(appointment.getPatient().getId(), appointment.getId(),
                 appointment.getAppointmentCode(), appointment.getSpecialty(), appointment.getDoctorName(),
                 appointment.getAppointmentDate().toString(), appointment.getStartTime().toString(), hours));
@@ -123,12 +128,14 @@ public class PatientNotificationService {
 
     @Transactional
     public void notifyAppointmentLate(Appointment appointment) {
+        if (appointment.getPatient() == null) return;
         saveOnce(PatientNotification.appointmentLateWarning(appointment.getPatient().getId(), appointment.getId(),
                 appointment.getAppointmentCode()));
     }
 
     @Transactional
     public void notifyAppointmentAbsent(Appointment appointment) {
+        if (appointment.getPatient() == null) return;
         saveOnce(PatientNotification.appointmentAbsent(appointment.getPatient().getId(), appointment.getId(),
                 appointment.getAppointmentCode()));
     }

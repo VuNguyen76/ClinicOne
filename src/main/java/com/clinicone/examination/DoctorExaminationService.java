@@ -275,7 +275,7 @@ public class DoctorExaminationService {
                     workspace.ticket().getStatus().name(), "SIGN_MEDICAL_RECORD", staffId, null);
             recordTransition(eventId, "APPOINTMENT", workspace.appointment().getId(), previousAppointmentStatus,
                     workspace.appointment().getStatus().name(), "SIGN_MEDICAL_RECORD", staffId, null);
-            if (notificationService != null) {
+            if (notificationService != null && workspace.appointment().getPatient() != null) {
                 try {
                     notificationService.notifyMedicalRecordSigned(workspace.appointment().getPatient().getId(), record.getId(),
                             workspace.appointment().getAppointmentCode(), record.getDoctorName(), workspace.appointment().getSpecialty());
@@ -612,16 +612,25 @@ public class DoctorExaminationService {
     private DoctorExaminationResponse response(QueueTicket ticket, ExaminationSession session, MedicalRecord record) {
         Appointment appointment = ticket.getAppointment();
         var patient = appointment.getPatient();
+        var profile = appointment.getPatientProfile();
         boolean requiresRecord = appointment.requiresMedicalRecord();
         String recordDoctorName = record == null ? null : record.getDoctorName();
-        List<MedicalRecordResponse> history = recordRepository
+        List<MedicalRecordResponse> history = patient == null ? List.of() : recordRepository
                 .findTop10BySession_Appointment_Patient_IdAndSignedAtIsNotNullOrderBySignedAtDesc(patient.getId())
                 .stream().map(MedicalRecordResponse::from).toList();
+        String patientName = patient == null && profile == null ? null
+                : patient == null ? profile.getFullName() : patient.getFullName();
+        LocalDate patientDateOfBirth = patient == null && profile == null ? null
+                : patient == null ? profile.getDateOfBirth() : patient.getDateOfBirth();
+        String patientGender = patient == null && profile == null ? null
+                : patient == null ? profile.getGender() : patient.getGender();
+        String patientPhone = patient == null && profile == null ? null
+                : patient == null ? profile.getPhone() : patient.getPhone();
         return new DoctorExaminationResponse(ticket.getId(), appointment.getId(), session.getId(), ticket.getQueueNumber(),
                 ticket.getRoom().getName(), appointment.getAppointmentCode(), appointment.getSpecialty(),
                 recordDoctorName == null ? ticket.getEffectiveDoctorName() : recordDoctorName,
-                appointment.getAppointmentDate(), appointment.getStartTime(), patient.getFullName(),
-                patient.getDateOfBirth(), patient.getGender(), patient.getPhone(), record == null ? null : record.getReason(),
+                appointment.getAppointmentDate(), appointment.getStartTime(), patientName,
+                patientDateOfBirth, patientGender, patientPhone, record == null ? null : record.getReason(),
                 record == null ? null : record.getExaminationNotes(), record == null ? null : record.getDiagnosis(),
                 record == null ? null : record.getConclusion(), record == null ? null : record.getTreatmentPlan(),
                 record == null ? null : record.getPrescription(), record == null ? null : record.getFollowUpDate(),

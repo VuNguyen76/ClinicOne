@@ -18,6 +18,7 @@ public record ReceptionPatientProfileResponse(
     static ReceptionPatientProfileResponse from(PatientProfile profile) {
         var owner = profile.getOwner();
         return new ReceptionPatientProfileResponse(profile.getId(), profile.getFullName(), profile.getRelationship(),
-                profile.getDateOfBirth(), profile.isPrimaryProfile(), owner.getStatus(), owner.isMustChangePassword());
+                profile.getDateOfBirth(), profile.isPrimaryProfile(), owner == null ? null : owner.getStatus(),
+                owner != null && owner.isMustChangePassword());
     }
 }

@@ -97,6 +97,12 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
 
     Optional<Appointment> findByPatientIdAndCheckInRequestKey(UUID patientId, String checkInRequestKey);
 
+    List<Appointment> findByPatientProfileId(UUID patientProfileId);
+
+    boolean existsByPatientProfile_IdAndAppointmentDateAndStartTimeAndStatusIn(
+            UUID patientProfileId, LocalDate appointmentDate, LocalTime startTime,
+            Collection<AppointmentStatus> statuses);
+
     Optional<Appointment> findByAppointmentCode(String appointmentCode);
 
     List<Appointment> findByStatusAndAppointmentDateBetweenOrderByAppointmentDateAscStartTimeAsc(
@@ -113,7 +119,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
 
     @Query("""
             select a from Appointment a
-            join fetch a.patient p
+            left join fetch a.patient p
             left join fetch a.patientProfile profile
             where a.status = :status
               and a.appointmentDate = :appointmentDate
@@ -126,7 +132,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
 
     @Query("""
             select a from Appointment a
-            join fetch a.patient p
+            left join fetch a.patient p
             left join fetch a.patientProfile profile
             where a.status in :statuses
               and a.appointmentDate = :appointmentDate

@@ -126,6 +126,22 @@ class ReceptionControllerTest {
     }
 
     @Test
+    void receptionistCanCreateTemporaryProfileWithoutAnAccount() throws Exception {
+        when(service.createTemporaryProfile(any())).thenReturn(new ReceptionPatientProfileResponse(
+                UUID.randomUUID(), "Nguyễn Văn Tạm", "Tạm tại quầy", LocalDate.of(1990, 1, 1), false,
+                null, false));
+
+        mockMvc.perform(post("/api/v1/reception/temporary-profiles")
+                        .with(authentication(authenticated("ROLE_RECEPTIONIST")))
+                        .contentType("application/json")
+                        .content("{\"phone\":\"0912345678\",\"fullName\":\"Nguyễn Văn Tạm\","
+                                + "\"dateOfBirth\":\"1990-01-01\",\"gender\":\"Nam\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.fullName").value("Nguyễn Văn Tạm"))
+                .andExpect(jsonPath("$.accountStatus").doesNotExist());
+    }
+
+    @Test
     void receptionistCannotCreateWalkInWithInvalidPhone() throws Exception {
         mockMvc.perform(post("/api/v1/reception/walk-in")
                         .with(authentication(authenticated("ROLE_RECEPTIONIST")))

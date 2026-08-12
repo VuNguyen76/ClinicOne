@@ -41,11 +41,14 @@ public record ReceptionAppointmentResponse(
     public static ReceptionAppointmentResponse from(Appointment appointment, String roomCode, String roomName,
                                                      QueueTicketResponse ticket) {
         var profile = appointment.getPatientProfile();
+        var patient = appointment.getPatient();
         return new ReceptionAppointmentResponse(appointment.getId(), appointment.getAppointmentCode(),
                 appointment.getAppointmentDate(), appointment.getStartTime(), appointment.getSpecialty(),
                 appointment.getDoctorName(), roomCode, roomName,
-                profile == null ? null : profile.getId(), profile == null ? appointment.getPatient().getFullName() : profile.getFullName(),
-                profile == null ? appointment.getPatient().getPhone() : profile.getPhone(), appointment.getStatus().name(),
+                profile == null ? null : profile.getId(), profile == null && patient == null ? null
+                        : profile == null ? patient.getFullName() : profile.getFullName(),
+                profile == null && patient == null ? null : profile == null ? patient.getPhone() : profile.getPhone(),
+                appointment.getStatus().name(),
                 ticket == null ? null : ticket.queueNumber(), ticket == null ? null : ticket.status(),
                 ticket == null ? null : ticket.statusLabel(), ticket == null ? null : ticket.presenceStatus(),
                 ticket == null ? null : ticket.presenceLabel(), ticket == null ? null : ticket.id(),

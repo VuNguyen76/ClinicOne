@@ -5,6 +5,7 @@ import com.clinicone.appointment.AppointmentRepository;
 import com.clinicone.appointment.AppointmentResponse;
 import com.clinicone.appointment.AppointmentService;
 import com.clinicone.appointment.AppointmentStatus;
+import com.clinicone.appointment.CreateAppointmentRequest;
 import com.clinicone.auth.AccountStatus;
 import com.clinicone.auth.PatientAccount;
 import com.clinicone.auth.PatientAccountRepository;
@@ -12,6 +13,7 @@ import com.clinicone.auth.StaffAccount;
 import com.clinicone.doctor.DoctorProfile;
 import com.clinicone.doctor.DoctorProfileRepository;
 import com.clinicone.patientprofile.PatientProfileRepository;
+import com.clinicone.patientprofile.PatientProfile;
 import com.clinicone.queue.ClinicRoom;
 import com.clinicone.queue.QueueService;
 import com.clinicone.queue.QueueTicket;
@@ -49,6 +51,7 @@ class ReceptionServiceTest {
     private QueueTicketRepository ticketRepository;
     private QueueService queueService;
     private AppointmentService appointmentService;
+    private PatientProfileRepository patientProfileRepository;
     private ReceptionService service;
 
     @BeforeEach
@@ -59,7 +62,7 @@ class ReceptionServiceTest {
         ticketRepository = mock(QueueTicketRepository.class);
         queueService = mock(QueueService.class);
         appointmentService = mock(AppointmentService.class);
-        PatientProfileRepository patientProfileRepository = mock(PatientProfileRepository.class);
+        patientProfileRepository = mock(PatientProfileRepository.class);
         Clock clock = Clock.fixed(Instant.parse("2026-08-07T03:00:00Z"), ZoneOffset.UTC);
         service = new ReceptionService(appointmentRepository, doctorProfileRepository, ticketRepository,
                 queueService, clock, patientAccountRepository, appointmentService, patientProfileRepository);
@@ -121,7 +124,76 @@ class ReceptionServiceTest {
         assertThatThrownBy(() -> service.createWalkIn(new ReceptionWalkInRequest(
                 "0912345678", null, DOCTOR_ID, TODAY, LocalTime.of(9, 0), "Đau đầu từ sáng",
                 "Người bệnh đến quầy không có lịch")))
-                .hasMessageContaining("Chưa tìm thấy tài khoản");
+                .hasMessageContaining("Chưa có tài khoản");
+    }
+
+    @Test
+    void createsWalkInForTemporaryProfileWhenPhoneHasNoAccount() {
+        UUID profileId = UUID.randomUUID();
+        PatientProfile temporaryProfile = PatientProfile.createTemporary(
+                "Nguyen Van Tam", LocalDate.of(1990, 1, 1), "Nam", "0912345678", null, null, null, null);
+        when(patientAccountRepository.findByPhone("0912345678")).thenReturn(Optional.empty());
+        when(patientProfileRepository.findById(profileId)).thenReturn(Optional.of(temporaryProfile));
+
+        StaffAccount staff = mock(StaffAccount.class);
+        when(staff.getFullName()).thenReturn("BS. Nguyen An");
+        ClinicRoom room = ClinicRoom.create("NOI-01", "Phong Noi 01", "Noi tong quat");
+        DoctorProfile doctor = mock(DoctorProfile.class);
+        when(doctor.isActive()).thenReturn(true);
+        when(doctor.getSpecialty()).thenReturn("Noi tong quat");
+        when(doctor.getStaffAccount()).thenReturn(staff);
+        when(doctor.getRoom()).thenReturn(room);
+        when(doctorProfileRepository.findById(DOCTOR_ID)).thenReturn(Optional.of(doctor));
+
+        AppointmentResponse created = new AppointmentResponse(APPOINTMENT_ID, "CL-20260807-9999",
+                "Noi tong quat", "BS. Nguyen An", TODAY, LocalTime.of(9, 0), "Dau dau",
+                "BOOKED", "Da dat", profileId, "Nguyen Van Tam", DOCTOR_ID);
+        when(appointmentService.createTemporary(any(PatientProfile.class), any())).thenReturn(created);
+        Appointment appointment = mock(Appointment.class);
+        when(appointment.getId()).thenReturn(APPOINTMENT_ID);
+        when(appointment.getAppointmentCode()).thenReturn("CL-20260807-9999");
+        when(appointment.getAppointmentDate()).thenReturn(TODAY);
+        when(appointment.getStartTime()).thenReturn(LocalTime.of(9, 0));
+        when(appointment.getSpecialty()).thenReturn("Noi tong quat");
+        when(appointment.getDoctorName()).thenReturn("BS. Nguyen An");
+        when(appointment.getDoctorStaffId()).thenReturn(DOCTOR_ID);
+        when(appointment.getPatient()).thenReturn(null);
+        when(appointment.getPatientProfile()).thenReturn(temporaryProfile);
+        when(appointment.getStatus()).thenReturn(AppointmentStatus.CHECKED_IN);
+        when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
+        when(doctorProfileRepository.findByStaffAccount_Id(DOCTOR_ID)).thenReturn(Optional.of(doctor));
+        QueueTicketResponse ticket = new QueueTicketResponse(UUID.randomUUID(), 9, "NOI-01", "Phong Noi 01",
+                TODAY, LocalTime.of(9, 0), "WAITING", "Dang cho", "CL-20260807-9999", "Noi tong quat",
+                "BS. Nguyen An");
+        when(queueService.checkInByStaff("NOI-01", APPOINTMENT_ID, "Khach chua co tai khoan"))
+                .thenReturn(ticket);
+
+        ReceptionAppointmentResponse response = service.createWalkIn(new ReceptionWalkInRequest(
+                "0912345678", profileId, DOCTOR_ID, TODAY, LocalTime.of(9, 0), "Dau dau",
+                "Khach chua co tai khoan"));
+
+        assertThat(response.patientName()).isEqualTo("Nguyen Van Tam");
+        assertThat(response.queueNumber()).isEqualTo(9);
+        verify(appointmentService).createTemporary(temporaryProfile, new CreateAppointmentRequest(
+                "Noi tong quat", "BS. Nguyen An", TODAY, LocalTime.of(9, 0), "Dau dau", profileId, DOCTOR_ID));
+        verify(queueService).checkInByStaff("NOI-01", APPOINTMENT_ID, "Khach chua co tai khoan");
+    }
+
+    @Test
+    void createsAReusableTemporaryProfileAtReception() {
+        when(patientAccountRepository.findByPhone("0912345678")).thenReturn(Optional.empty());
+        when(patientProfileRepository.findFirstByTemporaryProfileTrueAndOwnerIsNullAndPhone("0912345678"))
+                .thenReturn(Optional.empty());
+        when(patientProfileRepository.save(any(PatientProfile.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ReceptionPatientProfileResponse response = service.createTemporaryProfile(
+                new ReceptionTemporaryProfileRequest("0912345678", "Nguyen Van Tam",
+                        LocalDate.of(1990, 1, 1), "Nam", null, "Viet Nam", "Kinh", "12 Nguyen Trai"));
+
+        assertThat(response.fullName()).isEqualTo("Nguyen Van Tam");
+        assertThat(response.accountStatus()).isNull();
+        assertThat(response.mustChangePassword()).isFalse();
+        verify(patientProfileRepository).save(any(PatientProfile.class));
     }
 
     @Test

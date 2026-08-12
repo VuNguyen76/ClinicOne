@@ -10,6 +10,7 @@ import com.clinicone.schedule.AppointmentHold;
 import com.clinicone.schedule.AppointmentHoldService;
 import com.clinicone.doctor.DoctorProfile;
 import com.clinicone.auth.StaffAccount;
+import com.clinicone.patientprofile.PatientProfile;
 import com.clinicone.config.ClinicConfigurationService;
 import com.clinicone.reason.ReasonCatalog;
 import com.clinicone.reason.ReasonCatalogService;
@@ -88,6 +89,22 @@ class AppointmentServiceTest {
         assertEquals("Đã đặt", response.statusLabel());
         verify(appointmentRepository).save(any(Appointment.class));
         verify(notificationService).notifyAppointmentCreated(any(Appointment.class));
+    }
+
+    @Test
+    void createsAppointmentForTemporaryReceptionProfileWithoutPatientNotification() {
+        PatientProfile temporaryProfile = PatientProfile.createTemporary(
+                "Nguyen Van Tam", LocalDate.of(1990, 1, 1), "Nam", "0912345678", null, null, null, null);
+        CreateAppointmentRequest request = new CreateAppointmentRequest(
+                "Nội khoa", "BS. Nguyễn An", LocalDate.of(2026, 8, 10), LocalTime.of(8, 30),
+                "Đau đầu kéo dài");
+
+        AppointmentResponse response = service.createTemporary(temporaryProfile, request);
+
+        assertEquals("Nội khoa", response.specialty());
+        assertEquals("Đã đặt", response.statusLabel());
+        verify(appointmentRepository).save(any(Appointment.class));
+        verify(notificationService, never()).notifyAppointmentCreated(any(Appointment.class));
     }
 
     @Test
