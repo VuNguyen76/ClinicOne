@@ -654,6 +654,17 @@ export interface ReceptionPatientRegistrationResponse {
   mustChangePassword: boolean;
 }
 
+export interface ReceptionTemporaryProfileRequest {
+  phone: string;
+  fullName: string;
+  dateOfBirth: string;
+  gender: string;
+  identityNumber?: string;
+  nationality?: string;
+  ethnicity?: string;
+  address?: string;
+}
+
 export interface StaffLoginResponse {
   accessToken: string;
   tokenType: string;
@@ -953,6 +964,10 @@ export class AuthApiService {
 
   getReceptionProfiles(phone: string): Observable<ReceptionPatientProfile[]> {
     return this.http.get<ReceptionPatientProfile[]>('/api/v1/reception/profiles', { params: { phone } });
+  }
+
+  createReceptionTemporaryProfile(request: ReceptionTemporaryProfileRequest): Observable<ReceptionPatientProfile> {
+    return this.http.post<ReceptionPatientProfile>('/api/v1/reception/temporary-profiles', request);
   }
 
   requestReceptionPatientOtp(phone: string): Observable<{ expiresInSeconds: number; retryAfterSeconds: number }> {
