@@ -1,10 +1,12 @@
 package com.clinicone.config;
 
+import com.clinicone.notification.PatientNotificationType;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -35,5 +37,22 @@ class FlywayBaselineResourceTest {
         assertThat(sql.split("CREATE TABLE public.", -1).length - 1)
                 .isEqualTo(EXPECTED_TABLES.size());
         assertThat(sql).doesNotContain("INSERT INTO", "COPY public.");
+    }
+
+    @Test
+    void notificationTypeMigrationAllowsEveryPersistedNotificationType() throws IOException {
+        String sql;
+        try (InputStream input = getClass().getResourceAsStream("/db/migration/V2__expand_notification_types.sql")) {
+            assertThat(input).as("notification type migration resource").isNotNull();
+            sql = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+        }
+
+        assertThat(sql).contains("DROP CONSTRAINT IF EXISTS patient_notifications_type_check");
+        assertThat(sql).contains("ADD CONSTRAINT patient_notifications_type_check CHECK");
+        for (String type : Arrays.stream(PatientNotificationType.values())
+                .map(Enum::name)
+                .toList()) {
+            assertThat(sql).contains("'" + type + "'");
+        }
     }
 }
