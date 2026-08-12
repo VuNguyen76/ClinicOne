@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Collection;
 import java.util.UUID;
 
 public interface SmsDeliveryRepository extends JpaRepository<SmsDelivery, UUID> {
@@ -31,4 +32,6 @@ public interface SmsDeliveryRepository extends JpaRepository<SmsDelivery, UUID> 
     Optional<SmsDelivery> findByIdForUpdate(@Param("id") UUID id);
 
     List<SmsDelivery> findTop100ByOrderByCreatedAtDesc();
+
+    long countByStatusIn(Collection<SmsDeliveryStatus> statuses);
 }

@@ -100,10 +100,17 @@ class SmsDeliveryTest {
         metrics.claimed(2);
         metrics.sent();
         metrics.failed();
+        metrics.retry();
+        metrics.backlog(4);
+        io.micrometer.core.instrument.Timer.Sample sample = metrics.workerStarted();
+        metrics.workerFinished(sample);
 
         assertThat(metrics.registry().counter("clinicone.sms.delivery.enqueued").count()).isEqualTo(1);
         assertThat(metrics.registry().counter("clinicone.sms.delivery.claimed").count()).isEqualTo(2);
         assertThat(metrics.registry().counter("clinicone.sms.delivery.sent").count()).isEqualTo(1);
         assertThat(metrics.registry().counter("clinicone.sms.delivery.failed").count()).isEqualTo(1);
+        assertThat(metrics.registry().counter("clinicone.sms.delivery.retry").count()).isEqualTo(1);
+        assertThat(metrics.registry().find("clinicone.sms.delivery.backlog").gauge().value()).isEqualTo(4);
+        assertThat(metrics.registry().timer("clinicone.sms.worker.duration").count()).isEqualTo(1);
     }
 }
