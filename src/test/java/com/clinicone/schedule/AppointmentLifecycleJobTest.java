@@ -59,10 +59,26 @@ class AppointmentLifecycleJobTest {
     }
 
     @Test
-    void marksBookedAppointmentAbsentTwentyFourHoursAfterScheduledStart() {
-        Instant now = Instant.parse("2026-08-10T01:00:00Z");
+    void doesNotMarkBookedAppointmentAbsentUntilTwentyFourHoursAfterScheduledEnd() {
+        Instant now = Instant.parse("2026-08-10T01:15:00Z");
         Appointment appointment = appointment(AppointmentStatus.BOOKED, LocalDate.of(2026, 8, 9),
-                LocalTime.of(8, 0), now.minusSeconds(30 * 3600L));
+                LocalTime.of(8, 0), now.minusSeconds(30 * 3600L), 30);
+        when(appointmentRepository.findByStatusAndAppointmentDateBetweenOrderByAppointmentDateAscStartTimeAsc(
+                eq(AppointmentStatus.BOOKED), any(), any())).thenReturn(List.of(appointment));
+
+        AppointmentLifecycleJob.LifecycleJobResult result = job(now).runOnce();
+
+        assertThat(result.absentTransitions()).isZero();
+        verify(appointment, never()).markAbsent();
+        verifyNoInteractions(businessLogService);
+        verify(notificationService).notifyAppointmentLate(appointment);
+    }
+
+    @Test
+    void marksBookedAppointmentAbsentTwentyFourHoursAfterScheduledEnd() {
+        Instant now = Instant.parse("2026-08-10T01:45:00Z");
+        Appointment appointment = appointment(AppointmentStatus.BOOKED, LocalDate.of(2026, 8, 9),
+                LocalTime.of(8, 0), now.minusSeconds(30 * 3600L), 30);
         AtomicBoolean marked = new AtomicBoolean();
         when(appointment.getStatus()).thenAnswer(invocation -> marked.get()
                 ? AppointmentStatus.ABSENT : AppointmentStatus.BOOKED);
@@ -84,10 +100,10 @@ class AppointmentLifecycleJobTest {
     }
 
     @Test
-    void warnsLateFifteenMinutesAfterScheduledStart() {
-        Instant now = Instant.parse("2026-08-10T01:15:00Z");
+    void warnsLateFifteenMinutesAfterScheduledEnd() {
+        Instant now = Instant.parse("2026-08-10T01:45:00Z");
         Appointment appointment = appointment(AppointmentStatus.BOOKED, LocalDate.of(2026, 8, 10),
-                LocalTime.of(8, 0), now.minusSeconds(48 * 3600L));
+                LocalTime.of(8, 0), now.minusSeconds(48 * 3600L), 30);
         when(appointmentRepository.findByStatusAndAppointmentDateBetweenOrderByAppointmentDateAscStartTimeAsc(
                 eq(AppointmentStatus.BOOKED), any(), any())).thenReturn(List.of(appointment));
 
@@ -105,12 +121,18 @@ class AppointmentLifecycleJobTest {
     }
 
     private Appointment appointment(AppointmentStatus status, LocalDate date, LocalTime time, Instant createdAt) {
+        return appointment(status, date, time, createdAt, null);
+    }
+
+    private Appointment appointment(AppointmentStatus status, LocalDate date, LocalTime time, Instant createdAt,
+                                    Integer durationMinutes) {
         Appointment appointment = mock(Appointment.class);
         when(appointment.getId()).thenReturn(UUID.randomUUID());
         when(appointment.getStatus()).thenReturn(status);
         when(appointment.getAppointmentDate()).thenReturn(date);
         when(appointment.getStartTime()).thenReturn(time);
         when(appointment.getCreatedAt()).thenReturn(createdAt);
+        when(appointment.getServiceDurationMinutes()).thenReturn(durationMinutes);
         return appointment;
     }
 }
