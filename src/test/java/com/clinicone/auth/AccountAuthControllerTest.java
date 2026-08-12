@@ -83,6 +83,15 @@ class AccountAuthControllerTest {
     }
 
     @Test
+    void recoveryPasswordEndpointIsPublic() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/recover-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"phone\":\"0912345678\",\"newPassword\":\"newPassword123\",\"confirmPassword\":\"newPassword123\"}"))
+                .andExpect(status().isNoContent());
+        verify(authService).resetPassword(any());
+    }
+
+    @Test
     void returnsCurrentPatientProfile() throws Exception {
         when(authService.getProfile(ACCOUNT_ID.toString())).thenReturn(new PatientProfileResponse(
                 ACCOUNT_ID, "0912345678", "Nguyen Van A", LocalDate.of(2005, 6, 7), "Nam", "Tay Ninh", AccountStatus.ACTIVE, false));

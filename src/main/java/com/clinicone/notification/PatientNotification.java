@@ -145,6 +145,14 @@ public class PatientNotification {
                 "APPOINTMENT_ABSENT:" + appointmentId);
     }
 
+    public static PatientNotification accountSecurityLocked(UUID patientAccountId, Instant lockedUntil) {
+        return new PatientNotification(patientAccountId, PatientNotificationType.ACCOUNT_SECURITY_LOCKED,
+                "Tài khoản tạm thời bị khóa",
+                "Tài khoản đã được khóa tạm thời vì có nhiều lần đăng nhập không thành công. Bạn có thể khôi phục bằng mã OTP.",
+                "/recover-password",
+                "ACCOUNT_SECURITY_LOCKED:" + patientAccountId + ":" + lockedUntil);
+    }
+
     @PrePersist
     void onCreate() {
         createdAt = Instant.now();

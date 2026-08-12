@@ -4,6 +4,7 @@ import com.clinicone.appointment.Appointment;
 import com.clinicone.appointment.AppointmentRepository;
 import com.clinicone.patientprofile.PatientProfile;
 import com.clinicone.patientprofile.PatientProfileRepository;
+import com.clinicone.notification.PatientNotificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -174,6 +175,57 @@ class AccountAuthServiceTest {
         assertEquals("raw-session-token", response.accessToken());
         assertEquals(AccountStatus.ACTIVE, account.getStatus());
         assertEquals(0, account.getFailedPasswordAttempts());
+    }
+
+    @Test
+    void recoveryOtpResetsPasswordUnlocksAccountAndRevokesSessions() {
+        PatientAccount account = new PatientAccount("0912345678", "old-hash", "Nguyen Van A", AccountStatus.LOCKED, false);
+        setId(account, ACCOUNT_ID);
+        account.recordPasswordFailure(NOW);
+        account.recordPasswordFailure(NOW.plusSeconds(1));
+        account.recordPasswordFailure(NOW.plusSeconds(2));
+        account.recordPasswordFailure(NOW.plusSeconds(3));
+        account.recordPasswordFailure(NOW.plusSeconds(4));
+        when(otpService.isPhoneRecentlyVerified("0912345678", OtpPurpose.RECOVERY)).thenReturn(true);
+        when(accountRepository.findByPhone("0912345678")).thenReturn(Optional.of(account));
+        when(passwordEncoder.encode("new-password")).thenReturn("new-hash");
+
+        service.resetPassword(new ResetPasswordRequest("0912345678", "new-password", "new-password"));
+
+        assertEquals(AccountStatus.ACTIVE, account.getStatus());
+        assertEquals("new-hash", account.getPasswordHash());
+        assertEquals(0, account.getFailedPasswordAttempts());
+        verify(sessionRepository).revokeActiveByAccountId(ACCOUNT_ID, NOW);
+    }
+
+    @Test
+    void recoveryRequiresVerifiedRecoveryOtp() {
+        when(otpService.isPhoneRecentlyVerified("0912345678", OtpPurpose.RECOVERY)).thenReturn(false);
+
+        AuthException exception = assertThrows(AuthException.class, () -> service.resetPassword(
+                new ResetPasswordRequest("0912345678", "new-password", "new-password")));
+
+        assertEquals("RECOVERY_OTP_REQUIRED", exception.getCode());
+        verify(accountRepository, org.mockito.Mockito.never()).save(any(PatientAccount.class));
+    }
+
+    @Test
+    void locksAlsoCreateOneSecurityNotificationRequest() {
+        PatientNotificationService notifications = mock(PatientNotificationService.class);
+        AccountAuthService notifyingService = new AccountAuthService(accountRepository, sessionRepository, otpService,
+                passwordEncoder, tokenGenerator, Clock.fixed(NOW, ZoneOffset.UTC), patientProfileRepository,
+                appointmentRepository, notifications);
+        PatientAccount account = new PatientAccount("0912345678", "password-hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
+        setId(account, ACCOUNT_ID);
+        when(accountRepository.findByPhone("0912345678")).thenReturn(Optional.of(account));
+        when(passwordEncoder.matches("wrong-password", "password-hash")).thenReturn(false);
+
+        for (int attempt = 0; attempt < 5; attempt++) {
+            assertThrows(AuthException.class, () -> notifyingService.login(
+                    new PasswordLoginRequest("0912345678", "wrong-password")));
+        }
+
+        verify(notifications).notifyAccountSecurityLocked(eq(ACCOUNT_ID), eq(account.getLockedUntil()));
     }
 
     @Test

@@ -17,6 +17,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.util.Set;
 import java.util.HexFormat;
+import com.clinicone.notification.PatientNotificationService;
 
 @Service
 public class AccountAuthService {
@@ -33,6 +34,7 @@ public class AccountAuthService {
     private final Clock clock;
     private final PatientProfileRepository patientProfileRepository;
     private final AppointmentRepository appointmentRepository;
+    private final PatientNotificationService patientNotificationService;
 
     public AccountAuthService(PatientAccountRepository accountRepository, LoginSessionRepository sessionRepository,
                               OtpService otpService, PasswordEncoder passwordEncoder,
@@ -45,7 +47,7 @@ public class AccountAuthService {
                               SessionTokenGenerator tokenGenerator, Clock clock,
                               PatientProfileRepository patientProfileRepository) {
         this(accountRepository, sessionRepository, otpService, passwordEncoder, tokenGenerator, clock,
-                patientProfileRepository, null);
+                patientProfileRepository, null, null);
     }
 
     @org.springframework.beans.factory.annotation.Autowired
@@ -54,6 +56,16 @@ public class AccountAuthService {
                               SessionTokenGenerator tokenGenerator, Clock clock,
                               PatientProfileRepository patientProfileRepository,
                               AppointmentRepository appointmentRepository) {
+        this(accountRepository, sessionRepository, otpService, passwordEncoder, tokenGenerator, clock,
+                patientProfileRepository, appointmentRepository, null);
+    }
+
+    public AccountAuthService(PatientAccountRepository accountRepository, LoginSessionRepository sessionRepository,
+                              OtpService otpService, PasswordEncoder passwordEncoder,
+                              SessionTokenGenerator tokenGenerator, Clock clock,
+                              PatientProfileRepository patientProfileRepository,
+                              AppointmentRepository appointmentRepository,
+                              PatientNotificationService patientNotificationService) {
         this.accountRepository = accountRepository;
         this.sessionRepository = sessionRepository;
         this.otpService = otpService;
@@ -62,6 +74,7 @@ public class AccountAuthService {
         this.clock = clock;
         this.patientProfileRepository = patientProfileRepository;
         this.appointmentRepository = appointmentRepository;
+        this.patientNotificationService = patientNotificationService;
     }
 
     @Transactional
@@ -201,6 +214,28 @@ public class AccountAuthService {
     }
 
     @Transactional
+    public void resetPassword(ResetPasswordRequest request) {
+        String phone = request.phone().trim();
+        if (!request.newPassword().equals(request.confirmPassword())) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "PASSWORD_MISMATCH",
+                    "Hai lần nhập mật khẩu mới không giống nhau.");
+        }
+        if (!otpService.isPhoneRecentlyVerified(phone, OtpPurpose.RECOVERY)) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "RECOVERY_OTP_REQUIRED",
+                    "Vui lòng xác thực mã OTP khôi phục trước khi đặt lại mật khẩu.");
+        }
+        PatientAccount account = accountRepository.findByPhone(phone)
+                .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "PATIENT_ACCOUNT_NOT_FOUND",
+                        "Không tìm thấy tài khoản người bệnh."));
+        account.changePassword(passwordEncoder.encode(request.newPassword()));
+        account.unlockAfterPasswordReset();
+        accountRepository.save(account);
+        if (account.getId() != null) {
+            sessionRepository.revokeActiveByAccountId(account.getId(), Instant.now(clock));
+        }
+    }
+
+    @Transactional
     public void logout(String accountId) {
         try {
             sessionRepository.revokeActiveByAccountId(java.util.UUID.fromString(accountId), Instant.now(clock));
@@ -242,6 +277,13 @@ public class AccountAuthService {
             accountRepository.save(account);
             if (locked) {
                 sessionRepository.revokeActiveByAccountId(account.getId(), now);
+                if (patientNotificationService != null) {
+                    try {
+                        patientNotificationService.notifyAccountSecurityLocked(account.getId(), account.getLockedUntil());
+                    } catch (RuntimeException ignored) {
+                        // The lock and session revocation remain authoritative if notification delivery fails.
+                    }
+                }
                 throw temporarilyLocked();
             }
             throw invalidCredentials();
