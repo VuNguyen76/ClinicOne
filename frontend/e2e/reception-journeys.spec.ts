@@ -144,6 +144,51 @@ test.describe('liên thông tiếp nhận và hàng đợi bác sĩ', () => {
     await expect(page.getByText('Đã tạo lịch và cấp số 08')).toBeVisible();
   });
 
+  test('số điện thoại chưa xác thực có thể lập hồ sơ tạm và tiếp nhận ngay tại quầy', async ({ page }) => {
+    await mockReceptionApis(page);
+    await page.route('**/api/v1/reception/profiles**', (route) =>
+      json(route, { message: 'Chưa tìm thấy tài khoản' }, 404));
+    await page.route('**/api/v1/reception/temporary-profiles', async (route) => {
+      const request = route.request().postDataJSON();
+      expect(request).toMatchObject({
+        phone: '0900000002',
+        fullName: 'Lê Minh Anh',
+        dateOfBirth: '1998-04-12',
+        gender: 'Nữ',
+      });
+      await json(route, {
+        id: 'temporary-profile-2', fullName: 'Lê Minh Anh', relationship: 'Tạm tại quầy',
+        dateOfBirth: '1998-04-12', gender: 'Nữ', phone: '0900000002',
+        primaryProfile: false, accountStatus: null, mustChangePassword: false,
+      }, 201);
+    });
+    await page.route('**/api/v1/appointment-slots**', (route) => json(route, [
+      { specialty: 'Nội tổng quát', appointmentDate: todayIso, startTime: '09:00:00', endTime: '09:30:00',
+        doctorName: 'Bác sĩ Nguyễn An', doctorId: 'doctor-1', roomCode: 'NOI-01', remainingCapacity: 1 },
+    ]));
+    await page.route('**/api/v1/reception/walk-in', async (route) => {
+      const request = route.request().postDataJSON();
+      expect(request).toMatchObject({ phone: '0900000002', profileId: 'temporary-profile-2' });
+      await json(route, walkInAppointment('Lê Minh Anh', '0900000002', 10), 201);
+    });
+
+    await signInAsReceptionist(page);
+    await page.getByTestId('open-walk-in').click();
+    const dialog = page.getByRole('dialog');
+    await dialog.getByLabel('Số điện thoại').fill('0900000002');
+    await dialog.getByRole('button', { name: 'Tìm hồ sơ' }).click();
+    await expect(dialog.getByText('Chưa có tài khoản')).toBeVisible();
+    await dialog.getByRole('button', { name: 'Không nhận được OTP? Tạo hồ sơ tạm' }).click();
+    await dialog.getByLabel('Họ và tên').fill('Lê Minh Anh');
+    await dialog.getByLabel('Ngày sinh').fill('1998-04-12');
+    await dialog.getByLabel('Giới tính').selectOption('Nữ');
+    await dialog.getByRole('button', { name: 'Tạo hồ sơ tạm' }).click();
+    await expect(dialog.getByLabel('Hồ sơ người đi khám')).toBeVisible();
+    await fillWalkInDetails(dialog, '0900000002', 'Người bệnh chưa xác thực số điện thoại');
+    await dialog.getByRole('button', { name: 'Tạo lịch và cấp số' }).click();
+    await expect(page.getByText('Đã tạo lịch và cấp số 10')).toBeVisible();
+  });
+
   test('bác sĩ gọi số, mở phiên khám, lưu nháp và ký phiếu để hoàn tất lượt', async ({ page }) => {
     await page.addInitScript(() => {
       sessionStorage.setItem('clinicOneAccessToken', 'doctor-e2e-token');
