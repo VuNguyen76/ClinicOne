@@ -5,6 +5,7 @@ import com.clinicone.appointment.AppointmentRepository;
 import com.clinicone.patientprofile.PatientProfile;
 import com.clinicone.patientprofile.PatientProfileRepository;
 import com.clinicone.notification.PatientNotificationService;
+import com.clinicone.notification.PatientNotificationBackfillService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -298,14 +299,16 @@ class AccountAuthServiceTest {
         when(patientProfileRepository.findByTemporaryProfileTrueAndOwnerIsNullAndPhone("0912345678"))
                 .thenReturn(List.of(temporary));
         when(appointmentRepository.findByPatientProfileId(profileId)).thenReturn(List.of(appointment));
+        PatientNotificationBackfillService backfillService = mock(PatientNotificationBackfillService.class);
         AccountAuthService linkingService = new AccountAuthService(accountRepository, sessionRepository, otpService,
                 passwordEncoder, tokenGenerator, Clock.fixed(NOW, ZoneOffset.UTC), patientProfileRepository,
-                appointmentRepository);
+                appointmentRepository, null, backfillService);
 
         linkingService.activatePendingAccount(new ActivateAccountRequest("0912345678", "new-password", "new-password"));
 
         assertEquals(account, appointment.getPatient());
         verify(appointmentRepository).save(appointment);
+        verify(backfillService).notifyRecentSignedRecords(ACCOUNT_ID, profileId);
     }
 
     @Test
