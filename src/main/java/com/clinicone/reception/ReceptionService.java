@@ -12,6 +12,7 @@ import com.clinicone.auth.PatientAccount;
 import com.clinicone.auth.PatientAccountRepository;
 import com.clinicone.doctor.DoctorProfile;
 import com.clinicone.doctor.DoctorProfileRepository;
+import com.clinicone.patientprofile.PatientProfile;
 import com.clinicone.patientprofile.PatientProfileRepository;
 import com.clinicone.patientprofile.PatientProfileResponse;
 import com.clinicone.queue.QueueService;
@@ -25,11 +26,13 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
 public class ReceptionService {
     private static final ZoneId CLINIC_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
+    private static final Set<String> ALLOWED_GENDERS = Set.of("Nam", "Nữ", "Khác");
 
     private final AppointmentRepository appointmentRepository;
     private final DoctorProfileRepository doctorProfileRepository;
@@ -131,6 +134,28 @@ public class ReceptionService {
                 .stream().map(ReceptionPatientProfileResponse::from).toList();
     }
 
+    @Transactional
+    public ReceptionPatientProfileResponse createTemporaryProfile(ReceptionTemporaryProfileRequest request) {
+        if (patientAccountRepository == null || patientProfileRepository == null) {
+            throw new AuthException(HttpStatus.SERVICE_UNAVAILABLE, "RECEPTION_PROFILES_UNAVAILABLE",
+                    "Chưa bật tạo hồ sơ tại quầy.");
+        }
+        String phone = normalizePhone(request.phone());
+        if (!ALLOWED_GENDERS.contains(request.gender().trim())) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "GENDER_INVALID",
+                    "Vui lòng chọn giới tính hợp lệ.");
+        }
+        if (patientAccountRepository.findByPhone(phone).isPresent()) {
+            throw new AuthException(HttpStatus.CONFLICT, "PHONE_ALREADY_USED",
+                    "Số điện thoại đã có tài khoản; hãy chọn hồ sơ hiện có.");
+        }
+        PatientProfile profile = patientProfileRepository.findFirstByTemporaryProfileTrueAndOwnerIsNullAndPhone(phone)
+                .orElseGet(() -> PatientProfile.createTemporary(phoneValue(request.fullName()), request.dateOfBirth(),
+                        phoneValue(request.gender()), phone, phoneValue(request.identityNumber()),
+                        phoneValue(request.nationality()), phoneValue(request.ethnicity()), phoneValue(request.address())));
+        return ReceptionPatientProfileResponse.from(patientProfileRepository.save(profile));
+    }
+
     @Transactional(readOnly = true)
     public List<ReceptionDoctorOptionResponse> doctors() {
         return doctorProfileRepository.findAllByOrderByCreatedAtDesc().stream()
@@ -139,11 +164,7 @@ public class ReceptionService {
                 .toList();
     }
 
-    /**
-     * Tiếp nhận người bệnh đến quầy mà chưa có lịch trong ngày. Hệ thống chỉ
-     * cho phép chọn tài khoản đã tồn tại; việc tạo tài khoản/hồ sơ tạm cần OTP
-     * được xử lý ở luồng riêng, không tự sinh dữ liệu thiếu thông tin ở đây.
-     */
+    /** Tiếp nhận người bệnh đến quầy mà chưa có lịch trong ngày. */
     @Transactional
     public ReceptionAppointmentResponse createWalkIn(ReceptionWalkInRequest request) {
         if (patientAccountRepository == null || appointmentService == null) {
@@ -151,16 +172,30 @@ public class ReceptionService {
                     "Chưa bật luồng tiếp nhận tại quầy.");
         }
         String phone = normalizePhone(request.phone());
-        PatientAccount patient = patientAccountRepository.findByPhone(phone)
-                .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "PATIENT_ACCOUNT_REQUIRED",
-                        "Chưa tìm thấy tài khoản theo số điện thoại. Hãy hỗ trợ người bệnh đăng ký trước."));
-        if (patient.getStatus() == AccountStatus.LOCKED) {
-            throw new AuthException(HttpStatus.CONFLICT, "PATIENT_ACCOUNT_LOCKED",
-                    "Tài khoản người bệnh đang bị khóa.");
-        }
-        if (patient.isMustChangePassword()) {
-            throw new AuthException(HttpStatus.CONFLICT, "PASSWORD_CHANGE_REQUIRED",
-                    "Người bệnh cần đổi mật khẩu tạm trước khi check-in.");
+        PatientAccount patient = patientAccountRepository.findByPhone(phone).orElse(null);
+        PatientProfile temporaryProfile = null;
+        if (patient != null) {
+            if (patient.getStatus() == AccountStatus.LOCKED) {
+                throw new AuthException(HttpStatus.CONFLICT, "PATIENT_ACCOUNT_LOCKED",
+                        "Tài khoản người bệnh đang bị khóa.");
+            }
+            if (patient.isMustChangePassword()) {
+                throw new AuthException(HttpStatus.CONFLICT, "PASSWORD_CHANGE_REQUIRED",
+                        "Người bệnh cần đổi mật khẩu tạm trước khi check-in.");
+            }
+        } else {
+            if (request.profileId() == null || patientProfileRepository == null) {
+                throw new AuthException(HttpStatus.NOT_FOUND, "TEMPORARY_PROFILE_REQUIRED",
+                        "Chưa có tài khoản. Hãy tạo hồ sơ tạm và đối chiếu trước khi tiếp nhận.");
+            }
+            temporaryProfile = patientProfileRepository.findById(request.profileId())
+                    .filter(PatientProfile::isTemporaryProfile)
+                    .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "TEMPORARY_PROFILE_NOT_FOUND",
+                            "Không tìm thấy hồ sơ tạm phù hợp."));
+            if (!phone.equals(temporaryProfile.getPhone())) {
+                throw new AuthException(HttpStatus.CONFLICT, "TEMPORARY_PROFILE_PHONE_MISMATCH",
+                        "Số điện thoại không khớp với hồ sơ tạm.");
+            }
         }
 
         LocalDate appointmentDate = request.appointmentDate();
@@ -177,7 +212,9 @@ public class ReceptionService {
         CreateAppointmentRequest appointmentRequest = new CreateAppointmentRequest(
                 doctor.getSpecialty(), doctor.getStaffAccount().getFullName(), appointmentDate,
                 request.startTime(), request.reason(), request.profileId(), request.doctorId());
-        AppointmentResponse created = appointmentService.create(patient.getId().toString(), appointmentRequest);
+        AppointmentResponse created = patient == null
+                ? appointmentService.createTemporary(temporaryProfile, appointmentRequest)
+                : appointmentService.create(patient.getId().toString(), appointmentRequest);
         QueueTicketResponse ticket = queueService.checkInByStaff(
                 doctor.getRoom().getCode(), created.id(), request.exceptionReason());
         Appointment appointment = appointmentRepository.findById(created.id())
@@ -216,6 +253,10 @@ public class ReceptionService {
                     "Số điện thoại phải gồm 10 chữ số và bắt đầu bằng 0.");
         }
         return normalized;
+    }
+
+    private String phoneValue(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 
     private LocalDate today() {

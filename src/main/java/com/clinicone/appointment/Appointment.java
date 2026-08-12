@@ -37,8 +37,8 @@ public class Appointment {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "patient_account_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "patient_account_id")
     private PatientAccount patient;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -124,6 +124,20 @@ public class Appointment {
         this.status = AppointmentStatus.BOOKED;
     }
 
+    private Appointment(PatientProfile temporaryProfile, UUID doctorStaffId, String appointmentCode,
+                         String specialty, String doctorName, LocalDate appointmentDate, LocalTime startTime,
+                         String reason) {
+        this.patientProfile = temporaryProfile;
+        this.doctorStaffId = doctorStaffId;
+        this.appointmentCode = appointmentCode;
+        this.specialty = specialty;
+        this.doctorName = doctorName;
+        this.appointmentDate = appointmentDate;
+        this.startTime = startTime;
+        this.reason = reason;
+        this.status = AppointmentStatus.BOOKED;
+    }
+
     public static Appointment create(PatientAccount patient, String appointmentCode, String specialty,
                                       String doctorName, LocalDate appointmentDate, LocalTime startTime,
                                       String reason) {
@@ -155,6 +169,16 @@ public class Appointment {
         return appointment;
     }
 
+    public static Appointment createTemporary(PatientProfile temporaryProfile, UUID doctorStaffId,
+                                               String appointmentCode, String specialty, String doctorName,
+                                               LocalDate appointmentDate, LocalTime startTime, String reason) {
+        if (temporaryProfile == null || !temporaryProfile.isTemporaryProfile()) {
+            throw new IllegalArgumentException("Lịch tạm phải gắn với hồ sơ tạm tại quầy.");
+        }
+        return new Appointment(temporaryProfile, doctorStaffId, appointmentCode, specialty, doctorName,
+                appointmentDate, startTime, reason);
+    }
+
     public void cancel(String reason) {
         cancel(reason, Instant.now());
     }
@@ -179,6 +203,16 @@ public class Appointment {
                 && requestKey != null && !requestKey.isBlank()) {
             this.checkInRequestKey = requestKey.trim();
         }
+    }
+
+    public void assignPatient(PatientAccount patient) {
+        if (patient == null) {
+            throw new IllegalArgumentException("Tài khoản bệnh nhân không được để trống.");
+        }
+        if (this.patient != null && !this.patient.equals(patient)) {
+            throw new IllegalStateException("Lịch hẹn đã thuộc về tài khoản khác.");
+        }
+        this.patient = patient;
     }
 
     public void checkIn() {

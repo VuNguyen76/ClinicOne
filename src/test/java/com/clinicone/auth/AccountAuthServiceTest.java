@@ -1,5 +1,7 @@
 package com.clinicone.auth;
 
+import com.clinicone.appointment.Appointment;
+import com.clinicone.appointment.AppointmentRepository;
 import com.clinicone.patientprofile.PatientProfile;
 import com.clinicone.patientprofile.PatientProfileRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,6 +15,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.Optional;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -35,6 +38,7 @@ class AccountAuthServiceTest {
     private PasswordEncoder passwordEncoder;
     private SessionTokenGenerator tokenGenerator;
     private PatientProfileRepository patientProfileRepository;
+    private AppointmentRepository appointmentRepository;
     private AccountAuthService service;
 
     @BeforeEach
@@ -45,6 +49,7 @@ class AccountAuthServiceTest {
         passwordEncoder = mock(PasswordEncoder.class);
         tokenGenerator = mock(SessionTokenGenerator.class);
         patientProfileRepository = mock(PatientProfileRepository.class);
+        appointmentRepository = mock(AppointmentRepository.class);
         service = new AccountAuthService(accountRepository, sessionRepository, otpService, passwordEncoder,
                 tokenGenerator, Clock.fixed(NOW, ZoneOffset.UTC), patientProfileRepository);
         when(accountRepository.save(any(PatientAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -160,6 +165,55 @@ class AccountAuthServiceTest {
     }
 
     @Test
+    void linksTemporaryReceptionProfilesOnlyAfterPendingAccountActivation() {
+        PatientAccount account = new PatientAccount("0912345678", "pending-hash", "Nguyen Van A",
+                AccountStatus.ACTIVE, true);
+        setId(account, ACCOUNT_ID);
+        PatientProfile temporary = PatientProfile.createTemporary("Nguyen Van A", LocalDate.of(2000, 1, 1),
+                "Nam", "0912345678", null, null, null, null);
+        when(accountRepository.findByPhone("0912345678")).thenReturn(Optional.of(account));
+        when(otpService.isPhoneVerifiedWithin("0912345678", OtpPurpose.REGISTRATION,
+                java.time.Duration.ofMinutes(30))).thenReturn(true);
+        when(passwordEncoder.encode("new-password")).thenReturn("new-hash");
+        when(patientProfileRepository.findByTemporaryProfileTrueAndOwnerIsNullAndPhone("0912345678"))
+                .thenReturn(List.of(temporary));
+
+        service.activatePendingAccount(new ActivateAccountRequest("0912345678", "new-password", "new-password"));
+
+        assertFalse(temporary.isTemporaryProfile());
+        assertEquals(account, temporary.getOwner());
+        verify(patientProfileRepository).save(temporary);
+    }
+
+    @Test
+    void linksTemporaryAppointmentsWhenReceptionProfileBecomesOwned() {
+        PatientAccount account = new PatientAccount("0912345678", "pending-hash", "Nguyen Van A",
+                AccountStatus.ACTIVE, true);
+        setId(account, ACCOUNT_ID);
+        PatientProfile temporary = PatientProfile.createTemporary("Nguyen Van A", LocalDate.of(2000, 1, 1),
+                "Nam", "0912345678", null, null, null, null);
+        UUID profileId = UUID.fromString("f29ef2d6-a6ac-4380-bc01-17f97a6f5c40");
+        setId(temporary, profileId);
+        Appointment appointment = Appointment.createTemporary(temporary, null, "APT-TEMP-001", "Nội tổng quát",
+                "Bác sĩ A", LocalDate.of(2026, 8, 12), java.time.LocalTime.of(8, 30), "Khám tổng quát");
+        when(accountRepository.findByPhone("0912345678")).thenReturn(Optional.of(account));
+        when(otpService.isPhoneVerifiedWithin("0912345678", OtpPurpose.REGISTRATION,
+                java.time.Duration.ofMinutes(30))).thenReturn(true);
+        when(passwordEncoder.encode("new-password")).thenReturn("new-hash");
+        when(patientProfileRepository.findByTemporaryProfileTrueAndOwnerIsNullAndPhone("0912345678"))
+                .thenReturn(List.of(temporary));
+        when(appointmentRepository.findByPatientProfileId(profileId)).thenReturn(List.of(appointment));
+        AccountAuthService linkingService = new AccountAuthService(accountRepository, sessionRepository, otpService,
+                passwordEncoder, tokenGenerator, Clock.fixed(NOW, ZoneOffset.UTC), patientProfileRepository,
+                appointmentRepository);
+
+        linkingService.activatePendingAccount(new ActivateAccountRequest("0912345678", "new-password", "new-password"));
+
+        assertEquals(account, appointment.getPatient());
+        verify(appointmentRepository).save(appointment);
+    }
+
+    @Test
     void rejectsPendingActivationWhenOtpWindowHasExpired() {
         PatientAccount account = new PatientAccount("0912345678", "pending-hash", "Nguyen Van A", AccountStatus.ACTIVE, true);
         when(accountRepository.findByPhone("0912345678")).thenReturn(Optional.of(account));
@@ -214,6 +268,16 @@ class AccountAuthServiceTest {
             Field field = PatientAccount.class.getDeclaredField("id");
             field.setAccessible(true);
             field.set(account, id);
+        } catch (ReflectiveOperationException exception) {
+            throw new AssertionError(exception);
+        }
+    }
+
+    private static void setId(PatientProfile profile, UUID id) {
+        try {
+            Field field = PatientProfile.class.getDeclaredField("id");
+            field.setAccessible(true);
+            field.set(profile, id);
         } catch (ReflectiveOperationException exception) {
             throw new AssertionError(exception);
         }

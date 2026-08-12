@@ -1,5 +1,6 @@
 package com.clinicone.auth;
 
+import com.clinicone.appointment.AppointmentRepository;
 import com.clinicone.patientprofile.PatientProfile;
 import com.clinicone.patientprofile.PatientProfileRepository;
 import org.springframework.http.HttpStatus;
@@ -31,18 +32,28 @@ public class AccountAuthService {
     private final SessionTokenGenerator tokenGenerator;
     private final Clock clock;
     private final PatientProfileRepository patientProfileRepository;
+    private final AppointmentRepository appointmentRepository;
 
     public AccountAuthService(PatientAccountRepository accountRepository, LoginSessionRepository sessionRepository,
                               OtpService otpService, PasswordEncoder passwordEncoder,
                               SessionTokenGenerator tokenGenerator, Clock clock) {
-        this(accountRepository, sessionRepository, otpService, passwordEncoder, tokenGenerator, clock, null);
+        this(accountRepository, sessionRepository, otpService, passwordEncoder, tokenGenerator, clock, null, null);
+    }
+
+    public AccountAuthService(PatientAccountRepository accountRepository, LoginSessionRepository sessionRepository,
+                              OtpService otpService, PasswordEncoder passwordEncoder,
+                              SessionTokenGenerator tokenGenerator, Clock clock,
+                              PatientProfileRepository patientProfileRepository) {
+        this(accountRepository, sessionRepository, otpService, passwordEncoder, tokenGenerator, clock,
+                patientProfileRepository, null);
     }
 
     @org.springframework.beans.factory.annotation.Autowired
     public AccountAuthService(PatientAccountRepository accountRepository, LoginSessionRepository sessionRepository,
                               OtpService otpService, PasswordEncoder passwordEncoder,
                               SessionTokenGenerator tokenGenerator, Clock clock,
-                              PatientProfileRepository patientProfileRepository) {
+                              PatientProfileRepository patientProfileRepository,
+                              AppointmentRepository appointmentRepository) {
         this.accountRepository = accountRepository;
         this.sessionRepository = sessionRepository;
         this.otpService = otpService;
@@ -50,6 +61,7 @@ public class AccountAuthService {
         this.tokenGenerator = tokenGenerator;
         this.clock = clock;
         this.patientProfileRepository = patientProfileRepository;
+        this.appointmentRepository = appointmentRepository;
     }
 
     @Transactional
@@ -72,6 +84,7 @@ public class AccountAuthService {
                 normalize(request.wardName()), normalize(request.streetAddress()));
         PatientAccount saved = accountRepository.save(account);
         syncPrimaryProfile(saved);
+        linkTemporaryProfiles(saved);
         return new RegistrationResponse(saved.getId(), saved.getPhone(), saved.getFullName());
     }
 
@@ -145,6 +158,23 @@ public class AccountAuthService {
         patientProfileRepository.save(primary);
     }
 
+    private void linkTemporaryProfiles(PatientAccount account) {
+        if (patientProfileRepository == null) {
+            return;
+        }
+        patientProfileRepository.findByTemporaryProfileTrueAndOwnerIsNullAndPhone(account.getPhone())
+                .forEach(profile -> {
+                    profile.linkToAccount(account);
+                    patientProfileRepository.save(profile);
+                    if (appointmentRepository != null && profile.getId() != null) {
+                        appointmentRepository.findByPatientProfileId(profile.getId()).forEach(appointment -> {
+                            appointment.assignPatient(account);
+                            appointmentRepository.save(appointment);
+                        });
+                    }
+                });
+    }
+
     @Transactional
     public void changePassword(String accountId, ChangePasswordRequest request) {
         PatientAccount account = accountRepository.findById(java.util.UUID.fromString(accountId))
@@ -177,6 +207,7 @@ public class AccountAuthService {
         }
         account.changePassword(passwordEncoder.encode(request.newPassword()));
         accountRepository.save(account);
+        linkTemporaryProfiles(account);
     }
 
     @Transactional

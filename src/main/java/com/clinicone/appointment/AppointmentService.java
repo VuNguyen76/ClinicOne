@@ -244,6 +244,48 @@ public class AppointmentService {
         return AppointmentResponse.from(saved);
     }
 
+    @Transactional
+    public AppointmentResponse createTemporary(PatientProfile temporaryProfile, CreateAppointmentRequest request) {
+        if (temporaryProfile == null || !temporaryProfile.isTemporaryProfile()) {
+            throw new AuthException(HttpStatus.CONFLICT, "TEMPORARY_PROFILE_REQUIRED",
+                    "Lịch ngoại lệ phải gắn với hồ sơ tạm tại quầy.");
+        }
+        if (request.profileId() != null && temporaryProfile.getId() != null
+                && !temporaryProfile.getId().equals(request.profileId())) {
+            throw new AuthException(HttpStatus.CONFLICT, "TEMPORARY_PROFILE_MISMATCH",
+                    "Hồ sơ tạm không khớp với lịch đang tạo.");
+        }
+        ClinicService selectedService = resolveService(request);
+        if (availabilityService != null) {
+            if (request.serviceId() == null) {
+                availabilityService.ensureBookable(request.specialty(), request.doctorName(), request.doctorId(),
+                        request.appointmentDate(), request.startTime());
+            } else {
+                availabilityService.ensureBookable(request.specialty(), request.doctorName(), request.doctorId(),
+                        request.appointmentDate(), request.startTime(), null, request.serviceId());
+            }
+        }
+        if (temporaryProfile.getId() != null
+                && appointmentRepository.existsByPatientProfile_IdAndAppointmentDateAndStartTimeAndStatusIn(
+                temporaryProfile.getId(), request.appointmentDate(), request.startTime(),
+                List.of(AppointmentStatus.BOOKED, AppointmentStatus.CHECKED_IN))) {
+            throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_DUPLICATE",
+                    "Hồ sơ tạm đã có lịch trong khung giờ này.");
+        }
+        Appointment appointment = Appointment.createTemporary(temporaryProfile, request.doctorId(),
+                nextAppointmentCode(), request.specialty().trim(), request.doctorName().trim(),
+                request.appointmentDate(), request.startTime(), request.reason().trim());
+        if (selectedService != null) {
+            appointment.applyServiceSnapshot(selectedService.getId(), selectedService.getName(),
+                    selectedService.getVisitType(), selectedService.getDurationMinutes(),
+                    selectedService.requiresMedicalRecord());
+        }
+        Appointment saved = appointmentRepository.save(appointment);
+        recordTransition(UUID.randomUUID(), saved.getId(), null, saved.getStatus().name(),
+                "CREATE_TEMPORARY_APPOINTMENT", "STAFF", null);
+        return AppointmentResponse.from(saved);
+    }
+
     private boolean sameCreateRequest(Appointment existing, CreateAppointmentRequest request) {
         return existing.getSpecialty().equalsIgnoreCase(request.specialty().trim())
                 && existing.getDoctorName().equalsIgnoreCase(request.doctorName().trim())

@@ -64,6 +64,12 @@ public class ReceptionController {
         return ResponseEntity.ok(service.createWalkIn(request));
     }
 
+    @PostMapping("/temporary-profiles")
+    public ResponseEntity<ReceptionPatientProfileResponse> createTemporaryProfile(
+            @Valid @RequestBody ReceptionTemporaryProfileRequest request) {
+        return ResponseEntity.status(201).body(service.createTemporaryProfile(request));
+    }
+
     @GetMapping("/profiles")
     public ResponseEntity<List<ReceptionPatientProfileResponse>> profiles(@RequestParam String phone) {
         return ResponseEntity.ok(service.profiles(phone));
