@@ -66,6 +66,15 @@ async function fillWalkInDetails(dialog: Locator, phone: string, reason: string)
 }
 
 test.describe('liên thông tiếp nhận và hàng đợi bác sĩ', () => {
+  test('receptionist sessions leave the patient home page for the reception workspace', async ({ page }) => {
+    await page.addInitScript(() => {
+      sessionStorage.setItem('clinicOneAccessToken', 'staff-e2e-token');
+      sessionStorage.setItem('clinicOneStaffRole', 'RECEPTIONIST');
+    });
+
+    await page.goto('/home');
+    await expect(page).toHaveURL(/\/reception\/check-in$/);
+  });
   test('tài khoản đã có hồ sơ được tiếp nhận và lượt khám hiện ở màn hình bác sĩ', async ({ page, context }) => {
     await mockReceptionApis(page);
     await page.route('**/api/v1/reception/profiles**', (route) => json(route, [existingProfile]));
