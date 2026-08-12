@@ -81,6 +81,15 @@ public class ReceptionService {
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "APPOINTMENT_NOT_FOUND",
                         "Không tìm thấy lịch hẹn."));
+        PatientAccount patient = appointment.getPatient();
+        if (patient != null && patient.getStatus() == AccountStatus.LOCKED) {
+            throw new AuthException(HttpStatus.CONFLICT, "PATIENT_ACCOUNT_LOCKED",
+                    "Tài khoản người bệnh đang bị khóa.");
+        }
+        if (patient != null && patient.isMustChangePassword()) {
+            throw new AuthException(HttpStatus.CONFLICT, "PASSWORD_CHANGE_REQUIRED",
+                    "Người bệnh cần đổi mật khẩu tạm trước khi check-in.");
+        }
         QueueTicketResponse ticket = queueService.checkInByStaff(request.roomCode().trim(), appointmentId, request.reason().trim());
         return toResponse(appointment, ticket);
     }

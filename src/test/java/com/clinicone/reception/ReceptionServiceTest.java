@@ -34,6 +34,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class ReceptionServiceTest {
@@ -153,5 +154,34 @@ class ReceptionServiceTest {
         assertThat(response.queueStatus()).isEqualTo("LEFT_BEFORE_EXAM");
         assertThat(response.queueNumber()).isEqualTo(8);
         verify(queueService).leaveBeforeExam(ticketId, "Người bệnh bận việc đột xuất");
+    }
+
+    @Test
+    void rejectsCheckInBeforePatientCompletesPasswordActivation() {
+        PatientAccount patient = mock(PatientAccount.class);
+        when(patient.isMustChangePassword()).thenReturn(true);
+        Appointment appointment = mock(Appointment.class);
+        when(appointment.getId()).thenReturn(APPOINTMENT_ID);
+        when(appointment.getPatient()).thenReturn(patient);
+        when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
+
+        assertThatThrownBy(() -> service.checkIn(APPOINTMENT_ID,
+                new ReceptionCheckInRequest("NOI-01", "Người bệnh chưa kích hoạt tài khoản")))
+                .hasMessageContaining("đổi mật khẩu");
+        verifyNoInteractions(queueService);
+    }
+
+    @Test
+    void rejectsCheckInForLockedPatientAccount() {
+        PatientAccount patient = mock(PatientAccount.class);
+        when(patient.getStatus()).thenReturn(AccountStatus.LOCKED);
+        Appointment appointment = mock(Appointment.class);
+        when(appointment.getPatient()).thenReturn(patient);
+        when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
+
+        assertThatThrownBy(() -> service.checkIn(APPOINTMENT_ID,
+                new ReceptionCheckInRequest("NOI-01", "locked account")))
+                .isInstanceOf(com.clinicone.auth.AuthException.class);
+        verifyNoInteractions(queueService);
     }
 }
