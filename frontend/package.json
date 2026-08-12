@@ -5,6 +5,8 @@
     "ng": "ng",
     "start": "concurrently -k -n BE,FE -c blue,green \"npm run start:backend\" \"npm run start:frontend\"",
     "start:backend": "cd .. && mvnw.cmd spring-boot:run -Dspring-boot.run.arguments=--server.port=8081",
+    "start:backend:test": "cd .. && mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=test -Dspring-boot.run.useTestClasspath=true -Dspring-boot.run.arguments=\"--server.port=8081 --spring.flyway.enabled=false --spring.jpa.hibernate.ddl-auto=create-drop\"",
+    "start:e2e": "concurrently -k -n BE,FE -c blue,green \"npm run start:backend:test\" \"npm run start:frontend\"",
     "start:frontend": "ng serve --configuration development",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
