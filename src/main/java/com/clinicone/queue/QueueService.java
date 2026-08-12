@@ -169,9 +169,12 @@ public class QueueService {
                 throw new AuthException(HttpStatus.CONFLICT, "QUEUE_ALREADY_CHECKED_IN",
                         "Lịch hẹn đã lấy số tại phòng khác.");
             }
-            if (ticket.getStatus() == QueueTicketStatus.COMPLETED) {
-                throw new AuthException(HttpStatus.CONFLICT, "QUEUE_ALREADY_COMPLETED",
-                        "Lượt khám này đã hoàn tất.");
+            if (ticket.getStatus() == QueueTicketStatus.COMPLETED
+                    || ticket.getStatus() == QueueTicketStatus.LEFT_BEFORE_EXAM) {
+                // A QR rescan is a read/recovery action for a terminal queue entry.
+                // Return the original number and outcome instead of creating or
+                // mutating another examination session.
+                return QueueTicketResponse.from(ticket);
             }
             String previousAppointmentStatus = appointment.getStatus().name();
             boolean appointmentChanged = appointment.getStatus() != AppointmentStatus.CHECKED_IN;

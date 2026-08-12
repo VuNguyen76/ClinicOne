@@ -134,6 +134,41 @@ class QueueServiceTest {
     }
 
     @Test
+    void repeatedScanReturnsCompletedTicketInsteadOfCreatingAnotherQueueEntry() {
+        QueueTicket existing = QueueTicket.create(appointment, room, TODAY, 5);
+        setId(existing, UUID.randomUUID());
+        appointment.checkIn();
+        appointment.complete();
+        existing.call();
+        existing.complete();
+        when(ticketRepository.findByAppointmentId(APPOINTMENT_ID)).thenReturn(Optional.of(existing));
+
+        QueueTicketResponse response = service.checkIn(ACCOUNT_ID.toString(), "NOI-01", APPOINTMENT_ID);
+
+        assertEquals(5, response.queueNumber());
+        assertEquals(QueueTicketStatus.COMPLETED.name(), response.status());
+        verify(ticketRepository, never()).save(any(QueueTicket.class));
+        verify(appointmentRepository, never()).save(any(Appointment.class));
+    }
+
+    @Test
+    void repeatedScanReturnsLeftBeforeExamOutcomeWithoutReopeningTheAppointment() {
+        QueueTicket existing = QueueTicket.create(appointment, room, TODAY, 5);
+        setId(existing, UUID.randomUUID());
+        appointment.checkIn();
+        existing.leaveBeforeExam("Bệnh nhân rời cơ sở trước khi khám");
+        appointment.markNotPerformed();
+        when(ticketRepository.findByAppointmentId(APPOINTMENT_ID)).thenReturn(Optional.of(existing));
+
+        QueueTicketResponse response = service.checkIn(ACCOUNT_ID.toString(), "NOI-01", APPOINTMENT_ID);
+
+        assertEquals(5, response.queueNumber());
+        assertEquals(QueueTicketStatus.LEFT_BEFORE_EXAM.name(), response.status());
+        verify(ticketRepository, never()).save(any(QueueTicket.class));
+        verify(appointmentRepository, never()).save(any(Appointment.class));
+    }
+
+    @Test
     void returningPatientScanRestoresPresenceWithoutCreatingAnotherTicket() {
         QueueTicket existing = QueueTicket.create(appointment, room, TODAY, 5);
         setId(existing, UUID.randomUUID());

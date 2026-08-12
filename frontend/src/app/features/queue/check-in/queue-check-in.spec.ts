@@ -80,6 +80,28 @@ describe('QueueCheckIn', () => {
 
     expect(fixture.nativeElement.textContent).toContain('không cấp số mới');
   });
+
+  it('shows the existing queue result when the appointment is already completed', () => {
+    const today = localIsoDate();
+    http.expectOne('/api/v1/rooms/NOI-01/check-in').flush({ code: 'NOI-01', name: 'Phòng Nội tổng quát 01', specialty: 'Nội tổng quát' });
+    http.expectOne('/api/v1/appointments').flush([appointment(today, 'COMPLETED', 'Nội tổng quát')]);
+    fixture.detectChanges();
+
+    const appointmentButton = fixture.nativeElement.querySelector('[data-testid="check-in-appointment"]') as HTMLButtonElement;
+    expect(appointmentButton).not.toBeNull();
+    appointmentButton.click();
+    fixture.detectChanges();
+    const submitButton = fixture.nativeElement.querySelector('[data-testid="check-in-submit"]') as HTMLButtonElement;
+    expect(submitButton.textContent).toContain('Xem kết quả đã có');
+    submitButton.click();
+
+    const request = http.expectOne('/api/v1/rooms/NOI-01/queue/check-in');
+    request.flush({ ...queueTicket(), status: 'COMPLETED', statusLabel: 'Đã hoàn tất' });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[data-testid="queue-number"]').textContent).toContain('5');
+    expect(fixture.nativeElement.querySelector('[data-testid="queue-status"]').textContent).toContain('Đã hoàn tất');
+  });
 });
 
 function appointment(date: string, status: string, specialty: string) {
