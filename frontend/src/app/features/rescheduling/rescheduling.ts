@@ -96,6 +96,10 @@ export class Rescheduling implements OnInit {
     return value.slice(0, 5);
   }
 
+  protected canResolve(): boolean {
+    return sessionStorage.getItem('clinicOneStaffRole') === 'COORDINATOR';
+  }
+
   private loadCases(): void {
     this.authApi.getRescheduleCases().subscribe({
       next: (items) => {
