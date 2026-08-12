@@ -73,6 +73,7 @@ public class AppointmentLifecycleJob {
         int absent = 0;
         for (Appointment appointment : appointments) {
             Instant appointmentAt = appointmentAt(appointment);
+            Instant scheduledEndAt = scheduledEndAt(appointmentAt, appointment);
             if (shouldSendReminder(appointment, appointmentAt, now, 24)) {
                 notificationService.notifyAppointmentReminder(appointment, 24);
                 reminders++;
@@ -81,11 +82,11 @@ public class AppointmentLifecycleJob {
                 notificationService.notifyAppointmentReminder(appointment, 2);
                 reminders++;
             }
-            if (!now.isBefore(appointmentAt.plus(LATE_THRESHOLD))) {
+            if (!now.isBefore(scheduledEndAt.plus(LATE_THRESHOLD))) {
                 notificationService.notifyAppointmentLate(appointment);
                 lateWarnings++;
             }
-            if (!now.isBefore(appointmentAt.plus(ABSENT_THRESHOLD))
+            if (!now.isBefore(scheduledEndAt.plus(ABSENT_THRESHOLD))
                     && appointment.getStatus() == AppointmentStatus.BOOKED) {
                 markAbsent(appointment);
                 absent++;
@@ -118,6 +119,13 @@ public class AppointmentLifecycleJob {
     private Instant appointmentAt(Appointment appointment) {
         return ZonedDateTime.of(appointment.getAppointmentDate(), appointment.getStartTime(), CLINIC_ZONE)
                 .toInstant();
+    }
+
+    private Instant scheduledEndAt(Instant appointmentAt, Appointment appointment) {
+        Integer durationMinutes = appointment.getServiceDurationMinutes();
+        return durationMinutes == null || durationMinutes <= 0
+                ? appointmentAt
+                : appointmentAt.plus(Duration.ofMinutes(durationMinutes));
     }
 
     public record LifecycleJobResult(int inspected, int reminderCandidates, int lateWarningCandidates,
