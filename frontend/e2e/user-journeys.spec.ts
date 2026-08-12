@@ -136,6 +136,10 @@ test.describe('luồng người dùng ClinicOne', () => {
         doctorName: 'Bác sĩ chuyên khoa', remainingCapacity: 9,
       },
     ]));
+    await page.route('**/api/v1/appointment-holds', (route) => fulfillJson(route, {
+      id: 'hold-e2e-1', specialty: 'Nội tổng quát', doctorName: 'Bác sĩ chuyên khoa',
+      appointmentDate, startTime: '08:30:00', expiresAt: '2099-01-01T00:00:00Z',
+    }));
     await page.route('**/api/v1/appointments', async (route) => {
       if (route.request().method() === 'POST') {
         await fulfillJson(route, {
