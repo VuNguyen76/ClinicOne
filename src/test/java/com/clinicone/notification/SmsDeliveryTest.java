@@ -2,6 +2,7 @@ package com.clinicone.notification;
 
 import org.springframework.beans.factory.ObjectProvider;
 import org.junit.jupiter.api.Test;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -78,5 +79,15 @@ class SmsDeliveryTest {
         assertThat(delivery.getStatus()).isEqualTo(SmsDeliveryStatus.FAILED);
         assertThat(delivery.getAttempts()).isEqualTo(3);
         verify(repository).save(delivery);
+    }
+
+    @Test
+    void deliveryStateChangesHaveTheirOwnTransactionBoundary() throws Exception {
+        assertThat(SmsDeliveryStateService.class.getMethod("claim", UUID.class, Instant.class)
+                .isAnnotationPresent(Transactional.class)).isTrue();
+        assertThat(SmsDeliveryStateService.class.getMethod("markSent", UUID.class)
+                .isAnnotationPresent(Transactional.class)).isTrue();
+        assertThat(SmsDeliveryStateService.class.getMethod("markFailed", UUID.class, RuntimeException.class)
+                .isAnnotationPresent(Transactional.class)).isTrue();
     }
 }

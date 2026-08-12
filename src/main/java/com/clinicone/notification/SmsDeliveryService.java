@@ -1,6 +1,7 @@
 package com.clinicone.notification;
 
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,19 +14,27 @@ import java.util.UUID;
 @Service
 public class SmsDeliveryService {
     private static final int BATCH_SIZE = 50;
-    private static final long CLAIM_SECONDS = 5 * 60L;
 
     private final SmsDeliveryRepository repository;
     private final SmsSender smsSender;
     private final SmsContentPolicy contentPolicy;
     private final Clock clock;
+    private final SmsDeliveryStateService stateService;
 
     public SmsDeliveryService(SmsDeliveryRepository repository, ObjectProvider<SmsSender> smsSenders,
                               SmsContentPolicy contentPolicy, Clock clock) {
+        this(repository, smsSenders, contentPolicy, clock, new SmsDeliveryStateService(repository, clock));
+    }
+
+    @Autowired
+    public SmsDeliveryService(SmsDeliveryRepository repository, ObjectProvider<SmsSender> smsSenders,
+                              SmsContentPolicy contentPolicy, Clock clock,
+                              SmsDeliveryStateService stateService) {
         this.repository = repository;
         this.smsSender = smsSenders.getIfAvailable();
         this.contentPolicy = contentPolicy;
         this.clock = clock;
+        this.stateService = stateService;
     }
 
     @Transactional
@@ -60,42 +69,15 @@ public class SmsDeliveryService {
 
     @Transactional
     boolean claim(UUID deliveryId, Instant current) {
-        SmsDelivery delivery = repository.findByIdForUpdate(deliveryId).orElse(null);
-        if (delivery == null) return false;
-        boolean staleProcessing = delivery.getStatus() == SmsDeliveryStatus.PROCESSING
-                && delivery.getLockedUntil() != null && !delivery.getLockedUntil().isAfter(current);
-        boolean ready = delivery.getStatus() == SmsDeliveryStatus.PENDING
-                || delivery.getStatus() == SmsDeliveryStatus.RETRY_WAITING;
-        if (!ready && !staleProcessing) return false;
-        if (ready && delivery.getAvailableAt().isAfter(current)) return false;
-        if (staleProcessing && delivery.getAttempts() >= SmsDelivery.MAX_ATTEMPTS) {
-            delivery.markFailed(current, "SMS delivery lease expired after final attempt");
-            repository.save(delivery);
-            return false;
-        }
-        delivery.claim(current, current.plusSeconds(CLAIM_SECONDS));
-        repository.save(delivery);
-        return true;
+        return stateService.claim(deliveryId, current);
     }
 
-    @Transactional
     void markSent(UUID deliveryId) {
-        repository.findByIdForUpdate(deliveryId).ifPresent(delivery -> {
-            if (delivery.getStatus() == SmsDeliveryStatus.PROCESSING) {
-                delivery.markSent(now());
-                repository.save(delivery);
-            }
-        });
+        stateService.markSent(deliveryId);
     }
 
-    @Transactional
     void markFailed(UUID deliveryId, RuntimeException failure) {
-        repository.findByIdForUpdate(deliveryId).ifPresent(delivery -> {
-            if (delivery.getStatus() == SmsDeliveryStatus.PROCESSING) {
-                delivery.markFailed(now(), failure.getMessage());
-                repository.save(delivery);
-            }
-        });
+        stateService.markFailed(deliveryId, failure);
     }
 
     private void deliver(UUID deliveryId) {
