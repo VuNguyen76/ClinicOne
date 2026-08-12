@@ -3,7 +3,15 @@ import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { finalize } from 'rxjs';
-import { apiErrorMessage, ApiErrorResponse, AppointmentResponse, AuthApiService, ReasonCatalogResponse } from '../../../core/auth/auth-api.service';
+import {
+  apiErrorMessage,
+  ApiErrorResponse,
+  AppointmentResponse,
+  AuthApiService,
+  AvailableReplacementSlot,
+  ReasonCatalogResponse,
+  RescheduleCaseResponse,
+} from '../../../core/auth/auth-api.service';
 import { AccountMenu } from '../../../shared/account-menu/account-menu';
 import { clinicTodayIso } from '../../../core/time/clinic-time';
 
@@ -28,6 +36,12 @@ export class AppointmentDetail implements OnInit {
   protected readonly error = signal('');
   protected readonly cancellationReasons = signal<ReasonCatalogResponse[]>([]);
   protected readonly selectedCancellationReason = signal('');
+  protected readonly rescheduleCase = signal<RescheduleCaseResponse | null>(null);
+  protected readonly replacementSlots = signal<AvailableReplacementSlot[]>([]);
+  protected readonly replacementLoading = signal(false);
+  protected readonly replacementSearchFailed = signal(false);
+  protected readonly rescheduleCaseLoading = signal(false);
+  protected readonly selectedReplacement = signal<AvailableReplacementSlot | null>(null);
   private cancellationRequestKey: string | null = null;
   protected readonly today = clinicTodayIso();
   protected readonly rescheduleForm = this.formBuilder.nonNullable.group({
@@ -47,6 +61,7 @@ export class AppointmentDetail implements OnInit {
         next: (appointment) => {
           this.appointment.set(appointment);
           this.rescheduleForm.setValue({ appointmentDate: appointment.appointmentDate, startTime: appointment.startTime.slice(0, 5) });
+          this.loadPatientReschedulingCase(appointment.id);
         },
         error: (response) => this.handleError(response),
       });
@@ -68,6 +83,10 @@ export class AppointmentDetail implements OnInit {
     return this.appointment()?.status === 'BOOKED';
   }
 
+  protected hasOpenReschedulingCase(): boolean {
+    return this.rescheduleCase()?.status === 'OPEN';
+  }
+
   protected cancel(): void {
     const appointment = this.appointment();
     if (!appointment || !this.canEdit()) {
@@ -86,7 +105,7 @@ export class AppointmentDetail implements OnInit {
 
   protected reschedule(): void {
     const appointment = this.appointment();
-    if (!appointment || !this.canEdit()) {
+    if (!appointment || !this.canEdit() || this.hasOpenReschedulingCase()) {
       return;
     }
     if (this.rescheduleForm.invalid) {
@@ -105,6 +124,87 @@ export class AppointmentDetail implements OnInit {
         },
         error: (response) => this.handleError(response),
       });
+  }
+
+  protected chooseReplacement(slot: AvailableReplacementSlot): void {
+    this.selectedReplacement.set(slot);
+    this.error.set('');
+  }
+
+  protected confirmPatientReschedule(): void {
+    const appointment = this.appointment();
+    const selected = this.selectedReplacement();
+    if (!appointment || !this.canEdit() || !this.hasOpenReschedulingCase() || !selected) {
+      if (!selected) {
+        this.error.set('Hãy chọn một khung giờ thay thế.');
+      }
+      return;
+    }
+    this.busy.set(true);
+    this.error.set('');
+    this.authApi.confirmPatientRescheduling(appointment.id, selected.appointmentDate,
+      selected.startTime.slice(0, 5), selected.doctorName, selected.doctorId)
+      .pipe(finalize(() => this.busy.set(false)))
+      .subscribe({
+        next: () => {
+          this.appointment.set({
+            ...appointment,
+            appointmentDate: selected.appointmentDate,
+            startTime: selected.startTime,
+            doctorName: selected.doctorName,
+          });
+          this.rescheduleCase.set(null);
+          this.replacementSlots.set([]);
+          this.selectedReplacement.set(null);
+          this.notice.set('Đã xác nhận khung giờ thay thế.');
+        },
+        error: (response) => this.handleError(response),
+      });
+  }
+
+  private loadPatientReschedulingCase(appointmentId: string): void {
+    this.rescheduleCaseLoading.set(true);
+    this.authApi.getPatientReschedulingCase(appointmentId).subscribe({
+      next: (item) => {
+        this.rescheduleCase.set(item);
+        this.rescheduleCaseLoading.set(false);
+        if (item.status === 'OPEN') {
+          this.loadReplacementSlots(appointmentId);
+        }
+      },
+      error: (response) => {
+        this.rescheduleCaseLoading.set(false);
+        if (response.status === 404) {
+          this.rescheduleCase.set(null);
+          return;
+        }
+        this.handleError(response);
+      },
+    });
+  }
+
+  private loadReplacementSlots(appointmentId: string): void {
+    this.replacementLoading.set(true);
+    this.replacementSearchFailed.set(false);
+    this.authApi.getPatientReplacementSlots(appointmentId).subscribe({
+      next: (slots) => {
+        this.replacementSlots.set(slots);
+        this.replacementSearchFailed.set(false);
+        this.replacementLoading.set(false);
+      },
+      error: (response) => {
+        this.replacementLoading.set(false);
+        this.replacementSearchFailed.set(true);
+        this.handleError(response);
+      },
+    });
+  }
+
+  protected retryReplacementSearch(): void {
+    const appointment = this.appointment();
+    if (appointment && this.hasOpenReschedulingCase()) {
+      this.loadReplacementSlots(appointment.id);
+    }
   }
 
   private handleError(response: ApiErrorResponse & { status?: number }): void {

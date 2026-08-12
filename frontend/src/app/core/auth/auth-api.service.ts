@@ -823,6 +823,25 @@ export class AuthApiService {
     return this.http.post<AppointmentResponse>(`${this.appointmentsRoot}/${id}/reschedule`, { appointmentDate, startTime });
   }
 
+  getPatientReschedulingCase(appointmentId: string): Observable<RescheduleCaseResponse> {
+    return this.http.get<RescheduleCaseResponse>(`/api/v1/patient/rescheduling/${appointmentId}`);
+  }
+
+  getPatientReplacementSlots(appointmentId: string, from?: string, to?: string): Observable<AvailableReplacementSlot[]> {
+    const params: Record<string, string> = {};
+    if (from) params['from'] = from;
+    if (to) params['to'] = to;
+    return this.http.get<AvailableReplacementSlot[]>(
+      `/api/v1/patient/rescheduling/${appointmentId}/alternatives`, { params });
+  }
+
+  confirmPatientRescheduling(appointmentId: string, appointmentDate: string, startTime: string,
+                             doctorName: string, doctorId?: string | null): Observable<RescheduleCaseResponse> {
+    return this.http.post<RescheduleCaseResponse>(`/api/v1/patient/rescheduling/${appointmentId}/confirm`, {
+      appointmentDate, startTime, doctorName, doctorId: doctorId ?? null,
+    });
+  }
+
   getExaminations(): Observable<ExaminationSessionResponse[]> {
     return this.http.get<ExaminationSessionResponse[]>(this.examinationsRoot);
   }
