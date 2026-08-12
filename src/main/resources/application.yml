@@ -33,3 +33,5 @@ management:
 
 app:
   timezone: Asia/Ho_Chi_Minh
+  address:
+    api-root: ${ADDRESS_API_ROOT:https://tinhthanhpho.com/api/v1}
