@@ -2,6 +2,7 @@ package com.clinicone.auth;
 
 import com.clinicone.config.SecurityConfig;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -16,6 +17,8 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
@@ -37,6 +40,11 @@ class StaffManagementControllerTest {
 
     @Autowired
     private com.clinicone.audit.AccessAuditService accessAuditService;
+
+    @BeforeEach
+    void resetMocks() {
+        reset(service, accessAuditService);
+    }
 
     @Test
     void adminCanListAndLockStaffAccount() throws Exception {
@@ -63,6 +71,20 @@ class StaffManagementControllerTest {
         mockMvc.perform(get("/api/v1/admin/staff")
                         .with(authentication(authenticated("ROLE_DOCTOR"))))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void rejectedStaffLockIsWrittenToAccessAudit() throws Exception {
+        doThrow(new AuthException(org.springframework.http.HttpStatus.CONFLICT,
+                "STAFF_ACCOUNT_STATE_INVALID", "Không thể khóa tài khoản.")
+        ).when(service).lock(any(), any());
+
+        mockMvc.perform(post("/api/v1/admin/staff/" + STAFF_ID + "/lock")
+                        .with(authentication(authenticated("ROLE_ADMIN"))))
+                .andExpect(status().isConflict());
+
+        verify(accessAuditService).record("STAFF_LOCK", STAFF_ID.toString(), "FAILED",
+                "/api/v1/admin/staff/{id}/lock", "127.0.0.1");
     }
 
     private static UsernamePasswordAuthenticationToken authenticated(String role) {
