@@ -12,8 +12,12 @@ test('bệnh nhân chỉ xem được phiếu khám đã ký', async ({ page }) 
     sessionStorage.setItem('clinicOneAccessToken', 'patient-e2e-token');
     sessionStorage.setItem('clinicOnePatientName', 'Trần Bình');
   });
-  await page.route('**/api/v1/medical-records', (route) => route.request().method() === 'GET'
-    ? route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([signedRecord]) })
+  await page.route('**/api/v1/medical-records**', (route) => route.request().method() === 'GET'
+    ? route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ items: [signedRecord], page: 0, size: 20, totalElements: 1, totalPages: 1 }),
+    })
     : route.continue());
   await page.route('**/api/v1/medical-records/record-e2e-1', (route) => route.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify(signedRecord),
