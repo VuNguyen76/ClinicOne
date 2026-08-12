@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -50,7 +51,6 @@ public class AccountAuthService {
                 patientProfileRepository, null, null);
     }
 
-    @org.springframework.beans.factory.annotation.Autowired
     public AccountAuthService(PatientAccountRepository accountRepository, LoginSessionRepository sessionRepository,
                               OtpService otpService, PasswordEncoder passwordEncoder,
                               SessionTokenGenerator tokenGenerator, Clock clock,
@@ -60,6 +60,7 @@ public class AccountAuthService {
                 patientProfileRepository, appointmentRepository, null);
     }
 
+    @Autowired
     public AccountAuthService(PatientAccountRepository accountRepository, LoginSessionRepository sessionRepository,
                               OtpService otpService, PasswordEncoder passwordEncoder,
                               SessionTokenGenerator tokenGenerator, Clock clock,
