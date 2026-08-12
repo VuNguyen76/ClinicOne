@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -62,6 +63,7 @@ public class AccountAuthController {
     }
 
     @PostMapping("/logout")
+    @PreAuthorize("hasRole('PATIENT')")
     public ResponseEntity<Void> logout(Authentication authentication, HttpServletRequest servletRequest) {
         authService.logout(authentication.getName());
         recordAudit("PATIENT_LOGOUT", authentication.getName(), "SUCCESS", "/api/v1/auth/logout", servletRequest.getRemoteAddr());
@@ -69,6 +71,7 @@ public class AccountAuthController {
     }
 
     @PostMapping("/me/password")
+    @PreAuthorize("hasRole('PATIENT')")
     public ResponseEntity<Void> changePassword(Authentication authentication,
                                                @Valid @RequestBody ChangePasswordRequest request) {
         authService.changePassword(authentication.getName(), request);
@@ -76,11 +79,13 @@ public class AccountAuthController {
     }
 
     @GetMapping("/me")
+    @PreAuthorize("hasRole('PATIENT')")
     public ResponseEntity<PatientProfileResponse> profile(Authentication authentication) {
         return ResponseEntity.ok(authService.getProfile(authentication.getName()));
     }
 
     @PatchMapping("/me")
+    @PreAuthorize("hasRole('PATIENT')")
     public ResponseEntity<PatientProfileResponse> updateProfile(Authentication authentication,
                                                                  @Valid @RequestBody UpdateProfileRequest request) {
         return ResponseEntity.ok(authService.updateProfile(authentication.getName(), request));
