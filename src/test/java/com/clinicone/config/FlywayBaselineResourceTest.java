@@ -71,4 +71,66 @@ class FlywayBaselineResourceTest {
             assertThat(sql).contains("'" + status + "'");
         }
     }
+
+    @Test
+    void signRequestKeyMigrationAddsTheColumnUsedByExaminationSessions() throws IOException {
+        String sql;
+        try (InputStream input = getClass().getResourceAsStream("/db/migration/V4__add_examination_sign_request_key.sql")) {
+            assertThat(input).as("examination sign request key migration resource").isNotNull();
+            sql = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+        }
+
+        assertThat(sql).contains("ALTER TABLE public.examination_sessions");
+        assertThat(sql).contains("ADD COLUMN IF NOT EXISTS sign_request_key");
+    }
+
+    @Test
+    void passwordFailureMigrationAddsThePatientLockColumns() throws IOException {
+        String sql;
+        try (InputStream input = getClass().getResourceAsStream("/db/migration/V5__add_patient_password_failure_columns.sql")) {
+            assertThat(input).as("patient password failure migration resource").isNotNull();
+            sql = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+        }
+
+        assertThat(sql).contains("ALTER TABLE public.patient_accounts");
+        assertThat(sql).contains("failed_password_attempts");
+        assertThat(sql).contains("password_failure_window_started_at");
+        assertThat(sql).contains("locked_until");
+    }
+
+    @Test
+    void temporaryProfileMigrationAddsTheTemporaryProfileFlag() throws IOException {
+        String sql;
+        try (InputStream input = getClass().getResourceAsStream("/db/migration/V6__add_temporary_profile_flag.sql")) {
+            assertThat(input).as("temporary profile migration resource").isNotNull();
+            sql = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+        }
+
+        assertThat(sql).contains("ALTER TABLE public.patient_profiles");
+        assertThat(sql).contains("temporary_profile");
+    }
+
+    @Test
+    void queueClosureMigrationAddsTheClosureOutcomeColumn() throws IOException {
+        String sql;
+        try (InputStream input = getClass().getResourceAsStream("/db/migration/V7__add_queue_closure_outcome.sql")) {
+            assertThat(input).as("queue closure migration resource").isNotNull();
+            sql = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+        }
+
+        assertThat(sql).contains("ALTER TABLE public.queue_tickets");
+        assertThat(sql).contains("closure_outcome");
+    }
+
+    @Test
+    void wrongProfileIncidentMigrationCreatesTheIncidentSnapshotTable() throws IOException {
+        String sql;
+        try (InputStream input = getClass().getResourceAsStream("/db/migration/V8__add_wrong_profile_incidents.sql")) {
+            assertThat(input).as("wrong profile migration resource").isNotNull();
+            sql = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+        }
+
+        assertThat(sql).contains("CREATE TABLE IF NOT EXISTS public.wrong_profile_incidents");
+        assertThat(sql).contains("prescription_snapshot");
+    }
 }
