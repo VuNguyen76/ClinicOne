@@ -65,6 +65,9 @@ export const homeGuard: CanActivateFn = () => {
   if (roles.includes('ADMIN') || roles.includes('COORDINATOR')) {
     return router.createUrlTree(['/admin/rooms']);
   }
+  if (roles.includes('RECEPTIONIST')) {
+    return router.createUrlTree(['/reception/check-in']);
+  }
   return router.createUrlTree(['/staff/login']);
 };
 
