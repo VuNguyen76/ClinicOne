@@ -20,7 +20,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/reception")
-@PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR', 'RECEPTIONIST')")
+@PreAuthorize("hasAnyRole('COORDINATOR', 'RECEPTIONIST')")
 public class ReceptionController {
     private final ReceptionService service;
     private final ReceptionPatientService patientService;

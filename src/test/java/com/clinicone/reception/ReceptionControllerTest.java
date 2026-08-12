@@ -61,6 +61,15 @@ class ReceptionControllerTest {
     }
 
     @Test
+    void adminCannotPerformReceptionCheckIn() throws Exception {
+        mockMvc.perform(post("/api/v1/reception/appointments/" + APPOINTMENT_ID + "/check-in")
+                        .with(authentication(authenticated("ROLE_ADMIN")))
+                        .contentType("application/json")
+                        .content("{\"roomCode\":\"NOI-01\",\"reason\":\"QR phòng bị lỗi\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void receptionistCanConfirmArrival() throws Exception {
         when(service.checkIn(eq(APPOINTMENT_ID), any())).thenReturn(responseWithTicket());
 
