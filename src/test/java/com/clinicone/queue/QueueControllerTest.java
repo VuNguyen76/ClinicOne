@@ -218,6 +218,15 @@ class QueueControllerTest {
                 .andExpect(status().isOk());
     }
 
+    @Test
+    void adminCannotCloseQueueTicketForPatientLeaving() throws Exception {
+        mockMvc.perform(post("/api/v1/queue/" + TICKET_ID + "/leave")
+                        .with(authentication(authenticated("ROLE_ADMIN")))
+                        .contentType("application/json")
+                        .content("{\"reason\":\"Bệnh nhân bận việc\"}"))
+                .andExpect(status().isForbidden());
+    }
+
     private static UsernamePasswordAuthenticationToken authenticated(String role) {
         return authenticated(new String[]{role});
     }
