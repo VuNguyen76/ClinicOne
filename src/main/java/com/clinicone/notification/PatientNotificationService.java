@@ -17,39 +17,25 @@ import com.clinicone.appointment.Appointment;
 public class PatientNotificationService {
     private final PatientNotificationRepository repository;
     private final PatientAccountRepository accountRepository;
-    private final SmsSender smsSender;
     private final SmsDeliveryService smsDeliveryService;
 
     public PatientNotificationService(PatientNotificationRepository repository) {
-        this(repository, null, (SmsSender) null, (SmsDeliveryService) null);
-    }
-
-    public PatientNotificationService(PatientNotificationRepository repository,
-                                      PatientAccountRepository accountRepository, SmsSender smsSender) {
-        this(repository, accountRepository, smsSender, null);
-    }
-
-    public PatientNotificationService(PatientNotificationRepository repository,
-                                      PatientAccountRepository accountRepository, SmsSender smsSender,
-                                      SmsDeliveryService smsDeliveryService) {
-        this.repository = repository;
-        this.accountRepository = accountRepository;
-        this.smsSender = smsSender;
-        this.smsDeliveryService = smsDeliveryService;
+        this(repository, null, (SmsDeliveryService) null);
     }
 
     public PatientNotificationService(PatientNotificationRepository repository,
                                       PatientAccountRepository accountRepository,
-                                      ObjectProvider<SmsSender> smsSenders) {
-        this(repository, accountRepository, smsSenders.getIfAvailable(), null);
+                                      SmsDeliveryService smsDeliveryService) {
+        this.repository = repository;
+        this.accountRepository = accountRepository;
+        this.smsDeliveryService = smsDeliveryService;
     }
 
     @Autowired
     public PatientNotificationService(PatientNotificationRepository repository,
                                       PatientAccountRepository accountRepository,
-                                      ObjectProvider<SmsSender> smsSenders,
                                       ObjectProvider<SmsDeliveryService> smsDeliveries) {
-        this(repository, accountRepository, smsSenders.getIfAvailable(), smsDeliveries.getIfAvailable());
+        this(repository, accountRepository, smsDeliveries.getIfAvailable());
     }
 
     @Transactional(readOnly = true)
@@ -181,12 +167,6 @@ public class PatientNotificationService {
                     if (smsDeliveryService != null) {
                         smsDeliveryService.enqueue(account.getId(), notification.getEventKey(), phone,
                                 smsMessage(account.getStatus(), account.isMustChangePassword(), notification));
-                    } else if (smsSender != null) {
-                        try {
-                            smsSender.sendText(phone, smsMessage(account.getStatus(), account.isMustChangePassword(), notification));
-                        } catch (RuntimeException ignored) {
-                            // Legacy direct sender is best-effort; production uses the outbox worker.
-                        }
                     }
                 });
     }
