@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -74,6 +75,68 @@ public class PatientProfileService {
             accountRepository.save(owner);
         }
         return PatientProfileResponse.from(profileRepository.save(profile));
+    }
+
+    @Transactional
+    public PatientProfileResponse updateMissingDataByReceptionist(String profileId, UpdatePatientProfileRequest request) {
+        return updateMissingDataByReceptionist(profileId, new ReceptionUpdatePatientProfileRequest(
+                request.fullName(), request.dateOfBirth(), request.gender(), request.phone(),
+                request.identityNumber(), request.nationality(), request.ethnicity(), request.address(),
+                request.provinceCode(), request.provinceName(), request.districtCode(), request.districtName(),
+                request.wardCode(), request.wardName(), request.streetAddress()));
+    }
+
+    @Transactional
+    public PatientProfileResponse updateMissingDataByReceptionist(
+            String profileId, ReceptionUpdatePatientProfileRequest request) {
+        if (request.isEmpty()) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "RECEPTION_UPDATE_EMPTY",
+                    "Cần nhập ít nhất một trường còn thiếu của hồ sơ.");
+        }
+
+        PatientProfile profile = findByIdForReception(profileId);
+        String fullName = fillMissing(profile.getFullName(), request.fullName());
+        LocalDate dateOfBirth = profile.getDateOfBirth() == null && request.dateOfBirth() != null
+                ? request.dateOfBirth() : profile.getDateOfBirth();
+        String gender = fillMissing(profile.getGender(), request.gender());
+        String phone = fillMissing(profile.getPhone(), request.phone());
+        String identityNumber = fillMissing(profile.getIdentityNumber(), request.identityNumber());
+        String nationality = fillMissing(profile.getNationality(), request.nationality());
+        String ethnicity = fillMissing(profile.getEthnicity(), request.ethnicity());
+        String provinceCode = fillMissing(profile.getProvinceCode(), request.provinceCode());
+        String provinceName = fillMissing(profile.getProvinceName(), request.provinceName());
+        String districtCode = fillMissing(profile.getDistrictCode(), request.districtCode());
+        String districtName = fillMissing(profile.getDistrictName(), request.districtName());
+        String wardCode = fillMissing(profile.getWardCode(), request.wardCode());
+        String wardName = fillMissing(profile.getWardName(), request.wardName());
+        String streetAddress = fillMissing(profile.getStreetAddress(), request.streetAddress());
+        String address = fillMissing(profile.getAddress(), composeAddress(request.address(), streetAddress,
+                wardName, districtName, provinceName));
+
+        profile.update(fullName, profile.getRelationship(), dateOfBirth, gender, phone, identityNumber,
+                nationality, ethnicity, address, provinceCode, provinceName, districtCode, districtName,
+                wardCode, wardName, streetAddress);
+        if (profile.isPrimaryProfile()) {
+            PatientAccount owner = profile.getOwner();
+            owner.syncFromPrimaryProfile(profile.getFullName(), profile.getDateOfBirth(), profile.getGender(),
+                    profile.getPhone(), profile.getIdentityNumber(), profile.getNationality(), profile.getEthnicity(),
+                    profile.getAddress(), profile.getProvinceCode(), profile.getProvinceName(), profile.getDistrictCode(),
+                    profile.getDistrictName(), profile.getWardCode(), profile.getWardName(), profile.getStreetAddress());
+            accountRepository.save(owner);
+        }
+        return PatientProfileResponse.from(profileRepository.save(profile));
+    }
+
+    private PatientProfile findByIdForReception(String profileId) {
+        try {
+            return profileRepository.findById(UUID.fromString(profileId)).orElseThrow(this::profileNotFound);
+        } catch (IllegalArgumentException exception) {
+            throw profileNotFound();
+        }
+    }
+
+    private String fillMissing(String existing, String candidate) {
+        return existing == null || existing.isBlank() ? normalize(candidate) : existing;
     }
 
     @Transactional
