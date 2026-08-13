@@ -69,6 +69,19 @@ describe('Booking calendar', () => {
     expect(component['monthSlots']()[0].doctorName).toBe('BÃ¡c sÄ© thÃ¡ng hiá»‡n táº¡i');
   });
 
+  it('clamps the final month request and disables navigation beyond the thirty-day window', () => {
+    component['chooseSpecialty']({ code: 'NOI', name: 'Nội tổng quát', description: 'Khám tổng quát' });
+    const firstRequest = http.expectOne((item) => item.url === '/api/v1/appointment-slots');
+    firstRequest.flush([]);
+
+    component['nextMonth']();
+    const secondRequest = http.expectOne((item) => item.url === '/api/v1/appointment-slots');
+    const expectedEnd = component['bookingWindowEndIso']();
+    expect(secondRequest.request.params.get('to')).toBe(expectedEnd);
+    expect(component['isNextMonthDisabled']()).toBe(true);
+    secondRequest.flush([]);
+  });
+
   it('uses the already loaded month data when a date is selected', () => {
     component['chooseSpecialty']({ code: 'NOI', name: 'Nội tổng quát', description: 'Khám tổng quát' });
     const request = http.expectOne((item) => item.url === '/api/v1/appointment-slots');

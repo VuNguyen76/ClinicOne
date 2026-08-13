@@ -362,8 +362,10 @@ public class AppointmentAvailabilityService {
 
     private void validateDate(LocalDate appointmentDate) {
         LocalDate clinicToday = LocalDate.now(clock.withZone(CLINIC_ZONE));
-        if (appointmentDate == null || appointmentDate.isBefore(clinicToday)) {
-            throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_SLOT_INVALID", "Ngày khám không còn nhận đặt lịch.");
+        if (appointmentDate == null || appointmentDate.isBefore(clinicToday)
+                || appointmentDate.isAfter(clinicToday.plusDays(30))) {
+            throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_SLOT_INVALID",
+                    "Ngày khám phải nằm trong 30 ngày kể từ hôm nay.");
         }
     }
 
@@ -389,7 +391,7 @@ public class AppointmentAvailabilityService {
         // would expose 32 calendar dates and must be rejected.
         if (from == null || to == null || from.isAfter(to) || from.plusDays(30).isBefore(to)) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "APPOINTMENT_SLOT_RANGE_INVALID",
-                    "Khoảng ngày tìm lịch phải hợp lệ và không vượt quá 31 ngày.");
+                    "Khoảng ngày tìm lịch phải hợp lệ và không vượt quá 30 ngày kể từ ngày bắt đầu.");
         }
     }
 
