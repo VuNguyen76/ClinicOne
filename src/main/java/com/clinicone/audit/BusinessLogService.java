@@ -62,9 +62,14 @@ public class BusinessLogService {
         if (repository.existsByEventIdAndEntityTypeAndEntityId(eventId, entityType, entityId)) {
             return;
         }
-        repository.save(BusinessLog.transition(eventId, normalize(entityType, 40), entityId,
+        BusinessLog log = BusinessLog.transition(eventId, normalize(entityType, 40), entityId,
                 normalizeNullable(previousStatus, 40), normalize(nextStatus, 40), normalize(eventType, 80),
-                normalizeActor(actor), normalizedReason));
+                normalizeActor(actor), normalizedReason);
+        String previousHash = repository.findTopByOrderByOccurredAtDescIdDesc()
+                .map(BusinessLog::getHash)
+                .orElse(null);
+        log.seal(previousHash);
+        repository.save(log);
     }
 
     @Transactional(readOnly = true)

@@ -97,6 +97,11 @@ public class AppointmentLifecycleJob {
             }
             if (!now.isBefore(scheduledEndAt.plus(LATE_THRESHOLD))) {
                 notificationService.notifyAppointmentLate(appointment);
+                businessLogService.recordActivity(UUID.nameUUIDFromBytes(
+                                ("LATE_WARNING:" + appointment.getId()).getBytes(java.nio.charset.StandardCharsets.UTF_8)),
+                        "APPOINTMENT", appointment.getId(), appointment.getStatus().name(),
+                        appointment.getStatus().name(), "LATE_WARNING", "SYSTEM",
+                        "Đã gửi cảnh báo người bệnh đến muộn");
                 lateWarnings++;
             }
             if (!now.isBefore(scheduledEndAt.plus(ABSENT_THRESHOLD))
@@ -126,14 +131,17 @@ public class AppointmentLifecycleJob {
     }
 
     private void markAppointmentSlotUnavailable(Appointment appointment) {
-        if (generatedSlotRepository == null || appointment.getServiceId() == null
-                || appointment.getDoctorStaffId() == null) {
+        if (generatedSlotRepository == null || appointment.getDoctorStaffId() == null) {
             return;
         }
-        generatedSlotRepository
-                .findFirstByClinicServiceIdAndDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
+        var openSlot = appointment.getServiceId() == null
+                ? generatedSlotRepository.findFirstByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
+                        appointment.getDoctorStaffId(), appointment.getAppointmentDate(), appointment.getStartTime(),
+                        GeneratedSlotStatus.OPEN)
+                : generatedSlotRepository.findFirstByClinicServiceIdAndDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
                         appointment.getServiceId(), appointment.getDoctorStaffId(), appointment.getAppointmentDate(),
-                        appointment.getStartTime(), GeneratedSlotStatus.OPEN)
+                        appointment.getStartTime(), GeneratedSlotStatus.OPEN);
+        openSlot
                 .ifPresent(slot -> {
                     slot.cancel();
                     generatedSlotRepository.save(slot);

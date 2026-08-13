@@ -14,6 +14,7 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.Version;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -50,6 +51,10 @@ public class ExaminationSession {
 
     @Column(name = "sign_request_key", length = 80)
     private String signRequestKey;
+
+    @Version
+    @Column(nullable = false)
+    private long version;
 
     protected ExaminationSession() {
     }
@@ -147,4 +152,5 @@ public class ExaminationSession {
     public Instant getEndedAt() { return endedAt; }
     public String getStartRequestKey() { return startRequestKey; }
     public String getSignRequestKey() { return signRequestKey; }
+    public long getVersion() { return version; }
 }

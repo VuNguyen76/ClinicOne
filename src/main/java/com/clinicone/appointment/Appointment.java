@@ -16,6 +16,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.Version;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -102,6 +103,10 @@ public class Appointment {
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
+
+    @Version
+    @Column(nullable = false)
+    private long version;
 
     protected Appointment() {
     }
@@ -314,4 +319,5 @@ public class Appointment {
     public String getCreationRequestKey() { return creationRequestKey; }
     public String getCheckInRequestKey() { return checkInRequestKey; }
     public Instant getCreatedAt() { return createdAt; }
+    public long getVersion() { return version; }
 }
