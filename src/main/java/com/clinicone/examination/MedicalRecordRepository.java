@@ -38,14 +38,29 @@ public interface MedicalRecordRepository extends JpaRepository<MedicalRecord, UU
             join session.appointment appointment
             where appointment.patient.id = :patientId
               and record.signedAt is not null
-              and (:profileId is null or appointment.patientProfile.id = :profileId)
               and record.signedAt >= :fromAt
               and record.signedAt < :toExclusive
             order by record.signedAt desc
             """)
     Page<MedicalRecord> findSignedHistory(@Param("patientId") UUID patientId,
-                                          @Param("profileId") UUID profileId,
                                           @Param("fromAt") Instant fromAt,
                                           @Param("toExclusive") Instant toExclusive,
                                           Pageable pageable);
+
+    @Query("""
+            select record from MedicalRecord record
+            join record.session session
+            join session.appointment appointment
+            where appointment.patient.id = :patientId
+              and appointment.patientProfile.id = :profileId
+              and record.signedAt is not null
+              and record.signedAt >= :fromAt
+              and record.signedAt < :toExclusive
+            order by record.signedAt desc
+            """)
+    Page<MedicalRecord> findSignedHistoryForProfile(@Param("patientId") UUID patientId,
+                                                    @Param("profileId") UUID profileId,
+                                                    @Param("fromAt") Instant fromAt,
+                                                    @Param("toExclusive") Instant toExclusive,
+                                                    Pageable pageable);
 }
