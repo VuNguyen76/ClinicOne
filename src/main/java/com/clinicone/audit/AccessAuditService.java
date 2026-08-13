@@ -33,8 +33,8 @@ public class AccessAuditService {
     public List<AccessAuditResponse> list(Instant from, Instant to, String actor, String outcome, String eventType) {
         Instant fromTime = from == null ? AUDIT_START : from;
         Instant toTime = to == null ? AUDIT_END : to;
-        return repository.findFiltered(fromTime, toTime, normalizeNullable(actor, 120), normalizeNullable(outcome, 20),
-                        normalizeNullable(eventType, 40)).stream()
+        return repository.findFiltered(fromTime, toTime, normalizeFilter(actor, 120), normalizeFilter(outcome, 20),
+                        normalizeFilter(eventType, 40)).stream()
                 .limit(500)
                 .map(AccessAuditResponse::from)
                 .toList();
@@ -49,5 +49,9 @@ public class AccessAuditService {
 
     private String normalizeNullable(String value, int maxLength) {
         return value == null || value.isBlank() ? null : normalize(value, maxLength);
+    }
+
+    private String normalizeFilter(String value, int maxLength) {
+        return value == null || value.isBlank() ? "" : normalize(value, maxLength);
     }
 }

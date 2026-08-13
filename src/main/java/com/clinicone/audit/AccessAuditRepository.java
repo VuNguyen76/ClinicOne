@@ -13,9 +13,9 @@ public interface AccessAuditRepository extends JpaRepository<AccessAuditEvent, U
             select event from AccessAuditEvent event
             where event.occurredAt >= :fromTime
               and event.occurredAt < :toTime
-              and (:actor is null or lower(event.actor) like lower(concat('%', :actor, '%')))
-              and (:outcome is null or event.outcome = :outcome)
-              and (:eventType is null or event.eventType = :eventType)
+              and (:actor = '' or lower(event.actor) like concat('%', lower(:actor), '%'))
+              and (:outcome = '' or event.outcome = :outcome)
+              and (:eventType = '' or event.eventType = :eventType)
             order by event.occurredAt desc, event.id desc
             """)
     List<AccessAuditEvent> findFiltered(@Param("fromTime") Instant fromTime,
