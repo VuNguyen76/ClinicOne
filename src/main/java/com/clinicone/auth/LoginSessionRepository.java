@@ -12,7 +12,7 @@ import org.springframework.data.repository.query.Param;
 public interface LoginSessionRepository extends JpaRepository<LoginSession, UUID> {
     Optional<LoginSession> findByTokenHashAndRevokedAtIsNullAndExpiresAtAfter(String tokenHash, Instant now);
 
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("update LoginSession session set session.revokedAt = :revokedAt "
             + "where session.accountId = :accountId and session.revokedAt is null")
     int revokeActiveByAccountId(@Param("accountId") UUID accountId, @Param("revokedAt") Instant revokedAt);
