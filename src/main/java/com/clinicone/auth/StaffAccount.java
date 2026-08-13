@@ -13,6 +13,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.JoinColumn;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -31,6 +32,7 @@ public class StaffAccount {
     private String username;
 
     @Column(name = "password_hash", nullable = false, length = 100)
+    @JsonIgnore
     private String passwordHash;
 
     @Column(name = "full_name", nullable = false, length = 200)

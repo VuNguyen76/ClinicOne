@@ -10,6 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -33,6 +34,7 @@ public class PatientAccount {
     private String phone;
 
     @Column(name = "password_hash", nullable = false, length = 100)
+    @JsonIgnore
     private String passwordHash;
 
     @Column(name = "full_name", nullable = false, length = 200)
