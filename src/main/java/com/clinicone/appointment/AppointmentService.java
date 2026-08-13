@@ -205,6 +205,10 @@ public class AppointmentService {
         }
         PatientAccount patient = accountRepository.findById(patientId)
                 .orElseThrow(() -> authenticationRequired());
+        if (patient.isMustChangePassword()) {
+            throw new AuthException(HttpStatus.FORBIDDEN, "ACCOUNT_ACTIVATION_REQUIRED",
+                    "Tài khoản chưa được kích hoạt. Vui lòng kích hoạt tài khoản trước khi đặt lịch.");
+        }
         ClinicService selectedService = resolveService(request);
         LocalDate appointmentDate = request.appointmentDate();
         LocalTime startTime = request.startTime();
