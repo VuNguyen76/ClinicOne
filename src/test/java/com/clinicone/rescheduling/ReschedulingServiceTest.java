@@ -11,6 +11,9 @@ import com.clinicone.doctor.DoctorProfile;
 import com.clinicone.doctor.DoctorSchedule;
 import com.clinicone.notification.PatientNotificationService;
 import com.clinicone.schedule.AppointmentAvailabilityService;
+import com.clinicone.schedule.GeneratedClinicSlot;
+import com.clinicone.schedule.GeneratedClinicSlotRepository;
+import com.clinicone.schedule.GeneratedSlotStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -42,12 +45,14 @@ class ReschedulingServiceTest {
     private final RescheduleCaseRepository caseRepository = mock(RescheduleCaseRepository.class);
     private final AppointmentAvailabilityService availabilityService = mock(AppointmentAvailabilityService.class);
     private final PatientNotificationService notificationService = mock(PatientNotificationService.class);
+    private final GeneratedClinicSlotRepository generatedSlotRepository = mock(GeneratedClinicSlotRepository.class);
     private ReschedulingService service;
 
     @BeforeEach
     void setUp() {
         service = new ReschedulingService(appointmentRepository, caseRepository, availabilityService,
-                notificationService, Clock.fixed(Instant.parse("2026-08-10T01:00:00Z"), ZoneOffset.UTC));
+                notificationService, Clock.fixed(Instant.parse("2026-08-10T01:00:00Z"), ZoneOffset.UTC),
+                null, generatedSlotRepository);
         when(caseRepository.findByAppointmentIdAndStatus(any(), any())).thenReturn(Optional.empty());
         when(caseRepository.save(any(RescheduleCase.class))).thenAnswer(invocation -> invocation.getArgument(0));
     }
@@ -84,6 +89,11 @@ class ReschedulingServiceTest {
     @Test
     void resolvesCaseAfterCoordinatorChoosesAvailableReplacement() throws Exception {
         Appointment appointment = appointment();
+        appointment.applyServiceSnapshot(UUID.randomUUID(), "KhÃ¡m tá»•ng quÃ¡t", "KhÃ¡m", 30, true);
+        GeneratedClinicSlot oldSlot = mock(GeneratedClinicSlot.class);
+        when(generatedSlotRepository.findFirstByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
+                DOCTOR_ID, appointment.getAppointmentDate(), appointment.getStartTime(), GeneratedSlotStatus.OPEN))
+                .thenReturn(Optional.of(oldSlot));
         RescheduleCase rescheduleCase = RescheduleCase.open(appointment, "Bác sĩ nghỉ");
         UUID caseId = UUID.randomUUID();
         setId(rescheduleCase, caseId);
@@ -97,6 +107,8 @@ class ReschedulingServiceTest {
         assertEquals(RescheduleCaseStatus.RESOLVED, response.status());
         assertEquals(LocalDate.of(2026, 8, 11), appointment.getAppointmentDate());
         assertEquals(LocalTime.of(9, 30), appointment.getStartTime());
+        verify(oldSlot).cancel();
+        verify(generatedSlotRepository).save(oldSlot);
         verify(notificationService).notifyAppointmentRescheduled(appointment, "2026-08-10", "08:30");
     }
 

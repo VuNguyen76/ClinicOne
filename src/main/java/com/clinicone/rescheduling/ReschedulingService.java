@@ -9,6 +9,9 @@ import com.clinicone.doctor.DoctorSchedule;
 import com.clinicone.notification.PatientNotificationService;
 import com.clinicone.schedule.AppointmentAvailabilityService;
 import com.clinicone.schedule.AvailableSlotResponse;
+import com.clinicone.schedule.GeneratedClinicSlot;
+import com.clinicone.schedule.GeneratedClinicSlotRepository;
+import com.clinicone.schedule.GeneratedSlotStatus;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,13 +35,14 @@ public class ReschedulingService {
     private final PatientNotificationService notificationService;
     private final Clock clock;
     private final BusinessLogService businessLogService;
+    private final GeneratedClinicSlotRepository generatedSlotRepository;
 
     public ReschedulingService(AppointmentRepository appointmentRepository,
                                RescheduleCaseRepository caseRepository,
                                AppointmentAvailabilityService availabilityService,
                                PatientNotificationService notificationService,
                                Clock clock) {
-        this(appointmentRepository, caseRepository, availabilityService, notificationService, clock, null);
+        this(appointmentRepository, caseRepository, availabilityService, notificationService, clock, null, null);
     }
 
     @org.springframework.beans.factory.annotation.Autowired
@@ -48,12 +52,24 @@ public class ReschedulingService {
                                PatientNotificationService notificationService,
                                Clock clock,
                                BusinessLogService businessLogService) {
+        this(appointmentRepository, caseRepository, availabilityService, notificationService, clock,
+                businessLogService, null);
+    }
+
+    public ReschedulingService(AppointmentRepository appointmentRepository,
+                               RescheduleCaseRepository caseRepository,
+                               AppointmentAvailabilityService availabilityService,
+                               PatientNotificationService notificationService,
+                               Clock clock,
+                               BusinessLogService businessLogService,
+                               GeneratedClinicSlotRepository generatedSlotRepository) {
         this.appointmentRepository = appointmentRepository;
         this.caseRepository = caseRepository;
         this.availabilityService = availabilityService;
         this.notificationService = notificationService;
         this.clock = clock;
         this.businessLogService = businessLogService;
+        this.generatedSlotRepository = generatedSlotRepository;
     }
 
     @Transactional
@@ -169,6 +185,7 @@ public class ReschedulingService {
             availabilityService.ensureBookable(appointment.getSpecialty(), request.doctorName(), request.doctorId(),
                     request.appointmentDate(), request.startTime(), null, appointment.getServiceId());
         }
+        markPreviousGeneratedSlotUnavailable(appointment);
         String previousDate = appointment.getAppointmentDate().toString();
         String previousTime = appointment.getStartTime().toString();
         appointment.reschedule(request.appointmentDate(), request.startTime(), request.doctorId(),
@@ -186,6 +203,21 @@ public class ReschedulingService {
             notificationService.notifyAppointmentRescheduled(appointment, previousDate, previousTime);
         }
         return response;
+    }
+
+    private void markPreviousGeneratedSlotUnavailable(Appointment appointment) {
+        if (generatedSlotRepository == null || appointment.getServiceId() == null
+                || appointment.getDoctorStaffId() == null) {
+            return;
+        }
+        GeneratedClinicSlot slot = generatedSlotRepository
+                .findFirstByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
+                        appointment.getDoctorStaffId(), appointment.getAppointmentDate(), appointment.getStartTime(),
+                        GeneratedSlotStatus.OPEN)
+                .orElseThrow(() -> conflict("APPOINTMENT_SLOT_NOT_FOUND",
+                        "Khong tim thay khung gio cu de dong sau khi doi lich."));
+        slot.cancel();
+        generatedSlotRepository.save(slot);
     }
 
     private RescheduleCase findOpenCaseForPatient(UUID appointmentId, UUID patientId) {

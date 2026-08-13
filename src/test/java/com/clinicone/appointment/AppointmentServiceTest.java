@@ -8,6 +8,9 @@ import com.clinicone.notification.PatientNotificationService;
 import com.clinicone.schedule.AppointmentAvailabilityService;
 import com.clinicone.schedule.AppointmentHold;
 import com.clinicone.schedule.AppointmentHoldService;
+import com.clinicone.schedule.GeneratedClinicSlot;
+import com.clinicone.schedule.GeneratedClinicSlotRepository;
+import com.clinicone.schedule.GeneratedSlotStatus;
 import com.clinicone.doctor.DoctorProfile;
 import com.clinicone.auth.StaffAccount;
 import com.clinicone.patientprofile.PatientProfile;
@@ -55,6 +58,7 @@ class AppointmentServiceTest {
     private com.clinicone.schedule.ClinicServiceRepository clinicServiceRepository;
     private ReasonCatalogService reasonCatalogService;
     private RescheduleCaseRepository rescheduleCaseRepository;
+    private com.clinicone.schedule.GeneratedClinicSlotRepository generatedSlotRepository;
     private AppointmentService service;
 
     @BeforeEach
@@ -67,6 +71,7 @@ class AppointmentServiceTest {
         clinicServiceRepository = mock(com.clinicone.schedule.ClinicServiceRepository.class);
         reasonCatalogService = mock(ReasonCatalogService.class);
         rescheduleCaseRepository = mock(RescheduleCaseRepository.class);
+        generatedSlotRepository = mock(GeneratedClinicSlotRepository.class);
         service = new AppointmentService(accountRepository, appointmentRepository, null, availabilityService,
                 notificationService, null, holdService, clinicServiceRepository);
         when(appointmentRepository.save(any(Appointment.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -458,6 +463,35 @@ class AppointmentServiceTest {
         assertEquals(LocalDate.of(2026, 8, 11), response.appointmentDate());
         assertEquals(LocalTime.of(10, 0), response.startTime());
         verify(notificationService).notifyAppointmentRescheduled(appointment, "2026-08-10", "08:30");
+    }
+
+    @Test
+    void reschedulingAConfiguredAppointmentClosesItsPreviousGeneratedSlot() {
+        PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
+        setId(account, ACCOUNT_ID);
+        UUID doctorId = UUID.randomUUID();
+        Appointment appointment = Appointment.create(account, doctorId, "CL-20260810-AB12", "Ná»™i khoa",
+                "BS. Nguyá»…n An", LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), "Äau Ä‘áº§u");
+        UUID serviceId = UUID.randomUUID();
+        appointment.applyServiceSnapshot(serviceId, "KhÃ¡m tá»•ng quÃ¡t", "KhÃ¡m", 30, true);
+        when(appointmentRepository.findByIdAndPatientId(any(), eq(ACCOUNT_ID))).thenReturn(Optional.of(appointment));
+        when(appointmentRepository.findByPatientIdAndAppointmentDateAndStartTimeAndStatus(
+                ACCOUNT_ID, LocalDate.of(2026, 8, 11), LocalTime.of(10, 0), AppointmentStatus.BOOKED))
+                .thenReturn(Optional.empty());
+        GeneratedClinicSlot oldSlot = mock(GeneratedClinicSlot.class);
+        when(generatedSlotRepository.findFirstByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
+                doctorId, LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), GeneratedSlotStatus.OPEN))
+                .thenReturn(Optional.of(oldSlot));
+        AppointmentService configuredService = new AppointmentService(accountRepository, appointmentRepository, null,
+                availabilityService, notificationService, null, holdService, clinicServiceRepository, null,
+                reasonCatalogService, Clock.systemUTC(), new AppointmentCodeGenerator(), rescheduleCaseRepository,
+                generatedSlotRepository);
+
+        configuredService.reschedule(ACCOUNT_ID.toString(), UUID.randomUUID().toString(),
+                new RescheduleAppointmentRequest(LocalDate.of(2026, 8, 11), LocalTime.of(10, 0)));
+
+        verify(oldSlot).cancel();
+        verify(generatedSlotRepository).save(oldSlot);
     }
 
     @Test
