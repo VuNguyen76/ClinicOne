@@ -5,6 +5,7 @@ export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'home' },
   { path: 'home', loadComponent: () => import('./features/home/home').then((m) => m.Home), canActivate: [homeGuard] },
   { path: 'login', loadComponent: () => import('./features/auth/login/login').then((m) => m.Login) },
+  { path: 'recover-password', loadComponent: () => import('./features/auth/recover-password/recover-password').then((m) => m.RecoverPassword) },
   { path: 'staff/login', loadComponent: () => import('./features/staff-auth/staff-login').then((m) => m.StaffLogin) },
   { path: 'doctor', loadComponent: () => import('./features/staff-dashboard/staff-dashboard').then((m) => m.StaffDashboard), canActivate: [doctorGuard] },
   { path: 'staff', pathMatch: 'full', redirectTo: staffLandingRedirect },

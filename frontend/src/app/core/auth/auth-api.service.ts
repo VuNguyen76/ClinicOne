@@ -82,6 +82,11 @@ export interface AppointmentResponse {
   statusLabel: string;
   profileId?: string | null;
   profileName?: string | null;
+  doctorId?: string | null;
+  serviceId?: string | null;
+  serviceName?: string | null;
+  visitType?: string | null;
+  serviceDurationMinutes?: number | null;
   requiresMedicalRecord?: boolean;
 }
 
@@ -292,6 +297,8 @@ export interface QueueTicketResponse {
   specialty: string;
   doctorName: string;
   priority?: boolean;
+  closureOutcome?: string | null;
+  closureOutcomeLabel?: string | null;
 }
 
 export interface DoctorQueueResponse {
@@ -497,6 +504,23 @@ export interface AccessAuditResponse {
   function: string;
   ipAddress: string | null;
   occurredAt: string;
+}
+
+export interface SmsDeliveryResponse {
+  id: string;
+  eventKey: string;
+  phone: string;
+  status: string;
+  attempts: number;
+  availableAt: string;
+  sentAt: string | null;
+  lastError: string | null;
+  createdAt: string;
+}
+
+export interface BusinessLogIntegrityResult {
+  inspected: number;
+  incidentsOpened: number;
 }
 
 export interface BusinessLogResponse {
@@ -924,6 +948,18 @@ export class AuthApiService {
     return this.http.post<QueueTicketResponse>(`${this.queueRoot}/${ticketId}/skip`, { reason });
   }
 
+  callQueueTicket(ticketId: string): Observable<QueueTicketResponse> {
+    return this.http.post<QueueTicketResponse>(`${this.queueRoot}/${ticketId}/call`, {});
+  }
+
+  leaveQueueTicket(ticketId: string, reason: string): Observable<QueueTicketResponse> {
+    return this.http.post<QueueTicketResponse>(`${this.queueRoot}/${ticketId}/leave`, { reason });
+  }
+
+  markQueueFacilityUnavailable(ticketId: string, reason: string): Observable<QueueTicketResponse> {
+    return this.http.post<QueueTicketResponse>(`${this.queueRoot}/${ticketId}/facility-unavailable`, { reason });
+  }
+
   adjustQueueTicket(ticketId: string, request: {
     action: 'MOVE' | 'SET_PRIORITY' | 'CLEAR_PRIORITY';
     targetDoctorId?: string;
@@ -966,6 +1002,14 @@ export class AuthApiService {
 
   rebookReceptionAppointment(appointmentId: string, request: ReceptionRebookRequest): Observable<ReceptionAppointmentResponse> {
     return this.http.post<ReceptionAppointmentResponse>(`/api/v1/reception/appointments/${appointmentId}/rebook`, request);
+  }
+
+  recoverPassword(phone: string, newPassword: string, confirmPassword: string): Observable<void> {
+    return this.http.post<void>(`${this.apiRoot}/recover-password`, {
+      phone,
+      newPassword,
+      confirmPassword,
+    });
   }
 
   rescheduleLateReceptionAppointment(appointmentId: string, request: ReceptionRebookRequest): Observable<ReceptionAppointmentResponse> {
@@ -1209,6 +1253,26 @@ export class AuthApiService {
     return this.http.get<BusinessLogPageResponse>('/api/v1/admin/audit/search', {
       params: { entityType, entityId, page, size },
     });
+  }
+
+  getAppointmentBusinessHistory(appointmentId: string): Observable<BusinessLogResponse[]> {
+    return this.http.get<BusinessLogResponse[]>(`/api/v1/admin/audit/appointments/${appointmentId}`);
+  }
+
+  getQueueBusinessHistory(ticketId: string): Observable<BusinessLogResponse[]> {
+    return this.http.get<BusinessLogResponse[]>(`/api/v1/admin/audit/queue-tickets/${ticketId}`);
+  }
+
+  getExaminationBusinessHistory(sessionId: string): Observable<BusinessLogResponse[]> {
+    return this.http.get<BusinessLogResponse[]>(`/api/v1/admin/audit/examinations/${sessionId}`);
+  }
+
+  runBusinessLogIntegrityCheck(): Observable<BusinessLogIntegrityResult> {
+    return this.http.post<BusinessLogIntegrityResult>('/api/v1/admin/audit/integrity-check', {});
+  }
+
+  getRecentSmsDeliveries(): Observable<SmsDeliveryResponse[]> {
+    return this.http.get<SmsDeliveryResponse[]>('/api/v1/admin/notifications/sms');
   }
 
   getReplacementSlots(caseId: string, from?: string, to?: string): Observable<AvailableReplacementSlot[]> {
