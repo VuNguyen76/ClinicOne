@@ -17,6 +17,8 @@ import java.time.temporal.ChronoUnit;
 public class MedicalRecordService {
     private static final int MAX_PAGE_SIZE = 20;
     private static final ZoneId CLINIC_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
+    private static final Instant HISTORY_START = Instant.parse("1900-01-01T00:00:00Z");
+    private static final Instant HISTORY_END = Instant.parse("9999-12-31T23:59:59.999999Z");
     private final MedicalRecordRepository repository;
 
     public MedicalRecordService(MedicalRecordRepository repository) {
@@ -27,9 +29,9 @@ public class MedicalRecordService {
     public MedicalRecordHistoryPage listHistory(String accountId, MedicalRecordHistoryQuery query) {
         UUID patientId = parseAccountId(accountId);
         MedicalRecordHistoryQuery normalized = normalize(query);
-        Instant fromAt = normalized.from() == null ? null
+        Instant fromAt = normalized.from() == null ? HISTORY_START
                 : normalized.from().atStartOfDay(CLINIC_ZONE).toInstant();
-        Instant toExclusive = normalized.to() == null ? null
+        Instant toExclusive = normalized.to() == null ? HISTORY_END
                 : normalized.to().plusDays(1).atStartOfDay(CLINIC_ZONE).toInstant();
         Page<MedicalRecord> records = repository.findSignedHistory(patientId, normalized.profileId(), fromAt,
                 toExclusive, PageRequest.of(normalized.page(), normalized.size()));
