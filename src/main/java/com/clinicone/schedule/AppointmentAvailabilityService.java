@@ -384,7 +384,10 @@ public class AppointmentAvailabilityService {
     }
 
     private void validateRange(LocalDate from, LocalDate to) {
-        if (from == null || to == null || from.isAfter(to) || from.plusDays(31).isBefore(to)) {
+        // The interval is inclusive of both dates, but the SRS limit is a
+        // maximum of 30 days from the requested start date. A 31-day gap
+        // would expose 32 calendar dates and must be rejected.
+        if (from == null || to == null || from.isAfter(to) || from.plusDays(30).isBefore(to)) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "APPOINTMENT_SLOT_RANGE_INVALID",
                     "Khoảng ngày tìm lịch phải hợp lệ và không vượt quá 31 ngày.");
         }
