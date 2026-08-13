@@ -168,6 +168,7 @@ public class AppointmentAvailabilityService {
         specialtyCatalog.require(specialty);
         ClinicService service = resolveService(serviceId, specialty);
         Integer serviceDuration = service == null ? null : service.getDurationMinutes();
+        validateDate(appointmentDate);
         if (serviceId != null && generatedSlotRepository != null && doctorId != null) {
             List<GeneratedClinicSlot> generatedSlots = generatedSlotRepository
                     .findByClinicServiceIdAndDoctorStaffIdAndAppointmentDateAndStartTime(
@@ -186,7 +187,6 @@ public class AppointmentAvailabilityService {
             ensureBookableFallback(specialty, appointmentDate, startTime, excludedHoldId, serviceDuration);
             return;
         }
-        validateDate(appointmentDate);
         if (doctorId == null) {
             throw new AuthException(HttpStatus.CONFLICT, "DOCTOR_REQUIRED",
                     "Vui lòng chọn bác sĩ từ một khung giờ đang mở.");
