@@ -33,8 +33,11 @@ public class MedicalRecordService {
                 : normalized.from().atStartOfDay(CLINIC_ZONE).toInstant();
         Instant toExclusive = normalized.to() == null ? HISTORY_END
                 : normalized.to().plusDays(1).atStartOfDay(CLINIC_ZONE).toInstant();
-        Page<MedicalRecord> records = repository.findSignedHistory(patientId, normalized.profileId(), fromAt,
-                toExclusive, PageRequest.of(normalized.page(), normalized.size()));
+        PageRequest pageRequest = PageRequest.of(normalized.page(), normalized.size());
+        Page<MedicalRecord> records = normalized.profileId() == null
+                ? repository.findSignedHistory(patientId, fromAt, toExclusive, pageRequest)
+                : repository.findSignedHistoryForProfile(patientId, normalized.profileId(), fromAt, toExclusive,
+                        pageRequest);
         return new MedicalRecordHistoryPage(records.getContent().stream().map(MedicalRecordResponse::from).toList(),
                 records.getNumber(), records.getSize(), records.getTotalElements(), records.getTotalPages());
     }
