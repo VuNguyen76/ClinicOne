@@ -7,6 +7,9 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
 import java.util.UUID;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -52,8 +55,8 @@ class PatientNotificationServiceTest {
         when(accountRepository.findById(patientId)).thenReturn(Optional.of(account));
 
         var appointment = com.clinicone.appointment.Appointment.create(account, appointmentId,
-                "CL-001", "Nội khoa", "Bác sĩ An", java.time.LocalDate.of(2026, 8, 8),
-                java.time.LocalTime.of(8, 30), "Đau đầu");
+                "CL-001", "Nội khoa", "Bác sĩ An", LocalDate.of(2026, 8, 8),
+                LocalTime.of(8, 30), "Đau đầu");
         setAppointmentId(appointment, appointmentId);
         notificationService.notifyAppointmentCreated(appointment);
 
@@ -72,8 +75,8 @@ class PatientNotificationServiceTest {
         when(accountRepository.findById(patientId)).thenReturn(Optional.of(account));
 
         var appointment = com.clinicone.appointment.Appointment.create(account, appointmentId,
-                "CL-001", "Nội khoa", "Bác sĩ An", java.time.LocalDate.of(2026, 8, 8),
-                java.time.LocalTime.of(8, 30), "Đau đầu");
+                "CL-001", "Nội khoa", "Bác sĩ An", LocalDate.of(2026, 8, 8),
+                LocalTime.of(8, 30), "Đau đầu");
         setAppointmentId(appointment, appointmentId);
         smsService.notifyAppointmentCreated(appointment);
 
@@ -94,8 +97,8 @@ class PatientNotificationServiceTest {
         when(accountRepository.findById(patientId)).thenReturn(Optional.of(account));
 
         var appointment = com.clinicone.appointment.Appointment.create(account, appointmentId,
-                "CL-001", "Nội khoa", "Bác sĩ An", java.time.LocalDate.of(2026, 8, 8),
-                java.time.LocalTime.of(8, 30), "Đau đầu");
+                "CL-001", "Nội khoa", "Bác sĩ An", LocalDate.of(2026, 8, 8),
+                LocalTime.of(8, 30), "Đau đầu");
         setAppointmentId(appointment, appointmentId);
         smsService.notifyAppointmentCreated(appointment);
 
@@ -116,8 +119,8 @@ class PatientNotificationServiceTest {
         when(accountRepository.findById(patientId)).thenReturn(Optional.of(account));
 
         var appointment = com.clinicone.appointment.Appointment.create(account, appointmentId,
-                "CL-001", "Nội khoa", "Bác sĩ An", java.time.LocalDate.of(2026, 8, 8),
-                java.time.LocalTime.of(8, 30), "Đau đầu");
+                "CL-001", "Nội khoa", "Bác sĩ An", LocalDate.of(2026, 8, 8),
+                LocalTime.of(8, 30), "Đau đầu");
         setAppointmentId(appointment, appointmentId);
         smsService.notifyAppointmentCreated(appointment);
 
@@ -134,7 +137,7 @@ class PatientNotificationServiceTest {
         PatientNotification notification = PatientNotification.appointmentCreated(patientId, appointmentId,
                 "CL-001", "Nội khoa", "Bác sĩ An", "2026-08-08", "08:30");
         when(accountRepository.findById(patientId)).thenReturn(Optional.of(account));
-        when(repository.findByPatientAccountIdOrderByCreatedAtDesc(patientId)).thenReturn(java.util.List.of(notification));
+        when(repository.findByPatientAccountIdOrderByCreatedAtDesc(patientId)).thenReturn(List.of(notification));
 
         PatientNotificationService notificationService = serviceWithOutbox();
         PatientNotificationResponse response = notificationService.list(patientId.toString()).get(0);

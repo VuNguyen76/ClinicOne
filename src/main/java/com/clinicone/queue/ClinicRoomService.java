@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.Locale;
 
 @Service
 public class ClinicRoomService {
@@ -80,6 +81,6 @@ public class ClinicRoomService {
     }
 
     private String normalizeCode(String code) {
-        return code.trim().toUpperCase(java.util.Locale.ROOT);
+        return code.trim().toUpperCase(Locale.ROOT);
     }
 }

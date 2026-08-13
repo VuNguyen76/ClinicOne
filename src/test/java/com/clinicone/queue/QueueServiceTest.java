@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
@@ -75,7 +76,7 @@ class QueueServiceTest {
                 AccountStatus.ACTIVE, true);
         setId(pending, ACCOUNT_ID);
         appointment = Appointment.create(pending, "CL-20260806-1234", "Nội tổng quát", "BS. Nguyễn An",
-                TODAY, java.time.LocalTime.of(9, 0), "Đau đầu");
+                TODAY, LocalTime.of(9, 0), "Đau đầu");
         setId(appointment, APPOINTMENT_ID);
         when(appointmentRepository.findByIdAndPatientId(APPOINTMENT_ID, ACCOUNT_ID))
                 .thenReturn(Optional.of(appointment));
@@ -289,7 +290,7 @@ class QueueServiceTest {
         DoctorProfile profile = DoctorProfile.create(staff, "Nội tổng quát", room);
         Appointment doctorsAppointment = Appointment.create(appointment.getPatient(), doctorId,
                 "CL-20260806-DOCTOR", "Nội tổng quát", "BS. Nguyễn An", TODAY,
-                java.time.LocalTime.of(9, 0), "Đau đầu");
+                LocalTime.of(9, 0), "Đau đầu");
         setId(doctorsAppointment, UUID.randomUUID());
         QueueTicket first = QueueTicket.create(doctorsAppointment, room, TODAY, 1);
         setId(first, UUID.randomUUID());
@@ -298,7 +299,7 @@ class QueueServiceTest {
         second.call();
         when(doctorProfileRepository.findByStaffAccount_Id(doctorId)).thenReturn(Optional.of(profile));
         when(ticketRepository.findByRoomCodeAndQueueDateAndAppointment_DoctorStaffIdOrderByQueueNumberAsc(
-                "NOI-01", TODAY, doctorId)).thenReturn(java.util.List.of(first, second));
+                "NOI-01", TODAY, doctorId)).thenReturn(List.of(first, second));
         when(ticketRepository.findById(first.getId())).thenReturn(Optional.of(first));
 
         QueueTicketResponse response = service.callNext(doctorId.toString(), TODAY);
@@ -335,7 +336,7 @@ class QueueServiceTest {
     @Test
     void rejectsQrCheckInAfterLateWarningAndKeepsBookedAppointment() {
         Appointment late = appointment("Nội tổng quát", TODAY);
-        setField(late, "startTime", java.time.LocalTime.of(8, 0));
+        setField(late, "startTime", LocalTime.of(8, 0));
         setField(late, "serviceDurationMinutes", 60);
         when(appointmentRepository.findByIdAndPatientId(APPOINTMENT_ID, ACCOUNT_ID))
                 .thenReturn(Optional.of(late));
@@ -480,7 +481,7 @@ class QueueServiceTest {
         DoctorProfile profile = DoctorProfile.create(staff, "Nội tổng quát", room);
         Appointment doctorAppointment = Appointment.create(appointment.getPatient(), doctorId,
                 "CL-20260806-PRIORITY", "Nội tổng quát", "BS. Nguyễn An", TODAY,
-                java.time.LocalTime.of(9, 0), "Đau đầu");
+                LocalTime.of(9, 0), "Đau đầu");
         QueueTicket normal = QueueTicket.create(doctorAppointment, room, TODAY, 1);
         QueueTicket priority = QueueTicket.create(doctorAppointment, room, TODAY, 2);
         setId(normal, UUID.randomUUID());
@@ -505,7 +506,7 @@ class QueueServiceTest {
         DoctorProfile profile = DoctorProfile.create(staff, "Nội tổng quát", room);
         Appointment doctorAppointment = Appointment.create(appointment.getPatient(), doctorId,
                 "CL-QUEUE-PRIORITY", "Nội tổng quát", "BS. Nguyễn An", TODAY,
-                java.time.LocalTime.of(9, 0), "Đau đầu");
+                LocalTime.of(9, 0), "Đau đầu");
         QueueTicket normal = QueueTicket.create(doctorAppointment, room, TODAY, 1);
         QueueTicket priority = QueueTicket.create(doctorAppointment, room, TODAY, 2);
         setId(normal, UUID.randomUUID());
@@ -547,7 +548,7 @@ class QueueServiceTest {
         PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
         setId(account, ACCOUNT_ID);
         return Appointment.create(account, "CL-20260806-1234", specialty, "BS. Nguyễn An", date,
-                java.time.LocalTime.of(9, 0), "Đau đầu");
+                LocalTime.of(9, 0), "Đau đầu");
     }
 
     private ExaminationSession checkedInSession() {

@@ -116,3 +116,11 @@ git push -u origin feat/<ten-task-ngan-gon>
 - Có thao tác bàn phím, nhãn rõ ràng và màu đủ tương phản.
 - Không lộ dữ liệu nhạy cảm trong URL, log hoặc thông báo lỗi.
 - `npm run build` chạy thành công.
+
+## 8. Quy ước mã nguồn Java
+
+- Không viết tên đầy đủ của kiểu thư viện ngay trong thân mã, ví dụ `java.time.Instant`, `java.time.LocalDate` hoặc `java.util.Optional`.
+- Mỗi kiểu dùng trong file phải được khai báo bằng `import` ở đầu file rồi dùng tên ngắn (`Instant`, `LocalDate`, `Optional`). Quy tắc này áp dụng cho cả mã sản phẩm và mã kiểm thử.
+- Không dùng cách viết đầy đủ cho các hàm tiện ích hoặc collection như `java.util.Objects`, `java.util.stream.Stream`, `java.util.Comparator`; hãy import đúng lớp cần dùng.
+- Khi thêm một kiểu mới, kiểm tra lại import thừa và giữ nhóm import theo thứ tự chuẩn của IDE.
+- Trước khi commit, rà bằng tìm kiếm toàn dự án: `rg "\\bjava\\.(time|util|math|nio|sql|net)\\." src/main src/test --glob "*.java"`; kết quả hợp lệ chỉ là các dòng `import`.

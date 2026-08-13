@@ -11,17 +11,19 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 @Entity
 @Table(name = "patient_accounts")
 public class PatientAccount {
 
     private static final int MAX_PASSWORD_FAILURES = 5;
-    private static final java.time.Duration PASSWORD_FAILURE_WINDOW = java.time.Duration.ofMinutes(15);
-    private static final java.time.Duration TEMPORARY_LOCK_DURATION = java.time.Duration.ofMinutes(15);
+    private static final Duration PASSWORD_FAILURE_WINDOW = Duration.ofMinutes(15);
+    private static final Duration TEMPORARY_LOCK_DURATION = Duration.ofMinutes(15);
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -226,7 +228,7 @@ public class PatientAccount {
     }
 
     private String joinAddress(String street, String ward, String district, String province) {
-        return java.util.stream.Stream.of(street, ward, district, province)
+        return Stream.of(street, ward, district, province)
                 .filter(value -> value != null && !value.isBlank())
                 .reduce((left, right) -> left + ", " + right)
                 .orElse(null);

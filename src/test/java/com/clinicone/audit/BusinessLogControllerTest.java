@@ -13,6 +13,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 import java.util.UUID;
+import java.time.Instant;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -36,7 +37,7 @@ class BusinessLogControllerTest {
         UUID appointmentId = UUID.randomUUID();
         when(service.list("APPOINTMENT", appointmentId)).thenReturn(List.of(new BusinessLogResponse(
                 UUID.randomUUID(), UUID.randomUUID(), "APPOINTMENT", appointmentId, "BOOKED", "CHECKED_IN",
-                "CHECK_IN", "patient", null, java.time.Instant.parse("2026-08-10T01:00:00Z"))));
+                "CHECK_IN", "patient", null, Instant.parse("2026-08-10T01:00:00Z"))));
 
         mockMvc.perform(get("/api/v1/admin/audit/appointments/{id}", appointmentId)
                         .with(authentication(authenticated("ROLE_COORDINATOR"))))

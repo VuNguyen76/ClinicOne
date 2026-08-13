@@ -18,6 +18,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -97,7 +98,7 @@ class AppointmentAvailabilityServiceTest {
         ClinicService clinicService = mock(ClinicService.class);
         UUID serviceId = UUID.randomUUID();
         LocalDate monday = LocalDate.of(2026, 8, 10);
-        when(serviceRepository.findById(serviceId)).thenReturn(java.util.Optional.of(clinicService));
+        when(serviceRepository.findById(serviceId)).thenReturn(Optional.of(clinicService));
         when(clinicService.isActive()).thenReturn(true);
         when(clinicService.getSpecialty()).thenReturn("Khám Tổng Quát");
         when(clinicService.getDurationMinutes()).thenReturn(30);
@@ -124,7 +125,7 @@ class AppointmentAvailabilityServiceTest {
         UUID serviceId = UUID.randomUUID();
         UUID doctorId = UUID.randomUUID();
         LocalDate monday = LocalDate.of(2026, 8, 10);
-        when(serviceRepository.findById(serviceId)).thenReturn(java.util.Optional.of(clinicService));
+        when(serviceRepository.findById(serviceId)).thenReturn(Optional.of(clinicService));
         when(clinicService.isActive()).thenReturn(true);
         when(clinicService.getSpecialty()).thenReturn("Khám Tổng Quát");
         when(clinicService.getDurationMinutes()).thenReturn(30);
@@ -162,7 +163,7 @@ class AppointmentAvailabilityServiceTest {
         UUID serviceId = UUID.randomUUID();
         UUID doctorId = UUID.randomUUID();
         LocalDate monday = LocalDate.of(2026, 8, 10);
-        when(serviceRepository.findById(serviceId)).thenReturn(java.util.Optional.of(clinicService));
+        when(serviceRepository.findById(serviceId)).thenReturn(Optional.of(clinicService));
         when(clinicService.isActive()).thenReturn(true);
         when(clinicService.getSpecialty()).thenReturn("Khám Tổng Quát");
         when(clinicService.getDurationMinutes()).thenReturn(30);
@@ -188,7 +189,7 @@ class AppointmentAvailabilityServiceTest {
         GeneratedClinicSlot cancelledSlot = mock(GeneratedClinicSlot.class);
         UUID serviceId = UUID.randomUUID();
         LocalDate monday = LocalDate.of(2026, 8, 10);
-        when(serviceRepository.findById(serviceId)).thenReturn(java.util.Optional.of(clinicService));
+        when(serviceRepository.findById(serviceId)).thenReturn(Optional.of(clinicService));
         when(clinicService.isActive()).thenReturn(true);
         when(clinicService.getSpecialty()).thenReturn("Khám Tổng Quát");
         when(clinicService.getDurationMinutes()).thenReturn(30);
@@ -211,7 +212,7 @@ class AppointmentAvailabilityServiceTest {
         UUID serviceId = UUID.randomUUID();
         UUID doctorId = UUID.randomUUID();
         LocalDate yesterday = LocalDate.of(2026, 8, 12);
-        when(serviceRepository.findById(serviceId)).thenReturn(java.util.Optional.of(clinicService));
+        when(serviceRepository.findById(serviceId)).thenReturn(Optional.of(clinicService));
         when(clinicService.isActive()).thenReturn(true);
         when(clinicService.getSpecialty()).thenReturn("Khám Tổng Quát");
         when(clinicService.getDurationMinutes()).thenReturn(30);
@@ -239,7 +240,7 @@ class AppointmentAvailabilityServiceTest {
         UUID serviceId = UUID.randomUUID();
         UUID doctorId = UUID.randomUUID();
         LocalDate sunday = LocalDate.of(2026, 8, 16);
-        when(serviceRepository.findById(serviceId)).thenReturn(java.util.Optional.of(clinicService));
+        when(serviceRepository.findById(serviceId)).thenReturn(Optional.of(clinicService));
         when(clinicService.isActive()).thenReturn(true);
         when(clinicService.getSpecialty()).thenReturn("Khám Tổng Quát");
         when(clinicService.getDurationMinutes()).thenReturn(30);
@@ -268,7 +269,7 @@ class AppointmentAvailabilityServiceTest {
         UUID serviceId = UUID.randomUUID();
         UUID doctorId = UUID.randomUUID();
         LocalDate today = LocalDate.of(2026, 8, 13);
-        when(serviceRepository.findById(serviceId)).thenReturn(java.util.Optional.of(clinicService));
+        when(serviceRepository.findById(serviceId)).thenReturn(Optional.of(clinicService));
         when(clinicService.isActive()).thenReturn(true);
         when(clinicService.getSpecialty()).thenReturn("Khám Tổng Quát");
         when(clinicService.getDurationMinutes()).thenReturn(30);

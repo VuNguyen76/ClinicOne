@@ -20,6 +20,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.Objects;
 
 @Service
 public class ScheduleTemplateService {
@@ -225,7 +226,7 @@ public class ScheduleTemplateService {
 
     private Set<LocalDate> safeDates(Collection<LocalDate> dates) {
         if (dates == null || dates.isEmpty()) return Set.of();
-        if (dates.stream().anyMatch(java.util.Objects::isNull)) {
+        if (dates.stream().anyMatch(Objects::isNull)) {
             throw badRequest("SCHEDULE_EXCEPTION_INVALID", "Ngày ngoại lệ không được để trống.");
         }
         return Set.copyOf(dates);

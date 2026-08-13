@@ -10,6 +10,7 @@ import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -76,7 +77,7 @@ class StaffManagementServiceTest {
                 List.of(StaffRole.DOCTOR, StaffRole.COORDINATOR)));
 
         assertEquals("NV001", response.account().employeeCode());
-        org.junit.jupiter.api.Assertions.assertEquals(java.util.Set.of(StaffRole.DOCTOR, StaffRole.COORDINATOR), response.account().roles());
+        org.junit.jupiter.api.Assertions.assertEquals(Set.of(StaffRole.DOCTOR, StaffRole.COORDINATOR), response.account().roles());
         verify(accountRepository).save(any(StaffAccount.class));
     }
 
@@ -98,8 +99,8 @@ class StaffManagementServiceTest {
         StaffAccountResponse response = service.updateRoles(STAFF_ID,
                 new UpdateStaffRolesRequest(List.of(StaffRole.DOCTOR, StaffRole.RECEPTIONIST)));
 
-        assertEquals(java.util.Set.of(StaffRole.DOCTOR, StaffRole.RECEPTIONIST), response.roles());
-        assertEquals(java.util.Set.of(StaffRole.DOCTOR, StaffRole.RECEPTIONIST), account.getRoles());
+        assertEquals(Set.of(StaffRole.DOCTOR, StaffRole.RECEPTIONIST), response.roles());
+        assertEquals(Set.of(StaffRole.DOCTOR, StaffRole.RECEPTIONIST), account.getRoles());
         verify(accountRepository).save(account);
         verify(sessionRepository).revokeActiveByAccountId(eq(STAFF_ID), any(Instant.class));
     }

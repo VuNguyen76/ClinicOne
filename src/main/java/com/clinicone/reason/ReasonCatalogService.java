@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 @Service
@@ -79,7 +80,7 @@ public class ReasonCatalogService {
     }
 
     private String normalizeCode(String value) {
-        String normalized = value == null ? "" : value.trim().toUpperCase(java.util.Locale.ROOT);
+        String normalized = value == null ? "" : value.trim().toUpperCase(Locale.ROOT);
         if (!normalized.matches("[A-Z0-9_]{2,50}")) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "REASON_CODE_INVALID",
                     "Mã lý do chỉ gồm chữ in hoa, số và dấu gạch dưới (2-50 ký tự).");

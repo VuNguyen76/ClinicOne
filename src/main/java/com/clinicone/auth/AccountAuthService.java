@@ -18,6 +18,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.util.Set;
 import java.util.HexFormat;
+import java.util.UUID;
 import com.clinicone.notification.PatientNotificationBackfillService;
 import com.clinicone.notification.PatientNotificationService;
 
@@ -199,7 +200,7 @@ public class AccountAuthService {
 
     @Transactional
     public void changePassword(String accountId, ChangePasswordRequest request) {
-        PatientAccount account = accountRepository.findById(java.util.UUID.fromString(accountId))
+        PatientAccount account = accountRepository.findById(UUID.fromString(accountId))
                 .orElseThrow(() -> new AuthException(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_REQUIRED",
                         "Phiên đăng nhập không hợp lệ."));
         if (!passwordEncoder.matches(request.currentPassword(), account.getPasswordHash())) {
@@ -257,7 +258,7 @@ public class AccountAuthService {
     @Transactional
     public void logout(String accountId) {
         try {
-            sessionRepository.revokeActiveByAccountId(java.util.UUID.fromString(accountId), Instant.now(clock));
+            sessionRepository.revokeActiveByAccountId(UUID.fromString(accountId), Instant.now(clock));
         } catch (IllegalArgumentException exception) {
             throw new AuthException(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_REQUIRED",
                     "Phiên đăng nhập không hợp lệ.");
@@ -316,7 +317,7 @@ public class AccountAuthService {
 
     private PatientAccount findAccount(String accountId) {
         try {
-            return accountRepository.findById(java.util.UUID.fromString(accountId))
+            return accountRepository.findById(UUID.fromString(accountId))
                     .orElseThrow(() -> new AuthException(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_REQUIRED",
                             "Phiên đăng nhập không hợp lệ."));
         } catch (IllegalArgumentException exception) {

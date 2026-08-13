@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -138,7 +139,7 @@ public class QueueController {
                         return null;
                     }
                 })
-                .filter(java.util.Objects::nonNull)
+                .filter(Objects::nonNull)
                 .toList();
         return roles.stream()
                 .filter(role -> role == StaffRole.DOCTOR)
