@@ -35,6 +35,7 @@ import java.util.UUID;
 @Service
 public class QueueService {
     private static final ZoneId CLINIC_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
+    private static final int DEFAULT_SLOT_DURATION_MINUTES = 60;
     private static final Comparator<QueueTicket> NEXT_WAITING_ORDER = Comparator
             .comparing(QueueTicket::isPriority).reversed()
             .thenComparing(QueueTicket::getCheckedInAt, Comparator.nullsLast(Comparator.naturalOrder()))
@@ -744,9 +745,10 @@ public class QueueService {
         java.time.Instant scheduledEnd = java.time.ZonedDateTime.of(
                 appointment.getAppointmentDate(), appointment.getStartTime(), CLINIC_ZONE).toInstant();
         Integer duration = appointment.getServiceDurationMinutes();
-        if (duration != null && duration > 0) {
-            scheduledEnd = scheduledEnd.plusSeconds(duration.longValue() * 60L);
-        }
+        long effectiveDuration = duration == null || duration <= 0
+                ? DEFAULT_SLOT_DURATION_MINUTES
+                : duration;
+        scheduledEnd = scheduledEnd.plusSeconds(effectiveDuration * 60L);
         if (!java.time.Instant.now(clock).isBefore(scheduledEnd.plusSeconds(15 * 60L))) {
             throw new AuthException(HttpStatus.CONFLICT, "QUEUE_LATE_APPOINTMENT",
                     "Lịch hẹn đã quá giờ check-in; vui lòng đến quầy để được hỗ trợ đổi khung giờ.");
