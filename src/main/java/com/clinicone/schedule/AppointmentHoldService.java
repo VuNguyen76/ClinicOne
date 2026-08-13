@@ -5,6 +5,7 @@ import com.clinicone.auth.AuthException;
 import com.clinicone.auth.PatientAccount;
 import com.clinicone.auth.PatientAccountRepository;
 import com.clinicone.config.ClinicConfigurationService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -43,7 +44,7 @@ public class AppointmentHoldService {
         this(accountRepository, holdRepository, availabilityService, clock, clinicServiceRepository, null);
     }
 
-    @org.springframework.beans.factory.annotation.Autowired
+    @Autowired
     public AppointmentHoldService(PatientAccountRepository accountRepository,
                                   AppointmentHoldRepository holdRepository,
                                   AppointmentAvailabilityService availabilityService,

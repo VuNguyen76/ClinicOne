@@ -12,6 +12,7 @@ import com.clinicone.schedule.AvailableSlotResponse;
 import com.clinicone.schedule.GeneratedClinicSlot;
 import com.clinicone.schedule.GeneratedClinicSlotRepository;
 import com.clinicone.schedule.GeneratedSlotStatus;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,7 +46,7 @@ public class ReschedulingService {
         this(appointmentRepository, caseRepository, availabilityService, notificationService, clock, null, null);
     }
 
-    @org.springframework.beans.factory.annotation.Autowired
+    @Autowired
     public ReschedulingService(AppointmentRepository appointmentRepository,
                                RescheduleCaseRepository caseRepository,
                                AppointmentAvailabilityService availabilityService,

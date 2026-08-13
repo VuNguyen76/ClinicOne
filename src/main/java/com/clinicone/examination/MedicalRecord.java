@@ -9,6 +9,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
@@ -55,7 +56,7 @@ public class MedicalRecord {
     private String prescription;
 
     @OneToMany(mappedBy = "medicalRecord", cascade = jakarta.persistence.CascadeType.ALL, orphanRemoval = true)
-    @jakarta.persistence.OrderBy("lineNumber asc")
+    @OrderBy("lineNumber asc")
     private List<PrescriptionLine> prescriptionLines = new ArrayList<>();
 
     @Column(name = "follow_up_date")
