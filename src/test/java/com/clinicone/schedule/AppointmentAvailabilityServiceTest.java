@@ -67,6 +67,17 @@ class AppointmentAvailabilityServiceTest {
     }
 
     @Test
+    void rejectsAvailabilityRangeLongerThanThirtyDays() {
+        LocalDate from = LocalDate.of(2026, 8, 10);
+        LocalDate to = from.plusDays(31);
+
+        AuthException exception = assertThrows(AuthException.class,
+                () -> service.find("Khám Tổng Quát", from, to));
+
+        assertEquals("APPOINTMENT_SLOT_RANGE_INVALID", exception.getCode());
+    }
+
+    @Test
     void doesNotReturnSundaySlots() {
         LocalDate sunday = LocalDate.of(2026, 8, 9);
         assertEquals(List.of(), service.find("Khám Tổng Quát", sunday, sunday));
