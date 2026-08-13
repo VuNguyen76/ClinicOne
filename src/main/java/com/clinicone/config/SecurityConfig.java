@@ -13,9 +13,11 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import com.clinicone.audit.AccessAuditService;
 
 import java.time.Clock;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 @Configuration
@@ -57,12 +59,12 @@ public class SecurityConfig {
                             response.sendError(HttpServletResponse.SC_FORBIDDEN);
                         }));
         sessionFilter.ifAvailable(filter -> chain.addFilterBefore(
-                filter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class));
+                filter, UsernamePasswordAuthenticationFilter.class));
         return chain.build();
     }
 
     private void recordAccessDenied(ObjectProvider<AccessAuditService> provider,
-                                    jakarta.servlet.http.HttpServletRequest request) {
+                                    HttpServletRequest request) {
         AccessAuditService service = provider.getIfAvailable();
         if (service == null) return;
         var principal = request.getUserPrincipal();

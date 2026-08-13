@@ -1,5 +1,6 @@
 package com.clinicone.audit;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
@@ -21,7 +22,7 @@ public class BusinessLogService {
         this(repository, null);
     }
 
-    @org.springframework.beans.factory.annotation.Autowired
+    @Autowired
     public BusinessLogService(BusinessLogRepository repository,
                               ReconciliationIncidentRepository reconciliationRepository) {
         this.repository = repository;

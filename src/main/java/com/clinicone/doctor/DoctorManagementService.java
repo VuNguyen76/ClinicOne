@@ -4,6 +4,7 @@ import com.clinicone.auth.AuthException;
 import com.clinicone.auth.StaffAccount;
 import com.clinicone.auth.StaffAccountRepository;
 import com.clinicone.auth.StaffRole;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import com.clinicone.queue.ClinicRoom;
 import com.clinicone.queue.ClinicRoomRepository;
@@ -38,7 +39,7 @@ public class DoctorManagementService {
                 passwordEncoder, null);
     }
 
-    @org.springframework.beans.factory.annotation.Autowired
+    @Autowired
     public DoctorManagementService(StaffAccountRepository staffRepository,
                                    DoctorProfileRepository profileRepository,
                                    DoctorScheduleRepository scheduleRepository,

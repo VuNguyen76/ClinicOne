@@ -5,6 +5,7 @@ import com.clinicone.appointment.AppointmentRepository;
 import com.clinicone.appointment.AppointmentStatus;
 import com.clinicone.audit.BusinessLogService;
 import com.clinicone.notification.PatientNotificationService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -50,7 +51,7 @@ public class AppointmentLifecycleJob {
         this(appointmentRepository, notificationService, businessLogService, clock, holdService, null);
     }
 
-    @org.springframework.beans.factory.annotation.Autowired
+    @Autowired
     public AppointmentLifecycleJob(AppointmentRepository appointmentRepository,
                                    PatientNotificationService notificationService,
                                    BusinessLogService businessLogService, Clock clock,
