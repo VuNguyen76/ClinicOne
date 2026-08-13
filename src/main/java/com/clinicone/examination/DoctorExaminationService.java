@@ -27,8 +27,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.UUID;
 
 @Service
@@ -431,7 +433,7 @@ public class DoctorExaminationService {
         if (!today.equals(ticket.getAppointment().getAppointmentDate())) {
             throw conflict("DOCTOR_SHIFT_INACTIVE", "Bác sĩ không có ca làm việc đang hiệu lực cho ngày khám.");
         }
-        var now = java.time.LocalTime.now(clock.withZone(clinicZone));
+        var now = LocalTime.now(clock.withZone(clinicZone));
         DoctorProfile profile = doctorProfileRepository.findByStaffAccount_Id(doctorId)
                 .filter(DoctorProfile::isActive)
                 .orElseThrow(() -> conflict("DOCTOR_ASSIGNMENT_REQUIRED",
@@ -526,7 +528,7 @@ public class DoctorExaminationService {
             throw new AuthException(HttpStatus.BAD_REQUEST, "PRESCRIPTION_LINE_LIMIT",
                     "Một đơn thuốc có tối đa 20 dòng.");
         }
-        java.util.ArrayList<PrescriptionLine> lines = new java.util.ArrayList<>();
+        ArrayList<PrescriptionLine> lines = new ArrayList<>();
         for (int index = 0; index < items.size(); index++) {
             PrescriptionLineRequest item = items.get(index);
             if (item == null || blank(item.medicationName()) || item.medicationName().trim().length() > 200

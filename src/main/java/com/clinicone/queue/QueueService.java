@@ -23,7 +23,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -614,7 +616,7 @@ public class QueueService {
         if (!date.equals(today())) {
             return false;
         }
-        var now = java.time.LocalTime.now(clock.withZone(CLINIC_ZONE));
+        var now = LocalTime.now(clock.withZone(CLINIC_ZONE));
         long activeSchedules = doctorScheduleRepository.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(
                         profile.getId(), date.getDayOfWeek()).stream()
                 .filter(schedule -> !now.isBefore(schedule.getStartTime())
@@ -742,14 +744,14 @@ public class QueueService {
                 || !appointment.getAppointmentDate().equals(today())) {
             return;
         }
-        java.time.Instant scheduledEnd = java.time.ZonedDateTime.of(
+        Instant scheduledEnd = ZonedDateTime.of(
                 appointment.getAppointmentDate(), appointment.getStartTime(), CLINIC_ZONE).toInstant();
         Integer duration = appointment.getServiceDurationMinutes();
         long effectiveDuration = duration == null || duration <= 0
                 ? DEFAULT_SLOT_DURATION_MINUTES
                 : duration;
         scheduledEnd = scheduledEnd.plusSeconds(effectiveDuration * 60L);
-        if (!java.time.Instant.now(clock).isBefore(scheduledEnd.plusSeconds(15 * 60L))) {
+        if (!Instant.now(clock).isBefore(scheduledEnd.plusSeconds(15 * 60L))) {
             throw new AuthException(HttpStatus.CONFLICT, "QUEUE_LATE_APPOINTMENT",
                     "Lịch hẹn đã quá giờ check-in; vui lòng đến quầy để được hỗ trợ đổi khung giờ.");
         }

@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 @Service
 public class PatientProfileService {
@@ -181,7 +182,7 @@ public class PatientProfileService {
     }
 
     private String composeAddress(String fallback, String street, String ward, String district, String province) {
-        String composed = java.util.stream.Stream.of(street, ward, district, province)
+        String composed = Stream.of(street, ward, district, province)
                 .map(this::normalize)
                 .filter(value -> value != null)
                 .reduce((left, right) -> left + ", " + right)

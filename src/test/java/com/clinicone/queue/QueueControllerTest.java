@@ -16,6 +16,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.Arrays;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -240,7 +241,7 @@ class QueueControllerTest {
 
     private static UsernamePasswordAuthenticationToken authenticated(String... roles) {
         return UsernamePasswordAuthenticationToken.authenticated(ACCOUNT_ID.toString(), null,
-                java.util.Arrays.stream(roles).map(SimpleGrantedAuthority::new).toList());
+                Arrays.stream(roles).map(SimpleGrantedAuthority::new).toList());
     }
 
     private static QueueTicketResponse response() {

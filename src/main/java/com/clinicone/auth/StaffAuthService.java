@@ -9,6 +9,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class StaffAuthService {
@@ -50,7 +51,7 @@ public class StaffAuthService {
     @Transactional
     public void logout(String accountId) {
         try {
-            sessionRepository.revokeActiveByAccountId(java.util.UUID.fromString(accountId), Instant.now(clock));
+            sessionRepository.revokeActiveByAccountId(UUID.fromString(accountId), Instant.now(clock));
         } catch (IllegalArgumentException exception) {
             throw new AuthException(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_REQUIRED",
                     "Phiên đăng nhập không hợp lệ.");

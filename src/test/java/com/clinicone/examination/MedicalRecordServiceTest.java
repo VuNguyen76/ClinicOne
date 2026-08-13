@@ -8,6 +8,7 @@ import org.springframework.data.domain.PageRequest;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -42,7 +43,7 @@ class MedicalRecordServiceTest {
         MedicalRecordService service = new MedicalRecordService(repository);
         UUID recordId = UUID.randomUUID();
         when(repository.findByIdAndSession_Appointment_Patient_IdAndSignedAtIsNotNull(recordId, ACCOUNT_ID))
-                .thenReturn(java.util.Optional.empty());
+                .thenReturn(Optional.empty());
 
         AuthException exception = assertThrows(AuthException.class,
                 () -> service.get(ACCOUNT_ID.toString(), recordId.toString()));

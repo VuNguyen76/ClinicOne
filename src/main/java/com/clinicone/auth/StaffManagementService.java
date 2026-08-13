@@ -11,6 +11,8 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.Locale;
+import java.util.Objects;
 
 @Service
 public class StaffManagementService {
@@ -72,7 +74,7 @@ public class StaffManagementService {
                     "Cần cung cấp thông tin tài khoản nhân viên.");
         }
         String fullName = normalize(request.fullName(), "Họ tên nhân viên không được để trống.");
-        String employeeCode = normalize(request.employeeCode(), "Mã nhân viên không được để trống.").toUpperCase(java.util.Locale.ROOT);
+        String employeeCode = normalize(request.employeeCode(), "Mã nhân viên không được để trống.").toUpperCase(Locale.ROOT);
         String unitName = normalize(request.unitName(), "Đơn vị không được để trống.");
         String departmentName = normalize(request.departmentName(), "Phòng ban không được để trống.");
         Set<StaffRole> roles = validateRoles(request.roles());
@@ -102,7 +104,7 @@ public class StaffManagementService {
 
     private Set<StaffRole> validateRoles(List<StaffRole> requested) {
         if (requested == null || requested.isEmpty() || requested.size() > 3
-                || requested.stream().anyMatch(java.util.Objects::isNull)) {
+                || requested.stream().anyMatch(Objects::isNull)) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "STAFF_ROLE_COUNT_INVALID",
                     "Tài khoản phải có từ 1 đến 3 vai trò.");
         }
