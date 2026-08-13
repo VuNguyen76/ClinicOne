@@ -62,6 +62,13 @@ export class ReceptionCheckIn implements OnInit {
   protected readonly adjustmentDoctorId = signal('');
   protected readonly adjustmentReason = signal('');
   protected readonly adjustmentLoading = signal(false);
+  protected readonly rebookTicket = signal<ReceptionAppointmentResponse | null>(null);
+  protected readonly rebookDate = signal(clinicTodayIso());
+  protected readonly rebookSlots = signal<AppointmentSlotResponse[]>([]);
+  protected readonly rebookStartTime = signal('');
+  protected readonly rebookReason = signal('');
+  protected readonly rebookSlotsLoading = signal(false);
+  protected readonly rebookLoading = signal(false);
 
   ngOnInit(): void {
     this.query.set('');
@@ -82,6 +89,9 @@ export class ReceptionCheckIn implements OnInit {
       next: (appointments) => {
         this.appointments.set(appointments);
         this.loading.set(false);
+        if (appointments.length === 1 && appointments[0].status === 'ABSENT') {
+          this.openRebook(appointments[0]);
+        }
         if (appointments.length === 0) this.notice.set('Không tìm thấy lịch hẹn phù hợp trong ngày đã chọn.');
       },
       error: (response) => {
@@ -92,7 +102,7 @@ export class ReceptionCheckIn implements OnInit {
   }
 
   protected checkIn(appointment: ReceptionAppointmentResponse): void {
-    if (!appointment.roomCode || appointment.queueStatus) return;
+    if (appointment.status !== 'BOOKED' || !appointment.roomCode || appointment.queueStatus) return;
     const reason = this.exceptionReason().trim();
     if (reason.length < 3) {
       this.error.set('Nhập lý do hỗ trợ tại quầy trước khi cấp số.');
@@ -150,6 +160,76 @@ export class ReceptionCheckIn implements OnInit {
         error: (response) => this.handleError(response),
       });
     }
+  }
+
+  protected openRebook(appointment: ReceptionAppointmentResponse): void {
+    if (appointment.status !== 'ABSENT') return;
+    this.rebookTicket.set(appointment);
+    this.rebookDate.set(clinicTodayIso());
+    this.rebookStartTime.set('');
+    this.rebookReason.set('');
+    this.error.set('');
+    this.loadRebookSlots();
+  }
+
+  protected closeRebook(): void {
+    if (!this.rebookLoading()) this.rebookTicket.set(null);
+  }
+
+  protected loadRebookSlots(): void {
+    const appointment = this.rebookTicket();
+    const date = this.rebookDate();
+    if (!appointment || !date) {
+      this.rebookSlots.set([]);
+      this.rebookStartTime.set('');
+      return;
+    }
+    this.rebookSlotsLoading.set(true);
+    this.authApi.getAppointmentSlots(appointment.specialty, date, date).subscribe({
+      next: (slots) => {
+        const available = slots.filter((slot) => !!slot.doctorId && slot.remainingCapacity > 0);
+        this.rebookSlots.set(available);
+        this.rebookStartTime.set(available[0]?.startTime ?? '');
+        this.rebookSlotsLoading.set(false);
+      },
+      error: (response) => {
+        this.rebookSlotsLoading.set(false);
+        this.handleError(response);
+      },
+    });
+  }
+
+  protected submitRebook(): void {
+    const appointment = this.rebookTicket();
+    const slot = this.rebookSlots().find((item) => item.startTime === this.rebookStartTime());
+    const reason = this.rebookReason().trim();
+    if (!appointment || !slot?.doctorId) {
+      this.error.set('Chọn một khung giờ còn trống.');
+      return;
+    }
+    if (reason.length < 10) {
+      this.error.set('Nhập lý do người bệnh quay lại (tối thiểu 10 ký tự).');
+      return;
+    }
+    this.rebookLoading.set(true);
+    this.error.set('');
+    this.authApi.rebookReceptionAppointment(appointment.id, {
+      doctorId: slot.doctorId,
+      appointmentDate: this.rebookDate(),
+      startTime: slot.startTime,
+      lateReason: reason,
+    }).subscribe({
+      next: (created) => {
+        this.rebookLoading.set(false);
+        this.rebookTicket.set(null);
+        this.appointments.update((items) => [created, ...items]);
+        this.notice.set(`Đã tạo lịch mới ${created.appointmentCode} cho ${created.patientName}.`);
+      },
+      error: (response) => {
+        this.rebookLoading.set(false);
+        this.handleError(response);
+      },
+    });
   }
 
   protected closeAdjustment(): void {
