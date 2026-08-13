@@ -502,8 +502,9 @@ public class DoctorExaminationService {
             return;
         }
         GeneratedClinicSlot slot = generatedSlotRepository
-                .findFirstByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(appointment.getDoctorStaffId(),
-                        appointment.getAppointmentDate(), appointment.getStartTime(), GeneratedSlotStatus.OPEN)
+                .findFirstByClinicServiceIdAndDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
+                        appointment.getServiceId(), appointment.getDoctorStaffId(), appointment.getAppointmentDate(),
+                        appointment.getStartTime(), GeneratedSlotStatus.OPEN)
                 .orElseThrow(() -> conflict("APPOINTMENT_SLOT_NOT_FOUND",
                         "Không tìm thấy khung giờ đang hoạt động của lịch hẹn."));
         slot.cancel();
