@@ -369,6 +369,7 @@ public class QueueService {
     public QueueTicketResponse skip(UUID ticketId, String staffId, String reason) {
         QueueTicket ticket = findTicket(ticketId);
         ensureDoctorOwnsTicket(ticket, staffId);
+        ensureDoctorCanOperateQueue(ticket);
         String normalizedReason = normalizeSkipReason(reason);
         String previousStatus = ticket.getStatus().name();
         try {
