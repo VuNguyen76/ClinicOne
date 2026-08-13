@@ -93,7 +93,7 @@ public interface AppointmentHoldRepository extends JpaRepository<AppointmentHold
                                                            @Param("to") LocalDate to,
                                                            @Param("now") Instant now);
 
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
             delete from AppointmentHold h
             where h.doctorStaffId = :doctorStaffId

@@ -10,6 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -32,6 +33,7 @@ public class OtpChallenge {
     private OtpPurpose purpose;
 
     @Column(name = "code_hash", nullable = false, length = 100)
+    @JsonIgnore
     private String codeHash;
 
     @Column(name = "created_at", nullable = false)
