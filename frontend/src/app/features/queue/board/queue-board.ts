@@ -58,6 +58,7 @@ export class QueueBoard implements OnInit {
     if (response.status === 401) {
       sessionStorage.removeItem('clinicOneAccessToken');
       sessionStorage.removeItem('clinicOnePatientName');
+      sessionStorage.removeItem('clinicOneSessionType');
       void this.router.navigateByUrl('/login');
       return;
     }

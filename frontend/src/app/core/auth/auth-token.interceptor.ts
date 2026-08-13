@@ -22,12 +22,16 @@ export const authTokenInterceptor: HttpInterceptorFn = (request, next) => {
       // screen. Clear it once and let the login page establish a fresh session.
       const isCurrentSessionRequest = request.url.includes('/auth/me');
       if (error instanceof HttpErrorResponse && (error.status === 401 || (error.status === 403 && isCurrentSessionRequest))) {
+        const isStaffSession = sessionStorage.getItem('clinicOneSessionType') === 'STAFF'
+          || !!sessionStorage.getItem('clinicOneStaffRole');
+        const loginRoute = isStaffSession ? '/staff/login' : '/login';
         sessionStorage.removeItem('clinicOneAccessToken');
         sessionStorage.removeItem('clinicOnePatientName');
-      sessionStorage.removeItem('clinicOneStaffRole');
-      sessionStorage.removeItem('clinicOneStaffRoles');
-        if (!router.url.startsWith('/login')) {
-          void router.navigate(['/login'], { queryParams: { returnUrl: router.url } });
+        sessionStorage.removeItem('clinicOneSessionType');
+        sessionStorage.removeItem('clinicOneStaffRole');
+        sessionStorage.removeItem('clinicOneStaffRoles');
+        if (!router.url.startsWith(loginRoute)) {
+          void router.navigate([loginRoute], { queryParams: { returnUrl: router.url } });
         }
       }
       return throwError(() => error);

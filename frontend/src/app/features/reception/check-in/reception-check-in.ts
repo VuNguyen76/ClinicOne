@@ -491,6 +491,7 @@ export class ReceptionCheckIn implements OnInit {
   private handleError(response: { status?: number } & ApiErrorResponse): void {
     if (response.status === 401 || response.status === 403) {
       sessionStorage.removeItem('clinicOneAccessToken');
+      sessionStorage.removeItem('clinicOneSessionType');
       sessionStorage.removeItem('clinicOneStaffRole');
       sessionStorage.removeItem('clinicOneStaffRoles');
       void this.router.navigateByUrl('/staff/login');
