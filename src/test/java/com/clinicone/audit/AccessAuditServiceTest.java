@@ -34,7 +34,7 @@ class AccessAuditServiceTest {
     @Test
     void listsFilteredEventsReadOnly() {
         when(repository.findFiltered(Instant.parse("1900-01-01T00:00:00Z"),
-                Instant.parse("9999-12-31T23:59:59.999999Z"), null, null, null)).thenReturn(List.of());
+                Instant.parse("9999-12-31T23:59:59.999999Z"), "", "", "")).thenReturn(List.of());
         assertThat(service.list(null, null, null, null, null)).isEmpty();
     }
 }
