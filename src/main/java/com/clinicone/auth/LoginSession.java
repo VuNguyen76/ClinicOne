@@ -6,6 +6,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -22,6 +23,7 @@ public class LoginSession {
     private UUID accountId;
 
     @Column(name = "token_hash", nullable = false, unique = true, length = 64)
+    @JsonIgnore
     private String tokenHash;
 
     @Column(name = "issued_at", nullable = false)
