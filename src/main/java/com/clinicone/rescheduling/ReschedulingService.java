@@ -211,9 +211,9 @@ public class ReschedulingService {
             return;
         }
         GeneratedClinicSlot slot = generatedSlotRepository
-                .findFirstByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
-                        appointment.getDoctorStaffId(), appointment.getAppointmentDate(), appointment.getStartTime(),
-                        GeneratedSlotStatus.OPEN)
+                .findFirstByClinicServiceIdAndDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
+                        appointment.getServiceId(), appointment.getDoctorStaffId(), appointment.getAppointmentDate(),
+                        appointment.getStartTime(), GeneratedSlotStatus.OPEN)
                 .orElseThrow(() -> conflict("APPOINTMENT_SLOT_NOT_FOUND",
                         "Khong tim thay khung gio cu de dong sau khi doi lich."));
         slot.cancel();

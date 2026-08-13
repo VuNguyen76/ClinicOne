@@ -182,6 +182,34 @@ class AppointmentAvailabilityServiceTest {
     }
 
     @Test
+    void rejectsAConfiguredTimeThatWasNotGeneratedForTheSelectedServiceAndDay() {
+        ClinicServiceRepository serviceRepository = mock(ClinicServiceRepository.class);
+        GeneratedClinicSlotRepository slotRepository = mock(GeneratedClinicSlotRepository.class);
+        ClinicService clinicService = mock(ClinicService.class);
+        GeneratedClinicSlot generatedSlot = mock(GeneratedClinicSlot.class);
+        UUID serviceId = UUID.randomUUID();
+        UUID doctorId = UUID.randomUUID();
+        LocalDate monday = LocalDate.of(2026, 8, 10);
+        when(serviceRepository.findById(serviceId)).thenReturn(Optional.of(clinicService));
+        when(clinicService.isActive()).thenReturn(true);
+        when(clinicService.getSpecialty()).thenReturn("Khám Tổng Quát");
+        when(clinicService.getDurationMinutes()).thenReturn(30);
+        when(slotRepository.findByClinicServiceIdAndDoctorStaffIdAndAppointmentDateAndStartTime(
+                serviceId, doctorId, monday, LocalTime.of(8, 30))).thenReturn(List.of());
+        when(slotRepository.findByClinicServiceIdAndDoctorStaffIdAndAppointmentDate(
+                serviceId, doctorId, monday)).thenReturn(List.of(generatedSlot));
+
+        AppointmentAvailabilityService configuredService = new AppointmentAvailabilityService(
+                appointmentRepository, new SpecialtyCatalogService(), null, null, null,
+                Clock.fixed(Instant.parse("2026-08-10T00:00:00Z"), ZoneOffset.UTC), serviceRepository, slotRepository);
+
+        AuthException exception = assertThrows(AuthException.class, () -> configuredService.ensureBookable(
+                "Khám Tổng Quát", "Bác sĩ An", doctorId, monday, LocalTime.of(8, 30), null, serviceId));
+
+        assertEquals("APPOINTMENT_SLOT_INVALID", exception.getCode());
+    }
+
+    @Test
     void doesNotExposeConfiguredFallbackWhenAllGeneratedSlotsAreCancelled() {
         ClinicServiceRepository serviceRepository = mock(ClinicServiceRepository.class);
         GeneratedClinicSlotRepository slotRepository = mock(GeneratedClinicSlotRepository.class);

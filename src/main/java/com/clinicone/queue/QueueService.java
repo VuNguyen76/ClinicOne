@@ -513,8 +513,9 @@ public class QueueService {
             return;
         }
         GeneratedClinicSlot slot = generatedSlotRepository
-                .findFirstByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(appointment.getDoctorStaffId(),
-                        appointment.getAppointmentDate(), appointment.getStartTime(), GeneratedSlotStatus.OPEN)
+                .findFirstByClinicServiceIdAndDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
+                        appointment.getServiceId(), appointment.getDoctorStaffId(), appointment.getAppointmentDate(),
+                        appointment.getStartTime(), GeneratedSlotStatus.OPEN)
                 .orElseThrow(() -> queueStateConflict("Không tìm thấy khung giờ đang hoạt động của lịch hẹn."));
         slot.cancel();
         generatedSlotRepository.save(slot);
