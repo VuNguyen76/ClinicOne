@@ -14,12 +14,14 @@ describe('RoomManagement', () => {
       providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
     }).compileComponents();
 
+    sessionStorage.setItem('clinicOneSessionType', 'STAFF');
+    sessionStorage.setItem('clinicOneStaffRoles', JSON.stringify(['ADMIN']));
     fixture = TestBed.createComponent(RoomManagement);
     http = TestBed.inject(HttpTestingController);
     fixture.detectChanges();
   });
 
-  afterEach(() => http.verify());
+  afterEach(() => { http.verify(); sessionStorage.clear(); });
 
   it('loads rooms ordered by the backend', () => {
     http.expectOne('/api/v1/specialties').flush([{ code: 'NOI', name: 'Nội tổng quát', description: 'Khám tổng quát' }]);

@@ -15,6 +15,7 @@ import {
 } from '../../core/auth/auth-api.service';
 import { AccountMenu } from '../../shared/account-menu/account-menu';
 import { clinicTodayIso } from '../../core/time/clinic-time';
+import { hasStaffRole } from '../../core/auth/auth.guard';
 
 @Component({
   selector: 'app-schedule-template-management',
@@ -48,6 +49,10 @@ export class ScheduleTemplateManagement implements OnInit {
   protected readonly breakStart = signal('');
   protected readonly breakEnd = signal('');
   protected readonly exceptionDatesText = signal('');
+
+  protected canManageSchedule(): boolean {
+    return hasStaffRole('COORDINATOR');
+  }
 
   protected readonly weekdays = [
     { value: 'MONDAY', label: 'Thứ 2' }, { value: 'TUESDAY', label: 'Thứ 3' },
@@ -110,6 +115,10 @@ export class ScheduleTemplateManagement implements OnInit {
   }
 
   protected submit(): void {
+    if (!this.canManageSchedule()) {
+      this.error.set('Chỉ điều phối viên được thay đổi lịch làm việc.');
+      return;
+    }
     const breaks: ScheduleBreakRequest[] = this.breakStart() && this.breakEnd()
       ? [{ startTime: this.breakStart(), endTime: this.breakEnd() }] : [];
     const request: ScheduleTemplateRequest = {
@@ -136,6 +145,10 @@ export class ScheduleTemplateManagement implements OnInit {
   }
 
   protected regenerate(template: ScheduleTemplateResponse): void {
+    if (!this.canManageSchedule()) {
+      this.error.set('Chỉ điều phối viên được sinh bổ sung khung giờ.');
+      return;
+    }
     this.authApi.regenerateScheduleTemplate(template.id).subscribe({
       next: (updated) => {
         this.templates.update((items) => items.map((item) => item.id === updated.id ? updated : item));

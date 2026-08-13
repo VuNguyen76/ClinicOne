@@ -5,6 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { ApiErrorResponse, AppointmentSlotResponse, AuthApiService, ReceptionAppointmentResponse, ReceptionDoctorOption, ReceptionPatientProfile, SpecialtyOption, apiErrorMessage } from '../../../core/auth/auth-api.service';
 import { AccountMenu } from '../../../shared/account-menu/account-menu';
 import { clinicTodayIso } from '../../../core/time/clinic-time';
+import { hasStaffRole } from '../../../core/auth/auth.guard';
 
 @Component({
   selector: 'app-reception-check-in',
@@ -129,6 +130,10 @@ export class ReceptionCheckIn implements OnInit {
   }
 
   protected leaveBeforeExam(appointment: ReceptionAppointmentResponse): void {
+    if (!this.canAdjustQueue()) {
+      this.error.set('Chỉ nhân viên tiếp nhận được ghi nhận người bệnh rời trước khám.');
+      return;
+    }
     if (appointment.queueStatus !== 'WAITING') return;
     const reason = this.leaveReason().trim();
     if (reason.length < 10) {
@@ -241,6 +246,10 @@ export class ReceptionCheckIn implements OnInit {
   }
 
   protected adjustQueue(action: 'MOVE' | 'SET_PRIORITY' | 'CLEAR_PRIORITY'): void {
+    if (!this.canAdjustQueue()) {
+      this.error.set('Chỉ nhân viên tiếp nhận được điều chỉnh hàng đợi.');
+      return;
+    }
     const appointment = this.adjustmentTicket();
     const reason = this.adjustmentReason().trim();
     if (!appointment?.queueTicketId) return;
@@ -571,6 +580,8 @@ export class ReceptionCheckIn implements OnInit {
     }
     return 'bg-emerald-50 text-emerald-700';
   }
+
+  protected canAdjustQueue(): boolean { return hasStaffRole('RECEPTIONIST'); }
 
   private handleError(response: { status?: number } & ApiErrorResponse): void {
     if (response.status === 401 || response.status === 403) {

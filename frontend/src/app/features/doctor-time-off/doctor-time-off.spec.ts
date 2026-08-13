@@ -49,6 +49,15 @@ describe('DoctorTimeOffManagement', () => {
     expect(fixture.nativeElement.querySelectorAll('[data-testid="time-off-row"]').length).toBe(1);
     expect(fixture.nativeElement.textContent).toContain('2 khung giờ đã khóa');
   });
+  it('hides the write form for administrators', () => {
+    http.expectOne('/api/v1/admin/doctors').flush([doctor()]);
+    http.expectOne('/api/v1/admin/doctor-time-off').flush([]);
+    sessionStorage.setItem('clinicOneStaffRole', 'ADMIN');
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[data-testid="save-time-off"]')).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Chế độ xem');
+  });
 });
 
 function doctor() {
