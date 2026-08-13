@@ -34,23 +34,33 @@ public class AppointmentLifecycleJob {
     private final BusinessLogService businessLogService;
     private final Clock clock;
     private final AppointmentHoldService holdService;
+    private final GeneratedClinicSlotRepository generatedSlotRepository;
 
     public AppointmentLifecycleJob(AppointmentRepository appointmentRepository,
                                    PatientNotificationService notificationService,
                                    BusinessLogService businessLogService, Clock clock) {
-        this(appointmentRepository, notificationService, businessLogService, clock, null);
+        this(appointmentRepository, notificationService, businessLogService, clock, null, null);
+    }
+
+    public AppointmentLifecycleJob(AppointmentRepository appointmentRepository,
+                                   PatientNotificationService notificationService,
+                                   BusinessLogService businessLogService, Clock clock,
+                                   AppointmentHoldService holdService) {
+        this(appointmentRepository, notificationService, businessLogService, clock, holdService, null);
     }
 
     @org.springframework.beans.factory.annotation.Autowired
     public AppointmentLifecycleJob(AppointmentRepository appointmentRepository,
                                    PatientNotificationService notificationService,
                                    BusinessLogService businessLogService, Clock clock,
-                                   AppointmentHoldService holdService) {
+                                   AppointmentHoldService holdService,
+                                   GeneratedClinicSlotRepository generatedSlotRepository) {
         this.appointmentRepository = appointmentRepository;
         this.notificationService = notificationService;
         this.businessLogService = businessLogService;
         this.clock = clock;
         this.holdService = holdService;
+        this.generatedSlotRepository = generatedSlotRepository;
     }
 
     @Transactional
@@ -105,11 +115,27 @@ public class AppointmentLifecycleJob {
         String previousStatus = appointment.getStatus().name();
         UUID eventId = UUID.randomUUID();
         appointment.markAbsent();
+        markAppointmentSlotUnavailable(appointment);
         appointmentRepository.save(appointment);
         businessLogService.recordTransition(eventId, "APPOINTMENT", appointment.getId(), previousStatus,
                 appointment.getStatus().name(), "MARK_ABSENT", "SYSTEM", "Tự động sau quá thời hạn vắng mặt");
         notificationService.notifyAppointmentAbsent(appointment);
         return true;
+    }
+
+    private void markAppointmentSlotUnavailable(Appointment appointment) {
+        if (generatedSlotRepository == null || appointment.getServiceId() == null
+                || appointment.getDoctorStaffId() == null) {
+            return;
+        }
+        generatedSlotRepository
+                .findFirstByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
+                        appointment.getDoctorStaffId(), appointment.getAppointmentDate(), appointment.getStartTime(),
+                        GeneratedSlotStatus.OPEN)
+                .ifPresent(slot -> {
+                    slot.cancel();
+                    generatedSlotRepository.save(slot);
+                });
     }
 
     private boolean shouldSendReminder(Appointment appointment, Instant appointmentAt, Instant now, int hours) {

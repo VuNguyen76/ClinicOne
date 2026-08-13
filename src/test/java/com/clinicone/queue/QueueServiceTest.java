@@ -322,6 +322,25 @@ class QueueServiceTest {
     }
 
     @Test
+    void rejectsQrCheckInAfterLateWarningAndKeepsBookedAppointment() {
+        Appointment late = appointment("Nội tổng quát", TODAY);
+        setField(late, "startTime", java.time.LocalTime.of(8, 0));
+        setField(late, "serviceDurationMinutes", 60);
+        when(appointmentRepository.findByIdAndPatientId(APPOINTMENT_ID, ACCOUNT_ID))
+                .thenReturn(Optional.of(late));
+        QueueService lateService = new QueueService(roomRepository, ticketRepository, appointmentRepository,
+                doctorProfileRepository, examinationSessionRepository,
+                Clock.fixed(Instant.parse("2026-08-06T03:15:00Z"), ZoneId.of("Asia/Ho_Chi_Minh")));
+
+        AuthException exception = assertThrows(AuthException.class,
+                () -> lateService.checkIn(ACCOUNT_ID.toString(), "NOI-01", APPOINTMENT_ID));
+
+        assertEquals("QUEUE_LATE_APPOINTMENT", exception.getCode());
+        assertEquals(AppointmentStatus.BOOKED, late.getStatus());
+        verify(ticketRepository, never()).save(any(QueueTicket.class));
+    }
+
+    @Test
     void cannotCallTicketAgainUntilThePatientScansAgain() {
         QueueTicket ticket = QueueTicket.create(appointment, room, TODAY, 5);
         setId(ticket, UUID.randomUUID());

@@ -170,10 +170,15 @@ public class AppointmentAvailabilityService {
         Integer serviceDuration = service == null ? null : service.getDurationMinutes();
         if (serviceId != null && generatedSlotRepository != null && doctorId != null) {
             List<GeneratedClinicSlot> generatedSlots = generatedSlotRepository
-                    .findByClinicServiceIdAndDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
-                            serviceId, doctorId, appointmentDate, startTime, GeneratedSlotStatus.OPEN);
+                    .findByClinicServiceIdAndDoctorStaffIdAndAppointmentDateAndStartTime(
+                            serviceId, doctorId, appointmentDate, startTime);
             if (!generatedSlots.isEmpty()) {
-                ensureGeneratedSlotBookable(generatedSlots.get(0), doctorName, excludedHoldId);
+                GeneratedClinicSlot openSlot = generatedSlots.stream()
+                        .filter(slot -> slot.getStatus() == GeneratedSlotStatus.OPEN)
+                        .findFirst()
+                        .orElseThrow(() -> new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_SLOT_INVALID",
+                                "Khung giờ đã đóng và không còn nhận đặt lịch."));
+                ensureGeneratedSlotBookable(openSlot, doctorName, excludedHoldId);
                 return;
             }
         }
