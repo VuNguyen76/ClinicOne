@@ -60,6 +60,7 @@ export class Booking implements OnInit {
   protected busy = false;
   protected error = '';
   private createRequestKey: string | null = null;
+  private availabilityRequestId = 0;
 
   protected readonly form = this.formBuilder.nonNullable.group({
     specialty: ['', [Validators.required, Validators.maxLength(120)]],
@@ -310,13 +311,24 @@ export class Booking implements OnInit {
   private loadMonthAvailability(): void {
     const specialty = this.form.controls.specialty.value;
     if (!specialty) return;
+    const requestId = ++this.availabilityRequestId;
     const month = this.calendarMonth();
     const monthStart = this.toIsoDate(month);
     const monthEnd = this.toIsoDate(new Date(month.getFullYear(), month.getMonth() + 1, 0));
     this.slotsLoading.set(true);
     this.authApi.getAppointmentSlots(specialty, monthStart, monthEnd, this.selectedClinicService()?.id).subscribe({
-      next: (slots) => { this.monthSlots.set(slots); this.slotsLoading.set(false); },
-      error: (response) => { this.slotsLoading.set(false); this.handleAuthError(response); },
+      next: (slots) => {
+        // The user can change months before the previous request returns. A
+        // late response must never overwrite the month currently displayed.
+        if (requestId !== this.availabilityRequestId) return;
+        this.monthSlots.set(slots);
+        this.slotsLoading.set(false);
+      },
+      error: (response) => {
+        if (requestId !== this.availabilityRequestId) return;
+        this.slotsLoading.set(false);
+        this.handleAuthError(response);
+      },
     });
   }
 

@@ -11,12 +11,11 @@ export const authGuard: CanActivateFn = (_route, state) => {
 export const patientGuard: CanActivateFn = (_route, state) => {
   const router = inject(Router);
   const token = sessionToken();
-  const roles = staffRoles();
 
   if (!token) {
     return router.createUrlTree(['/login'], { queryParams: { returnUrl: state.url } });
   }
-  return isStaffSession() ? router.createUrlTree(['/home']) : true;
+  return isStaffSession() ? router.createUrlTree(['/staff']) : true;
 };
 
 export const staffGuard: CanActivateFn = (_route, state) => {
@@ -34,7 +33,7 @@ export const receptionGuard: CanActivateFn = (_route, state) => {
   const router = inject(Router);
   const token = sessionToken();
   const roles = staffRoles();
-  if (!token || !roles.length) {
+  if (!token || !isStaffSession() || !roles.length) {
     return router.createUrlTree(['/staff/login'], { queryParams: { returnUrl: state.url } });
   }
   return roles.some((role) => ['COORDINATOR', 'RECEPTIONIST'].includes(role))
@@ -47,7 +46,7 @@ export const doctorGuard: CanActivateFn = (_route, state) => {
   const token = sessionToken();
   const roles = staffRoles();
 
-  if (!token || !roles.length) {
+  if (!token || !isStaffSession() || !roles.length) {
     return router.createUrlTree(['/staff/login'], { queryParams: { returnUrl: state.url } });
   }
   return roles.includes('DOCTOR') ? true : router.createUrlTree(['/home']);
@@ -85,7 +84,7 @@ export const roomManagerGuard: CanActivateFn = (_route, state) => {
   const token = sessionToken();
   const roles = staffRoles();
 
-  if (!token || !roles.length) {
+  if (!token || !isStaffSession() || !roles.length) {
     return router.createUrlTree(['/staff/login'], { queryParams: { returnUrl: state.url } });
   }
   return roles.includes('ADMIN') || roles.includes('COORDINATOR') ? true : router.createUrlTree(['/home']);
@@ -96,7 +95,7 @@ export const adminGuard: CanActivateFn = (_route, state) => {
   const token = sessionToken();
   const roles = staffRoles();
 
-  if (!token || !roles.length) {
+  if (!token || !isStaffSession() || !roles.length) {
     return router.createUrlTree(['/staff/login'], { queryParams: { returnUrl: state.url } });
   }
   return roles.includes('ADMIN') ? true : router.createUrlTree(['/admin/rooms']);
@@ -125,5 +124,10 @@ function staffRoles(): string[] {
 
 function isStaffSession(): boolean {
   if (typeof sessionStorage === 'undefined') return false;
-  return sessionStorage.getItem('clinicOneSessionType') === 'STAFF' || staffRoles().length > 0;
+  const sessionType = sessionStorage.getItem('clinicOneSessionType');
+  if (sessionType) return sessionType === 'STAFF';
+  // Older sessions did not persist an explicit type. Keep the role fallback
+  // only for that legacy shape; an explicit PATIENT marker must win over any
+  // stale role keys left by a previous staff session.
+  return staffRoles().length > 0;
 }

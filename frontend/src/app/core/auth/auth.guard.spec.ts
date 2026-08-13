@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
-import { authGuard, doctorGuard, homeGuard, patientGuard, receptionGuard, roomManagerGuard, staffGuard, staffLandingRedirect } from './auth.guard';
+import { adminGuard, authGuard, doctorGuard, homeGuard, patientGuard, receptionGuard, roomManagerGuard, staffGuard, staffLandingRedirect } from './auth.guard';
 
 describe('ClinicOne route guards', () => {
   let router: { createUrlTree: ReturnType<typeof vi.fn> };
@@ -25,7 +25,7 @@ describe('ClinicOne route guards', () => {
 
     expect(TestBed.runInInjectionContext(() => staffGuard(null as never, { url: '/queue/rooms/NOI-01' } as never))).toBe(true);
     expect(TestBed.runInInjectionContext(() => roomManagerGuard(null as never, { url: '/admin/rooms' } as never))).toBe(true);
-    expect(TestBed.runInInjectionContext(() => patientGuard(null as never, { url: '/appointments' } as never))).toEqual({ commands: ['/home'] });
+    expect(TestBed.runInInjectionContext(() => patientGuard(null as never, { url: '/appointments' } as never))).toEqual({ commands: ['/staff'] });
   });
 
   it('blocks a non-manager staff role from room configuration', () => {
@@ -59,7 +59,27 @@ describe('ClinicOne route guards', () => {
       commands: ['/staff/login'],
     });
     expect(TestBed.runInInjectionContext(() => patientGuard(null as never, { url: '/appointments' } as never))).toEqual({
-      commands: ['/home'],
+      commands: ['/staff'],
+    });
+  });
+
+  it('does not trust stale staff roles attached to a patient session', () => {
+    sessionStorage.setItem('clinicOneAccessToken', 'patient-token');
+    sessionStorage.setItem('clinicOneSessionType', 'PATIENT');
+    sessionStorage.setItem('clinicOneStaffRoles', JSON.stringify(['ADMIN']));
+
+    expect(TestBed.runInInjectionContext(() => patientGuard(null as never, { url: '/appointments' } as never))).toBe(true);
+    expect(TestBed.runInInjectionContext(() => doctorGuard(null as never, { url: '/doctor' } as never))).toEqual({
+      commands: ['/staff/login'],
+    });
+    expect(TestBed.runInInjectionContext(() => receptionGuard(null as never, { url: '/reception/check-in' } as never))).toEqual({
+      commands: ['/staff/login'],
+    });
+    expect(TestBed.runInInjectionContext(() => roomManagerGuard(null as never, { url: '/admin/rooms' } as never))).toEqual({
+      commands: ['/staff/login'],
+    });
+    expect(TestBed.runInInjectionContext(() => adminGuard(null as never, { url: '/admin/staff' } as never))).toEqual({
+      commands: ['/staff/login'],
     });
   });
 
