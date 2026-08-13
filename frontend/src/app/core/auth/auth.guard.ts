@@ -52,6 +52,25 @@ export const doctorGuard: CanActivateFn = (_route, state) => {
   return roles.includes('DOCTOR') ? true : router.createUrlTree(['/home']);
 };
 
+/**
+ * The room queue is an operational workspace shared by the doctor who owns
+ * the room and front-desk roles that monitor or adjust the queue. It must not
+ * reuse doctorGuard: that guard intentionally blocks reception staff from the
+ * doctor's clinical board.
+ */
+export const queueBoardGuard: CanActivateFn = (_route, state) => {
+  const router = inject(Router);
+  const token = sessionToken();
+  const roles = staffRoles();
+
+  if (!token || !isStaffSession() || !roles.length) {
+    return router.createUrlTree(['/staff/login'], { queryParams: { returnUrl: state.url } });
+  }
+  return roles.some((role) => ['DOCTOR', 'COORDINATOR', 'RECEPTIONIST'].includes(role))
+    ? true
+    : router.createUrlTree(['/staff']);
+};
+
 export const homeGuard: CanActivateFn = () => {
   const router = inject(Router);
   const roles = staffRoles();

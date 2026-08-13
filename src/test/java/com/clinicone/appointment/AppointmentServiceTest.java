@@ -386,6 +386,33 @@ class AppointmentServiceTest {
     }
 
     @Test
+    void closesGeneratedSlotWhenCancellingAnAppointmentThatAlreadyStarted() {
+        PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
+        setId(account, ACCOUNT_ID);
+        UUID doctorId = UUID.randomUUID();
+        UUID serviceId = UUID.randomUUID();
+        Appointment appointment = Appointment.create(account, doctorId, "CL-PAST-001", "Nội khoa",
+                "BS. Nguyễn An", LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), "Đau đầu");
+        appointment.applyServiceSnapshot(serviceId, "Khám tổng quát", "Khám", 30, true);
+        UUID appointmentId = UUID.randomUUID();
+        setId(appointment, appointmentId);
+        GeneratedClinicSlot oldSlot = mock(GeneratedClinicSlot.class);
+        when(appointmentRepository.findByIdAndPatientId(appointmentId, ACCOUNT_ID)).thenReturn(Optional.of(appointment));
+        when(generatedSlotRepository.findFirstByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
+                doctorId, appointment.getAppointmentDate(), appointment.getStartTime(), GeneratedSlotStatus.OPEN))
+                .thenReturn(Optional.of(oldSlot));
+        AppointmentService configuredService = new AppointmentService(accountRepository, appointmentRepository, null,
+                availabilityService, notificationService, null, holdService, clinicServiceRepository, null,
+                null, Clock.fixed(Instant.parse("2026-08-10T02:00:00Z"), ZoneOffset.UTC),
+                new AppointmentCodeGenerator(), rescheduleCaseRepository, generatedSlotRepository);
+
+        configuredService.cancel(ACCOUNT_ID.toString(), appointmentId.toString(), new CancelAppointmentRequest("Bận việc"));
+
+        verify(oldSlot).cancel();
+        verify(generatedSlotRepository).save(oldSlot);
+    }
+
+    @Test
     void retriesCancellationWithSameKeyWithoutRepeatingSideEffects() {
         PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
         setId(account, ACCOUNT_ID);
