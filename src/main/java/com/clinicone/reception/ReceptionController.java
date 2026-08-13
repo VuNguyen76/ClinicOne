@@ -65,7 +65,7 @@ public class ReceptionController {
     @PreAuthorize("hasAnyRole('RECEPTIONIST', 'COORDINATOR')")
     public ResponseEntity<ReceptionAppointmentResponse> markFacilityUnavailable(
             @PathVariable UUID appointmentId, @Valid @RequestBody QueueLeaveRequest request,
-            org.springframework.security.core.Authentication authentication) {
+            Authentication authentication) {
         return ResponseEntity.ok(service.markFacilityUnavailable(appointmentId, request.reason(), authentication.getName()));
     }
 
