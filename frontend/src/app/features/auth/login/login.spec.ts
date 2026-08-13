@@ -28,6 +28,12 @@ describe('Login', () => {
     expect(component).toBeTruthy();
   });
 
+  it('links login support to the clinic hotline instead of a placeholder action', () => {
+    const supportLink = fixture.nativeElement.querySelector('a[href="tel:1900000"]') as HTMLAnchorElement | null;
+    expect(supportLink).not.toBeNull();
+    expect(supportLink?.textContent).toContain('Cần hỗ trợ');
+  });
+
   it('should keep the phone form invalid until a valid phone is entered', () => {
     expect(component.phoneForm.invalid).toBe(true);
 

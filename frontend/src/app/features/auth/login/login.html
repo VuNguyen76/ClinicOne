@@ -6,7 +6,7 @@
           <img class="h-11 w-11 object-contain" src="clinicone-mark.png" alt="" aria-hidden="true" />
           <span class="text-xl font-semibold tracking-[-0.03em]">Clinic<span class="text-[#0ea5e9]">One</span></span>
         </a>
-        <button class="text-sm font-medium text-[#0e6872] underline-offset-4 hover:underline" type="button" (click)="showNotReadyMessage('Hỗ trợ')">Cần hỗ trợ?</button>
+        <a class="text-sm font-medium text-[#0e6872] underline-offset-4 hover:underline" href="tel:1900000">Cần hỗ trợ?</a>
       </header>
 
       <div class="flex flex-1 items-center py-8 lg:py-12">
@@ -46,9 +46,6 @@
 
           @if (error()) {
             <p class="mt-4 border-l-4 border-[#b42318] bg-[#fff1f0] px-3 py-2.5 text-sm leading-5 text-[#8a1c13]" role="alert">{{ error() }}</p>
-          }
-          @if (notice()) {
-            <p class="mt-4 border-l-4 border-[#0ea5e9] bg-[#e0f2fe] px-3 py-2.5 text-sm leading-5 text-[#075985]" role="status">{{ notice() }}</p>
           }
         </div>
       </div>
