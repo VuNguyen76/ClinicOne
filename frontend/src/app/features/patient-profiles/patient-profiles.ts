@@ -56,7 +56,15 @@ export class PatientProfiles implements OnInit {
 
   protected load(): void {
     this.authApi.getPatientProfiles().subscribe({
-      next: (profiles) => { this.profiles.set(profiles); this.loading.set(false); },
+      next: (profiles) => {
+        const normalizedProfiles = profiles.map((profile) => ({
+          ...profile,
+          address: this.composeAddress(profile.streetAddress, profile.wardName, profile.districtName,
+            profile.provinceName, profile.address),
+        }));
+        this.profiles.set(normalizedProfiles);
+        this.loading.set(false);
+      },
       error: (response) => this.handleError(response),
     });
   }
@@ -89,7 +97,12 @@ export class PatientProfiles implements OnInit {
     this.notice.set('');
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     this.busy.set(true);
-    const request = this.form.getRawValue() as PatientProfileRequest;
+    const values = this.form.getRawValue();
+    const request: PatientProfileRequest = {
+      ...values,
+      address: this.composeAddress(values.streetAddress, values.wardName, values.districtName,
+        values.provinceName, values.address),
+    };
     const operation = this.editingId() ? this.authApi.updatePatientProfile(this.editingId()!, request) : this.authApi.createPatientProfile(request);
     operation.subscribe({
       next: () => { this.busy.set(false); this.formOpen.set(false); this.notice.set(this.editingId() ? 'Đã cập nhật hồ sơ.' : 'Đã thêm hồ sơ.'); this.editingId.set(null); this.load(); },
@@ -163,5 +176,14 @@ export class PatientProfiles implements OnInit {
       return;
     }
     this.error.set(apiErrorMessage(response));
+  }
+
+  private composeAddress(streetAddress: string | null | undefined, wardName: string | null | undefined,
+                          districtName: string | null | undefined, provinceName: string | null | undefined,
+                          fallback: string | null | undefined = ''): string {
+    const parts = [streetAddress, wardName, districtName, provinceName]
+      .map((value) => value?.trim() ?? '')
+      .filter(Boolean);
+    return parts.length ? parts.join(', ') : (fallback?.trim() ?? '');
   }
 }

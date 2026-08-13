@@ -57,4 +57,27 @@ describe('Account', () => {
 
     expect(profileLink?.getAttribute('href')).toBe('/account');
   });
+
+  it('sends the selected address parts as one display address', () => {
+    component['profileForm'].patchValue({
+      provinceCode: '72', provinceName: 'Tây Ninh',
+      districtCode: '718', districtName: 'Trảng Bàng',
+      wardCode: '25771', wardName: 'An Tịnh',
+      streetAddress: '3828', address: '',
+    });
+
+    component['saveProfile']();
+
+    const request = http.expectOne((item) => item.url === '/api/v1/auth/me' && item.method === 'PATCH');
+    expect(request.request.body.address).toBe('3828, An Tịnh, Trảng Bàng, Tây Ninh');
+    request.flush({
+      accountId: 'account-1', phone: '0912345678', fullName: 'Nguyen Van A', dateOfBirth: '2005-06-07',
+      gender: 'Nam', address: '3828, An Tịnh, Trảng Bàng, Tây Ninh', identityNumber: '012345678901',
+      nationality: 'Việt Nam', ethnicity: 'Kinh', provinceCode: '72', provinceName: 'Tây Ninh',
+      districtCode: '718', districtName: 'Trảng Bàng', wardCode: '25771', wardName: 'An Tịnh',
+      streetAddress: '3828', status: 'ACTIVE', mustChangePassword: false,
+    });
+    http.expectOne('/api/v1/addresses/provinces/72/districts?page=1&limit=100').flush([]);
+    http.expectOne('/api/v1/addresses/districts/718/wards?page=1&limit=100').flush([]);
+  });
 });

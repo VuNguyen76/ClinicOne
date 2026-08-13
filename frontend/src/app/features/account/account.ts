@@ -65,8 +65,10 @@ export class Account implements OnInit {
 
     this.busy.set(true);
     const values = this.profileForm.getRawValue();
+    const address = this.composeAddress(values.streetAddress, values.wardName, values.districtName,
+      values.provinceName, values.address);
     this.authApi.updateProfile(
-      values.fullName.trim(), values.dateOfBirth || null, values.gender || null, values.address.trim(),
+      values.fullName.trim(), values.dateOfBirth || null, values.gender || null, address,
       values.identityNumber.trim(), values.nationality.trim(), values.ethnicity.trim(), values.provinceCode,
       values.provinceName, values.districtCode, values.districtName, values.wardCode, values.wardName,
       values.streetAddress.trim(),
@@ -74,8 +76,9 @@ export class Account implements OnInit {
       .pipe(finalize(() => this.busy.set(false)))
       .subscribe({
         next: (profile) => {
-          this.profile.set(profile);
-          this.setProfileForm(profile);
+          const normalizedProfile = this.withComposedAddress(profile);
+          this.profile.set(normalizedProfile);
+          this.setProfileForm(normalizedProfile);
           this.notice.set('Thông tin cá nhân đã được cập nhật.');
         },
         error: (response) => this.showError(response),
@@ -135,8 +138,9 @@ export class Account implements OnInit {
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
         next: (profile) => {
-          this.profile.set(profile);
-          this.setProfileForm(profile);
+          const normalizedProfile = this.withComposedAddress(profile);
+          this.profile.set(normalizedProfile);
+          this.setProfileForm(normalizedProfile);
         },
         error: (response) => this.showError(response),
       });
@@ -155,11 +159,13 @@ export class Account implements OnInit {
   }
 
   private setProfileForm(profile: PatientProfileResponse): void {
+    const address = this.composeAddress(profile.streetAddress, profile.wardName, profile.districtName,
+      profile.provinceName, profile.address);
     this.profileForm.setValue({
       fullName: profile.fullName,
       dateOfBirth: profile.dateOfBirth ?? '',
       gender: profile.gender ?? '',
-      address: profile.address ?? '',
+      address,
       identityNumber: profile.identityNumber ?? '',
       nationality: profile.nationality ?? 'Việt Nam',
       ethnicity: profile.ethnicity ?? 'Kinh',
@@ -177,6 +183,20 @@ export class Account implements OnInit {
     if (profile.districtCode) {
       this.addressApi.getWards(profile.districtCode).subscribe((items) => this.wards.set(items));
     }
+  }
+
+  private composeAddress(streetAddress: string | null | undefined, wardName: string | null | undefined,
+                          districtName: string | null | undefined, provinceName: string | null | undefined,
+                          fallback: string | null | undefined = ''): string {
+    const parts = [streetAddress, wardName, districtName, provinceName]
+      .map((value) => value?.trim() ?? '')
+      .filter(Boolean);
+    return parts.length ? parts.join(', ') : (fallback?.trim() ?? '');
+  }
+
+  private withComposedAddress(profile: PatientProfileResponse): PatientProfileResponse {
+    return { ...profile, address: this.composeAddress(profile.streetAddress, profile.wardName,
+      profile.districtName, profile.provinceName, profile.address) };
   }
 
   private showError(response: { status?: number; error?: { message?: string; detail?: string; title?: string } | string; message?: string; detail?: string }): void {
