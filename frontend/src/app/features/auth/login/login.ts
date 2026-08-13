@@ -19,7 +19,6 @@ export class Login {
   private readonly route = inject(ActivatedRoute);
 
   protected readonly step = signal<LoginStep>('phone');
-  protected readonly notice = signal('');
   protected readonly error = signal('');
   protected readonly busy = signal(false);
   protected readonly phone = signal('');
@@ -34,7 +33,6 @@ export class Login {
   });
 
   protected submitPhone(): void {
-    this.notice.set('');
     this.error.set('');
     if (this.phoneForm.invalid) {
       this.phoneForm.markAllAsTouched();
@@ -63,7 +61,6 @@ export class Login {
   }
 
   protected submitPassword(): void {
-    this.notice.set('');
     this.error.set('');
     if (this.passwordForm.invalid) {
       this.passwordForm.markAllAsTouched();
@@ -94,12 +91,7 @@ export class Login {
   protected backToPhone(): void {
     this.step.set('phone');
     this.passwordForm.reset();
-    this.notice.set('');
     this.error.set('');
-  }
-
-  protected showNotReadyMessage(action: string): void {
-    this.notice.set(`${action} sẽ được bổ sung trong phiên bản tiếp theo.`);
   }
 
   private safeReturnUrl(): string | null {
