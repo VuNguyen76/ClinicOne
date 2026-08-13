@@ -141,6 +141,7 @@ public class AppointmentAvailabilityService {
                 .filter(this::isWorkingDay)
                 .flatMap(date -> slotTemplates(serviceDuration).stream().map(template -> toResponse(specialty, date, template,
                         bookedBySlot.getOrDefault(new SlotKey(date, template.startTime()), 0L))))
+                .filter(slot -> isFutureSlot(slot.appointmentDate(), slot.startTime()))
                 .filter(slot -> slot.remainingCapacity() > 0)
                 .toList();
     }
@@ -169,6 +170,11 @@ public class AppointmentAvailabilityService {
         ClinicService service = resolveService(serviceId, specialty);
         Integer serviceDuration = service == null ? null : service.getDurationMinutes();
         validateDate(appointmentDate);
+        LocalDate clinicToday = LocalDate.now(clock.withZone(CLINIC_ZONE));
+        if (appointmentDate.equals(clinicToday)
+                && (startTime == null || !startTime.isAfter(LocalTime.now(clock.withZone(CLINIC_ZONE))))) {
+            throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_SLOT_INVALID", "Khung gio nay da qua.");
+        }
         if (serviceId != null && generatedSlotRepository != null && doctorId != null) {
             List<GeneratedClinicSlot> generatedSlots = generatedSlotRepository
                     .findByClinicServiceIdAndDoctorStaffIdAndAppointmentDateAndStartTime(
@@ -281,6 +287,7 @@ public class AppointmentAvailabilityService {
                         .filter(schedule -> schedule.getDayOfWeek() == date.getDayOfWeek())
                         .flatMap(schedule -> slotsFor(schedule, date, bookedBySlot,
                                 serviceDuration).stream()))
+                .filter(slot -> isFutureSlot(slot.appointmentDate(), slot.startTime()))
                 .filter(slot -> slot.remainingCapacity() > 0)
                 .toList();
     }
@@ -302,6 +309,7 @@ public class AppointmentAvailabilityService {
                         bookedBySlot.getOrDefault(new DoctorSlotKey(slot.getDoctorStaffId(),
                                 slot.getAppointmentDate(), slot.getStartTime()), 0L) == 0 ? 1 : 0,
                         slot.getDoctorStaffId(), slot.getRoomCode()))
+                .filter(slot -> isFutureSlot(slot.appointmentDate(), slot.startTime()))
                 .filter(slot -> slot.remainingCapacity() > 0)
                 .toList();
     }
@@ -363,6 +371,13 @@ public class AppointmentAvailabilityService {
 
     private boolean isWorkingDay(LocalDate date) {
         return date.getDayOfWeek() != DayOfWeek.SUNDAY;
+    }
+
+    private boolean isFutureSlot(LocalDate date, LocalTime startTime) {
+        LocalDate clinicToday = LocalDate.now(clock.withZone(CLINIC_ZONE));
+        return date != null && startTime != null
+                && (date.isAfter(clinicToday)
+                || (date.equals(clinicToday) && startTime.isAfter(LocalTime.now(clock.withZone(CLINIC_ZONE)))));
     }
 
     private void validateRange(LocalDate from, LocalDate to) {

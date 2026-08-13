@@ -27,7 +27,9 @@ import static org.mockito.Mockito.when;
 
 class AppointmentAvailabilityServiceTest {
     private final AppointmentRepository appointmentRepository = mock(AppointmentRepository.class);
-    private final AppointmentAvailabilityService service = new AppointmentAvailabilityService(appointmentRepository);
+    private final AppointmentAvailabilityService service = new AppointmentAvailabilityService(
+            appointmentRepository, new SpecialtyCatalogService(), null, null, null,
+            Clock.fixed(Instant.parse("2026-08-10T00:00:00Z"), ZoneOffset.UTC));
 
     @Test
     void returnsOnlyWorkingDaySlotsForKnownSpecialty() {
@@ -86,7 +88,7 @@ class AppointmentAvailabilityServiceTest {
 
         AppointmentAvailabilityService serviceWithCatalog = new AppointmentAvailabilityService(
                 appointmentRepository, new SpecialtyCatalogService(), null, null, null,
-                java.time.Clock.systemUTC(), serviceRepository);
+                Clock.fixed(Instant.parse("2026-08-10T00:00:00Z"), ZoneOffset.UTC), serviceRepository);
 
         List<AvailableSlotResponse> slots = serviceWithCatalog.find("Khám Tổng Quát", monday, monday, serviceId);
 
@@ -122,7 +124,7 @@ class AppointmentAvailabilityServiceTest {
 
         AppointmentAvailabilityService configuredService = new AppointmentAvailabilityService(
                 appointmentRepository, new SpecialtyCatalogService(), null, null, null,
-                java.time.Clock.systemUTC(), serviceRepository, slotRepository);
+                Clock.fixed(Instant.parse("2026-08-10T00:00:00Z"), ZoneOffset.UTC), serviceRepository, slotRepository);
 
         List<AvailableSlotResponse> slots = configuredService.find("Khám Tổng Quát", monday, monday, serviceId);
 
@@ -150,7 +152,7 @@ class AppointmentAvailabilityServiceTest {
 
         AppointmentAvailabilityService configuredService = new AppointmentAvailabilityService(
                 appointmentRepository, new SpecialtyCatalogService(), null, null, null,
-                java.time.Clock.systemUTC(), serviceRepository, slotRepository);
+                Clock.fixed(Instant.parse("2026-08-10T00:00:00Z"), ZoneOffset.UTC), serviceRepository, slotRepository);
 
         AuthException exception = assertThrows(AuthException.class, () -> configuredService.ensureBookable(
                 "Khám Tổng Quát", "Bác sĩ An", doctorId, monday, LocalTime.of(8, 30), null, serviceId));
@@ -216,11 +218,35 @@ class AppointmentAvailabilityServiceTest {
     }
 
     @Test
+    void rejectsAnOpenGeneratedSlotThatAlreadyStartedToday() {
+        ClinicServiceRepository serviceRepository = mock(ClinicServiceRepository.class);
+        GeneratedClinicSlotRepository slotRepository = mock(GeneratedClinicSlotRepository.class);
+        ClinicService clinicService = mock(ClinicService.class);
+        UUID serviceId = UUID.randomUUID();
+        UUID doctorId = UUID.randomUUID();
+        LocalDate today = LocalDate.of(2026, 8, 13);
+        when(serviceRepository.findById(serviceId)).thenReturn(java.util.Optional.of(clinicService));
+        when(clinicService.isActive()).thenReturn(true);
+        when(clinicService.getSpecialty()).thenReturn("Khám Tổng Quát");
+        when(clinicService.getDurationMinutes()).thenReturn(30);
+
+        AppointmentAvailabilityService configuredService = new AppointmentAvailabilityService(
+                appointmentRepository, new SpecialtyCatalogService(), null, null, null,
+                Clock.fixed(Instant.parse("2026-08-13T03:00:00Z"), ZoneOffset.UTC), serviceRepository, slotRepository);
+
+        AuthException exception = assertThrows(AuthException.class, () -> configuredService.ensureBookable(
+                "Khám Tổng Quát", "Bác sĩ An", doctorId, today, LocalTime.of(8, 30), null, serviceId));
+
+        assertEquals("APPOINTMENT_SLOT_INVALID", exception.getCode());
+    }
+
+    @Test
     void loadsConfiguredMonthWithBatchQueries() {
         DoctorProfileRepository doctorProfileRepository = mock(DoctorProfileRepository.class);
         DoctorScheduleRepository scheduleRepository = mock(DoctorScheduleRepository.class);
         AppointmentAvailabilityService configuredService = new AppointmentAvailabilityService(
-                appointmentRepository, new SpecialtyCatalogService(), doctorProfileRepository, scheduleRepository);
+                appointmentRepository, new SpecialtyCatalogService(), doctorProfileRepository, scheduleRepository,
+                null, Clock.fixed(Instant.parse("2026-08-10T00:00:00Z"), ZoneOffset.UTC));
 
         UUID doctorStaffId = UUID.randomUUID();
         LocalDate monday = LocalDate.of(2026, 8, 10);
