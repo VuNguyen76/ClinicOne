@@ -186,6 +186,36 @@ class AppointmentAvailabilityServiceTest {
     }
 
     @Test
+    void allowsAConfiguredGeneratedSlotOnSunday() {
+        ClinicServiceRepository serviceRepository = mock(ClinicServiceRepository.class);
+        GeneratedClinicSlotRepository slotRepository = mock(GeneratedClinicSlotRepository.class);
+        ClinicService clinicService = mock(ClinicService.class);
+        GeneratedClinicSlot sundaySlot = mock(GeneratedClinicSlot.class);
+        UUID serviceId = UUID.randomUUID();
+        UUID doctorId = UUID.randomUUID();
+        LocalDate sunday = LocalDate.of(2026, 8, 16);
+        when(serviceRepository.findById(serviceId)).thenReturn(java.util.Optional.of(clinicService));
+        when(clinicService.isActive()).thenReturn(true);
+        when(clinicService.getSpecialty()).thenReturn("Khám Tổng Quát");
+        when(clinicService.getDurationMinutes()).thenReturn(30);
+        when(slotRepository.findByClinicServiceIdAndDoctorStaffIdAndAppointmentDateAndStartTime(
+                serviceId, doctorId, sunday, LocalTime.of(8, 30))).thenReturn(List.of(sundaySlot));
+        when(sundaySlot.getStatus()).thenReturn(GeneratedSlotStatus.OPEN);
+        when(sundaySlot.getDoctorName()).thenReturn("Bác sĩ An");
+        when(appointmentRepository.countByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
+                doctorId, sunday, LocalTime.of(8, 30), AppointmentStatus.BOOKED)).thenReturn(0L);
+
+        AppointmentAvailabilityService configuredService = new AppointmentAvailabilityService(
+                appointmentRepository, new SpecialtyCatalogService(), null, null, null,
+                Clock.fixed(Instant.parse("2026-08-13T03:00:00Z"), ZoneOffset.UTC), serviceRepository, slotRepository);
+
+        configuredService.ensureBookable("Khám Tổng Quát", "Bác sĩ An", doctorId, sunday,
+                LocalTime.of(8, 30), null, serviceId);
+
+        verify(sundaySlot).getStatus();
+    }
+
+    @Test
     void loadsConfiguredMonthWithBatchQueries() {
         DoctorProfileRepository doctorProfileRepository = mock(DoctorProfileRepository.class);
         DoctorScheduleRepository scheduleRepository = mock(DoctorScheduleRepository.class);

@@ -225,6 +225,10 @@ public class AppointmentAvailabilityService {
                                         UUID excludedHoldId, Integer serviceDuration) {
         specialtyCatalog.require(specialty);
         validateDate(appointmentDate);
+        if (!isWorkingDay(appointmentDate)) {
+            throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_SLOT_INVALID",
+                    "Khung giờ này không thuộc lịch khám đang mở.");
+        }
         SlotTemplate template = slotTemplates(serviceDuration).stream()
                 .filter(item -> item.startTime().equals(startTime))
                 .findFirst()
@@ -347,7 +351,7 @@ public class AppointmentAvailabilityService {
 
     private void validateDate(LocalDate appointmentDate) {
         LocalDate clinicToday = LocalDate.now(clock.withZone(CLINIC_ZONE));
-        if (appointmentDate == null || appointmentDate.isBefore(clinicToday) || !isWorkingDay(appointmentDate)) {
+        if (appointmentDate == null || appointmentDate.isBefore(clinicToday)) {
             throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_SLOT_INVALID", "Ngày khám không còn nhận đặt lịch.");
         }
     }
