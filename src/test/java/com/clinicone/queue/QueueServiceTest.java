@@ -10,6 +10,7 @@ import com.clinicone.auth.StaffAccount;
 import com.clinicone.auth.StaffRole;
 import com.clinicone.doctor.DoctorProfile;
 import com.clinicone.doctor.DoctorProfileRepository;
+import com.clinicone.doctor.DoctorScheduleRepository;
 import com.clinicone.examination.ExaminationSession;
 import com.clinicone.examination.ExaminationSessionRepository;
 import com.clinicone.examination.ExaminationSessionStatus;
@@ -359,6 +360,37 @@ class QueueServiceTest {
         ticket.call();
         ticket.skip("Bệnh nhân chưa có mặt");
         assertThrows(IllegalStateException.class, ticket::call);
+    }
+
+    @Test
+    void doctorCannotCallPatientAgainOutsideAnActiveShift() {
+        UUID doctorId = UUID.fromString("c1e7aa0f-8dc2-4d3d-9d75-7f909e0bb1de");
+        StaffAccount staff = StaffAccount.create("doctor-no-shift", "hash", "BS. Nguyễn An", StaffRole.DOCTOR);
+        setId(staff, doctorId);
+        DoctorProfile profile = DoctorProfile.create(staff, "Nội tổng quát", room);
+        setId(profile, UUID.randomUUID());
+        Appointment doctorsAppointment = Appointment.create(appointment.getPatient(), doctorId,
+                "CL-20260806-NOSHIFT", "Nội tổng quát", "BS. Nguyễn An", TODAY,
+                LocalTime.of(9, 0), "Đau đầu");
+        QueueTicket ticket = QueueTicket.create(doctorsAppointment, room, TODAY, 5);
+        setId(ticket, UUID.randomUUID());
+        ticket.call();
+
+        DoctorScheduleRepository scheduleRepository = mock(DoctorScheduleRepository.class);
+        when(doctorProfileRepository.findByStaffAccount_Id(doctorId)).thenReturn(Optional.of(profile));
+        when(scheduleRepository.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(
+                profile.getId(), TODAY.getDayOfWeek())).thenReturn(List.of());
+        QueueService productionService = new QueueService(roomRepository, ticketRepository, appointmentRepository,
+                doctorProfileRepository, examinationSessionRepository, null, scheduleRepository, null,
+                Clock.fixed(Instant.parse("2026-08-06T02:00:00Z"), ZoneId.of("Asia/Ho_Chi_Minh")));
+        when(ticketRepository.findById(ticket.getId())).thenReturn(Optional.of(ticket));
+
+        AuthException exception = assertThrows(AuthException.class,
+                () -> productionService.skip(ticket.getId(), doctorId.toString(), "Bệnh nhân chưa có mặt"));
+
+        assertEquals("DOCTOR_SHIFT_INACTIVE", exception.getCode());
+        assertEquals(QueueTicketStatus.CALLED, ticket.getStatus());
+        verify(ticketRepository, never()).save(ticket);
     }
 
     @Test
