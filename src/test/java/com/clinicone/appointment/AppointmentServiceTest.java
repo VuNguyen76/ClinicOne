@@ -398,8 +398,8 @@ class AppointmentServiceTest {
         setId(appointment, appointmentId);
         GeneratedClinicSlot oldSlot = mock(GeneratedClinicSlot.class);
         when(appointmentRepository.findByIdAndPatientId(appointmentId, ACCOUNT_ID)).thenReturn(Optional.of(appointment));
-        when(generatedSlotRepository.findFirstByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
-                doctorId, appointment.getAppointmentDate(), appointment.getStartTime(), GeneratedSlotStatus.OPEN))
+        when(generatedSlotRepository.findFirstByClinicServiceIdAndDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
+                serviceId, doctorId, appointment.getAppointmentDate(), appointment.getStartTime(), GeneratedSlotStatus.OPEN))
                 .thenReturn(Optional.of(oldSlot));
         AppointmentService configuredService = new AppointmentService(accountRepository, appointmentRepository, null,
                 availabilityService, notificationService, null, holdService, clinicServiceRepository, null,
@@ -506,8 +506,8 @@ class AppointmentServiceTest {
                 ACCOUNT_ID, LocalDate.of(2026, 8, 11), LocalTime.of(10, 0), AppointmentStatus.BOOKED))
                 .thenReturn(Optional.empty());
         GeneratedClinicSlot oldSlot = mock(GeneratedClinicSlot.class);
-        when(generatedSlotRepository.findFirstByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
-                doctorId, LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), GeneratedSlotStatus.OPEN))
+        when(generatedSlotRepository.findFirstByClinicServiceIdAndDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
+                serviceId, doctorId, LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), GeneratedSlotStatus.OPEN))
                 .thenReturn(Optional.of(oldSlot));
         AppointmentService configuredService = new AppointmentService(accountRepository, appointmentRepository, null,
                 availabilityService, notificationService, null, holdService, clinicServiceRepository, null,

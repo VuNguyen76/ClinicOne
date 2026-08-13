@@ -191,6 +191,14 @@ public class AppointmentAvailabilityService {
                 ensureGeneratedSlotBookable(openSlot, doctorName, excludedHoldId);
                 return;
             }
+            // Once a service/doctor has generated slots for the requested day,
+            // the generated set is the source of truth. Never fall back to the
+            // older weekly schedule for a time that was not generated.
+            if (!generatedSlotRepository.findByClinicServiceIdAndDoctorStaffIdAndAppointmentDate(
+                    serviceId, doctorId, appointmentDate).isEmpty()) {
+                throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_SLOT_INVALID",
+                        "Khung giờ này không nằm trong các khung giờ đang mở.");
+            }
         }
         if (doctorProfileRepository == null) {
             ensureBookableFallback(specialty, appointmentDate, startTime, excludedHoldId, serviceDuration);

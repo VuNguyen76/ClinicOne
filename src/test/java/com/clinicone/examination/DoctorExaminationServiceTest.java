@@ -168,8 +168,9 @@ class DoctorExaminationServiceTest {
     void signingAConfiguredAppointmentMarksItsGeneratedSlotUnavailable() {
         appointment.applyServiceSnapshot(UUID.randomUUID(), "Khám nội tổng quát", "Khám mới", 30, true);
         GeneratedClinicSlot slot = mock(GeneratedClinicSlot.class);
-        when(generatedSlotRepository.findFirstByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
-                DOCTOR_ID, appointment.getAppointmentDate(), appointment.getStartTime(), GeneratedSlotStatus.OPEN))
+        when(generatedSlotRepository.findFirstByClinicServiceIdAndDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
+                appointment.getServiceId(), DOCTOR_ID, appointment.getAppointmentDate(), appointment.getStartTime(),
+                GeneratedSlotStatus.OPEN))
                 .thenReturn(Optional.of(slot));
 
         service.sign(TICKET_ID, DOCTOR_ID.toString(), request(), "sign-visit-1");
@@ -273,8 +274,9 @@ class DoctorExaminationServiceTest {
         UUID serviceId = UUID.randomUUID();
         appointment.applyServiceSnapshot(serviceId, "Khám nội tổng quát", "Khám mới", 30, true);
         GeneratedClinicSlot slot = mock(GeneratedClinicSlot.class);
-        when(generatedSlotRepository.findFirstByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
-                DOCTOR_ID, appointment.getAppointmentDate(), appointment.getStartTime(), GeneratedSlotStatus.OPEN))
+        when(generatedSlotRepository.findFirstByClinicServiceIdAndDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
+                appointment.getServiceId(), DOCTOR_ID, appointment.getAppointmentDate(), appointment.getStartTime(),
+                GeneratedSlotStatus.OPEN))
                 .thenReturn(Optional.of(slot));
 
         service.stop(TICKET_ID, DOCTOR_ID.toString(), new StopExaminationRequest("Phòng khám cần tạm ngưng phục vụ."));
@@ -520,8 +522,9 @@ class DoctorExaminationServiceTest {
     }
 
     private void stubCurrentGeneratedSlot() {
-        when(generatedSlotRepository.findFirstByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
-                DOCTOR_ID, appointment.getAppointmentDate(), appointment.getStartTime(), GeneratedSlotStatus.OPEN))
+        when(generatedSlotRepository.findFirstByClinicServiceIdAndDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
+                appointment.getServiceId(), DOCTOR_ID, appointment.getAppointmentDate(), appointment.getStartTime(),
+                GeneratedSlotStatus.OPEN))
                 .thenReturn(Optional.of(mock(GeneratedClinicSlot.class)));
     }
 

@@ -91,8 +91,9 @@ class ReschedulingServiceTest {
         Appointment appointment = appointment();
         appointment.applyServiceSnapshot(UUID.randomUUID(), "KhÃ¡m tá»•ng quÃ¡t", "KhÃ¡m", 30, true);
         GeneratedClinicSlot oldSlot = mock(GeneratedClinicSlot.class);
-        when(generatedSlotRepository.findFirstByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
-                DOCTOR_ID, appointment.getAppointmentDate(), appointment.getStartTime(), GeneratedSlotStatus.OPEN))
+        when(generatedSlotRepository.findFirstByClinicServiceIdAndDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
+                appointment.getServiceId(), DOCTOR_ID, appointment.getAppointmentDate(), appointment.getStartTime(),
+                GeneratedSlotStatus.OPEN))
                 .thenReturn(Optional.of(oldSlot));
         RescheduleCase rescheduleCase = RescheduleCase.open(appointment, "Bác sĩ nghỉ");
         UUID caseId = UUID.randomUUID();

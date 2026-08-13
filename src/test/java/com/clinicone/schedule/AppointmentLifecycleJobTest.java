@@ -129,8 +129,9 @@ class AppointmentLifecycleJobTest {
         when(appointment.getDoctorStaffId()).thenReturn(doctorId);
         when(appointment.getServiceId()).thenReturn(serviceId);
         GeneratedClinicSlot slot = mock(GeneratedClinicSlot.class);
-        when(generatedSlotRepository.findFirstByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
-                doctorId, appointment.getAppointmentDate(), appointment.getStartTime(), GeneratedSlotStatus.OPEN))
+        when(generatedSlotRepository.findFirstByClinicServiceIdAndDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
+                appointment.getServiceId(), doctorId, appointment.getAppointmentDate(), appointment.getStartTime(),
+                GeneratedSlotStatus.OPEN))
                 .thenReturn(Optional.of(slot));
         AtomicBoolean marked = new AtomicBoolean();
         when(appointment.getStatus()).thenAnswer(invocation -> marked.get()
