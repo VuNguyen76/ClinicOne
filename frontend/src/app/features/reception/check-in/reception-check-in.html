@@ -44,6 +44,25 @@
 
     @if (adjustmentTicket(); as adjustment) {<div class="fixed inset-0 z-50 grid place-items-center bg-[#062f3a]/35 px-4 py-6 backdrop-blur-[2px]" role="presentation" (click)="closeAdjustment()"><section class="w-full max-w-lg rounded-xl border border-[#dce7ea] bg-white shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="adjustment-title" (click)="$event.stopPropagation()"><div class="flex items-start justify-between border-b border-[#e7eff1] px-5 py-4"><div><p class="text-[10px] font-bold uppercase tracking-[0.16em] text-violet-600">Điều chỉnh trước khi gọi</p><h2 id="adjustment-title" class="mt-1 text-xl font-bold text-[#0a303b]">Số {{ adjustment.queueNumber }}</h2><p class="mt-1 text-xs text-slate-500">Giữ nguyên lịch đặt và giờ đến; chỉ thay đổi hướng xử lý hàng đợi.</p></div><button type="button" aria-label="Đóng" class="grid h-8 w-8 place-items-center rounded-md text-slate-500 transition hover:bg-slate-100" (click)="closeAdjustment()"><mat-icon>close</mat-icon></button></div><div class="grid gap-4 px-5 py-5"><label class="grid gap-1 text-xs font-bold uppercase tracking-[0.08em] text-slate-500">Bác sĩ/phòng đích<select class="min-h-10 rounded-md border border-[#d5e3e7] bg-white px-3 text-sm font-semibold normal-case tracking-normal outline-none focus:border-[#0ea5e9]" [ngModel]="adjustmentDoctorId()" (ngModelChange)="adjustmentDoctorId.set($event)" name="adjustmentDoctorId"><option value="">Chọn khi chuyển hàng đợi</option>@for (doctor of doctors(); track doctor.staffId) {<option [value]="doctor.staffId">{{ doctor.fullName }} · {{ doctor.specialty }} · {{ doctor.roomCode }}</option>}</select></label><label class="grid gap-1 text-xs font-bold uppercase tracking-[0.08em] text-slate-500">Lý do (tối thiểu 10 ký tự)<textarea class="min-h-20 rounded-md border border-[#d5e3e7] px-3 py-2 text-sm font-medium normal-case tracking-normal outline-none focus:border-[#0ea5e9]" [ngModel]="adjustmentReason()" (ngModelChange)="adjustmentReason.set($event)" name="adjustmentReason" maxlength="500" placeholder="Ví dụ: Điều chuyển theo phân công trong ca"></textarea></label><div class="flex flex-wrap justify-end gap-2 border-t border-[#e7eff1] pt-4"><button type="button" class="min-h-10 rounded-md border border-violet-200 px-4 text-sm font-semibold text-violet-700 transition hover:bg-violet-50" [disabled]="adjustmentLoading()" (click)="adjustQueue('SET_PRIORITY')">Đặt ưu tiên</button><button type="button" class="min-h-10 rounded-md border border-slate-300 px-4 text-sm font-semibold text-slate-600 transition hover:bg-slate-50" [disabled]="adjustmentLoading()" (click)="adjustQueue('CLEAR_PRIORITY')">Bỏ ưu tiên</button><button type="button" class="min-h-10 rounded-md bg-[#0b3846] px-4 text-sm font-semibold text-white transition hover:bg-[#082d39]" [disabled]="adjustmentLoading()" (click)="adjustQueue('MOVE')">{{ adjustmentLoading() ? 'Đang lưu...' : 'Chuyển hàng đợi' }}</button></div></div></section></div>}
 
+    @if (hasAbsentAppointments()) {
+      <section class="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4" aria-labelledby="absent-appointments-title">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div><h2 id="absent-appointments-title" class="text-sm font-bold text-amber-950">Lịch đã vắng mặt</h2><p class="mt-1 text-xs text-amber-800">Có thể chọn lịch mới cho người bệnh ngay tại quầy.</p></div>
+          <mat-icon class="text-amber-700">event_repeat</mat-icon>
+        </div>
+        <div class="mt-3 grid gap-2">
+          @for (appointment of appointments(); track appointment.id) {
+            @if (appointment.status === 'ABSENT') {
+              <div class="flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-200 bg-white px-3 py-2.5">
+                <div><p class="text-sm font-semibold text-[#173f4b]">{{ appointment.patientName }}</p><p class="text-xs text-slate-500">{{ appointment.appointmentCode }} · {{ appointment.specialty }} · {{ formatTime(appointment.startTime) }}</p></div>
+                <button type="button" class="min-h-9 rounded-md bg-[#0b3846] px-3 text-xs font-semibold text-white transition hover:bg-[#082d39]" (click)="openRebook(appointment)"><mat-icon class="!mr-1 !h-4 !w-4 !text-[17px]">event_repeat</mat-icon>Đặt lại lịch</button>
+              </div>
+            }
+          }
+        </div>
+      </section>
+    }
+
     @if (walkInOpen()) {
       <div class="fixed inset-0 z-50 grid place-items-center bg-[#062f3a]/35 px-4 py-6 backdrop-blur-[2px]" role="presentation" (click)="closeWalkIn()">
         <section class="max-h-[calc(100vh-3rem)] w-full max-w-2xl overflow-y-auto rounded-xl border border-[#dce7ea] bg-white shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="walk-in-title" (click)="$event.stopPropagation()">
