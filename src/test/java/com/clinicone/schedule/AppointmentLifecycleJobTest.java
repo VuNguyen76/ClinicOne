@@ -106,6 +106,20 @@ class AppointmentLifecycleJobTest {
     }
 
     @Test
+    void usesDefaultSlotDurationWhenAppointmentHasNoServiceSnapshot() {
+        Instant now = Instant.parse("2026-08-10T01:15:00Z");
+        Appointment appointment = appointment(AppointmentStatus.BOOKED, LocalDate.of(2026, 8, 9),
+                LocalTime.of(8, 0), now.minusSeconds(30 * 3600L));
+        when(appointmentRepository.findByStatusAndAppointmentDateBetweenOrderByAppointmentDateAscStartTimeAsc(
+                eq(AppointmentStatus.BOOKED), any(), any())).thenReturn(List.of(appointment));
+
+        AppointmentLifecycleJob.LifecycleJobResult result = job(now).runOnce();
+
+        assertThat(result.absentTransitions()).isZero();
+        verify(appointment, never()).markAbsent();
+    }
+
+    @Test
     void marksTheBookedSlotUnavailableWhenAppointmentBecomesAbsent() {
         Instant now = Instant.parse("2026-08-10T01:45:00Z");
         Appointment appointment = appointment(AppointmentStatus.BOOKED, LocalDate.of(2026, 8, 9),
