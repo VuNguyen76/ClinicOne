@@ -132,6 +132,33 @@ class AppointmentAvailabilityServiceTest {
     }
 
     @Test
+    void neverFallsBackToBookingWhenThePersistedGeneratedSlotWasCancelled() {
+        ClinicServiceRepository serviceRepository = mock(ClinicServiceRepository.class);
+        GeneratedClinicSlotRepository slotRepository = mock(GeneratedClinicSlotRepository.class);
+        ClinicService clinicService = mock(ClinicService.class);
+        GeneratedClinicSlot cancelledSlot = mock(GeneratedClinicSlot.class);
+        UUID serviceId = UUID.randomUUID();
+        UUID doctorId = UUID.randomUUID();
+        LocalDate monday = LocalDate.of(2026, 8, 10);
+        when(serviceRepository.findById(serviceId)).thenReturn(java.util.Optional.of(clinicService));
+        when(clinicService.isActive()).thenReturn(true);
+        when(clinicService.getSpecialty()).thenReturn("Khám Tổng Quát");
+        when(clinicService.getDurationMinutes()).thenReturn(30);
+        when(slotRepository.findByClinicServiceIdAndDoctorStaffIdAndAppointmentDateAndStartTime(
+                serviceId, doctorId, monday, LocalTime.of(8, 30))).thenReturn(List.of(cancelledSlot));
+        when(cancelledSlot.getStatus()).thenReturn(GeneratedSlotStatus.CANCELLED);
+
+        AppointmentAvailabilityService configuredService = new AppointmentAvailabilityService(
+                appointmentRepository, new SpecialtyCatalogService(), null, null, null,
+                java.time.Clock.systemUTC(), serviceRepository, slotRepository);
+
+        AuthException exception = assertThrows(AuthException.class, () -> configuredService.ensureBookable(
+                "Khám Tổng Quát", "Bác sĩ An", doctorId, monday, LocalTime.of(8, 30), null, serviceId));
+
+        assertEquals("APPOINTMENT_SLOT_INVALID", exception.getCode());
+    }
+
+    @Test
     void loadsConfiguredMonthWithBatchQueries() {
         DoctorProfileRepository doctorProfileRepository = mock(DoctorProfileRepository.class);
         DoctorScheduleRepository scheduleRepository = mock(DoctorScheduleRepository.class);

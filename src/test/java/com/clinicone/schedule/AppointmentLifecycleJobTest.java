@@ -5,6 +5,8 @@ import com.clinicone.appointment.AppointmentRepository;
 import com.clinicone.appointment.AppointmentStatus;
 import com.clinicone.audit.BusinessLogService;
 import com.clinicone.notification.PatientNotificationService;
+import com.clinicone.schedule.GeneratedClinicSlot;
+import com.clinicone.schedule.GeneratedClinicSlotRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +30,7 @@ class AppointmentLifecycleJobTest {
     private final AppointmentRepository appointmentRepository = mock(AppointmentRepository.class);
     private final PatientNotificationService notificationService = mock(PatientNotificationService.class);
     private final BusinessLogService businessLogService = mock(BusinessLogService.class);
+    private final GeneratedClinicSlotRepository generatedSlotRepository = mock(GeneratedClinicSlotRepository.class);
 
     @Test
     void createsOneTwentyFourHourReminderCandidate() {
@@ -100,6 +103,36 @@ class AppointmentLifecycleJobTest {
         verify(businessLogService).recordTransition(any(), eq("APPOINTMENT"), any(), eq("BOOKED"),
                 eq("ABSENT"), eq("MARK_ABSENT"), eq("SYSTEM"), any());
         verify(notificationService).notifyAppointmentAbsent(appointment);
+    }
+
+    @Test
+    void marksTheBookedSlotUnavailableWhenAppointmentBecomesAbsent() {
+        Instant now = Instant.parse("2026-08-10T01:45:00Z");
+        Appointment appointment = appointment(AppointmentStatus.BOOKED, LocalDate.of(2026, 8, 9),
+                LocalTime.of(8, 0), now.minusSeconds(30 * 3600L), 30);
+        UUID doctorId = UUID.randomUUID();
+        UUID serviceId = UUID.randomUUID();
+        when(appointment.getDoctorStaffId()).thenReturn(doctorId);
+        when(appointment.getServiceId()).thenReturn(serviceId);
+        GeneratedClinicSlot slot = mock(GeneratedClinicSlot.class);
+        when(generatedSlotRepository.findFirstByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
+                doctorId, appointment.getAppointmentDate(), appointment.getStartTime(), GeneratedSlotStatus.OPEN))
+                .thenReturn(Optional.of(slot));
+        AtomicBoolean marked = new AtomicBoolean();
+        when(appointment.getStatus()).thenAnswer(invocation -> marked.get()
+                ? AppointmentStatus.ABSENT : AppointmentStatus.BOOKED);
+        doAnswer(invocation -> { marked.set(true); return null; }).when(appointment).markAbsent();
+        when(appointmentRepository.findByStatusAndAppointmentDateBetweenOrderByAppointmentDateAscStartTimeAsc(
+                eq(AppointmentStatus.BOOKED), any(), any())).thenReturn(List.of(appointment));
+        when(appointmentRepository.findByIdForUpdate(appointment.getId())).thenReturn(Optional.of(appointment));
+        when(appointmentRepository.save(appointment)).thenReturn(appointment);
+
+        AppointmentLifecycleJob result = new AppointmentLifecycleJob(appointmentRepository, notificationService,
+                businessLogService, Clock.fixed(now, ZoneOffset.UTC), null, generatedSlotRepository);
+
+        assertThat(result.runOnce().absentTransitions()).isEqualTo(1);
+        verify(slot).cancel();
+        verify(generatedSlotRepository).save(slot);
     }
 
     @Test

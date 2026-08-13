@@ -122,6 +122,7 @@ public class QueueService {
         Appointment appointment = appointmentRepository.findByIdAndPatientId(appointmentId, patientId)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "APPOINTMENT_NOT_FOUND",
                         "Không tìm thấy lịch hẹn."));
+        ensureQrCheckInNotLate(appointment);
         return checkInAppointment(roomCode, appointment, null, accountId, normalizedRequestKey);
     }
 
@@ -719,6 +720,23 @@ public class QueueService {
         if (appointment.getStatus() != AppointmentStatus.BOOKED) {
             throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_NOT_ACTIONABLE",
                     "Lịch hẹn không còn cho phép lấy số.");
+        }
+    }
+
+    private void ensureQrCheckInNotLate(Appointment appointment) {
+        if (appointment.getStatus() != AppointmentStatus.BOOKED
+                || !appointment.getAppointmentDate().equals(today())) {
+            return;
+        }
+        java.time.Instant scheduledEnd = java.time.ZonedDateTime.of(
+                appointment.getAppointmentDate(), appointment.getStartTime(), CLINIC_ZONE).toInstant();
+        Integer duration = appointment.getServiceDurationMinutes();
+        if (duration != null && duration > 0) {
+            scheduledEnd = scheduledEnd.plusSeconds(duration.longValue() * 60L);
+        }
+        if (!java.time.Instant.now(clock).isBefore(scheduledEnd.plusSeconds(15 * 60L))) {
+            throw new AuthException(HttpStatus.CONFLICT, "QUEUE_LATE_APPOINTMENT",
+                    "Lịch hẹn đã quá giờ check-in; vui lòng đến quầy để được hỗ trợ đổi khung giờ.");
         }
     }
 
