@@ -120,10 +120,13 @@ public class AppointmentAvailabilityService {
         Integer serviceDuration = service == null ? null : service.getDurationMinutes();
         if (serviceId != null && generatedSlotRepository != null) {
             List<GeneratedClinicSlot> generatedSlots = generatedSlotRepository
-                    .findByClinicServiceIdAndAppointmentDateBetweenAndStatusOrderByAppointmentDateAscStartTimeAsc(
-                            serviceId, from, to, GeneratedSlotStatus.OPEN);
+                    .findByClinicServiceIdAndAppointmentDateBetweenOrderByAppointmentDateAscStartTimeAsc(
+                            serviceId, from, to);
             if (!generatedSlots.isEmpty()) {
-                return findGenerated(generatedSlots, from, to);
+                List<GeneratedClinicSlot> openSlots = generatedSlots.stream()
+                        .filter(slot -> slot.getStatus() == GeneratedSlotStatus.OPEN)
+                        .toList();
+                return findGenerated(openSlots, from, to);
             }
         }
         if (doctorProfileRepository != null) {

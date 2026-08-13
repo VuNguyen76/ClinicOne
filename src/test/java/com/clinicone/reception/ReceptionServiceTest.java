@@ -246,6 +246,31 @@ class ReceptionServiceTest {
     }
 
     @Test
+    void recordsReceptionistIdentityWhenClosingAQueueTicket() {
+        UUID ticketId = UUID.randomUUID();
+        PatientAccount patient = mock(PatientAccount.class);
+        when(patient.getFullName()).thenReturn("Nguyễn Thanh Vũ");
+        when(patient.getPhone()).thenReturn("0912345678");
+        Appointment appointment = mock(Appointment.class);
+        when(appointment.getId()).thenReturn(APPOINTMENT_ID);
+        when(appointment.getStatus()).thenReturn(AppointmentStatus.CHECKED_IN);
+        when(appointment.getPatient()).thenReturn(patient);
+        when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
+        QueueTicket ticket = mock(QueueTicket.class);
+        when(ticket.getId()).thenReturn(ticketId);
+        when(ticketRepository.findByAppointmentId(APPOINTMENT_ID)).thenReturn(Optional.of(ticket));
+        QueueTicketResponse updated = new QueueTicketResponse(ticketId, 8, "NOI-01", "Phòng Nội 01",
+                TODAY, LocalTime.of(9, 0), "LEFT_BEFORE_EXAM", "Rời trước khám", "CL-20260807-1234",
+                "Nội tổng quát", "BS. Nguyễn An");
+        when(queueService.leaveBeforeExam(ticketId, "Người bệnh bận việc đột xuất", "staff-1"))
+                .thenReturn(updated);
+
+        service.leaveBeforeExam(APPOINTMENT_ID, "Người bệnh bận việc đột xuất", "staff-1");
+
+        verify(queueService).leaveBeforeExam(ticketId, "Người bệnh bận việc đột xuất", "staff-1");
+    }
+
+    @Test
     void rejectsCheckInBeforePatientCompletesPasswordActivation() {
         PatientAccount patient = mock(PatientAccount.class);
         when(patient.isMustChangePassword()).thenReturn(true);
