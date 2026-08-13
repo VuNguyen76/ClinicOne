@@ -10,6 +10,7 @@ import com.clinicone.auth.AuthException;
 import com.clinicone.auth.AccountStatus;
 import com.clinicone.auth.PatientAccount;
 import com.clinicone.auth.PatientAccountRepository;
+import com.clinicone.audit.BusinessLogService;
 import com.clinicone.doctor.DoctorProfile;
 import com.clinicone.doctor.DoctorProfileRepository;
 import com.clinicone.patientprofile.PatientProfile;
@@ -42,13 +43,26 @@ public class ReceptionService {
     private final PatientAccountRepository patientAccountRepository;
     private final AppointmentService appointmentService;
     private final PatientProfileRepository patientProfileRepository;
+    private final BusinessLogService businessLogService;
 
     public ReceptionService(AppointmentRepository appointmentRepository,
                             DoctorProfileRepository doctorProfileRepository,
                             QueueTicketRepository ticketRepository,
                             QueueService queueService,
                             Clock clock) {
-        this(appointmentRepository, doctorProfileRepository, ticketRepository, queueService, clock, null, null, null);
+        this(appointmentRepository, doctorProfileRepository, ticketRepository, queueService, clock, null, null, null, null);
+    }
+
+    public ReceptionService(AppointmentRepository appointmentRepository,
+                            DoctorProfileRepository doctorProfileRepository,
+                            QueueTicketRepository ticketRepository,
+                            QueueService queueService,
+                            Clock clock,
+                            PatientAccountRepository patientAccountRepository,
+                            AppointmentService appointmentService,
+                            PatientProfileRepository patientProfileRepository) {
+        this(appointmentRepository, doctorProfileRepository, ticketRepository, queueService, clock,
+                patientAccountRepository, appointmentService, patientProfileRepository, null);
     }
 
     @org.springframework.beans.factory.annotation.Autowired
@@ -59,7 +73,8 @@ public class ReceptionService {
                             Clock clock,
                             PatientAccountRepository patientAccountRepository,
                             AppointmentService appointmentService,
-                            PatientProfileRepository patientProfileRepository) {
+                            PatientProfileRepository patientProfileRepository,
+                            BusinessLogService businessLogService) {
         this.appointmentRepository = appointmentRepository;
         this.doctorProfileRepository = doctorProfileRepository;
         this.ticketRepository = ticketRepository;
@@ -68,6 +83,7 @@ public class ReceptionService {
         this.patientAccountRepository = patientAccountRepository;
         this.appointmentService = appointmentService;
         this.patientProfileRepository = patientProfileRepository;
+        this.businessLogService = businessLogService;
     }
 
     @Transactional(readOnly = true)
@@ -75,7 +91,7 @@ public class ReceptionService {
         String normalized = normalizeQuery(query);
         LocalDate appointmentDate = date == null ? today() : date;
         return appointmentRepository.findReceptionCandidatesByStatuses(normalized, appointmentDate,
-                        List.of(AppointmentStatus.BOOKED, AppointmentStatus.CHECKED_IN))
+                        List.of(AppointmentStatus.BOOKED, AppointmentStatus.CHECKED_IN, AppointmentStatus.ABSENT))
                 .stream().map(this::toResponse).toList();
     }
 
@@ -102,6 +118,48 @@ public class ReceptionService {
                 ? queueService.checkInByStaff(request.roomCode().trim(), appointmentId, request.reason().trim())
                 : queueService.checkInByStaff(request.roomCode().trim(), appointmentId, request.reason().trim(), actor);
         return toResponse(appointment, ticket);
+    }
+    
+    @Transactional
+    public ReceptionAppointmentResponse rebookAbsent(UUID appointmentId, ReceptionRebookRequest request, String actor) {
+        if (patientAccountRepository == null || appointmentService == null) {
+            throw new AuthException(HttpStatus.SERVICE_UNAVAILABLE, "RECEPTION_REBOOK_UNAVAILABLE",
+                    "Chưa bật luồng đặt lại lịch tại quầy.");
+        }
+        Appointment previous = appointmentRepository.findByIdForUpdate(appointmentId)
+                .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "APPOINTMENT_NOT_FOUND",
+                        "Không tìm thấy lịch hẹn."));
+        if (previous.getStatus() != AppointmentStatus.ABSENT) {
+            throw new AuthException(HttpStatus.CONFLICT, "REBOOK_STATUS_INVALID",
+                    "Chỉ lịch đã ghi nhận vắng mặt mới được đặt lại tại quầy.");
+        }
+
+        DoctorProfile doctor = doctorProfileRepository.findById(request.doctorId())
+                .filter(DoctorProfile::isActive)
+                .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "DOCTOR_ASSIGNMENT_NOT_FOUND",
+                        "Không tìm thấy bác sĩ đang được phân công."));
+        if (!doctor.getSpecialty().equalsIgnoreCase(previous.getSpecialty())) {
+            throw new AuthException(HttpStatus.CONFLICT, "DOCTOR_SPECIALTY_MISMATCH",
+                    "Bác sĩ mới phải thuộc cùng chuyên khoa với lịch cũ.");
+        }
+
+        CreateAppointmentRequest replacementRequest = new CreateAppointmentRequest(
+                previous.getSpecialty(), doctor.getStaffAccount().getFullName(), request.appointmentDate(),
+                request.startTime(), previous.getReason(),
+                previous.getPatientProfile() == null ? null : previous.getPatientProfile().getId(),
+                request.doctorId(), null, previous.getServiceId());
+        AppointmentResponse created = previous.getPatient() == null
+                ? appointmentService.createTemporary(previous.getPatientProfile(), replacementRequest)
+                : appointmentService.create(previous.getPatient().getId().toString(), replacementRequest);
+        Appointment replacement = appointmentRepository.findById(created.id())
+                .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "APPOINTMENT_NOT_FOUND",
+                        "Không tìm thấy lịch mới vừa tạo."));
+        if (businessLogService != null) {
+            businessLogService.recordTransition(UUID.randomUUID(), "APPOINTMENT", replacement.getId(),
+                    AppointmentStatus.ABSENT.name(), AppointmentStatus.BOOKED.name(), "RECEPTION_REBOOK_ABSENT",
+                    actor, request.lateReason().trim());
+        }
+        return toResponse(replacement, null);
     }
 
     @Transactional
