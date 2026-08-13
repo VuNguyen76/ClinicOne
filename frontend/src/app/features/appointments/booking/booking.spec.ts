@@ -47,6 +47,28 @@ describe('Booking calendar', () => {
     request.flush([]);
   });
 
+  it('ignores a late response from a month that is no longer displayed', () => {
+    component['chooseSpecialty']({ code: 'NOI', name: 'Ná»™i tá»•ng quÃ¡t', description: 'KhÃ¡m tá»•ng quÃ¡t' });
+    const firstRequest = http.expectOne((item) => item.url === '/api/v1/appointment-slots');
+
+    component['nextMonth']();
+    const secondRequest = http.expectOne((item) => item.url === '/api/v1/appointment-slots');
+    const displayedMonth = component['calendarMonth']();
+    const displayedDate = `${displayedMonth.getFullYear()}-${String(displayedMonth.getMonth() + 1).padStart(2, '0')}-02`;
+
+    secondRequest.flush([{
+      specialty: 'Ná»™i tá»•ng quÃ¡t', appointmentDate: displayedDate, startTime: '09:00:00', endTime: '09:30:00',
+      doctorName: 'BÃ¡c sÄ© thÃ¡ng hiá»‡n táº¡i', remainingCapacity: 1,
+    }]);
+    firstRequest.flush([{
+      specialty: 'Ná»™i tá»•ng quÃ¡t', appointmentDate: '2099-01-01', startTime: '08:00:00', endTime: '08:30:00',
+      doctorName: 'BÃ¡c sÄ© thÃ¡ng cÅ©', remainingCapacity: 1,
+    }]);
+
+    expect(component['monthSlots']()).toHaveLength(1);
+    expect(component['monthSlots']()[0].doctorName).toBe('BÃ¡c sÄ© thÃ¡ng hiá»‡n táº¡i');
+  });
+
   it('uses the already loaded month data when a date is selected', () => {
     component['chooseSpecialty']({ code: 'NOI', name: 'Nội tổng quát', description: 'Khám tổng quát' });
     const request = http.expectOne((item) => item.url === '/api/v1/appointment-slots');
