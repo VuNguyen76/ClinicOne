@@ -14,12 +14,14 @@ describe('ServiceManagement', () => {
       providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
     }).compileComponents();
 
+    sessionStorage.setItem('clinicOneSessionType', 'STAFF');
+    sessionStorage.setItem('clinicOneStaffRoles', JSON.stringify(['COORDINATOR']));
     fixture = TestBed.createComponent(ServiceManagement);
     http = TestBed.inject(HttpTestingController);
     fixture.detectChanges();
   });
 
-  afterEach(() => http.verify());
+  afterEach(() => { http.verify(); sessionStorage.clear(); });
 
   it('loads services, doctors and specialties for the coordinator workspace', () => {
     http.expectOne('/api/v1/admin/services').flush([service('s-1', true)]);
@@ -59,6 +61,17 @@ describe('ServiceManagement', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
+  });
+
+  it('shows the service catalog as read-only to an admin', () => {
+    sessionStorage.setItem('clinicOneStaffRoles', JSON.stringify(['ADMIN']));
+    http.expectOne('/api/v1/admin/services').flush([service('s-1', true)]);
+    http.expectOne('/api/v1/admin/doctors').flush([doctor('d-1')]);
+    http.expectOne('/api/v1/specialties').flush([]);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[data-testid="new-service"]')).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Chế độ xem');
   });
 });
 

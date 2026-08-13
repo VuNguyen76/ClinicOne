@@ -11,6 +11,7 @@ import {
   RescheduleCaseResponse,
 } from '../../core/auth/auth-api.service';
 import { AccountMenu } from '../../shared/account-menu/account-menu';
+import { hasStaffRole } from '../../core/auth/auth.guard';
 
 @Component({
   selector: 'app-rescheduling',
@@ -66,6 +67,10 @@ export class Rescheduling implements OnInit {
   }
 
   protected resolve(): void {
+    if (!this.canResolve()) {
+      this.error.set('Chỉ điều phối viên được xác nhận sắp xếp lại lịch.');
+      return;
+    }
     const item = this.selectedCase();
     if (!item || this.form.invalid) {
       this.form.markAllAsTouched();
@@ -97,7 +102,7 @@ export class Rescheduling implements OnInit {
   }
 
   protected canResolve(): boolean {
-    return sessionStorage.getItem('clinicOneStaffRole') === 'COORDINATOR';
+    return hasStaffRole('COORDINATOR');
   }
 
   private loadCases(): void {
