@@ -31,7 +31,9 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -310,9 +312,9 @@ public class AppointmentService {
                 && existing.getAppointmentDate().equals(request.appointmentDate())
                 && existing.getStartTime().equals(request.startTime())
                 && existing.getReason().equals(request.reason().trim())
-                && java.util.Objects.equals(existing.getDoctorStaffId(), request.doctorId())
-                && java.util.Objects.equals(existing.getServiceId(), request.serviceId())
-                && java.util.Objects.equals(existing.getPatientProfile() == null ? null : existing.getPatientProfile().getId(),
+                && Objects.equals(existing.getDoctorStaffId(), request.doctorId())
+                && Objects.equals(existing.getServiceId(), request.serviceId())
+                && Objects.equals(existing.getPatientProfile() == null ? null : existing.getPatientProfile().getId(),
                         request.profileId());
     }
 
@@ -448,7 +450,7 @@ public class AppointmentService {
                 || appointment.getDoctorStaffId() == null) {
             return;
         }
-        Instant appointmentAt = java.time.ZonedDateTime.of(appointment.getAppointmentDate(),
+        Instant appointmentAt = ZonedDateTime.of(appointment.getAppointmentDate(),
                 appointment.getStartTime(), CLINIC_ZONE).toInstant();
         if (Instant.now(clock).isBefore(appointmentAt)) {
             return;
@@ -531,7 +533,7 @@ public class AppointmentService {
     }
 
     private void requireLateCancellationReason(Appointment appointment, String reason) {
-        Instant appointmentAt = java.time.ZonedDateTime.of(appointment.getAppointmentDate(), appointment.getStartTime(), CLINIC_ZONE).toInstant();
+        Instant appointmentAt = ZonedDateTime.of(appointment.getAppointmentDate(), appointment.getStartTime(), CLINIC_ZONE).toInstant();
         Duration remaining = Duration.between(Instant.now(clock), appointmentAt);
         int thresholdHours = configurationService == null
                 ? 12

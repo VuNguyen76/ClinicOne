@@ -10,7 +10,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.annotation.Propagation;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+import java.time.Instant;
 import com.clinicone.appointment.Appointment;
 
 @Service
@@ -137,13 +139,13 @@ public class PatientNotificationService {
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void notifyAccountSecurityLocked(UUID patientId, java.time.Instant lockedUntil) {
+    public void notifyAccountSecurityLocked(UUID patientId, Instant lockedUntil) {
         if (patientId == null || lockedUntil == null) return;
         saveOnce(PatientNotification.accountSecurityLocked(patientId, lockedUntil));
     }
 
     private void saveOnce(PatientNotification notification) {
-        java.util.Optional<PatientNotification> existing = repository.findByEventKey(notification.getEventKey());
+        Optional<PatientNotification> existing = repository.findByEventKey(notification.getEventKey());
         if (existing.isPresent()) {
             // The outbox may still need to be created after a previous transaction committed
             // the in-app notification, but the legacy direct sender must never resend it.

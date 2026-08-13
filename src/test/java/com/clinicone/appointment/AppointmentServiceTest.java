@@ -294,7 +294,7 @@ class AppointmentServiceTest {
         setId(account, ACCOUNT_ID);
         UUID holdId = UUID.randomUUID();
         AppointmentHold hold = AppointmentHold.create(account, "Nội khoa", "BS. Nguyễn An", null,
-                LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), "PATIENT-HOLD", java.time.Instant.MAX);
+                LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), "PATIENT-HOLD", Instant.MAX);
         setId(hold, holdId);
         when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
         when(appointmentRepository.findByPatientIdAndAppointmentDateAndStartTimeAndStatus(

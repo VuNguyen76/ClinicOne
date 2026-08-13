@@ -7,7 +7,9 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.Mockito.mock;
@@ -70,9 +72,9 @@ class SmsDeliveryTest {
         ObjectProvider<SmsSender> senders = mock(ObjectProvider.class);
         when(senders.getIfAvailable()).thenReturn(sender);
         UUID deliveryId = UUID.randomUUID();
-        when(repository.findByIdForUpdate(deliveryId)).thenReturn(java.util.Optional.of(delivery));
+        when(repository.findByIdForUpdate(deliveryId)).thenReturn(Optional.of(delivery));
         SmsDeliveryService service = new SmsDeliveryService(repository, senders, new SmsContentPolicy(),
-                Clock.fixed(lastAttempt.plusSeconds(301), java.time.ZoneOffset.UTC));
+                Clock.fixed(lastAttempt.plusSeconds(301), ZoneOffset.UTC));
 
         boolean claimed = service.claim(deliveryId, lastAttempt.plusSeconds(301));
 

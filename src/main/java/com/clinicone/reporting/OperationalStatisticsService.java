@@ -17,6 +17,7 @@ import java.math.RoundingMode;
 import java.time.DayOfWeek;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.time.Instant;
 import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
 import java.util.LinkedHashMap;
@@ -155,7 +156,7 @@ public class OperationalStatisticsService {
     }
 
     private BigDecimal averageWaitMinutes(List<QueueTicket> tickets, List<ExaminationSession> sessions) {
-        Map<UUID, java.time.Instant> starts = sessions.stream().filter(session -> session.getAppointment() != null
+        Map<UUID, Instant> starts = sessions.stream().filter(session -> session.getAppointment() != null
                         && session.getAppointment().getId() != null && session.getStartedAt() != null)
                 .collect(Collectors.toMap(session -> session.getAppointment().getId(), ExaminationSession::getStartedAt,
                         (first, ignored) -> first));

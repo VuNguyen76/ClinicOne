@@ -11,6 +11,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.Comparator;
 
 @Service
 public class ClinicServiceManagementService {
@@ -121,7 +122,7 @@ public class ClinicServiceManagementService {
     private ClinicServiceResponse toResponse(ClinicService service) {
         List<EligibleDoctorResponse> doctors = service.getEligibleDoctors().stream()
                 .map(EligibleDoctorResponse::from)
-                .sorted(java.util.Comparator.comparing(EligibleDoctorResponse::fullName))
+                .sorted(Comparator.comparing(EligibleDoctorResponse::fullName))
                 .toList();
         return new ClinicServiceResponse(service.getId(), service.getName(), service.getSpecialty(),
                 service.getVisitType(), service.getDurationMinutes(), service.isActive(), doctors,
