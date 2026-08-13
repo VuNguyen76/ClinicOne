@@ -200,7 +200,7 @@ class QueueControllerTest {
 
     @Test
     void receptionistCanCloseQueueTicketWhenPatientLeavesBeforeExam() throws Exception {
-        when(queueService.leaveBeforeExam(eq(TICKET_ID), eq("Bệnh nhân bận việc")))
+        when(queueService.leaveBeforeExam(eq(TICKET_ID), eq("Bệnh nhân bận việc"), eq(ACCOUNT_ID.toString())))
                 .thenReturn(new QueueTicketResponse(TICKET_ID, 5, "NOI-01", "Phòng Nội tổng quát 01",
                         LocalDate.of(2026, 8, 6), LocalTime.of(9, 0), "LEFT_BEFORE_EXAM", "Rời trước khám",
                         "CL-20260806-1234", "Nội tổng quát", "BS. Nguyễn An"));

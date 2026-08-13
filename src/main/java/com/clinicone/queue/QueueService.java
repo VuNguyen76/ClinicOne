@@ -128,10 +128,17 @@ public class QueueService {
 
     @Transactional
     public QueueTicketResponse checkInByStaff(String roomCode, UUID appointmentId, String exceptionReason) {
+        return checkInByStaff(roomCode, appointmentId, exceptionReason, "STAFF");
+    }
+
+    @Transactional
+    public QueueTicketResponse checkInByStaff(String roomCode, UUID appointmentId, String exceptionReason,
+                                              String actor) {
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "APPOINTMENT_NOT_FOUND",
                         "Không tìm thấy lịch hẹn."));
-        return checkInAppointment(roomCode, appointment, normalizeExceptionReason(exceptionReason), "STAFF");
+        String normalizedActor = actor == null || actor.isBlank() ? "STAFF" : actor.trim();
+        return checkInAppointment(roomCode, appointment, normalizeExceptionReason(exceptionReason), normalizedActor);
     }
 
     private QueueTicketResponse checkInAppointment(String roomCode, Appointment appointment) {
@@ -390,8 +397,14 @@ public class QueueService {
 
     @Transactional
     public QueueTicketResponse leaveBeforeExam(UUID ticketId, String reason) {
+        return leaveBeforeExam(ticketId, reason, "SYSTEM");
+    }
+
+    @Transactional
+    public QueueTicketResponse leaveBeforeExam(UUID ticketId, String reason, String actor) {
         QueueTicket ticket = findTicket(ticketId);
         String normalizedReason = normalizeLeaveReason(reason);
+        String normalizedActor = actor == null || actor.isBlank() ? "SYSTEM" : actor.trim();
         UUID eventId = UUID.randomUUID();
         String previousTicketStatus = ticket.getStatus().name();
         String previousAppointmentStatus = ticket.getAppointment().getStatus().name();
@@ -411,9 +424,9 @@ public class QueueService {
         }
         QueueTicketResponse response = QueueTicketResponse.from(ticketRepository.save(ticket));
         recordTransition(eventId, "QUEUE_TICKET", ticket.getId(), previousTicketStatus,
-                ticket.getStatus().name(), "LEAVE_BEFORE_EXAM", "SYSTEM", normalizedReason);
+                ticket.getStatus().name(), "LEAVE_BEFORE_EXAM", normalizedActor, normalizedReason);
         recordTransition(eventId, "APPOINTMENT", ticket.getAppointment().getId(), previousAppointmentStatus,
-                ticket.getAppointment().getStatus().name(), "LEAVE_BEFORE_EXAM", "SYSTEM", normalizedReason);
+                ticket.getAppointment().getStatus().name(), "LEAVE_BEFORE_EXAM", normalizedActor, normalizedReason);
         return response;
     }
 

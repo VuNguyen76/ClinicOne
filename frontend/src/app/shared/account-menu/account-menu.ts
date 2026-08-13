@@ -110,6 +110,7 @@ export class AccountMenu {
   private finishLogout(): void {
     sessionStorage.removeItem('clinicOneAccessToken');
     sessionStorage.removeItem('clinicOnePatientName');
+    sessionStorage.removeItem('clinicOneSessionType');
     sessionStorage.removeItem('clinicOneStaffRole');
     sessionStorage.removeItem('clinicOneStaffRoles');
     this.menuOpen.set(false);

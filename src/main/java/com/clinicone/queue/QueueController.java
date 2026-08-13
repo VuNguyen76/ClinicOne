@@ -91,8 +91,9 @@ public class QueueController {
     @PostMapping("/queue/{ticketId}/leave")
     @PreAuthorize("hasAnyRole('COORDINATOR', 'RECEPTIONIST')")
     public ResponseEntity<QueueTicketResponse> leaveBeforeExam(
-            @PathVariable UUID ticketId, @Valid @RequestBody QueueLeaveRequest request) {
-        return ResponseEntity.ok(queueService.leaveBeforeExam(ticketId, request.reason()));
+            Authentication authentication, @PathVariable UUID ticketId,
+            @Valid @RequestBody QueueLeaveRequest request) {
+        return ResponseEntity.ok(queueService.leaveBeforeExam(ticketId, request.reason(), authentication.getName()));
     }
 
     @PostMapping("/queue/{ticketId}/facility-unavailable")

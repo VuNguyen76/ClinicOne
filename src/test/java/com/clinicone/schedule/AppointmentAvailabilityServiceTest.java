@@ -109,8 +109,8 @@ class AppointmentAvailabilityServiceTest {
         when(clinicService.isActive()).thenReturn(true);
         when(clinicService.getSpecialty()).thenReturn("Khám Tổng Quát");
         when(clinicService.getDurationMinutes()).thenReturn(30);
-        when(slotRepository.findByClinicServiceIdAndAppointmentDateBetweenAndStatusOrderByAppointmentDateAscStartTimeAsc(
-                serviceId, monday, monday, GeneratedSlotStatus.OPEN)).thenReturn(List.of(generatedSlot));
+        when(slotRepository.findByClinicServiceIdAndAppointmentDateBetweenOrderByAppointmentDateAscStartTimeAsc(
+                serviceId, monday, monday)).thenReturn(List.of(generatedSlot));
         when(generatedSlot.getSpecialty()).thenReturn("Khám Tổng Quát");
         when(generatedSlot.getAppointmentDate()).thenReturn(monday);
         when(generatedSlot.getStartTime()).thenReturn(LocalTime.of(8, 0));
@@ -118,6 +118,7 @@ class AppointmentAvailabilityServiceTest {
         when(generatedSlot.getDoctorStaffId()).thenReturn(doctorId);
         when(generatedSlot.getDoctorName()).thenReturn("Bác sĩ An");
         when(generatedSlot.getRoomCode()).thenReturn("TQ-01");
+        when(generatedSlot.getStatus()).thenReturn(GeneratedSlotStatus.OPEN);
         when(appointmentRepository.countBookedByDoctorsAndDateRangeAndStatusIn(
                 List.of(doctorId), monday, monday, List.of(AppointmentStatus.BOOKED, AppointmentStatus.CHECKED_IN)))
                 .thenReturn(List.of());
@@ -158,6 +159,29 @@ class AppointmentAvailabilityServiceTest {
                 "Khám Tổng Quát", "Bác sĩ An", doctorId, monday, LocalTime.of(8, 30), null, serviceId));
 
         assertEquals("APPOINTMENT_SLOT_INVALID", exception.getCode());
+    }
+
+    @Test
+    void doesNotExposeConfiguredFallbackWhenAllGeneratedSlotsAreCancelled() {
+        ClinicServiceRepository serviceRepository = mock(ClinicServiceRepository.class);
+        GeneratedClinicSlotRepository slotRepository = mock(GeneratedClinicSlotRepository.class);
+        ClinicService clinicService = mock(ClinicService.class);
+        GeneratedClinicSlot cancelledSlot = mock(GeneratedClinicSlot.class);
+        UUID serviceId = UUID.randomUUID();
+        LocalDate monday = LocalDate.of(2026, 8, 10);
+        when(serviceRepository.findById(serviceId)).thenReturn(java.util.Optional.of(clinicService));
+        when(clinicService.isActive()).thenReturn(true);
+        when(clinicService.getSpecialty()).thenReturn("Khám Tổng Quát");
+        when(clinicService.getDurationMinutes()).thenReturn(30);
+        when(slotRepository.findByClinicServiceIdAndAppointmentDateBetweenOrderByAppointmentDateAscStartTimeAsc(
+                serviceId, monday, monday)).thenReturn(List.of(cancelledSlot));
+        when(cancelledSlot.getStatus()).thenReturn(GeneratedSlotStatus.CANCELLED);
+
+        AppointmentAvailabilityService configuredService = new AppointmentAvailabilityService(
+                appointmentRepository, new SpecialtyCatalogService(), null, null, null,
+                Clock.fixed(Instant.parse("2026-08-10T00:00:00Z"), ZoneOffset.UTC), serviceRepository, slotRepository);
+
+        assertEquals(List.of(), configuredService.find("Khám Tổng Quát", monday, monday, serviceId));
     }
 
     @Test
