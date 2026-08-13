@@ -130,9 +130,9 @@ public class AppointmentLifecycleJob {
             return;
         }
         generatedSlotRepository
-                .findFirstByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
-                        appointment.getDoctorStaffId(), appointment.getAppointmentDate(), appointment.getStartTime(),
-                        GeneratedSlotStatus.OPEN)
+                .findFirstByClinicServiceIdAndDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
+                        appointment.getServiceId(), appointment.getDoctorStaffId(), appointment.getAppointmentDate(),
+                        appointment.getStartTime(), GeneratedSlotStatus.OPEN)
                 .ifPresent(slot -> {
                     slot.cancel();
                     generatedSlotRepository.save(slot);
