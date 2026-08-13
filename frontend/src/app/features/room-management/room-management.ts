@@ -4,6 +4,7 @@ import { Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { forkJoin } from 'rxjs';
 import { AccountMenu } from '../../shared/account-menu/account-menu';
+import { hasStaffRole } from '../../core/auth/auth.guard';
 import { ApiErrorResponse, AuthApiService, ClinicRoomResponse, SpecialtyOption, apiErrorMessage } from '../../core/auth/auth-api.service';
 import * as QRCode from 'qrcode';
 
@@ -50,6 +51,10 @@ export class RoomManagement implements OnInit {
     specialty: ['', [Validators.required, Validators.maxLength(120)]],
   });
 
+  protected canManageRooms(): boolean {
+    return hasStaffRole('ADMIN');
+  }
+
   ngOnInit(): void {
     this.loadData();
   }
@@ -74,6 +79,10 @@ export class RoomManagement implements OnInit {
   }
 
   protected edit(room: ClinicRoomResponse): void {
+    if (!this.canManageRooms()) {
+      this.error.set('Chỉ quản trị viên được thay đổi phòng khám.');
+      return;
+    }
     this.editingId.set(room.id);
     this.form.setValue({ code: room.code, name: room.name, specialty: room.specialty });
     this.error.set('');
@@ -81,6 +90,10 @@ export class RoomManagement implements OnInit {
   }
 
   protected openCreate(): void {
+    if (!this.canManageRooms()) {
+      this.error.set('Chỉ quản trị viên được tạo phòng khám.');
+      return;
+    }
     this.editingId.set(null);
     this.form.reset({ code: '', name: '', specialty: '' });
     this.error.set('');
@@ -106,6 +119,10 @@ export class RoomManagement implements OnInit {
   }
 
   protected toggleActive(room: ClinicRoomResponse): void {
+    if (!this.canManageRooms()) {
+      this.error.set('Chỉ quản trị viên được thay đổi trạng thái phòng.');
+      return;
+    }
     this.authApi.setRoomActive(room.id, !room.active).subscribe({
       next: (updated) => this.rooms.update((items) => items.map((item) => item.id === updated.id ? updated : item)),
       error: (response) => this.handleError(response),

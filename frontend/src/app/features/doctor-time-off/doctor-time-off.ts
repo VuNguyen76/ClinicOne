@@ -5,6 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { AuthApiService, DoctorAccountResponse, DoctorTimeOffResponse, apiErrorMessage } from '../../core/auth/auth-api.service';
 import { AccountMenu } from '../../shared/account-menu/account-menu';
 import { clinicTodayIso } from '../../core/time/clinic-time';
+import { hasStaffRole } from '../../core/auth/auth.guard';
 
 @Component({
   selector: 'app-doctor-time-off-management',
@@ -39,6 +40,10 @@ export class DoctorTimeOffManagement implements OnInit {
   }
 
   protected submit(): void {
+    if (!this.canManageTimeOff()) {
+      this.error.set('Chỉ điều phối viên được ghi nhận lịch nghỉ của bác sĩ.');
+      return;
+    }
     if (!this.selectedDoctorId() || !this.startDate() || !this.endDate() || this.startDate() > this.endDate() || this.reason().trim().length < 10) {
       this.error.set('Chọn bác sĩ, khoảng ngày hợp lệ và nhập lý do từ 10 ký tự.');
       return;
@@ -53,4 +58,5 @@ export class DoctorTimeOffManagement implements OnInit {
 
   protected doctorName(id: string): string { return this.doctors().find((item) => item.staffId === id)?.fullName ?? id; }
   protected formatDate(value: string): string { const [year, month, day] = value.split('-').map(Number); return new Intl.DateTimeFormat('vi-VN').format(new Date(year, month - 1, day)); }
+  protected canManageTimeOff(): boolean { return hasStaffRole('COORDINATOR'); }
 }

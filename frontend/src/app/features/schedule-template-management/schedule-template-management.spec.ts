@@ -14,12 +14,14 @@ describe('ScheduleTemplateManagement', () => {
       providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
     }).compileComponents();
 
+    sessionStorage.setItem('clinicOneSessionType', 'STAFF');
+    sessionStorage.setItem('clinicOneStaffRoles', JSON.stringify(['COORDINATOR']));
     fixture = TestBed.createComponent(ScheduleTemplateManagement);
     http = TestBed.inject(HttpTestingController);
     fixture.detectChanges();
   });
 
-  afterEach(() => http.verify());
+  afterEach(() => { http.verify(); sessionStorage.clear(); });
 
   it('loads services, assigned doctors, rooms and existing templates', () => {
     http.expectOne('/api/v1/admin/services/active').flush([service()]);
@@ -57,6 +59,18 @@ describe('ScheduleTemplateManagement', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelectorAll('[data-testid="template-row"]').length).toBe(1);
+  });
+
+  it('shows schedules as read-only to an admin', () => {
+    sessionStorage.setItem('clinicOneStaffRoles', JSON.stringify(['ADMIN']));
+    http.expectOne('/api/v1/admin/services/active').flush([service()]);
+    http.expectOne('/api/v1/admin/doctors').flush([doctor()]);
+    http.expectOne('/api/v1/rooms').flush([room()]);
+    http.expectOne('/api/v1/admin/schedule-templates').flush([template()]);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[data-testid="save-template"]').closest('section').classList).toContain('hidden');
+    expect(fixture.nativeElement.textContent).toContain('Chế độ xem');
   });
 });
 
