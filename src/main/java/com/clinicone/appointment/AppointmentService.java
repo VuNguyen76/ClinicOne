@@ -10,6 +10,9 @@ import com.clinicone.schedule.AppointmentHold;
 import com.clinicone.schedule.AppointmentHoldService;
 import com.clinicone.schedule.ClinicService;
 import com.clinicone.schedule.ClinicServiceRepository;
+import com.clinicone.schedule.GeneratedClinicSlot;
+import com.clinicone.schedule.GeneratedClinicSlotRepository;
+import com.clinicone.schedule.GeneratedSlotStatus;
 import com.clinicone.config.ClinicConfigurationService;
 import com.clinicone.notification.PatientNotificationService;
 import com.clinicone.audit.BusinessLogService;
@@ -48,6 +51,7 @@ public class AppointmentService {
     private final Clock clock;
     private final AppointmentCodeGenerator appointmentCodeGenerator;
     private final RescheduleCaseRepository rescheduleCaseRepository;
+    private final GeneratedClinicSlotRepository generatedSlotRepository;
 
     public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository) {
         this(accountRepository, appointmentRepository, null, null, null, null, null, null, null, null, null);
@@ -114,7 +118,6 @@ public class AppointmentService {
                 clock, appointmentCodeGenerator, null);
     }
 
-    @org.springframework.beans.factory.annotation.Autowired
     public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
                               PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService,
                               PatientNotificationService notificationService, BusinessLogService businessLogService,
@@ -122,6 +125,20 @@ public class AppointmentService {
                               ClinicConfigurationService configurationService, ReasonCatalogService reasonCatalogService,
                               Clock clock, AppointmentCodeGenerator appointmentCodeGenerator,
                               RescheduleCaseRepository rescheduleCaseRepository) {
+        this(accountRepository, appointmentRepository, profileRepository, availabilityService, notificationService,
+                businessLogService, holdService, clinicServiceRepository, configurationService, reasonCatalogService,
+                clock, appointmentCodeGenerator, rescheduleCaseRepository, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
+                              PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService,
+                              PatientNotificationService notificationService, BusinessLogService businessLogService,
+                              AppointmentHoldService holdService, ClinicServiceRepository clinicServiceRepository,
+                              ClinicConfigurationService configurationService, ReasonCatalogService reasonCatalogService,
+                              Clock clock, AppointmentCodeGenerator appointmentCodeGenerator,
+                              RescheduleCaseRepository rescheduleCaseRepository,
+                              GeneratedClinicSlotRepository generatedSlotRepository) {
         this.accountRepository = accountRepository;
         this.appointmentRepository = appointmentRepository;
         this.profileRepository = profileRepository;
@@ -136,6 +153,7 @@ public class AppointmentService {
         this.appointmentCodeGenerator = appointmentCodeGenerator == null
                 ? new AppointmentCodeGenerator() : appointmentCodeGenerator;
         this.rescheduleCaseRepository = rescheduleCaseRepository;
+        this.generatedSlotRepository = generatedSlotRepository;
     }
 
     /** Backward-compatible constructor for isolated unit tests and integrations. */
@@ -394,6 +412,9 @@ public class AppointmentService {
             throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_DUPLICATE",
                     "Bạn đã có lịch hẹn trong khung giờ này.");
         }
+        if (!sameSlot) {
+            markPreviousGeneratedSlotUnavailable(appointment);
+        }
         String previousDate = appointment.getAppointmentDate().toString();
         String previousTime = appointment.getStartTime().toString();
         appointment.reschedule(request.appointmentDate(), request.startTime());
@@ -402,6 +423,21 @@ public class AppointmentService {
             notificationService.notifyAppointmentRescheduled(saved, previousDate, previousTime);
         }
         return AppointmentResponse.from(saved);
+    }
+
+    private void markPreviousGeneratedSlotUnavailable(Appointment appointment) {
+        if (generatedSlotRepository == null || appointment.getServiceId() == null
+                || appointment.getDoctorStaffId() == null) {
+            return;
+        }
+        GeneratedClinicSlot slot = generatedSlotRepository
+                .findFirstByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
+                        appointment.getDoctorStaffId(), appointment.getAppointmentDate(), appointment.getStartTime(),
+                        GeneratedSlotStatus.OPEN)
+                .orElseThrow(() -> new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_SLOT_NOT_FOUND",
+                        "Khong tim thay khung gio cu de dong sau khi doi lich."));
+        slot.cancel();
+        generatedSlotRepository.save(slot);
     }
 
     private String nextAppointmentCode() {
