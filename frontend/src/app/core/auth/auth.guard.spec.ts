@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
-import { adminGuard, authGuard, doctorGuard, homeGuard, patientGuard, receptionGuard, roomManagerGuard, staffGuard, staffLandingRedirect } from './auth.guard';
+import { adminGuard, authGuard, doctorGuard, homeGuard, patientGuard, queueBoardGuard, receptionGuard, roomManagerGuard, staffGuard, staffLandingRedirect } from './auth.guard';
 
 describe('ClinicOne route guards', () => {
   let router: { createUrlTree: ReturnType<typeof vi.fn> };
@@ -26,6 +26,22 @@ describe('ClinicOne route guards', () => {
     expect(TestBed.runInInjectionContext(() => staffGuard(null as never, { url: '/queue/rooms/NOI-01' } as never))).toBe(true);
     expect(TestBed.runInInjectionContext(() => roomManagerGuard(null as never, { url: '/admin/rooms' } as never))).toBe(true);
     expect(TestBed.runInInjectionContext(() => patientGuard(null as never, { url: '/appointments' } as never))).toEqual({ commands: ['/staff'] });
+  });
+
+  it('allows the shared room queue to front-desk roles but not the admin workspace', () => {
+    sessionStorage.setItem('clinicOneAccessToken', 'staff-token');
+    sessionStorage.setItem('clinicOneSessionType', 'STAFF');
+
+    sessionStorage.setItem('clinicOneStaffRole', 'RECEPTIONIST');
+    expect(TestBed.runInInjectionContext(() => queueBoardGuard(null as never, { url: '/queue/rooms/NOI-01' } as never))).toBe(true);
+
+    sessionStorage.setItem('clinicOneStaffRole', 'COORDINATOR');
+    expect(TestBed.runInInjectionContext(() => queueBoardGuard(null as never, { url: '/queue/rooms/NOI-01' } as never))).toBe(true);
+
+    sessionStorage.setItem('clinicOneStaffRole', 'ADMIN');
+    expect(TestBed.runInInjectionContext(() => queueBoardGuard(null as never, { url: '/queue/rooms/NOI-01' } as never))).toEqual({
+      commands: ['/staff'],
+    });
   });
 
   it('blocks a non-manager staff role from room configuration', () => {

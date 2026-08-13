@@ -377,6 +377,9 @@ public class AppointmentService {
         String previousStatus = appointment.getStatus().name();
         UUID eventId = UUID.randomUUID();
         appointment.cancel(cancellationReason, Instant.now(clock), normalizedRequestKey);
+        // A past slot can no longer be offered again. Future cancellations leave
+        // the generated slot open so another patient may book it.
+        markCancelledSlotUnavailableIfPast(appointment);
         appointmentRepository.save(appointment);
         recordTransition(eventId, appointment.getId(), previousStatus, appointment.getStatus().name(), "CANCEL_APPOINTMENT",
                 accountId, cancellationReason);
@@ -438,6 +441,26 @@ public class AppointmentService {
                         "Khong tim thay khung gio cu de dong sau khi doi lich."));
         slot.cancel();
         generatedSlotRepository.save(slot);
+    }
+
+    private void markCancelledSlotUnavailableIfPast(Appointment appointment) {
+        if (generatedSlotRepository == null || appointment.getServiceId() == null
+                || appointment.getDoctorStaffId() == null) {
+            return;
+        }
+        Instant appointmentAt = java.time.ZonedDateTime.of(appointment.getAppointmentDate(),
+                appointment.getStartTime(), CLINIC_ZONE).toInstant();
+        if (Instant.now(clock).isBefore(appointmentAt)) {
+            return;
+        }
+        generatedSlotRepository
+                .findFirstByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
+                        appointment.getDoctorStaffId(), appointment.getAppointmentDate(), appointment.getStartTime(),
+                        GeneratedSlotStatus.OPEN)
+                .ifPresent(slot -> {
+                    slot.cancel();
+                    generatedSlotRepository.save(slot);
+                });
     }
 
     private String nextAppointmentCode() {
