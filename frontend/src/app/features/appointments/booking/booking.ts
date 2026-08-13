@@ -147,6 +147,10 @@ export class Booking implements OnInit {
     return this.calendarMonth().getTime() <= this.startOfMonth(clinicTodayDate()).getTime();
   }
 
+  protected isNextMonthDisabled(): boolean {
+    return this.calendarMonth().getTime() >= this.startOfMonth(this.bookingWindowEnd()).getTime();
+  }
+
   protected previousMonth(): void {
     if (this.isPreviousMonthDisabled()) return;
     const month = this.calendarMonth();
@@ -154,6 +158,7 @@ export class Booking implements OnInit {
   }
 
   protected nextMonth(): void {
+    if (this.isNextMonthDisabled()) return;
     const month = this.calendarMonth();
     this.setCalendarMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1));
   }
@@ -163,7 +168,7 @@ export class Booking implements OnInit {
   }
 
   protected chooseDate(date: DateOption): void {
-    if (!date.inCurrentMonth || date.iso < this.today) return;
+    if (!date.inCurrentMonth || date.iso < this.today || date.iso > this.toIsoDate(this.bookingWindowEnd())) return;
     this.clearError();
     this.selectedDate.set(date.iso);
     this.selectedSlot.set('');
@@ -314,7 +319,10 @@ export class Booking implements OnInit {
     const requestId = ++this.availabilityRequestId;
     const month = this.calendarMonth();
     const monthStart = this.toIsoDate(month);
-    const monthEnd = this.toIsoDate(new Date(month.getFullYear(), month.getMonth() + 1, 0));
+    const monthEnd = this.toIsoDate(new Date(Math.min(
+      new Date(month.getFullYear(), month.getMonth() + 1, 0).getTime(),
+      this.bookingWindowEnd().getTime(),
+    )));
     this.slotsLoading.set(true);
     this.authApi.getAppointmentSlots(specialty, monthStart, monthEnd, this.selectedClinicService()?.id).subscribe({
       next: (slots) => {
@@ -354,6 +362,17 @@ export class Booking implements OnInit {
 
   private startOfMonth(date: Date): Date {
     return new Date(date.getFullYear(), date.getMonth(), 1);
+  }
+
+  protected bookingWindowEndIso(): string {
+    return this.toIsoDate(this.bookingWindowEnd());
+  }
+
+  private bookingWindowEnd(): Date {
+    const today = clinicTodayDate();
+    const end = new Date(today);
+    end.setDate(end.getDate() + 30);
+    return end;
   }
 
   private toIsoDate(date: Date): string {

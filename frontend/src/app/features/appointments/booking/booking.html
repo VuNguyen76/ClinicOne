@@ -103,7 +103,7 @@
             (click)="previousMonth()"><mat-icon>chevron_left</mat-icon></button>
           <h2 class="text-base font-bold capitalize text-slate-900">{{ monthLabel() }}</h2><button type="button"
             class="grid h-10 w-10 place-items-center rounded-lg border border-slate-200 text-slate-600 transition hover:border-[#0ea5e9] hover:text-[#0284c7]"
-            aria-label="Tháng sau" (click)="nextMonth()"><mat-icon>chevron_right</mat-icon></button>
+            aria-label="Tháng sau" [disabled]="isNextMonthDisabled()" (click)="nextMonth()"><mat-icon>chevron_right</mat-icon></button>
         </div>
         <div
           class="co-reveal co-delay-1 mt-5 grid grid-cols-7 gap-1 text-center text-[11px] font-bold uppercase tracking-wide text-slate-400 sm:gap-2">
@@ -114,7 +114,7 @@
           {<button data-testid="calendar-date" type="button"
             class="relative min-h-14 rounded-lg border border-slate-100 px-1 py-2 text-center transition hover:-translate-y-0.5 hover:border-[#0ea5e9] hover:bg-[#f1fbfe] disabled:cursor-not-allowed disabled:opacity-35 sm:min-h-16"
             [class.border-[#0ea5e9]]="selectedDate() === date.iso" [class.bg-[#e8f8fc]]="selectedDate() === date.iso"
-            [class.text-slate-400]="!date.inCurrentMonth" [disabled]="!date.inCurrentMonth || date.iso < today || slotsLoading()"
+            [class.text-slate-400]="!date.inCurrentMonth" [disabled]="!date.inCurrentMonth || date.iso < today || date.iso > bookingWindowEndIso() || slotsLoading()"
             (click)="chooseDate(date)"><span class="block text-sm font-bold"
               [class.text-slate-800]="date.inCurrentMonth">{{ date.day }}</span>@if (hasAvailability(date)) {<span
               class="absolute bottom-1 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-[#0ea5e9]"

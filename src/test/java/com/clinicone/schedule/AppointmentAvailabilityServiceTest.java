@@ -78,6 +78,14 @@ class AppointmentAvailabilityServiceTest {
     }
 
     @Test
+    void rejectsBookingOutsideTheThirtyDayWindow() {
+        AuthException exception = assertThrows(AuthException.class, () -> service.ensureBookable(
+                "Khám Tổng Quát", LocalDate.of(2026, 9, 10), LocalTime.of(8, 30)));
+
+        assertEquals("APPOINTMENT_SLOT_INVALID", exception.getCode());
+    }
+
+    @Test
     void doesNotReturnSundaySlots() {
         LocalDate sunday = LocalDate.of(2026, 8, 9);
         assertEquals(List.of(), service.find("Khám Tổng Quát", sunday, sunday));
