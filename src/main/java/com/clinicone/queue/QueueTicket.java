@@ -16,6 +16,7 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.Version;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -98,6 +99,10 @@ public class QueueTicket {
     @Column(name = "priority_flag")
     private boolean priority;
 
+    @Version
+    @Column(nullable = false)
+    private long version;
+
     protected QueueTicket() {
     }
 
@@ -128,6 +133,8 @@ public class QueueTicket {
     public void recordExceptionReason(String reason) {
         this.exceptionReason = reason == null || reason.isBlank() ? null : reason.trim();
     }
+
+    public long getVersion() { return version; }
 
     public void moveTo(ClinicRoom targetRoom, UUID doctorStaffId, String doctorName, String specialty,
                        int targetQueueNumber) {

@@ -11,6 +11,7 @@ import jakarta.persistence.Index;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.Version;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -72,6 +73,10 @@ public class ReconciliationIncident {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    @Version
+    @Column(nullable = false)
+    private long version;
+
     protected ReconciliationIncident() {
     }
 
@@ -125,4 +130,5 @@ public class ReconciliationIncident {
     public String getClosedBy() { return closedBy; }
     public Instant getClosedAt() { return closedAt; }
     public Instant getCreatedAt() { return createdAt; }
+    public long getVersion() { return version; }
 }

@@ -16,4 +16,6 @@ public interface BusinessLogRepository extends JpaRepository<BusinessLog, UUID> 
     boolean existsByEventIdAndEntityTypeAndEntityId(UUID eventId, String entityType, UUID entityId);
 
     List<BusinessLog> findAllByOrderByOccurredAtAscIdAsc();
+
+    java.util.Optional<BusinessLog> findTopByOrderByOccurredAtDescIdDesc();
 }

@@ -50,6 +50,19 @@ class BusinessLogServiceTest {
     }
 
     @Test
+    void sealsEveryNewLogWithSha256Hash() {
+        UUID eventId = UUID.randomUUID();
+        UUID entityId = UUID.randomUUID();
+        when(repository.existsByEventIdAndEntityTypeAndEntityId(eventId, "APPOINTMENT", entityId)).thenReturn(false);
+
+        service.recordActivity(eventId, "APPOINTMENT", entityId, "BOOKED", "CHECKED_IN",
+                "CHECK_IN", "STAFF", "Đã xác nhận tiếp nhận");
+
+        verify(repository).save(argThat(log -> log.getPreviousHash() == null
+                && log.getHash() != null && log.getHash().matches("[0-9a-f]{64}")));
+    }
+
+    @Test
     void rejectsMissingTransitionData() {
         assertThatThrownBy(() -> service.recordTransition(null, "APPOINTMENT", UUID.randomUUID(),
                 "BOOKED", "CANCELLED", "CANCEL", "staff", null))

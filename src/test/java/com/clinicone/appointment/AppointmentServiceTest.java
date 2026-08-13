@@ -97,6 +97,20 @@ class AppointmentServiceTest {
     }
 
     @Test
+    void pendingActivationPatientCannotCreateAppointment() {
+        PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, true);
+        setId(account, ACCOUNT_ID);
+        when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
+
+        AuthException exception = assertThrows(AuthException.class, () -> service.create(ACCOUNT_ID.toString(),
+                new CreateAppointmentRequest("Nội tổng quát", "BS. Nguyễn An", LocalDate.of(2026, 8, 10),
+                        LocalTime.of(8, 30), "Đau đầu kéo dài")));
+
+        assertEquals("ACCOUNT_ACTIVATION_REQUIRED", exception.getCode());
+        verify(appointmentRepository, never()).save(any(Appointment.class));
+    }
+
+    @Test
     void createsAppointmentForTemporaryReceptionProfileWithoutPatientNotification() {
         PatientProfile temporaryProfile = PatientProfile.createTemporary(
                 "Nguyen Van Tam", LocalDate.of(1990, 1, 1), "Nam", "0912345678", null, null, null, null);

@@ -262,6 +262,27 @@ class QueueServiceTest {
     }
 
     @Test
+    void displaysEarlierAppointmentBeforeLaterAppointmentEvenWhenItCheckedInLater() {
+        PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
+        setId(account, ACCOUNT_ID);
+        Appointment early = Appointment.create(account, "CL-EARLY", "Nội tổng quát", "BS. Nguyễn An",
+                TODAY, LocalTime.of(8, 30), "Đau đầu");
+        Appointment late = Appointment.create(account, "CL-LATE", "Nội tổng quát", "BS. Nguyễn An",
+                TODAY, LocalTime.of(14, 0), "Đau đầu");
+        QueueTicket earlyTicket = QueueTicket.create(early, room, TODAY, 1);
+        QueueTicket lateTicket = QueueTicket.create(late, room, TODAY, 2);
+        setField(earlyTicket, "checkedInAt", Instant.parse("2026-08-06T02:10:00Z"));
+        setField(lateTicket, "checkedInAt", Instant.parse("2026-08-06T02:00:00Z"));
+        when(ticketRepository.findByRoomCodeAndQueueDateOrderByQueueNumberAsc("NOI-01", TODAY))
+                .thenReturn(List.of(lateTicket, earlyTicket));
+
+        List<QueueTicketResponse> response = service.list("NOI-01", TODAY);
+
+        assertEquals("CL-EARLY", response.get(0).appointmentCode());
+        assertEquals("CL-LATE", response.get(1).appointmentCode());
+    }
+
+    @Test
     void createsCheckedInSessionWhenExistingQueueTicketHasNoSession() {
         QueueTicket existing = QueueTicket.create(appointment, room, TODAY, 5);
         setId(existing, UUID.randomUUID());

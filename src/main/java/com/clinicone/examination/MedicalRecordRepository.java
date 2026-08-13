@@ -14,6 +14,9 @@ import java.util.UUID;
 public interface MedicalRecordRepository extends JpaRepository<MedicalRecord, UUID> {
     List<MedicalRecord> findTop10BySession_Appointment_Patient_IdAndSignedAtIsNotNullOrderBySignedAtDesc(UUID patientId);
 
+    List<MedicalRecord> findTop10BySession_Appointment_PatientProfile_IdAndSignedAtIsNotNullOrderBySignedAtDesc(
+            UUID patientProfileId);
+
     Optional<MedicalRecord> findByIdAndSession_Appointment_Patient_IdAndSignedAtIsNotNull(UUID id, UUID patientId);
 
     Optional<MedicalRecord> findBySession_Id(UUID sessionId);

@@ -11,6 +11,7 @@ import com.clinicone.auth.StaffRole;
 import com.clinicone.doctor.DoctorProfile;
 import com.clinicone.doctor.DoctorProfileRepository;
 import com.clinicone.notification.PatientNotificationService;
+import com.clinicone.patientprofile.PatientProfile;
 import com.clinicone.queue.ClinicRoom;
 import com.clinicone.queue.QueueTicket;
 import com.clinicone.queue.QueueTicketRepository;
@@ -85,7 +86,10 @@ class DoctorExaminationServiceTest {
         PatientAccount patient = new PatientAccount("0912345678", "hash", "Nguyễn Thanh Vũ",
                 AccountStatus.ACTIVE, false);
         setId(patient, UUID.fromString("ed9e3fb4-1045-4ca4-86d2-7d1fca4c1a13"));
-        appointment = Appointment.create(patient, DOCTOR_ID, "CL-E2E-001", "Nội tổng quát",
+        PatientProfile primaryProfile = PatientProfile.create(patient, "Nguyễn Thanh Vũ", "Bản thân",
+                LocalDate.of(1990, 1, 1), "Nam", patient.getPhone(), null, null, null, null, true);
+        setId(primaryProfile, UUID.randomUUID());
+        appointment = Appointment.create(patient, DOCTOR_ID, primaryProfile, "CL-E2E-001", "Nội tổng quát",
                 "Bác sĩ Nguyễn An", LocalDate.of(2026, 8, 9), LocalTime.of(9, 0), "Đau đầu");
         setId(appointment, APPOINTMENT_ID);
         ticket = QueueTicket.create(appointment, room, appointment.getAppointmentDate(), 5);
@@ -460,8 +464,8 @@ class DoctorExaminationServiceTest {
         MedicalRecord previousRecord = MedicalRecord.draft(previousSession);
         previousRecord.sign("Bác sĩ cũ", "Đau đầu", "Đã khám", "Đau đầu căng thẳng",
                 "Theo dõi", "Nghỉ ngơi", null, null);
-        when(recordRepository.findTop10BySession_Appointment_Patient_IdAndSignedAtIsNotNullOrderBySignedAtDesc(
-                appointment.getPatient().getId())).thenReturn(List.of(previousRecord));
+        when(recordRepository.findTop10BySession_Appointment_PatientProfile_IdAndSignedAtIsNotNullOrderBySignedAtDesc(
+                appointment.getPatientProfile().getId())).thenReturn(List.of(previousRecord));
 
         DoctorExaminationResponse response = service.open(TICKET_ID, DOCTOR_ID.toString());
 
@@ -469,8 +473,8 @@ class DoctorExaminationServiceTest {
             assertThat(item.doctorName()).isEqualTo("Bác sĩ cũ");
             assertThat(item.diagnosis()).isEqualTo("Đau đầu căng thẳng");
         });
-        verify(recordRepository).findTop10BySession_Appointment_Patient_IdAndSignedAtIsNotNullOrderBySignedAtDesc(
-                appointment.getPatient().getId());
+        verify(recordRepository).findTop10BySession_Appointment_PatientProfile_IdAndSignedAtIsNotNullOrderBySignedAtDesc(
+                appointment.getPatientProfile().getId());
     }
 
     @Test

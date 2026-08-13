@@ -66,11 +66,27 @@ public class BusinessLogIntegrityJob {
     @Transactional
     public IntegrityCheckResult runOnce() {
         Map<EntityKey, BusinessLog> latestByEntity = new HashMap<>();
+        String previousHash = null;
+        int hashIncidents = 0;
         for (BusinessLog entry : businessLogRepository.findAllByOrderByOccurredAtAscIdAsc()) {
+            if (entry.getHash() != null && !entry.isHashValid(previousHash)
+                    && entry.getId() != null
+                    && !incidentRepository.existsByEntityTypeAndEntityIdAndStatus(
+                    "BUSINESS_LOG", entry.getId(), ReconciliationStatus.OPEN)) {
+                ReconciliationIncident incident = ReconciliationIncident.open(
+                        "INC-INTEGRITY-HASH-" + UUID.randomUUID().toString().replace("-", "").substring(0, 20),
+                        "BUSINESS_LOG", entry.getId(), entry.getEventId(),
+                        "Chuỗi hash nhật ký nghiệp vụ không hợp lệ.", "admin");
+                incidentRepository.save(incident);
+                hashIncidents++;
+            }
+            if (entry.getHash() != null) {
+                previousHash = entry.getHash();
+            }
             latestByEntity.put(new EntityKey(entry.getEntityType(), entry.getEntityId()), entry);
         }
         int inspected = 0;
-        int opened = 0;
+        int opened = hashIncidents;
         for (Map.Entry<EntityKey, BusinessLog> item : latestByEntity.entrySet()) {
             inspected++;
             EntityKey key = item.getKey();
