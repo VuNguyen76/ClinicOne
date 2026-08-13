@@ -11,8 +11,8 @@ import java.util.UUID;
 public interface AccessAuditRepository extends JpaRepository<AccessAuditEvent, UUID> {
     @Query("""
             select event from AccessAuditEvent event
-            where (:fromTime is null or event.occurredAt >= :fromTime)
-              and (:toTime is null or event.occurredAt < :toTime)
+            where event.occurredAt >= :fromTime
+              and event.occurredAt < :toTime
               and (:actor is null or lower(event.actor) like lower(concat('%', :actor, '%')))
               and (:outcome is null or event.outcome = :outcome)
               and (:eventType is null or event.eventType = :eventType)

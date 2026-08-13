@@ -9,6 +9,9 @@ import java.util.List;
 
 @Service
 public class AccessAuditService {
+    private static final Instant AUDIT_START = Instant.parse("1900-01-01T00:00:00Z");
+    private static final Instant AUDIT_END = Instant.parse("9999-12-31T23:59:59.999999Z");
+
     private final AccessAuditRepository repository;
     private final Clock clock;
 
@@ -28,7 +31,9 @@ public class AccessAuditService {
 
     @Transactional(readOnly = true)
     public List<AccessAuditResponse> list(Instant from, Instant to, String actor, String outcome, String eventType) {
-        return repository.findFiltered(from, to, normalizeNullable(actor, 120), normalizeNullable(outcome, 20),
+        Instant fromTime = from == null ? AUDIT_START : from;
+        Instant toTime = to == null ? AUDIT_END : to;
+        return repository.findFiltered(fromTime, toTime, normalizeNullable(actor, 120), normalizeNullable(outcome, 20),
                         normalizeNullable(eventType, 40)).stream()
                 .limit(500)
                 .map(AccessAuditResponse::from)

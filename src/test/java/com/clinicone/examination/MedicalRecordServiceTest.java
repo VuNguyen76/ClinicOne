@@ -7,6 +7,7 @@ import org.springframework.data.domain.PageRequest;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -27,7 +28,8 @@ class MedicalRecordServiceTest {
         MedicalRecordService service = new MedicalRecordService(repository);
         MedicalRecord record = MedicalRecord.signed(null, "BS. Nguyễn An", "Đau đầu", "Khám bình thường",
                 "Đau đầu do căng thẳng", "Theo dõi thêm", "Nghỉ ngơi", null, LocalDate.of(2026, 8, 20));
-        when(repository.findSignedHistory(eq(ACCOUNT_ID), eq(null), eq(null), eq(null),
+        when(repository.findSignedHistory(eq(ACCOUNT_ID), eq(null), eq(Instant.parse("1900-01-01T00:00:00Z")),
+                eq(Instant.parse("9999-12-31T23:59:59.999999Z")),
                 eq(PageRequest.of(0, 20)))).thenReturn(new PageImpl<>(List.of(record), PageRequest.of(0, 20), 1));
 
         MedicalRecordHistoryPage result = service.listHistory(ACCOUNT_ID.toString(),
