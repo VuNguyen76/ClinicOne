@@ -21,7 +21,7 @@
     <div class="mx-auto max-w-[1440px] px-5 py-8 lg:px-10 lg:py-10">
       <div class="flex flex-col justify-between gap-4 border-b border-[#dce7ea] pb-6 sm:flex-row sm:items-end">
         <div><p class="text-[11px] font-bold uppercase tracking-[0.18em] text-[#0b91c9]">Vận hành / Cấu hình</p><h1 class="mt-2 text-3xl font-bold tracking-[-0.05em] text-[#0a303b] sm:text-[34px]">Quản lý phòng khám</h1><p class="mt-2 text-sm text-slate-500">Tạo phòng và quản lý trạng thái phục vụ.</p></div>
-        <button data-testid="open-room-form" type="button" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#0b3846] px-5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#082d39]" (click)="openCreate()"><mat-icon class="!h-5 !w-5 !text-[19px]">add</mat-icon>Phòng mới</button>
+        @if (canManageRooms()) {<button data-testid="open-room-form" type="button" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#0b3846] px-5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#082d39]" (click)="openCreate()"><mat-icon class="!h-5 !w-5 !text-[19px]">add</mat-icon>Phòng mới</button>}
       </div>
 
       @if (error()) {<p class="mt-5 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert"><mat-icon class="!h-5 !w-5 !text-[19px]">error_outline</mat-icon>{{ error() }}</p>}

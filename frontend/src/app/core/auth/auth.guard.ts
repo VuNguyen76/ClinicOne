@@ -141,6 +141,11 @@ function staffRoles(): string[] {
   return role ? [role] : [];
 }
 
+/** Returns whether the active staff session has the requested operational role. */
+export function hasStaffRole(role: string): boolean {
+  return staffRoles().includes(role);
+}
+
 function isStaffSession(): boolean {
   if (typeof sessionStorage === 'undefined') return false;
   const sessionType = sessionStorage.getItem('clinicOneSessionType');

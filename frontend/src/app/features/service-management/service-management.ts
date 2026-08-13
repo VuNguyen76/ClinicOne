@@ -13,6 +13,7 @@ import {
   apiErrorMessage,
 } from '../../core/auth/auth-api.service';
 import { AccountMenu } from '../../shared/account-menu/account-menu';
+import { hasStaffRole } from '../../core/auth/auth.guard';
 
 @Component({
   selector: 'app-service-management',
@@ -38,6 +39,10 @@ export class ServiceManagement implements OnInit {
   protected readonly durationMinutes = signal(30);
   protected readonly selectedDoctorIds = signal<string[]>([]);
   protected readonly requiresMedicalRecord = signal(true);
+
+  protected canManageServices(): boolean {
+    return hasStaffRole('COORDINATOR');
+  }
 
   ngOnInit(): void {
     this.load();
@@ -83,6 +88,10 @@ export class ServiceManagement implements OnInit {
   }
 
   protected openCreate(): void {
+    if (!this.canManageServices()) {
+      this.error.set('Chỉ điều phối viên được thay đổi dịch vụ khám.');
+      return;
+    }
     this.editingId.set(null);
     this.name.set('');
     this.specialty.set('');
@@ -95,6 +104,10 @@ export class ServiceManagement implements OnInit {
   }
 
   protected edit(service: ClinicServiceResponse): void {
+    if (!this.canManageServices()) {
+      this.error.set('Chỉ điều phối viên được thay đổi dịch vụ khám.');
+      return;
+    }
     this.editingId.set(service.id);
     this.name.set(service.name);
     this.specialty.set(service.specialty);
@@ -107,6 +120,10 @@ export class ServiceManagement implements OnInit {
   }
 
   protected submit(): void {
+    if (!this.canManageServices()) {
+      this.error.set('Chỉ điều phối viên được lưu dịch vụ khám.');
+      return;
+    }
     const request: ClinicServiceRequest = {
       name: this.name().trim(),
       specialty: this.specialty().trim(),
@@ -142,6 +159,10 @@ export class ServiceManagement implements OnInit {
   }
 
   protected toggleActive(service: ClinicServiceResponse): void {
+    if (!this.canManageServices()) {
+      this.error.set('Chỉ điều phối viên được thay đổi trạng thái dịch vụ.');
+      return;
+    }
     this.authApi.setClinicServiceActive(service.id, !service.active).subscribe({
       next: (updated) => this.services.update((items) => items.map((item) => item.id === updated.id ? updated : item)),
       error: (response) => this.error.set(apiErrorMessage(response)),

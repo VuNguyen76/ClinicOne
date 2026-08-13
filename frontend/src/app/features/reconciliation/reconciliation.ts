@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { AuthApiService, ReconciliationResponse, apiErrorMessage } from '../../core/auth/auth-api.service';
 import { AccountMenu } from '../../shared/account-menu/account-menu';
+import { hasStaffRole } from '../../core/auth/auth.guard';
 
 @Component({
   selector: 'app-reconciliation-management',
@@ -15,7 +16,7 @@ import { AccountMenu } from '../../shared/account-menu/account-menu';
 export class ReconciliationManagement implements OnInit {
   private readonly authApi = inject(AuthApiService);
   protected readonly incidents = signal<ReconciliationResponse[]>([]);
-  protected canClose = sessionStorage.getItem('clinicOneStaffRole') === 'COORDINATOR';
+  protected canClose = hasStaffRole('COORDINATOR');
   protected readonly selected = signal<ReconciliationResponse | null>(null);
   protected readonly action = signal('RETRY_BUSINESS_ACTION');
   protected readonly referenceType = signal('INCIDENT');
@@ -37,6 +38,10 @@ export class ReconciliationManagement implements OnInit {
   }
 
   protected close(): void {
+    if (!this.canClose) {
+      this.error.set('Chỉ điều phối viên được đóng đối soát.');
+      return;
+    }
     const item = this.selected();
     if (!item || !this.referenceValue().trim() || this.resultNote().trim().length < 10) {
       this.error.set('Cần có mã tham chiếu và ghi chú kết quả từ 10 ký tự.');
