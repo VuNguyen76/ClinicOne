@@ -101,6 +101,10 @@ export class ReceptionCheckIn implements OnInit {
     });
   }
 
+  protected hasAbsentAppointments(): boolean {
+    return this.appointments().some((appointment) => appointment.status === 'ABSENT');
+  }
+
   protected checkIn(appointment: ReceptionAppointmentResponse): void {
     if (appointment.status !== 'BOOKED' || !appointment.roomCode || appointment.queueStatus) return;
     const reason = this.exceptionReason().trim();
