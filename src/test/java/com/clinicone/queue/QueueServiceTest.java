@@ -25,6 +25,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -98,6 +99,16 @@ class QueueServiceTest {
         var sessionCaptor = org.mockito.ArgumentCaptor.forClass(ExaminationSession.class);
         verify(examinationSessionRepository).save(sessionCaptor.capture());
         assertEquals(ExaminationSessionStatus.SCHEDULED, sessionCaptor.getValue().getStatus());
+    }
+
+    @Test
+    void qrCheckInUsesDefaultSlotDurationWhenServiceSnapshotIsMissing() {
+        QueueService serviceAtTwentyMinutesPastStart = new QueueService(roomRepository, ticketRepository,
+                appointmentRepository, doctorProfileRepository, examinationSessionRepository,
+                Clock.fixed(Instant.parse("2026-08-06T02:20:00Z"), ZoneId.of("Asia/Ho_Chi_Minh")));
+
+        assertDoesNotThrow(() -> serviceAtTwentyMinutesPastStart.checkIn(
+                ACCOUNT_ID.toString(), "NOI-01", APPOINTMENT_ID));
     }
 
     @Test
