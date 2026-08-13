@@ -45,6 +45,14 @@ public class ReceptionController {
         return ResponseEntity.ok(service.checkIn(appointmentId, request, authentication.getName()));
     }
 
+    @PostMapping("/appointments/{appointmentId}/rebook")
+    public ResponseEntity<ReceptionAppointmentResponse> rebook(
+            @PathVariable UUID appointmentId,
+            @Valid @RequestBody ReceptionRebookRequest request,
+            Authentication authentication) {
+        return ResponseEntity.status(201).body(service.rebookAbsent(appointmentId, request, authentication.getName()));
+    }
+
     @PostMapping("/appointments/{appointmentId}/leave")
     @PreAuthorize("hasRole('RECEPTIONIST')")
     public ResponseEntity<ReceptionAppointmentResponse> leaveBeforeExam(@PathVariable UUID appointmentId,

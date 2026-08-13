@@ -625,6 +625,13 @@ export interface ReceptionWalkInRequest {
   exceptionReason: string;
 }
 
+export interface ReceptionRebookRequest {
+  doctorId: string;
+  appointmentDate: string;
+  startTime: string;
+  lateReason: string;
+}
+
 export interface ReceptionPatientProfile {
   id: string;
   fullName: string;
@@ -954,6 +961,10 @@ export class AuthApiService {
 
   receptionCheckIn(appointmentId: string, roomCode: string, reason: string): Observable<ReceptionAppointmentResponse> {
     return this.http.post<ReceptionAppointmentResponse>(`/api/v1/reception/appointments/${appointmentId}/check-in`, { roomCode, reason });
+  }
+
+  rebookReceptionAppointment(appointmentId: string, request: ReceptionRebookRequest): Observable<ReceptionAppointmentResponse> {
+    return this.http.post<ReceptionAppointmentResponse>(`/api/v1/reception/appointments/${appointmentId}/rebook`, request);
   }
 
   leaveReceptionAppointment(appointmentId: string, reason: string): Observable<ReceptionAppointmentResponse> {
