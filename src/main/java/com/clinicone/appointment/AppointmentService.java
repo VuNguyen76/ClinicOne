@@ -21,6 +21,7 @@ import com.clinicone.reason.ReasonCatalogService;
 import com.clinicone.reason.ReasonCatalogType;
 import com.clinicone.rescheduling.RescheduleCaseRepository;
 import com.clinicone.rescheduling.RescheduleCaseStatus;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -132,7 +133,7 @@ public class AppointmentService {
                 clock, appointmentCodeGenerator, rescheduleCaseRepository, null);
     }
 
-    @org.springframework.beans.factory.annotation.Autowired
+    @Autowired
     public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
                               PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService,
                               PatientNotificationService notificationService, BusinessLogService businessLogService,

@@ -7,6 +7,7 @@ import com.clinicone.doctor.DoctorProfile;
 import com.clinicone.doctor.DoctorProfileRepository;
 import com.clinicone.doctor.DoctorSchedule;
 import com.clinicone.doctor.DoctorScheduleRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -84,7 +85,7 @@ public class AppointmentAvailabilityService {
                 holdRepository, clock, clinicServiceRepository, null);
     }
 
-    @org.springframework.beans.factory.annotation.Autowired
+    @Autowired
     public AppointmentAvailabilityService(AppointmentRepository appointmentRepository,
                                           SpecialtyCatalogService specialtyCatalog,
                                           DoctorProfileRepository doctorProfileRepository,

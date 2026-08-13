@@ -1,6 +1,8 @@
 package com.clinicone.auth;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,7 +21,7 @@ public class StaffManagementService {
     private final StaffAccountRepository accountRepository;
     private final LoginSessionRepository sessionRepository;
     private final Clock clock;
-    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final char[] PASSWORD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789".toCharArray();
 
@@ -29,11 +31,11 @@ public class StaffManagementService {
         this(accountRepository, sessionRepository, clock, null);
     }
 
-    @org.springframework.beans.factory.annotation.Autowired
+    @Autowired
     public StaffManagementService(StaffAccountRepository accountRepository,
                                   LoginSessionRepository sessionRepository,
                                   Clock clock,
-                                  org.springframework.security.crypto.password.PasswordEncoder passwordEncoder) {
+                                  PasswordEncoder passwordEncoder) {
         this.accountRepository = accountRepository;
         this.sessionRepository = sessionRepository;
         this.clock = clock;
