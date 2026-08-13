@@ -40,10 +40,14 @@ public class QueueService {
     private static final int DEFAULT_SLOT_DURATION_MINUTES = 60;
     private static final Comparator<QueueTicket> NEXT_WAITING_ORDER = Comparator
             .comparing(QueueTicket::isPriority).reversed()
+            .thenComparing(ticket -> ticket.getAppointment().getStartTime(),
+                    Comparator.nullsLast(Comparator.naturalOrder()))
             .thenComparing(QueueTicket::getCheckedInAt, Comparator.nullsLast(Comparator.naturalOrder()))
             .thenComparingInt(QueueTicket::getQueueNumber);
     private static final Comparator<QueueTicket> DISPLAY_ORDER = Comparator
             .comparingInt(QueueService::displayGroup)
+            .thenComparing(ticket -> ticket.getAppointment().getStartTime(),
+                    Comparator.nullsLast(Comparator.naturalOrder()))
             .thenComparing(QueueTicket::getCheckedInAt, Comparator.nullsLast(Comparator.naturalOrder()))
             .thenComparingInt(QueueTicket::getQueueNumber);
 
@@ -645,9 +649,9 @@ public class QueueService {
             return null;
         }
         String normalized = reason.trim();
-        if (normalized.length() < 3 || normalized.length() > 250) {
+        if (normalized.length() < 10 || normalized.length() > 250) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "RECEPTION_REASON_INVALID",
-                    "Lý do hỗ trợ tại quầy phải từ 3 đến 250 ký tự.");
+                    "Lý do hỗ trợ tại quầy phải từ 10 đến 250 ký tự.");
         }
         return normalized;
     }

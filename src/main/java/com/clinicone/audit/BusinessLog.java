@@ -12,6 +12,10 @@ import jakarta.persistence.UniqueConstraint;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 import java.util.UUID;
 
 /**
@@ -57,6 +61,12 @@ public class BusinessLog {
     @Column(name = "occurred_at", nullable = false)
     private Instant occurredAt;
 
+    @Column(name = "previous_hash", length = 64)
+    private String previousHash;
+
+    @Column(name = "hash", length = 64)
+    private String hash;
+
     protected BusinessLog() {
     }
 
@@ -83,6 +93,36 @@ public class BusinessLog {
         if (occurredAt == null) {
             occurredAt = Instant.now().truncatedTo(ChronoUnit.SECONDS);
         }
+        if (hash == null) {
+            hash = calculateHash(previousHash);
+        }
+    }
+
+    void seal(String previousHash) {
+        this.previousHash = previousHash;
+        this.occurredAt = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+        this.hash = calculateHash(previousHash);
+    }
+
+    boolean isHashValid(String expectedPreviousHash) {
+        return hash != null && java.util.Objects.equals(previousHash, expectedPreviousHash)
+                && hash.equals(calculateHash(previousHash));
+    }
+
+    private String calculateHash(String previousHash) {
+        String payload = String.join("|", value(previousHash), value(eventId), value(entityType), value(entityId),
+                value(previousStatus), value(nextStatus), value(eventType), value(actor), value(reason),
+                value(occurredAt));
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+                    .digest(payload.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 is not available", exception);
+        }
+    }
+
+    private String value(Object value) {
+        return value == null ? "" : value.toString();
     }
 
     public UUID getId() { return id; }
@@ -95,4 +135,6 @@ public class BusinessLog {
     public String getActor() { return actor; }
     public String getReason() { return reason; }
     public Instant getOccurredAt() { return occurredAt; }
+    public String getPreviousHash() { return previousHash; }
+    public String getHash() { return hash; }
 }

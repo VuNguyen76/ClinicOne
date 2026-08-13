@@ -75,7 +75,8 @@ class AppointmentLifecycleJobTest {
 
         assertThat(result.absentTransitions()).isZero();
         verify(appointment, never()).markAbsent();
-        verifyNoInteractions(businessLogService);
+        verify(businessLogService).recordActivity(any(), eq("APPOINTMENT"), any(), eq("BOOKED"), eq("BOOKED"),
+                eq("LATE_WARNING"), eq("SYSTEM"), any());
         verify(notificationService).notifyAppointmentLate(appointment);
     }
 
