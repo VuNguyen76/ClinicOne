@@ -63,6 +63,7 @@ class QueueServiceTest {
         when(roomRepository.findByCodeAndActiveTrue("NOI-01")).thenReturn(Optional.of(room));
         when(roomRepository.findByCodeAndActiveTrueForUpdate("NOI-01")).thenReturn(Optional.of(room));
         when(appointmentRepository.findByIdAndPatientId(APPOINTMENT_ID, ACCOUNT_ID)).thenReturn(Optional.of(appointment));
+        when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
         when(ticketRepository.findByAppointmentId(APPOINTMENT_ID)).thenReturn(Optional.empty());
         when(ticketRepository.findMaxQueueNumberByRoomCodeAndQueueDate("NOI-01", TODAY)).thenReturn(4);
         when(ticketRepository.save(any(QueueTicket.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -111,6 +112,20 @@ class QueueServiceTest {
 
         assertDoesNotThrow(() -> serviceAtTwentyMinutesPastStart.checkIn(
                 ACCOUNT_ID.toString(), "NOI-01", APPOINTMENT_ID));
+    }
+
+    @Test
+    void staffCannotCheckInAnAppointmentAfterLateThreshold() {
+        QueueService lateService = new QueueService(roomRepository, ticketRepository, appointmentRepository,
+                doctorProfileRepository, examinationSessionRepository,
+                Clock.fixed(Instant.parse("2026-08-06T03:35:00Z"), ZoneId.of("Asia/Ho_Chi_Minh")));
+
+        AuthException exception = assertThrows(AuthException.class,
+                () -> lateService.checkInByStaff("NOI-01", APPOINTMENT_ID, "Người bệnh đến muộn", "reception-1"));
+
+        assertEquals("QUEUE_LATE_APPOINTMENT", exception.getCode());
+        assertEquals(AppointmentStatus.BOOKED, appointment.getStatus());
+        verify(ticketRepository, never()).save(any(QueueTicket.class));
     }
 
     @Test

@@ -120,6 +120,34 @@ public class ReceptionService {
                 : queueService.checkInByStaff(request.roomCode().trim(), appointmentId, request.reason().trim(), actor);
         return toResponse(appointment, ticket);
     }
+
+    /** Moves a same-day late appointment while preserving its appointment code. */
+    @Transactional
+    public ReceptionAppointmentResponse rescheduleLate(UUID appointmentId, ReceptionRebookRequest request,
+                                                       String actor) {
+        if (appointmentService == null) {
+            throw new AuthException(HttpStatus.SERVICE_UNAVAILABLE, "RECEPTION_RESCHEDULE_UNAVAILABLE",
+                    "Chưa bật luồng chuyển lịch đến muộn tại quầy.");
+        }
+        Appointment previous = appointmentRepository.findByIdForUpdate(appointmentId)
+                .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "APPOINTMENT_NOT_FOUND",
+                        "Không tìm thấy lịch hẹn."));
+        DoctorProfile doctor = doctorProfileRepository.findById(request.doctorId())
+                .filter(DoctorProfile::isActive)
+                .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "DOCTOR_ASSIGNMENT_NOT_FOUND",
+                        "Không tìm thấy bác sĩ đang được phân công."));
+        if (!doctor.getSpecialty().equalsIgnoreCase(previous.getSpecialty())) {
+            throw new AuthException(HttpStatus.CONFLICT, "DOCTOR_SPECIALTY_MISMATCH",
+                    "Bác sĩ mới phải thuộc cùng chuyên khoa với lịch cũ.");
+        }
+        appointmentService.rescheduleForReception(appointmentId, request.doctorId(),
+                doctor.getStaffAccount().getFullName(), request.appointmentDate(), request.startTime(),
+                request.lateReason(), actor);
+        Appointment saved = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "APPOINTMENT_NOT_FOUND",
+                        "Không tìm thấy lịch hẹn vừa chuyển."));
+        return toResponse(saved, null);
+    }
     
     @Transactional
     public ReceptionAppointmentResponse rebookAbsent(UUID appointmentId, ReceptionRebookRequest request, String actor) {

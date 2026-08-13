@@ -435,19 +435,99 @@ public class AppointmentService {
         return AppointmentResponse.from(saved);
     }
 
+    /**
+     * Moves a booked appointment after the patient arrives late. The original
+     * appointment and code are retained; only the booked slot and assigned
+     * doctor are changed. This is deliberately separate from the patient
+     * self-service reschedule flow so that reception can record the reason and
+     * use the same late-window rules as the lifecycle job.
+     */
+    @Transactional
+    public AppointmentResponse rescheduleForReception(UUID appointmentId, UUID doctorStaffId, String doctorName,
+                                                      LocalDate appointmentDate, LocalTime startTime,
+                                                      String reason, String actor) {
+        Appointment appointment = appointmentRepository.findByIdForUpdate(appointmentId)
+                .orElseThrow(this::appointmentNotFound);
+        if (appointment.getStatus() != AppointmentStatus.BOOKED) {
+            throw new AuthException(HttpStatus.CONFLICT, "LATE_RESCHEDULE_STATUS_INVALID",
+                    "Chỉ lịch hẹn đang đặt mới được chuyển sang khung giờ khác.");
+        }
+        String normalizedReason = reason == null ? null : reason.trim();
+        if (normalizedReason == null || normalizedReason.length() < 3 || normalizedReason.length() > 500) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "LATE_RESCHEDULE_REASON_INVALID",
+                    "Lý do đến muộn phải có từ 3 đến 500 ký tự.");
+        }
+        if (!appointment.getAppointmentDate().equals(today())
+                || !isWithinLateRescheduleWindow(appointment)) {
+            throw new AuthException(HttpStatus.CONFLICT, "LATE_RESCHEDULE_WINDOW_CLOSED",
+                    "Chỉ có thể chuyển lịch trong thời gian đến muộn của ngày khám.");
+        }
+        boolean sameSlot = appointment.getAppointmentDate().equals(appointmentDate)
+                && appointment.getStartTime().equals(startTime)
+                && Objects.equals(appointment.getDoctorStaffId(), doctorStaffId);
+        if (sameSlot) {
+            throw new AuthException(HttpStatus.CONFLICT, "LATE_RESCHEDULE_SLOT_UNCHANGED",
+                    "Vui lòng chọn một khung giờ hoặc bác sĩ khác.");
+        }
+        if (availabilityService == null) {
+            throw new AuthException(HttpStatus.SERVICE_UNAVAILABLE, "APPOINTMENT_AVAILABILITY_UNAVAILABLE",
+                    "Chưa thể kiểm tra khung giờ thay thế.");
+        }
+        availabilityService.ensureBookable(appointment.getSpecialty(), doctorName, doctorStaffId,
+                appointmentDate, startTime, null, appointment.getServiceId());
+        if (appointment.getPatient() != null
+                && hasActiveAppointment(appointment.getPatient().getId(), appointmentDate, startTime)) {
+            throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_DUPLICATE",
+                    "Người bệnh đã có lịch hẹn trong khung giờ này.");
+        }
+
+        String previousDate = appointment.getAppointmentDate().toString();
+        String previousTime = appointment.getStartTime().toString();
+        markPreviousGeneratedSlotUnavailable(appointment);
+        appointment.reschedule(appointmentDate, startTime, doctorStaffId, doctorName);
+        Appointment saved = appointmentRepository.save(appointment);
+        if (businessLogService != null) {
+            businessLogService.recordActivity(UUID.randomUUID(), "APPOINTMENT", saved.getId(),
+                    AppointmentStatus.BOOKED.name(), AppointmentStatus.BOOKED.name(),
+                    "RECEPTION_RESCHEDULE_LATE", actor, normalizedReason);
+        }
+        if (notificationService != null) {
+            notificationService.notifyAppointmentRescheduled(saved, previousDate, previousTime);
+        }
+        return AppointmentResponse.from(saved);
+    }
+
+    private boolean isWithinLateRescheduleWindow(Appointment appointment) {
+        Instant scheduledEnd = ZonedDateTime.of(appointment.getAppointmentDate(), appointment.getStartTime(), CLINIC_ZONE)
+                .toInstant()
+                .plusSeconds(effectiveDurationMinutes(appointment) * 60L);
+        Instant now = Instant.now(clock);
+        return !now.isBefore(scheduledEnd.plus(Duration.ofMinutes(15)))
+                && now.isBefore(scheduledEnd.plus(Duration.ofHours(24)));
+    }
+
+    private int effectiveDurationMinutes(Appointment appointment) {
+        Integer duration = appointment.getServiceDurationMinutes();
+        return duration == null || duration <= 0 ? 60 : duration;
+    }
+
+    private LocalDate today() {
+        return ZonedDateTime.now(clock).withZoneSameInstant(CLINIC_ZONE).toLocalDate();
+    }
+
     private void markPreviousGeneratedSlotUnavailable(Appointment appointment) {
         if (generatedSlotRepository == null || appointment.getServiceId() == null
                 || appointment.getDoctorStaffId() == null) {
             return;
         }
-        GeneratedClinicSlot slot = generatedSlotRepository
+        generatedSlotRepository
                 .findFirstByClinicServiceIdAndDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
                         appointment.getServiceId(), appointment.getDoctorStaffId(), appointment.getAppointmentDate(),
                         appointment.getStartTime(), GeneratedSlotStatus.OPEN)
-                .orElseThrow(() -> new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_SLOT_NOT_FOUND",
-                        "Khong tim thay khung gio cu de dong sau khi doi lich."));
-        slot.cancel();
-        generatedSlotRepository.save(slot);
+                .ifPresent(slot -> {
+                    slot.cancel();
+                    generatedSlotRepository.save(slot);
+                });
     }
 
     private void markCancelledSlotUnavailableIfPast(Appointment appointment) {

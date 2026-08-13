@@ -45,6 +45,14 @@ public class ReceptionController {
         return ResponseEntity.ok(service.checkIn(appointmentId, request, authentication.getName()));
     }
 
+    @PostMapping("/appointments/{appointmentId}/reschedule-late")
+    public ResponseEntity<ReceptionAppointmentResponse> rescheduleLate(
+            @PathVariable UUID appointmentId,
+            @Valid @RequestBody ReceptionRebookRequest request,
+            Authentication authentication) {
+        return ResponseEntity.ok(service.rescheduleLate(appointmentId, request, authentication.getName()));
+    }
+
     @PostMapping("/appointments/{appointmentId}/rebook")
     public ResponseEntity<ReceptionAppointmentResponse> rebook(
             @PathVariable UUID appointmentId,
