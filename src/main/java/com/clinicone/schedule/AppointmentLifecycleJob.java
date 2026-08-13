@@ -28,6 +28,7 @@ public class AppointmentLifecycleJob {
     private static final ZoneId CLINIC_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     private static final Duration LATE_THRESHOLD = Duration.ofMinutes(15);
     private static final Duration ABSENT_THRESHOLD = Duration.ofHours(24);
+    private static final int DEFAULT_SLOT_DURATION_MINUTES = 60;
 
     private final AppointmentRepository appointmentRepository;
     private final PatientNotificationService notificationService;
@@ -156,9 +157,10 @@ public class AppointmentLifecycleJob {
 
     private Instant scheduledEndAt(Instant appointmentAt, Appointment appointment) {
         Integer durationMinutes = appointment.getServiceDurationMinutes();
-        return durationMinutes == null || durationMinutes <= 0
-                ? appointmentAt
-                : appointmentAt.plus(Duration.ofMinutes(durationMinutes));
+        int effectiveDuration = durationMinutes == null || durationMinutes <= 0
+                ? DEFAULT_SLOT_DURATION_MINUTES
+                : durationMinutes;
+        return appointmentAt.plus(Duration.ofMinutes(effectiveDuration));
     }
 
     public record LifecycleJobResult(int inspected, int reminderCandidates, int lateWarningCandidates,
