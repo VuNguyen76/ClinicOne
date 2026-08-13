@@ -15,6 +15,7 @@ import com.clinicone.doctor.DoctorProfile;
 import com.clinicone.auth.StaffAccount;
 import com.clinicone.patientprofile.PatientProfile;
 import com.clinicone.config.ClinicConfigurationService;
+import com.clinicone.audit.BusinessLogService;
 import com.clinicone.reason.ReasonCatalog;
 import com.clinicone.reason.ReasonCatalogService;
 import com.clinicone.reason.ReasonCatalogType;
@@ -124,6 +125,39 @@ class AppointmentServiceTest {
         assertEquals("Đã đặt", response.statusLabel());
         verify(appointmentRepository).save(any(Appointment.class));
         verify(notificationService, never()).notifyAppointmentCreated(any(Appointment.class));
+    }
+
+    @Test
+    void receptionCanMoveLateBookedAppointmentWithoutChangingAppointmentCode() {
+        UUID appointmentId = UUID.randomUUID();
+        UUID oldDoctorId = UUID.randomUUID();
+        UUID newDoctorId = UUID.randomUUID();
+        PatientProfile temporaryProfile = PatientProfile.createTemporary(
+                "Nguyen Van Tam", LocalDate.of(1990, 1, 1), "Nam", "0912345678", null, null, null, null);
+        Appointment appointment = Appointment.createTemporary(temporaryProfile, oldDoctorId,
+                "CL-LATE-001", "Nội tổng quát", "BS. Cũ", LocalDate.of(2026, 8, 6),
+                LocalTime.of(9, 0), "Đau đầu");
+        appointment.applyServiceSnapshot(UUID.randomUUID(), "Khám tổng quát", "Khám thường", 60);
+        setId(appointment, appointmentId);
+        when(appointmentRepository.findByIdForUpdate(appointmentId)).thenReturn(Optional.of(appointment));
+
+        Clock lateClock = Clock.fixed(Instant.parse("2026-08-06T03:35:00Z"), ZoneOffset.UTC);
+        BusinessLogService businessLogService = mock(BusinessLogService.class);
+        AppointmentService lateService = new AppointmentService(accountRepository, appointmentRepository, null,
+                availabilityService, notificationService, businessLogService, holdService, clinicServiceRepository,
+                null, reasonCatalogService, lateClock, new AppointmentCodeGenerator(), null, generatedSlotRepository);
+
+        AppointmentResponse response = lateService.rescheduleForReception(appointmentId, newDoctorId, "BS. Mới",
+                LocalDate.of(2026, 8, 6), LocalTime.of(11, 0), "Người bệnh đến muộn và đồng ý đổi khung", "reception-1");
+
+        assertEquals("CL-LATE-001", response.appointmentCode());
+        assertEquals(LocalTime.of(11, 0), appointment.getStartTime());
+        assertEquals(newDoctorId, appointment.getDoctorStaffId());
+        assertEquals(AppointmentStatus.BOOKED, appointment.getStatus());
+        verify(availabilityService).ensureBookable("Nội tổng quát", "BS. Mới", newDoctorId,
+                LocalDate.of(2026, 8, 6), LocalTime.of(11, 0), null, appointment.getServiceId());
+        verify(appointmentRepository).save(appointment);
+        verify(notificationService).notifyAppointmentRescheduled(appointment, "2026-08-06", "09:00");
     }
 
     @Test

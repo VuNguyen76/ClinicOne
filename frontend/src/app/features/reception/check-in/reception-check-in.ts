@@ -64,6 +64,7 @@ export class ReceptionCheckIn implements OnInit {
   protected readonly adjustmentReason = signal('');
   protected readonly adjustmentLoading = signal(false);
   protected readonly rebookTicket = signal<ReceptionAppointmentResponse | null>(null);
+  protected readonly rebookMode = signal<'LATE' | 'ABSENT'>('ABSENT');
   protected readonly rebookDate = signal(clinicTodayIso());
   protected readonly rebookSlots = signal<AppointmentSlotResponse[]>([]);
   protected readonly rebookStartTime = signal('');
@@ -124,6 +125,14 @@ export class ReceptionCheckIn implements OnInit {
       },
       error: (response) => {
         this.busyId.set('');
+        const errorCode = typeof response?.error === 'object' && response.error !== null
+          ? response.error.code
+          : undefined;
+        if (errorCode === 'QUEUE_LATE_APPOINTMENT') {
+          this.openRebook(appointment);
+          this.notice.set('Lịch đã quá giờ check-in; hãy chọn khung giờ thay thế cho người bệnh.');
+          return;
+        }
         this.handleError(response);
       },
     });
@@ -172,8 +181,9 @@ export class ReceptionCheckIn implements OnInit {
   }
 
   protected openRebook(appointment: ReceptionAppointmentResponse): void {
-    if (appointment.status !== 'ABSENT') return;
+    if (appointment.status !== 'ABSENT' && appointment.status !== 'BOOKED') return;
     this.rebookTicket.set(appointment);
+    this.rebookMode.set(appointment.status === 'BOOKED' ? 'LATE' : 'ABSENT');
     this.rebookDate.set(clinicTodayIso());
     this.rebookStartTime.set('');
     this.rebookReason.set('');
@@ -216,23 +226,33 @@ export class ReceptionCheckIn implements OnInit {
       this.error.set('Chọn một khung giờ còn trống.');
       return;
     }
-    if (reason.length < 10) {
-      this.error.set('Nhập lý do người bệnh quay lại (tối thiểu 10 ký tự).');
+    const minimumReasonLength = this.rebookMode() === 'LATE' ? 3 : 10;
+    if (reason.length < minimumReasonLength) {
+      this.error.set(`Nhập lý do (tối thiểu ${minimumReasonLength} ký tự).`);
       return;
     }
     this.rebookLoading.set(true);
     this.error.set('');
-    this.authApi.rebookReceptionAppointment(appointment.id, {
+    const request = {
       doctorId: slot.doctorId,
       appointmentDate: this.rebookDate(),
       startTime: slot.startTime,
       lateReason: reason,
-    }).subscribe({
-      next: (created) => {
+    };
+    const operation = this.rebookMode() === 'LATE'
+      ? this.authApi.rescheduleLateReceptionAppointment(appointment.id, request)
+      : this.authApi.rebookReceptionAppointment(appointment.id, request);
+    operation.subscribe({
+      next: (updated) => {
         this.rebookLoading.set(false);
         this.rebookTicket.set(null);
-        this.appointments.update((items) => [created, ...items]);
-        this.notice.set(`Đã tạo lịch mới ${created.appointmentCode} cho ${created.patientName}.`);
+        this.appointments.update((items) => items.map((item) => item.id === updated.id ? updated : item));
+        if (this.rebookMode() === 'LATE') {
+          this.notice.set(`Đã chuyển lịch ${updated.appointmentCode} sang khung giờ mới cho ${updated.patientName}.`);
+        } else {
+          this.appointments.update((items) => [updated, ...items]);
+          this.notice.set(`Đã tạo lịch mới ${updated.appointmentCode} cho ${updated.patientName}.`);
+        }
       },
       error: (response) => {
         this.rebookLoading.set(false);

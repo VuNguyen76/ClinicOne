@@ -144,6 +144,9 @@ public class QueueService {
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "APPOINTMENT_NOT_FOUND",
                         "Không tìm thấy lịch hẹn."));
+        // Reception must move a late appointment to another suitable slot first.
+        // Staff check-in is deliberately subject to the same guard as patient QR check-in.
+        ensureQrCheckInNotLate(appointment);
         String normalizedActor = actor == null || actor.isBlank() ? "STAFF" : actor.trim();
         return checkInAppointment(roomCode, appointment, normalizeExceptionReason(exceptionReason), normalizedActor);
     }

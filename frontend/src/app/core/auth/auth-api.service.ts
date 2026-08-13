@@ -684,6 +684,7 @@ export interface StaffLoginResponse {
 
 export type ApiErrorResponse = {
   error?: {
+    code?: string;
     message?: string;
     detail?: string;
     title?: string;
@@ -965,6 +966,10 @@ export class AuthApiService {
 
   rebookReceptionAppointment(appointmentId: string, request: ReceptionRebookRequest): Observable<ReceptionAppointmentResponse> {
     return this.http.post<ReceptionAppointmentResponse>(`/api/v1/reception/appointments/${appointmentId}/rebook`, request);
+  }
+
+  rescheduleLateReceptionAppointment(appointmentId: string, request: ReceptionRebookRequest): Observable<ReceptionAppointmentResponse> {
+    return this.http.post<ReceptionAppointmentResponse>(`/api/v1/reception/appointments/${appointmentId}/reschedule-late`, request);
   }
 
   leaveReceptionAppointment(appointmentId: string, reason: string): Observable<ReceptionAppointmentResponse> {
