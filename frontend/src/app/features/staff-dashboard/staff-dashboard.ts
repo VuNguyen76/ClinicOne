@@ -249,6 +249,7 @@ export class StaffDashboard implements OnInit, OnDestroy {
   private handleError(response: { status?: number } & ApiErrorResponse): void {
     if (response.status === 401) {
       sessionStorage.removeItem('clinicOneAccessToken');
+      sessionStorage.removeItem('clinicOneSessionType');
       sessionStorage.removeItem('clinicOneStaffRole');
       sessionStorage.removeItem('clinicOneStaffRoles');
       void this.router.navigateByUrl('/staff/login');

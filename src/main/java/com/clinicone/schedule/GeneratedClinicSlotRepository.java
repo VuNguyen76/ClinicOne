@@ -20,6 +20,9 @@ public interface GeneratedClinicSlotRepository extends JpaRepository<GeneratedCl
     List<GeneratedClinicSlot> findByClinicServiceIdAndAppointmentDateBetweenAndStatusOrderByAppointmentDateAscStartTimeAsc(
             UUID clinicServiceId, LocalDate from, LocalDate to, GeneratedSlotStatus status);
 
+    List<GeneratedClinicSlot> findByClinicServiceIdAndAppointmentDateBetweenOrderByAppointmentDateAscStartTimeAsc(
+            UUID clinicServiceId, LocalDate from, LocalDate to);
+
     List<GeneratedClinicSlot> findByClinicServiceIdAndDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
             UUID clinicServiceId, UUID doctorStaffId, LocalDate appointmentDate, java.time.LocalTime startTime,
             GeneratedSlotStatus status);

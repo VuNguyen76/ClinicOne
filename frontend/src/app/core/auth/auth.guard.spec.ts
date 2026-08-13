@@ -51,6 +51,18 @@ describe('ClinicOne route guards', () => {
     expect(TestBed.runInInjectionContext(() => homeGuard(null as never, { url: '/home' } as never))).toEqual({ commands: ['/doctor'] });
   });
 
+  it('keeps a staff session without loaded roles out of the patient home page', () => {
+    sessionStorage.setItem('clinicOneAccessToken', 'staff-token');
+    sessionStorage.setItem('clinicOneSessionType', 'STAFF');
+
+    expect(TestBed.runInInjectionContext(() => homeGuard(null as never, { url: '/home' } as never))).toEqual({
+      commands: ['/staff/login'],
+    });
+    expect(TestBed.runInInjectionContext(() => patientGuard(null as never, { url: '/appointments' } as never))).toEqual({
+      commands: ['/home'],
+    });
+  });
+
   it('sends reception staff to the reception workspace instead of the patient home page', () => {
     sessionStorage.setItem('clinicOneAccessToken', 'staff-token');
     sessionStorage.setItem('clinicOneStaffRole', 'RECEPTIONIST');

@@ -71,7 +71,7 @@ class ReceptionControllerTest {
 
     @Test
     void receptionistCanConfirmArrival() throws Exception {
-        when(service.checkIn(eq(APPOINTMENT_ID), any())).thenReturn(responseWithTicket());
+        when(service.checkIn(eq(APPOINTMENT_ID), any(), eq(STAFF_ID.toString()))).thenReturn(responseWithTicket());
 
         mockMvc.perform(post("/api/v1/reception/appointments/" + APPOINTMENT_ID + "/check-in")
                 .with(authentication(authenticated("ROLE_RECEPTIONIST")))
@@ -84,7 +84,7 @@ class ReceptionControllerTest {
 
     @Test
     void receptionistCanRecordPatientLeftBeforeExam() throws Exception {
-        when(service.leaveBeforeExam(eq(APPOINTMENT_ID), eq("Người bệnh bận việc đột xuất")))
+        when(service.leaveBeforeExam(eq(APPOINTMENT_ID), eq("Người bệnh bận việc đột xuất"), eq(STAFF_ID.toString())))
                 .thenReturn(responseWithLeftTicket());
 
         mockMvc.perform(post("/api/v1/reception/appointments/" + APPOINTMENT_ID + "/leave")
@@ -120,7 +120,7 @@ class ReceptionControllerTest {
 
     @Test
     void receptionistCanCreateWalkInFromExistingPatientAccount() throws Exception {
-        when(service.createWalkIn(any())).thenReturn(responseWithTicket());
+        when(service.createWalkIn(any(), eq(STAFF_ID.toString()))).thenReturn(responseWithTicket());
         String today = LocalDate.now().toString();
 
         mockMvc.perform(post("/api/v1/reception/walk-in")

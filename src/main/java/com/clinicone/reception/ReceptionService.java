@@ -81,6 +81,11 @@ public class ReceptionService {
 
     @Transactional
     public ReceptionAppointmentResponse checkIn(UUID appointmentId, ReceptionCheckInRequest request) {
+        return checkIn(appointmentId, request, null);
+    }
+
+    @Transactional
+    public ReceptionAppointmentResponse checkIn(UUID appointmentId, ReceptionCheckInRequest request, String actor) {
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "APPOINTMENT_NOT_FOUND",
                         "Không tìm thấy lịch hẹn."));
@@ -93,17 +98,26 @@ public class ReceptionService {
             throw new AuthException(HttpStatus.CONFLICT, "PASSWORD_CHANGE_REQUIRED",
                     "Người bệnh cần đổi mật khẩu tạm trước khi check-in.");
         }
-        QueueTicketResponse ticket = queueService.checkInByStaff(request.roomCode().trim(), appointmentId, request.reason().trim());
+        QueueTicketResponse ticket = actor == null
+                ? queueService.checkInByStaff(request.roomCode().trim(), appointmentId, request.reason().trim())
+                : queueService.checkInByStaff(request.roomCode().trim(), appointmentId, request.reason().trim(), actor);
         return toResponse(appointment, ticket);
     }
 
     @Transactional
     public ReceptionAppointmentResponse leaveBeforeExam(UUID appointmentId, String reason) {
+        return leaveBeforeExam(appointmentId, reason, null);
+    }
+
+    @Transactional
+    public ReceptionAppointmentResponse leaveBeforeExam(UUID appointmentId, String reason, String actor) {
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "APPOINTMENT_NOT_FOUND",
                         "Không tìm thấy lịch hẹn."));
         QueueTicketResponse existingTicket = ticketRepository.findByAppointmentId(appointmentId)
-                .map(ticket -> queueService.leaveBeforeExam(ticket.getId(), reason))
+                .map(ticket -> actor == null
+                        ? queueService.leaveBeforeExam(ticket.getId(), reason)
+                        : queueService.leaveBeforeExam(ticket.getId(), reason, actor))
                 .orElseThrow(() -> new AuthException(HttpStatus.CONFLICT, "QUEUE_NOT_FOUND",
                         "Lịch hẹn chưa có lượt trong hàng đợi."));
         return toResponse(appointment, existingTicket);
@@ -167,6 +181,11 @@ public class ReceptionService {
     /** Tiếp nhận người bệnh đến quầy mà chưa có lịch trong ngày. */
     @Transactional
     public ReceptionAppointmentResponse createWalkIn(ReceptionWalkInRequest request) {
+        return createWalkIn(request, null);
+    }
+
+    @Transactional
+    public ReceptionAppointmentResponse createWalkIn(ReceptionWalkInRequest request, String actor) {
         if (patientAccountRepository == null || appointmentService == null) {
             throw new AuthException(HttpStatus.SERVICE_UNAVAILABLE, "RECEPTION_WALK_IN_UNAVAILABLE",
                     "Chưa bật luồng tiếp nhận tại quầy.");
@@ -216,8 +235,9 @@ public class ReceptionService {
         AppointmentResponse created = patient == null
                 ? appointmentService.createTemporary(temporaryProfile, appointmentRequest)
                 : appointmentService.create(patient.getId().toString(), appointmentRequest);
-        QueueTicketResponse ticket = queueService.checkInByStaff(
-                doctor.getRoom().getCode(), created.id(), request.exceptionReason());
+        QueueTicketResponse ticket = actor == null
+                ? queueService.checkInByStaff(doctor.getRoom().getCode(), created.id(), request.exceptionReason())
+                : queueService.checkInByStaff(doctor.getRoom().getCode(), created.id(), request.exceptionReason(), actor);
         Appointment appointment = appointmentRepository.findById(created.id())
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "APPOINTMENT_NOT_FOUND",
                         "Không tìm thấy lịch hẹn vừa tạo."));

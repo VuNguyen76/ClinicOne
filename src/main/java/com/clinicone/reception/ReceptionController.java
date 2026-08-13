@@ -3,6 +3,7 @@ package com.clinicone.reception;
 import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -39,15 +40,17 @@ public class ReceptionController {
 
     @PostMapping("/appointments/{appointmentId}/check-in")
     public ResponseEntity<ReceptionAppointmentResponse> checkIn(@PathVariable UUID appointmentId,
-                                                                  @Valid @RequestBody ReceptionCheckInRequest request) {
-        return ResponseEntity.ok(service.checkIn(appointmentId, request));
+                                                                  @Valid @RequestBody ReceptionCheckInRequest request,
+                                                                  Authentication authentication) {
+        return ResponseEntity.ok(service.checkIn(appointmentId, request, authentication.getName()));
     }
 
     @PostMapping("/appointments/{appointmentId}/leave")
     @PreAuthorize("hasRole('RECEPTIONIST')")
     public ResponseEntity<ReceptionAppointmentResponse> leaveBeforeExam(@PathVariable UUID appointmentId,
-                                                                          @Valid @RequestBody QueueLeaveRequest request) {
-        return ResponseEntity.ok(service.leaveBeforeExam(appointmentId, request.reason()));
+                                                                          @Valid @RequestBody QueueLeaveRequest request,
+                                                                          Authentication authentication) {
+        return ResponseEntity.ok(service.leaveBeforeExam(appointmentId, request.reason(), authentication.getName()));
     }
 
     @PostMapping("/appointments/{appointmentId}/facility-unavailable")
@@ -60,8 +63,8 @@ public class ReceptionController {
 
     @PostMapping("/walk-in")
     public ResponseEntity<ReceptionAppointmentResponse> createWalkIn(
-            @Valid @RequestBody ReceptionWalkInRequest request) {
-        return ResponseEntity.ok(service.createWalkIn(request));
+            @Valid @RequestBody ReceptionWalkInRequest request, Authentication authentication) {
+        return ResponseEntity.ok(service.createWalkIn(request, authentication.getName()));
     }
 
     @PostMapping("/temporary-profiles")

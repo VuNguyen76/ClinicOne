@@ -726,6 +726,7 @@ export class AuthApiService {
       .pipe(tap((session) => {
         sessionStorage.setItem('clinicOneAccessToken', session.accessToken);
         sessionStorage.setItem('clinicOnePatientName', session.fullName);
+        sessionStorage.setItem('clinicOneSessionType', 'PATIENT');
         sessionStorage.removeItem('clinicOneStaffRole');
         sessionStorage.removeItem('clinicOneStaffRoles');
       }));
@@ -737,6 +738,7 @@ export class AuthApiService {
       .pipe(tap((session) => {
         sessionStorage.setItem('clinicOneAccessToken', session.accessToken);
         sessionStorage.setItem('clinicOnePatientName', session.fullName);
+        sessionStorage.setItem('clinicOneSessionType', 'PATIENT');
         sessionStorage.removeItem('clinicOneStaffRole');
         sessionStorage.removeItem('clinicOneStaffRoles');
       }));
@@ -1048,6 +1050,7 @@ export class AuthApiService {
     return this.http.post<StaffLoginResponse>('/api/v1/staff/auth/login', { username, password }).pipe(tap((session) => {
       sessionStorage.setItem('clinicOneAccessToken', session.accessToken);
       sessionStorage.setItem('clinicOnePatientName', session.fullName);
+      sessionStorage.setItem('clinicOneSessionType', 'STAFF');
       sessionStorage.setItem('clinicOneStaffRole', session.role);
       sessionStorage.setItem('clinicOneStaffRoles', JSON.stringify(session.roles?.length ? session.roles : [session.role]));
     }));
