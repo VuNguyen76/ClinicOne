@@ -61,6 +61,11 @@ public class ReconciliationService {
         }
         String referenceValue = normalize(request.referenceValue(), 120);
         validateReference(request.referenceType(), referenceValue, incident);
+        if (request.action() != ReconciliationAction.NO_ACTION_REQUIRED
+                && request.referenceType() != ReconciliationReferenceType.BUSINESS_LOG) {
+            throw badRequest("RECONCILIATION_REPLAY_REFERENCE_REQUIRED",
+                    "Hành động chạy lại phải gắn với mã nhật ký nghiệp vụ.");
+        }
         String resultNote = normalize(request.resultNote(), 500);
         if (resultNote.length() < 10) {
             throw badRequest("RECONCILIATION_RESULT_REQUIRED", "Ghi chú kết quả phải có từ 10 đến 500 ký tự.");

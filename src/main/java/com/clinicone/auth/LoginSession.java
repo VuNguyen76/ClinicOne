@@ -57,6 +57,7 @@ public class LoginSession {
     }
 
     public void revoke(Instant now) { revokedAt = now; }
+    public UUID getId() { return id; }
     public UUID getAccountId() { return accountId; }
     public String getTokenHash() { return tokenHash; }
     public Instant getIssuedAt() { return issuedAt; }

@@ -28,4 +28,12 @@ export class SmsDeliveryManagement implements OnInit {
   protected statusLabel(status: string): string {
     return ({ PENDING: 'Đang chờ', PROCESSING: 'Đang gửi', SENT: 'Đã gửi', RETRY_WAITING: 'Chờ thử lại', FAILED: 'Gửi thất bại' } as Record<string, string>)[status] ?? status;
   }
+
+  protected retry(item: SmsDeliveryResponse): void {
+    const key = `sms-retry-${item.id}-${globalThis.crypto?.randomUUID?.() ?? Date.now()}`;
+    this.api.retrySmsDelivery(item.id, key).subscribe({
+      next: () => this.refresh(),
+      error: (response) => this.error.set(apiErrorMessage(response)),
+    });
+  }
 }
