@@ -3,18 +3,16 @@ package com.clinicone.examination;
 import com.clinicone.auth.AuthException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class ExaminationSessionService {
     private final ExaminationSessionRepository repository;
-
-    public ExaminationSessionService(ExaminationSessionRepository repository) {
-        this.repository = repository;
-    }
 
     @Transactional(readOnly = true)
     public List<ExaminationSessionResponse> list(String accountId) {

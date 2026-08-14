@@ -3,13 +3,13 @@ package com.clinicone.auth;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
-import jakarta.validation.constraints.Pattern;
+import com.clinicone.validation.VietnamesePhone;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
 
 public record RegistrationRequest(
-        @NotBlank @Pattern(regexp = "^0\\d{9}$", message = "Số điện thoại phải có 10 chữ số và bắt đầu bằng 0") String phone,
+        @NotBlank @VietnamesePhone String phone,
         @NotBlank @Size(min = 2, max = 100) String fullName,
         @NotBlank @Size(min = 8, max = 72) String password,
         @NotNull(message = "Ngày sinh là thông tin bắt buộc")

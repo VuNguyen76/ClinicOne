@@ -1,6 +1,7 @@
 package com.clinicone.audit;
 
 import org.springframework.stereotype.Service;
+import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
@@ -8,17 +9,13 @@ import java.time.Instant;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class AccessAuditService {
     private static final Instant AUDIT_START = Instant.parse("1900-01-01T00:00:00Z");
     private static final Instant AUDIT_END = Instant.parse("9999-12-31T23:59:59.999999Z");
 
     private final AccessAuditRepository repository;
     private final Clock clock;
-
-    public AccessAuditService(AccessAuditRepository repository, Clock clock) {
-        this.repository = repository;
-        this.clock = clock;
-    }
 
     @Transactional
     public AccessAuditResponse record(String eventType, String actor, String outcome, String function,

@@ -17,6 +17,7 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import jakarta.persistence.Version;
+import lombok.Getter;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -24,6 +25,7 @@ import java.time.LocalTime;
 import java.util.UUID;
 
 @Entity
+@Getter
 @Table(name = "appointments", indexes = {
         @Index(name = "idx_appointments_patient_date", columnList = "patient_account_id,appointment_date,start_time"),
         @Index(name = "idx_appointments_slot_availability", columnList = "specialty,appointment_date,start_time,status"),
@@ -308,27 +310,5 @@ public class Appointment {
         }
     }
 
-    public UUID getId() { return id; }
-    public PatientAccount getPatient() { return patient; }
-    public String getAppointmentCode() { return appointmentCode; }
-    public String getSpecialty() { return specialty; }
-    public String getDoctorName() { return doctorName; }
-    public UUID getDoctorStaffId() { return doctorStaffId; }
-    public UUID getServiceId() { return serviceId; }
-    public String getServiceName() { return serviceName; }
-    public String getVisitType() { return visitType; }
-    public Integer getServiceDurationMinutes() { return serviceDurationMinutes; }
     public boolean requiresMedicalRecord() { return requiresMedicalRecord == null || requiresMedicalRecord; }
-    public LocalDate getAppointmentDate() { return appointmentDate; }
-    public LocalTime getStartTime() { return startTime; }
-    public String getReason() { return reason; }
-    public PatientProfile getPatientProfile() { return patientProfile; }
-    public AppointmentStatus getStatus() { return status; }
-    public Instant getCancelledAt() { return cancelledAt; }
-    public String getCancellationReason() { return cancellationReason; }
-    public String getCancellationRequestKey() { return cancellationRequestKey; }
-    public String getCreationRequestKey() { return creationRequestKey; }
-    public String getCheckInRequestKey() { return checkInRequestKey; }
-    public Instant getCreatedAt() { return createdAt; }
-    public long getVersion() { return version; }
 }

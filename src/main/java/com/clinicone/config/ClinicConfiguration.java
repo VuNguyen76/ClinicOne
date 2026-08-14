@@ -6,12 +6,14 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import lombok.Getter;
 
 import java.time.Instant;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 @Entity
+@Getter
 @Table(name = "clinic_configuration")
 public class ClinicConfiguration {
     public static final UUID DEFAULT_ID = UUID.nameUUIDFromBytes(
@@ -77,12 +79,4 @@ public class ClinicConfiguration {
     @PreUpdate
     void onUpdate() { updatedAt = Instant.now(); }
 
-    public UUID getId() { return id; }
-    public String getUnitName() { return unitName; }
-    public String getDepartmentName() { return departmentName; }
-    public int getHoldMinutes() { return holdMinutes; }
-    public int getCancellationThresholdHours() { return cancellationThresholdHours; }
-    public String getUpdatedBy() { return updatedBy; }
-    public Instant getCreatedAt() { return createdAt; }
-    public Instant getUpdatedAt() { return updatedAt; }
 }

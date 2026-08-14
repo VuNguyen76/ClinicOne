@@ -10,6 +10,8 @@ import java.util.Locale;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 
 import java.util.ArrayList;
 import java.util.UUID;
@@ -41,6 +43,7 @@ public class SpecialtyCatalogService {
         this.repository = repository;
     }
 
+    @Cacheable(cacheNames = "specialties", key = "#query == null ? '' : #query.trim().toLowerCase()")
     public List<SpecialtyResponse> list(String query) {
         List<SpecialtyResponse> source = new ArrayList<>(SPECIALTIES);
         if (repository != null) {
@@ -76,6 +79,7 @@ public class SpecialtyCatalogService {
                 .trim();
     }
 
+    @CacheEvict(cacheNames = "specialties", allEntries = true)
     public SpecialtyResponse create(CreateSpecialtyRequest request) {
         requireRepository();
         String code = normalizeCode(request.code());
@@ -88,6 +92,7 @@ public class SpecialtyCatalogService {
         return new SpecialtyResponse(saved.getCode(), saved.getName(), saved.getDescription());
     }
 
+    @CacheEvict(cacheNames = "specialties", allEntries = true)
     public SpecialtyResponse update(String code, CreateSpecialtyRequest request) {
         requireRepository();
         SpecialtyCatalogEntry entry = repository.findByCodeIgnoreCase(code)
@@ -105,6 +110,7 @@ public class SpecialtyCatalogService {
         return new SpecialtyResponse(saved.getCode(), saved.getName(), saved.getDescription());
     }
 
+    @CacheEvict(cacheNames = "specialties", allEntries = true)
     public void deactivate(String code) {
         requireRepository();
         SpecialtyCatalogEntry entry = repository.findByCodeIgnoreCase(code)

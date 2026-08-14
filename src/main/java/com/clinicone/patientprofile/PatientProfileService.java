@@ -5,6 +5,7 @@ import com.clinicone.auth.PatientAccount;
 import com.clinicone.auth.PatientAccountRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -13,16 +14,12 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 @Service
+@RequiredArgsConstructor
 public class PatientProfileService {
     private static final int MAX_ACTIVE_PROFILES = 10;
 
     private final PatientAccountRepository accountRepository;
     private final PatientProfileRepository profileRepository;
-
-    public PatientProfileService(PatientAccountRepository accountRepository, PatientProfileRepository profileRepository) {
-        this.accountRepository = accountRepository;
-        this.profileRepository = profileRepository;
-    }
 
     @Transactional
     public List<PatientProfileResponse> list(String accountId) {
