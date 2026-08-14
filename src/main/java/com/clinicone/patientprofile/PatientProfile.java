@@ -1,5 +1,7 @@
 package com.clinicone.patientprofile;
 
+import lombok.Getter;
+
 import com.clinicone.auth.PatientAccount;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -17,6 +19,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
+@Getter
 @Entity
 @Table(name = "patient_profiles")
 public class PatientProfile {
@@ -193,6 +196,10 @@ public class PatientProfile {
         this.temporaryProfile = false;
     }
 
+    public boolean isPrimaryProfile() { return primaryProfile; }
+    public boolean isTemporaryProfile() { return Boolean.TRUE.equals(temporaryProfile); }
+    public boolean isActive() { return active; }
+
     @PrePersist
     void onCreate() {
         if (temporaryProfile == null) {
@@ -208,25 +215,4 @@ public class PatientProfile {
         updatedAt = Instant.now();
     }
 
-    public UUID getId() { return id; }
-    public PatientAccount getOwner() { return owner; }
-    public String getFullName() { return fullName; }
-    public String getRelationship() { return relationship; }
-    public LocalDate getDateOfBirth() { return dateOfBirth; }
-    public String getGender() { return gender; }
-    public String getPhone() { return phone; }
-    public String getIdentityNumber() { return identityNumber; }
-    public String getNationality() { return nationality; }
-    public String getEthnicity() { return ethnicity; }
-    public String getAddress() { return address; }
-    public String getProvinceCode() { return provinceCode; }
-    public String getProvinceName() { return provinceName; }
-    public String getDistrictCode() { return districtCode; }
-    public String getDistrictName() { return districtName; }
-    public String getWardCode() { return wardCode; }
-    public String getWardName() { return wardName; }
-    public String getStreetAddress() { return streetAddress; }
-    public boolean isPrimaryProfile() { return primaryProfile; }
-    public boolean isTemporaryProfile() { return Boolean.TRUE.equals(temporaryProfile); }
-    public boolean isActive() { return active; }
 }

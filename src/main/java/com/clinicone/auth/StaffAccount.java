@@ -1,5 +1,7 @@
 package com.clinicone.auth;
 
+import lombok.Getter;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -21,6 +23,7 @@ import java.util.EnumSet;
 import java.util.Set;
 import java.util.List;
 
+@Getter
 @Entity
 @Table(name = "staff_accounts")
 public class StaffAccount {
@@ -123,21 +126,12 @@ public class StaffAccount {
         updatedAt = Instant.now();
     }
 
-    public UUID getId() { return id; }
-    public String getUsername() { return username; }
-    public String getPasswordHash() { return passwordHash; }
-    public String getFullName() { return fullName; }
-    public StaffRole getRole() { return role; }
-    public AccountStatus getStatus() { return status; }
     public Set<StaffRole> getRoles() {
         if (roles == null || roles.isEmpty()) {
             return role == null ? Set.of() : Set.of(role);
         }
         return Set.copyOf(roles);
     }
-    public String getEmployeeCode() { return employeeCode; }
-    public String getUnitName() { return unitName; }
-    public String getDepartmentName() { return departmentName; }
     public boolean hasRole(StaffRole candidate) { return getRoles().contains(candidate); }
     public void replaceRoles(Set<StaffRole> nextRoles) {
         if (nextRoles == null || nextRoles.isEmpty()) throw new IllegalArgumentException("At least one staff role is required");
