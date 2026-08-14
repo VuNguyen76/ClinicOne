@@ -5,9 +5,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.Map;
+import java.util.List;
 
 @RestControllerAdvice
 public class OtpExceptionHandler {
@@ -42,6 +44,23 @@ public class OtpExceptionHandler {
                 "code", code,
                 "message", message,
                 "error", envelope(code, message, Map.of(), request)
+        ));
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    ResponseEntity<Map<String, Object>> handle(MethodArgumentNotValidException exception,
+                                                HttpServletRequest request) {
+        List<Map<String, String>> errors = exception.getBindingResult().getFieldErrors().stream()
+                .map(error -> Map.of("field", error.getField(), "message",
+                        error.getDefaultMessage() == null ? "Giá trị không hợp lệ." : error.getDefaultMessage()))
+                .toList();
+        String code = "VALIDATION_ERROR";
+        String message = "Dữ liệu nhập chưa hợp lệ.";
+        return ResponseEntity.badRequest().body(Map.of(
+                "code", code,
+                "message", message,
+                "errors", errors,
+                "error", envelope(code, message, Map.of("errors", errors), request)
         ));
     }
 

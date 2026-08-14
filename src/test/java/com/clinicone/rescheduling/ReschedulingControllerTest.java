@@ -32,12 +32,12 @@ class ReschedulingControllerTest {
     private ReschedulingService service;
 
     @Test
-    void adminCannotResolveReschedulingCase() throws Exception {
+    void adminCanResolveReschedulingCase() throws Exception {
         mockMvc.perform(post("/api/v1/admin/rescheduling/{id}/resolve", UUID.randomUUID())
                         .with(authentication(authenticated("ROLE_ADMIN")))
                         .contentType("application/json")
                         .content(requestBody()))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk());
     }
 
     @Test

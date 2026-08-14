@@ -1,10 +1,12 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { ApiErrorResponse, AppointmentSlotResponse, AuthApiService, apiErrorMessage, ClinicServiceResponse, PatientProfileItem, SpecialtyOption } from '../../../core/auth/auth-api.service';
 import { AccountMenu } from '../../../shared/account-menu/account-menu';
 import { clinicTodayDate, clinicTodayIso } from '../../../core/time/clinic-time';
+import { interval } from 'rxjs';
 
 type BookingStep = 1 | 2 | 3;
 
@@ -37,6 +39,7 @@ export class Booking implements OnInit {
   private readonly formBuilder = inject(FormBuilder);
   private readonly authApi = inject(AuthApiService);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly today = clinicTodayIso();
   protected readonly step = signal<BookingStep>(1);
@@ -46,6 +49,8 @@ export class Booking implements OnInit {
   protected readonly selectedDate = signal('');
   protected readonly selectedSlot = signal('');
   protected readonly holdId = signal<string | null>(null);
+  protected readonly holdExpiresAt = signal<string | null>(null);
+  protected readonly holdRemainingSeconds = signal(0);
   protected readonly holdBusy = signal(false);
   protected readonly calendarMonth = signal(this.startOfMonth(clinicTodayDate()));
   protected readonly dates = signal(this.buildMonthDates(this.calendarMonth()));
@@ -73,6 +78,7 @@ export class Booking implements OnInit {
   });
 
   ngOnInit(): void {
+    interval(1000).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.updateHoldCountdown());
     this.authApi.getSpecialties().subscribe({
       next: (specialties) => { this.specialties.set(specialties); this.specialtiesLoading.set(false); },
       error: (response) => { this.specialtiesLoading.set(false); this.handleAuthError(response); },
@@ -116,7 +122,7 @@ export class Booking implements OnInit {
     this.form.controls.startTime.reset('');
     this.selectedDate.set('');
     this.selectedSlot.set('');
-    this.holdId.set(null);
+    this.clearHold();
     this.monthSlots.set([]);
     this.step.set(2);
     this.loadMonthAvailability();
@@ -131,7 +137,7 @@ export class Booking implements OnInit {
     this.form.controls.startTime.reset('');
     this.selectedDate.set('');
     this.selectedSlot.set('');
-    this.holdId.set(null);
+    this.clearHold();
     this.monthSlots.set([]);
     this.step.set(2);
     this.loadMonthAvailability();
@@ -182,7 +188,7 @@ export class Booking implements OnInit {
   protected chooseSlot(slot: TimeSlot): void {
     this.clearError();
     if (this.selectedSlot() !== slot.key) {
-      this.holdId.set(null);
+      this.clearHold();
     }
     this.selectedSlot.set(slot.key);
     this.form.controls.startTime.setValue(slot.startTime);
@@ -226,6 +232,10 @@ export class Booking implements OnInit {
       next: (hold) => {
         this.holdBusy.set(false);
         this.holdId.set(hold.id);
+        this.holdExpiresAt.set(hold.expiresAt);
+        this.holdRemainingSeconds.set(hold.expiresAt
+          ? Math.max(0, Math.ceil((Date.parse(hold.expiresAt) - Date.now()) / 1000))
+          : 0);
         this.step.set(3);
       },
       error: (response) => {
@@ -305,12 +315,34 @@ export class Booking implements OnInit {
     this.dates.set(this.buildMonthDates(this.calendarMonth()));
     this.selectedDate.set('');
     this.selectedSlot.set('');
-    this.holdId.set(null);
+    this.clearHold();
     this.availableSlots.set([]);
     this.form.controls.appointmentDate.reset('');
     this.form.controls.startTime.reset('');
     this.monthSlots.set([]);
     this.loadMonthAvailability();
+  }
+
+  protected holdCountdownLabel(): string {
+    const seconds = this.holdRemainingSeconds();
+    return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+  }
+
+  private clearHold(): void {
+    this.holdId.set(null);
+    this.holdExpiresAt.set(null);
+    this.holdRemainingSeconds.set(0);
+  }
+
+  private updateHoldCountdown(): void {
+    const expiresAt = this.holdExpiresAt();
+    if (!expiresAt) return;
+    const seconds = Math.max(0, Math.ceil((Date.parse(expiresAt) - Date.now()) / 1000));
+    this.holdRemainingSeconds.set(seconds);
+    if (seconds === 0 && this.holdId()) {
+      this.clearHold();
+      this.error = 'Thời gian giữ chỗ đã hết. Vui lòng chọn lại khung giờ.';
+    }
   }
 
   private loadMonthAvailability(): void {

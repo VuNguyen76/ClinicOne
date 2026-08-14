@@ -765,14 +765,20 @@ export type ApiErrorResponse = {
     detail?: string;
     title?: string;
     error?: { message?: string; detail?: string };
+    errors?: Array<{ field?: string; message?: string; defaultMessage?: string }>;
   } | string;
   message?: string;
   detail?: string;
+  errors?: Array<{ field?: string; message?: string; defaultMessage?: string }>;
 };
 
 export function apiErrorMessage(response: ApiErrorResponse): string {
   const payload = typeof response.error === 'object' && response.error !== null ? response.error : undefined;
-  return payload?.message
+  const validation = (payload?.errors ?? response.errors)?.map((item) => item.field && (item.message ?? item.defaultMessage)
+    ? `${item.field}: ${item.message ?? item.defaultMessage}` : (item.message ?? item.defaultMessage))
+    .filter((message): message is string => Boolean(message));
+  return (validation?.length ? validation.join(' · ') : undefined)
+    ?? payload?.message
     ?? payload?.detail
     ?? payload?.error?.message
     ?? payload?.error?.detail
@@ -1098,6 +1104,10 @@ export class AuthApiService {
 
   receptionCheckIn(appointmentId: string, roomCode: string, reason: string): Observable<ReceptionAppointmentResponse> {
     return this.http.post<ReceptionAppointmentResponse>(`/api/v1/reception/appointments/${appointmentId}/check-in`, { roomCode, reason });
+  }
+
+  markReceptionFacilityUnavailable(appointmentId: string, reason: string): Observable<ReceptionAppointmentResponse> {
+    return this.http.post<ReceptionAppointmentResponse>(`/api/v1/reception/appointments/${appointmentId}/facility-unavailable`, { reason });
   }
 
   rebookReceptionAppointment(appointmentId: string, request: ReceptionRebookRequest): Observable<ReceptionAppointmentResponse> {

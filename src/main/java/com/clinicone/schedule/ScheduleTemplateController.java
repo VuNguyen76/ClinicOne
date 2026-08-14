@@ -30,14 +30,14 @@ public class ScheduleTemplateController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('COORDINATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
     public ResponseEntity<ScheduleTemplateResponse> create(
             @Valid @RequestBody CreateScheduleTemplateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.create(request));
     }
 
     @PostMapping("/{id}/regenerate")
-    @PreAuthorize("hasRole('COORDINATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
     public ResponseEntity<ScheduleTemplateResponse> regenerate(@PathVariable UUID id) {
         return ResponseEntity.ok(service.regenerate(id));
     }

@@ -1,5 +1,5 @@
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
-import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { Router, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatIconModule } from '@angular/material/icon';
@@ -27,18 +27,23 @@ import { MatTooltipModule } from '@angular/material/tooltip';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AppShell {
+  private readonly router = inject(Router);
   isCollapsed = signal(false);
 
   navItems = [
     { icon: 'dashboard', label: 'Tổng quan', route: '/dashboard' },
-    { icon: 'calendar_today', label: 'Lịch hẹn', route: '/appointment' },
-    { icon: 'people', label: 'Bệnh nhân', route: '/patient' },
-    { icon: 'queue_play_next', label: 'Hàng đợi', route: '/queue' },
-    { icon: 'medical_services', label: 'Phiếu khám', route: '/examination' },
+    { icon: 'calendar_today', label: 'Lịch hẹn', route: '/appointments' },
+    { icon: 'people', label: 'Hồ sơ người đi khám', route: '/patient-profiles' },
+    { icon: 'medical_services', label: 'Phiếu khám', route: '/medical-records' },
     { icon: 'account_circle', label: 'Tài khoản', route: '/account' },
   ];
 
   toggleSidebar() {
     this.isCollapsed.update(v => !v);
+  }
+
+  logout(): void {
+    sessionStorage.clear();
+    void this.router.navigateByUrl('/login');
   }
 }
