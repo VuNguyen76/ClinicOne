@@ -1,5 +1,7 @@
 package com.clinicone.auth;
 
+import lombok.RequiredArgsConstructor;
+
 import com.clinicone.audit.AccessAuditService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -14,16 +16,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/auth")
 public class AccountAuthController {
 
     private final AccountAuthService authService;
     private final AccessAuditService accessAuditService;
-
-    public AccountAuthController(AccountAuthService authService, AccessAuditService accessAuditService) {
-        this.authService = authService;
-        this.accessAuditService = accessAuditService;
-    }
 
     @PostMapping("/register")
     public ResponseEntity<RegistrationResponse> register(@Valid @RequestBody RegistrationRequest request) {

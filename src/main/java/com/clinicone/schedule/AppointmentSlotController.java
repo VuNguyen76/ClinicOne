@@ -1,5 +1,7 @@
 package com.clinicone.schedule;
 
+import lombok.RequiredArgsConstructor;
+
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,13 +14,10 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/appointment-slots")
 public class AppointmentSlotController {
     private final AppointmentAvailabilityService availabilityService;
-
-    public AppointmentSlotController(AppointmentAvailabilityService availabilityService) {
-        this.availabilityService = availabilityService;
-    }
 
     @GetMapping
     public ResponseEntity<List<AvailableSlotResponse>> list(

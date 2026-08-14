@@ -1,5 +1,7 @@
 package com.clinicone.examination;
 
+import lombok.RequiredArgsConstructor;
+
 import com.clinicone.audit.AccessAuditService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,17 +20,12 @@ import java.time.LocalDate;
 import org.springframework.format.annotation.DateTimeFormat;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/medical-records")
 @PreAuthorize("hasRole('PATIENT')")
 public class MedicalRecordController {
     private final MedicalRecordService service;
     private final ObjectProvider<AccessAuditService> accessAudit;
-
-    public MedicalRecordController(MedicalRecordService service,
-                                   ObjectProvider<AccessAuditService> accessAudit) {
-        this.service = service;
-        this.accessAudit = accessAudit;
-    }
 
     @GetMapping
     public ResponseEntity<MedicalRecordHistoryPage> list(Authentication authentication,

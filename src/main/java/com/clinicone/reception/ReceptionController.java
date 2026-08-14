@@ -1,5 +1,8 @@
 package com.clinicone.reception;
 
+import lombok.RequiredArgsConstructor;
+
+import com.clinicone.validation.IdempotencyKey;
 import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -21,16 +24,12 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/reception")
 @PreAuthorize("hasAnyRole('COORDINATOR', 'RECEPTIONIST')")
 public class ReceptionController {
     private final ReceptionService service;
     private final ReceptionPatientService patientService;
-
-    public ReceptionController(ReceptionService service, ReceptionPatientService patientService) {
-        this.service = service;
-        this.patientService = patientService;
-    }
 
     @GetMapping("/appointments")
     public ResponseEntity<List<ReceptionAppointmentResponse>> search(
@@ -81,7 +80,7 @@ public class ReceptionController {
     @PostMapping("/walk-in")
     public ResponseEntity<ReceptionAppointmentResponse> createWalkIn(
             @Valid @RequestBody ReceptionWalkInRequest request, Authentication authentication,
-            @RequestHeader("Idempotency-Key") String requestKey) {
+            @IdempotencyKey @RequestHeader("Idempotency-Key") String requestKey) {
         return ResponseEntity.ok(service.createWalkIn(request, authentication.getName(), requestKey));
     }
 

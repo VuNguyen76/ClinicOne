@@ -1,5 +1,7 @@
 package com.clinicone.auth;
 
+import lombok.RequiredArgsConstructor;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -12,6 +14,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class StaffAuthService {
     private static final Duration SESSION_LIFETIME = Duration.ofHours(12);
 
@@ -20,15 +23,6 @@ public class StaffAuthService {
     private final PasswordEncoder passwordEncoder;
     private final SessionTokenGenerator tokenGenerator;
     private final Clock clock;
-
-    public StaffAuthService(StaffAccountRepository accountRepository, LoginSessionRepository sessionRepository,
-                            PasswordEncoder passwordEncoder, SessionTokenGenerator tokenGenerator, Clock clock) {
-        this.accountRepository = accountRepository;
-        this.sessionRepository = sessionRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.tokenGenerator = tokenGenerator;
-        this.clock = clock;
-    }
 
     @Transactional
     public StaffLoginResponse login(StaffLoginRequest request) {

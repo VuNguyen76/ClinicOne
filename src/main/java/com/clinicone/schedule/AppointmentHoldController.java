@@ -1,5 +1,7 @@
 package com.clinicone.schedule;
 
+import lombok.RequiredArgsConstructor;
+
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -12,14 +14,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/appointment-holds")
 @PreAuthorize("hasRole('PATIENT')")
 public class AppointmentHoldController {
     private final AppointmentHoldService holdService;
-
-    public AppointmentHoldController(AppointmentHoldService holdService) {
-        this.holdService = holdService;
-    }
 
     @PostMapping
     public ResponseEntity<AppointmentHoldResponse> create(Authentication authentication,

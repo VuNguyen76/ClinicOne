@@ -1,5 +1,7 @@
 package com.clinicone.reception;
 
+import lombok.RequiredArgsConstructor;
+
 import com.clinicone.auth.AccountStatus;
 import com.clinicone.auth.AuthException;
 import com.clinicone.auth.OtpPurpose;
@@ -17,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Set;
 
 @Service
+@RequiredArgsConstructor
 public class ReceptionPatientService {
     private static final String TEMPORARY_PASSWORD = "123456";
     private static final Set<String> ALLOWED_GENDERS = Set.of("Nam", "Nữ", "Khác");
@@ -25,16 +28,6 @@ public class ReceptionPatientService {
     private final PatientProfileRepository profileRepository;
     private final OtpService otpService;
     private final PasswordEncoder passwordEncoder;
-
-    public ReceptionPatientService(PatientAccountRepository accountRepository,
-                                   PatientProfileRepository profileRepository,
-                                   OtpService otpService,
-                                   PasswordEncoder passwordEncoder) {
-        this.accountRepository = accountRepository;
-        this.profileRepository = profileRepository;
-        this.otpService = otpService;
-        this.passwordEncoder = passwordEncoder;
-    }
 
     @Transactional
     public RequestOtpResponse requestOtp(ReceptionPatientOtpRequest request) {

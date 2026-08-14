@@ -1,5 +1,7 @@
 package com.clinicone.notification;
 
+import lombok.RequiredArgsConstructor;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -14,14 +16,11 @@ import java.util.Map;
 import java.util.UUID;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/notifications")
 @PreAuthorize("hasRole('PATIENT')")
 public class PatientNotificationController {
     private final PatientNotificationService service;
-
-    public PatientNotificationController(PatientNotificationService service) {
-        this.service = service;
-    }
 
     @GetMapping
     public ResponseEntity<List<PatientNotificationResponse>> list(Authentication authentication) {

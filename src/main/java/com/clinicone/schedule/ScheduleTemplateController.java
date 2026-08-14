@@ -1,5 +1,7 @@
 package com.clinicone.schedule;
 
+import lombok.RequiredArgsConstructor;
+
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,14 +17,11 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/schedule-templates")
 @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
 public class ScheduleTemplateController {
     private final ScheduleTemplateService service;
-
-    public ScheduleTemplateController(ScheduleTemplateService service) {
-        this.service = service;
-    }
 
     @GetMapping
     public ResponseEntity<List<ScheduleTemplateResponse>> list() {

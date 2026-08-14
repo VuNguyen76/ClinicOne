@@ -19,6 +19,7 @@ import com.clinicone.patientprofile.PatientProfileResponse;
 import com.clinicone.queue.QueueService;
 import com.clinicone.queue.QueueTicketRepository;
 import com.clinicone.queue.QueueTicketResponse;
+import com.clinicone.validation.IdempotencyKeys;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -337,7 +338,7 @@ public class ReceptionService {
                         "Bác sĩ đã đủ 3 lượt tiếp nhận ngoài công suất trong ngày.");
             }
         }
-        String normalizedRequestKey = normalizeRequestKey(requestKey);
+        String normalizedRequestKey = IdempotencyKeys.optional(requestKey);
 
         CreateAppointmentRequest appointmentRequest = new CreateAppointmentRequest(
                 doctor.getSpecialty(), doctor.getStaffAccount().getFullName(), appointmentDate,
@@ -399,18 +400,6 @@ public class ReceptionService {
             throw new AuthException(HttpStatus.BAD_REQUEST, "OVER_CAPACITY_REASON_INVALID",
                     "Lý do nhận ngoài công suất phải từ 10 đến 500 ký tự.");
         }
-    }
-
-    private String normalizeRequestKey(String requestKey) {
-        String normalized = requestKey == null ? "" : requestKey.trim();
-        if (normalized.isEmpty()) {
-            return null;
-        }
-        if (normalized.length() > 80) {
-            throw new AuthException(HttpStatus.BAD_REQUEST, "IDEMPOTENCY_KEY_INVALID",
-                    "Khóa chống trùng không được dài quá 80 ký tự.");
-        }
-        return normalized;
     }
 
     private String normalizePhone(String phone) {

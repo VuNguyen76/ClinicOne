@@ -1,5 +1,7 @@
 package com.clinicone.address;
 
+import lombok.RequiredArgsConstructor;
+
 import com.clinicone.auth.AuthException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,13 +13,10 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/addresses")
 public class AddressController {
     private final AddressService service;
-
-    public AddressController(AddressService service) {
-        this.service = service;
-    }
 
     @GetMapping("/provinces")
     public List<AddressUnitResponse> provinces(

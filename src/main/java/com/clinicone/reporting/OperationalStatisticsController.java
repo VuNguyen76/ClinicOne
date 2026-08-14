@@ -1,5 +1,7 @@
 package com.clinicone.reporting;
 
+import lombok.RequiredArgsConstructor;
+
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -12,14 +14,11 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/statistics")
 @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
 public class OperationalStatisticsController {
     private final OperationalStatisticsService service;
-
-    public OperationalStatisticsController(OperationalStatisticsService service) {
-        this.service = service;
-    }
 
     @GetMapping
     public ResponseEntity<OperationalStatisticsResponse> summarize(

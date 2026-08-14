@@ -1,5 +1,6 @@
 package com.clinicone.rescheduling;
 
+import com.clinicone.auth.AuthenticatedIds;
 import com.clinicone.appointment.Appointment;
 import com.clinicone.appointment.AppointmentRepository;
 import com.clinicone.appointment.AppointmentStatus;
@@ -133,7 +134,7 @@ public class ReschedulingService {
 
     @Transactional(readOnly = true)
     public RescheduleCaseResponse findForPatient(String accountId, UUID appointmentId) {
-        UUID patientId = parseAccountId(accountId);
+        UUID patientId = AuthenticatedIds.patient(accountId);
         RescheduleCase item = findOpenCaseForPatient(appointmentId, patientId);
         return RescheduleCaseResponse.from(item);
     }
@@ -141,7 +142,7 @@ public class ReschedulingService {
     @Transactional(readOnly = true)
     public List<AvailableSlotResponse> alternativesForPatient(String accountId, UUID appointmentId,
                                                               LocalDate from, LocalDate to) {
-        UUID patientId = parseAccountId(accountId);
+        UUID patientId = AuthenticatedIds.patient(accountId);
         RescheduleCase item = findOpenCaseForPatient(appointmentId, patientId);
         return alternatives(item, from, to);
     }
@@ -149,7 +150,7 @@ public class ReschedulingService {
     @Transactional
     public RescheduleCaseResponse resolveForPatient(String accountId, UUID appointmentId,
                                                     ResolveRescheduleRequest request) {
-        UUID patientId = parseAccountId(accountId);
+        UUID patientId = AuthenticatedIds.patient(accountId);
         RescheduleCase openCase = findOpenCaseForPatient(appointmentId, patientId);
         RescheduleCase item = caseRepository.findByIdForUpdate(openCase.getId()).orElseThrow(this::notFound);
         ensurePatientOwns(item, patientId);
@@ -232,15 +233,6 @@ public class ReschedulingService {
         if (item.getAppointment().getPatient() == null
                 || !patientId.equals(item.getAppointment().getPatient().getId())) {
             throw notFound();
-        }
-    }
-
-    private UUID parseAccountId(String accountId) {
-        try {
-            return UUID.fromString(accountId);
-        } catch (IllegalArgumentException exception) {
-            throw new AuthException(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_REQUIRED",
-                    "Phiên đăng nhập không hợp lệ.");
         }
     }
 

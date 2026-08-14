@@ -1,5 +1,7 @@
 package com.clinicone.schedule;
 
+import lombok.RequiredArgsConstructor;
+
 import com.clinicone.auth.AuthException;
 import com.clinicone.doctor.DoctorProfile;
 import com.clinicone.doctor.DoctorProfileRepository;
@@ -23,24 +25,13 @@ import java.util.UUID;
 import java.util.Objects;
 
 @Service
+@RequiredArgsConstructor
 public class ScheduleTemplateService {
     private final WorkScheduleTemplateRepository templateRepository;
     private final GeneratedClinicSlotRepository slotRepository;
     private final ClinicServiceRepository clinicServiceRepository;
     private final DoctorProfileRepository doctorProfileRepository;
     private final ClinicRoomRepository roomRepository;
-
-    public ScheduleTemplateService(WorkScheduleTemplateRepository templateRepository,
-                                   GeneratedClinicSlotRepository slotRepository,
-                                   ClinicServiceRepository clinicServiceRepository,
-                                   DoctorProfileRepository doctorProfileRepository,
-                                   ClinicRoomRepository roomRepository) {
-        this.templateRepository = templateRepository;
-        this.slotRepository = slotRepository;
-        this.clinicServiceRepository = clinicServiceRepository;
-        this.doctorProfileRepository = doctorProfileRepository;
-        this.roomRepository = roomRepository;
-    }
 
     @Transactional(readOnly = true)
     public List<ScheduleTemplateResponse> list() {
