@@ -15,17 +15,10 @@
       <div class="hidden min-w-0 flex-1 items-center gap-3 px-4 md:flex">
         <span class="truncate text-sm font-semibold text-[#173f4b]">{{ moduleTitle() }}</span>
         <span class="h-5 w-px bg-[#d5e1e4]"></span>
-        <label class="relative w-full max-w-md">
-          <mat-icon class="pointer-events-none absolute left-2.5 top-1/2 !h-4 !w-4 -translate-y-1/2 !text-[17px] text-slate-400">search</mat-icon>
-          <span class="sr-only">Tìm chức năng</span>
-          <input
-            type="search"
-            class="h-9 w-full rounded-md border border-[#cbdadd] bg-white pl-8 pr-3 text-sm outline-none transition focus:border-[#0b91c9] focus:ring-2 focus:ring-[#0b91c9]/15"
-            placeholder="Tìm chức năng..."
-            [value]="functionQuery()"
-            (input)="updateFunctionQuery($event)"
-          />
-        </label>
+        <div class="flex h-9 w-full max-w-md items-center gap-2 rounded-md border border-[#cbdadd] bg-white px-2.5 text-sm text-slate-400" aria-label="Tìm chức năng">
+          <mat-icon class="!h-4 !w-4 !text-[17px]">search</mat-icon>
+          <span>Tra cứu chức năng</span>
+        </div>
       </div>
       <div class="ml-auto flex items-center gap-3 px-3 sm:px-4">
         <span class="hidden text-xs font-medium text-slate-500 xl:inline">{{ roleLabel }}</span>

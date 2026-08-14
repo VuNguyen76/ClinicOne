@@ -34,6 +34,32 @@ body {
   font-family: inherit;
 }
 
+/* Keep every staff and patient screen on one icon family. The old Material
+ * Icons font renders newer ligatures such as clinical_notes as plain text. */
+.mat-icon {
+  font-family: "Material Symbols Outlined" !important;
+  font-weight: 450;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: "liga";
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "liga";
+  font-variation-settings: "FILL" 0, "wght" 450, "GRAD" 0, "opsz" 20;
+}
+
+/* Legacy staff pages can stay functional while they are progressively moved
+ * into the shared ERP shell; never show a second header inside that shell. */
+app-staff-workspace-shell .staff-legacy-page > header {
+  display: none;
+}
+
 *,
 *::before,
 *::after {

@@ -2,11 +2,12 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { AuthApiService, SmsDeliveryResponse, apiErrorMessage } from '../../core/auth/auth-api.service';
+import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
 
 @Component({
   selector: 'app-sms-delivery-management',
   standalone: true,
-  imports: [CommonModule, MatIconModule],
+  imports: [CommonModule, MatIconModule, StaffWorkspaceShell],
   templateUrl: './sms-delivery-management.html',
 })
 export class SmsDeliveryManagement implements OnInit {

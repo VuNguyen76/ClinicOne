@@ -11,12 +11,13 @@ import {
   RescheduleCaseResponse,
 } from '../../core/auth/auth-api.service';
 import { AccountMenu } from '../../shared/account-menu/account-menu';
+import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
 import { hasStaffRole } from '../../core/auth/auth.guard';
 
 @Component({
   selector: 'app-rescheduling',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, MatIconModule, AccountMenu],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, MatIconModule, AccountMenu, StaffWorkspaceShell],
   templateUrl: './rescheduling.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

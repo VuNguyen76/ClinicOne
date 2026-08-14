@@ -14,13 +14,14 @@ import {
   apiErrorMessage,
 } from '../../core/auth/auth-api.service';
 import { AccountMenu } from '../../shared/account-menu/account-menu';
+import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
 import { clinicTodayIso } from '../../core/time/clinic-time';
 import { hasStaffRole } from '../../core/auth/auth.guard';
 
 @Component({
   selector: 'app-schedule-template-management',
   standalone: true,
-  imports: [FormsModule, RouterLink, MatIconModule, AccountMenu],
+  imports: [FormsModule, RouterLink, MatIconModule, AccountMenu, StaffWorkspaceShell],
   templateUrl: './schedule-template-management.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
