@@ -182,4 +182,34 @@ class AccountAuthServiceTest {
             throw new AssertionError(exception);
         }
     }
+    
+    @Test
+    void loginWithPendingActivationAccountThrowsPasswordChangeRequired() {
+        //AC-REC-03-02
+        // Giả lập DB trả về một tài khoản vừa được Lễ tân tạo (PENDING_ACTIVATION)
+        PatientAccount pendingAccount = new PatientAccount(
+                "0911222333", 
+                "encoded_123456", 
+                "Bệnh nhân Vãng lai", 
+                AccountStatus.PENDING_ACTIVATION, 
+                false
+        );
+        
+        // Đã sửa thành accountRepository
+        when(accountRepository.findByPhone("0911222333")).thenReturn(Optional.of(pendingAccount));
+        
+        // Giả lập check mật khẩu khớp
+        when(passwordEncoder.matches("123456", "encoded_123456")).thenReturn(true);
+
+        // Chuẩn bị Request đăng nhập bằng mật khẩu tạm
+        PasswordLoginRequest loginRequest = new PasswordLoginRequest("0911222333", "123456");
+
+        // Đã sửa thành service
+        AuthException exception = assertThrows(AuthException.class, () -> {
+            service.login(loginRequest);
+        });
+
+        // Khẳng định lỗi văng ra đúng như thiết kế
+        assertEquals("PASSWORD_CHANGE_REQUIRED", exception.getCode());
+    }
 }

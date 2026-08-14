@@ -80,12 +80,21 @@ public class AccountAuthService {
         otpService.verifySmsOtp(request.phone(), OtpPurpose.LOGIN, request.code());
         PatientAccount account = accountRepository.findByPhone(request.phone().trim())
                 .orElseThrow(this::invalidCredentials);
-        if (account.getStatus() != AccountStatus.ACTIVE) {
-            throw invalidCredentials();
-        }
+                
         if (!passwordEncoder.matches(request.password(), account.getPasswordHash())) {
             throw invalidCredentials();
         }
+
+        // Bổ sung chốt chặn REC-03
+        if (account.getStatus() == AccountStatus.PENDING_ACTIVATION) {
+            throw new AuthException(HttpStatus.FORBIDDEN, "PASSWORD_CHANGE_REQUIRED", 
+                "Tài khoản của bạn đang ở trạng thái chờ kích hoạt. Vui lòng đổi mật khẩu tạm để tiếp tục sử dụng.");
+        }
+
+        if (account.getStatus() != AccountStatus.ACTIVE) {
+            throw invalidCredentials();
+        }
+        
         return createSession(account);
     }
 
@@ -93,10 +102,23 @@ public class AccountAuthService {
     public LoginResponse login(PasswordLoginRequest request) {
         PatientAccount account = accountRepository.findByPhone(request.phone().trim())
                 .orElseThrow(this::invalidCredentials);
-        if (account.getStatus() != AccountStatus.ACTIVE
-                || !passwordEncoder.matches(request.password(), account.getPasswordHash())) {
+                
+        // 1. Kiểm tra mật khẩu trước tiên
+        if (!passwordEncoder.matches(request.password(), account.getPasswordHash())) {
             throw invalidCredentials();
         }
+
+        // 2. Chốt chặn REC-03
+        if (account.getStatus() == AccountStatus.PENDING_ACTIVATION) {
+            throw new AuthException(HttpStatus.FORBIDDEN, "PASSWORD_CHANGE_REQUIRED", 
+                "Tài khoản của bạn đang ở trạng thái chờ kích hoạt. Vui lòng đổi mật khẩu tạm để tiếp tục sử dụng.");
+        }
+
+        // 3. Chặn các trạng thái khác
+        if (account.getStatus() != AccountStatus.ACTIVE) {
+            throw invalidCredentials();
+        }
+
         return createSession(account);
     }
 
@@ -222,4 +244,37 @@ public class AccountAuthService {
                 account.isMustChangePassword());
     }
 
+    @Transactional
+    public RegistrationResponse createTemporaryAccountByReception(String phone, String fullName, LocalDate dateOfBirth, String gender) {
+        // Sử dụng existsByPhone cho gọn và đúng biến accountRepository
+        if (accountRepository.existsByPhone(phone)) {
+            throw new AuthException(HttpStatus.CONFLICT, "PHONE_ALREADY_USED", "Số điện thoại đã được sử dụng.");
+        }
+
+        String encodedTempPassword = passwordEncoder.encode("123456");
+
+        PatientAccount newAccount = new PatientAccount(
+                phone,
+                encodedTempPassword,
+                fullName,
+                AccountStatus.PENDING_ACTIVATION,
+                false
+        );
+        
+        accountRepository.save(newAccount);
+
+        // Sử dụng đúng biến patientProfileRepository
+        PatientProfile defaultProfile = PatientProfile.create(
+                newAccount,
+                fullName,
+                "Bản thân",
+                dateOfBirth,
+                gender,
+                phone,
+                null, null, null, null, true
+        );
+        patientProfileRepository.save(defaultProfile);
+
+        return new RegistrationResponse(newAccount.getId(), newAccount.getPhone(), newAccount.getFullName());
+    }
 }

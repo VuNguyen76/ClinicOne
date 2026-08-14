@@ -2,6 +2,7 @@ package com.clinicone.queue;
 
 import com.clinicone.appointment.Appointment;
 import com.clinicone.appointment.AppointmentRepository;
+import com.clinicone.appointment.AppointmentService;
 import com.clinicone.appointment.AppointmentStatus;
 import com.clinicone.auth.AccountStatus;
 import com.clinicone.auth.AuthException;
@@ -20,7 +21,9 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 class QueueServiceTest {
@@ -42,7 +45,8 @@ class QueueServiceTest {
         ticketRepository = mock(QueueTicketRepository.class);
         appointmentRepository = mock(AppointmentRepository.class);
         sessionRepository = mock(ExaminationSessionRepository.class);
-        service = new QueueService(roomRepository, ticketRepository, appointmentRepository, sessionRepository,
+        AppointmentService appointmentService = mock(AppointmentService.class);
+        service = new QueueService(roomRepository, ticketRepository, appointmentService, appointmentRepository, sessionRepository,
                 Clock.fixed(Instant.parse("2026-08-06T02:00:00Z"), ZoneId.of("Asia/Ho_Chi_Minh")));
 
         room = ClinicRoom.create("NOI-01", "Phòng Nội tổng quát 01", "Nội tổng quát");
@@ -184,6 +188,31 @@ class QueueServiceTest {
         assertEquals(QueueTicketStatus.COMPLETED, ticket.getStatus());
         assertEquals(AppointmentStatus.COMPLETED, appointment.getStatus());
         verify(appointmentRepository).save(appointment);
+    }
+
+    @Test
+    void walkInRejectsWhenDoctorExceedsOverCapacityLimit() {
+        // AC-REC-03-03: Chặn nếu bác sĩ đã có >= 3 ca ngoại lệ trong ngày
+        UUID doctorId = UUID.randomUUID();
+        WalkInCheckInRequest request = new WalkInCheckInRequest(
+                "0912345678", "Nội tổng quát", "Đau bụng dữ dội", doctorId, "Bệnh nhân cấp cứu cần khám gấp"
+        );
+
+        // Giả lập DB trả về số lượng ca ngoại lệ đã >= 3 
+        // (Sử dụng đúng biến appointmentRepository của bạn)
+        when(appointmentRepository.countByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
+                eq(doctorId), 
+                any(LocalDate.class), 
+                any(), 
+                any()
+        )).thenReturn(3L);
+
+        // Gọi hàm từ biến service của bạn và kiểm tra xem hệ thống có văng lỗi chặn lại không
+        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> {
+            service.processWalkInCheckIn(request, "receptionist-id");
+        });
+
+        assertTrue(exception.getMessage().contains("OVER_CAPACITY_LIMIT_REACHED"));
     }
 
     private static Appointment appointment(String specialty, LocalDate date) {
