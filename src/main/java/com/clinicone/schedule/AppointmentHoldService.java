@@ -61,6 +61,11 @@ public class AppointmentHoldService {
 
     @Transactional
     public AppointmentHoldResponse create(String accountId, CreateAppointmentHoldRequest request) {
+        return create(accountId, request, null);
+    }
+
+    @Transactional
+    public AppointmentHoldResponse create(String accountId, CreateAppointmentHoldRequest request, String sessionKey) {
         UUID patientId = parseAccountId(accountId);
         PatientAccount patient = accountRepository.findById(patientId)
                 .orElseThrow(() -> authRequired());
@@ -83,7 +88,12 @@ public class AppointmentHoldService {
         // Một tài khoản chỉ giữ một khung giờ tại một thời điểm. Khi người bệnh
         // chọn khung mới, giải phóng khung cũ ngay trong cùng giao dịch để không
         // khóa lịch của người khác quá lâu.
-        holdRepository.findByPatientIdAndExpiresAtAfter(patientId, now).stream()
+        boolean legacySession = sessionKey == null || sessionKey.isBlank();
+        String normalizedSessionKey = normalizeSessionKey(sessionKey);
+        var activeHolds = legacySession
+                ? holdRepository.findByPatientIdAndExpiresAtAfter(patientId, now)
+                : holdRepository.findByPatientIdAndSessionKeyAndExpiresAtAfter(patientId, normalizedSessionKey, now);
+        activeHolds.stream()
                 .filter(hold -> !hold.getHoldKey().equals(holdKey))
                 .forEach(holdRepository::delete);
 
@@ -97,7 +107,7 @@ public class AppointmentHoldService {
 
         AppointmentHold hold = AppointmentHold.create(patient, request.specialty().trim(), request.doctorName().trim(),
                 request.doctorId(), request.appointmentDate(), request.startTime(), holdKey,
-                now.plus(holdDuration()), request.serviceId());
+                now.plus(holdDuration()), request.serviceId(), normalizedSessionKey);
         try {
             return AppointmentHoldResponse.from(holdRepository.saveAndFlush(hold));
         } catch (DataIntegrityViolationException exception) {
@@ -215,5 +225,15 @@ public class AppointmentHoldService {
     private AuthException slotHeld() {
         return new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_SLOT_HELD",
                 "Khung giờ vừa được người khác giữ. Vui lòng chọn khung giờ khác.");
+    }
+
+    private String normalizeSessionKey(String sessionKey) {
+        String normalized = sessionKey == null ? "" : sessionKey.trim();
+        if (normalized.isEmpty()) return "LEGACY";
+        if (normalized.length() > 120) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "SESSION_KEY_INVALID",
+                    "Mã phiên đăng nhập không hợp lệ.");
+        }
+        return normalized;
     }
 }

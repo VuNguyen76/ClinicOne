@@ -217,7 +217,9 @@ public class AccountAuthService {
             throw new AuthException(HttpStatus.BAD_REQUEST, "PASSWORD_MISMATCH",
                     "Hai lần nhập mật khẩu mới không giống nhau.");
         }
-        if (!otpService.isPhoneVerifiedWithin(phone, OtpPurpose.REGISTRATION, Duration.ofMinutes(30))) {
+        if (request.otpCode() != null && !request.otpCode().isBlank()) {
+            otpService.verifySmsOtp(phone, OtpPurpose.REGISTRATION, request.otpCode());
+        } else if (!otpService.isPhoneVerifiedWithin(phone, OtpPurpose.REGISTRATION, Duration.ofMinutes(30))) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "ACTIVATION_OTP_REQUIRED",
                     "Mã xác thực kích hoạt đã hết thời gian. Vui lòng xác thực lại số điện thoại.");
         }

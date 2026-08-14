@@ -268,11 +268,17 @@ public class ReceptionService {
     /** Tiếp nhận người bệnh đến quầy mà chưa có lịch trong ngày. */
     @Transactional
     public ReceptionAppointmentResponse createWalkIn(ReceptionWalkInRequest request) {
-        return createWalkIn(request, null);
+        return createWalkIn(request, null, null);
     }
 
     @Transactional
     public ReceptionAppointmentResponse createWalkIn(ReceptionWalkInRequest request, String actor) {
+        return createWalkIn(request, actor, null);
+    }
+
+    @Transactional
+    public ReceptionAppointmentResponse createWalkIn(ReceptionWalkInRequest request, String actor,
+                                                     String requestKey) {
         if (patientAccountRepository == null || appointmentService == null) {
             throw new AuthException(HttpStatus.SERVICE_UNAVAILABLE, "RECEPTION_WALK_IN_UNAVAILABLE",
                     "Chưa bật luồng tiếp nhận tại quầy.");
@@ -317,6 +323,11 @@ public class ReceptionService {
                         "Không tìm thấy bác sĩ đang được phân công."));
 
         if (Boolean.TRUE.equals(request.overCapacity())) {
+            // Serialize exception admissions per doctor so the check-and-insert
+            // cannot allow a fourth admission under concurrent reception users.
+            doctorProfileRepository.findByStaffAccount_IdForUpdate(request.doctorId())
+                    .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "DOCTOR_ASSIGNMENT_NOT_FOUND",
+                            "Không tìm thấy bác sĩ đang được phân công."));
             validateOverCapacityReason(request.exceptionReason());
             long existingOverCapacity = appointmentRepository
                     .countByDoctorStaffIdAndAppointmentDateAndOverCapacityTrueAndStatusNot(
@@ -326,17 +337,31 @@ public class ReceptionService {
                         "Bác sĩ đã đủ 3 lượt tiếp nhận ngoài công suất trong ngày.");
             }
         }
+        String normalizedRequestKey = normalizeRequestKey(requestKey);
 
         CreateAppointmentRequest appointmentRequest = new CreateAppointmentRequest(
                 doctor.getSpecialty(), doctor.getStaffAccount().getFullName(), appointmentDate,
                 request.startTime(), request.reason(), request.profileId(), request.doctorId());
-        AppointmentResponse created = patient == null
-                ? (Boolean.TRUE.equals(request.overCapacity())
-                ? appointmentService.createTemporaryReception(temporaryProfile, appointmentRequest)
-                : appointmentService.createTemporary(temporaryProfile, appointmentRequest))
-                : (Boolean.TRUE.equals(request.overCapacity())
-                ? appointmentService.createReception(patient.getId().toString(), appointmentRequest)
-                : appointmentService.create(patient.getId().toString(), appointmentRequest));
+        AppointmentResponse created;
+        if (patient == null) {
+            if (Boolean.TRUE.equals(request.overCapacity())) {
+                created = normalizedRequestKey == null
+                        ? appointmentService.createTemporaryReception(temporaryProfile, appointmentRequest)
+                        : appointmentService.createTemporaryReception(temporaryProfile, appointmentRequest, normalizedRequestKey);
+            } else {
+                created = normalizedRequestKey == null
+                        ? appointmentService.createTemporary(temporaryProfile, appointmentRequest)
+                        : appointmentService.createTemporary(temporaryProfile, appointmentRequest, normalizedRequestKey);
+            }
+        } else if (Boolean.TRUE.equals(request.overCapacity())) {
+            created = normalizedRequestKey == null
+                    ? appointmentService.createReception(patient.getId().toString(), appointmentRequest)
+                    : appointmentService.createReception(patient.getId().toString(), appointmentRequest, normalizedRequestKey);
+        } else {
+            created = normalizedRequestKey == null
+                    ? appointmentService.create(patient.getId().toString(), appointmentRequest)
+                    : appointmentService.create(patient.getId().toString(), appointmentRequest, normalizedRequestKey);
+        }
         QueueTicketResponse ticket = actor == null
                 ? queueService.checkInByStaff(doctor.getRoom().getCode(), created.id(), request.exceptionReason())
                 : queueService.checkInByStaff(doctor.getRoom().getCode(), created.id(), request.exceptionReason(), actor);
@@ -374,6 +399,18 @@ public class ReceptionService {
             throw new AuthException(HttpStatus.BAD_REQUEST, "OVER_CAPACITY_REASON_INVALID",
                     "Lý do nhận ngoài công suất phải từ 10 đến 500 ký tự.");
         }
+    }
+
+    private String normalizeRequestKey(String requestKey) {
+        String normalized = requestKey == null ? "" : requestKey.trim();
+        if (normalized.isEmpty()) {
+            return null;
+        }
+        if (normalized.length() > 80) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "IDEMPOTENCY_KEY_INVALID",
+                    "Khóa chống trùng không được dài quá 80 ký tự.");
+        }
+        return normalized;
     }
 
     private String normalizePhone(String phone) {

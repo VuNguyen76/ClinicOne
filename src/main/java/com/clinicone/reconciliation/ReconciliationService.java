@@ -3,6 +3,7 @@ package com.clinicone.reconciliation;
 import com.clinicone.audit.BusinessLogRepository;
 import com.clinicone.auth.AuthException;
 import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,12 +18,21 @@ public class ReconciliationService {
     private final ReconciliationIncidentRepository repository;
     private final BusinessLogRepository businessLogRepository;
     private final Clock clock;
+    private final ReconciliationActionDispatcher actionDispatcher;
 
     public ReconciliationService(ReconciliationIncidentRepository repository,
                                  BusinessLogRepository businessLogRepository, Clock clock) {
+        this(repository, businessLogRepository, clock, (incident, request, actor) -> { });
+    }
+
+    @Autowired
+    public ReconciliationService(ReconciliationIncidentRepository repository,
+                                 BusinessLogRepository businessLogRepository, Clock clock,
+                                 ReconciliationActionDispatcher actionDispatcher) {
         this.repository = repository;
         this.businessLogRepository = businessLogRepository;
         this.clock = clock;
+        this.actionDispatcher = actionDispatcher;
     }
 
     @Transactional
@@ -58,6 +68,7 @@ public class ReconciliationService {
         String normalizedCloser = normalize(closer, 120);
         incident.close(request.action(), request.referenceType(), referenceValue, resultNote, normalizedCloser,
                 Instant.now(clock));
+        actionDispatcher.dispatch(incident, request, normalizedCloser);
         return ReconciliationResponse.from(repository.save(incident));
     }
 
