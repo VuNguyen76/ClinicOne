@@ -120,11 +120,12 @@ class ReceptionControllerTest {
 
     @Test
     void receptionistCanCreateWalkInFromExistingPatientAccount() throws Exception {
-        when(service.createWalkIn(any(), eq(STAFF_ID.toString()))).thenReturn(responseWithTicket());
+        when(service.createWalkIn(any(), eq(STAFF_ID.toString()), eq("walk-in-test"))).thenReturn(responseWithTicket());
         String today = LocalDate.now().toString();
 
         mockMvc.perform(post("/api/v1/reception/walk-in")
                         .with(authentication(authenticated("ROLE_RECEPTIONIST")))
+                        .header("Idempotency-Key", "walk-in-test")
                         .contentType("application/json")
                         .content("{\"phone\":\"0912345678\",\"doctorId\":\"7d9e3fb4-1045-4ca4-86d2-7d1fca4c1a13\","
                                 + "\"appointmentDate\":\"" + today + "\",\"startTime\":\"09:00\","
@@ -142,6 +143,7 @@ class ReceptionControllerTest {
 
         mockMvc.perform(post("/api/v1/reception/temporary-profiles")
                         .with(authentication(authenticated("ROLE_RECEPTIONIST")))
+                        .header("Idempotency-Key", "walk-in-invalid")
                         .contentType("application/json")
                         .content("{\"phone\":\"0912345678\",\"fullName\":\"Nguyễn Văn Tạm\","
                                 + "\"dateOfBirth\":\"1990-01-01\",\"gender\":\"Nam\"}"))

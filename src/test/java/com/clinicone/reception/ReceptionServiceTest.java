@@ -206,6 +206,7 @@ class ReceptionServiceTest {
         DoctorProfile doctor = mock(DoctorProfile.class);
         when(doctor.isActive()).thenReturn(true);
         when(doctorProfileRepository.findById(DOCTOR_ID)).thenReturn(Optional.of(doctor));
+        when(doctorProfileRepository.findByStaffAccount_IdForUpdate(DOCTOR_ID)).thenReturn(Optional.of(doctor));
         when(appointmentRepository.countByDoctorStaffIdAndAppointmentDateAndOverCapacityTrueAndStatusNot(
                 DOCTOR_ID, TODAY, AppointmentStatus.CANCELLED)).thenReturn(3L);
 
