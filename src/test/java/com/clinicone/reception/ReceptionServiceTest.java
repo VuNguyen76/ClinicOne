@@ -216,6 +216,7 @@ class ReceptionServiceTest {
                 .isInstanceOf(com.clinicone.auth.AuthException.class)
                 .extracting("code").isEqualTo("WALK_IN_OVER_CAPACITY_LIMIT");
 
+        verify(doctorProfileRepository).findByStaffAccount_IdForUpdate(DOCTOR_ID);
         verifyNoInteractions(appointmentService, queueService);
     }
 
