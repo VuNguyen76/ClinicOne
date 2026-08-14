@@ -1,5 +1,7 @@
 package com.clinicone.doctor;
 
+import lombok.Getter;
+
 import com.clinicone.auth.StaffAccount;
 import com.clinicone.queue.ClinicRoom;
 import jakarta.persistence.Column;
@@ -18,6 +20,7 @@ import jakarta.persistence.UniqueConstraint;
 import java.time.Instant;
 import java.util.UUID;
 
+@Getter
 @Entity
 @Table(name = "doctor_profiles", uniqueConstraints = {
         @UniqueConstraint(name = "uk_doctor_profiles_staff", columnNames = "staff_account_id")
@@ -73,9 +76,4 @@ public class DoctorProfile {
         if (createdAt == null) createdAt = Instant.now();
     }
 
-    public UUID getId() { return id; }
-    public StaffAccount getStaffAccount() { return staffAccount; }
-    public String getSpecialty() { return specialty; }
-    public ClinicRoom getRoom() { return room; }
-    public boolean isActive() { return active; }
 }

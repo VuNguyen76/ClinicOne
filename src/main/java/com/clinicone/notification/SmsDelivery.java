@@ -1,5 +1,7 @@
 package com.clinicone.notification;
 
+import lombok.Getter;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -16,6 +18,7 @@ import jakarta.persistence.Version;
 import java.time.Instant;
 import java.util.UUID;
 
+@Getter
 @Entity
 @Table(name = "sms_deliveries", indexes = {
         @Index(name = "idx_sms_deliveries_due", columnList = "status,available_at"),
@@ -151,18 +154,4 @@ public class SmsDelivery {
         if (createdAt == null) createdAt = Instant.now();
     }
 
-    public UUID getId() { return id; }
-    public UUID getPatientAccountId() { return patientAccountId; }
-    public String getEventKey() { return eventKey; }
-    public String getPhone() { return phone; }
-    public String getMessage() { return message; }
-    public SmsDeliveryStatus getStatus() { return status; }
-    public int getAttempts() { return attempts; }
-    public Instant getAvailableAt() { return availableAt; }
-    public Instant getLockedUntil() { return lockedUntil; }
-    public String getLastError() { return lastError; }
-    public String getLastRetryRequestKey() { return lastRetryRequestKey; }
-    public Instant getSentAt() { return sentAt; }
-    public Instant getCreatedAt() { return createdAt; }
-    public long getVersion() { return version; }
 }

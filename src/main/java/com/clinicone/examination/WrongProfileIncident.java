@@ -1,5 +1,7 @@
 package com.clinicone.examination;
 
+import lombok.Getter;
+
 import com.clinicone.queue.QueueTicket;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -18,6 +20,7 @@ import java.util.UUID;
  * profile.  It is deliberately separate from MedicalRecord so it can never
  * appear in patient history or be reused when the correct examination begins.
  */
+@Getter
 @Entity
 @Table(name = "wrong_profile_incidents")
 public class WrongProfileIncident {
@@ -121,22 +124,4 @@ public class WrongProfileIncident {
         }
     }
 
-    public UUID getId() { return id; }
-    public UUID getSourceMedicalRecordId() { return sourceMedicalRecordId; }
-    public UUID getExaminationSessionId() { return examinationSessionId; }
-    public UUID getQueueTicketId() { return queueTicketId; }
-    public UUID getAppointmentId() { return appointmentId; }
-    public UUID getDoctorStaffId() { return doctorStaffId; }
-    public String getReason() { return reason; }
-    public String getDraftReason() { return draftReason; }
-    public String getExaminationNotes() { return examinationNotes; }
-    public String getDiagnosis() { return diagnosis; }
-    public String getConclusion() { return conclusion; }
-    public String getTreatmentPlan() { return treatmentPlan; }
-    public String getPrescriptionSnapshot() { return prescriptionSnapshot; }
-    public LocalDate getFollowUpDate() { return followUpDate; }
-    public Integer getFollowUpDays() { return followUpDays; }
-    public String getFollowUpNote() { return followUpNote; }
-    public Instant getStartedAt() { return startedAt; }
-    public Instant getSealedAt() { return sealedAt; }
 }
