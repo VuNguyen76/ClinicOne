@@ -1,5 +1,7 @@
 package com.clinicone.schedule;
 
+import lombok.Getter;
+
 import com.clinicone.auth.PatientAccount;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -23,6 +25,7 @@ import java.util.UUID;
  * An active, short-lived claim on a slot. Consumed holds are removed in the
  * same transaction as appointment creation; only active holds are persisted.
  */
+@Getter
 @Entity
 @Table(name = "appointment_holds", indexes = {
         @Index(name = "idx_appointment_holds_expiry", columnList = "expires_at"),
@@ -115,16 +118,4 @@ public class AppointmentHold {
         }
     }
 
-    public UUID getId() { return id; }
-    public PatientAccount getPatient() { return patient; }
-    public String getSpecialty() { return specialty; }
-    public String getDoctorName() { return doctorName; }
-    public UUID getDoctorStaffId() { return doctorStaffId; }
-    public UUID getServiceId() { return serviceId; }
-    public LocalDate getAppointmentDate() { return appointmentDate; }
-    public LocalTime getStartTime() { return startTime; }
-    public String getHoldKey() { return holdKey; }
-    public String getSessionKey() { return sessionKey; }
-    public Instant getCreatedAt() { return createdAt; }
-    public Instant getExpiresAt() { return expiresAt; }
 }

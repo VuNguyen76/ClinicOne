@@ -4,7 +4,7 @@ import com.clinicone.auth.AuthException;
 import com.clinicone.auth.StaffAccount;
 import com.clinicone.auth.StaffAccountRepository;
 import com.clinicone.auth.StaffRole;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.Builder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import com.clinicone.queue.ClinicRoom;
 import com.clinicone.queue.ClinicRoomRepository;
@@ -29,17 +29,7 @@ public class DoctorManagementService {
     private final PasswordEncoder passwordEncoder;
     private final ReschedulingService reschedulingService;
 
-    public DoctorManagementService(StaffAccountRepository staffRepository,
-                                   DoctorProfileRepository profileRepository,
-                                   DoctorScheduleRepository scheduleRepository,
-                                   ClinicRoomRepository roomRepository,
-                                   SpecialtyCatalogService specialtyCatalog,
-                                   PasswordEncoder passwordEncoder) {
-        this(staffRepository, profileRepository, scheduleRepository, roomRepository, specialtyCatalog,
-                passwordEncoder, null);
-    }
-
-    @Autowired
+    @Builder
     public DoctorManagementService(StaffAccountRepository staffRepository,
                                    DoctorProfileRepository profileRepository,
                                    DoctorScheduleRepository scheduleRepository,

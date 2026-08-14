@@ -1,5 +1,7 @@
 package com.clinicone.schedule;
 
+import lombok.Getter;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -13,6 +15,7 @@ import jakarta.persistence.UniqueConstraint;
 import java.time.Instant;
 import java.util.UUID;
 
+@Getter
 @Entity
 @Table(name = "specialties", uniqueConstraints = {
         @UniqueConstraint(name = "uk_specialty_code", columnNames = "code"),
@@ -73,9 +76,4 @@ public class SpecialtyCatalogEntry {
     @PreUpdate
     void onUpdate() { updatedAt = Instant.now(); }
 
-    public UUID getId() { return id; }
-    public String getCode() { return code; }
-    public String getName() { return name; }
-    public String getDescription() { return description; }
-    public boolean isActive() { return active; }
 }

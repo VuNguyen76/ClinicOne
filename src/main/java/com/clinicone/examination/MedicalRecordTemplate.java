@@ -1,5 +1,7 @@
 package com.clinicone.examination;
 
+import lombok.Getter;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -14,6 +16,7 @@ import jakarta.persistence.Version;
 import java.time.Instant;
 import java.util.UUID;
 
+@Getter
 @Entity
 @Table(name = "medical_record_templates", uniqueConstraints = {
         @UniqueConstraint(name = "uk_medical_record_template_code", columnNames = "code")
@@ -105,16 +108,4 @@ public class MedicalRecordTemplate {
         updatedAt = Instant.now();
     }
 
-    public UUID getId() { return id; }
-    public String getCode() { return code; }
-    public String getName() { return name; }
-    public String getSpecialty() { return specialty; }
-    public UUID getClinicServiceId() { return clinicServiceId; }
-    public String getDescription() { return description; }
-    public String getFieldDefinition() { return fieldDefinition; }
-    public boolean isActive() { return active; }
-    public String getCreatedBy() { return createdBy; }
-    public Instant getCreatedAt() { return createdAt; }
-    public Instant getUpdatedAt() { return updatedAt; }
-    public long getVersion() { return version; }
 }

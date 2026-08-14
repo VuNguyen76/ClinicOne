@@ -7,7 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.Builder;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -40,40 +40,7 @@ public class AccountAuthService {
     private final PatientNotificationService patientNotificationService;
     private final PatientNotificationBackfillService patientNotificationBackfillService;
 
-    public AccountAuthService(PatientAccountRepository accountRepository, LoginSessionRepository sessionRepository,
-                              OtpService otpService, PasswordEncoder passwordEncoder,
-                              SessionTokenGenerator tokenGenerator, Clock clock) {
-        this(accountRepository, sessionRepository, otpService, passwordEncoder, tokenGenerator, clock, null, null);
-    }
-
-    public AccountAuthService(PatientAccountRepository accountRepository, LoginSessionRepository sessionRepository,
-                              OtpService otpService, PasswordEncoder passwordEncoder,
-                              SessionTokenGenerator tokenGenerator, Clock clock,
-                              PatientProfileRepository patientProfileRepository) {
-        this(accountRepository, sessionRepository, otpService, passwordEncoder, tokenGenerator, clock,
-                patientProfileRepository, null, null);
-    }
-
-    public AccountAuthService(PatientAccountRepository accountRepository, LoginSessionRepository sessionRepository,
-                              OtpService otpService, PasswordEncoder passwordEncoder,
-                              SessionTokenGenerator tokenGenerator, Clock clock,
-                              PatientProfileRepository patientProfileRepository,
-                              AppointmentRepository appointmentRepository) {
-        this(accountRepository, sessionRepository, otpService, passwordEncoder, tokenGenerator, clock,
-                patientProfileRepository, appointmentRepository, null);
-    }
-
-    public AccountAuthService(PatientAccountRepository accountRepository, LoginSessionRepository sessionRepository,
-                              OtpService otpService, PasswordEncoder passwordEncoder,
-                              SessionTokenGenerator tokenGenerator, Clock clock,
-                              PatientProfileRepository patientProfileRepository,
-                              AppointmentRepository appointmentRepository,
-                              PatientNotificationService patientNotificationService) {
-        this(accountRepository, sessionRepository, otpService, passwordEncoder, tokenGenerator, clock,
-                patientProfileRepository, appointmentRepository, patientNotificationService, null);
-    }
-
-    @Autowired
+    @Builder
     public AccountAuthService(PatientAccountRepository accountRepository, LoginSessionRepository sessionRepository,
                               OtpService otpService, PasswordEncoder passwordEncoder,
                               SessionTokenGenerator tokenGenerator, Clock clock,

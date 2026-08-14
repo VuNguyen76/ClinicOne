@@ -1,5 +1,7 @@
 package com.clinicone.examination;
 
+import lombok.Getter;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -13,6 +15,7 @@ import jakarta.persistence.UniqueConstraint;
 
 import java.util.UUID;
 
+@Getter
 @Entity
 @Table(name = "prescription_lines", uniqueConstraints = {
         @UniqueConstraint(name = "uk_prescription_lines_record_order", columnNames = {"medical_record_id", "line_number"})
@@ -69,9 +72,4 @@ public class PrescriptionLine {
                 instructions.trim(), lineNumber);
     }
 
-    public UUID getSourceMedicationId() { return sourceMedicationId; }
-    public String getMedicationName() { return medicationName; }
-    public String getDosage() { return dosage; }
-    public int getQuantity() { return quantity; }
-    public String getInstructions() { return instructions; }
 }

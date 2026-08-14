@@ -1,5 +1,7 @@
 package com.clinicone.rescheduling;
 
+import lombok.Getter;
+
 import com.clinicone.doctor.DoctorProfile;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -16,6 +18,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
+@Getter
 @Entity
 @Table(name = "doctor_time_off")
 public class DoctorTimeOff {
@@ -63,11 +66,4 @@ public class DoctorTimeOff {
     @PrePersist
     void onCreate() { if (createdAt == null) createdAt = Instant.now(); }
 
-    public UUID getId() { return id; }
-    public DoctorProfile getDoctorProfile() { return doctorProfile; }
-    public LocalDate getStartDate() { return startDate; }
-    public LocalDate getEndDate() { return endDate; }
-    public String getReason() { return reason; }
-    public boolean isActive() { return active; }
-    public Instant getCreatedAt() { return createdAt; }
 }

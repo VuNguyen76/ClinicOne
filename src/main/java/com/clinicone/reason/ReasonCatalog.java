@@ -1,5 +1,7 @@
 package com.clinicone.reason;
 
+import lombok.Getter;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -15,6 +17,7 @@ import jakarta.persistence.UniqueConstraint;
 import java.time.Instant;
 import java.util.UUID;
 
+@Getter
 @Entity
 @Table(name = "reason_catalog", uniqueConstraints = {
         @UniqueConstraint(name = "uk_reason_catalog_type_code", columnNames = {"reason_type", "code"})
@@ -78,11 +81,4 @@ public class ReasonCatalog {
         updatedAt = Instant.now();
     }
 
-    public UUID getId() { return id; }
-    public ReasonCatalogType getType() { return type; }
-    public String getCode() { return code; }
-    public String getLabel() { return label; }
-    public boolean isActive() { return active; }
-    public Instant getCreatedAt() { return createdAt; }
-    public Instant getUpdatedAt() { return updatedAt; }
 }
