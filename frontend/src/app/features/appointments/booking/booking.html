@@ -143,8 +143,7 @@
             [disabled]="!selectedSlot() || holdBusy()" (click)="continueToDetails()">{{ holdBusy() ? 'Đang giữ...' : 'Tiếp tục' }}</button></div>
       </div>
       } @else {
-      <div class="border-b border-slate-200 bg-[#159fe0] px-6 py-4 text-lg font-bold text-white sm:px-8">Thông tin người
-        đi khám</div>
+      <div class="flex items-center justify-between border-b border-slate-200 bg-[#159fe0] px-6 py-4 text-lg font-bold text-white sm:px-8"><span>Thông tin người đi khám</span>@if (holdId()) {<span class="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold">Giữ chỗ còn {{ holdCountdownLabel() }}</span>}</div>
       <form class="grid gap-6 p-6 sm:p-8" [formGroup]="form" (ngSubmit)="submit()" novalidate>
         <div class="grid gap-4 border-b border-slate-100 pb-6 sm:grid-cols-2">
           <div>

@@ -46,12 +46,12 @@ class ClinicServiceControllerTest {
     }
 
     @Test
-    void adminCannotChangeClinicServiceCatalog() throws Exception {
+    void adminCanChangeClinicServiceCatalog() throws Exception {
         mockMvc.perform(post("/api/v1/admin/services")
                         .with(authentication(authenticated("ROLE_ADMIN")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"Khám tổng quát cơ bản\",\"specialty\":\"Khám Tổng Quát\",\"visitType\":\"Khám thường\",\"durationMinutes\":30,\"doctorIds\":[\"9d9e3fb4-1045-4ca4-86d2-7d1fca4c1a13\"]}"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isCreated());
     }
 
     @Test

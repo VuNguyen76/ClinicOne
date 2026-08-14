@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink, Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
@@ -7,6 +7,8 @@ import { AccountMenu } from '../../../shared/account-menu/account-menu';
 import { clinicTodayIso } from '../../../core/time/clinic-time';
 import { hasStaffRole } from '../../../core/auth/auth.guard';
 import { VietnamAddressService, VietnamAddressUnit } from '../../../core/address/vietnam-address.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { interval } from 'rxjs';
 
 @Component({
   selector: 'app-reception-check-in',
@@ -19,6 +21,7 @@ export class ReceptionCheckIn implements OnInit {
   private readonly authApi = inject(AuthApiService);
   private readonly router = inject(Router);
   private readonly addressApi = inject(VietnamAddressService);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly query = signal('');
   protected readonly selectedDate = signal(clinicTodayIso());
@@ -91,6 +94,7 @@ export class ReceptionCheckIn implements OnInit {
 
   ngOnInit(): void {
     this.query.set('');
+    interval(3000).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.refreshSearch());
   }
 
   protected search(): void {
@@ -117,6 +121,15 @@ export class ReceptionCheckIn implements OnInit {
         this.loading.set(false);
         this.handleError(response);
       },
+    });
+  }
+
+  private refreshSearch(): void {
+    const value = this.query().trim();
+    if (!this.searched() || value.length < 3 || this.loading() || this.walkInOpen()) return;
+    this.authApi.searchReceptionAppointments(value, this.selectedDate()).subscribe({
+      next: (appointments) => this.appointments.set(appointments),
+      error: (response) => this.handleError(response),
     });
   }
 
@@ -175,6 +188,29 @@ export class ReceptionCheckIn implements OnInit {
         this.busyId.set('');
         this.leaveReason.set('');
         this.notice.set(`Đã ghi nhận ${updated.patientName} rời trước khám.`);
+      },
+      error: (response) => {
+        this.busyId.set('');
+        this.handleError(response);
+      },
+    });
+  }
+
+  protected markFacilityUnavailable(appointment: ReceptionAppointmentResponse): void {
+    if (!this.canAdjustQueue() || !appointment.queueTicketId) return;
+    const reason = this.exceptionReason().trim();
+    if (reason.length < 10) {
+      this.error.set('Nhập lý do cơ sở tạm dừng phục vụ (ít nhất 10 ký tự).');
+      return;
+    }
+    this.busyId.set(appointment.id);
+    this.error.set('');
+    this.notice.set('');
+    this.authApi.markReceptionFacilityUnavailable(appointment.id, reason).subscribe({
+      next: (updated) => {
+        this.appointments.update((items) => items.map((item) => item.id === updated.id ? updated : item));
+        this.busyId.set('');
+        this.notice.set(`Đã ghi nhận cơ sở tạm dừng phục vụ cho ${updated.patientName}.`);
       },
       error: (response) => {
         this.busyId.set('');
@@ -591,7 +627,7 @@ export class ReceptionCheckIn implements OnInit {
       return;
     }
     if (overCapacity && !temporaryProfile && exceptionReason.length < 10) {
-      this.error.set('Nháº­p lÃ½ do nháº­n ngoÃ i cÃ´ng suáº¥t (tá»« 10 Ä‘áº¿n 500 kÃ½ tá»±).');
+      this.error.set('Nhập lý do nhận ngoài công suất (từ 10 đến 500 ký tự).');
       return;
     }
     if (reason.length < 3 || exceptionReason.length < (temporaryProfile ? 10 : 3)) {

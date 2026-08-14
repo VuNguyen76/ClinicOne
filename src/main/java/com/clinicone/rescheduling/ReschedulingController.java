@@ -42,7 +42,7 @@ public class ReschedulingController {
     }
 
     @PostMapping("/{caseId}/resolve")
-    @PreAuthorize("hasRole('COORDINATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
     public ResponseEntity<RescheduleCaseResponse> resolve(Authentication authentication,
                                                            @PathVariable UUID caseId,
                                                            @Valid @RequestBody ResolveRescheduleRequest request) {

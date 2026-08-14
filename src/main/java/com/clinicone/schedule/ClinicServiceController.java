@@ -37,26 +37,26 @@ public class ClinicServiceController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('COORDINATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
     public ResponseEntity<ClinicServiceResponse> create(@Valid @RequestBody CreateClinicServiceRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.create(request));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('COORDINATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
     public ResponseEntity<ClinicServiceResponse> update(@PathVariable UUID id,
                                                          @Valid @RequestBody UpdateClinicServiceRequest request) {
         return ResponseEntity.ok(service.update(id, request));
     }
 
     @PostMapping("/{id}/activate")
-    @PreAuthorize("hasRole('COORDINATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
     public ResponseEntity<ClinicServiceResponse> activate(@PathVariable UUID id) {
         return ResponseEntity.ok(service.setActive(id, true));
     }
 
     @PostMapping("/{id}/deactivate")
-    @PreAuthorize("hasRole('COORDINATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
     public ResponseEntity<ClinicServiceResponse> deactivate(@PathVariable UUID id) {
         return ResponseEntity.ok(service.setActive(id, false));
     }

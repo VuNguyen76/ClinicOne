@@ -47,7 +47,8 @@
     <div class="absolute bottom-4 left-0 w-full px-2">
       <a
         mat-list-item
-        routerLink="/login"
+        (click)="logout()"
+        role="button"
         class="rounded text-red-300 transition-colors hover:bg-red-500/20"
         [matTooltip]="isCollapsed() ? 'Đăng xuất' : ''"
         matTooltipPosition="right"
@@ -91,12 +92,12 @@
         </button>
         
         <button mat-icon-button [matMenuTriggerFor]="userMenu" class="ml-1 h-8 w-8 overflow-hidden rounded-full border border-slate-300 transition-colors hover:border-slate-500 focus-visible:outline-none">
-          <img src="https://ui-avatars.com/api/?name=Admin+User&background=103f4c&color=fff" alt="Avatar" class="h-full w-full object-cover" />
+          <mat-icon class="text-slate-600">account_circle</mat-icon>
         </button>
         <mat-menu #userMenu="matMenu" class="mt-1 min-w-[200px] rounded border border-slate-200 p-1 shadow-md">
           <div class="px-3 py-2">
-            <p class="text-sm font-medium text-slate-900">Admin User</p>
-            <p class="text-xs text-slate-500">Quản trị viên</p>
+            <p class="text-sm font-medium text-slate-900">Tài khoản ClinicOne</p>
+            <p class="text-xs text-slate-500">Đang đăng nhập</p>
           </div>
           <mat-divider class="my-1"></mat-divider>
           <button mat-menu-item routerLink="/account" class="rounded-sm hover:bg-slate-50">
@@ -108,7 +109,7 @@
             <span class="text-sm">Cấu hình</span>
           </button>
           <mat-divider class="my-1"></mat-divider>
-          <button mat-menu-item routerLink="/login" class="rounded-sm text-red-600 hover:bg-red-50">
+          <button mat-menu-item (click)="logout()" class="rounded-sm text-red-600 hover:bg-red-50">
             <mat-icon class="text-[20px] text-red-600">logout</mat-icon>
             <span class="text-sm">Đăng xuất</span>
           </button>
