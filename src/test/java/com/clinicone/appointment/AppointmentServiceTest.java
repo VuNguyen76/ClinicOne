@@ -73,9 +73,26 @@ class AppointmentServiceTest {
         reasonCatalogService = mock(ReasonCatalogService.class);
         rescheduleCaseRepository = mock(RescheduleCaseRepository.class);
         generatedSlotRepository = mock(GeneratedClinicSlotRepository.class);
-        service = new AppointmentService(accountRepository, appointmentRepository, null, availabilityService,
-                notificationService, null, holdService, clinicServiceRepository);
+        service = serviceBuilder().build();
         when(appointmentRepository.save(any(Appointment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    }
+
+    private AppointmentService.AppointmentServiceBuilder serviceBuilder() {
+        return AppointmentService.builder()
+                .accountRepository(accountRepository)
+                .appointmentRepository(appointmentRepository)
+                .profileRepository(null)
+                .availabilityService(availabilityService)
+                .notificationService(notificationService)
+                .businessLogService(null)
+                .holdService(holdService)
+                .clinicServiceRepository(clinicServiceRepository)
+                .configurationService(null)
+                .reasonCatalogService(null)
+                .clock(Clock.systemUTC())
+                .appointmentCodeGenerator(new AppointmentCodeGenerator())
+                .rescheduleCaseRepository(null)
+                .generatedSlotRepository(null);
     }
 
     @Test
@@ -143,9 +160,12 @@ class AppointmentServiceTest {
 
         Clock lateClock = Clock.fixed(Instant.parse("2026-08-06T03:35:00Z"), ZoneOffset.UTC);
         BusinessLogService businessLogService = mock(BusinessLogService.class);
-        AppointmentService lateService = new AppointmentService(accountRepository, appointmentRepository, null,
-                availabilityService, notificationService, businessLogService, holdService, clinicServiceRepository,
-                null, reasonCatalogService, lateClock, new AppointmentCodeGenerator(), null, generatedSlotRepository);
+        AppointmentService lateService = serviceBuilder()
+                .businessLogService(businessLogService)
+                .reasonCatalogService(reasonCatalogService)
+                .clock(lateClock)
+                .generatedSlotRepository(generatedSlotRepository)
+                .build();
 
         AppointmentResponse response = lateService.rescheduleForReception(appointmentId, newDoctorId, "BS. Mới",
                 LocalDate.of(2026, 8, 6), LocalTime.of(11, 0), "Người bệnh đến muộn và đồng ý đổi khung", "reception-1");
@@ -206,9 +226,10 @@ class AppointmentServiceTest {
         when(appointmentRepository.findByPatientIdAndAppointmentDateAndStartTimeAndStatus(
                 ACCOUNT_ID, LocalDate.of(2026, 8, 11), LocalTime.of(8, 30), AppointmentStatus.BOOKED))
                 .thenReturn(Optional.empty());
-        service = new AppointmentService(accountRepository, appointmentRepository, null, availabilityService,
-                notificationService, null, holdService, clinicServiceRepository, null, reasonCatalogService,
-                Clock.fixed(Instant.parse("2026-08-10T17:30:00Z"), ZoneOffset.UTC));
+        service = serviceBuilder()
+                .reasonCatalogService(reasonCatalogService)
+                .clock(Clock.fixed(Instant.parse("2026-08-10T17:30:00Z"), ZoneOffset.UTC))
+                .build();
 
         AppointmentResponse response = service.create(ACCOUNT_ID.toString(), new CreateAppointmentRequest(
                 "Nội khoa", "BS. Nguyễn An", LocalDate.of(2026, 8, 11), LocalTime.of(8, 30),
@@ -231,9 +252,10 @@ class AppointmentServiceTest {
                         LocalDate.of(2026, 8, 9), LocalTime.of(8, 30), "Đau đầu")));
         when(appointmentRepository.findByAppointmentCode("CL-NEWCODE98765")).thenReturn(Optional.empty());
 
-        service = new AppointmentService(accountRepository, appointmentRepository, null, availabilityService,
-                notificationService, null, holdService, clinicServiceRepository, null, reasonCatalogService,
-                Clock.systemUTC(), codeGenerator);
+        service = serviceBuilder()
+                .reasonCatalogService(reasonCatalogService)
+                .appointmentCodeGenerator(codeGenerator)
+                .build();
 
         AppointmentResponse response = service.create(ACCOUNT_ID.toString(), new CreateAppointmentRequest(
                 "Nội khoa", "BS. Nguyễn An", LocalDate.of(2026, 8, 11), LocalTime.of(8, 30),
@@ -254,9 +276,10 @@ class AppointmentServiceTest {
         when(appointmentRepository.findByAppointmentCode("CL-COLLISION01"))
                 .thenReturn(Optional.of(Appointment.existing(account, "CL-COLLISION01", "Nội khoa", "BS. Nguyễn An",
                         LocalDate.of(2026, 8, 9), LocalTime.of(8, 30), "Đau đầu")));
-        service = new AppointmentService(accountRepository, appointmentRepository, null, availabilityService,
-                notificationService, null, holdService, clinicServiceRepository, null, reasonCatalogService,
-                Clock.systemUTC(), codeGenerator);
+        service = serviceBuilder()
+                .reasonCatalogService(reasonCatalogService)
+                .appointmentCodeGenerator(codeGenerator)
+                .build();
 
         AuthException exception = assertThrows(AuthException.class, () -> service.create(ACCOUNT_ID.toString(),
                 new CreateAppointmentRequest("Nội khoa", "BS. Nguyễn An", LocalDate.of(2026, 8, 11),
@@ -449,10 +472,11 @@ class AppointmentServiceTest {
         when(generatedSlotRepository.findFirstByClinicServiceIdAndDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
                 serviceId, doctorId, appointment.getAppointmentDate(), appointment.getStartTime(), GeneratedSlotStatus.OPEN))
                 .thenReturn(Optional.of(oldSlot));
-        AppointmentService configuredService = new AppointmentService(accountRepository, appointmentRepository, null,
-                availabilityService, notificationService, null, holdService, clinicServiceRepository, null,
-                null, Clock.fixed(Instant.parse("2026-08-10T02:00:00Z"), ZoneOffset.UTC),
-                new AppointmentCodeGenerator(), rescheduleCaseRepository, generatedSlotRepository);
+        AppointmentService configuredService = serviceBuilder()
+                .clock(Clock.fixed(Instant.parse("2026-08-10T02:00:00Z"), ZoneOffset.UTC))
+                .rescheduleCaseRepository(rescheduleCaseRepository)
+                .generatedSlotRepository(generatedSlotRepository)
+                .build();
 
         configuredService.cancel(ACCOUNT_ID.toString(), appointmentId.toString(), new CancelAppointmentRequest("Bận việc"));
 
@@ -490,9 +514,10 @@ class AppointmentServiceTest {
         when(appointmentRepository.findByIdAndPatientId(any(), eq(ACCOUNT_ID))).thenReturn(Optional.of(appointment));
         ClinicConfigurationService configuration = mock(ClinicConfigurationService.class);
         when(configuration.current()).thenReturn(com.clinicone.config.ClinicConfiguration.defaults());
-        service = new AppointmentService(accountRepository, appointmentRepository, null, availabilityService,
-                notificationService, null, holdService, clinicServiceRepository, configuration,
-                Clock.fixed(Instant.parse("2026-08-10T01:00:00Z"), ZoneOffset.UTC));
+        service = serviceBuilder()
+                .configurationService(configuration)
+                .clock(Clock.fixed(Instant.parse("2026-08-10T01:00:00Z"), ZoneOffset.UTC))
+                .build();
 
         AuthException exception = assertThrows(AuthException.class, () -> service.cancel(
                 ACCOUNT_ID.toString(), UUID.randomUUID().toString(), new CancelAppointmentRequest("   ")));
@@ -512,9 +537,10 @@ class AppointmentServiceTest {
                 "SCHEDULE_CHANGE", "Thay đổi kế hoạch");
         when(reasonCatalogService.requireActive(ReasonCatalogType.APPOINTMENT_CANCELLATION, "SCHEDULE_CHANGE"))
                 .thenReturn(reason);
-        service = new AppointmentService(accountRepository, appointmentRepository, null, availabilityService,
-                notificationService, null, holdService, clinicServiceRepository, null, reasonCatalogService,
-                Clock.fixed(Instant.parse("2026-08-10T01:00:00Z"), ZoneOffset.UTC));
+        service = serviceBuilder()
+                .reasonCatalogService(reasonCatalogService)
+                .clock(Clock.fixed(Instant.parse("2026-08-10T01:00:00Z"), ZoneOffset.UTC))
+                .build();
 
         service.cancel(ACCOUNT_ID.toString(), UUID.randomUUID().toString(),
                 new CancelAppointmentRequest("nội dung không được tin cậy", "SCHEDULE_CHANGE"));
@@ -557,10 +583,11 @@ class AppointmentServiceTest {
         when(generatedSlotRepository.findFirstByClinicServiceIdAndDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
                 serviceId, doctorId, LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), GeneratedSlotStatus.OPEN))
                 .thenReturn(Optional.of(oldSlot));
-        AppointmentService configuredService = new AppointmentService(accountRepository, appointmentRepository, null,
-                availabilityService, notificationService, null, holdService, clinicServiceRepository, null,
-                reasonCatalogService, Clock.systemUTC(), new AppointmentCodeGenerator(), rescheduleCaseRepository,
-                generatedSlotRepository);
+        AppointmentService configuredService = serviceBuilder()
+                .reasonCatalogService(reasonCatalogService)
+                .rescheduleCaseRepository(rescheduleCaseRepository)
+                .generatedSlotRepository(generatedSlotRepository)
+                .build();
 
         configuredService.reschedule(ACCOUNT_ID.toString(), UUID.randomUUID().toString(),
                 new RescheduleAppointmentRequest(LocalDate.of(2026, 8, 11), LocalTime.of(10, 0)));
@@ -581,9 +608,10 @@ class AppointmentServiceTest {
         when(rescheduleCaseRepository.findByAppointmentIdAndStatus(appointmentId, RescheduleCaseStatus.OPEN))
                 .thenReturn(Optional.of(RescheduleCase.open(appointment, "Bác sĩ nghỉ")));
 
-        AppointmentService guardedService = new AppointmentService(accountRepository, appointmentRepository, null,
-                availabilityService, notificationService, null, holdService, clinicServiceRepository, null,
-                reasonCatalogService, Clock.systemUTC(), new AppointmentCodeGenerator(), rescheduleCaseRepository);
+        AppointmentService guardedService = serviceBuilder()
+                .reasonCatalogService(reasonCatalogService)
+                .rescheduleCaseRepository(rescheduleCaseRepository)
+                .build();
 
         AuthException exception = assertThrows(AuthException.class, () -> guardedService.reschedule(
                 ACCOUNT_ID.toString(), appointmentId.toString(),

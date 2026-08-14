@@ -25,6 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import lombok.Builder;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -56,84 +57,8 @@ public class AppointmentService {
     private final RescheduleCaseRepository rescheduleCaseRepository;
     private final GeneratedClinicSlotRepository generatedSlotRepository;
 
-    public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository) {
-        this(accountRepository, appointmentRepository, null, null, null, null, null, null, null, null, null);
-    }
-
-    public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
-                              PatientProfileRepository profileRepository) {
-        this(accountRepository, appointmentRepository, profileRepository, null, null, null, null, null, null, null, null);
-    }
-
-    public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
-                              PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService) {
-        this(accountRepository, appointmentRepository, profileRepository, availabilityService, null, null, null, null, null, null, null);
-    }
-
-    public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
-                              PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService,
-                              PatientNotificationService notificationService) {
-        this(accountRepository, appointmentRepository, profileRepository, availabilityService, notificationService, null, null, null, null, null, null);
-    }
-
-    public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
-                              PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService,
-                              PatientNotificationService notificationService, BusinessLogService businessLogService) {
-        this(accountRepository, appointmentRepository, profileRepository, availabilityService, notificationService,
-                businessLogService, null, null, null, null, null);
-    }
-
-    public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
-                              PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService,
-                              PatientNotificationService notificationService, BusinessLogService businessLogService,
-                              AppointmentHoldService holdService) {
-        this(accountRepository, appointmentRepository, profileRepository, availabilityService, notificationService,
-                businessLogService, holdService, null, null, null, Clock.systemUTC());
-    }
-
-    public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
-                              PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService,
-                              PatientNotificationService notificationService, BusinessLogService businessLogService,
-                              AppointmentHoldService holdService, ClinicServiceRepository clinicServiceRepository) {
-        this(accountRepository, appointmentRepository, profileRepository, availabilityService, notificationService,
-                businessLogService, holdService, clinicServiceRepository, null, null, Clock.systemUTC());
-    }
-
-    public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
-                              PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService,
-                              PatientNotificationService notificationService, BusinessLogService businessLogService,
-                              AppointmentHoldService holdService, ClinicServiceRepository clinicServiceRepository,
-                              ClinicConfigurationService configurationService, ReasonCatalogService reasonCatalogService,
-                              Clock clock) {
-        this(accountRepository, appointmentRepository, profileRepository, availabilityService, notificationService,
-                businessLogService, holdService, clinicServiceRepository, configurationService, reasonCatalogService,
-                clock, new AppointmentCodeGenerator());
-    }
-
-    public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
-                              PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService,
-                              PatientNotificationService notificationService, BusinessLogService businessLogService,
-                              AppointmentHoldService holdService, ClinicServiceRepository clinicServiceRepository,
-                              ClinicConfigurationService configurationService, ReasonCatalogService reasonCatalogService,
-                              Clock clock, AppointmentCodeGenerator appointmentCodeGenerator) {
-        this(accountRepository, appointmentRepository, profileRepository, availabilityService, notificationService,
-                businessLogService, holdService, clinicServiceRepository, configurationService, reasonCatalogService,
-                clock, appointmentCodeGenerator, null);
-    }
-
-    public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
-                              PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService,
-                              PatientNotificationService notificationService, BusinessLogService businessLogService,
-                              AppointmentHoldService holdService, ClinicServiceRepository clinicServiceRepository,
-                              ClinicConfigurationService configurationService, ReasonCatalogService reasonCatalogService,
-                              Clock clock, AppointmentCodeGenerator appointmentCodeGenerator,
-                              RescheduleCaseRepository rescheduleCaseRepository) {
-        this(accountRepository, appointmentRepository, profileRepository, availabilityService, notificationService,
-                businessLogService, holdService, clinicServiceRepository, configurationService, reasonCatalogService,
-                clock, appointmentCodeGenerator, rescheduleCaseRepository, null);
-    }
-
     @Autowired
+    @Builder
     public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
                               PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService,
                               PatientNotificationService notificationService, BusinessLogService businessLogService,
@@ -157,16 +82,6 @@ public class AppointmentService {
                 ? new AppointmentCodeGenerator() : appointmentCodeGenerator;
         this.rescheduleCaseRepository = rescheduleCaseRepository;
         this.generatedSlotRepository = generatedSlotRepository;
-    }
-
-    /** Backward-compatible constructor for isolated unit tests and integrations. */
-    public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
-                              PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService,
-                              PatientNotificationService notificationService, BusinessLogService businessLogService,
-                              AppointmentHoldService holdService, ClinicServiceRepository clinicServiceRepository,
-                              ClinicConfigurationService configurationService, Clock clock) {
-        this(accountRepository, appointmentRepository, profileRepository, availabilityService, notificationService,
-                businessLogService, holdService, clinicServiceRepository, configurationService, null, clock);
     }
 
     @Transactional(readOnly = true)
