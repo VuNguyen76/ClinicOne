@@ -95,6 +95,22 @@ class AppointmentHoldServiceTest {
     }
 
     @Test
+    void doesNotReleaseAnotherBrowserSessionHoldForTheSameAccount() {
+        PatientAccount account = account();
+        when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
+        when(holdRepository.findByHoldKey(any())).thenReturn(Optional.empty());
+        when(holdRepository.findByPatientIdAndSessionKeyAndExpiresAtAfter(ACCOUNT_ID, "session-b", NOW))
+                .thenReturn(List.of());
+        when(holdRepository.saveAndFlush(any(AppointmentHold.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.create(ACCOUNT_ID.toString(), new CreateAppointmentHoldRequest("Nội tổng quát", "BS. Mới",
+                LocalDate.of(2026, 8, 10), LocalTime.of(9, 0), DOCTOR_ID), "session-b");
+
+        verify(holdRepository).findByPatientIdAndSessionKeyAndExpiresAtAfter(ACCOUNT_ID, "session-b", NOW);
+        verify(holdRepository, never()).delete(any(AppointmentHold.class));
+    }
+
+    @Test
     void reusesAnActiveHoldOwnedBySamePatient() {
         PatientAccount account = account();
         AppointmentHold existing = AppointmentHold.create(account, "Nội tổng quát", "BS. An", DOCTOR_ID,
