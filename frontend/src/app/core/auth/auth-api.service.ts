@@ -956,6 +956,18 @@ export class AuthApiService {
     });
   }
 
+  createSpecialty(request: { code: string; name: string; description?: string }): Observable<SpecialtyOption> {
+    return this.http.post<SpecialtyOption>(this.specialtiesRoot, request);
+  }
+
+  updateSpecialty(code: string, request: { code: string; name: string; description?: string }): Observable<SpecialtyOption> {
+    return this.http.put<SpecialtyOption>(`${this.specialtiesRoot}/${encodeURIComponent(code)}`, request);
+  }
+
+  deactivateSpecialty(code: string): Observable<void> {
+    return this.http.delete<void>(`${this.specialtiesRoot}/${encodeURIComponent(code)}`);
+  }
+
   getNotifications(): Observable<PatientNotificationResponse[]> {
     return this.http.get<PatientNotificationResponse[]>(this.notificationsRoot);
   }
