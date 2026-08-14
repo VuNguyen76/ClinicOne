@@ -11,6 +11,7 @@ import com.clinicone.queue.ClinicRoomRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -22,6 +23,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @ExtendWith(MockitoExtension.class)
 class LocalDataInitializerTest {
@@ -54,13 +56,17 @@ class LocalDataInitializerTest {
         when(appointmentRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         new LocalDataInitializer(staffRepository, roomRepository, profileRepository, scheduleRepository,
-                passwordEncoder, patientRepository, patientProfileRepository, appointmentRepository, jdbcTemplate).run();
+                passwordEncoder, patientRepository, patientProfileRepository, appointmentRepository, jdbcTemplate,
+                "test-admin-password", "test-reception-password", "test-doctor-password", "test-patient-password").run();
 
         verify(staffRepository, org.mockito.Mockito.times(3)).save(any(StaffAccount.class));
         verify(roomRepository).save(any());
         verify(profileRepository).save(any());
         verify(scheduleRepository, org.mockito.Mockito.times(5)).save(any());
-        verify(passwordEncoder, org.mockito.Mockito.times(4)).encode(any());
+        ArgumentCaptor<String> passwordCaptor = ArgumentCaptor.forClass(String.class);
+        verify(passwordEncoder, org.mockito.Mockito.times(4)).encode(passwordCaptor.capture());
+        assertThat(passwordCaptor.getAllValues()).containsExactlyInAnyOrder(
+                "test-admin-password", "test-reception-password", "test-doctor-password", "test-patient-password");
         verify(jdbcTemplate).execute(org.mockito.ArgumentMatchers.anyString());
         verifyNoMoreInteractions(passwordEncoder);
     }
