@@ -196,7 +196,12 @@ public class AppointmentService {
 
     @Transactional
     public AppointmentResponse createReception(String accountId, CreateAppointmentRequest request) {
-        return createInternal(accountId, request, null, true);
+        return createReception(accountId, request, null);
+    }
+
+    @Transactional
+    public AppointmentResponse createReception(String accountId, CreateAppointmentRequest request, String requestKey) {
+        return createInternal(accountId, request, requestKey, true);
     }
 
     private AppointmentResponse createInternal(String accountId, CreateAppointmentRequest request, String requestKey,
@@ -288,17 +293,36 @@ public class AppointmentService {
 
     @Transactional
     public AppointmentResponse createTemporary(PatientProfile temporaryProfile, CreateAppointmentRequest request) {
-        return createTemporaryInternal(temporaryProfile, request, false);
+        return createTemporary(temporaryProfile, request, null);
+    }
+
+    @Transactional
+    public AppointmentResponse createTemporary(PatientProfile temporaryProfile, CreateAppointmentRequest request,
+                                                String requestKey) {
+        return createTemporaryInternal(temporaryProfile, request, requestKey, false);
     }
 
     @Transactional
     public AppointmentResponse createTemporaryReception(PatientProfile temporaryProfile,
                                                          CreateAppointmentRequest request) {
-        return createTemporaryInternal(temporaryProfile, request, true);
+        return createTemporaryReception(temporaryProfile, request, null);
+    }
+
+    @Transactional
+    public AppointmentResponse createTemporaryReception(PatientProfile temporaryProfile,
+                                                         CreateAppointmentRequest request, String requestKey) {
+        return createTemporaryInternal(temporaryProfile, request, requestKey, true);
     }
 
     private AppointmentResponse createTemporaryInternal(PatientProfile temporaryProfile,
                                                          CreateAppointmentRequest request,
+                                                         boolean allowOverCapacity) {
+        return createTemporaryInternal(temporaryProfile, request, null, allowOverCapacity);
+    }
+
+    private AppointmentResponse createTemporaryInternal(PatientProfile temporaryProfile,
+                                                         CreateAppointmentRequest request,
+                                                         String requestKey,
                                                          boolean allowOverCapacity) {
         if (temporaryProfile == null || !temporaryProfile.isTemporaryProfile()) {
             throw new AuthException(HttpStatus.CONFLICT, "TEMPORARY_PROFILE_REQUIRED",
@@ -308,6 +332,18 @@ public class AppointmentService {
                 && !temporaryProfile.getId().equals(request.profileId())) {
             throw new AuthException(HttpStatus.CONFLICT, "TEMPORARY_PROFILE_MISMATCH",
                     "Hồ sơ tạm không khớp với lịch đang tạo.");
+        }
+        String normalizedRequestKey = normalizeRequestKey(requestKey);
+        if (normalizedRequestKey != null && temporaryProfile.getId() != null) {
+            var existing = appointmentRepository.findByPatientProfileIdAndCreationRequestKey(
+                    temporaryProfile.getId(), normalizedRequestKey);
+            if (existing.isPresent()) {
+                if (!sameCreateRequest(existing.get(), request)) {
+                    throw new AuthException(HttpStatus.CONFLICT, "IDEMPOTENCY_KEY_REUSED",
+                            "Khóa chống trùng đã được dùng cho một yêu cầu tiếp nhận khác.");
+                }
+                return AppointmentResponse.from(existing.get());
+            }
         }
         ClinicService selectedService = resolveService(request);
         if (allowOverCapacity && availabilityService != null) {
@@ -341,6 +377,7 @@ public class AppointmentService {
         if (allowOverCapacity) {
             appointment.markOverCapacity();
         }
+        appointment.assignCreationRequestKey(normalizedRequestKey);
         Appointment saved = appointmentRepository.save(appointment);
         recordTransition(UUID.randomUUID(), saved.getId(), null, saved.getStatus().name(),
                 "CREATE_TEMPORARY_APPOINTMENT", "STAFF", null);

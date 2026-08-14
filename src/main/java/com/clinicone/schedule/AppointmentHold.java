@@ -60,6 +60,9 @@ public class AppointmentHold {
     @Column(name = "hold_key", nullable = false, length = 180)
     private String holdKey;
 
+    @Column(name = "session_key", nullable = false, length = 120)
+    private String sessionKey;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -70,13 +73,8 @@ public class AppointmentHold {
     }
 
     private AppointmentHold(PatientAccount patient, String specialty, String doctorName, UUID doctorStaffId,
-                             LocalDate appointmentDate, LocalTime startTime, String holdKey, Instant expiresAt) {
-        this(patient, specialty, doctorName, doctorStaffId, appointmentDate, startTime, holdKey, expiresAt, null);
-    }
-
-    private AppointmentHold(PatientAccount patient, String specialty, String doctorName, UUID doctorStaffId,
                              LocalDate appointmentDate, LocalTime startTime, String holdKey, Instant expiresAt,
-                             UUID serviceId) {
+                             UUID serviceId, String sessionKey) {
         this.patient = patient;
         this.specialty = specialty;
         this.doctorName = doctorName;
@@ -85,21 +83,29 @@ public class AppointmentHold {
         this.appointmentDate = appointmentDate;
         this.startTime = startTime;
         this.holdKey = holdKey;
+        this.sessionKey = sessionKey;
         this.expiresAt = expiresAt;
     }
 
     public static AppointmentHold create(PatientAccount patient, String specialty, String doctorName,
                                           UUID doctorStaffId, LocalDate appointmentDate, LocalTime startTime,
                                           String holdKey, Instant expiresAt) {
-        return new AppointmentHold(patient, specialty, doctorName, doctorStaffId, appointmentDate, startTime,
-                holdKey, expiresAt);
+        return create(patient, specialty, doctorName, doctorStaffId, appointmentDate, startTime, holdKey, expiresAt,
+                null, "LEGACY");
     }
 
     public static AppointmentHold create(PatientAccount patient, String specialty, String doctorName,
                                           UUID doctorStaffId, LocalDate appointmentDate, LocalTime startTime,
                                           String holdKey, Instant expiresAt, UUID serviceId) {
+        return create(patient, specialty, doctorName, doctorStaffId, appointmentDate, startTime, holdKey, expiresAt,
+                serviceId, "LEGACY");
+    }
+
+    public static AppointmentHold create(PatientAccount patient, String specialty, String doctorName,
+                                          UUID doctorStaffId, LocalDate appointmentDate, LocalTime startTime,
+                                          String holdKey, Instant expiresAt, UUID serviceId, String sessionKey) {
         return new AppointmentHold(patient, specialty, doctorName, doctorStaffId, appointmentDate, startTime,
-                holdKey, expiresAt, serviceId);
+                holdKey, expiresAt, serviceId, sessionKey);
     }
 
     @PrePersist
@@ -118,6 +124,7 @@ public class AppointmentHold {
     public LocalDate getAppointmentDate() { return appointmentDate; }
     public LocalTime getStartTime() { return startTime; }
     public String getHoldKey() { return holdKey; }
+    public String getSessionKey() { return sessionKey; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getExpiresAt() { return expiresAt; }
 }

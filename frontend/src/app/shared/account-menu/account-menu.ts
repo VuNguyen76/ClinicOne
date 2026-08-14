@@ -113,6 +113,7 @@ export class AccountMenu {
     sessionStorage.removeItem('clinicOneSessionType');
     sessionStorage.removeItem('clinicOneStaffRole');
     sessionStorage.removeItem('clinicOneStaffRoles');
+    sessionStorage.removeItem('clinicOneBookingSession');
     this.menuOpen.set(false);
     this.loggedIn.set(false);
     void this.router.navigateByUrl('/home');

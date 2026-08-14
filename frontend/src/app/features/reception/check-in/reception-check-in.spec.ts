@@ -133,6 +133,7 @@ describe('ReceptionCheckIn', () => {
     component.walkInExceptionReason.set('Người bệnh đến quầy không có lịch');
     component.submitWalkIn();
     const request = http.expectOne('/api/v1/reception/walk-in');
+    expect(request.request.headers.get('Idempotency-Key')).toMatch(/^walk-in-/);
     expect(request.request.body).toEqual({
       phone: '0912345678', profileId: 'p-1', doctorId: 'd-1', appointmentDate: component.walkInDate(),
       startTime: '09:00:00', reason: 'Đau đầu từ sáng', exceptionReason: 'Người bệnh đến quầy không có lịch',
@@ -169,12 +170,13 @@ describe('ReceptionCheckIn', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Đã tạo tài khoản cho Nguyễn An');
+    component.activationOtp.set('123456');
     component.activationPassword.set('new-password');
     component.activationConfirmPassword.set('new-password');
     component.activatePendingAccount();
     const activationRequest = http.expectOne('/api/v1/auth/activate');
     expect(activationRequest.request.body).toEqual({
-      phone: '0912345678', newPassword: 'new-password', confirmPassword: 'new-password',
+      phone: '0912345678', otpCode: '123456', newPassword: 'new-password', confirmPassword: 'new-password',
     });
     activationRequest.flush(null);
     const profilesAfterActivation = http.expectOne('/api/v1/reception/profiles?phone=0912345678');

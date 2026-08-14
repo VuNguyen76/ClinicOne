@@ -708,6 +708,13 @@ export interface ReceptionPatientRegistrationRequest {
   nationality?: string;
   ethnicity?: string;
   address?: string;
+  provinceCode?: string;
+  provinceName?: string;
+  districtCode?: string;
+  districtName?: string;
+  wardCode?: string;
+  wardName?: string;
+  streetAddress?: string;
 }
 
 export interface ReceptionPatientRegistrationResponse {
@@ -939,7 +946,14 @@ export class AuthApiService {
   }
 
   holdAppointmentSlot(request: CreateAppointmentHoldRequest): Observable<AppointmentHoldResponse> {
-    return this.http.post<AppointmentHoldResponse>(this.appointmentHoldsRoot, request);
+    let sessionKey = sessionStorage.getItem('clinicOneBookingSession');
+    if (!sessionKey) {
+      sessionKey = globalThis.crypto?.randomUUID?.() ?? `session-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      sessionStorage.setItem('clinicOneBookingSession', sessionKey);
+    }
+    return this.http.post<AppointmentHoldResponse>(this.appointmentHoldsRoot, request, {
+      headers: { 'X-ClinicOne-Session': sessionKey },
+    });
   }
 
   getNotifications(): Observable<PatientNotificationResponse[]> {
@@ -1052,8 +1066,10 @@ export class AuthApiService {
     return this.http.post<ReceptionAppointmentResponse>(`/api/v1/reception/appointments/${appointmentId}/leave`, { reason });
   }
 
-  createReceptionWalkIn(request: ReceptionWalkInRequest): Observable<ReceptionAppointmentResponse> {
-    return this.http.post<ReceptionAppointmentResponse>('/api/v1/reception/walk-in', request);
+  createReceptionWalkIn(request: ReceptionWalkInRequest, requestKey: string): Observable<ReceptionAppointmentResponse> {
+    return this.http.post<ReceptionAppointmentResponse>('/api/v1/reception/walk-in', request, {
+      headers: { 'Idempotency-Key': requestKey },
+    });
   }
 
   getReceptionProfiles(phone: string): Observable<ReceptionPatientProfile[]> {
@@ -1072,8 +1088,8 @@ export class AuthApiService {
     return this.http.post<ReceptionPatientRegistrationResponse>('/api/v1/reception/patients', request);
   }
 
-  activateReceptionPatientAccount(phone: string, newPassword: string, confirmPassword: string): Observable<void> {
-    return this.http.post<void>('/api/v1/auth/activate', { phone, newPassword, confirmPassword });
+  activateReceptionPatientAccount(phone: string, otpCode: string, newPassword: string, confirmPassword: string): Observable<void> {
+    return this.http.post<void>('/api/v1/auth/activate', { phone, otpCode, newPassword, confirmPassword });
   }
 
   saveDoctorExaminationDraft(ticketId: string, request: DoctorExaminationRequest): Observable<DoctorExaminationResponse> {

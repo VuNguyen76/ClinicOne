@@ -6,6 +6,7 @@ import { ApiErrorResponse, AppointmentSlotResponse, AuthApiService, ReceptionApp
 import { AccountMenu } from '../../../shared/account-menu/account-menu';
 import { clinicTodayIso } from '../../../core/time/clinic-time';
 import { hasStaffRole } from '../../../core/auth/auth.guard';
+import { VietnamAddressService, VietnamAddressUnit } from '../../../core/address/vietnam-address.service';
 
 @Component({
   selector: 'app-reception-check-in',
@@ -17,6 +18,7 @@ import { hasStaffRole } from '../../../core/auth/auth.guard';
 export class ReceptionCheckIn implements OnInit {
   private readonly authApi = inject(AuthApiService);
   private readonly router = inject(Router);
+  private readonly addressApi = inject(VietnamAddressService);
 
   protected readonly query = signal('');
   protected readonly selectedDate = signal(clinicTodayIso());
@@ -40,6 +42,7 @@ export class ReceptionCheckIn implements OnInit {
   protected readonly walkInReason = signal('');
   protected readonly walkInExceptionReason = signal('');
   protected readonly walkInLoading = signal(false);
+  protected readonly walkInRequestKey = signal('');
   protected readonly walkInProfilesLoading = signal(false);
   protected readonly walkInSlotsLoading = signal(false);
   protected readonly walkInRegistration = signal(false);
@@ -54,10 +57,23 @@ export class ReceptionCheckIn implements OnInit {
   protected readonly registrationNationality = signal('Việt Nam');
   protected readonly registrationEthnicity = signal('Kinh');
   protected readonly registrationAddress = signal('');
+  protected readonly registrationProvinceCode = signal('');
+  protected readonly registrationProvinceName = signal('');
+  protected readonly registrationDistrictCode = signal('');
+  protected readonly registrationDistrictName = signal('');
+  protected readonly registrationWardCode = signal('');
+  protected readonly registrationWardName = signal('');
+  protected readonly registrationStreetAddress = signal('');
+  protected readonly registrationProvinces = signal<VietnamAddressUnit[]>([]);
+  protected readonly registrationDistricts = signal<VietnamAddressUnit[]>([]);
+  protected readonly registrationWards = signal<VietnamAddressUnit[]>([]);
+  protected readonly registrationAddressLoading = signal(false);
   protected readonly registrationOtpSent = signal(false);
   protected readonly registrationLoading = signal(false);
   protected readonly activationPassword = signal('');
   protected readonly activationConfirmPassword = signal('');
+  protected readonly activationOtp = signal('');
+  protected readonly activationOtpSent = signal(false);
   protected readonly activationLoading = signal(false);
   protected readonly doctors = signal<ReceptionDoctorOption[]>([]);
   protected readonly adjustmentTicket = signal<ReceptionAppointmentResponse | null>(null);
@@ -321,6 +337,7 @@ export class ReceptionCheckIn implements OnInit {
 
   protected openWalkIn(): void {
     this.walkInOpen.set(true);
+    this.walkInRequestKey.set('');
     this.walkInPhone.set('');
     this.walkInDate.set(clinicTodayIso());
     this.walkInProfiles.set([]);
@@ -342,9 +359,18 @@ export class ReceptionCheckIn implements OnInit {
     this.registrationNationality.set('Việt Nam');
     this.registrationEthnicity.set('Kinh');
     this.registrationAddress.set('');
+    this.registrationProvinceCode.set('');
+    this.registrationProvinceName.set('');
+    this.registrationDistrictCode.set('');
+    this.registrationDistrictName.set('');
+    this.registrationWardCode.set('');
+    this.registrationWardName.set('');
+    this.registrationStreetAddress.set('');
     this.registrationOtpSent.set(false);
     this.activationPassword.set('');
     this.activationConfirmPassword.set('');
+    this.activationOtp.set('');
+    this.activationOtpSent.set(false);
     this.error.set('');
     if (this.walkInSpecialties().length === 0) {
       this.authApi.getSpecialties().subscribe({
@@ -355,7 +381,10 @@ export class ReceptionCheckIn implements OnInit {
   }
 
   protected closeWalkIn(): void {
-    if (!this.walkInLoading()) this.walkInOpen.set(false);
+    if (!this.walkInLoading()) {
+      this.walkInRequestKey.set('');
+      this.walkInOpen.set(false);
+    }
   }
 
   protected openTemporaryProfileForm(): void {
@@ -435,6 +464,13 @@ export class ReceptionCheckIn implements OnInit {
       nationality: this.registrationNationality().trim() || undefined,
       ethnicity: this.registrationEthnicity().trim() || undefined,
       address: this.registrationAddress().trim() || undefined,
+      provinceCode: this.registrationProvinceCode() || undefined,
+      provinceName: this.registrationProvinceName() || undefined,
+      districtCode: this.registrationDistrictCode() || undefined,
+      districtName: this.registrationDistrictName() || undefined,
+      wardCode: this.registrationWardCode() || undefined,
+      wardName: this.registrationWardName() || undefined,
+      streetAddress: this.registrationStreetAddress().trim() || undefined,
     }).subscribe({
       next: (response) => {
         this.registrationLoading.set(false);
@@ -452,8 +488,8 @@ export class ReceptionCheckIn implements OnInit {
   protected activatePendingAccount(): void {
     const phone = this.walkInPhone().trim();
     const password = this.activationPassword();
-    if (!/^0\d{9}$/.test(phone) || password.length < 8 || password.length > 64) {
-      this.error.set('Mật khẩu mới phải dài từ 8 đến 64 ký tự.');
+    if (!/^0\d{9}$/.test(phone) || !/^\d{6}$/.test(this.activationOtp()) || password.length < 8 || password.length > 64) {
+      this.error.set('Nhập mã OTP 6 số và mật khẩu mới từ 8 đến 64 ký tự.');
       return;
     }
     if (password !== this.activationConfirmPassword()) {
@@ -462,11 +498,13 @@ export class ReceptionCheckIn implements OnInit {
     }
     this.activationLoading.set(true);
     this.error.set('');
-    this.authApi.activateReceptionPatientAccount(phone, password, this.activationConfirmPassword()).subscribe({
+    this.authApi.activateReceptionPatientAccount(phone, this.activationOtp(), password, this.activationConfirmPassword()).subscribe({
       next: () => {
         this.activationLoading.set(false);
         this.activationPassword.set('');
         this.activationConfirmPassword.set('');
+        this.activationOtp.set('');
+        this.activationOtpSent.set(false);
         this.walkInNeedsPasswordChange.set(false);
         this.notice.set('Đã kích hoạt tài khoản. Có thể tiếp tục tiếp nhận.');
         this.loadWalkInProfiles();
@@ -564,6 +602,8 @@ export class ReceptionCheckIn implements OnInit {
     }
     this.walkInLoading.set(true);
     this.error.set('');
+    const requestKey = this.walkInRequestKey() || `walk-in-${crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`}`;
+    this.walkInRequestKey.set(requestKey);
     this.authApi.createReceptionWalkIn({
       phone,
       profileId: this.walkInProfileId() || null,
@@ -573,9 +613,10 @@ export class ReceptionCheckIn implements OnInit {
       reason,
       exceptionReason,
       ...(overCapacity ? { overCapacity: true } : {}),
-    }).subscribe({
+    }, requestKey).subscribe({
       next: (appointment) => {
         this.walkInLoading.set(false);
+        this.walkInRequestKey.set('');
         this.walkInOpen.set(false);
         this.appointments.update((items) => [appointment, ...items]);
         this.notice.set(`Đã tạo lịch và cấp số ${String(appointment.queueNumber).padStart(2, '0')} cho ${appointment.patientName}.`);
@@ -588,7 +629,7 @@ export class ReceptionCheckIn implements OnInit {
   }
 
   private prepareProfileCompletion(profile: ReceptionPatientProfile | undefined): void {
-    if (!profile || profile.accountStatus === null || profile.mustChangePassword) {
+    if (!profile || profile.accountStatus !== 'ACTIVE' || profile.mustChangePassword) {
       this.walkInProfileNeedsCompletion.set(false);
       return;
     }
@@ -599,11 +640,27 @@ export class ReceptionCheckIn implements OnInit {
     this.registrationNationality.set(profile.nationality ?? '');
     this.registrationEthnicity.set(profile.ethnicity ?? '');
     this.registrationAddress.set(profile.streetAddress ?? profile.address ?? '');
+    this.registrationProvinceCode.set(profile.provinceCode ?? '');
+    this.registrationProvinceName.set(profile.provinceName ?? '');
+    this.registrationDistrictCode.set(profile.districtCode ?? '');
+    this.registrationDistrictName.set(profile.districtName ?? '');
+    this.registrationWardCode.set(profile.wardCode ?? '');
+    this.registrationWardName.set(profile.wardName ?? '');
+    this.registrationStreetAddress.set(profile.streetAddress ?? '');
     this.walkInProfileNeedsCompletion.set([
       profile.fullName, profile.dateOfBirth, profile.gender, profile.identityNumber,
       profile.nationality, profile.ethnicity, profile.provinceCode, profile.districtCode,
       profile.wardCode, profile.streetAddress,
     ].some((value) => !value || !String(value).trim()));
+    if (profile.provinceCode) {
+      this.addressApi.getDistricts(profile.provinceCode).subscribe((items) => this.registrationDistricts.set(items));
+    }
+    if (profile.districtCode) {
+      this.addressApi.getWards(profile.districtCode).subscribe((items) => this.registrationWards.set(items));
+    }
+    if (this.registrationProvinces().length === 0) {
+      this.addressApi.getProvinces().subscribe((items) => this.registrationProvinces.set(items));
+    }
   }
 
   protected selectWalkInProfile(profileId: string): void {
@@ -625,6 +682,10 @@ export class ReceptionCheckIn implements OnInit {
       gender: this.registrationGender(), identityNumber: this.registrationIdentityNumber().trim(),
       nationality: this.registrationNationality().trim(), ethnicity: this.registrationEthnicity().trim(),
       address: this.registrationAddress().trim(),
+      provinceCode: this.registrationProvinceCode(), provinceName: this.registrationProvinceName(),
+      districtCode: this.registrationDistrictCode(), districtName: this.registrationDistrictName(),
+      wardCode: this.registrationWardCode(), wardName: this.registrationWardName(),
+      streetAddress: this.registrationStreetAddress().trim(),
     }).subscribe({
       next: (profile) => {
         this.registrationLoading.set(false);
@@ -637,6 +698,67 @@ export class ReceptionCheckIn implements OnInit {
         this.handleError(response);
       },
     });
+  }
+
+  protected requestActivationOtp(): void {
+    const phone = this.walkInPhone().trim();
+    if (!/^0\d{9}$/.test(phone)) {
+      this.error.set('Nhập số điện thoại hợp lệ trước khi gửi OTP.');
+      return;
+    }
+    this.activationLoading.set(true);
+    this.error.set('');
+    this.authApi.requestReceptionPatientOtp(phone).subscribe({
+      next: () => {
+        this.activationLoading.set(false);
+        this.activationOtpSent.set(true);
+        this.notice.set('Đã gửi mã OTP kích hoạt qua SMS.');
+      },
+      error: (response) => {
+        this.activationLoading.set(false);
+        this.handleError(response);
+      },
+    });
+  }
+
+  protected registrationProvinceChanged(): void {
+    const province = this.registrationProvinces().find((item) => String(item.code) === this.registrationProvinceCode());
+    this.registrationProvinceName.set(province?.name ?? '');
+    this.registrationDistrictCode.set('');
+    this.registrationDistrictName.set('');
+    this.registrationWardCode.set('');
+    this.registrationWardName.set('');
+    this.registrationDistricts.set([]);
+    this.registrationWards.set([]);
+    if (this.registrationProvinceCode()) {
+      this.registrationAddressLoading.set(true);
+      this.addressApi.getDistricts(this.registrationProvinceCode()).subscribe({
+        next: (items) => this.registrationDistricts.set(items),
+        complete: () => this.registrationAddressLoading.set(false),
+        error: () => this.registrationAddressLoading.set(false),
+      });
+    }
+  }
+
+  protected registrationDistrictChanged(): void {
+    const district = this.registrationDistricts().find((item) => String(item.code) === this.registrationDistrictCode());
+    this.registrationDistrictName.set(district?.name ?? '');
+    this.registrationWardCode.set('');
+    this.registrationWardName.set('');
+    this.registrationWards.set([]);
+    if (this.registrationDistrictCode()) {
+      this.registrationAddressLoading.set(true);
+      this.addressApi.getWards(this.registrationDistrictCode()).subscribe({
+        next: (items) => this.registrationWards.set(items),
+        complete: () => this.registrationAddressLoading.set(false),
+        error: () => this.registrationAddressLoading.set(false),
+      });
+    }
+  }
+
+  protected registrationWardChanged(): void {
+    const ward = this.registrationWards().find((item) => String(item.code) === this.registrationWardCode());
+    this.registrationWardName.set(ward?.name ?? '');
   }
 
   protected formatTime(value: string): string {
