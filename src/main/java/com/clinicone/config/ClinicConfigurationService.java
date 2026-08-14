@@ -3,17 +3,15 @@ package com.clinicone.config;
 import com.clinicone.auth.AuthException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class ClinicConfigurationService {
     private final ClinicConfigurationRepository repository;
-
-    public ClinicConfigurationService(ClinicConfigurationRepository repository) {
-        this.repository = repository;
-    }
 
     @Transactional
     public ClinicConfiguration current() {

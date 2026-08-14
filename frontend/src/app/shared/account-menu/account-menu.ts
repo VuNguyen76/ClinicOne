@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, ElementRef, HostListener, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, ElementRef, HostListener, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { AuthApiService } from '../../core/auth/auth-api.service';
@@ -60,23 +60,13 @@ export class AccountMenu {
     });
   }
 
-  protected isStaff(): boolean {
-    return Boolean(this.staffRole());
-  }
-
-  protected isDoctor(): boolean {
-    return this.staffRoles().includes('DOCTOR');
-  }
-
-  protected canManageRooms(): boolean {
-    return this.staffRoles().some((role) => role === 'ADMIN' || role === 'COORDINATOR');
-  }
-
-  protected canReceivePatients(): boolean {
-    return this.staffRoles().some((role) => ['ADMIN', 'COORDINATOR', 'RECEPTIONIST'].includes(role));
-  }
-
-  protected staffRoleLabel(): string {
+  protected readonly isStaff = computed(() => Boolean(this.staffRole()));
+  protected readonly isDoctor = computed(() => this.staffRoles().includes('DOCTOR'));
+  protected readonly canManageRooms = computed(() =>
+    this.staffRoles().some((role) => role === 'ADMIN' || role === 'COORDINATOR'));
+  protected readonly canReceivePatients = computed(() =>
+    this.staffRoles().some((role) => ['ADMIN', 'COORDINATOR', 'RECEPTIONIST'].includes(role)));
+  protected readonly staffRoleLabel = computed(() => {
     switch (this.staffRole()) {
       case 'ADMIN': return 'Quản trị viên';
       case 'COORDINATOR': return 'Điều phối viên';
@@ -84,7 +74,7 @@ export class AccountMenu {
       case 'DOCTOR': return 'Bác sĩ';
       default: return 'Nhân viên';
     }
-  }
+  });
 
   @HostListener('document:keydown.escape')
   protected closeOnEscape(): void {

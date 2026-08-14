@@ -3,9 +3,9 @@ package com.clinicone.reception;
 import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.clinicone.validation.VietnamesePhone;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -17,7 +17,7 @@ import java.util.UUID;
  * được suy ra từ bác sĩ đã chọn và được tạo trong cùng giao dịch.
  */
 public record ReceptionWalkInRequest(
-        @NotBlank @Pattern(regexp = "0\\d{9}", message = "Số điện thoại phải gồm 10 chữ số và bắt đầu bằng 0")
+        @NotBlank @VietnamesePhone
         String phone,
         UUID profileId,
         @NotNull UUID doctorId,
