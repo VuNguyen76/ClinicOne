@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -22,8 +23,11 @@ public class AppointmentHoldController {
 
     @PostMapping
     public ResponseEntity<AppointmentHoldResponse> create(Authentication authentication,
+                                                           HttpServletRequest httpRequest,
                                                            @RequestHeader(value = "X-ClinicOne-Session", required = false) String sessionKey,
                                                            @Valid @RequestBody CreateAppointmentHoldRequest request) {
-        return ResponseEntity.status(201).body(holdService.create(authentication.getName(), request, sessionKey));
+        Object serverSessionId = httpRequest.getAttribute("clinicOneLoginSessionId");
+        String effectiveSessionKey = serverSessionId == null ? sessionKey : serverSessionId.toString();
+        return ResponseEntity.status(201).body(holdService.create(authentication.getName(), request, effectiveSessionKey));
     }
 }

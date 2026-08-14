@@ -1,6 +1,11 @@
 package com.clinicone.reconciliation;
 
 import com.clinicone.audit.BusinessLogService;
+import com.clinicone.audit.BusinessLog;
+import com.clinicone.audit.BusinessLogRepository;
+import com.clinicone.auth.AuthException;
+import com.clinicone.queue.QueueService;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 import java.util.UUID;
@@ -13,15 +18,57 @@ import java.util.UUID;
 @Component
 public class BusinessLogReconciliationActionDispatcher implements ReconciliationActionDispatcher {
     private final BusinessLogService businessLogService;
+    private final BusinessLogRepository businessLogRepository;
+    private final QueueService queueService;
 
-    public BusinessLogReconciliationActionDispatcher(BusinessLogService businessLogService) {
+    public BusinessLogReconciliationActionDispatcher(BusinessLogService businessLogService,
+                                                     BusinessLogRepository businessLogRepository,
+                                                     QueueService queueService) {
         this.businessLogService = businessLogService;
+        this.businessLogRepository = businessLogRepository;
+        this.queueService = queueService;
     }
 
     @Override
     public void dispatch(ReconciliationIncident incident, CloseReconciliationRequest request, String actor) {
+        if (request.action() == ReconciliationAction.NO_ACTION_REQUIRED) {
+            recordActivity(incident, request, actor);
+            return;
+        }
+        if (request.referenceType() != ReconciliationReferenceType.BUSINESS_LOG) {
+            throw unsupported("Muốn chạy lại nghiệp vụ phải tham chiếu đúng mã nhật ký nghiệp vụ.");
+        }
+        BusinessLog log = businessLogRepository.findById(UUID.fromString(request.referenceValue()))
+                .orElseThrow(() -> unsupported("Không tìm thấy nhật ký để chạy lại nghiệp vụ."));
+        if (!log.getEntityType().equalsIgnoreCase(incident.getEntityType())
+                || !log.getEntityId().equals(incident.getEntityId())) {
+            throw unsupported("Nhật ký không thuộc đúng đối tượng cần đối soát.");
+        }
+        if (!"QUEUE_TICKET".equalsIgnoreCase(log.getEntityType())) {
+            throw unsupported("Nghiệp vụ này chưa có bộ xử lý chạy lại an toàn.");
+        }
+        UUID ticketId = log.getEntityId();
+        String eventType = log.getEventType();
+        if ("CALL_PATIENT".equals(eventType)) {
+            queueService.call(ticketId, actor);
+        } else if ("START_EXAMINATION".equals(eventType)) {
+            queueService.start(ticketId, actor);
+        } else if ("LEAVE_BEFORE_EXAM".equals(eventType)) {
+            queueService.leaveBeforeExam(ticketId, request.resultNote(), actor);
+        } else if ("FACILITY_UNAVAILABLE".equals(eventType)) {
+            queueService.markFacilityUnavailable(ticketId, request.resultNote(), actor);
+        } else {
+            throw unsupported("Nghiệp vụ " + eventType + " chưa có bộ xử lý chạy lại an toàn.");
+        }
+        recordActivity(incident, request, actor);
+    }
+
+    private void recordActivity(ReconciliationIncident incident, CloseReconciliationRequest request, String actor) {
         businessLogService.recordActivity(UUID.randomUUID(), incident.getEntityType(), incident.getEntityId(),
-                null, "RECONCILED", "RECONCILIATION_" + request.action().name(), actor,
-                request.resultNote());
+                null, "RECONCILED", "RECONCILIATION_" + request.action().name(), actor, request.resultNote());
+    }
+
+    private AuthException unsupported(String message) {
+        return new AuthException(HttpStatus.CONFLICT, "RECONCILIATION_REPLAY_UNSUPPORTED", message);
     }
 }

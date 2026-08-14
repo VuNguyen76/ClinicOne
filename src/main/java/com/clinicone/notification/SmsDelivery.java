@@ -58,6 +58,9 @@ public class SmsDelivery {
     @Column(name = "last_error", length = 500)
     private String lastError;
 
+    @Column(name = "last_retry_request_key", length = 120)
+    private String lastRetryRequestKey;
+
     @Column(name = "sent_at")
     private Instant sentAt;
 
@@ -116,6 +119,28 @@ public class SmsDelivery {
         }
     }
 
+    public boolean manualRetry(Instant now, String requestKey) {
+        String normalizedKey = requestKey == null ? "" : requestKey.trim();
+        if (normalizedKey.isEmpty() || normalizedKey.length() > 120) {
+            throw new IllegalArgumentException("Retry request key is invalid");
+        }
+        if (normalizedKey.equals(lastRetryRequestKey)) return false;
+        if (status == SmsDeliveryStatus.SENT) {
+            throw new IllegalStateException("SMS delivery has already been sent");
+        }
+        if (status == SmsDeliveryStatus.PROCESSING) {
+            throw new IllegalStateException("SMS delivery is being processed");
+        }
+        lastRetryRequestKey = normalizedKey;
+        status = SmsDeliveryStatus.PENDING;
+        attempts = 0;
+        availableAt = now;
+        lockedUntil = null;
+        sentAt = null;
+        lastError = null;
+        return true;
+    }
+
     private String normalizeError(String error) {
         if (error == null || error.isBlank()) return "SMS provider rejected the request";
         return error.length() > 500 ? error.substring(0, 500) : error;
@@ -136,6 +161,7 @@ public class SmsDelivery {
     public Instant getAvailableAt() { return availableAt; }
     public Instant getLockedUntil() { return lockedUntil; }
     public String getLastError() { return lastError; }
+    public String getLastRetryRequestKey() { return lastRetryRequestKey; }
     public Instant getSentAt() { return sentAt; }
     public Instant getCreatedAt() { return createdAt; }
     public long getVersion() { return version; }
