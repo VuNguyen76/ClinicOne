@@ -2,7 +2,7 @@
   @if (editingId()) {
     <button workspace-actions type="button"
       class="inline-flex min-h-9 items-center gap-1.5 rounded-md border border-[#cbdadd] bg-white px-3 text-sm font-semibold text-[#173f4b] hover:bg-[#eef5f6]"
-      (click)="cancelEdit()">
+      (click)="startCreate()">
       <mat-icon class="!h-4 !w-4 !text-[17px]">add</mat-icon>Thêm mới
     </button>
   }
@@ -14,8 +14,13 @@
     <p class="mb-3 border-l-4 border-emerald-500 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{{ notice() }}</p>
   }
 
+  <nav workspace-tabs class="flex min-h-11 items-end gap-1 overflow-x-auto border-b border-[#cbdadd] bg-[#f7f9fa] px-3" aria-label="Các phần mẫu phiếu">
+    <button type="button" class="border-b-2 px-4 py-2.5 text-sm font-semibold transition" [class.border-[#0b91c9]]="activeTab() === 'list'" [class.text-[#086b8b]]="activeTab() === 'list'" [class.border-transparent]="activeTab() !== 'list'" [class.text-slate-500]="activeTab() !== 'list'" (click)="activeTab.set('list')">Danh sách mẫu</button>
+    <button type="button" class="border-b-2 px-4 py-2.5 text-sm font-semibold transition" [class.border-[#0b91c9]]="activeTab() === 'form'" [class.text-[#086b8b]]="activeTab() === 'form'" [class.border-transparent]="activeTab() !== 'form'" [class.text-slate-500]="activeTab() !== 'form'" (click)="activeTab.set('form')">Thiết lập mẫu</button>
+  </nav>
+
   <div class="grid items-start gap-4 xl:grid-cols-[minmax(0,1.35fr)_420px]">
-    <section class="min-w-0 overflow-hidden border border-[#cbdadd] bg-white">
+    <section class="min-w-0 overflow-hidden border border-[#cbdadd] bg-white" [class.hidden]="activeTab() !== 'list'">
       <header class="flex min-h-12 items-center justify-between gap-3 border-b border-[#dce6e8] bg-[#f8fafb] px-4">
         <div>
           <h2 class="text-sm font-bold text-[#0a303b]">Danh sách mẫu</h2>
@@ -67,7 +72,7 @@
       }
     </section>
 
-    <form class="min-w-0 border border-[#cbdadd] bg-white" (submit)="$event.preventDefault(); save()">
+    <form class="min-w-0 border border-[#cbdadd] bg-white" [class.hidden]="activeTab() !== 'form'" (submit)="$event.preventDefault(); save()">
       <header class="border-b border-[#dce6e8] bg-[#f8fafb] px-4 py-3">
         <h2 class="text-sm font-bold text-[#0a303b]">{{ formTitle() }}</h2>
         <p class="mt-0.5 text-xs text-slate-500">Nội dung được điền sẵn khi bác sĩ chọn mẫu.</p>

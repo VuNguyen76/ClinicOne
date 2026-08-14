@@ -31,6 +31,7 @@ describe('MedicalRecordTemplateManagement', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('[data-testid="staff-workspace-shell"]')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('[workspace-tabs]')?.textContent).toContain('Thiết lập mẫu');
     expect(fixture.nativeElement.querySelector('[data-testid="template-row-0"]')?.textContent)
       .toContain('Khám nội tổng quát');
     expect((fixture.nativeElement.querySelector('[data-testid="template-specialty"]') as HTMLSelectElement).options.length)

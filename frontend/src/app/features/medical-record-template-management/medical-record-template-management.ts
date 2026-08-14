@@ -46,6 +46,7 @@ export class MedicalRecordTemplateManagement implements OnInit {
   protected readonly saving = signal(false);
   protected readonly error = signal('');
   protected readonly notice = signal('');
+  protected readonly activeTab = signal<'list' | 'form'>('list');
 
   protected readonly filteredServices = computed(() => this.services()
     .filter((service) => !this.specialty() || service.specialty === this.specialty()));
@@ -84,6 +85,7 @@ export class MedicalRecordTemplateManagement implements OnInit {
         this.notice.set(this.editingId() ? 'Đã cập nhật mẫu phiếu.' : 'Đã thêm mẫu phiếu.');
         this.saving.set(false);
         this.resetForm();
+        this.activeTab.set('list');
         this.loadTemplates();
       },
       error: (response) => {
@@ -109,11 +111,19 @@ export class MedicalRecordTemplateManagement implements OnInit {
     this.followUpDays.set(content.followUpDays ?? null);
     this.followUpNote.set(content.followUpNote ?? '');
     this.clearMessages();
+    this.activeTab.set('form');
   }
 
   protected cancelEdit(): void {
     this.resetForm();
     this.clearMessages();
+    this.activeTab.set('list');
+  }
+
+  protected startCreate(): void {
+    this.resetForm();
+    this.clearMessages();
+    this.activeTab.set('form');
   }
 
   protected selectSpecialty(value: string): void {

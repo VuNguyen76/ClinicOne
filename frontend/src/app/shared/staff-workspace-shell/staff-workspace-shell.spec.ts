@@ -9,6 +9,7 @@ import { StaffWorkspaceShell } from './staff-workspace-shell';
   template: `
     <app-staff-workspace-shell moduleTitle="Khám bệnh" pageTitle="Hàng đợi khám bệnh">
       <button workspace-actions type="button">Làm mới</button>
+      <nav workspace-tabs data-testid="workspace-tabs"><button type="button">Danh sách</button><button type="button">Thiết lập</button></nav>
       <p data-testid="projected-content">Nội dung nghiệp vụ</p>
     </app-staff-workspace-shell>
   `,
@@ -44,5 +45,6 @@ describe('StaffWorkspaceShell', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="staff-window-actions"]')?.textContent)
       .toContain('Làm mới');
     expect(fixture.nativeElement.querySelector('[data-testid="projected-content"]')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('[data-testid="workspace-tabs"]')?.textContent).toContain('Thiết lập');
   });
 });
