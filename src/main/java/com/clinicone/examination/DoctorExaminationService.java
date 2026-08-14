@@ -607,7 +607,7 @@ public class DoctorExaminationService {
         String patientPhone = patient == null && profile == null ? null
                 : patient == null ? profile.getPhone() : patient.getPhone();
         return new DoctorExaminationResponse(ticket.getId(), appointment.getId(), session.getId(), ticket.getQueueNumber(),
-                ticket.getRoom().getName(), appointment.getAppointmentCode(), appointment.getSpecialty(),
+                ticket.getRoom().getName(), appointment.getAppointmentCode(), appointment.getSpecialty(), appointment.getServiceId(),
                 recordDoctorName == null ? ticket.getEffectiveDoctorName() : recordDoctorName,
                 appointment.getAppointmentDate(), appointment.getStartTime(), patientName,
                 patientDateOfBirth, patientGender, patientPhone, record == null ? null : record.getReason(),

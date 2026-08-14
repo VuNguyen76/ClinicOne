@@ -14,6 +14,7 @@ public record DoctorExaminationResponse(
         String roomName,
         String appointmentCode,
         String specialty,
+        UUID clinicServiceId,
         String doctorName,
         LocalDate appointmentDate,
         LocalTime startTime,
@@ -45,7 +46,8 @@ public record DoctorExaminationResponse(
                                      String reason, String examinationNotes, String diagnosis, String conclusion,
                                      String treatmentPlan, String prescription, LocalDate followUpDate,
                                      String status, Instant signedAt) {
-        this(ticketId, appointmentId, examinationId, queueNumber, roomName, appointmentCode, specialty, doctorName,
+        this(ticketId, appointmentId, examinationId, queueNumber, roomName, appointmentCode, specialty, null,
+                doctorName,
                 appointmentDate, startTime, patientName, patientDateOfBirth, patientGender, patientPhone, reason,
                 examinationNotes, diagnosis, conclusion, treatmentPlan, prescription, followUpDate, null, null,
                 status, signedAt, null, null, true, List.of(), List.of());

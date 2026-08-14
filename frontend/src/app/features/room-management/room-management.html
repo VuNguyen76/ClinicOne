@@ -1,38 +1,19 @@
-<main class="min-h-screen bg-[#f4f7f8] text-[#173f4b] lg:flex">
-  <aside class="hidden w-[268px] shrink-0 flex-col border-r border-[#123e49] bg-[#082b35] text-white lg:flex">
-    <div class="flex h-[72px] items-center border-b border-white/10 px-6">
-      <a routerLink="/admin/rooms" class="flex items-center gap-3" aria-label="ClinicOne, quản lý phòng khám">
-        <img class="h-9 w-9 object-contain brightness-0 invert" src="clinicone-mark.png" alt="" aria-hidden="true" />
-        <span class="text-[20px] font-bold tracking-[-0.05em]">Clinic<span class="text-[#55c8ec]">One</span></span>
-      </a>
-    </div>
-    <nav class="mt-8 flex-1 px-3" aria-label="Điều hướng vận hành">
-      <a routerLink="/admin/rooms" aria-current="page" class="mb-1 flex items-center gap-3 rounded-lg border-l-2 border-[#55c8ec] bg-white/10 px-3 py-3 text-sm font-semibold text-white"><mat-icon class="!h-5 !w-5 !text-[19px] text-[#55c8ec]">meeting_room</mat-icon>Phòng khám</a>
-    </nav>
-    <div class="border-t border-white/10 px-6 py-5"><p class="text-xs text-white/45">ClinicOne</p><p class="mt-1 text-xs text-white/70">Cấu hình hệ thống</p></div>
-  </aside>
+<app-staff-workspace-shell moduleTitle="Vận hành" pageTitle="Phòng khám">
+  @if (canManageRooms()) {
+    <button workspace-actions data-testid="open-room-form" type="button"
+      class="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-md bg-[#086b8b] px-3 text-sm font-semibold text-white hover:bg-[#075a75]"
+      (click)="openCreate()"><mat-icon class="!h-4 !w-4 !text-[17px]">add</mat-icon>Thêm phòng</button>
+  }
 
-  <div class="min-w-0 flex-1">
-    <header class="sticky top-0 z-30 flex h-[80px] items-center justify-between border-b border-[#dce7ea] bg-white/95 px-5 backdrop-blur lg:px-8">
-      <div class="flex items-center gap-3"><button type="button" class="grid h-9 w-9 place-items-center rounded-lg text-slate-500 hover:bg-[#eef7f9] lg:hidden" aria-label="Mở điều hướng"><mat-icon>menu</mat-icon></button><div class="hidden items-center gap-2 text-sm sm:flex"><span class="font-semibold text-[#173f4b]">Vận hành</span><mat-icon class="!h-4 !w-4 !text-[16px] text-slate-400">chevron_right</mat-icon><span class="text-slate-500">Quản lý phòng khám</span></div><span class="text-sm font-semibold text-[#173f4b] sm:hidden">Quản lý phòng khám</span></div>
-      <app-account-menu />
-    </header>
+      @if (error()) {<p class="mb-4 flex items-center gap-2 border-l-4 border-red-500 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert"><mat-icon class="!h-5 !w-5 !text-[19px]">error_outline</mat-icon>{{ error() }}</p>}
 
-    <div class="mx-auto max-w-[1440px] px-5 py-8 lg:px-10 lg:py-10">
-      <div class="flex flex-col justify-between gap-4 border-b border-[#dce7ea] pb-6 sm:flex-row sm:items-end">
-        <div><p class="text-[11px] font-bold uppercase tracking-[0.18em] text-[#0b91c9]">Vận hành / Cấu hình</p><h1 class="mt-2 text-3xl font-bold tracking-[-0.05em] text-[#0a303b] sm:text-[34px]">Quản lý phòng khám</h1><p class="mt-2 text-sm text-slate-500">Tạo phòng và quản lý trạng thái phục vụ.</p></div>
-        @if (canManageRooms()) {<button data-testid="open-room-form" type="button" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#0b3846] px-5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#082d39]" (click)="openCreate()"><mat-icon class="!h-5 !w-5 !text-[19px]">add</mat-icon>Phòng mới</button>}
-      </div>
-
-      @if (error()) {<p class="mt-5 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert"><mat-icon class="!h-5 !w-5 !text-[19px]">error_outline</mat-icon>{{ error() }}</p>}
-
-      <section class="mt-7 grid gap-3 sm:grid-cols-3" aria-label="Tóm tắt phòng khám">
-        <div class="min-w-[170px] flex-1 px-5 py-4"><p class="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">Tổng phòng</p><p class="mt-1 text-2xl font-bold tracking-[-0.04em] text-[#173f4b]">{{ rooms().length }}</p></div>
-        <div class="min-w-[170px] flex-1 px-5 py-4"><p class="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">Đang hoạt động</p><p class="mt-1 text-2xl font-bold tracking-[-0.04em] text-emerald-700">{{ activeCount() }}</p></div>
-        <div class="min-w-[170px] flex-1 px-5 py-4"><p class="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">Tạm dừng</p><p class="mt-1 text-2xl font-bold tracking-[-0.04em] text-slate-600">{{ inactiveCount() }}</p></div>
+      <section class="grid gap-px overflow-hidden border border-[#cbdadd] bg-[#cbdadd] sm:grid-cols-3" aria-label="Tóm tắt phòng khám">
+        <div class="min-w-[170px] flex-1 bg-white px-5 py-4"><p class="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">Tổng phòng</p><p class="mt-1 text-2xl font-bold tracking-[-0.04em] text-[#173f4b]">{{ rooms().length }}</p></div>
+        <div class="min-w-[170px] flex-1 bg-white px-5 py-4"><p class="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">Đang hoạt động</p><p class="mt-1 text-2xl font-bold tracking-[-0.04em] text-emerald-700">{{ activeCount() }}</p></div>
+        <div class="min-w-[170px] flex-1 bg-white px-5 py-4"><p class="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">Tạm dừng</p><p class="mt-1 text-2xl font-bold tracking-[-0.04em] text-slate-600">{{ inactiveCount() }}</p></div>
       </section>
 
-      <section class="mt-7 min-w-0 overflow-hidden rounded-2xl border border-[#dce7ea] bg-white shadow-[0_8px_30px_rgba(15,59,70,0.06)]">
+      <section class="mt-4 min-w-0 overflow-hidden border border-[#cbdadd] bg-white">
         <div class="flex flex-col gap-4 border-b border-[#e7eff1] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div class="flex items-center gap-3"><h2 class="text-sm font-bold text-[#173f4b]">Danh sách phòng</h2><span class="rounded bg-[#eef7f9] px-2 py-1 text-[11px] font-bold text-[#0b84bd]">{{ visibleRooms().length }} bản ghi</span></div>
           <div class="flex flex-col gap-2 sm:flex-row"><label class="relative block sm:w-56"><span class="sr-only">Tìm phòng</span><mat-icon class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 !h-5 !w-5 !text-[18px] text-slate-400">search</mat-icon><input class="min-h-10 w-full rounded-md border border-[#d5e3e7] bg-[#fbfdfe] pl-9 pr-3 text-sm outline-none transition focus:border-[#0ea5e9] focus:ring-4 focus:ring-[#0ea5e9]/10" placeholder="Tìm phòng..." (input)="updateSearch($event)" /></label><label class="block sm:w-36"><span class="sr-only">Lọc trạng thái</span><select class="min-h-10 w-full rounded-md border border-[#d5e3e7] bg-[#fbfdfe] px-3 text-sm text-[#315663] outline-none transition focus:border-[#0ea5e9] focus:ring-4 focus:ring-[#0ea5e9]/10" [value]="statusFilter()" (change)="updateStatus($event)"><option value="ALL">Tất cả</option><option value="ACTIVE">Đang hoạt động</option><option value="INACTIVE">Tạm dừng</option></select></label></div>
@@ -48,8 +29,7 @@
           <div class="overflow-x-auto"><table class="w-full min-w-[720px] text-left text-sm"><thead class="border-b border-[#dce7ea] bg-[#f8fafb] text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500"><tr><th class="px-5 py-3">Mã</th><th class="px-4 py-3">Phòng khám</th><th class="px-4 py-3">Chuyên khoa</th><th class="px-4 py-3">Trạng thái</th><th class="px-5 py-3 text-right">Thao tác</th></tr></thead><tbody class="divide-y divide-[#edf2f3]">@for (room of visibleRooms(); track room.id) {<tr data-testid="room-row" class="transition hover:bg-[#f8fbfc]"><td class="whitespace-nowrap px-5 py-4"><span class="font-mono text-xs font-bold text-[#0b84bd]">{{ room.code }}</span></td><td class="px-4 py-4 font-semibold text-[#173f4b]">{{ room.name }}</td><td class="px-4 py-4 text-slate-600">{{ room.specialty }}</td><td class="px-4 py-4"><span data-testid="room-status" class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold" [class.bg-emerald-50]="room.active" [class.text-emerald-700]="room.active" [class.bg-slate-100]="!room.active" [class.text-slate-600]="!room.active"><span class="h-1.5 w-1.5 rounded-full" [class.bg-emerald-500]="room.active" [class.bg-slate-400]="!room.active"></span>{{ room.active ? 'Đang hoạt động' : 'Tạm dừng' }}</span></td><td class="px-5 py-4 text-right"><div class="inline-flex items-center gap-1"><button type="button" class="grid h-8 w-8 place-items-center rounded-md text-[#0879a8] transition hover:bg-[#e8f7fb]" title="Xem mã QR" aria-label="Xem mã QR phòng {{ room.name }}" [disabled]="!room.active" (click)="openQr(room)"><mat-icon class="!text-[18px]">qr_code_2</mat-icon></button><button type="button" class="grid h-8 w-8 place-items-center rounded-md text-slate-500 transition hover:bg-[#e8f7fb] hover:text-[#0b84bd]" title="Sửa phòng" aria-label="Sửa phòng {{ room.name }}" (click)="edit(room)"><mat-icon class="!text-[18px]">edit</mat-icon></button><button type="button" class="grid h-8 w-8 place-items-center rounded-md text-slate-500 transition hover:bg-slate-100 hover:text-[#173f4b]" [title]="room.active ? 'Tạm dừng phòng' : 'Kích hoạt phòng'" [attr.aria-label]="room.active ? 'Tạm dừng phòng ' + room.name : 'Kích hoạt phòng ' + room.name" (click)="toggleActive(room)"><mat-icon class="!text-[18px]">{{ room.active ? 'pause' : 'play_arrow' }}</mat-icon></button></div></td></tr>}</tbody></table></div>
         }
       </section>
-    </div>
-  </div>
+  </app-staff-workspace-shell>
 
   @if (formOpen()) {
     <div class="fixed inset-0 z-[60] flex items-center justify-center bg-[#071f29]/55 p-4 backdrop-blur-[2px]" role="presentation" (click)="closeForm()">
@@ -72,4 +52,3 @@
       </section>
     </div>
   }
-</main>

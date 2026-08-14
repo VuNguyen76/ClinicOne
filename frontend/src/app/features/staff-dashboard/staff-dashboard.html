@@ -1,29 +1,8 @@
-<main class="min-h-screen bg-[#f6f8f9] text-[#173f4b]">
-  <header class="sticky top-0 z-30 h-16 border-b border-[#dce7ea] bg-white/95 backdrop-blur">
-    <div class="mx-auto flex h-full max-w-[1440px] items-center justify-between gap-4 px-4 lg:px-8">
-      <a routerLink="/doctor" class="flex items-center gap-2.5" aria-label="ClinicOne">
-        <img class="h-8 w-8 object-contain" src="clinicone-mark.png" alt="" aria-hidden="true" />
-        <span class="text-lg font-bold tracking-[-0.05em] text-[#0a303b]">Clinic<span
-            class="text-[#0ea5e9]">One</span></span>
-        <span class="hidden border-l border-[#dce7ea] pl-3 text-sm font-medium text-slate-500 sm:inline">Bảng điều
-          hành</span>
-      </a>
-      <div class="flex items-center gap-2">
-        <app-account-menu />
-      </div>
-    </div>
-  </header>
-
-  <div class="mx-auto max-w-[1440px] px-4 py-5 lg:px-8 lg:py-7">
-    <section class="flex flex-col justify-between gap-3 border-b border-[#dce7ea] pb-5 sm:flex-row sm:items-end">
-      <div>
-        <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0b91c9]">Không gian bác sĩ · {{ roleLabel() }}</p>
-      </div>
-      <button type="button"
-        class="inline-flex min-h-9 items-center justify-center gap-2 self-start rounded-md border border-[#cfe0e5] bg-white px-3 text-sm font-semibold text-[#173f4b] transition hover:border-[#0ea5e9] hover:text-[#0b84bd] sm:self-auto"
-        (click)="loadQueue()" [disabled]="loadingQueue()"><mat-icon class="!h-4 !w-4 !text-[17px]">refresh</mat-icon>Làm
-        mới</button>
-    </section>
+<app-staff-workspace-shell moduleTitle="Khám bệnh" pageTitle="Hàng đợi khám bệnh">
+  <button workspace-actions type="button"
+    class="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-md border border-[#b8d5de] bg-white px-3 text-sm font-semibold text-[#0b617d] transition hover:bg-[#eef9fc]"
+    (click)="loadQueue()" [disabled]="loadingQueue()"><mat-icon class="!h-4 !w-4 !text-[17px]">refresh</mat-icon>Làm mới</button>
+  <div class="mx-auto max-w-[1220px]">
 
     @if (error()) {<p
       class="mt-4 flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700"
@@ -138,4 +117,4 @@
       </div>}
     </section>
   </div>
-</main>
+</app-staff-workspace-shell>

@@ -11,8 +11,10 @@
     aria-label="Mở menu tài khoản" aria-haspopup="menu" [attr.aria-expanded]="menuOpen()"
     aria-controls="account-menu-panel" (click)="toggleMenu()">
     <mat-icon class="!h-5 !w-5 !text-[20px] text-[#0b91c9]">account_circle</mat-icon>
-    <span class="truncate">{{ fullName() }}</span>
-    <mat-icon class="!h-4 !w-4 !text-[17px] text-slate-400">expand_more</mat-icon>
+    @if (!compact()) {
+      <span class="truncate">{{ fullName() }}</span>
+      <mat-icon class="!h-4 !w-4 !text-[17px] text-slate-400">expand_more</mat-icon>
+    }
   </button>
 
   @if (menuOpen()) {
@@ -28,7 +30,13 @@
       </div>
     </div>
 
-    @if (isStaff()) {
+    @if (isStaff() && compact()) {
+    <div class="px-2 py-2">
+      <button type="button"
+        class="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-rose-50 hover:text-rose-600"
+        role="menuitem" (click)="logout()"><mat-icon class="!text-[20px]">logout</mat-icon>Đăng xuất</button>
+    </div>
+    } @else if (isStaff()) {
     <nav class="py-2" aria-label="Điều hướng vận hành">
         @if (isDoctor()) {<a routerLink="/doctor" [class.bg-[#eafaff]]="isActive('/doctor')"
         [class.text-[#0284c7]]="isActive('/doctor')" [attr.aria-current]="isActive('/doctor') ? 'page' : null"
