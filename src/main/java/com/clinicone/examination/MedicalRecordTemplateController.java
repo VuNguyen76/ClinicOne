@@ -1,5 +1,7 @@
 package com.clinicone.examination;
 
+import lombok.RequiredArgsConstructor;
+
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,13 +21,10 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/medical-record-templates")
 public class MedicalRecordTemplateController {
     private final MedicalRecordTemplateService service;
-
-    public MedicalRecordTemplateController(MedicalRecordTemplateService service) {
-        this.service = service;
-    }
 
     @GetMapping
     @PreAuthorize("hasAnyRole('DOCTOR', 'COORDINATOR', 'ADMIN')")

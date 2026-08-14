@@ -1,5 +1,7 @@
 package com.clinicone.config;
 
+import lombok.RequiredArgsConstructor;
+
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -11,14 +13,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/configuration")
 @PreAuthorize("hasRole('ADMIN')")
 public class ClinicConfigurationController {
     private final ClinicConfigurationService service;
-
-    public ClinicConfigurationController(ClinicConfigurationService service) {
-        this.service = service;
-    }
 
     @GetMapping
     public ResponseEntity<ClinicConfigurationResponse> get() {

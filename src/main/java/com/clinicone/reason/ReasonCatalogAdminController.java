@@ -1,5 +1,7 @@
 package com.clinicone.reason;
 
+import lombok.RequiredArgsConstructor;
+
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,14 +19,11 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/reason-catalog")
 @PreAuthorize("hasRole('ADMIN')")
 public class ReasonCatalogAdminController {
     private final ReasonCatalogService service;
-
-    public ReasonCatalogAdminController(ReasonCatalogService service) {
-        this.service = service;
-    }
 
     @GetMapping
     public List<ReasonCatalogResponse> list(@RequestParam(defaultValue = "APPOINTMENT_CANCELLATION") ReasonCatalogType type,

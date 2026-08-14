@@ -1,5 +1,6 @@
 package com.clinicone.schedule;
 
+import com.clinicone.auth.AuthenticatedIds;
 import com.clinicone.appointment.CreateAppointmentRequest;
 import com.clinicone.auth.AuthException;
 import com.clinicone.auth.PatientAccount;
@@ -66,7 +67,7 @@ public class AppointmentHoldService {
 
     @Transactional
     public AppointmentHoldResponse create(String accountId, CreateAppointmentHoldRequest request, String sessionKey) {
-        UUID patientId = parseAccountId(accountId);
+        UUID patientId = AuthenticatedIds.patient(accountId);
         PatientAccount patient = accountRepository.findById(patientId)
                 .orElseThrow(() -> authRequired());
         validateService(request);
@@ -117,7 +118,7 @@ public class AppointmentHoldService {
 
     @Transactional
     public AppointmentHold requireForBooking(String accountId, UUID holdId, CreateAppointmentRequest request) {
-        UUID patientId = parseAccountId(accountId);
+        UUID patientId = AuthenticatedIds.patient(accountId);
         AppointmentHold hold = holdRepository.findByIdAndPatientId(holdId, patientId)
                 .orElseThrow(() -> holdMissing());
         Instant now = Instant.now(clock);
@@ -202,14 +203,6 @@ public class AppointmentHoldService {
         holdRepository.delete(hold);
         throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_HOLD_EXPIRED",
                 "Thời gian giữ chỗ đã hết. Vui lòng chọn lại khung giờ.");
-    }
-
-    private UUID parseAccountId(String accountId) {
-        try {
-            return UUID.fromString(accountId);
-        } catch (IllegalArgumentException exception) {
-            throw authRequired();
-        }
     }
 
     private AuthException authRequired() {

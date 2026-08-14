@@ -1,10 +1,12 @@
 package com.clinicone.appointment;
 
+import com.clinicone.auth.AuthenticatedIds;
 import com.clinicone.auth.AuthException;
 import com.clinicone.auth.PatientAccount;
 import com.clinicone.auth.PatientAccountRepository;
 import com.clinicone.patientprofile.PatientProfile;
 import com.clinicone.patientprofile.PatientProfileRepository;
+import com.clinicone.validation.IdempotencyKeys;
 import com.clinicone.schedule.AppointmentAvailabilityService;
 import com.clinicone.schedule.AppointmentHold;
 import com.clinicone.schedule.AppointmentHoldService;
@@ -86,7 +88,7 @@ public class AppointmentService {
 
     @Transactional(readOnly = true)
     public List<AppointmentResponse> list(String accountId) {
-        UUID patientId = parseAccountId(accountId);
+        UUID patientId = AuthenticatedIds.patient(accountId);
         return appointmentRepository.findByPatientIdOrderByAppointmentDateAscStartTimeAsc(patientId).stream()
                 .map(AppointmentResponse::from)
                 .toList();
@@ -94,7 +96,7 @@ public class AppointmentService {
 
     @Transactional(readOnly = true)
     public AppointmentResponse get(String accountId, String appointmentId) {
-        UUID patientId = parseAccountId(accountId);
+        UUID patientId = AuthenticatedIds.patient(accountId);
         UUID id = parseAppointmentId(appointmentId);
         return AppointmentResponse.from(findOwned(id, patientId));
     }
@@ -121,8 +123,8 @@ public class AppointmentService {
 
     private AppointmentResponse createInternal(String accountId, CreateAppointmentRequest request, String requestKey,
                                                boolean allowOverCapacity) {
-        UUID patientId = parseAccountId(accountId);
-        String normalizedRequestKey = normalizeRequestKey(requestKey);
+        UUID patientId = AuthenticatedIds.patient(accountId);
+        String normalizedRequestKey = IdempotencyKeys.optional(requestKey);
         if (normalizedRequestKey != null) {
             var existing = appointmentRepository.findByPatientIdAndCreationRequestKey(patientId, normalizedRequestKey);
             if (existing.isPresent()) {
@@ -248,7 +250,7 @@ public class AppointmentService {
             throw new AuthException(HttpStatus.CONFLICT, "TEMPORARY_PROFILE_MISMATCH",
                     "Hồ sơ tạm không khớp với lịch đang tạo.");
         }
-        String normalizedRequestKey = normalizeRequestKey(requestKey);
+        String normalizedRequestKey = IdempotencyKeys.optional(requestKey);
         if (normalizedRequestKey != null && temporaryProfile.getId() != null) {
             var existing = appointmentRepository.findByPatientProfileIdAndCreationRequestKey(
                     temporaryProfile.getId(), normalizedRequestKey);
@@ -359,8 +361,8 @@ public class AppointmentService {
     @Transactional
     public void cancel(String accountId, String appointmentId, CancelAppointmentRequest request,
                        String requestKey) {
-        Appointment appointment = findOwned(parseAppointmentId(appointmentId), parseAccountId(accountId));
-        String normalizedRequestKey = normalizeRequestKey(requestKey);
+        Appointment appointment = findOwned(parseAppointmentId(appointmentId), AuthenticatedIds.patient(accountId));
+        String normalizedRequestKey = IdempotencyKeys.optional(requestKey);
         if (appointment.getStatus() == AppointmentStatus.CANCELLED
                 && normalizedRequestKey != null
                 && normalizedRequestKey.equals(appointment.getCancellationRequestKey())) {
@@ -385,7 +387,7 @@ public class AppointmentService {
 
     @Transactional
     public AppointmentResponse reschedule(String accountId, String appointmentId, RescheduleAppointmentRequest request) {
-        UUID patientId = parseAccountId(accountId);
+        UUID patientId = AuthenticatedIds.patient(accountId);
         Appointment appointment = findOwned(parseAppointmentId(appointmentId), patientId);
         ensureBookable(appointment);
         if (rescheduleCaseRepository != null
@@ -549,14 +551,6 @@ public class AppointmentService {
                 "Không thể tạo mã lịch hẹn duy nhất lúc này. Vui lòng thử lại.");
     }
 
-    private UUID parseAccountId(String accountId) {
-        try {
-            return UUID.fromString(accountId);
-        } catch (IllegalArgumentException exception) {
-            throw authenticationRequired();
-        }
-    }
-
     private UUID parseAppointmentId(String appointmentId) {
         try {
             return UUID.fromString(appointmentId);
@@ -584,18 +578,6 @@ public class AppointmentService {
     private AuthException authenticationRequired() {
         return new AuthException(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_REQUIRED",
                 "Phiên đăng nhập không hợp lệ.");
-    }
-
-    private String normalizeRequestKey(String requestKey) {
-        if (requestKey == null || requestKey.isBlank()) {
-            return null;
-        }
-        String normalized = requestKey.trim();
-        if (normalized.length() > 80) {
-            throw new AuthException(HttpStatus.BAD_REQUEST, "IDEMPOTENCY_KEY_INVALID",
-                    "Khóa chống trùng không được dài quá 80 ký tự.");
-        }
-        return normalized;
     }
 
     private boolean hasActiveAppointment(UUID patientId, LocalDate appointmentDate, LocalTime startTime) {

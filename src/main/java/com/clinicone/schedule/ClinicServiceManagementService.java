@@ -1,5 +1,7 @@
 package com.clinicone.schedule;
 
+import lombok.RequiredArgsConstructor;
+
 import com.clinicone.auth.AuthException;
 import com.clinicone.doctor.DoctorProfile;
 import com.clinicone.doctor.DoctorProfileRepository;
@@ -14,18 +16,11 @@ import java.util.UUID;
 import java.util.Comparator;
 
 @Service
+@RequiredArgsConstructor
 public class ClinicServiceManagementService {
     private final ClinicServiceRepository repository;
     private final DoctorProfileRepository doctorProfileRepository;
     private final SpecialtyCatalogService specialtyCatalog;
-
-    public ClinicServiceManagementService(ClinicServiceRepository repository,
-                                           DoctorProfileRepository doctorProfileRepository,
-                                           SpecialtyCatalogService specialtyCatalog) {
-        this.repository = repository;
-        this.doctorProfileRepository = doctorProfileRepository;
-        this.specialtyCatalog = specialtyCatalog;
-    }
 
     @Transactional(readOnly = true)
     public List<ClinicServiceResponse> list() {

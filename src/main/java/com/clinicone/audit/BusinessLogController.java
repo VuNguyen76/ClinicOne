@@ -1,5 +1,7 @@
 package com.clinicone.audit;
 
+import lombok.RequiredArgsConstructor;
+
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -12,16 +14,12 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/audit")
 @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
 public class BusinessLogController {
     private final BusinessLogService service;
     private final BusinessLogIntegrityJob integrityJob;
-
-    public BusinessLogController(BusinessLogService service, BusinessLogIntegrityJob integrityJob) {
-        this.service = service;
-        this.integrityJob = integrityJob;
-    }
 
     @GetMapping("/appointments/{appointmentId}")
     public List<BusinessLogResponse> appointmentHistory(@PathVariable UUID appointmentId) {

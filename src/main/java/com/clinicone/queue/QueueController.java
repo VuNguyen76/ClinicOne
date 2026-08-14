@@ -1,5 +1,8 @@
 package com.clinicone.queue;
 
+import lombok.RequiredArgsConstructor;
+
+import com.clinicone.validation.IdempotencyKey;
 import jakarta.validation.Valid;
 import com.clinicone.auth.AuthException;
 import com.clinicone.auth.StaffRole;
@@ -24,19 +27,17 @@ import java.util.UUID;
 import java.util.Objects;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1")
 public class QueueController {
     private final QueueService queueService;
-
-    public QueueController(QueueService queueService) {
-        this.queueService = queueService;
-    }
 
     @PostMapping("/rooms/{roomCode}/queue/check-in")
     @PreAuthorize("hasRole('PATIENT')")
     public ResponseEntity<QueueTicketResponse> checkIn(Authentication authentication,
                                                         @PathVariable String roomCode,
                                                         @Valid @RequestBody QueueCheckInRequest request,
+                                                        @IdempotencyKey
                                                         @RequestHeader(value = "Idempotency-Key", required = false) String requestKey) {
         return ResponseEntity.ok(requestKey == null || requestKey.isBlank()
                 ? queueService.checkIn(authentication.getName(), roomCode, request.appointmentId())

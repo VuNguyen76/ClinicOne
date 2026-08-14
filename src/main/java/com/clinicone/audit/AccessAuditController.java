@@ -1,5 +1,7 @@
 package com.clinicone.audit;
 
+import lombok.RequiredArgsConstructor;
+
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -10,14 +12,11 @@ import java.time.Instant;
 import java.util.List;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/access-audit")
 @PreAuthorize("hasRole('ADMIN')")
 public class AccessAuditController {
     private final AccessAuditService service;
-
-    public AccessAuditController(AccessAuditService service) {
-        this.service = service;
-    }
 
     @GetMapping
     public List<AccessAuditResponse> list(@RequestParam(required = false) Instant from,
