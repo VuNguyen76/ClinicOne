@@ -75,6 +75,23 @@ describe('ReceptionCheckIn', () => {
     expect(fixture.nativeElement.textContent).toContain('Rời trước khám');
   });
 
+  it('records a facility outage for an existing queue ticket', () => {
+    const component = fixture.componentInstance as any;
+    const checkedIn = { ...appointment(), status: 'CHECKED_IN', queueNumber: 5,
+      queueStatus: 'WAITING', queueStatusLabel: 'Đang chờ', queueTicketId: 'ticket-1' };
+    component.appointments.set([checkedIn]);
+    component.exceptionReason.set('Phòng tạm dừng do thiết bị hỏng');
+
+    component.markFacilityUnavailable(checkedIn);
+
+    const request = http.expectOne('/api/v1/reception/appointments/a-1/facility-unavailable');
+    expect(request.request.body).toEqual({ reason: 'Phòng tạm dừng do thiết bị hỏng' });
+    request.flush({ ...checkedIn, status: 'NOT_PERFORMED', queueStatus: 'COMPLETED', queueStatusLabel: 'Đã hoàn tất' });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('cơ sở tạm dừng phục vụ');
+  });
+
   it('adjusts a waiting queue ticket without editing its appointment status', () => {
     const component = fixture.componentInstance as any;
     component.query.set('CL-20260807-1234');
