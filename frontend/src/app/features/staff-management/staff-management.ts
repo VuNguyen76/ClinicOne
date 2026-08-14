@@ -9,11 +9,12 @@ import {
   apiErrorMessage,
 } from '../../core/auth/auth-api.service';
 import { AccountMenu } from '../../shared/account-menu/account-menu';
+import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
 
 @Component({
   selector: 'app-staff-management',
   standalone: true,
-  imports: [FormsModule, RouterLink, MatIconModule, AccountMenu],
+  imports: [FormsModule, RouterLink, MatIconModule, AccountMenu, StaffWorkspaceShell],
   templateUrl: './staff-management.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

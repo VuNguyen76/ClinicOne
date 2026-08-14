@@ -12,13 +12,14 @@ import {
   SpecialtyOption,
   apiErrorMessage,
 } from '../../core/auth/auth-api.service';
+import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
 import { AccountMenu } from '../../shared/account-menu/account-menu';
 import { hasStaffRole } from '../../core/auth/auth.guard';
 
 @Component({
   selector: 'app-service-management',
   standalone: true,
-  imports: [FormsModule, RouterLink, MatIconModule, AccountMenu],
+  imports: [FormsModule, RouterLink, MatIconModule, AccountMenu, StaffWorkspaceShell],
   templateUrl: './service-management.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

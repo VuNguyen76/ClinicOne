@@ -3,11 +3,12 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { AuthApiService, SpecialtyOption, apiErrorMessage } from '../../core/auth/auth-api.service';
+import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
 
 @Component({
   selector: 'app-specialty-catalog-management',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule],
+  imports: [CommonModule, FormsModule, MatIconModule, StaffWorkspaceShell],
   templateUrl: './specialty-catalog-management.html',
 })
 export class SpecialtyCatalogManagement implements OnInit {

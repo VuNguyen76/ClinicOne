@@ -15,11 +15,12 @@ import {
   apiErrorMessage,
 } from '../../core/auth/auth-api.service';
 import { AccountMenu } from '../../shared/account-menu/account-menu';
+import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
 
 @Component({
   selector: 'app-doctor-management',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, MatIconModule, AccountMenu],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, MatIconModule, AccountMenu, StaffWorkspaceShell],
   templateUrl: './doctor-management.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

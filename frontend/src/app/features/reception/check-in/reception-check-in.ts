@@ -4,6 +4,7 @@ import { RouterLink, Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { ApiErrorResponse, AppointmentSlotResponse, AuthApiService, ReceptionAppointmentResponse, ReceptionDoctorOption, ReceptionPatientProfile, SpecialtyOption, apiErrorMessage } from '../../../core/auth/auth-api.service';
 import { AccountMenu } from '../../../shared/account-menu/account-menu';
+import { StaffWorkspaceShell } from '../../../shared/staff-workspace-shell/staff-workspace-shell';
 import { clinicTodayIso } from '../../../core/time/clinic-time';
 import { hasStaffRole } from '../../../core/auth/auth.guard';
 import { VietnamAddressService, VietnamAddressUnit } from '../../../core/address/vietnam-address.service';
@@ -13,7 +14,7 @@ import { interval } from 'rxjs';
 @Component({
   selector: 'app-reception-check-in',
   standalone: true,
-  imports: [FormsModule, RouterLink, MatIconModule, AccountMenu],
+  imports: [FormsModule, RouterLink, MatIconModule, AccountMenu, StaffWorkspaceShell],
   templateUrl: './reception-check-in.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
