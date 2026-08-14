@@ -14,11 +14,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.UUID;
 import java.util.Set;
 
 @Service
 public class ReceptionPatientService {
+    private static final String TEMPORARY_PASSWORD = "123456";
     private static final Set<String> ALLOWED_GENDERS = Set.of("Nam", "Nữ", "Khác");
 
     private final PatientAccountRepository accountRepository;
@@ -55,8 +55,7 @@ public class ReceptionPatientService {
         validateGender(request.gender());
         otpService.verifySmsOtp(phone, OtpPurpose.REGISTRATION, request.otpCode());
 
-        String unusablePassword = UUID.randomUUID().toString();
-        PatientAccount account = new PatientAccount(phone, passwordEncoder.encode(unusablePassword),
+        PatientAccount account = new PatientAccount(phone, passwordEncoder.encode(TEMPORARY_PASSWORD),
                 request.fullName().trim(), AccountStatus.ACTIVE, true);
         account.updateProfile(request.fullName().trim(), request.dateOfBirth(), request.gender().trim(),
                 normalize(request.address()));

@@ -316,12 +316,27 @@ public class ReceptionService {
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "DOCTOR_ASSIGNMENT_NOT_FOUND",
                         "Không tìm thấy bác sĩ đang được phân công."));
 
+        if (Boolean.TRUE.equals(request.overCapacity())) {
+            validateOverCapacityReason(request.exceptionReason());
+            long existingOverCapacity = appointmentRepository
+                    .countByDoctorStaffIdAndAppointmentDateAndOverCapacityTrueAndStatusNot(
+                            request.doctorId(), appointmentDate, AppointmentStatus.CANCELLED);
+            if (existingOverCapacity >= 3) {
+                throw new AuthException(HttpStatus.CONFLICT, "WALK_IN_OVER_CAPACITY_LIMIT",
+                        "Bác sĩ đã đủ 3 lượt tiếp nhận ngoài công suất trong ngày.");
+            }
+        }
+
         CreateAppointmentRequest appointmentRequest = new CreateAppointmentRequest(
                 doctor.getSpecialty(), doctor.getStaffAccount().getFullName(), appointmentDate,
                 request.startTime(), request.reason(), request.profileId(), request.doctorId());
         AppointmentResponse created = patient == null
-                ? appointmentService.createTemporary(temporaryProfile, appointmentRequest)
-                : appointmentService.create(patient.getId().toString(), appointmentRequest);
+                ? (Boolean.TRUE.equals(request.overCapacity())
+                ? appointmentService.createTemporaryReception(temporaryProfile, appointmentRequest)
+                : appointmentService.createTemporary(temporaryProfile, appointmentRequest))
+                : (Boolean.TRUE.equals(request.overCapacity())
+                ? appointmentService.createReception(patient.getId().toString(), appointmentRequest)
+                : appointmentService.create(patient.getId().toString(), appointmentRequest));
         QueueTicketResponse ticket = actor == null
                 ? queueService.checkInByStaff(doctor.getRoom().getCode(), created.id(), request.exceptionReason())
                 : queueService.checkInByStaff(doctor.getRoom().getCode(), created.id(), request.exceptionReason(), actor);
@@ -352,6 +367,13 @@ public class ReceptionService {
                     "Nhập mã lịch hẹn hoặc số điện thoại hợp lệ.");
         }
         return normalized;
+    }
+
+    private void validateOverCapacityReason(String reason) {
+        if (reason == null || reason.trim().length() < 10 || reason.trim().length() > 500) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "OVER_CAPACITY_REASON_INVALID",
+                    "Lý do nhận ngoài công suất phải từ 10 đến 500 ký tự.");
+        }
     }
 
     private String normalizePhone(String phone) {

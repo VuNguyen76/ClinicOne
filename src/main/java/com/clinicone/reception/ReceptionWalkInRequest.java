@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import com.fasterxml.jackson.annotation.JsonCreator;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -23,6 +24,15 @@ public record ReceptionWalkInRequest(
         @NotNull @FutureOrPresent LocalDate appointmentDate,
         @NotNull LocalTime startTime,
         @NotBlank @Size(min = 3, max = 500) String reason,
-        @NotBlank @Size(min = 3, max = 500) String exceptionReason
+        @NotBlank @Size(min = 3, max = 500) String exceptionReason,
+        Boolean overCapacity
 ) {
+    @JsonCreator
+    public ReceptionWalkInRequest {
+    }
+
+    public ReceptionWalkInRequest(String phone, UUID profileId, UUID doctorId, LocalDate appointmentDate,
+                                  LocalTime startTime, String reason, String exceptionReason) {
+        this(phone, profileId, doctorId, appointmentDate, startTime, reason, exceptionReason, false);
+    }
 }
