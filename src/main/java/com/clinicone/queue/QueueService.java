@@ -141,6 +141,12 @@ public class QueueService {
     @Transactional
     public QueueTicketResponse checkInByStaff(String roomCode, UUID appointmentId, String exceptionReason,
                                               String actor) {
+        return checkInByStaff(roomCode, appointmentId, exceptionReason, actor, null);
+    }
+
+    @Transactional
+    public QueueTicketResponse checkInByStaff(String roomCode, UUID appointmentId, String exceptionReason,
+                                              String actor, String requestKey) {
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "APPOINTMENT_NOT_FOUND",
                         "Không tìm thấy lịch hẹn."));
@@ -148,7 +154,8 @@ public class QueueService {
         // Staff check-in is deliberately subject to the same guard as patient QR check-in.
         ensureQrCheckInNotLate(appointment);
         String normalizedActor = actor == null || actor.isBlank() ? "STAFF" : actor.trim();
-        return checkInAppointment(roomCode, appointment, normalizeExceptionReason(exceptionReason), normalizedActor);
+        return checkInAppointment(roomCode, appointment, normalizeExceptionReason(exceptionReason), normalizedActor,
+                requestKey);
     }
 
     private QueueTicketResponse checkInAppointment(String roomCode, Appointment appointment) {
