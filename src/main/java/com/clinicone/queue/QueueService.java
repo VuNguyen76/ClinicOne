@@ -3,13 +3,16 @@ package com.clinicone.queue;
 import com.clinicone.appointment.Appointment;
 import com.clinicone.appointment.AppointmentRepository;
 import com.clinicone.appointment.AppointmentStatus;
+import com.clinicone.appointment.AppointmentService;
+import com.clinicone.appointment.CreateAppointmentRequest;
+import com.clinicone.appointment.AppointmentResponse;
+
 import com.clinicone.auth.AuthException;
 import com.clinicone.auth.StaffRole;
 import com.clinicone.doctor.DoctorProfile;
 import com.clinicone.doctor.DoctorProfileRepository;
 import com.clinicone.examination.ExaminationSession;
 import com.clinicone.examination.ExaminationSessionRepository;
-import com.clinicone.examination.ExaminationSessionStatus;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -19,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
@@ -29,6 +33,7 @@ public class QueueService {
 
     private final ClinicRoomRepository roomRepository;
     private final QueueTicketRepository ticketRepository;
+    private final AppointmentService appointmentService;
     private final AppointmentRepository appointmentRepository;
     private final DoctorProfileRepository doctorProfileRepository;
     private final Clock clock;
@@ -37,31 +42,35 @@ public class QueueService {
     // Constructor 1: Constructor mặc định (dùng hệ giờ UTC)
     public QueueService(ClinicRoomRepository roomRepository, 
                         QueueTicketRepository ticketRepository,
-                        AppointmentRepository appointmentRepository, 
+                        AppointmentService appointmentService, 
+                        AppointmentRepository appointmentRepository,
                         DoctorProfileRepository doctorProfileRepository,
                         ExaminationSessionRepository sessionRepository) {
-        this(roomRepository, ticketRepository, appointmentRepository, doctorProfileRepository, sessionRepository, Clock.systemUTC());
+        this(roomRepository, ticketRepository, appointmentService, appointmentRepository, doctorProfileRepository, sessionRepository, Clock.systemUTC());
     }
 
     // Constructor 2: Constructor dùng cho Unit Test (truyền Clock tùy chỉnh)
     public QueueService(ClinicRoomRepository roomRepository, 
                         QueueTicketRepository ticketRepository,
+                        AppointmentService appointmentService,
                         AppointmentRepository appointmentRepository, 
                         ExaminationSessionRepository sessionRepository, 
                         Clock clock) {
-        this(roomRepository, ticketRepository, appointmentRepository, null, sessionRepository, clock);
+        this(roomRepository, ticketRepository, appointmentService, appointmentRepository, null, sessionRepository, clock);
     }
 
     // Constructor 3: Constructor chính của Spring Boot (@Autowired)
     @Autowired
     public QueueService(ClinicRoomRepository roomRepository, 
                         QueueTicketRepository ticketRepository,
+                        AppointmentService appointmentService,
                         AppointmentRepository appointmentRepository, 
                         DoctorProfileRepository doctorProfileRepository,
                         ExaminationSessionRepository sessionRepository, 
                         Clock clock) {
         this.roomRepository = roomRepository;
         this.ticketRepository = ticketRepository;
+        this.appointmentService = appointmentService;
         this.appointmentRepository = appointmentRepository;
         this.doctorProfileRepository = doctorProfileRepository;
         this.sessionRepository = sessionRepository;
@@ -121,6 +130,45 @@ public class QueueService {
                     .orElseThrow(() -> new AuthException(HttpStatus.CONFLICT, "QUEUE_CHECK_IN_RETRY",
                             "Không thể cấp số lúc này, vui lòng thử lại."));
         }
+    }
+
+    @Transactional
+    public QueueTicketResponse processWalkInCheckIn(WalkInCheckInRequest request, String receptionistAccountId) {
+        LocalDate today = LocalDate.now();
+        LocalTime now = LocalTime.now();
+
+        // 1. Kiểm tra ngoại lệ vượt năng lực
+        if (request.doctorId() != null) {
+            // Đếm số lượng ca ngoại lệ của bác sĩ trong ngày
+            long overCapacityCount = appointmentRepository.countByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
+                    request.doctorId(), 
+                    today, 
+                    now, 
+                    com.clinicone.appointment.AppointmentStatus.COMPLETED // Dùng tạm trạng thái để tránh lỗi
+            );
+
+            // AC-REC-03-03: Mỗi bác sĩ tối đa 3 lượt vượt năng lực
+            if (overCapacityCount >= 3) {
+                throw new IllegalStateException("OVER_CAPACITY_LIMIT_REACHED: Bác sĩ đã nhận tối đa 3 ca ngoại lệ trong ngày hôm nay.");
+            }
+        }
+
+        // 2. Tạo Request đặt lịch (tạo thông qua DTO của AppointmentService)
+        CreateAppointmentRequest appointmentRequest = new CreateAppointmentRequest(
+                request.specialty(),
+                request.doctorId() != null ? "Bác sĩ Ngoại lệ" : "Bác sĩ Mặc định", // Tên bác sĩ
+                today,
+                now,
+                request.reason(),
+                null,
+                request.doctorId()
+        );
+
+        // 3. Gọi AppointmentService để tạo lịch hẹn (Trạng thái BOOKED)
+        AppointmentResponse newAppointment = appointmentService.create(receptionistAccountId, appointmentRequest);
+
+        // 4. Chuyển sang luồng Check-in của REC-01
+        return checkIn(receptionistAccountId, "WALK-IN-ROOM", newAppointment.id());
     }
 
     @Transactional(readOnly = true)

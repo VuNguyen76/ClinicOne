@@ -103,6 +103,45 @@ class QueueControllerTest {
                 .andExpect(jsonPath("$.status").value("CALLED"));
     }
 
+    @Test
+    void receptionistCanProcessWalkInCheckIn() throws Exception {
+        // AC-REC-03-01: Lễ tân có thể check-in cho bệnh nhân không hẹn trước (Walk-in)                    
+        WalkInCheckInRequest request = new WalkInCheckInRequest(
+                "0912345678", "Nội tổng quát", "Khám tổng quát định kỳ", null, null
+        );
+
+        // Giả lập Service xử lý thành công và trả về vé (ticket)
+        when(queueService.processWalkInCheckIn(any(WalkInCheckInRequest.class), eq(ACCOUNT_ID.toString())))
+                .thenReturn(response()); // Biến response() đã có sẵn trong file test của bạn
+
+        String requestJson = "{\"phone\":\"0912345678\",\"specialty\":\"Nội tổng quát\",\"reason\":\"Khám tổng quát định kỳ\"}";
+
+        mockMvc.perform(post("/api/v1/queue/walk-in")
+                .with(authentication(authenticated("ROLE_RECEPTIONIST")))
+                .contentType("application/json")
+                .content(requestJson))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.queueNumber").exists());
+    }
+
+    @Test
+    void walkInRequestFailsWhenMissingRequiredFields() throws Exception {
+        // AC-REC-03-01: Kiểm tra DTO chặn các request không hợp lệ (thiếu lý do)
+        // Nếu Frontend/Hacker cố tình truyền thiếu trường bắt buộc, API phải trả về 400 Bad Request
+        String invalidRequestJson = "{"
+                + "\"phone\":\"0912345678\","
+                + "\"specialty\":\"Nội tổng quát\""
+                + "}"; // Bỏ trống 'reason' cố ý
+
+        mockMvc.perform(post("/api/v1/queue/walk-in")
+                .with(authentication(authenticated("ROLE_RECEPTIONIST")))
+                .contentType("application/json")
+                .content(invalidRequestJson))
+                .andExpect(status().isBadRequest()); // Khẳng định DTO Validation hoạt động
+    }
+
+    
+
     private static UsernamePasswordAuthenticationToken authenticated(String role) {
         return UsernamePasswordAuthenticationToken.authenticated(ACCOUNT_ID.toString(), null,
                 List.of(new SimpleGrantedAuthority(role)));

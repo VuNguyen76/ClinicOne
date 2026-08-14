@@ -98,4 +98,14 @@ public class QueueController {
                 .findFirst()
                 .orElseThrow(() -> new org.springframework.security.access.AccessDeniedException("Staff role required"));
     }
+
+    @PostMapping("/walk-in")
+    public ResponseEntity<QueueTicketResponse> walkInCheckIn(
+            Authentication authentication,
+            @Valid @RequestBody WalkInCheckInRequest request) {
+        
+        // Gọi xuống Service để xử lý trọn gói
+        QueueTicketResponse ticket = queueService.processWalkInCheckIn(request, authentication.getName());
+        return ResponseEntity.ok(ticket);
+    }
 }
