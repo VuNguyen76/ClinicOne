@@ -270,6 +270,19 @@ export interface SpecialtyOption {
   description: string;
 }
 
+export interface MedicalRecordTemplate {
+  id: string;
+  code: string;
+  name: string;
+  specialty: string;
+  clinicServiceId?: string | null;
+  description?: string | null;
+  fieldDefinition: string;
+  active: boolean;
+  createdBy: string;
+  updatedAt: string;
+}
+
 export interface AppointmentSlotResponse {
   specialty: string;
   appointmentDate: string;
@@ -956,6 +969,25 @@ export class AuthApiService {
     });
   }
 
+  getMedicalRecordTemplates(specialty?: string, clinicServiceId?: string): Observable<MedicalRecordTemplate[]> {
+    let params: Record<string, string> = { activeOnly: 'true' };
+    if (specialty) params['specialty'] = specialty;
+    if (clinicServiceId) params['clinicServiceId'] = clinicServiceId;
+    return this.http.get<MedicalRecordTemplate[]>('/api/v1/medical-record-templates', { params });
+  }
+
+  createMedicalRecordTemplate(request: Omit<MedicalRecordTemplate, 'id' | 'active' | 'createdBy' | 'updatedAt'>): Observable<MedicalRecordTemplate> {
+    return this.http.post<MedicalRecordTemplate>('/api/v1/medical-record-templates', request);
+  }
+
+  updateMedicalRecordTemplate(id: string, request: Omit<MedicalRecordTemplate, 'id' | 'active' | 'createdBy' | 'updatedAt'>): Observable<MedicalRecordTemplate> {
+    return this.http.put<MedicalRecordTemplate>(`/api/v1/medical-record-templates/${encodeURIComponent(id)}`, request);
+  }
+
+  deactivateMedicalRecordTemplate(id: string): Observable<void> {
+    return this.http.delete<void>(`/api/v1/medical-record-templates/${encodeURIComponent(id)}`);
+  }
+
   createSpecialty(request: { code: string; name: string; description?: string }): Observable<SpecialtyOption> {
     return this.http.post<SpecialtyOption>(this.specialtiesRoot, request);
   }
@@ -970,6 +1002,12 @@ export class AuthApiService {
 
   getSmsDeliveries(): Observable<SmsDeliveryResponse[]> {
     return this.http.get<SmsDeliveryResponse[]>('/api/v1/admin/notifications/sms');
+  }
+
+  retrySmsDelivery(id: string, requestKey: string): Observable<SmsDeliveryResponse> {
+    return this.http.post<SmsDeliveryResponse>(`/api/v1/admin/notifications/sms/${encodeURIComponent(id)}/retry`, {}, {
+      headers: { 'Idempotency-Key': requestKey },
+    });
   }
 
   getNotifications(): Observable<PatientNotificationResponse[]> {
