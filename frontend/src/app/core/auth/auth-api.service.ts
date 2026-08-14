@@ -647,6 +647,7 @@ export interface ReceptionWalkInRequest {
   startTime: string;
   reason: string;
   exceptionReason: string;
+  overCapacity?: boolean;
 }
 
 export interface ReceptionRebookRequest {
@@ -664,6 +665,37 @@ export interface ReceptionPatientProfile {
   primaryProfile: boolean;
   accountStatus?: string;
   mustChangePassword?: boolean;
+  gender?: string | null;
+  phone?: string | null;
+  identityNumber?: string | null;
+  nationality?: string | null;
+  ethnicity?: string | null;
+  address?: string | null;
+  provinceCode?: string | null;
+  provinceName?: string | null;
+  districtCode?: string | null;
+  districtName?: string | null;
+  wardCode?: string | null;
+  wardName?: string | null;
+  streetAddress?: string | null;
+}
+
+export interface ReceptionUpdatePatientProfileRequest {
+  fullName?: string;
+  dateOfBirth?: string | null;
+  gender?: string;
+  phone?: string;
+  identityNumber?: string;
+  nationality?: string;
+  ethnicity?: string;
+  address?: string;
+  provinceCode?: string;
+  provinceName?: string;
+  districtCode?: string;
+  districtName?: string;
+  wardCode?: string;
+  wardName?: string;
+  streetAddress?: string;
 }
 
 export interface ReceptionPatientRegistrationRequest {
@@ -1253,6 +1285,10 @@ export class AuthApiService {
     return this.http.get<BusinessLogPageResponse>('/api/v1/admin/audit/search', {
       params: { entityType, entityId, page, size },
     });
+  }
+
+  updateReceptionPatientProfile(id: string, request: ReceptionUpdatePatientProfileRequest): Observable<ReceptionPatientProfile> {
+    return this.http.patch<ReceptionPatientProfile>(`${this.patientProfilesRoot}/${id}/reception-update`, request);
   }
 
   getAppointmentBusinessHistory(appointmentId: string): Observable<BusinessLogResponse[]> {

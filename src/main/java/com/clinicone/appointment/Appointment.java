@@ -73,6 +73,9 @@ public class Appointment {
     @Column(name = "requires_medical_record")
     private Boolean requiresMedicalRecord;
 
+    @Column(name = "over_capacity", nullable = false)
+    private boolean overCapacity;
+
     @Column(name = "appointment_date", nullable = false)
     private LocalDate appointmentDate;
 
@@ -201,6 +204,14 @@ public class Appointment {
 
     public void assignCreationRequestKey(String requestKey) {
         this.creationRequestKey = requestKey == null || requestKey.isBlank() ? null : requestKey.trim();
+    }
+
+    public void markOverCapacity() {
+        this.overCapacity = true;
+    }
+
+    public boolean isOverCapacity() {
+        return overCapacity;
     }
 
     public void assignCheckInRequestKey(String requestKey) {

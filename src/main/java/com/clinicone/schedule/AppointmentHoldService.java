@@ -80,6 +80,13 @@ public class AppointmentHoldService {
             holdRepository.flush();
         }
 
+        // Một tài khoản chỉ giữ một khung giờ tại một thời điểm. Khi người bệnh
+        // chọn khung mới, giải phóng khung cũ ngay trong cùng giao dịch để không
+        // khóa lịch của người khác quá lâu.
+        holdRepository.findByPatientIdAndExpiresAtAfter(patientId, now).stream()
+                .filter(hold -> !hold.getHoldKey().equals(holdKey))
+                .forEach(holdRepository::delete);
+
         if (request.serviceId() == null) {
             availabilityService.ensureBookable(request.specialty(), request.doctorName(), request.doctorId(),
                     request.appointmentDate(), request.startTime());

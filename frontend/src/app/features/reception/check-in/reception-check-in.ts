@@ -45,6 +45,7 @@ export class ReceptionCheckIn implements OnInit {
   protected readonly walkInRegistration = signal(false);
   protected readonly walkInTemporaryProfile = signal(false);
   protected readonly walkInNeedsPasswordChange = signal(false);
+  protected readonly walkInProfileNeedsCompletion = signal(false);
   protected readonly walkInOtp = signal('');
   protected readonly registrationFullName = signal('');
   protected readonly registrationDateOfBirth = signal('');
@@ -206,7 +207,7 @@ export class ReceptionCheckIn implements OnInit {
     this.rebookSlotsLoading.set(true);
     this.authApi.getAppointmentSlots(appointment.specialty, date, date).subscribe({
       next: (slots) => {
-        const available = slots.filter((slot) => !!slot.doctorId && slot.remainingCapacity > 0);
+        const available = slots.filter((slot) => !!slot.doctorId);
         this.rebookSlots.set(available);
         this.rebookStartTime.set(available[0]?.startTime ?? '');
         this.rebookSlotsLoading.set(false);
@@ -332,6 +333,7 @@ export class ReceptionCheckIn implements OnInit {
     this.walkInRegistration.set(false);
     this.walkInTemporaryProfile.set(false);
     this.walkInNeedsPasswordChange.set(false);
+    this.walkInProfileNeedsCompletion.set(false);
     this.walkInOtp.set('');
     this.registrationFullName.set('');
     this.registrationDateOfBirth.set('');
@@ -487,7 +489,9 @@ export class ReceptionCheckIn implements OnInit {
     this.authApi.getReceptionProfiles(phone).subscribe({
       next: (profiles) => {
         this.walkInProfiles.set(profiles);
-        this.walkInProfileId.set(profiles.find((profile) => profile.primaryProfile)?.id ?? profiles[0]?.id ?? '');
+        const selected = profiles.find((profile) => profile.primaryProfile) ?? profiles[0];
+        this.walkInProfileId.set(selected?.id ?? '');
+        this.prepareProfileCompletion(selected);
         if (profiles.some((profile) => profile.mustChangePassword || profile.accountStatus === 'LOCKED')) {
           this.walkInNeedsPasswordChange.set(true);
           this.notice.set(profiles.some((profile) => profile.accountStatus === 'LOCKED')
@@ -539,12 +543,17 @@ export class ReceptionCheckIn implements OnInit {
     const reason = this.walkInReason().trim();
     const exceptionReason = this.walkInExceptionReason().trim();
     const temporaryProfile = this.temporaryProfileSelected();
+    const overCapacity = (slot?.remainingCapacity ?? 0) <= 0;
     if (!/^0\d{9}$/.test(phone)) {
       this.error.set('Nhập số điện thoại hợp lệ trước khi tiếp nhận.');
       return;
     }
     if (!slot?.doctorId) {
       this.error.set('Chọn một khung giờ còn trống.');
+      return;
+    }
+    if (overCapacity && !temporaryProfile && exceptionReason.length < 10) {
+      this.error.set('Nháº­p lÃ½ do nháº­n ngoÃ i cÃ´ng suáº¥t (tá»« 10 Ä‘áº¿n 500 kÃ½ tá»±).');
       return;
     }
     if (reason.length < 3 || exceptionReason.length < (temporaryProfile ? 10 : 3)) {
@@ -563,6 +572,7 @@ export class ReceptionCheckIn implements OnInit {
       startTime: slot.startTime,
       reason,
       exceptionReason,
+      ...(overCapacity ? { overCapacity: true } : {}),
     }).subscribe({
       next: (appointment) => {
         this.walkInLoading.set(false);
@@ -572,6 +582,58 @@ export class ReceptionCheckIn implements OnInit {
       },
       error: (response) => {
         this.walkInLoading.set(false);
+        this.handleError(response);
+      },
+    });
+  }
+
+  private prepareProfileCompletion(profile: ReceptionPatientProfile | undefined): void {
+    if (!profile || profile.accountStatus === null || profile.mustChangePassword) {
+      this.walkInProfileNeedsCompletion.set(false);
+      return;
+    }
+    this.registrationFullName.set(profile.fullName ?? '');
+    this.registrationDateOfBirth.set(profile.dateOfBirth ?? '');
+    this.registrationGender.set(profile.gender ?? '');
+    this.registrationIdentityNumber.set(profile.identityNumber ?? '');
+    this.registrationNationality.set(profile.nationality ?? '');
+    this.registrationEthnicity.set(profile.ethnicity ?? '');
+    this.registrationAddress.set(profile.streetAddress ?? profile.address ?? '');
+    this.walkInProfileNeedsCompletion.set([
+      profile.fullName, profile.dateOfBirth, profile.gender, profile.identityNumber,
+      profile.nationality, profile.ethnicity, profile.provinceCode, profile.districtCode,
+      profile.wardCode, profile.streetAddress,
+    ].some((value) => !value || !String(value).trim()));
+  }
+
+  protected selectWalkInProfile(profileId: string): void {
+    this.walkInProfileId.set(profileId);
+    this.prepareProfileCompletion(this.walkInProfiles().find((profile) => profile.id === profileId));
+  }
+
+  protected submitProfileCompletion(): void {
+    const profileId = this.walkInProfileId();
+    if (!profileId) return;
+    if (this.registrationFullName().trim().length < 2 || !this.registrationDateOfBirth() || !this.registrationGender()) {
+      this.error.set('Bổ sung họ tên, ngày sinh và giới tính trước khi tiếp nhận.');
+      return;
+    }
+    this.registrationLoading.set(true);
+    this.error.set('');
+    this.authApi.updateReceptionPatientProfile(profileId, {
+      fullName: this.registrationFullName().trim(), dateOfBirth: this.registrationDateOfBirth(),
+      gender: this.registrationGender(), identityNumber: this.registrationIdentityNumber().trim(),
+      nationality: this.registrationNationality().trim(), ethnicity: this.registrationEthnicity().trim(),
+      address: this.registrationAddress().trim(),
+    }).subscribe({
+      next: (profile) => {
+        this.registrationLoading.set(false);
+        this.walkInProfiles.update((items) => items.map((item) => item.id === profile.id ? profile : item));
+        this.walkInProfileNeedsCompletion.set(false);
+        this.notice.set(`Đã bổ sung hồ sơ cho ${profile.fullName}.`);
+      },
+      error: (response) => {
+        this.registrationLoading.set(false);
         this.handleError(response);
       },
     });

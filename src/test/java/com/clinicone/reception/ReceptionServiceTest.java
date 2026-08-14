@@ -197,6 +197,28 @@ class ReceptionServiceTest {
     }
 
     @Test
+    void rejectsTheFourthOverCapacityWalkInForTheSameDoctorAndDay() {
+        PatientAccount patient = mock(PatientAccount.class);
+        when(patient.getId()).thenReturn(PATIENT_ID);
+        when(patient.getStatus()).thenReturn(AccountStatus.ACTIVE);
+        when(patient.getFullName()).thenReturn("Nguyễn Thanh Vũ");
+        when(patientAccountRepository.findByPhone("0912345678")).thenReturn(Optional.of(patient));
+        DoctorProfile doctor = mock(DoctorProfile.class);
+        when(doctor.isActive()).thenReturn(true);
+        when(doctorProfileRepository.findById(DOCTOR_ID)).thenReturn(Optional.of(doctor));
+        when(appointmentRepository.countByDoctorStaffIdAndAppointmentDateAndOverCapacityTrueAndStatusNot(
+                DOCTOR_ID, TODAY, AppointmentStatus.CANCELLED)).thenReturn(3L);
+
+        assertThatThrownBy(() -> service.createWalkIn(new ReceptionWalkInRequest(
+                "0912345678", null, DOCTOR_ID, TODAY, LocalTime.of(9, 0), "Đau đầu kéo dài",
+                "Bác sĩ đang quá tải nhưng vẫn tiếp nhận trường hợp này", true)))
+                .isInstanceOf(com.clinicone.auth.AuthException.class)
+                .extracting("code").isEqualTo("WALK_IN_OVER_CAPACITY_LIMIT");
+
+        verifyNoInteractions(appointmentService, queueService);
+    }
+
+    @Test
     void createsAReusableTemporaryProfileAtReception() {
         when(patientAccountRepository.findByPhone("0912345678")).thenReturn(Optional.empty());
         when(patientProfileRepository.findFirstByTemporaryProfileTrueAndOwnerIsNullAndPhone("0912345678"))

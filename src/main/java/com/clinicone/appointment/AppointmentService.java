@@ -186,11 +186,21 @@ public class AppointmentService {
 
     @Transactional
     public AppointmentResponse create(String accountId, CreateAppointmentRequest request) {
-        return create(accountId, request, null);
+        return createInternal(accountId, request, null, false);
     }
 
     @Transactional
     public AppointmentResponse create(String accountId, CreateAppointmentRequest request, String requestKey) {
+        return createInternal(accountId, request, requestKey, false);
+    }
+
+    @Transactional
+    public AppointmentResponse createReception(String accountId, CreateAppointmentRequest request) {
+        return createInternal(accountId, request, null, true);
+    }
+
+    private AppointmentResponse createInternal(String accountId, CreateAppointmentRequest request, String requestKey,
+                                               boolean allowOverCapacity) {
         UUID patientId = parseAccountId(accountId);
         String normalizedRequestKey = normalizeRequestKey(requestKey);
         if (normalizedRequestKey != null) {
@@ -212,6 +222,10 @@ public class AppointmentService {
         ClinicService selectedService = resolveService(request);
         LocalDate appointmentDate = request.appointmentDate();
         LocalTime startTime = request.startTime();
+        if (allowOverCapacity && availabilityService != null) {
+            availabilityService.ensureDoctorScheduled(request.specialty(), request.doctorName(), request.doctorId(),
+                    appointmentDate, startTime);
+        }
         AppointmentHold hold = null;
         if (request.holdId() != null) {
             if (holdService == null) {
@@ -220,7 +234,7 @@ public class AppointmentService {
             }
             hold = holdService.requireForBooking(accountId, request.holdId(), request);
         }
-        if (availabilityService != null) {
+        if (availabilityService != null && !allowOverCapacity) {
             if (hold == null) {
                 if (request.serviceId() == null) {
                     availabilityService.ensureBookable(request.specialty(), request.doctorName(), request.doctorId(),
@@ -256,6 +270,9 @@ public class AppointmentService {
                     selectedService.getVisitType(), selectedService.getDurationMinutes(),
                     selectedService.requiresMedicalRecord());
         }
+        if (allowOverCapacity) {
+            appointment.markOverCapacity();
+        }
         appointment.assignCreationRequestKey(normalizedRequestKey);
         Appointment saved = appointmentRepository.save(appointment);
         if (hold != null) {
@@ -271,6 +288,18 @@ public class AppointmentService {
 
     @Transactional
     public AppointmentResponse createTemporary(PatientProfile temporaryProfile, CreateAppointmentRequest request) {
+        return createTemporaryInternal(temporaryProfile, request, false);
+    }
+
+    @Transactional
+    public AppointmentResponse createTemporaryReception(PatientProfile temporaryProfile,
+                                                         CreateAppointmentRequest request) {
+        return createTemporaryInternal(temporaryProfile, request, true);
+    }
+
+    private AppointmentResponse createTemporaryInternal(PatientProfile temporaryProfile,
+                                                         CreateAppointmentRequest request,
+                                                         boolean allowOverCapacity) {
         if (temporaryProfile == null || !temporaryProfile.isTemporaryProfile()) {
             throw new AuthException(HttpStatus.CONFLICT, "TEMPORARY_PROFILE_REQUIRED",
                     "Lịch ngoại lệ phải gắn với hồ sơ tạm tại quầy.");
@@ -281,7 +310,11 @@ public class AppointmentService {
                     "Hồ sơ tạm không khớp với lịch đang tạo.");
         }
         ClinicService selectedService = resolveService(request);
-        if (availabilityService != null) {
+        if (allowOverCapacity && availabilityService != null) {
+            availabilityService.ensureDoctorScheduled(request.specialty(), request.doctorName(), request.doctorId(),
+                    request.appointmentDate(), request.startTime());
+        }
+        if (availabilityService != null && !allowOverCapacity) {
             if (request.serviceId() == null) {
                 availabilityService.ensureBookable(request.specialty(), request.doctorName(), request.doctorId(),
                         request.appointmentDate(), request.startTime());
@@ -304,6 +337,9 @@ public class AppointmentService {
             appointment.applyServiceSnapshot(selectedService.getId(), selectedService.getName(),
                     selectedService.getVisitType(), selectedService.getDurationMinutes(),
                     selectedService.requiresMedicalRecord());
+        }
+        if (allowOverCapacity) {
+            appointment.markOverCapacity();
         }
         Appointment saved = appointmentRepository.save(appointment);
         recordTransition(UUID.randomUUID(), saved.getId(), null, saved.getStatus().name(),
