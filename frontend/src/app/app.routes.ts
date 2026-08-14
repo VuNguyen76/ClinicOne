@@ -27,6 +27,7 @@ export const routes: Routes = [
   { path: 'admin/doctors', loadComponent: () => import('./features/doctor-management/doctor-management').then((m) => m.DoctorManagement), canActivate: [roomManagerGuard] },
   { path: 'admin/services', loadComponent: () => import('./features/service-management/service-management').then((m) => m.ServiceManagement), canActivate: [roomManagerGuard] },
   { path: 'admin/specialties', loadComponent: () => import('./features/specialty-catalog-management/specialty-catalog-management').then((m) => m.SpecialtyCatalogManagement), canActivate: [roomManagerGuard] },
+  { path: 'admin/sms-deliveries', loadComponent: () => import('./features/sms-delivery-management/sms-delivery-management').then((m) => m.SmsDeliveryManagement), canActivate: [adminGuard] },
   { path: 'admin/schedule-templates', loadComponent: () => import('./features/schedule-template-management/schedule-template-management').then((m) => m.ScheduleTemplateManagement), canActivate: [roomManagerGuard] },
   { path: 'admin/staff', loadComponent: () => import('./features/staff-management/staff-management').then((m) => m.StaffManagement), canActivate: [adminGuard] },
   { path: 'admin/statistics', loadComponent: () => import('./features/admin-statistics/admin-statistics').then((m) => m.AdminStatistics), canActivate: [roomManagerGuard] },

@@ -968,6 +968,10 @@ export class AuthApiService {
     return this.http.delete<void>(`${this.specialtiesRoot}/${encodeURIComponent(code)}`);
   }
 
+  getSmsDeliveries(): Observable<SmsDeliveryResponse[]> {
+    return this.http.get<SmsDeliveryResponse[]>('/api/v1/admin/notifications/sms');
+  }
+
   getNotifications(): Observable<PatientNotificationResponse[]> {
     return this.http.get<PatientNotificationResponse[]>(this.notificationsRoot);
   }
