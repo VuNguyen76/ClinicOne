@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
-import { RouterLink, Router } from '@angular/router';
+import { Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
-import { AccountMenu } from '../../shared/account-menu/account-menu';
+import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
 import { clinicTodayIso } from '../../core/time/clinic-time';
 import {
   ApiErrorResponse,
@@ -16,7 +16,7 @@ type QueueAction = 'skip' | 'start';
 @Component({
   selector: 'app-staff-dashboard',
   standalone: true,
-  imports: [RouterLink, MatIconModule, AccountMenu],
+  imports: [MatIconModule, StaffWorkspaceShell],
   templateUrl: './staff-dashboard.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

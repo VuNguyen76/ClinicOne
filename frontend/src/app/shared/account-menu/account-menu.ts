@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, ElementRef, HostListener, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, ElementRef, HostListener, inject, input, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { AuthApiService } from '../../core/auth/auth-api.service';
@@ -11,6 +11,7 @@ import { AuthApiService } from '../../core/auth/auth-api.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AccountMenu {
+  readonly compact = input(false);
   protected readonly loggedIn = signal(false);
   protected readonly menuOpen = signal(false);
   protected readonly staffRole = signal<string | null>(null);

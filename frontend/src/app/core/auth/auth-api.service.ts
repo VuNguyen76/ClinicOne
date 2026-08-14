@@ -577,6 +577,7 @@ export interface DoctorExaminationResponse {
   roomName: string;
   appointmentCode: string;
   specialty: string;
+  clinicServiceId?: string | null;
   doctorName: string;
   appointmentDate: string;
   startTime: string;
