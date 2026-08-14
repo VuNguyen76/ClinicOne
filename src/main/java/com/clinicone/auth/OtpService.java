@@ -1,5 +1,7 @@
 package com.clinicone.auth;
 
+import com.clinicone.validation.VietnamesePhoneNumbers;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -10,6 +12,7 @@ import java.time.Duration;
 import java.time.Instant;
 
 @Service
+@RequiredArgsConstructor
 public class OtpService {
 
     static final long OTP_TTL_SECONDS = 5 * 60;
@@ -24,23 +27,14 @@ public class OtpService {
     private final OtpCodeGenerator codeGenerator;
     private final Clock clock;
 
-    public OtpService(OtpChallengeRepository repository, OtpSender sender,
-                      PasswordEncoder passwordEncoder, OtpCodeGenerator codeGenerator, Clock clock) {
-        this.repository = repository;
-        this.sender = sender;
-        this.passwordEncoder = passwordEncoder;
-        this.codeGenerator = codeGenerator;
-        this.clock = clock;
-    }
-
     @Transactional
     public RequestOtpResponse requestSmsOtp(String phone, OtpPurpose purpose) {
-        return issueOtp(normalizePhone(phone), purpose);
+        return issueOtp(VietnamesePhoneNumbers.smsDestination(phone), purpose);
     }
 
     @Transactional
     public VerifyOtpResponse verifySmsOtp(String phone, OtpPurpose purpose, String code) {
-        return verifyForDestination(normalizePhone(phone), purpose, code);
+        return verifyForDestination(VietnamesePhoneNumbers.smsDestination(phone), purpose, code);
     }
 
     private VerifyOtpResponse verifyForDestination(String destination, OtpPurpose purpose, String code) {
@@ -64,7 +58,8 @@ public class OtpService {
 
     public boolean isPhoneRecentlyVerified(String phone, OtpPurpose purpose) {
         Instant now = Instant.now(clock);
-        return repository.findTopByDestinationAndPurposeOrderByCreatedAtDesc(normalizePhone(phone), purpose)
+        return repository.findTopByDestinationAndPurposeOrderByCreatedAtDesc(
+                        VietnamesePhoneNumbers.smsDestination(phone), purpose)
                 .map(challenge -> challenge.isVerified() && !challenge.isExpired(now))
                 .orElse(false);
     }
@@ -75,7 +70,8 @@ public class OtpService {
     public boolean isPhoneVerifiedWithin(String phone, OtpPurpose purpose, Duration window) {
         if (window == null || window.isNegative() || window.isZero()) return false;
         Instant now = Instant.now(clock);
-        return repository.findTopByDestinationAndPurposeOrderByCreatedAtDesc(normalizePhone(phone), purpose)
+        return repository.findTopByDestinationAndPurposeOrderByCreatedAtDesc(
+                        VietnamesePhoneNumbers.smsDestination(phone), purpose)
                 .map(challenge -> challenge.getVerifiedAt() != null
                         && !challenge.getVerifiedAt().isAfter(now)
                         && !challenge.getVerifiedAt().plus(window).isBefore(now))
@@ -84,14 +80,6 @@ public class OtpService {
 
     private OtpException invalidOtp() {
         return new OtpException(HttpStatus.BAD_REQUEST, "OTP_INVALID", "Mã xác thực không hợp lệ hoặc đã hết hạn.");
-    }
-
-    static String normalizePhone(String phone) {
-        String compact = phone.trim().replaceAll("[\\s().-]", "");
-        if (compact.matches("^0\\d{9}$")) {
-            return "+84" + compact.substring(1);
-        }
-        return compact;
     }
 
     private RequestOtpResponse issueOtp(String destination, OtpPurpose purpose) {

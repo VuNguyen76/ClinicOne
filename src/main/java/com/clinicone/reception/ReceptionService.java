@@ -20,6 +20,7 @@ import com.clinicone.queue.QueueService;
 import com.clinicone.queue.QueueTicketRepository;
 import com.clinicone.queue.QueueTicketResponse;
 import com.clinicone.validation.IdempotencyKeys;
+import com.clinicone.validation.VietnamesePhoneNumbers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -229,7 +230,7 @@ public class ReceptionService {
             throw new AuthException(HttpStatus.SERVICE_UNAVAILABLE, "RECEPTION_PROFILES_UNAVAILABLE",
                     "Chưa bật tra cứu hồ sơ tại quầy.");
         }
-        PatientAccount patient = patientAccountRepository.findByPhone(normalizePhone(phone))
+        PatientAccount patient = patientAccountRepository.findByPhone(VietnamesePhoneNumbers.local(phone))
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "PATIENT_ACCOUNT_REQUIRED",
                         "Chưa tìm thấy tài khoản theo số điện thoại."));
         return patientProfileRepository.findByOwnerIdAndActiveTrueOrderByPrimaryProfileDescCreatedAtAsc(patient.getId())
@@ -242,7 +243,7 @@ public class ReceptionService {
             throw new AuthException(HttpStatus.SERVICE_UNAVAILABLE, "RECEPTION_PROFILES_UNAVAILABLE",
                     "Chưa bật tạo hồ sơ tại quầy.");
         }
-        String phone = normalizePhone(request.phone());
+        String phone = VietnamesePhoneNumbers.local(request.phone());
         if (!ALLOWED_GENDERS.contains(request.gender().trim())) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "GENDER_INVALID",
                     "Vui lòng chọn giới tính hợp lệ.");
@@ -284,7 +285,7 @@ public class ReceptionService {
             throw new AuthException(HttpStatus.SERVICE_UNAVAILABLE, "RECEPTION_WALK_IN_UNAVAILABLE",
                     "Chưa bật luồng tiếp nhận tại quầy.");
         }
-        String phone = normalizePhone(request.phone());
+        String phone = VietnamesePhoneNumbers.local(request.phone());
         PatientAccount patient = patientAccountRepository.findByPhone(phone).orElse(null);
         PatientProfile temporaryProfile = null;
         if (patient != null) {
@@ -400,15 +401,6 @@ public class ReceptionService {
             throw new AuthException(HttpStatus.BAD_REQUEST, "OVER_CAPACITY_REASON_INVALID",
                     "Lý do nhận ngoài công suất phải từ 10 đến 500 ký tự.");
         }
-    }
-
-    private String normalizePhone(String phone) {
-        String normalized = phone == null ? "" : phone.trim();
-        if (!normalized.matches("0\\d{9}")) {
-            throw new AuthException(HttpStatus.BAD_REQUEST, "PHONE_INVALID",
-                    "Số điện thoại phải gồm 10 chữ số và bắt đầu bằng 0.");
-        }
-        return normalized;
     }
 
     private String phoneValue(String value) {
