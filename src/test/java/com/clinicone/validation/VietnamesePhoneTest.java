@@ -36,6 +36,16 @@ class VietnamesePhoneTest {
         assertFalse(validator.validate(new PhoneRequest("091234567")).isEmpty());
     }
 
+    @Test
+    void allowsBlankOnlyWhenTheFieldIsOptional() {
+        assertTrue(validator.validate(new OptionalPhoneRequest(null)).isEmpty());
+        assertTrue(validator.validate(new OptionalPhoneRequest("")).isEmpty());
+        assertFalse(validator.validate(new PhoneRequest("")).isEmpty());
+    }
+
     private record PhoneRequest(@NotBlank @VietnamesePhone String phone) {
+    }
+
+    private record OptionalPhoneRequest(@VietnamesePhone String phone) {
     }
 }

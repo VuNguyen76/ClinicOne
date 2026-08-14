@@ -11,6 +11,7 @@ import com.clinicone.auth.PatientAccountRepository;
 import com.clinicone.auth.RequestOtpResponse;
 import com.clinicone.patientprofile.PatientProfile;
 import com.clinicone.patientprofile.PatientProfileRepository;
+import com.clinicone.validation.VietnamesePhoneNumbers;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -31,7 +32,7 @@ public class ReceptionPatientService {
 
     @Transactional
     public RequestOtpResponse requestOtp(ReceptionPatientOtpRequest request) {
-        String phone = normalizePhone(request.phone());
+        String phone = VietnamesePhoneNumbers.local(request.phone());
         var existing = accountRepository.findByPhone(phone);
         if (existing.isPresent() && !existing.get().isMustChangePassword()) {
             throw new AuthException(HttpStatus.CONFLICT, "PHONE_ALREADY_USED", "Số điện thoại đã có tài khoản.");
@@ -41,7 +42,7 @@ public class ReceptionPatientService {
 
     @Transactional
     public ReceptionPatientRegistrationResponse register(ReceptionPatientRegistrationRequest request) {
-        String phone = normalizePhone(request.phone());
+        String phone = VietnamesePhoneNumbers.local(request.phone());
         if (accountRepository.existsByPhone(phone)) {
             throw new AuthException(HttpStatus.CONFLICT, "PHONE_ALREADY_USED", "Số điện thoại đã có tài khoản.");
         }
@@ -66,15 +67,6 @@ public class ReceptionPatientService {
         profileRepository.save(profile);
         return new ReceptionPatientRegistrationResponse(saved.getId(), saved.getPhone(), saved.getFullName(),
                 saved.isMustChangePassword());
-    }
-
-    private String normalizePhone(String phone) {
-        String normalized = phone == null ? "" : phone.trim();
-        if (!normalized.matches("0\\d{9}")) {
-            throw new AuthException(HttpStatus.BAD_REQUEST, "PHONE_INVALID",
-                    "Số điện thoại phải gồm 10 chữ số và bắt đầu bằng 0.");
-        }
-        return normalized;
     }
 
     private void validateGender(String gender) {

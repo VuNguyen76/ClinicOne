@@ -11,10 +11,10 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-/** Validates a Vietnamese mobile number in the canonical 10-digit form. */
+/** Validates an optional Vietnamese phone; combine with {@code @NotBlank} when required. */
 @Documented
 @Constraint(validatedBy = {})
-@Pattern(regexp = "^0\\d{9}$")
+@Pattern(regexp = "^(?:|0\\d{9})$")
 @ReportAsSingleViolation
 @Target({ElementType.FIELD, ElementType.PARAMETER, ElementType.ANNOTATION_TYPE, ElementType.RECORD_COMPONENT})
 @Retention(RetentionPolicy.RUNTIME)
