@@ -114,7 +114,8 @@
                   </label>
                 </div>
                 <div>
-                  <button type="submit" class="erp-btn-primary" [disabled]="saving()">
+                  <button type="submit" class="erp-btn-primary" [disabled]="saving()" title="Lưu phân công">
+                    <mat-icon class="!h-4 !w-4 !text-[18px]">save</mat-icon>
                     {{ saving() ? 'Đang lưu...' : 'Lưu phân công' }}
                   </button>
                 </div>
@@ -148,7 +149,8 @@
                     <span class="erp-label">Phút/lượt</span>
                     <input formControlName="slotDurationMinutes" type="number" min="15" max="180" step="15" class="erp-input font-mono" />
                   </label>
-                  <button type="submit" class="erp-btn-primary w-full" [disabled]="!doctor.assigned || saving()">
+                  <button type="submit" class="erp-btn-primary w-full" [disabled]="!doctor.assigned || saving()" title="Thêm khung giờ">
+                    <mat-icon class="!h-4 !w-4 !text-[18px]">add</mat-icon>
                     <span>Thêm</span>
                   </button>
                 </form>
@@ -172,8 +174,14 @@
                           </td>
                           <td class="erp-td font-mono text-xs text-slate-600">{{ schedule.slotDurationMinutes }} phút/lượt</td>
                           <td class="erp-td text-right">
-                            <button type="button" class="erp-btn-danger !min-h-7 !px-2.5 !text-[11px]" (click)="removeSchedule(schedule)">
-                              Xóa
+                            <button
+                              type="button"
+                              class="erp-btn-icon-danger"
+                              [attr.aria-label]="'Xóa khung giờ ' + dayLabel(schedule.dayOfWeek)"
+                              [title]="'Xóa khung giờ ' + dayLabel(schedule.dayOfWeek)"
+                              (click)="removeSchedule(schedule)"
+                            >
+                              <mat-icon class="!h-4 !w-4 !text-[18px]">delete_outline</mat-icon>
                             </button>
                           </td>
                         </tr>
