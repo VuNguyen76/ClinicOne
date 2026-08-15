@@ -365,6 +365,42 @@ class ReceptionServiceTest {
         verify(patientProfileRepository).save(any(PatientProfile.class));
     }
 
+    @Test
+    void checkInSuccessfullyForTemporaryProfilePatient() {
+        PatientProfile temporaryProfile = PatientProfile.createTemporary(
+                "Nguyễn Văn Tạm", LocalDate.of(1990, 1, 1), "Nam", "0912345678", null, null, null, null);
+
+        Appointment appointment = mock(Appointment.class);
+        when(appointment.getId()).thenReturn(APPOINTMENT_ID);
+        when(appointment.getAppointmentCode()).thenReturn("CL-20260807-9999");
+        when(appointment.getAppointmentDate()).thenReturn(TODAY);
+        when(appointment.getStartTime()).thenReturn(LocalTime.of(9, 0));
+        when(appointment.getSpecialty()).thenReturn("Nội tổng quát");
+        when(appointment.getDoctorName()).thenReturn("BS. Nguyễn An");
+        when(appointment.getDoctorStaffId()).thenReturn(DOCTOR_ID);
+        when(appointment.getPatient()).thenReturn(null);
+        when(appointment.getPatientProfile()).thenReturn(temporaryProfile);
+        when(appointment.getStatus()).thenReturn(AppointmentStatus.BOOKED);
+        when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
+
+        ClinicRoom room = ClinicRoom.create("NOI-01", "Phòng Nội 01", "Nội tổng quát");
+        DoctorProfile doctor = mock(DoctorProfile.class);
+        when(doctor.isActive()).thenReturn(true);
+        when(doctor.getRoom()).thenReturn(room);
+        when(doctorProfileRepository.findByStaffAccount_Id(DOCTOR_ID)).thenReturn(Optional.of(doctor));
+
+        QueueTicketResponse ticket = new QueueTicketResponse(UUID.randomUUID(), 6, "NOI-01", "Phòng Nội 01",
+                TODAY, LocalTime.of(9, 0), "WAITING", "Đang chờ", "CL-20260807-9999", "Nội tổng quát", "BS. Nguyễn An");
+        when(queueService.checkInByStaff("NOI-01", APPOINTMENT_ID, "Bệnh nhân không có app")).thenReturn(ticket);
+
+        ReceptionAppointmentResponse response = service.checkIn(APPOINTMENT_ID,
+                new ReceptionCheckInRequest("NOI-01", "Bệnh nhân không có app"));
+
+        assertThat(response.patientName()).isEqualTo("Nguyễn Văn Tạm");
+        assertThat(response.queueNumber()).isEqualTo(6);
+        verify(queueService).checkInByStaff("NOI-01", APPOINTMENT_ID, "Bệnh nhân không có app");
+    }// Check-in thành công cho bệnh nhân dùng hồ sơ tạm
+
     // 4. NHÓM RỜI TRƯỚC KHÁM (FR-REC-04)
     @Test
     void receptionistCanRecordCheckedInPatientLeftBeforeExam() {
