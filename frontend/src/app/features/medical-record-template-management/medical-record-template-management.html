@@ -19,7 +19,7 @@
     <button type="button" class="border-b-2 px-4 py-2.5 text-sm font-semibold transition" [class.border-[#0b91c9]]="activeTab() === 'form'" [class.text-[#086b8b]]="activeTab() === 'form'" [class.border-transparent]="activeTab() !== 'form'" [class.text-slate-500]="activeTab() !== 'form'" (click)="activeTab.set('form')">Thiết lập mẫu</button>
   </nav>
 
-  <div class="grid items-start gap-4 xl:grid-cols-[minmax(0,1.35fr)_420px]">
+  <div class="grid items-start gap-4">
     <section class="min-w-0 overflow-hidden border border-[#cbdadd] bg-white" [class.hidden]="activeTab() !== 'list'">
       <header class="flex min-h-12 items-center justify-between gap-3 border-b border-[#dce6e8] bg-[#f8fafb] px-4">
         <div>
