@@ -7,6 +7,7 @@ import com.clinicone.appointment.AppointmentService;
 import com.clinicone.appointment.AppointmentStatus;
 import com.clinicone.appointment.CreateAppointmentRequest;
 import com.clinicone.auth.AccountStatus;
+import com.clinicone.auth.AuthException;
 import com.clinicone.auth.PatientAccount;
 import com.clinicone.auth.PatientAccountRepository;
 import com.clinicone.auth.StaffAccount;
@@ -135,6 +136,18 @@ class ReceptionServiceTest {
         assertThat(response.roomCode()).isEqualTo("NOI-01");
         verify(queueService).checkInByStaff("NOI-01", APPOINTMENT_ID, "QR phòng bị mờ");
     }// tiếp nhận tại quầy thành công
+
+    @Test
+    void rejectsCheckInWhenAppointmentNotFound() {
+        when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.checkIn(APPOINTMENT_ID,
+                new ReceptionCheckInRequest("NOI-01", "QR phòng bị mờ")))
+                .isInstanceOf(AuthException.class)
+                .extracting("code").isEqualTo("APPOINTMENT_NOT_FOUND");
+
+        verifyNoInteractions(queueService);
+    }// Chặn check-in khi không tìm thấy lịch hẹn
 
     //2. NHÓM ĐẶT LẠI LỊCH CHO BỆNH NHÂN VẮNG MẶT
     @Test
