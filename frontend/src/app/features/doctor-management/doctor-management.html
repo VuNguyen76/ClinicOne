@@ -27,7 +27,6 @@
         <div>
           <mat-icon class="!h-10 !w-10 !text-[40px] text-slate-300">medical_services</mat-icon>
           <p class="mt-2 text-xs font-bold text-slate-800">Chưa có tài khoản bác sĩ</p>
-          <p class="mt-0.5 text-[11px] text-slate-500">Tạo tài khoản bác sĩ đầu tiên để bắt đầu phân công chuyên môn.</p>
           <button data-testid="empty-create-doctor" type="button" class="erp-btn-primary mt-4" (click)="openCreateDoctor()">
             <mat-icon class="!h-4 !w-4 !text-[18px]">add</mat-icon>
             <span>Tạo tài khoản</span>
@@ -35,12 +34,12 @@
         </div>
       </div>
     } @else {
-      <div class="grid gap-5 lg:grid-cols-[300px_minmax(0,1fr)]">
+      <div class="grid gap-5 lg:grid-cols-[320px_minmax(0,1fr)]">
         <!-- Left: Doctor List Card -->
-        <aside class="erp-card h-fit overflow-hidden">
+        <aside class="erp-card h-fit overflow-hidden lg:sticky lg:top-4">
           <div class="erp-card-header">
             <div>
-              <h2 class="text-xs font-bold uppercase tracking-wider text-[#0e3d48]">Danh sách bác sĩ</h2>
+              <h2 class="text-sm font-bold uppercase tracking-wider text-[#0e3d48]">Danh sách bác sĩ</h2>
               <p class="mt-0.5 text-[11px] text-slate-500">{{ doctors().length }} tài khoản</p>
             </div>
             <mat-icon class="text-slate-400">people</mat-icon>
@@ -60,7 +59,7 @@
                   {{ doctor.fullName.slice(0, 1) }}
                 </span>
                 <span class="min-w-0 flex-1">
-                  <strong class="block truncate text-xs text-slate-900">{{ doctor.fullName }}</strong>
+                <strong class="block truncate text-sm text-slate-900">{{ doctor.fullName }}</strong>
                   <span class="mt-0.5 block truncate text-[11px] text-slate-500">{{ doctor.specialty || 'Chưa phân công' }}</span>
                 </span>
                 <span
@@ -80,7 +79,7 @@
             <div class="erp-card-header">
               <div>
                 <p class="text-[10px] font-bold uppercase tracking-wider text-[#0284c7]">Hồ sơ bác sĩ</p>
-                <h2 class="text-xs font-bold text-slate-900">{{ doctor.fullName }} <span class="font-mono text-slate-400 font-normal">({{ doctor.username }})</span></h2>
+                <h2 class="text-base font-bold text-slate-900">{{ doctor.fullName }} <span class="font-mono text-slate-400 font-normal">({{ doctor.username }})</span></h2>
               </div>
               <span [class]="doctor.assigned ? 'erp-badge-success' : 'erp-badge-warning'">
                 <span [class]="doctor.assigned ? 'erp-dot-success' : 'erp-dot-warning'"></span>
@@ -92,8 +91,7 @@
               <!-- Form 1: Specialty & Room Assignment -->
               <form class="grid gap-3.5 border-b border-slate-200 pb-5" [formGroup]="assignmentForm" (ngSubmit)="$event.preventDefault(); saveAssignment()">
                 <div>
-                  <h3 class="text-xs font-bold uppercase tracking-wider text-[#0e3d48]">1. Phân công chuyên môn & Phòng khám</h3>
-                  <p class="mt-0.5 text-[11px] text-slate-500">Phòng khám được lọc tương ứng theo chuyên khoa được gán.</p>
+                  <h3 class="text-sm font-bold uppercase tracking-wider text-[#0e3d48]">1. Phân công chuyên môn & Phòng khám</h3>
                 </div>
                 <div class="grid gap-3.5 sm:grid-cols-2">
                   <label class="grid gap-1">
@@ -126,8 +124,7 @@
               <section class="grid gap-3.5">
                 <div class="flex items-center justify-between">
                   <div>
-                    <h3 class="text-xs font-bold uppercase tracking-wider text-[#0e3d48]">2. Giờ làm việc theo tuần</h3>
-                    <p class="mt-0.5 text-[11px] text-slate-500">Chỉ thêm được sau khi đã gán chuyên khoa và phòng khám.</p>
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-[#0e3d48]">2. Giờ làm việc theo tuần</h3>
                   </div>
                   <span class="font-mono text-xs font-bold text-slate-600">{{ schedules().length }} khung giờ</span>
                 </div>
