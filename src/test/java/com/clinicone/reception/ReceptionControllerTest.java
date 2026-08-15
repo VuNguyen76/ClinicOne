@@ -159,6 +159,13 @@ class ReceptionControllerTest {
                 .andExpect(status().isForbidden());
     }// Chặn bệnh nhân tra cứu danh sách hồ sơ
 
+    @Test
+    void adminCannotSearchReceptionPatientProfiles() throws Exception {
+        mockMvc.perform(get("/api/v1/reception/profiles?phone=0912345678")
+                        .with(authentication(authenticated("ROLE_ADMIN"))))
+                .andExpect(status().isForbidden());
+    } // admin tra cứu danh sách hồ sơ
+
     // Nhóm xử lý ngoại lệ
     @Test
     void receptionistCanConfirmArrival() throws Exception {
