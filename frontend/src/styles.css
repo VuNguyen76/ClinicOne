@@ -711,6 +711,15 @@ input {
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
 }
 
+/* Staff workspaces use the full available canvas. Individual screens may still
+   choose their own internal columns, but the shell must not leave a narrow
+   centered strip on wide displays. */
+.erp-workspace-canvas > .mx-auto {
+  max-width: none;
+  margin-left: 0;
+  margin-right: 0;
+}
+
 .erp-modal-header {
   display: flex;
   align-items: flex-start;
