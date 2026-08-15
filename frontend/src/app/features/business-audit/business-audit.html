@@ -1,7 +1,5 @@
 <app-staff-workspace-shell moduleTitle="Kiểm soát" pageTitle="Lịch sử công việc">
   <div class="grid gap-4">
-    <p class="text-xs text-slate-500">Tra cứu toàn bộ lịch sử thay đổi trạng thái của lịch hẹn, hàng đợi và lượt khám. Dữ liệu chỉ đọc và không thể sửa đổi.</p>
-
     <!-- Search / Filter Bar -->
     <section class="erp-filter-bar">
       <div class="grid gap-3 sm:grid-cols-[200px_1fr_auto] sm:items-end">
@@ -14,7 +12,7 @@
           </select>
         </label>
         <label class="grid gap-1">
-          <span class="erp-label">Mã đối tượng (UUID / ID)</span>
+          <span class="erp-label">Mã đối tượng</span>
           <input
             [ngModel]="entityId()"
             (ngModelChange)="entityId.set($event)"

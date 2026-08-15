@@ -39,6 +39,7 @@ describe('DoctorTimeOffManagement', () => {
     component.startDate.set('2026-08-10');
     component.endDate.set('2026-08-11');
     component.reason.set('Bác sĩ nghỉ đột xuất');
+    (fixture.nativeElement.querySelector('button.erp-btn-primary') as HTMLButtonElement).click();
     fixture.detectChanges();
     (fixture.nativeElement.querySelector('[data-testid="save-time-off"]') as HTMLButtonElement).click();
     const request = http.expectOne('/api/v1/admin/doctor-time-off');
@@ -56,7 +57,7 @@ describe('DoctorTimeOffManagement', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('[data-testid="save-time-off"]')).toBeNull();
-    expect(fixture.nativeElement.textContent).toContain('Chế độ xem');
+    expect(fixture.nativeElement.textContent).not.toContain('Chế độ xem');
   });
 });
 

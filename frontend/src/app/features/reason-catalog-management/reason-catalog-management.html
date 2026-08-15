@@ -1,7 +1,11 @@
 <app-staff-workspace-shell moduleTitle="Danh mục" pageTitle="Lý do vận hành">
+  <div workspace-actions>
+    <button type="button" class="erp-btn-primary" (click)="openCreate()">
+      <mat-icon class="!h-4 !w-4 !text-[18px]">add</mat-icon>
+      <span>Thêm lý do</span>
+    </button>
+  </div>
   <div class="grid gap-4">
-    <p class="text-xs text-slate-500">Danh mục lý do hủy dùng chung khi bệnh nhân hủy gần giờ khám hoặc hủy do thay đổi kế hoạch.</p>
-
     @if (error()) {
       <div class="rounded-md border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs font-semibold text-rose-700" role="alert">
         {{ error() }}
@@ -18,32 +22,6 @@
         Đang tải danh mục...
       </div>
     } @else {
-      <!-- Add Reason Card -->
-      <section class="erp-card">
-        <div class="erp-card-header">
-          <div>
-            <h2 class="text-xs font-bold uppercase tracking-wider text-[#0e3d48]">Thêm lý do hủy lịch</h2>
-            <p class="mt-0.5 text-[11px] text-slate-500">Mã không đổi sau khi đã được dùng trong lịch sử.</p>
-          </div>
-          <mat-icon class="text-slate-400">add_circle_outline</mat-icon>
-        </div>
-        <form class="grid gap-3.5 p-4 md:grid-cols-[240px_1fr_auto] md:items-end" (ngSubmit)="$event.preventDefault(); create()">
-          <label class="grid gap-1">
-            <span class="erp-label">Mã lý do <span class="erp-label-required">*</span></span>
-            <input name="code" [ngModel]="code()" (ngModelChange)="code.set($event)" maxlength="50" placeholder="VD: SCHEDULE_CHANGE" class="erp-input font-mono uppercase" />
-          </label>
-          <label class="grid gap-1">
-            <span class="erp-label">Tên hiển thị <span class="erp-label-required">*</span></span>
-            <input name="label" [ngModel]="label()" (ngModelChange)="label.set($event)" maxlength="160" placeholder="VD: Thay đổi kế hoạch cá nhân" class="erp-input" />
-          </label>
-          <button type="submit" [disabled]="saving()" class="erp-btn-primary">
-            <mat-icon class="!h-4 !w-4 !text-[18px]">add</mat-icon>
-            <span>Thêm</span>
-          </button>
-        </form>
-      </section>
-
-      <!-- Reasons Table Card -->
       <section class="erp-card overflow-hidden">
         <div class="erp-card-header">
           <div>
@@ -82,6 +60,7 @@
                     <button
                       type="button"
                       class="erp-btn-secondary !min-h-7 !px-2.5 !text-[11px]"
+                      [class.erp-btn-danger]="item.active"
                       (click)="toggle(item)"
                     >
                       {{ item.active ? 'Tạm ngưng' : 'Bật lại' }}
@@ -101,4 +80,31 @@
       </section>
     }
   </div>
+
+  @if (modalOpen()) {
+    <div class="erp-modal-overlay" role="presentation" (click)="closeModal()">
+      <section class="erp-modal-container max-w-lg" role="dialog" aria-modal="true" aria-label="Thêm lý do" (click)="$event.stopPropagation()">
+        <div class="erp-modal-header">
+          <h2 class="text-base font-bold text-slate-900">Thêm lý do hủy lịch</h2>
+          <button type="button" class="erp-btn-icon" aria-label="Đóng" (click)="closeModal()">
+            <mat-icon class="!h-5 !w-5 !text-[20px]">close</mat-icon>
+          </button>
+        </div>
+        <form class="erp-modal-body grid gap-3.5" (ngSubmit)="$event.preventDefault(); create()">
+          <label class="grid gap-1">
+            <span class="erp-label">Mã lý do <span class="erp-label-required">*</span></span>
+            <input name="code" [ngModel]="code()" (ngModelChange)="code.set($event)" maxlength="50" placeholder="VD: SCHEDULE_CHANGE" class="erp-input font-mono uppercase" />
+          </label>
+          <label class="grid gap-1">
+            <span class="erp-label">Tên hiển thị <span class="erp-label-required">*</span></span>
+            <input name="label" [ngModel]="label()" (ngModelChange)="label.set($event)" maxlength="160" placeholder="VD: Thay đổi kế hoạch cá nhân" class="erp-input" />
+          </label>
+          <div class="erp-modal-footer -mx-4 -mb-4 mt-2">
+            <button type="button" class="erp-btn-secondary" (click)="closeModal()">Hủy</button>
+            <button type="submit" [disabled]="saving()" class="erp-btn-primary">{{ saving() ? 'Đang lưu...' : 'Thêm lý do' }}</button>
+          </div>
+        </form>
+      </section>
+    </div>
+  }
 </app-staff-workspace-shell>

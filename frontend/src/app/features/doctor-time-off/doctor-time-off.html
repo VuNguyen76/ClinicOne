@@ -1,6 +1,12 @@
 <app-staff-workspace-shell moduleTitle="Vận hành" pageTitle="Bác sĩ nghỉ đột xuất">
   <!-- Window Action Toolbar Slot -->
   <div workspace-actions class="flex items-center gap-2">
+    @if (canManageTimeOff()) {
+      <button type="button" class="erp-btn-primary" (click)="openCreate()">
+        <mat-icon class="!h-4 !w-4 !text-[16px]">add</mat-icon>
+        <span>Ghi nhận lịch nghỉ</span>
+      </button>
+    }
     <button
       type="button"
       class="erp-btn-secondary"
@@ -37,7 +43,7 @@
       </div>
     }
     @else {
-      <div class="grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(360px,0.75fr)]">
+      <div class="grid gap-4">
         <!-- Left Pane: Time-off Records Table -->
         <section class="erp-card overflow-hidden" aria-label="Lịch nghỉ đã ghi nhận">
           <div class="erp-toolbar">
@@ -109,15 +115,17 @@
           }
         </section>
 
-        <!-- Right Pane: Add Time Off Form -->
-        <div class="space-y-4">
-          @if (canManageTimeOff()) {
-            <section class="erp-card h-fit overflow-hidden">
+        @if (modalOpen() && canManageTimeOff()) {
+          <div class="erp-modal-overlay" role="presentation" (click)="closeModal()">
+            <section class="erp-modal-container max-w-2xl" role="dialog" aria-modal="true" aria-label="Ghi nhận lịch nghỉ" (click)="$event.stopPropagation()">
               <div class="erp-card-header">
                 <div>
                   <span class="erp-badge erp-badge-info">Tạo ghi nhận</span>
                   <h2 class="mt-1 text-sm font-bold text-slate-900">Thêm lịch nghỉ</h2>
                 </div>
+                <button type="button" class="erp-btn-icon" aria-label="Đóng" (click)="closeModal()">
+                  <mat-icon class="!h-5 !w-5 !text-[20px]">close</mat-icon>
+                </button>
               </div>
 
               <form class="space-y-3.5 p-4" (ngSubmit)="$event.preventDefault(); submit()">
@@ -185,14 +193,8 @@
                 </button>
               </form>
             </section>
-          }
-          @else {
-            <section class="rounded-md border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900 shadow-xs">
-              <p class="text-sm font-bold text-amber-950">Chế độ xem</p>
-              <p class="mt-1">Chỉ điều phối viên được ghi nhận lịch nghỉ của bác sĩ.</p>
-            </section>
-          }
-        </div>
+          </div>
+        }
       </div>
     }
   </div>
