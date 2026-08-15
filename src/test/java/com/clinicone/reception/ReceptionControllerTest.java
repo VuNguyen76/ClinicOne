@@ -83,6 +83,17 @@ class ReceptionControllerTest {
                 .andExpect(jsonPath("$[0].roomCode").value("NOI-01"));
     }
 
+    @Test
+    void receptionistGetsEmptyListWhenAppointmentNotFound() throws Exception {
+        when(service.search(eq("0999999999"), eq(LocalDate.of(2026, 8, 7))))
+                .thenReturn(List.of());
+
+        mockMvc.perform(get("/api/v1/reception/appointments?query=0999999999&date=2026-08-07")
+                        .with(authentication(authenticated("ROLE_RECEPTIONIST"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }// Mã lịch hẹn không tồn tại
+
     // Nhóm Bảo mật API cho nhóm tiếp nhận
     @Test
     void doctorCannotUseReceptionSearch() throws Exception {
