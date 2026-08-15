@@ -67,6 +67,22 @@ class ReceptionControllerTest {
                 .andExpect(jsonPath("$[0].accountStatus").value("ACTIVE"));
     }
 
+    @Test
+    void receptionistCanSearchTodaysAppointmentByCode() throws Exception {
+        // 1. Giả lập Service trả về danh sách lịch hẹn khi tìm theo Mã lịch hẹn
+        when(service.search(eq("CL-20260807-1234"), eq(LocalDate.of(2026, 8, 7))))
+                .thenReturn(List.of(response()));
+
+        // 2. Gửi request GET kèm query là mã lịch hẹn với quyền Lễ tân
+        mockMvc.perform(get("/api/v1/reception/appointments?query=CL-20260807-1234&date=2026-08-07")
+                        .with(authentication(authenticated("ROLE_RECEPTIONIST"))))
+                // 3. Kiểm tra kết quả trả về mã 200 OK và đúng thông tin
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].appointmentCode").value("CL-20260807-1234"))
+                .andExpect(jsonPath("$[0].patientName").value("Nguyễn Thanh Vũ"))
+                .andExpect(jsonPath("$[0].roomCode").value("NOI-01"));
+    }
+
     // Nhóm Bảo mật API cho nhóm tiếp nhận
     @Test
     void doctorCannotUseReceptionSearch() throws Exception {
@@ -166,8 +182,6 @@ class ReceptionControllerTest {
                 .andExpect(jsonPath("$.fullName").value("Nguyễn Văn Tạm"))
                 .andExpect(jsonPath("$.accountStatus").doesNotExist());
     }
-
-    
 
     private static UsernamePasswordAuthenticationToken authenticated(String role) {
         return UsernamePasswordAuthenticationToken.authenticated(STAFF_ID.toString(), null,
