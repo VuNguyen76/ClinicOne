@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { provideRouter } from '@angular/router';
 import { StaffWorkspaceShell } from './staff-workspace-shell';
 
@@ -46,5 +47,29 @@ describe('StaffWorkspaceShell', () => {
       .toContain('Làm mới');
     expect(fixture.nativeElement.querySelector('[data-testid="projected-content"]')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('[data-testid="workspace-tabs"]')?.textContent).toContain('Thiết lập');
+  });
+
+  it('clears pointer focus from a clicked module link without affecting keyboard navigation', () => {
+    const link = fixture.nativeElement.querySelector('[data-testid="staff-module-nav"] a') as HTMLAnchorElement;
+    link.focus();
+
+    const shell = fixture.debugElement.query(By.directive(StaffWorkspaceShell)).componentInstance as unknown as {
+      handleNavigationClick(event: MouseEvent): void;
+    };
+    shell
+      .handleNavigationClick({ currentTarget: link, detail: 1 } as unknown as MouseEvent);
+
+    expect(document.activeElement).not.toBe(link);
+  });
+
+  it('filters the module menu from the functional search input', () => {
+    const input = fixture.nativeElement.querySelector('input[type="search"]') as HTMLInputElement;
+    input.value = 'hàng đợi';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    const items = fixture.nativeElement.querySelectorAll('[data-testid="staff-module-nav"] a span') as NodeListOf<HTMLSpanElement>;
+    const labels = Array.from(items).map((element) => element.textContent?.trim());
+    expect(labels).toEqual(['Hàng đợi khám bệnh']);
   });
 });

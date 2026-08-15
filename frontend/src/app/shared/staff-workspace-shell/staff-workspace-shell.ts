@@ -97,6 +97,14 @@ export class StaffWorkspaceShell {
     this.navigationOpen.set(false);
   }
 
+  protected handleNavigationClick(event: MouseEvent): void {
+    // Pointer navigation must not leave an item focused after the destination
+    // view is rendered; that focus restoration can pull the page unexpectedly.
+    const item = event.currentTarget;
+    if (event.detail > 0 && item instanceof HTMLElement) item.blur();
+    this.closeNavigation();
+  }
+
   protected updateFunctionQuery(event: Event): void {
     this.functionQuery.set((event.target as HTMLInputElement).value);
   }
