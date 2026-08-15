@@ -94,6 +94,24 @@ class ReceptionControllerTest {
                 .andExpect(jsonPath("$.length()").value(0));
     }// Mã lịch hẹn không tồn tại
 
+    @Test
+    void receptionistCanSearchMultipleAppointmentsForSamePhone() throws Exception {
+        ReceptionAppointmentResponse secondAppointment = new ReceptionAppointmentResponse(
+                UUID.randomUUID(), "CL-20260807-9999", LocalDate.of(2026, 8, 7),
+                LocalTime.of(10, 30), "Răng Hàm Mặt", "BS. Tran B", "RHM-01", "Phòng RHM 01", null,
+                "Nguyễn Thanh Vũ", "0912345678", "BOOKED", null, null, null);
+
+        when(service.search(eq("0912345678"), eq(LocalDate.of(2026, 8, 7))))
+                .thenReturn(List.of(response(), secondAppointment));
+
+        mockMvc.perform(get("/api/v1/reception/appointments?query=0912345678&date=2026-08-07")
+                        .with(authentication(authenticated("ROLE_RECEPTIONIST"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].appointmentCode").value("CL-20260807-1234"))
+                .andExpect(jsonPath("$[1].appointmentCode").value("CL-20260807-9999"));
+    }// Nhập SDT trả đủ số lịch hẹn >1
+
     // Nhóm Bảo mật API cho nhóm tiếp nhận
     @Test
     void doctorCannotUseReceptionSearch() throws Exception {
