@@ -98,6 +98,44 @@ class ReceptionServiceTest {
         verifyNoInteractions(queueService);
     }
 
+    @Test
+    void checkInSuccessfullyForValidPatient() {
+        PatientAccount patient = mock(PatientAccount.class);
+        when(patient.getStatus()).thenReturn(AccountStatus.ACTIVE);
+        when(patient.isMustChangePassword()).thenReturn(false);
+        when(patient.getFullName()).thenReturn("Nguyễn Thanh Vũ");
+
+        Appointment appointment = mock(Appointment.class);
+        when(appointment.getId()).thenReturn(APPOINTMENT_ID);
+        when(appointment.getAppointmentCode()).thenReturn("CL-20260807-1234");
+        when(appointment.getAppointmentDate()).thenReturn(TODAY);
+        when(appointment.getStartTime()).thenReturn(LocalTime.of(9, 0));
+        when(appointment.getSpecialty()).thenReturn("Nội tổng quát");
+        when(appointment.getDoctorName()).thenReturn("BS. Nguyễn An");
+        when(appointment.getDoctorStaffId()).thenReturn(DOCTOR_ID);
+        when(appointment.getPatient()).thenReturn(patient);
+        when(appointment.getStatus()).thenReturn(AppointmentStatus.BOOKED);
+        when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
+
+        ClinicRoom room = ClinicRoom.create("NOI-01", "Phòng Nội 01", "Nội tổng quát");
+        DoctorProfile doctor = mock(DoctorProfile.class);
+        when(doctor.isActive()).thenReturn(true);
+        when(doctor.getRoom()).thenReturn(room);
+        when(doctorProfileRepository.findByStaffAccount_Id(DOCTOR_ID)).thenReturn(Optional.of(doctor));
+
+        QueueTicketResponse ticket = new QueueTicketResponse(UUID.randomUUID(), 5, "NOI-01", "Phòng Nội 01",
+                TODAY, LocalTime.of(9, 0), "WAITING", "Đang chờ", "CL-20260807-1234", "Nội tổng quát", "BS. Nguyễn An");
+        when(queueService.checkInByStaff("NOI-01", APPOINTMENT_ID, "QR phòng bị mờ")).thenReturn(ticket);
+
+        ReceptionAppointmentResponse response = service.checkIn(APPOINTMENT_ID,
+                new ReceptionCheckInRequest("NOI-01", "QR phòng bị mờ"));
+
+        assertThat(response.queueNumber()).isEqualTo(5);
+        assertThat(response.queueStatus()).isEqualTo("WAITING");
+        assertThat(response.roomCode()).isEqualTo("NOI-01");
+        verify(queueService).checkInByStaff("NOI-01", APPOINTMENT_ID, "QR phòng bị mờ");
+    }// tiếp nhận tại quầy thành công
+
     //2. NHÓM ĐẶT LẠI LỊCH CHO BỆNH NHÂN VẮNG MẶT
     @Test
     void rebooksAbsentAppointmentWithoutRestoringOldAppointment() {
