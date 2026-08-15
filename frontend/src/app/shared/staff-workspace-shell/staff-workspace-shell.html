@@ -16,7 +16,7 @@
       <!-- Brand Logo -->
       <a
         [routerLink]="landingRoute"
-        class="flex h-full w-[224px] shrink-0 items-center gap-2.5 border-r border-slate-200 bg-white px-4 transition hover:bg-slate-50/80"
+        class="flex h-full w-[224px] shrink-0 items-center gap-2.5 border-r border-slate-200 bg-white px-4 transition hover:bg-slate-50/80 lg:w-[256px]"
         aria-label="ClinicOne"
       >
         <img class="h-8 w-8 object-contain" src="clinicone-mark.png" alt="" aria-hidden="true" />
@@ -45,7 +45,7 @@
   </header>
 
   <!-- Shell Body (Sidebar + Work Window) -->
-  <div class="lg:grid lg:grid-cols-[224px_minmax(0,1fr)]">
+  <div class="lg:grid lg:grid-cols-[256px_minmax(0,1fr)]">
     <!-- Backdrop for mobile sidebar -->
     @if (navigationOpen()) {
       <button
@@ -58,7 +58,7 @@
 
     <!-- Left Navigation Rail -->
     <aside
-      class="fixed inset-y-14 left-0 z-30 w-[224px] overflow-y-auto border-r border-slate-200 bg-white transition-transform lg:sticky lg:top-14 lg:h-[calc(100dvh-3.5rem)] lg:translate-x-0"
+      class="fixed inset-y-14 left-0 z-30 w-[256px] overflow-y-auto border-r border-slate-200 bg-white transition-transform lg:sticky lg:top-14 lg:h-[calc(100dvh-3.5rem)] lg:translate-x-0"
       [class.translate-x-0]="navigationOpen()"
       [class.-translate-x-full]="!navigationOpen()"
       data-testid="staff-module-nav"
@@ -66,17 +66,17 @@
       <nav class="py-3" aria-label="Danh mục chức năng">
         @for (group of visibleNavigation(); track group.label) {
           <section class="mb-3">
-            <h2 class="px-4 pb-1 text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400">{{ group.label }}</h2>
+            <h2 class="px-4 pb-1 text-xs font-bold uppercase tracking-[0.1em] text-slate-400">{{ group.label }}</h2>
             <div class="grid gap-0.5 px-2">
               @for (item of group.items; track item.route) {
                 <a
                   [routerLink]="item.route"
                   routerLinkActive="bg-sky-50 text-[#0284c7] font-semibold shadow-[inset_3px_0_0_#0284c7]"
                   [routerLinkActiveOptions]="{ exact: false }"
-                  class="flex min-h-9 items-center gap-2.5 rounded-md px-3 text-xs font-medium text-slate-700 transition hover:bg-slate-100/80 hover:text-slate-900"
+                  class="flex min-h-11 items-center gap-3 rounded-md px-3.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100/80 hover:text-slate-900"
                   (click)="closeNavigation()"
                 >
-                  <mat-icon class="!h-4 !w-4 !text-[18px] text-slate-500">{{ item.icon }}</mat-icon>
+                  <mat-icon class="!h-5 !w-5 !text-[20px] text-slate-500">{{ item.icon }}</mat-icon>
                   <span class="truncate">{{ item.label }}</span>
                 </a>
               }
