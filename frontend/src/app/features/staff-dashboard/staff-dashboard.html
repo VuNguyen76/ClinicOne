@@ -81,39 +81,41 @@
       }
     </section>
 
-    <!-- Summary KPI Cards -->
-    <section class="grid grid-cols-2 gap-3 sm:grid-cols-4" aria-label="Tóm tắt hàng đợi">
-      <div class="erp-kpi-card border-t-2 border-t-[#0284c7]">
-        <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Đang chờ</p>
-        <p data-testid="waiting-count" class="mt-1 font-mono text-2xl font-bold tracking-tight text-[#0284c7]">
-          {{ waitingCount() }}
-        </p>
-      </div>
-      <div class="erp-kpi-card border-t-2 border-t-amber-500">
-        <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Đã gọi</p>
-        <p class="mt-1 font-mono text-2xl font-bold tracking-tight text-amber-600">
-          {{ calledCount() }}
-        </p>
-      </div>
-      <div class="erp-kpi-card border-t-2 border-t-violet-500">
-        <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Đang khám</p>
-        <p class="mt-1 font-mono text-2xl font-bold tracking-tight text-violet-600">
-          {{ inServiceCount() }}
-        </p>
-      </div>
-      <div class="erp-kpi-card border-t-2 border-t-emerald-500">
-        <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Hoàn tất</p>
-        <p class="mt-1 font-mono text-2xl font-bold tracking-tight text-emerald-600">
-          {{ completedCount() }}
-        </p>
-      </div>
-    </section>
+    @if (!isOwnDoctor()) {
+      <!-- Summary is useful for coordinators; doctors need the queue immediately. -->
+      <section class="grid grid-cols-2 gap-3 sm:grid-cols-4" aria-label="Tóm tắt hàng đợi">
+        <div class="erp-kpi-card border-t-2 border-t-[#0284c7]">
+          <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Đang chờ</p>
+          <p data-testid="waiting-count" class="mt-1 font-mono text-2xl font-bold tracking-tight text-[#0284c7]">
+            {{ waitingCount() }}
+          </p>
+        </div>
+        <div class="erp-kpi-card border-t-2 border-t-amber-500">
+          <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Đã gọi</p>
+          <p class="mt-1 font-mono text-2xl font-bold tracking-tight text-amber-600">
+            {{ calledCount() }}
+          </p>
+        </div>
+        <div class="erp-kpi-card border-t-2 border-t-violet-500">
+          <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Đang khám</p>
+          <p class="mt-1 font-mono text-2xl font-bold tracking-tight text-violet-600">
+            {{ inServiceCount() }}
+          </p>
+        </div>
+        <div class="erp-kpi-card border-t-2 border-t-emerald-500">
+          <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Hoàn tất</p>
+          <p class="mt-1 font-mono text-2xl font-bold tracking-tight text-emerald-600">
+            {{ completedCount() }}
+          </p>
+        </div>
+      </section>
+    }
 
     <!-- Queue Table Card -->
     <section class="erp-card overflow-hidden" aria-label="Danh sách lượt khám">
       <div class="erp-toolbar">
         <div class="flex items-center gap-2.5">
-          <h2 class="text-sm font-bold uppercase tracking-wider text-slate-800">Lượt khám hôm nay</h2>
+          <h2 class="text-sm font-bold uppercase tracking-wider text-slate-800">{{ isOwnDoctor() ? 'Hàng đợi phòng khám' : 'Lượt khám hôm nay' }}</h2>
           <span class="rounded-full bg-slate-100 px-2 py-0.5 font-mono text-[11px] font-semibold text-slate-600">
             {{ selectedDate() }} · {{ queue().length }} lượt
           </span>

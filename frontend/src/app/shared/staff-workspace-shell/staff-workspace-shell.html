@@ -27,10 +27,16 @@
       <div class="hidden min-w-0 flex-1 items-center gap-3 px-4 md:flex">
         <span class="truncate text-xs font-bold uppercase tracking-wider text-slate-500">{{ moduleTitle() }}</span>
         <span class="h-4 w-px bg-slate-200"></span>
-        <div class="flex h-8 w-full max-w-sm items-center gap-2 rounded-md border border-slate-200 bg-slate-50/80 px-2.5 text-xs text-slate-400" aria-label="Tra cứu chức năng">
+        <label class="flex h-8 w-full max-w-sm items-center gap-2 rounded-md border border-slate-200 bg-slate-50/80 px-2.5 text-xs text-slate-400 focus-within:border-[#0284c7] focus-within:bg-white focus-within:ring-2 focus-within:ring-sky-100" aria-label="Tra cứu chức năng">
           <mat-icon class="!h-4 !w-4 !text-[16px] text-slate-400">search</mat-icon>
-          <span>Tra cứu chức năng</span>
-        </div>
+          <input
+            type="search"
+            class="min-w-0 flex-1 bg-transparent text-xs text-slate-700 outline-none placeholder:text-slate-400"
+            placeholder="Tra cứu chức năng"
+            [value]="functionQuery()"
+            (input)="updateFunctionQuery($event)"
+          />
+        </label>
       </div>
 
       <!-- Right Staff Info & Profile -->
@@ -74,7 +80,7 @@
                   routerLinkActive="bg-sky-50 text-[#0284c7] font-semibold shadow-[inset_3px_0_0_#0284c7]"
                   [routerLinkActiveOptions]="{ exact: false }"
                   class="flex min-h-11 items-center gap-3 rounded-md px-3.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100/80 hover:text-slate-900"
-                  (click)="closeNavigation()"
+                  (click)="handleNavigationClick($event)"
                 >
                   <mat-icon class="!h-5 !w-5 !text-[20px] text-slate-500">{{ item.icon }}</mat-icon>
                   <span class="truncate">{{ item.label }}</span>
