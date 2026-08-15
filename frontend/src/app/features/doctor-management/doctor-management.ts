@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { forkJoin } from 'rxjs';
 import {
@@ -14,13 +13,12 @@ import {
   SpecialtyOption,
   apiErrorMessage,
 } from '../../core/auth/auth-api.service';
-import { AccountMenu } from '../../shared/account-menu/account-menu';
 import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
 
 @Component({
   selector: 'app-doctor-management',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, MatIconModule, AccountMenu, StaffWorkspaceShell],
+  imports: [CommonModule, ReactiveFormsModule, MatIconModule, StaffWorkspaceShell],
   templateUrl: './doctor-management.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

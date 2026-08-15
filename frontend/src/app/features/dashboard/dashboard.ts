@@ -91,12 +91,12 @@ export class Dashboard implements OnInit {
 
   protected queueStatusClass(status: string): string {
     switch (status) {
-      case 'CALLED': return 'bg-sky-50 text-sky-700';
-      case 'IN_SERVICE': return 'bg-violet-50 text-violet-700';
-      case 'COMPLETED': return 'bg-emerald-50 text-emerald-700';
+      case 'CALLED': return 'erp-badge-info';
+      case 'IN_SERVICE': return 'erp-badge-info';
+      case 'COMPLETED': return 'erp-badge-success';
       case 'SKIPPED':
-      case 'LEFT_BEFORE_EXAM': return 'bg-amber-50 text-amber-700';
-      default: return 'bg-slate-100 text-slate-700';
+      case 'LEFT_BEFORE_EXAM': return 'erp-badge-warning';
+      default: return 'erp-badge-neutral';
     }
   }
 

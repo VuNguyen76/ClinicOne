@@ -1,58 +1,300 @@
-<app-staff-workspace-shell moduleTitle="Vận hành" pageTitle="Lịch làm việc">
-<main class="staff-legacy-page min-h-screen bg-[#f6f8f9] text-[#173f4b]">
-  <header class="sticky top-0 z-30 h-16 border-b border-[#dce7ea] bg-white/95 backdrop-blur">
-    <div class="mx-auto flex h-full max-w-[1440px] items-center justify-between gap-4 px-4 lg:px-8">
-      <a routerLink="/admin/schedule-templates" class="flex items-center gap-2.5" aria-label="ClinicOne">
-        <img class="h-8 w-8 object-contain" src="clinicone-mark.png" alt="" aria-hidden="true" />
-        <span class="text-lg font-bold tracking-[-0.05em] text-[#0a303b]">Clinic<span class="text-[#0ea5e9]">One</span></span>
-        <span class="hidden border-l border-[#dce7ea] pl-3 text-sm font-medium text-slate-500 sm:inline">Mẫu lịch làm việc</span>
-      </a>
-      <app-account-menu />
-    </div>
-  </header>
-
-  <div class="mx-auto max-w-[1440px] px-4 py-6 lg:px-8 lg:py-8">
-    <section class="flex flex-wrap items-end justify-between gap-4 border-b border-[#dce7ea] pb-5">
-      <div><p class="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0b91c9]">Cấu hình vận hành</p>
-        <h1 class="mt-2 text-2xl font-bold tracking-[-0.04em] text-[#0a303b]">Mẫu lịch làm việc</h1>
-        <p class="mt-1 text-sm text-slate-500">Chọn một lần, ClinicOne tự sinh các khung giờ có thể đặt.</p></div>
-      <mat-icon class="!h-9 !w-9 !text-[36px] text-[#0b91c9]">calendar_month</mat-icon>
-    </section>
-
-    @if (error()) {<p class="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700" role="alert">{{ error() }}</p>}
-    @if (notice()) {<p class="mt-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm text-emerald-700" role="status">{{ notice() }}</p>}
-
-    @if (loading()) {<div class="mt-5 grid min-h-72 place-items-center border border-[#dce7ea] bg-white text-sm text-slate-500">Đang tải dữ liệu cấu hình...</div>}
-    @else {<div class="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(420px,0.72fr)]">
-      <section class="overflow-hidden border border-[#dce7ea] bg-white">
-        <div class="flex items-center justify-between border-b border-[#e7eff1] px-5 py-4"><div><h2 class="text-sm font-bold">Mẫu đang áp dụng</h2><p class="mt-0.5 text-xs text-slate-500">{{ templates().length }} mẫu · khung giờ được sinh tự động</p></div><mat-icon class="text-[#0b91c9]">view_timeline</mat-icon></div>
-        <div class="divide-y divide-[#edf2f3]">
-          @for (template of templates(); track template.id) {<article data-testid="template-row" class="grid gap-3 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-            <div><div class="flex flex-wrap items-center gap-2"><h3 class="font-semibold text-[#173f4b]">{{ template.serviceName }}</h3><span class="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700">Đang dùng</span></div>
-              <p class="mt-1 text-xs text-slate-500">{{ template.doctorName }} · Phòng {{ template.roomCode }} · {{ template.durationMinutes }} phút/lượt</p>
-              <p class="mt-1 text-xs text-slate-500">{{ template.startDate }} – {{ template.endDate }} · {{ formatWeekdays(template.weekdays) }}</p>
-              <p class="mt-1 text-xs font-semibold text-[#087eae]">{{ template.generatedSlotCount }} khung giờ đã sinh</p></div>
-            @if (canManageSchedule()) {<button type="button" class="rounded-md border border-[#d5e3e7] px-3 py-2 text-xs font-semibold text-[#087eae] hover:bg-[#effaff]" (click)="regenerate(template)">Sinh bổ sung</button>}
-          </article>} @empty {<div class="grid min-h-56 place-items-center px-5 text-center"><div><mat-icon class="!h-8 !w-8 !text-[32px] text-slate-300">event_busy</mat-icon><p class="mt-2 text-sm font-semibold">Chưa có mẫu lịch</p><p class="mt-1 text-xs text-slate-500">Tạo mẫu đầu tiên ở khung bên cạnh.</p></div></div>}
-        </div>
-      </section>
-
-      @if (!canManageSchedule()) {<section class="h-fit border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900"><p class="font-semibold">Chế độ xem</p><p class="mt-1 text-xs">Chỉ điều phối viên được tạo hoặc sinh bổ sung khung giờ.</p></section>}
-      <section class="h-fit border border-[#dce7ea] bg-white" [class.hidden]="!canManageSchedule()">
-        <div class="border-b border-[#e7eff1] px-5 py-4"><p class="text-[10px] font-bold uppercase tracking-[0.14em] text-[#0b91c9]">Tạo mẫu mới</p><h2 class="mt-1 text-lg font-bold">Lịch lặp theo tuần</h2><p class="mt-1 text-xs text-slate-500">Thời lượng được lấy theo dịch vụ đã chọn.</p></div>
-        <form class="grid gap-4 p-5" (ngSubmit)="$event.preventDefault(); submit()">
-          <label class="grid gap-1.5 text-sm font-semibold">Dịch vụ khám<select data-testid="template-service" class="min-h-10 rounded-md border border-[#d5e3e7] bg-white px-3 text-sm font-normal outline-none focus:border-[#0ea5e9]" [ngModel]="selectedServiceId()" (ngModelChange)="selectService($event)" name="service"><option value="">Chọn dịch vụ</option>@for (service of services(); track service.id) {<option [value]="service.id">{{ service.name }} · {{ service.durationMinutes }} phút</option>}</select></label>
-          <div class="grid gap-3 sm:grid-cols-2"><label class="grid gap-1.5 text-sm font-semibold">Bác sĩ<select class="min-h-10 rounded-md border border-[#d5e3e7] bg-white px-3 text-sm font-normal outline-none focus:border-[#0ea5e9]" [ngModel]="selectedDoctorId()" (ngModelChange)="selectDoctor($event)" name="doctor"><option value="">Chọn bác sĩ</option>@for (doctor of availableDoctors(); track doctor.staffId) {<option [value]="doctor.staffId">{{ doctor.fullName }}</option>}</select></label>
-            <label class="grid gap-1.5 text-sm font-semibold">Phòng<select class="min-h-10 rounded-md border border-[#d5e3e7] bg-white px-3 text-sm font-normal outline-none focus:border-[#0ea5e9]" [ngModel]="selectedRoomId()" (ngModelChange)="selectedRoomId.set($event)" name="room"><option value="">Chọn phòng</option>@for (room of availableRooms(); track room.id) {<option [value]="room.id">{{ room.code }} · {{ room.name }}</option>}</select></label></div>
-          <div class="grid gap-3 sm:grid-cols-2"><label class="grid gap-1.5 text-sm font-semibold">Từ ngày<input type="date" [min]="today" [ngModel]="startDate()" (ngModelChange)="startDate.set($event)" name="startDate" class="min-h-10 rounded-md border border-[#d5e3e7] px-3 text-sm font-normal" /></label><label class="grid gap-1.5 text-sm font-semibold">Đến ngày<input type="date" [min]="startDate()" [ngModel]="endDate()" (ngModelChange)="endDate.set($event)" name="endDate" class="min-h-10 rounded-md border border-[#d5e3e7] px-3 text-sm font-normal" /></label></div>
-          <div class="grid gap-3 sm:grid-cols-2"><label class="grid gap-1.5 text-sm font-semibold">Bắt đầu<input type="time" [ngModel]="dayStart()" (ngModelChange)="dayStart.set($event)" name="dayStart" class="min-h-10 rounded-md border border-[#d5e3e7] px-3 text-sm font-normal" /></label><label class="grid gap-1.5 text-sm font-semibold">Kết thúc<input type="time" [ngModel]="dayEnd()" (ngModelChange)="dayEnd.set($event)" name="dayEnd" class="min-h-10 rounded-md border border-[#d5e3e7] px-3 text-sm font-normal" /></label></div>
-          <fieldset class="grid gap-2"><legend class="text-sm font-semibold">Ngày làm trong tuần</legend><div class="grid grid-cols-4 gap-2">@for (day of weekdays; track day.value) {<label class="flex items-center gap-2 rounded-md border border-[#edf2f3] px-2 py-2 text-xs"><input type="checkbox" [checked]="isWeekdaySelected(day.value)" (change)="toggleWeekday(day.value, $any($event.target).checked)" />{{ day.label }}</label>}</div></fieldset>
-          <div class="grid gap-3 sm:grid-cols-2"><label class="grid gap-1.5 text-sm font-semibold">Nghỉ từ <span class="font-normal text-slate-400">(nếu có)</span><input type="time" [ngModel]="breakStart()" (ngModelChange)="breakStart.set($event)" name="breakStart" class="min-h-10 rounded-md border border-[#d5e3e7] px-3 text-sm font-normal" /></label><label class="grid gap-1.5 text-sm font-semibold">Nghỉ đến<input type="time" [ngModel]="breakEnd()" (ngModelChange)="breakEnd.set($event)" name="breakEnd" class="min-h-10 rounded-md border border-[#d5e3e7] px-3 text-sm font-normal" /></label></div>
-          <label class="grid gap-1.5 text-sm font-semibold">Ngày nghỉ ngoại lệ <span class="font-normal text-slate-400">(cách nhau bằng dấu phẩy)</span><input [ngModel]="exceptionDatesText()" (ngModelChange)="exceptionDatesText.set($event)" name="exceptions" placeholder="2026-08-20, 2026-08-27" class="min-h-10 rounded-md border border-[#d5e3e7] px-3 text-sm font-normal" /></label>
-          <button data-testid="save-template" type="submit" class="min-h-10 rounded-md bg-[#0b3846] px-4 text-sm font-semibold text-white hover:bg-[#082d39] disabled:opacity-50" [disabled]="saving()">{{ saving() ? 'Đang sinh khung giờ...' : 'Lưu và sinh khung giờ' }}</button>
-        </form>
-      </section>
-    </div>}
+<app-staff-workspace-shell moduleTitle="Vận hành" pageTitle="Mẫu lịch làm việc">
+  <!-- Window Action Toolbar Slot -->
+  <div workspace-actions class="flex items-center gap-2">
+    <button
+      type="button"
+      class="erp-btn-secondary"
+      (click)="loadData()"
+      [disabled]="loading()"
+    >
+      <mat-icon class="!h-4 !w-4 !text-[16px]">refresh</mat-icon>
+      <span>Làm mới</span>
+    </button>
   </div>
-</main>
+
+  <div class="mx-auto max-w-[1440px] space-y-4">
+    <!-- Alerts & Warnings -->
+    @if (error()) {
+      <div class="flex items-center gap-2 rounded-md border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs font-medium text-rose-800 shadow-xs" role="alert">
+        <mat-icon class="!h-4 !w-4 !text-[18px] text-rose-600">error_outline</mat-icon>
+        <span>{{ error() }}</span>
+      </div>
+    }
+    @if (notice()) {
+      <div class="flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-xs font-medium text-emerald-800 shadow-xs" role="status">
+        <mat-icon class="!h-4 !w-4 !text-[18px] text-emerald-600">check_circle</mat-icon>
+        <span>{{ notice() }}</span>
+      </div>
+    }
+
+    @if (loading()) {
+      <div class="erp-card p-6">
+        <div class="space-y-2">
+          @for (line of [1, 2, 3, 4]; track line) {
+            <div class="h-9 animate-pulse rounded-md bg-slate-100"></div>
+          }
+        </div>
+      </div>
+    }
+    @else {
+      <div class="grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(380px,0.75fr)]">
+        <!-- Left Pane: Templates List / High Density Table -->
+        <section class="erp-card overflow-hidden" aria-label="Mẫu đang áp dụng">
+          <div class="erp-toolbar">
+            <div class="flex items-center gap-2.5">
+              <h2 class="text-xs font-bold uppercase tracking-wider text-slate-800">Mẫu đang áp dụng</h2>
+              <span class="rounded-full bg-slate-100 px-2 py-0.5 font-mono text-[11px] font-semibold text-slate-600">
+                {{ templates().length }} mẫu · khung giờ sinh tự động
+              </span>
+            </div>
+            <mat-icon class="!h-5 !w-5 !text-[20px] text-[#0284c7]">view_timeline</mat-icon>
+          </div>
+
+          @if (templates().length === 0) {
+            <div class="grid min-h-56 place-items-center p-6 text-center">
+              <div>
+                <mat-icon class="!h-9 !w-9 !text-[36px] text-slate-300">event_busy</mat-icon>
+                <p class="mt-2 text-xs font-semibold text-slate-700">Chưa có mẫu lịch</p>
+                <p class="mt-0.5 text-xs text-slate-400">Tạo mẫu đầu tiên ở khung bên cạnh.</p>
+              </div>
+            </div>
+          }
+          @else {
+            <div class="erp-table-container !rounded-none !border-0">
+              <table class="erp-table">
+                <thead>
+                  <tr>
+                    <th>Dịch vụ / Chuyên khoa</th>
+                    <th>Bác sĩ & Phòng</th>
+                    <th>Thời gian & Thứ</th>
+                    <th class="text-center">Đã sinh</th>
+                    @if (canManageSchedule()) {
+                      <th class="w-28 text-right">Thao tác</th>
+                    }
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (template of templates(); track template.id) {
+                    <tr data-testid="template-row" class="erp-tr">
+                      <td>
+                        <div class="flex items-center gap-2">
+                          <p class="font-semibold text-slate-800">{{ template.serviceName }}</p>
+                          <span class="erp-badge erp-badge-success">
+                            <span class="erp-dot erp-dot-success"></span>
+                            <span>Đang dùng</span>
+                          </span>
+                        </div>
+                        <p class="text-[11px] text-slate-500">{{ template.durationMinutes }} phút/lượt</p>
+                      </td>
+                      <td>
+                        <p class="font-medium text-slate-800">{{ template.doctorName }}</p>
+                        <p class="font-mono text-[11px] text-slate-500">Phòng {{ template.roomCode }}</p>
+                      </td>
+                      <td>
+                        <p class="font-mono text-xs text-slate-700">{{ template.startDate }} – {{ template.endDate }}</p>
+                        <p class="text-[11px] text-slate-500">{{ formatWeekdays(template.weekdays) }}</p>
+                      </td>
+                      <td class="text-center font-mono">
+                        <span class="text-xs font-bold text-[#0284c7]">{{ template.generatedSlotCount }}</span>
+                        <span class="text-[11px] text-slate-400"> khung</span>
+                      </td>
+                      @if (canManageSchedule()) {
+                        <td class="text-right">
+                          <button
+                            type="button"
+                            class="erp-btn-secondary !min-h-7 !px-2.5 !py-1 !text-[11px]"
+                            (click)="regenerate(template)"
+                          >
+                            Sinh bổ sung
+                          </button>
+                        </td>
+                      }
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </section>
+
+        <!-- Right Pane: Create Template Form -->
+        <div class="space-y-4">
+          @if (!canManageSchedule()) {
+            <section class="rounded-md border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900 shadow-xs">
+              <p class="text-sm font-bold text-amber-950">Chế độ xem</p>
+              <p class="mt-1">Chỉ điều phối viên được tạo hoặc sinh bổ sung khung giờ.</p>
+            </section>
+          }
+
+          <section class="erp-card h-fit overflow-hidden" [class.hidden]="!canManageSchedule()">
+            <div class="erp-card-header">
+              <div>
+                <span class="erp-badge erp-badge-info">Tạo mẫu mới</span>
+                <h2 class="mt-1 text-sm font-bold text-slate-900">Lịch lặp theo tuần</h2>
+                <p class="text-xs text-slate-500">Thời lượng được lấy theo dịch vụ đã chọn.</p>
+              </div>
+            </div>
+
+            <form class="space-y-3.5 p-4" (ngSubmit)="$event.preventDefault(); submit()">
+              <div>
+                <label class="erp-label">Dịch vụ khám <span class="erp-label-required">*</span></label>
+                <select
+                  data-testid="template-service"
+                  class="erp-select"
+                  [ngModel]="selectedServiceId()"
+                  (ngModelChange)="selectService($event)"
+                  name="service"
+                >
+                  <option value="">Chọn dịch vụ</option>
+                  @for (service of services(); track service.id) {
+                    <option [value]="service.id">{{ service.name }} · {{ service.durationMinutes }} phút</option>
+                  }
+                </select>
+              </div>
+
+              <div class="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label class="erp-label">Bác sĩ <span class="erp-label-required">*</span></label>
+                  <select
+                    class="erp-select"
+                    [ngModel]="selectedDoctorId()"
+                    (ngModelChange)="selectDoctor($event)"
+                    name="doctor"
+                  >
+                    <option value="">Chọn bác sĩ</option>
+                    @for (doctor of availableDoctors(); track doctor.staffId) {
+                      <option [value]="doctor.staffId">{{ doctor.fullName }}</option>
+                    }
+                  </select>
+                </div>
+                <div>
+                  <label class="erp-label">Phòng <span class="erp-label-required">*</span></label>
+                  <select
+                    class="erp-select"
+                    [ngModel]="selectedRoomId()"
+                    (ngModelChange)="selectedRoomId.set($event)"
+                    name="room"
+                  >
+                    <option value="">Chọn phòng</option>
+                    @for (room of availableRooms(); track room.id) {
+                      <option [value]="room.id">{{ room.code }} · {{ room.name }}</option>
+                    }
+                  </select>
+                </div>
+              </div>
+
+              <div class="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label class="erp-label">Từ ngày <span class="erp-label-required">*</span></label>
+                  <input
+                    type="date"
+                    [min]="today"
+                    [ngModel]="startDate()"
+                    (ngModelChange)="startDate.set($event)"
+                    name="startDate"
+                    class="erp-input font-mono"
+                  />
+                </div>
+                <div>
+                  <label class="erp-label">Đến ngày <span class="erp-label-required">*</span></label>
+                  <input
+                    type="date"
+                    [min]="startDate()"
+                    [ngModel]="endDate()"
+                    (ngModelChange)="endDate.set($event)"
+                    name="endDate"
+                    class="erp-input font-mono"
+                  />
+                </div>
+              </div>
+
+              <div class="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label class="erp-label">Bắt đầu <span class="erp-label-required">*</span></label>
+                  <input
+                    type="time"
+                    [ngModel]="dayStart()"
+                    (ngModelChange)="dayStart.set($event)"
+                    name="dayStart"
+                    class="erp-input font-mono"
+                  />
+                </div>
+                <div>
+                  <label class="erp-label">Kết thúc <span class="erp-label-required">*</span></label>
+                  <input
+                    type="time"
+                    [ngModel]="dayEnd()"
+                    (ngModelChange)="dayEnd.set($event)"
+                    name="dayEnd"
+                    class="erp-input font-mono"
+                  />
+                </div>
+              </div>
+
+              <fieldset class="space-y-1.5">
+                <legend class="erp-label">Ngày làm trong tuần <span class="erp-label-required">*</span></legend>
+                <div class="grid grid-cols-4 gap-1.5">
+                  @for (day of weekdays; track day.value) {
+                    <label class="flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50/60 px-2 py-1.5 text-xs text-slate-700 cursor-pointer hover:bg-slate-100">
+                      <input
+                        type="checkbox"
+                        class="rounded text-[#0284c7] focus:ring-[#0284c7]"
+                        [checked]="isWeekdaySelected(day.value)"
+                        (change)="toggleWeekday(day.value, $any($event.target).checked)"
+                      />
+                      <span>{{ day.label }}</span>
+                    </label>
+                  }
+                </div>
+              </fieldset>
+
+              <div class="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label class="erp-label">Nghỉ từ <span class="text-slate-400 font-normal">(nếu có)</span></label>
+                  <input
+                    type="time"
+                    [ngModel]="breakStart()"
+                    (ngModelChange)="breakStart.set($event)"
+                    name="breakStart"
+                    class="erp-input font-mono"
+                  />
+                </div>
+                <div>
+                  <label class="erp-label">Nghỉ đến</label>
+                  <input
+                    type="time"
+                    [ngModel]="breakEnd()"
+                    (ngModelChange)="breakEnd.set($event)"
+                    name="breakEnd"
+                    class="erp-input font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label class="erp-label">Ngày nghỉ ngoại lệ <span class="text-slate-400 font-normal">(cách nhau bằng dấu phẩy)</span></label>
+                <input
+                  [ngModel]="exceptionDatesText()"
+                  (ngModelChange)="exceptionDatesText.set($event)"
+                  name="exceptions"
+                  placeholder="2026-08-20, 2026-08-27"
+                  class="erp-input font-mono"
+                />
+              </div>
+
+              <button
+                data-testid="save-template"
+                type="submit"
+                class="erp-btn-primary w-full"
+                [disabled]="saving()"
+              >
+                <mat-icon class="!h-4 !w-4 !text-[16px]">save</mat-icon>
+                <span>{{ saving() ? 'Đang sinh khung giờ...' : 'Lưu và sinh khung giờ' }}</span>
+              </button>
+            </form>
+          </section>
+        </div>
+      </div>
+    }
+  </div>
 </app-staff-workspace-shell>

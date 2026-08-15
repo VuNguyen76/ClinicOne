@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { forkJoin } from 'rxjs';
 import {
@@ -13,13 +12,12 @@ import {
   apiErrorMessage,
 } from '../../core/auth/auth-api.service';
 import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
-import { AccountMenu } from '../../shared/account-menu/account-menu';
 import { hasStaffRole } from '../../core/auth/auth.guard';
 
 @Component({
   selector: 'app-service-management',
   standalone: true,
-  imports: [FormsModule, RouterLink, MatIconModule, AccountMenu, StaffWorkspaceShell],
+  imports: [FormsModule, MatIconModule, StaffWorkspaceShell],
   templateUrl: './service-management.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

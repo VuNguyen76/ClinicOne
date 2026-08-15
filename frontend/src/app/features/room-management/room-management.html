@@ -1,54 +1,338 @@
 <app-staff-workspace-shell moduleTitle="Vận hành" pageTitle="Phòng khám">
   @if (canManageRooms()) {
-    <button workspace-actions data-testid="open-room-form" type="button"
-      class="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-md bg-[#086b8b] px-3 text-sm font-semibold text-white hover:bg-[#075a75]"
-      (click)="openCreate()"><mat-icon class="!h-4 !w-4 !text-[17px]">add</mat-icon>Thêm phòng</button>
+    <button
+      workspace-actions
+      data-testid="open-room-form"
+      type="button"
+      class="erp-btn-primary"
+      (click)="openCreate()"
+    >
+      <mat-icon class="!h-4 !w-4 !text-[16px]">add</mat-icon>
+      <span>Thêm phòng</span>
+    </button>
   }
 
-      @if (error()) {<p class="mb-4 flex items-center gap-2 border-l-4 border-red-500 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert"><mat-icon class="!h-5 !w-5 !text-[19px]">error_outline</mat-icon>{{ error() }}</p>}
+  <div class="mx-auto max-w-[1280px] space-y-4">
+    <!-- Error Alert -->
+    @if (error()) {
+      <div class="flex items-center gap-2 rounded-md border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs font-medium text-rose-800 shadow-xs" role="alert">
+        <mat-icon class="!h-4 !w-4 !text-[18px] text-rose-600">error_outline</mat-icon>
+        <span>{{ error() }}</span>
+      </div>
+    }
 
-      <section class="grid gap-px overflow-hidden border border-[#cbdadd] bg-[#cbdadd] sm:grid-cols-3" aria-label="Tóm tắt phòng khám">
-        <div class="min-w-[170px] flex-1 bg-white px-5 py-4"><p class="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">Tổng phòng</p><p class="mt-1 text-2xl font-bold tracking-[-0.04em] text-[#173f4b]">{{ rooms().length }}</p></div>
-        <div class="min-w-[170px] flex-1 bg-white px-5 py-4"><p class="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">Đang hoạt động</p><p class="mt-1 text-2xl font-bold tracking-[-0.04em] text-emerald-700">{{ activeCount() }}</p></div>
-        <div class="min-w-[170px] flex-1 bg-white px-5 py-4"><p class="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">Tạm dừng</p><p class="mt-1 text-2xl font-bold tracking-[-0.04em] text-slate-600">{{ inactiveCount() }}</p></div>
-      </section>
+    <!-- Summary KPI Cards -->
+    <section class="grid grid-cols-1 gap-3 sm:grid-cols-3" aria-label="Tóm tắt phòng khám">
+      <div class="erp-kpi-card border-t-2 border-t-[#0e3d48]">
+        <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Tổng phòng</p>
+        <p class="mt-1 font-mono text-2xl font-bold tracking-tight text-slate-800">{{ rooms().length }}</p>
+      </div>
+      <div class="erp-kpi-card border-t-2 border-t-emerald-500">
+        <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Đang hoạt động</p>
+        <p class="mt-1 font-mono text-2xl font-bold tracking-tight text-emerald-600">{{ activeCount() }}</p>
+      </div>
+      <div class="erp-kpi-card border-t-2 border-t-slate-400">
+        <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Tạm dừng</p>
+        <p class="mt-1 font-mono text-2xl font-bold tracking-tight text-slate-600">{{ inactiveCount() }}</p>
+      </div>
+    </section>
 
-      <section class="mt-4 min-w-0 overflow-hidden border border-[#cbdadd] bg-white">
-        <div class="flex flex-col gap-4 border-b border-[#e7eff1] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <div class="flex items-center gap-3"><h2 class="text-sm font-bold text-[#173f4b]">Danh sách phòng</h2><span class="rounded bg-[#eef7f9] px-2 py-1 text-[11px] font-bold text-[#0b84bd]">{{ visibleRooms().length }} bản ghi</span></div>
-          <div class="flex flex-col gap-2 sm:flex-row"><label class="relative block sm:w-56"><span class="sr-only">Tìm phòng</span><mat-icon class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 !h-5 !w-5 !text-[18px] text-slate-400">search</mat-icon><input class="min-h-10 w-full rounded-md border border-[#d5e3e7] bg-[#fbfdfe] pl-9 pr-3 text-sm outline-none transition focus:border-[#0ea5e9] focus:ring-4 focus:ring-[#0ea5e9]/10" placeholder="Tìm phòng..." (input)="updateSearch($event)" /></label><label class="block sm:w-36"><span class="sr-only">Lọc trạng thái</span><select class="min-h-10 w-full rounded-md border border-[#d5e3e7] bg-[#fbfdfe] px-3 text-sm text-[#315663] outline-none transition focus:border-[#0ea5e9] focus:ring-4 focus:ring-[#0ea5e9]/10" [value]="statusFilter()" (change)="updateStatus($event)"><option value="ALL">Tất cả</option><option value="ACTIVE">Đang hoạt động</option><option value="INACTIVE">Tạm dừng</option></select></label></div>
+    <!-- Main Table Card & Filters -->
+    <section class="erp-card overflow-hidden">
+      <!-- Toolbar with Search & Filter -->
+      <div class="erp-toolbar">
+        <div class="flex items-center gap-2.5">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-800">Danh sách phòng</h2>
+          <span class="rounded-full bg-slate-100 px-2 py-0.5 font-mono text-[11px] font-semibold text-slate-600">
+            {{ visibleRooms().length }} bản ghi
+          </span>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <!-- Search input -->
+          <div class="relative w-full sm:w-56">
+            <span class="sr-only">Tìm phòng</span>
+            <mat-icon class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 !h-4 !w-4 !text-[16px] text-slate-400">search</mat-icon>
+            <input
+              class="erp-input pl-8"
+              placeholder="Tìm theo mã, tên, chuyên khoa..."
+              (input)="updateSearch($event)"
+            />
+          </div>
+          <!-- Status select -->
+          <div class="w-full sm:w-40">
+            <span class="sr-only">Lọc trạng thái</span>
+            <select class="erp-select" [value]="statusFilter()" (change)="updateStatus($event)">
+              <option value="ALL">Tất cả trạng thái</option>
+              <option value="ACTIVE">Đang hoạt động</option>
+              <option value="INACTIVE">Tạm dừng</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loading skeleton -->
+      @if (loading()) {
+        <div class="space-y-2 p-4" aria-label="Đang tải danh sách phòng">
+          @for (line of [1, 2, 3, 4]; track line) {
+            <div class="h-9 animate-pulse rounded-md bg-slate-100"></div>
+          }
+        </div>
+      }
+      <!-- Empty states -->
+      @else if (rooms().length === 0) {
+        <div class="grid min-h-56 place-items-center p-6 text-center">
+          <div>
+            <mat-icon class="!h-10 !w-10 !text-[40px] text-slate-300">meeting_room</mat-icon>
+            <p class="mt-2 text-xs font-semibold text-slate-700">Chưa có phòng nào</p>
+            <p class="mt-0.5 text-xs text-slate-400">Tạo phòng đầu tiên bằng nút Thêm phòng.</p>
+            @if (canManageRooms()) {
+              <button
+                type="button"
+                class="erp-btn-primary mt-4"
+                (click)="openCreate()"
+              >
+                <mat-icon class="!h-4 !w-4 !text-[16px]">add</mat-icon>
+                <span>Tạo phòng đầu tiên</span>
+              </button>
+            }
+          </div>
+        </div>
+      }
+      @else if (visibleRooms().length === 0) {
+        <div class="grid min-h-56 place-items-center p-6 text-center">
+          <div>
+            <mat-icon class="!h-10 !w-10 !text-[40px] text-slate-300">search_off</mat-icon>
+            <p class="mt-2 text-xs font-semibold text-slate-700">Không tìm thấy phòng phù hợp</p>
+            <p class="mt-0.5 text-xs text-slate-400">Thử đổi từ khóa hoặc bộ lọc trạng thái.</p>
+          </div>
+        </div>
+      }
+      <!-- High Density Room Table (36px Rows) -->
+      @else {
+        <div class="erp-table-container !rounded-none !border-0">
+          <table class="erp-table">
+            <thead>
+              <tr>
+                <th class="w-32">Mã phòng</th>
+                <th>Tên phòng khám</th>
+                <th>Chuyên khoa</th>
+                <th class="w-40 text-center">Trạng thái</th>
+                <th class="w-36 text-right">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (room of visibleRooms(); track room.id) {
+                <tr data-testid="room-row" class="erp-tr">
+                  <td>
+                    <span class="erp-code text-[#0e3d48]">{{ room.code }}</span>
+                  </td>
+                  <td class="font-semibold text-slate-800">{{ room.name }}</td>
+                  <td class="text-slate-600">{{ room.specialty }}</td>
+                  <td class="text-center">
+                    <span
+                      data-testid="room-status"
+                      class="erp-badge"
+                      [class]="room.active ? 'erp-badge-success' : 'erp-badge-neutral'"
+                    >
+                      <span class="erp-dot" [class]="room.active ? 'erp-dot-success' : 'erp-dot-neutral'"></span>
+                      <span>{{ room.active ? 'Đang hoạt động' : 'Tạm dừng' }}</span>
+                    </span>
+                  </td>
+                  <td class="text-right">
+                    <div class="inline-flex items-center justify-end gap-1">
+                      <button
+                        type="button"
+                        class="erp-btn-icon-accent"
+                        title="Xem mã QR"
+                        aria-label="Xem mã QR phòng {{ room.name }}"
+                        [disabled]="!room.active"
+                        (click)="openQr(room)"
+                      >
+                        <mat-icon class="!h-4 !w-4 !text-[18px]">qr_code_2</mat-icon>
+                      </button>
+                      <button
+                        type="button"
+                        class="erp-btn-icon"
+                        title="Sửa phòng"
+                        aria-label="Sửa phòng {{ room.name }}"
+                        (click)="edit(room)"
+                      >
+                        <mat-icon class="!h-4 !w-4 !text-[18px]">edit</mat-icon>
+                      </button>
+                      <button
+                        type="button"
+                        class="erp-btn-icon"
+                        [title]="room.active ? 'Tạm dừng phòng' : 'Kích hoạt phòng'"
+                        [attr.aria-label]="room.active ? 'Tạm dừng phòng ' + room.name : 'Kích hoạt phòng ' + room.name"
+                        (click)="toggleActive(room)"
+                      >
+                        <mat-icon class="!h-4 !w-4 !text-[18px]">{{ room.active ? 'pause' : 'play_arrow' }}</mat-icon>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  </div>
+
+  <!-- Room Create/Edit Dialog Modal -->
+  @if (formOpen()) {
+    <div
+      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-xs"
+      role="presentation"
+      (click)="closeForm()"
+    >
+      <section
+        class="w-full max-w-[520px] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="room-dialog-title"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="flex items-start justify-between border-b border-slate-200 bg-slate-50/80 px-6 py-4">
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-wider text-[#0284c7]">Cấu hình vận hành</p>
+            <h2 id="room-dialog-title" data-testid="room-form-title" class="mt-0.5 text-base font-bold text-slate-900">
+              {{ editingId() ? 'Sửa thông tin phòng' : 'Tạo phòng mới' }}
+            </h2>
+          </div>
+          <button
+            type="button"
+            class="erp-btn-icon"
+            aria-label="Đóng cửa sổ"
+            (click)="closeForm()"
+          >
+            <mat-icon class="!h-4 !w-4 !text-[18px]">close</mat-icon>
+          </button>
         </div>
 
-        @if (loading()) {
-          <div class="space-y-2 p-5" aria-label="Đang tải danh sách phòng">@for (line of [1, 2, 3, 4]; track line) {<div class="h-12 animate-pulse rounded bg-slate-100"></div>}</div>
-        } @else if (rooms().length === 0) {
-          <div class="grid min-h-64 place-items-center px-6 text-center"><div><mat-icon class="!h-10 !w-10 !text-[38px] text-[#0b91c9]">meeting_room</mat-icon><p class="mt-3 font-semibold text-[#173f4b]">Chưa có phòng nào</p><p class="mt-1 text-sm text-slate-500">Tạo phòng đầu tiên bằng nút Phòng mới.</p><button type="button" class="mt-5 inline-flex min-h-10 items-center gap-2 rounded-lg bg-[#0b3846] px-4 text-sm font-semibold text-white" (click)="openCreate()"><mat-icon class="!text-[18px]">add</mat-icon>Tạo phòng đầu tiên</button></div></div>
-        } @else if (visibleRooms().length === 0) {
-          <div class="grid min-h-64 place-items-center px-6 text-center"><div><mat-icon class="!h-10 !w-10 !text-[38px] text-slate-400">search_off</mat-icon><p class="mt-3 font-semibold text-[#173f4b]">Không tìm thấy phòng</p><p class="mt-1 text-sm text-slate-500">Thử đổi từ khóa hoặc bộ lọc.</p></div></div>
-        } @else {
-          <div class="overflow-x-auto"><table class="w-full min-w-[720px] text-left text-sm"><thead class="border-b border-[#dce7ea] bg-[#f8fafb] text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500"><tr><th class="px-5 py-3">Mã</th><th class="px-4 py-3">Phòng khám</th><th class="px-4 py-3">Chuyên khoa</th><th class="px-4 py-3">Trạng thái</th><th class="px-5 py-3 text-right">Thao tác</th></tr></thead><tbody class="divide-y divide-[#edf2f3]">@for (room of visibleRooms(); track room.id) {<tr data-testid="room-row" class="transition hover:bg-[#f8fbfc]"><td class="whitespace-nowrap px-5 py-4"><span class="font-mono text-xs font-bold text-[#0b84bd]">{{ room.code }}</span></td><td class="px-4 py-4 font-semibold text-[#173f4b]">{{ room.name }}</td><td class="px-4 py-4 text-slate-600">{{ room.specialty }}</td><td class="px-4 py-4"><span data-testid="room-status" class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold" [class.bg-emerald-50]="room.active" [class.text-emerald-700]="room.active" [class.bg-slate-100]="!room.active" [class.text-slate-600]="!room.active"><span class="h-1.5 w-1.5 rounded-full" [class.bg-emerald-500]="room.active" [class.bg-slate-400]="!room.active"></span>{{ room.active ? 'Đang hoạt động' : 'Tạm dừng' }}</span></td><td class="px-5 py-4 text-right"><div class="inline-flex items-center gap-1"><button type="button" class="grid h-8 w-8 place-items-center rounded-md text-[#0879a8] transition hover:bg-[#e8f7fb]" title="Xem mã QR" aria-label="Xem mã QR phòng {{ room.name }}" [disabled]="!room.active" (click)="openQr(room)"><mat-icon class="!text-[18px]">qr_code_2</mat-icon></button><button type="button" class="grid h-8 w-8 place-items-center rounded-md text-slate-500 transition hover:bg-[#e8f7fb] hover:text-[#0b84bd]" title="Sửa phòng" aria-label="Sửa phòng {{ room.name }}" (click)="edit(room)"><mat-icon class="!text-[18px]">edit</mat-icon></button><button type="button" class="grid h-8 w-8 place-items-center rounded-md text-slate-500 transition hover:bg-slate-100 hover:text-[#173f4b]" [title]="room.active ? 'Tạm dừng phòng' : 'Kích hoạt phòng'" [attr.aria-label]="room.active ? 'Tạm dừng phòng ' + room.name : 'Kích hoạt phòng ' + room.name" (click)="toggleActive(room)"><mat-icon class="!text-[18px]">{{ room.active ? 'pause' : 'play_arrow' }}</mat-icon></button></div></td></tr>}</tbody></table></div>
-        }
-      </section>
-  </app-staff-workspace-shell>
+        <form class="space-y-4 p-6" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+          <div>
+            <label class="erp-label">
+              Mã phòng <em class="erp-label-required">*</em>
+            </label>
+            <input
+              formControlName="code"
+              class="erp-input font-mono uppercase"
+              placeholder="Ví dụ: NOI-01"
+            />
+          </div>
 
-  @if (formOpen()) {
-    <div class="fixed inset-0 z-[60] flex items-center justify-center bg-[#071f29]/55 p-4 backdrop-blur-[2px]" role="presentation" (click)="closeForm()">
-      <section class="w-full max-w-[560px] overflow-hidden rounded-2xl border border-white/70 bg-white shadow-[0_24px_80px_rgba(7,31,41,0.28)]" role="dialog" aria-modal="true" aria-labelledby="room-dialog-title" (click)="$event.stopPropagation()">
-        <div class="flex items-start justify-between border-b border-[#e7eff1] px-6 py-5 sm:px-7"><div><p class="text-[10px] font-bold uppercase tracking-[0.14em] text-[#0b91c9]">Thông tin phòng</p><h2 id="room-dialog-title" data-testid="room-form-title" class="mt-1 text-xl font-bold tracking-[-0.03em] text-[#173f4b]">{{ editingId() ? 'Sửa thông tin phòng' : 'Tạo phòng mới' }}</h2><p class="mt-1 text-sm text-slate-500">Nhập thông tin để phòng sẵn sàng phục vụ.</p></div><button type="button" class="grid h-9 w-9 place-items-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-[#173f4b]" aria-label="Đóng cửa sổ" (click)="closeForm()"><mat-icon>close</mat-icon></button></div>
-        <form class="grid gap-5 p-6 sm:p-7" [formGroup]="form" (ngSubmit)="submit()" novalidate>
-          <label class="grid gap-2 text-sm font-semibold text-[#315663]">Mã phòng<input formControlName="code" class="min-h-12 rounded-lg border border-[#d5e3e7] bg-[#fbfdfe] px-3 font-normal uppercase outline-none transition focus:border-[#0ea5e9] focus:ring-4 focus:ring-[#0ea5e9]/10" placeholder="Ví dụ: NOI-01" /></label>
-          <label class="grid gap-2 text-sm font-semibold text-[#315663]">Tên phòng<input formControlName="name" class="min-h-12 rounded-lg border border-[#d5e3e7] bg-[#fbfdfe] px-3 font-normal outline-none transition focus:border-[#0ea5e9] focus:ring-4 focus:ring-[#0ea5e9]/10" placeholder="Phòng Nội tổng quát 01" /></label>
-          <label class="grid gap-2 text-sm font-semibold text-[#315663]">Chuyên khoa<select data-testid="room-specialty" formControlName="specialty" class="min-h-12 rounded-lg border border-[#d5e3e7] bg-[#fbfdfe] px-3 font-normal outline-none transition focus:border-[#0ea5e9] focus:ring-4 focus:ring-[#0ea5e9]/10"><option value="">Chọn chuyên khoa</option>@if (form.controls.specialty.value && !hasSpecialty(form.controls.specialty.value)) {<option [value]="form.controls.specialty.value">{{ form.controls.specialty.value }} (đang dùng)</option>}@for (specialty of specialties(); track specialty.code) {<option [value]="specialty.name">{{ specialty.name }}</option>}</select></label>
-          <div class="mt-2 flex gap-3"><button data-testid="save-room" type="submit" class="min-h-12 flex-1 rounded-lg bg-[#0b3846] px-4 text-sm font-semibold text-white transition hover:bg-[#082d39] disabled:cursor-not-allowed disabled:opacity-50" [disabled]="saving()">{{ saving() ? 'Đang lưu...' : (editingId() ? 'Lưu thay đổi' : 'Tạo phòng') }}</button><button type="button" class="min-h-12 rounded-lg border border-[#d5e3e7] px-5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50" (click)="closeForm()">Hủy</button></div>
+          <div>
+            <label class="erp-label">
+              Tên phòng <em class="erp-label-required">*</em>
+            </label>
+            <input
+              formControlName="name"
+              class="erp-input"
+              placeholder="Ví dụ: Phòng Nội tổng quát 01"
+            />
+          </div>
+
+          <div>
+            <label class="erp-label">
+              Chuyên khoa <em class="erp-label-required">*</em>
+            </label>
+            <select data-testid="room-specialty" formControlName="specialty" class="erp-select">
+              <option value="">Chọn chuyên khoa</option>
+              @if (form.controls.specialty.value && !hasSpecialty(form.controls.specialty.value)) {
+                <option [value]="form.controls.specialty.value">{{ form.controls.specialty.value }} (đang dùng)</option>
+              }
+              @for (specialty of specialties(); track specialty.code) {
+                <option [value]="specialty.name">{{ specialty.name }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="flex items-center justify-end gap-2.5 pt-2">
+            <button
+              type="button"
+              class="erp-btn-secondary"
+              (click)="closeForm()"
+            >
+              Hủy
+            </button>
+            <button
+              data-testid="save-room"
+              type="submit"
+              class="erp-btn-primary"
+              [disabled]="saving()"
+            >
+              {{ saving() ? 'Đang lưu...' : (editingId() ? 'Lưu thay đổi' : 'Tạo phòng') }}
+            </button>
+          </div>
         </form>
       </section>
     </div>
   }
+
+  <!-- Room QR Code Dialog Modal -->
   @if (qrRoom(); as room) {
-    <div class="fixed inset-0 z-[70] flex items-center justify-center bg-[#071f29]/60 p-4 backdrop-blur-[2px]" role="presentation" (click)="closeQr()">
-      <section class="w-full max-w-[460px] overflow-hidden rounded-2xl border border-white/70 bg-white shadow-[0_24px_80px_rgba(7,31,41,0.3)]" role="dialog" aria-modal="true" aria-labelledby="room-qr-title" (click)="$event.stopPropagation()">
-        <div class="flex items-start justify-between border-b border-[#e7eff1] px-6 py-5"><div><p class="text-[10px] font-bold uppercase tracking-[0.14em] text-[#0b91c9]">Mã check-in cố định</p><h2 id="room-qr-title" class="mt-1 text-xl font-bold text-[#173f4b]">{{ room.name }}</h2><p class="mt-1 text-sm text-slate-500">{{ room.specialty }} · {{ room.code }}</p></div><button type="button" class="grid h-9 w-9 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" aria-label="Đóng mã QR" (click)="closeQr()"><mat-icon>close</mat-icon></button></div>
-        <div class="grid place-items-center px-6 py-7"><div class="grid min-h-[290px] w-[290px] place-items-center rounded-xl border border-slate-200 bg-white p-3 shadow-inner">@if (qrLoading()) {<mat-icon class="animate-pulse !h-10 !w-10 !text-[40px] text-slate-300">qr_code_2</mat-icon>} @else if (qrImage()) {<img [src]="qrImage()" [alt]="'Mã QR check-in phòng ' + room.name" class="h-full w-full" />}</div><p class="mt-5 text-center text-sm text-slate-500">Đặt mã này trước cửa phòng để bệnh nhân quét và nhận số thứ tự.</p><div class="mt-5 flex w-full gap-3"><button type="button" class="min-h-11 flex-1 rounded-lg border border-[#b9dce7] px-4 text-sm font-semibold text-[#0879a8] hover:bg-[#e8f7fb]" [disabled]="!qrImage()" (click)="downloadQr()"><mat-icon class="mr-1 align-middle !text-[18px]">download</mat-icon>Tải xuống</button><button type="button" class="min-h-11 flex-1 rounded-lg bg-[#0b3846] px-4 text-sm font-semibold text-white hover:bg-[#082d39]" [disabled]="!qrImage()" (click)="printQr()"><mat-icon class="mr-1 align-middle !text-[18px]">print</mat-icon>In mã QR</button></div></div>
+    <div
+      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-xs"
+      role="presentation"
+      (click)="closeQr()"
+    >
+      <section
+        class="w-full max-w-[440px] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="room-qr-title"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="flex items-start justify-between border-b border-slate-200 bg-slate-50/80 px-6 py-4">
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-wider text-[#0284c7]">Mã check-in tại chỗ</p>
+            <h2 id="room-qr-title" class="mt-0.5 text-base font-bold text-slate-900">{{ room.name }}</h2>
+            <p class="font-mono text-xs text-slate-500">{{ room.specialty }} · {{ room.code }}</p>
+          </div>
+          <button
+            type="button"
+            class="erp-btn-icon"
+            aria-label="Đóng mã QR"
+            (click)="closeQr()"
+          >
+            <mat-icon class="!h-4 !w-4 !text-[18px]">close</mat-icon>
+          </button>
+        </div>
+
+        <div class="grid place-items-center p-6">
+          <div class="grid min-h-[260px] w-[260px] place-items-center rounded-lg border border-slate-200 bg-white p-3 shadow-inner">
+            @if (qrLoading()) {
+              <mat-icon class="animate-pulse !h-10 !w-10 !text-[40px] text-slate-300">qr_code_2</mat-icon>
+            } @else if (qrImage()) {
+              <img [src]="qrImage()" [alt]="'Mã QR check-in phòng ' + room.name" class="h-full w-full object-contain" />
+            }
+          </div>
+          <p class="mt-4 text-center text-xs text-slate-500">
+            Đặt mã QR này trước cửa phòng để người bệnh quét và nhận số thứ tự khám tự động.
+          </p>
+          <div class="mt-5 flex w-full gap-2.5">
+            <button
+              type="button"
+              class="erp-btn-secondary flex-1"
+              [disabled]="!qrImage()"
+              (click)="downloadQr()"
+            >
+              <mat-icon class="!h-4 !w-4 !text-[16px]">download</mat-icon>
+              <span>Tải xuống</span>
+            </button>
+            <button
+              type="button"
+              class="erp-btn-primary flex-1"
+              [disabled]="!qrImage()"
+              (click)="printQr()"
+            >
+              <mat-icon class="!h-4 !w-4 !text-[16px]">print</mat-icon>
+              <span>In mã QR</span>
+            </button>
+          </div>
+        </div>
       </section>
     </div>
   }
+</app-staff-workspace-shell>

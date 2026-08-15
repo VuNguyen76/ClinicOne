@@ -1,38 +1,68 @@
-<main class="min-h-screen bg-[#f7fafb] text-[#103f4c]">
+<main class="min-h-screen bg-slate-50 text-slate-800">
   <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
     <div class="mx-auto flex h-[72px] max-w-[1200px] items-center justify-between gap-8 px-5 lg:px-0">
-      <a routerLink="/home" class="flex items-center gap-3" aria-label="ClinicOne, trang chủ"><img class="h-11 w-11 object-contain" src="clinicone-mark.png" alt="" aria-hidden="true" /><span class="text-[21px] font-bold tracking-[-0.04em]">Clinic<span class="text-[#0ea5e9]">One</span></span></a>
-      <nav class="hidden items-center gap-7 text-sm font-medium text-slate-600 lg:flex" aria-label="Điều hướng chính"><a routerLink="/home" class="hover:text-[#0ea5e9]">Trang chủ</a><a routerLink="/about" class="hover:text-[#0ea5e9]">Giới thiệu</a><a routerLink="/process" class="hover:text-[#0ea5e9]">Quy trình</a><a routerLink="/common-issues" class="hover:text-[#0ea5e9]">Hướng dẫn</a><a routerLink="/support" class="hover:text-[#0ea5e9]">Thắc mắc</a><a routerLink="/contact" class="hover:text-[#0ea5e9]">Liên hệ</a></nav>
-      <div class="flex items-center gap-4"><a href="tel:1900000" class="hidden items-center gap-2 text-right sm:flex"><mat-icon class="!h-5 !w-5 !text-[19px] text-rose-500">phone_in_talk</mat-icon><span class="hidden text-xs text-slate-500 xl:block"><strong class="block text-[#103f4c]">Tổng đài</strong><span class="font-semibold tracking-[0.08em] text-rose-500">1900000</span></span></a><app-account-menu /></div>
+      <a routerLink="/home" class="flex items-center gap-3" aria-label="ClinicOne, trang chủ"><img class="h-11 w-11 object-contain" src="clinicone-mark.png" alt="" aria-hidden="true" /><span class="text-[21px] font-bold tracking-[-0.04em] text-slate-900">Clinic<span class="text-[#0284c7]">One</span></span></a>
+      <nav class="hidden items-center gap-7 text-sm font-medium text-slate-600 lg:flex" aria-label="Điều hướng chính"><a routerLink="/home" class="hover:text-[#0284c7]">Trang chủ</a><a routerLink="/about" class="hover:text-[#0284c7]">Giới thiệu</a><a routerLink="/process" class="hover:text-[#0284c7]">Quy trình</a><a routerLink="/common-issues" class="hover:text-[#0284c7]">Hướng dẫn</a><a routerLink="/support" class="hover:text-[#0284c7]">Thắc mắc</a><a routerLink="/contact" class="hover:text-[#0284c7]">Liên hệ</a></nav>
+      <div class="flex items-center gap-4"><a href="tel:1900000" class="hidden items-center gap-2 text-right sm:flex"><mat-icon class="!h-5 !w-5 !text-[19px] text-rose-500">phone_in_talk</mat-icon><span class="hidden text-xs text-slate-500 xl:block"><strong class="block text-slate-800">Tổng đài</strong><span class="font-semibold tracking-[0.08em] text-rose-500">1900000</span></span></a><app-account-menu /></div>
     </div>
   </header>
 
   <div class="mx-auto max-w-[1200px] px-5 py-8 lg:px-0 lg:py-10">
-    <div class="flex items-center gap-3 text-sm"><a routerLink="/home" class="font-semibold text-[#103f4c] hover:text-[#0ea5e9]">Trang chủ</a><mat-icon class="!h-4 !w-4 !text-[16px] text-slate-400">chevron_right</mat-icon><span class="font-semibold text-[#0ea5e9]">Phiếu khám bệnh</span></div>
+    <div class="flex items-center gap-3 text-sm"><a routerLink="/home" class="font-semibold text-slate-700 hover:text-[#0284c7]">Trang chủ</a><mat-icon class="!h-4 !w-4 !text-[16px] text-slate-400">chevron_right</mat-icon><span class="font-semibold text-[#0284c7]">Phiếu khám bệnh</span></div>
 
     <div class="mt-8 grid gap-8 lg:grid-cols-[230px_1fr] lg:gap-10">
       <aside class="border-b border-slate-200 pb-5 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-6"><app-account-nav /></aside>
 
       <section class="min-w-0" aria-labelledby="medical-records-title">
-        <h1 id="medical-records-title" class="text-2xl font-bold tracking-[-0.03em] text-slate-900">Phiếu khám bệnh</h1>
-        <p class="mt-1 text-sm text-slate-500">Chỉ phiếu đã được bác sĩ ký mới hiển thị.</p>
+        <div>
+          <p class="text-xs font-bold uppercase tracking-[0.16em] text-[#0284c7]">Hồ sơ bệnh án</p>
+          <h1 id="medical-records-title" class="mt-1.5 text-2xl font-bold tracking-[-0.03em] text-slate-900 sm:text-3xl">Phiếu khám bệnh</h1>
+          <p class="mt-1.5 text-sm text-slate-500">Chỉ hiển thị các phiếu khám đã được bác sĩ hoàn tất và ký số.</p>
+        </div>
 
-        <section class="mt-5 border border-slate-200 bg-white p-4" aria-label="Lọc phiếu khám">
+        <section class="mt-6 rounded-xl border border-slate-200 bg-white p-4 shadow-xs" aria-label="Lọc phiếu khám">
           <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_150px_150px_auto_auto] lg:items-end">
-            <label class="grid gap-1 text-xs font-semibold text-slate-600">Hồ sơ<select data-testid="history-profile" [ngModel]="selectedProfileId()" (ngModelChange)="selectedProfileId.set($event)" class="min-h-10 rounded-md border border-slate-200 bg-white px-3 text-sm font-normal outline-none focus:border-[#0ea5e9]"><option value="">Tất cả hồ sơ</option>@for (profile of profiles(); track profile.id) {<option [value]="profile.id">{{ profile.fullName }}</option>}</select></label>
-            <label class="grid gap-1 text-xs font-semibold text-slate-600">Từ ngày<input data-testid="history-from" type="date" [ngModel]="from()" (ngModelChange)="from.set($event)" class="min-h-10 rounded-md border border-slate-200 px-3 text-sm font-normal outline-none focus:border-[#0ea5e9]" /></label>
-            <label class="grid gap-1 text-xs font-semibold text-slate-600">Đến ngày<input data-testid="history-to" type="date" [ngModel]="to()" (ngModelChange)="to.set($event)" class="min-h-10 rounded-md border border-slate-200 px-3 text-sm font-normal outline-none focus:border-[#0ea5e9]" /></label>
-            <button data-testid="apply-history-filter" type="button" (click)="applyFilters()" class="min-h-10 rounded-md bg-[#0b91c9] px-4 text-sm font-semibold text-white hover:bg-[#087cae]" [disabled]="loading()">Lọc</button>
-            <button type="button" (click)="clearFilters()" class="min-h-10 rounded-md border border-slate-200 px-4 text-sm font-semibold text-slate-600 hover:bg-slate-50" [disabled]="loading()">Xóa lọc</button>
+            <label class="grid gap-1 text-xs font-semibold text-slate-700">Hồ sơ<select data-testid="history-profile" [ngModel]="selectedProfileId()" (ngModelChange)="selectedProfileId.set($event)" class="min-h-9.5 rounded-md border border-slate-300 bg-white px-3 text-xs font-normal outline-none focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15"><option value="">Tất cả hồ sơ</option>@for (profile of profiles(); track profile.id) {<option [value]="profile.id">{{ profile.fullName }}</option>}</select></label>
+            <label class="grid gap-1 text-xs font-semibold text-slate-700">Từ ngày<input data-testid="history-from" type="date" [ngModel]="from()" (ngModelChange)="from.set($event)" class="min-h-9.5 rounded-md border border-slate-300 px-3 text-xs font-normal outline-none focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" /></label>
+            <label class="grid gap-1 text-xs font-semibold text-slate-700">Đến ngày<input data-testid="history-to" type="date" [ngModel]="to()" (ngModelChange)="to.set($event)" class="min-h-9.5 rounded-md border border-slate-300 px-3 text-xs font-normal outline-none focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" /></label>
+            <button data-testid="apply-history-filter" type="button" (click)="applyFilters()" class="min-h-9.5 rounded-md bg-[#0e3d48] px-4 text-xs font-semibold text-white transition hover:bg-[#124f5e]" [disabled]="loading()">Lọc kết quả</button>
+            <button type="button" (click)="clearFilters()" class="min-h-9.5 rounded-md border border-slate-300 bg-white px-4 text-xs font-semibold text-slate-700 transition hover:bg-slate-50" [disabled]="loading()">Xóa lọc</button>
           </div>
         </section>
 
         @if (loading()) {
-          <div class="mt-6 grid min-h-48 place-items-center rounded-[16px] border border-slate-200 bg-white text-sm text-slate-500">Đang tải phiếu khám...</div>
+          <div class="mt-6 grid min-h-48 place-items-center rounded-xl border border-slate-200 bg-white text-sm text-slate-500">Đang tải phiếu khám...</div>
         } @else if (records().length === 0) {
-          <section class="mt-6 grid min-h-64 place-items-center rounded-[16px] border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center"><div><span class="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[#e8f8fc] text-[#0ea5e9]"><mat-icon>description</mat-icon></span><h2 class="mt-4 font-semibold text-slate-800">Chưa có phiếu khám đã ký</h2><p class="mt-2 max-w-sm text-sm leading-6 text-slate-500">Phiếu sẽ xuất hiện sau khi bác sĩ hoàn tất và ký.</p><a routerLink="/dashboard" class="mt-5 inline-flex min-h-10 items-center justify-center rounded-lg border border-[#0ea5e9] px-4 text-sm font-semibold text-[#0284c7] transition hover:bg-[#e0f2fe]">Về tổng quan</a></div></section>
+          <section class="mt-6 grid min-h-64 place-items-center rounded-xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center"><div><span class="mx-auto grid h-14 w-14 place-items-center rounded-full bg-sky-50 text-[#0284c7]"><mat-icon>description</mat-icon></span><h2 class="mt-4 font-semibold text-slate-800">Chưa có phiếu khám đã ký</h2><p class="mt-2 max-w-sm text-sm leading-6 text-slate-500">Phiếu sẽ xuất hiện sau khi bác sĩ hoàn tất và ký.</p><a routerLink="/dashboard" class="mt-5 inline-flex min-h-10 items-center justify-center rounded-lg bg-[#0e3d48] px-4 text-sm font-semibold text-white transition hover:bg-[#124f5e]">Về tổng quan</a></div></section>
         } @else {
-          <section class="mt-6 overflow-hidden rounded-[16px] border border-slate-200 bg-white shadow-sm"><div class="border-b border-slate-100 px-6 py-5"><h2 class="text-lg font-bold text-slate-900">Lịch sử khám</h2><p class="mt-1 text-sm text-slate-500">{{ totalElements() }} phiếu đã ký</p></div><div class="divide-y divide-slate-100">@for (record of records(); track record.id) {<a [routerLink]="['/medical-records', record.id]" class="flex flex-col gap-4 px-6 py-5 transition hover:bg-[#f8fcfd] sm:flex-row sm:items-center sm:justify-between"><div class="flex items-start gap-4"><span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#e8f8fc] text-[#0ea5e9]"><mat-icon>description</mat-icon></span><div><p class="font-semibold text-slate-900">{{ record.diagnosis || 'Phiếu khám tổng quát' }}</p><p class="mt-1 text-sm text-slate-500">{{ record.doctorName }} · {{ record.appointmentCode || 'Không có mã lịch' }}</p><p class="mt-2 text-sm text-slate-700">Đã ký {{ formatDateTime(record.signedAt) }}</p></div></div><span class="inline-flex w-fit items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">Đã ký <mat-icon class="!h-4 !w-4 !text-[15px]">verified</mat-icon></span></a>}</div>@if (totalPages() > 1) {<div class="flex items-center justify-end gap-3 border-t border-slate-100 px-6 py-4"><span class="mr-auto text-sm text-slate-500">Trang {{ page() + 1 }} / {{ totalPages() }}</span><button data-testid="previous-history-page" type="button" (click)="previous()" [disabled]="loading() || page() === 0" class="min-h-9 rounded-md border border-slate-200 px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40">Trước</button><button data-testid="next-history-page" type="button" (click)="next()" [disabled]="loading() || page() + 1 >= totalPages()" class="min-h-9 rounded-md border border-slate-200 px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40">Sau</button></div>}</section>
+          <section class="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
+            <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+              <h2 class="text-base font-bold text-slate-900">Lịch sử khám</h2>
+              <span class="text-xs font-medium text-slate-500">{{ totalElements() }} phiếu đã ký</span>
+            </div>
+            <div class="divide-y divide-slate-100">
+              @for (record of records(); track record.id) {
+                <a [routerLink]="['/medical-records', record.id]" class="flex flex-col gap-4 px-6 py-4 transition hover:bg-slate-50/80 sm:flex-row sm:items-center sm:justify-between">
+                  <div class="flex items-start gap-4">
+                    <span class="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-sky-50 text-[#0284c7]"><mat-icon>description</mat-icon></span>
+                    <div>
+                      <p class="font-semibold text-slate-900">{{ record.diagnosis || 'Phiếu khám tổng quát' }}</p>
+                      <p class="mt-0.5 text-xs text-slate-500">{{ record.doctorName }} · <span class="font-mono text-xs">{{ record.appointmentCode || 'Không có mã lịch' }}</span></p>
+                      <p class="mt-1.5 text-xs text-slate-600">Đã ký: {{ formatDateTime(record.signedAt) }}</p>
+                    </div>
+                  </div>
+                  <span class="inline-flex w-fit items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 border border-emerald-200">Đã ký <mat-icon class="!h-4 !w-4 !text-[15px]">verified</mat-icon></span>
+                </a>
+              }
+            </div>
+            @if (totalPages() > 1) {
+              <div class="flex items-center justify-end gap-3 border-t border-slate-100 bg-slate-50/50 px-6 py-3">
+                <span class="mr-auto text-xs text-slate-500">Trang {{ page() + 1 }} / {{ totalPages() }}</span>
+                <button data-testid="previous-history-page" type="button" (click)="previous()" [disabled]="loading() || page() === 0" class="min-h-8.5 rounded-md border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-40">Trước</button>
+                <button data-testid="next-history-page" type="button" (click)="next()" [disabled]="loading() || page() + 1 >= totalPages()" class="min-h-8.5 rounded-md border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-40">Sau</button>
+              </div>
+            }
+          </section>
         }
       </section>
     </div>

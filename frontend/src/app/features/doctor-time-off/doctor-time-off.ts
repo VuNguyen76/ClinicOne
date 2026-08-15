@@ -1,9 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { AuthApiService, DoctorAccountResponse, DoctorTimeOffResponse, apiErrorMessage } from '../../core/auth/auth-api.service';
-import { AccountMenu } from '../../shared/account-menu/account-menu';
 import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
 import { clinicTodayIso } from '../../core/time/clinic-time';
 import { hasStaffRole } from '../../core/auth/auth.guard';
@@ -11,7 +9,7 @@ import { hasStaffRole } from '../../core/auth/auth.guard';
 @Component({
   selector: 'app-doctor-time-off-management',
   standalone: true,
-  imports: [FormsModule, RouterLink, MatIconModule, AccountMenu, StaffWorkspaceShell],
+  imports: [FormsModule, MatIconModule, StaffWorkspaceShell],
   templateUrl: './doctor-time-off.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -30,9 +28,24 @@ export class DoctorTimeOffManagement implements OnInit {
   protected readonly notice = signal('');
 
   ngOnInit(): void {
+    this.loadData();
+  }
+
+  protected loadData(): void {
+    this.loading.set(true);
     this.authApi.getDoctors().subscribe({
-      next: (doctors) => { this.doctors.set(doctors.filter((item) => item.active && item.assigned)); if (this.doctors()[0]) this.selectedDoctorId.set(this.doctors()[0].staffId); this.loading.set(false); },
-      error: (response) => { this.loading.set(false); this.error.set(apiErrorMessage(response)); },
+      next: (doctors) => {
+        const activeAssigned = doctors.filter((item) => item.active && item.assigned);
+        this.doctors.set(activeAssigned);
+        if (activeAssigned[0] && !this.selectedDoctorId()) {
+          this.selectedDoctorId.set(activeAssigned[0].staffId);
+        }
+        this.loading.set(false);
+      },
+      error: (response) => {
+        this.loading.set(false);
+        this.error.set(apiErrorMessage(response));
+      },
     });
     this.authApi.getDoctorTimeOffs().subscribe({
       next: (items) => this.records.set(items),
@@ -51,13 +64,35 @@ export class DoctorTimeOffManagement implements OnInit {
     }
     this.saving.set(true);
     this.error.set('');
-    this.authApi.createDoctorTimeOff({ doctorId: this.selectedDoctorId(), startDate: this.startDate(), endDate: this.endDate(), reason: this.reason().trim() }).subscribe({
-      next: (item) => { this.records.update((items) => [item, ...items]); this.notice.set(`Đã khóa ${item.lockedSlotCount} khung giờ và mở ${item.affectedAppointmentCount} lịch cần sắp xếp lại.`); this.reason.set(''); this.saving.set(false); },
-      error: (response) => { this.saving.set(false); this.error.set(apiErrorMessage(response)); },
+    this.authApi.createDoctorTimeOff({
+      doctorId: this.selectedDoctorId(),
+      startDate: this.startDate(),
+      endDate: this.endDate(),
+      reason: this.reason().trim(),
+    }).subscribe({
+      next: (item) => {
+        this.records.update((items) => [item, ...items]);
+        this.notice.set(`Đã khóa ${item.lockedSlotCount} khung giờ và mở ${item.affectedAppointmentCount} lịch cần sắp xếp lại.`);
+        this.reason.set('');
+        this.saving.set(false);
+      },
+      error: (response) => {
+        this.saving.set(false);
+        this.error.set(apiErrorMessage(response));
+      },
     });
   }
 
-  protected doctorName(id: string): string { return this.doctors().find((item) => item.staffId === id)?.fullName ?? id; }
-  protected formatDate(value: string): string { const [year, month, day] = value.split('-').map(Number); return new Intl.DateTimeFormat('vi-VN').format(new Date(year, month - 1, day)); }
-  protected canManageTimeOff(): boolean { return hasStaffRole('COORDINATOR'); }
+  protected doctorName(id: string): string {
+    return this.doctors().find((item) => item.staffId === id)?.fullName ?? id;
+  }
+
+  protected formatDate(value: string): string {
+    const [year, month, day] = value.split('-').map(Number);
+    return new Intl.DateTimeFormat('vi-VN').format(new Date(year, month - 1, day));
+  }
+
+  protected canManageTimeOff(): boolean {
+    return hasStaffRole('COORDINATOR');
+  }
 }
