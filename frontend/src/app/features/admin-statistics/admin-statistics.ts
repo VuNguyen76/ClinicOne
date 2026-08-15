@@ -1,16 +1,14 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { ApiErrorResponse, AuthApiService, OperationalStatisticsResponse, apiErrorMessage } from '../../core/auth/auth-api.service';
-import { AccountMenu } from '../../shared/account-menu/account-menu';
 import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
 import { clinicTodayIso } from '../../core/time/clinic-time';
 
 @Component({
   selector: 'app-admin-statistics',
   standalone: true,
-  imports: [FormsModule, RouterLink, MatIconModule, AccountMenu, StaffWorkspaceShell],
+  imports: [FormsModule, MatIconModule, StaffWorkspaceShell],
   templateUrl: './admin-statistics.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

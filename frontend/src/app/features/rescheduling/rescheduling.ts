@@ -1,7 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import {
   ApiErrorResponse,
@@ -10,14 +8,13 @@ import {
   AvailableReplacementSlot,
   RescheduleCaseResponse,
 } from '../../core/auth/auth-api.service';
-import { AccountMenu } from '../../shared/account-menu/account-menu';
 import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
 import { hasStaffRole } from '../../core/auth/auth.guard';
 
 @Component({
   selector: 'app-rescheduling',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, MatIconModule, AccountMenu, StaffWorkspaceShell],
+  imports: [ReactiveFormsModule, MatIconModule, StaffWorkspaceShell],
   templateUrl: './rescheduling.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -44,6 +41,21 @@ export class Rescheduling implements OnInit {
     this.loadCases();
   }
 
+  protected loadCases(): void {
+    this.loading.set(true);
+    this.authApi.getRescheduleCases().subscribe({
+      next: (items) => {
+        this.cases.set(items);
+        this.loading.set(false);
+        if (items[0]) this.selectCase(items[0]);
+      },
+      error: (response) => {
+        this.loading.set(false);
+        this.handleError(response);
+      },
+    });
+  }
+
   protected selectCase(item: RescheduleCaseResponse): void {
     this.selectedCase.set(item);
     this.error.set('');
@@ -52,8 +64,14 @@ export class Rescheduling implements OnInit {
     this.alternatives.set([]);
     this.alternativesLoading.set(true);
     this.authApi.getReplacementSlots(item.id).subscribe({
-      next: (slots) => { this.alternatives.set(slots); this.alternativesLoading.set(false); },
-      error: (response) => { this.alternativesLoading.set(false); this.error.set(apiErrorMessage(response)); },
+      next: (slots) => {
+        this.alternatives.set(slots);
+        this.alternativesLoading.set(false);
+      },
+      error: (response) => {
+        this.alternativesLoading.set(false);
+        this.error.set(apiErrorMessage(response));
+      },
     });
   }
 
@@ -80,17 +98,25 @@ export class Rescheduling implements OnInit {
     this.saving.set(true);
     this.error.set('');
     const value = this.form.getRawValue();
-    this.authApi.resolveRescheduleCase(item.id, value.appointmentDate, value.startTime,
-      value.doctorName, value.doctorId || null).subscribe({
-        next: (resolved) => {
-          this.cases.update((items) => items.filter((entry) => entry.id !== resolved.id));
-          this.selectedCase.set(null);
-          this.alternatives.set([]);
-          this.saving.set(false);
-          this.notice.set(`Đã sắp xếp lại lịch ${resolved.appointmentCode}.`);
-        },
-        error: (response) => { this.saving.set(false); this.error.set(apiErrorMessage(response)); },
-      });
+    this.authApi.resolveRescheduleCase(
+      item.id,
+      value.appointmentDate,
+      value.startTime,
+      value.doctorName,
+      value.doctorId || null,
+    ).subscribe({
+      next: (resolved) => {
+        this.cases.update((items) => items.filter((entry) => entry.id !== resolved.id));
+        this.selectedCase.set(null);
+        this.alternatives.set([]);
+        this.saving.set(false);
+        this.notice.set(`Đã sắp xếp lại lịch ${resolved.appointmentCode}.`);
+      },
+      error: (response) => {
+        this.saving.set(false);
+        this.error.set(apiErrorMessage(response));
+      },
+    });
   }
 
   protected formatDate(value: string): string {
@@ -104,17 +130,6 @@ export class Rescheduling implements OnInit {
 
   protected canResolve(): boolean {
     return hasStaffRole('COORDINATOR');
-  }
-
-  private loadCases(): void {
-    this.authApi.getRescheduleCases().subscribe({
-      next: (items) => {
-        this.cases.set(items);
-        this.loading.set(false);
-        if (items[0]) this.selectCase(items[0]);
-      },
-      error: (response) => { this.loading.set(false); this.handleError(response); },
-    });
   }
 
   private handleError(response: { status?: number } & ApiErrorResponse): void {

@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import {
@@ -8,13 +7,12 @@ import {
   StaffAccountResponse,
   apiErrorMessage,
 } from '../../core/auth/auth-api.service';
-import { AccountMenu } from '../../shared/account-menu/account-menu';
 import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
 
 @Component({
   selector: 'app-staff-management',
   standalone: true,
-  imports: [FormsModule, RouterLink, MatIconModule, AccountMenu, StaffWorkspaceShell],
+  imports: [FormsModule, MatIconModule, StaffWorkspaceShell],
   templateUrl: './staff-management.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

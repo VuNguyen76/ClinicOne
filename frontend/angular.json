@@ -30,7 +30,8 @@
                 "input": "public"
               }
             ],
-            "styles": ["src/tailwind.css", "src/styles.css"]
+            "styles": ["src/tailwind.css", "src/styles.css"],
+            "allowedCommonJsDependencies": ["qrcode"]
           },
           "configurations": {
             "production": {

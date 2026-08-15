@@ -1,24 +1,103 @@
 <app-staff-workspace-shell moduleTitle="Danh mục" pageTitle="Chuyên khoa">
   <div workspace-actions>
-    <button type="button" class="inline-flex min-h-9 items-center gap-2 rounded-md bg-[#0b617d] px-3 text-sm font-semibold text-white hover:bg-[#084c63]" (click)="create()"><mat-icon class="!h-5 !w-5 !text-[19px]">add</mat-icon>Thêm chuyên khoa</button>
+    <button type="button" class="erp-btn-secondary" (click)="load()" [disabled]="loading()">
+      <mat-icon class="!h-4 !w-4 !text-[18px]">refresh</mat-icon>
+      <span>Tải lại</span>
+    </button>
   </div>
+
   <div class="grid gap-4">
-    <p class="text-sm text-slate-500">Quản lý tên chuyên khoa dùng chung cho phòng, bác sĩ và đặt lịch.</p>
-    @if (error()) { <p class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700" role="alert">{{ error() }}</p> }
-    @if (notice()) { <p class="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700" role="status">{{ notice() }}</p> }
-    <div class="grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
-      <section class="border border-[#d5e1e4] bg-white p-4 shadow-[0_4px_16px_rgba(15,55,65,0.04)]">
-        <h2 class="text-sm font-bold text-[#0a303b]">Thêm chuyên khoa</h2>
-        <div class="mt-4 grid gap-3">
-          <label class="grid gap-1 text-xs font-semibold">Mã<input class="h-9 rounded-md border border-[#cbdadd] px-3 text-sm font-normal uppercase" [ngModel]="code()" (ngModelChange)="code.set($event)" maxlength="20" placeholder="NOI" /></label>
-          <label class="grid gap-1 text-xs font-semibold">Tên<input class="h-9 rounded-md border border-[#cbdadd] px-3 text-sm font-normal" [ngModel]="name()" (ngModelChange)="name.set($event)" maxlength="120" /></label>
-          <label class="grid gap-1 text-xs font-semibold">Mô tả<textarea class="min-h-20 rounded-md border border-[#cbdadd] px-3 py-2 text-sm font-normal" [ngModel]="description()" (ngModelChange)="description.set($event)" maxlength="500"></textarea></label>
-          <button type="button" class="min-h-9 rounded-md bg-[#0b617d] px-3 text-sm font-semibold text-white disabled:opacity-50" [disabled]="saving()" (click)="create()">{{ saving() ? 'Đang lưu...' : 'Thêm chuyên khoa' }}</button>
+    <p class="text-xs text-slate-500">Quản lý danh mục chuyên khoa dùng chung cho phân loại phòng khám, bác sĩ và lịch đặt khám.</p>
+
+    @if (error()) {
+      <div class="rounded-md border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs font-semibold text-rose-700" role="alert">
+        {{ error() }}
+      </div>
+    }
+    @if (notice()) {
+      <div class="rounded-md border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-xs font-semibold text-emerald-700" role="status">
+        {{ notice() }}
+      </div>
+    }
+
+    <div class="grid gap-5 lg:grid-cols-[320px_minmax(0,1fr)]">
+      <!-- Add Specialty Card -->
+      <section class="erp-card h-fit">
+        <div class="erp-card-header">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-[#0e3d48]">Thêm chuyên khoa</h2>
+          <mat-icon class="text-slate-400">category</mat-icon>
+        </div>
+        <div class="grid gap-3.5 p-4">
+          <label class="grid gap-1">
+            <span class="erp-label">Mã chuyên khoa <span class="erp-label-required">*</span></span>
+            <input class="erp-input font-mono uppercase" [ngModel]="code()" (ngModelChange)="code.set($event)" maxlength="20" placeholder="VD: NOI" />
+          </label>
+          <label class="grid gap-1">
+            <span class="erp-label">Tên chuyên khoa <span class="erp-label-required">*</span></span>
+            <input class="erp-input" [ngModel]="name()" (ngModelChange)="name.set($event)" maxlength="120" placeholder="VD: Nội khoa tổng quát" />
+          </label>
+          <label class="grid gap-1">
+            <span class="erp-label">Mô tả</span>
+            <textarea class="erp-textarea min-h-20" [ngModel]="description()" (ngModelChange)="description.set($event)" maxlength="500" placeholder="Mô tả phạm vi khám..."></textarea>
+          </label>
+          <button type="button" class="erp-btn-primary" [disabled]="saving()" (click)="create()">
+            {{ saving() ? 'Đang lưu...' : 'Thêm chuyên khoa' }}
+          </button>
         </div>
       </section>
-      <section class="overflow-hidden border border-[#d5e1e4] bg-white shadow-[0_4px_16px_rgba(15,55,65,0.04)]">
-        <div class="flex items-center justify-between border-b border-[#e7eef0] px-4 py-3"><div><h2 class="text-sm font-bold text-[#0a303b]">Danh sách đang dùng</h2><p class="mt-0.5 text-xs text-slate-500">{{ items().length }} chuyên khoa</p></div><button type="button" class="grid h-8 w-8 place-items-center rounded-md text-[#0b84bd] hover:bg-[#e8f7fb]" (click)="load()" aria-label="Tải lại"><mat-icon class="!text-[20px]">refresh</mat-icon></button></div>
-        @if (loading()) { <div class="grid min-h-48 place-items-center text-sm text-slate-500">Đang tải...</div> } @else { <div class="divide-y divide-[#edf2f3]">@for (item of items(); track item.code) { <div class="flex items-center justify-between gap-4 px-4 py-3"><div><p class="text-sm font-semibold">{{ item.name }}</p><p class="mt-1 text-xs text-slate-500"><span class="font-mono">{{ item.code }}</span> · {{ item.description || 'Chưa có mô tả' }}</p></div><button type="button" class="rounded-md border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50" (click)="deactivate(item)">Tạm dừng</button></div> } @empty { <p class="px-4 py-10 text-center text-sm text-slate-500">Chưa có chuyên khoa do quản trị tạo.</p> }</div> }
+
+      <!-- Active Specialties Table -->
+      <section class="erp-card overflow-hidden">
+        <div class="erp-card-header">
+          <div>
+            <h2 class="text-xs font-bold uppercase tracking-wider text-[#0e3d48]">Danh sách chuyên khoa</h2>
+            <p class="mt-0.5 text-[11px] text-slate-500">{{ items().length }} chuyên khoa đang hoạt động</p>
+          </div>
+          <button type="button" class="erp-btn-icon" (click)="load()" aria-label="Tải lại">
+            <mat-icon class="!h-4 !w-4 !text-[18px]">refresh</mat-icon>
+          </button>
+        </div>
+
+        @if (loading()) {
+          <div class="grid min-h-48 place-items-center text-xs text-slate-500">
+            Đang tải chuyên khoa...
+          </div>
+        } @else {
+          <div class="erp-table-container !rounded-none !border-0 !shadow-none">
+            <table class="erp-table">
+              <thead>
+                <tr>
+                  <th class="erp-th w-32">Mã</th>
+                  <th class="erp-th w-48">Tên chuyên khoa</th>
+                  <th class="erp-th">Mô tả</th>
+                  <th class="erp-th w-28 text-right">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of items(); track item.code) {
+                  <tr class="erp-tr">
+                    <td class="erp-td">
+                      <span class="erp-table-code font-mono text-[11px] text-[#0284c7]">{{ item.code }}</span>
+                    </td>
+                    <td class="erp-td font-semibold text-slate-900">{{ item.name }}</td>
+                    <td class="erp-td max-w-xs truncate text-slate-600">{{ item.description || 'Chưa có mô tả' }}</td>
+                    <td class="erp-td text-right">
+                      <button type="button" class="erp-btn-danger !min-h-7 !px-2.5 !text-[11px]" (click)="deactivate(item)">
+                        Tạm dừng
+                      </button>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="4" class="px-4 py-12 text-center text-xs text-slate-500">
+                      Chưa có chuyên khoa do quản trị tạo.
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
       </section>
     </div>
   </div>

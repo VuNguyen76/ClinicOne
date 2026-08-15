@@ -1,11 +1,82 @@
 <app-staff-workspace-shell moduleTitle="Hệ thống" pageTitle="Trạng thái gửi SMS">
-  <div workspace-actions><button type="button" class="grid h-9 w-9 place-items-center rounded-md border border-[#cbdadd] bg-white text-[#0b84bd] hover:bg-[#e8f7fb]" (click)="refresh()" aria-label="Tải lại"><mat-icon class="!text-[20px]">refresh</mat-icon></button></div>
+  <div workspace-actions>
+    <button type="button" class="erp-btn-secondary" (click)="refresh()" [disabled]="loading()">
+      <mat-icon class="!h-4 !w-4 !text-[18px]">refresh</mat-icon>
+      <span>Tải lại</span>
+    </button>
+  </div>
+
   <div class="grid gap-4">
-    <p class="text-sm text-slate-500">Theo dõi lỗi gửi mã và thông báo để xử lý kịp thời.</p>
-    @if (error()) { <p class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700" role="alert">{{ error() }}</p> }
-    <section class="overflow-hidden border border-[#d5e1e4] bg-white shadow-[0_4px_16px_rgba(15,55,65,0.04)]">
-      @if (loading()) { <div class="grid min-h-48 place-items-center text-sm text-slate-500">Đang tải...</div> } @else {
-        <div class="overflow-x-auto"><table class="w-full min-w-[900px] text-left text-sm"><thead class="border-b border-[#dce7ea] bg-[#f7f9fa] text-[10px] font-bold uppercase tracking-wide text-slate-500"><tr><th class="px-4 py-3">Thời điểm</th><th class="px-4 py-3">Số điện thoại</th><th class="px-4 py-3">Sự kiện</th><th class="px-4 py-3">Trạng thái</th><th class="px-4 py-3">Lần thử</th><th class="px-4 py-3">Lỗi gần nhất</th><th class="px-4 py-3">Thao tác</th></tr></thead><tbody class="divide-y divide-[#edf2f3]">@for (item of items(); track item.id) {<tr class="hover:bg-[#fbfdfe]"><td class="whitespace-nowrap px-4 py-3 text-slate-500">{{ item.createdAt | date:'dd/MM/yyyy HH:mm' }}</td><td class="px-4 py-3 font-mono">{{ item.phone }}</td><td class="px-4 py-3">{{ item.eventKey }}</td><td class="px-4 py-3"><span class="rounded-full px-2 py-1 text-xs font-semibold" [class.bg-rose-50]="item.status === 'FAILED'" [class.text-rose-700]="item.status === 'FAILED'" [class.bg-amber-50]="item.status !== 'FAILED'" [class.text-amber-700]="item.status !== 'FAILED'">{{ statusLabel(item.status) }}</span></td><td class="px-4 py-3">{{ item.attempts }}</td><td class="max-w-[300px] px-4 py-3 text-slate-500">{{ item.lastError || '—' }}</td><td class="px-4 py-3"><button type="button" class="rounded-md border border-[#0ea5e9] px-3 py-2 text-xs font-semibold text-[#087eae] disabled:opacity-50" [disabled]="item.status === 'SENT'" (click)="retry(item)">Thử gửi lại</button></td></tr>} @empty {<tr><td colspan="7" class="px-4 py-12 text-center text-sm text-slate-500">Chưa có bản ghi gửi SMS.</td></tr>}</tbody></table></div>
+    <p class="text-xs text-slate-500">Theo dõi trạng thái gửi mã OTP và tin nhắn thông báo tự động đến bệnh nhân để xử lý sự cố kịp thời.</p>
+
+    @if (error()) {
+      <div class="rounded-md border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs font-semibold text-rose-700" role="alert">
+        {{ error() }}
+      </div>
+    }
+
+    <section class="erp-card overflow-hidden">
+      <div class="erp-card-header">
+        <div>
+          <h2 class="text-xs font-bold uppercase tracking-wider text-[#0e3d48]">Lịch sử gửi SMS</h2>
+          <p class="mt-0.5 text-[11px] text-slate-500">{{ items().length }} bản ghi tin nhắn gần nhất</p>
+        </div>
+        <mat-icon class="text-slate-400">sms</mat-icon>
+      </div>
+
+      @if (loading()) {
+        <div class="grid min-h-48 place-items-center text-xs text-slate-500">
+          Đang tải trạng thái gửi tin...
+        </div>
+      } @else {
+        <div class="erp-table-container !rounded-none !border-0 !shadow-none">
+          <table class="erp-table">
+            <thead>
+              <tr>
+                <th class="erp-th w-36">Thời điểm</th>
+                <th class="erp-th w-36">Số điện thoại</th>
+                <th class="erp-th w-44">Sự kiện</th>
+                <th class="erp-th w-36">Trạng thái</th>
+                <th class="erp-th w-24 text-center">Lần thử</th>
+                <th class="erp-th">Lỗi gần nhất</th>
+                <th class="erp-th w-32 text-right">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of items(); track item.id) {
+                <tr class="erp-tr">
+                  <td class="erp-td font-mono text-[11px] text-slate-500">{{ item.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
+                  <td class="erp-td font-mono text-xs font-semibold text-slate-800">{{ item.phone }}</td>
+                  <td class="erp-td text-xs font-mono text-slate-700">{{ item.eventKey }}</td>
+                  <td class="erp-td">
+                    <span [class]="item.status === 'FAILED' ? 'erp-badge-danger' : (item.status === 'SENT' ? 'erp-badge-success' : 'erp-badge-warning')">
+                      <span [class]="item.status === 'FAILED' ? 'erp-dot-danger' : (item.status === 'SENT' ? 'erp-dot-success' : 'erp-dot-warning')"></span>
+                      {{ statusLabel(item.status) }}
+                    </span>
+                  </td>
+                  <td class="erp-td text-center font-mono text-xs font-bold text-slate-700">{{ item.attempts }}</td>
+                  <td class="erp-td max-w-xs truncate text-xs text-slate-500">{{ item.lastError || '—' }}</td>
+                  <td class="erp-td text-right">
+                    <button
+                      type="button"
+                      class="erp-btn-secondary !min-h-7 !px-2.5 !text-[11px]"
+                      [disabled]="item.status === 'SENT'"
+                      (click)="retry(item)"
+                    >
+                      Thử gửi lại
+                    </button>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="7" class="px-4 py-12 text-center text-xs text-slate-500">
+                    Chưa có bản ghi gửi SMS.
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
       }
     </section>
   </div>

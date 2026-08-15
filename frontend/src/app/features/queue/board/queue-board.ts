@@ -68,11 +68,11 @@ export class QueueBoard implements OnInit {
   }
 
   protected statusClass(status: string): string {
-    if (status === 'CALLED') return 'bg-amber-50 text-amber-700';
-    if (status === 'IN_SERVICE') return 'bg-violet-50 text-violet-700';
-    if (status === 'COMPLETED') return 'bg-emerald-50 text-emerald-700';
-    if (status === 'SKIPPED') return 'bg-slate-100 text-slate-600';
-    return 'bg-sky-50 text-sky-700';
+    if (status === 'CALLED') return 'erp-badge-warning';
+    if (status === 'IN_SERVICE') return 'erp-badge-info';
+    if (status === 'COMPLETED') return 'erp-badge-success';
+    if (status === 'SKIPPED') return 'erp-badge-neutral';
+    return 'erp-badge-info';
   }
 
   protected waitingCount(): number {

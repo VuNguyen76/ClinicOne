@@ -1,44 +1,245 @@
 <app-staff-workspace-shell moduleTitle="Vận hành" pageTitle="Bác sĩ">
-<main class="staff-legacy-page min-h-screen bg-[#f6f8f9] text-[#173f4b]">
-  <header class="sticky top-0 z-30 h-16 border-b border-[#dce7ea] bg-white/95 backdrop-blur">
-    <div class="mx-auto flex h-full max-w-[1440px] items-center justify-between gap-4 px-4 lg:px-8">
-      <a routerLink="/admin/rooms" class="flex items-center gap-2.5" aria-label="ClinicOne">
-        <img class="h-8 w-8 object-contain" src="clinicone-mark.png" alt="" aria-hidden="true" />
-        <span class="text-lg font-bold tracking-[-0.05em] text-[#0a303b]">Clinic<span class="text-[#0ea5e9]">One</span></span>
-        <span class="hidden border-l border-[#dce7ea] pl-3 text-sm font-medium text-slate-500 sm:inline">Quản lý bác sĩ</span>
-      </a>
-      <app-account-menu />
-    </div>
-  </header>
-
-  <div class="mx-auto max-w-[1440px] px-4 py-5 lg:px-8 lg:py-7">
-    <section class="border-b border-[#dce7ea] pb-5">
-      <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0b91c9]">Cấu hình vận hành</p>
-      <h1 class="mt-2 text-2xl font-bold tracking-[-0.04em] text-[#0a303b]">Bác sĩ và giờ làm</h1>
-      <p class="mt-1 text-sm text-slate-500">Tạo tài khoản, gán chuyên khoa, phòng khám và giờ làm trước khi mở lịch đặt khám.</p>
-      <button data-testid="open-create-doctor" type="button" class="mt-4 inline-flex min-h-10 items-center gap-2 rounded-md bg-[#0b3846] px-4 text-sm font-semibold text-white transition hover:bg-[#082d39]" (click)="openCreateDoctor()"><mat-icon class="!h-5 !w-5 !text-[20px]">person_add</mat-icon>Tạo tài khoản bác sĩ</button>
-    </section>
-
-    @if (error()) {<p class="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700" role="alert">{{ error() }}</p>}
-    @if (notice()) {<p class="mt-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm text-emerald-700" role="status">{{ notice() }}</p>}
-
-    @if (loading()) {<div class="mt-5 grid min-h-72 place-items-center border border-[#dce7ea] bg-white text-sm text-slate-500">Đang tải danh sách bác sĩ...</div>}
-    @else if (doctors().length === 0) {<div class="mt-5 grid min-h-72 place-items-center border border-[#dce7ea] bg-white px-5 text-center"><div><mat-icon class="!h-8 !w-8 !text-[32px] text-slate-300">medical_services</mat-icon><p class="mt-2 font-semibold">Chưa có tài khoản bác sĩ</p><p class="mt-1 text-sm text-slate-500">Tạo tài khoản đầu tiên để bắt đầu phân công.</p><button data-testid="empty-create-doctor" type="button" class="mt-4 rounded-md border border-[#0ea5e9] px-4 py-2 text-sm font-semibold text-[#0b84bd] hover:bg-[#eaf8fb]" (click)="openCreateDoctor()">Tạo tài khoản</button></div></div>}
-    @else {<div class="mt-5 grid gap-5 lg:grid-cols-[300px_minmax(0,1fr)]">
-      <aside class="h-fit border border-[#dce7ea] bg-white">
-        <div class="border-b border-[#e7eff1] px-4 py-3"><h2 class="text-sm font-bold">Danh sách bác sĩ</h2><p class="mt-0.5 text-xs text-slate-500">{{ doctors().length }} tài khoản</p></div>
-        <div class="divide-y divide-[#edf2f3]">@for (doctor of doctors(); track doctor.staffId) {<button data-testid="doctor-row" type="button" class="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-[#f3fbfd]" [class.bg-[#eaf8fb]]="selectedDoctor()?.staffId === doctor.staffId" (click)="selectDoctor(doctor)"><span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#eaf7fb] text-sm font-bold text-[#0b84bd]">{{ doctor.fullName.slice(0, 1) }}</span><span class="min-w-0 flex-1"><strong class="block truncate text-sm">{{ doctor.fullName }}</strong><span class="mt-0.5 block truncate text-xs text-slate-500">{{ doctor.specialty || 'Chưa phân công' }}</span></span><span class="h-2 w-2 shrink-0 rounded-full" [class.bg-emerald-500]="doctor.assigned" [class.bg-amber-400]="!doctor.assigned"></span></button>}</div>
-      </aside>
-
-      @if (selectedDoctor(); as doctor) {<section class="min-w-0 border border-[#dce7ea] bg-white">
-        <div class="flex flex-col justify-between gap-3 border-b border-[#e7eff1] px-5 py-4 sm:flex-row sm:items-center sm:px-6"><div><p class="text-[10px] font-bold uppercase tracking-[0.14em] text-[#0b91c9]">Hồ sơ bác sĩ</p><h2 class="mt-1 text-lg font-bold">{{ doctor.fullName }}</h2><p class="mt-0.5 text-xs text-slate-500">{{ doctor.username }}</p></div><span class="rounded-full px-2.5 py-1 text-xs font-semibold" [class.bg-emerald-50]="doctor.assigned" [class.text-emerald-700]="doctor.assigned" [class.bg-amber-50]="!doctor.assigned" [class.text-amber-700]="!doctor.assigned">{{ doctor.assigned ? 'Đã phân công' : 'Chưa phân công' }}</span></div>
-        <div class="grid gap-6 p-5 sm:p-6">
-          <form class="grid gap-4 border-b border-[#e7eff1] pb-6" [formGroup]="assignmentForm" (ngSubmit)="$event.preventDefault(); saveAssignment()"><div><h3 class="text-sm font-bold">1. Phân công chuyên môn</h3><p class="mt-1 text-xs text-slate-500">Phòng phải thuộc đúng chuyên khoa.</p></div><div class="grid gap-4 sm:grid-cols-2"><label class="grid gap-1.5 text-sm font-semibold">Chuyên khoa<select formControlName="specialty" class="min-h-10 rounded-md border border-[#d5e3e7] bg-white px-3 text-sm outline-none focus:border-[#0ea5e9]"><option value="">Chọn chuyên khoa</option>@for (specialty of specialties(); track specialty.code) {<option [value]="specialty.name">{{ specialty.name }}</option>}</select></label><label class="grid gap-1.5 text-sm font-semibold">Phòng khám<select formControlName="roomId" class="min-h-10 rounded-md border border-[#d5e3e7] bg-white px-3 text-sm outline-none focus:border-[#0ea5e9]"><option value="">Chọn phòng</option>@for (room of availableRooms(); track room.id) {<option [value]="room.id">{{ room.code }} · {{ room.name }}</option>}</select></label></div><div><button type="submit" class="min-h-9 rounded-md bg-[#0b3846] px-4 text-sm font-semibold text-white transition hover:bg-[#082d39] disabled:opacity-50" [disabled]="saving()">{{ saving() ? 'Đang lưu...' : 'Lưu phân công' }}</button></div></form>
-          <section><div class="flex flex-col justify-between gap-2 sm:flex-row sm:items-start"><div><h3 class="text-sm font-bold">2. Giờ làm theo tuần</h3><p class="mt-1 text-xs text-slate-500">Chỉ thêm được sau khi đã gán chuyên khoa và phòng.</p></div><span class="text-xs font-semibold text-slate-500">{{ schedules().length }} khung giờ</span></div><form class="mt-4 grid gap-3 rounded-md bg-[#f8fbfc] p-4 sm:grid-cols-[1fr_1fr_1fr_110px_auto] sm:items-end" [formGroup]="scheduleForm" (ngSubmit)="$event.preventDefault(); addSchedule()"><label class="grid gap-1 text-xs font-semibold">Thứ<select formControlName="dayOfWeek" class="min-h-9 rounded-md border border-[#d5e3e7] bg-white px-2 text-sm"><option [value]="day.value" *ngFor="let day of days">{{ day.label }}</option></select></label><label class="grid gap-1 text-xs font-semibold">Từ<input formControlName="startTime" type="time" class="min-h-9 rounded-md border border-[#d5e3e7] bg-white px-2 text-sm" /></label><label class="grid gap-1 text-xs font-semibold">Đến<input formControlName="endTime" type="time" class="min-h-9 rounded-md border border-[#d5e3e7] bg-white px-2 text-sm" /></label><label class="grid gap-1 text-xs font-semibold">Phút/lượt<input formControlName="slotDurationMinutes" type="number" min="15" max="180" step="15" class="min-h-9 rounded-md border border-[#d5e3e7] bg-white px-2 text-sm" /></label><button type="submit" class="min-h-9 rounded-md border border-[#0ea5e9] px-3 text-sm font-semibold text-[#0b84bd] hover:bg-[#eaf8fb] disabled:opacity-50" [disabled]="!doctor.assigned || saving()">Thêm</button></form><div class="mt-4 overflow-x-auto"><table class="w-full min-w-[560px] text-left text-sm"><thead class="border-b border-[#dce7ea] text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500"><tr><th class="px-3 py-2">Thứ</th><th class="px-3 py-2">Giờ làm</th><th class="px-3 py-2">Thời lượng</th><th class="px-3 py-2 text-right"> </th></tr></thead><tbody class="divide-y divide-[#edf2f3]">@for (schedule of schedules(); track schedule.id) {<tr><td class="px-3 py-3 font-semibold">{{ dayLabel(schedule.dayOfWeek) }}</td><td class="px-3 py-3">{{ schedule.startTime.slice(0, 5) }} – {{ schedule.endTime.slice(0, 5) }}</td><td class="px-3 py-3 text-slate-600">{{ schedule.slotDurationMinutes }} phút/lượt</td><td class="px-3 py-3 text-right"><button type="button" class="text-xs font-semibold text-red-600 hover:text-red-700" (click)="removeSchedule(schedule)">Xóa</button></td></tr>} @empty {<tr><td colspan="4" class="px-3 py-8 text-center text-sm text-slate-500">Chưa có giờ làm.</td></tr>}</tbody></table></div></section>
-        </div>
-      </section>}
-    </div>}
+  <div workspace-actions>
+    <button data-testid="open-create-doctor" type="button" class="erp-btn-primary" (click)="openCreateDoctor()">
+      <mat-icon class="!h-4 !w-4 !text-[18px]">person_add</mat-icon>
+      <span>Tạo tài khoản bác sĩ</span>
+    </button>
   </div>
-  @if (createDoctorOpen()) {<div class="fixed inset-0 z-50 grid place-items-center bg-[#092f3b]/35 p-4" role="dialog" aria-modal="true" aria-labelledby="create-doctor-title"><section class="w-full max-w-md rounded-lg border border-[#dce7ea] bg-white shadow-2xl"><div class="flex items-start justify-between border-b border-[#e7eff1] px-5 py-4"><div><p class="text-[10px] font-bold uppercase tracking-[0.14em] text-[#0b91c9]">Tài khoản nội bộ</p><h2 id="create-doctor-title" class="mt-1 text-lg font-bold">Tạo tài khoản bác sĩ</h2><p class="mt-1 text-xs text-slate-500">Tài khoản sẽ có vai trò DOCTOR.</p></div><button type="button" class="rounded p-1 text-slate-500 hover:bg-slate-100" aria-label="Đóng" (click)="closeCreateDoctor()"><mat-icon>close</mat-icon></button></div><form class="grid gap-4 px-5 py-5" [formGroup]="createDoctorForm" (ngSubmit)="$event.preventDefault(); createDoctor()"><label class="grid gap-1.5 text-sm font-semibold">Tên đăng nhập<input data-testid="doctor-username" formControlName="username" autocomplete="username" class="min-h-10 rounded-md border border-[#d5e3e7] px-3 text-sm outline-none focus:border-[#0ea5e9]" placeholder="vd. bs.nguyenan" /></label><label class="grid gap-1.5 text-sm font-semibold">Họ và tên<input data-testid="doctor-full-name" formControlName="fullName" autocomplete="name" class="min-h-10 rounded-md border border-[#d5e3e7] px-3 text-sm outline-none focus:border-[#0ea5e9]" placeholder="Bác sĩ Nguyễn An" /></label><label class="grid gap-1.5 text-sm font-semibold">Mật khẩu tạm<input data-testid="doctor-password" type="password" formControlName="password" autocomplete="new-password" class="min-h-10 rounded-md border border-[#d5e3e7] px-3 text-sm outline-none focus:border-[#0ea5e9]" placeholder="Tối thiểu 6 ký tự" /></label><div class="flex justify-end gap-2 pt-2"><button type="button" class="min-h-9 rounded-md border border-[#d5e3e7] px-4 text-sm font-semibold text-slate-600 hover:bg-slate-50" (click)="closeCreateDoctor()">Hủy</button><button data-testid="submit-create-doctor" type="submit" class="min-h-9 rounded-md bg-[#0b3846] px-4 text-sm font-semibold text-white hover:bg-[#082d39] disabled:opacity-50" [disabled]="saving()">{{ saving() ? 'Đang tạo...' : 'Tạo tài khoản' }}</button></div></form></section></div>}
-</main>
+
+  <div class="grid gap-4">
+    <p class="text-xs text-slate-500">Tạo tài khoản bác sĩ, phân công chuyên khoa, phòng khám cố định và thiết lập khung giờ làm việc theo tuần trước khi tạo mẫu lịch.</p>
+
+    @if (error()) {
+      <div class="rounded-md border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs font-semibold text-rose-700" role="alert">
+        {{ error() }}
+      </div>
+    }
+    @if (notice()) {
+      <div class="rounded-md border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-xs font-semibold text-emerald-700" role="status">
+        {{ notice() }}
+      </div>
+    }
+
+    @if (loading()) {
+      <div class="grid min-h-64 place-items-center rounded-lg border border-slate-200 bg-white text-xs text-slate-500">
+        Đang tải danh sách bác sĩ...
+      </div>
+    } @else if (doctors().length === 0) {
+      <div class="erp-card grid min-h-64 place-items-center p-8 text-center">
+        <div>
+          <mat-icon class="!h-10 !w-10 !text-[40px] text-slate-300">medical_services</mat-icon>
+          <p class="mt-2 text-xs font-bold text-slate-800">Chưa có tài khoản bác sĩ</p>
+          <p class="mt-0.5 text-[11px] text-slate-500">Tạo tài khoản bác sĩ đầu tiên để bắt đầu phân công chuyên môn.</p>
+          <button data-testid="empty-create-doctor" type="button" class="erp-btn-primary mt-4" (click)="openCreateDoctor()">
+            <mat-icon class="!h-4 !w-4 !text-[18px]">add</mat-icon>
+            <span>Tạo tài khoản</span>
+          </button>
+        </div>
+      </div>
+    } @else {
+      <div class="grid gap-5 lg:grid-cols-[300px_minmax(0,1fr)]">
+        <!-- Left: Doctor List Card -->
+        <aside class="erp-card h-fit overflow-hidden">
+          <div class="erp-card-header">
+            <div>
+              <h2 class="text-xs font-bold uppercase tracking-wider text-[#0e3d48]">Danh sách bác sĩ</h2>
+              <p class="mt-0.5 text-[11px] text-slate-500">{{ doctors().length }} tài khoản</p>
+            </div>
+            <mat-icon class="text-slate-400">people</mat-icon>
+          </div>
+          <div class="divide-y divide-slate-100 max-h-[calc(100vh-280px)] overflow-y-auto">
+            @for (doctor of doctors(); track doctor.staffId) {
+              <button
+                data-testid="doctor-row"
+                type="button"
+                class="flex w-full items-center gap-2.5 p-3 text-left transition hover:bg-slate-50"
+                [class.bg-sky-50]="selectedDoctor()?.staffId === doctor.staffId"
+                [class.border-l-4]="selectedDoctor()?.staffId === doctor.staffId"
+                [class.border-l-[#0284c7]]="selectedDoctor()?.staffId === doctor.staffId"
+                (click)="selectDoctor(doctor)"
+              >
+                <span class="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-sky-100 font-mono text-xs font-bold text-[#0284c7]">
+                  {{ doctor.fullName.slice(0, 1) }}
+                </span>
+                <span class="min-w-0 flex-1">
+                  <strong class="block truncate text-xs text-slate-900">{{ doctor.fullName }}</strong>
+                  <span class="mt-0.5 block truncate text-[11px] text-slate-500">{{ doctor.specialty || 'Chưa phân công' }}</span>
+                </span>
+                <span
+                  class="h-2 w-2 shrink-0 rounded-full"
+                  [class.bg-emerald-500]="doctor.assigned"
+                  [class.bg-amber-400]="!doctor.assigned"
+                  [title]="doctor.assigned ? 'Đã phân công' : 'Chưa phân công'"
+                ></span>
+              </button>
+            }
+          </div>
+        </aside>
+
+        <!-- Right: Doctor Assignment & Schedule Details -->
+        @if (selectedDoctor(); as doctor) {
+          <section class="erp-card min-w-0 overflow-hidden">
+            <div class="erp-card-header">
+              <div>
+                <p class="text-[10px] font-bold uppercase tracking-wider text-[#0284c7]">Hồ sơ bác sĩ</p>
+                <h2 class="text-xs font-bold text-slate-900">{{ doctor.fullName }} <span class="font-mono text-slate-400 font-normal">({{ doctor.username }})</span></h2>
+              </div>
+              <span [class]="doctor.assigned ? 'erp-badge-success' : 'erp-badge-warning'">
+                <span [class]="doctor.assigned ? 'erp-dot-success' : 'erp-dot-warning'"></span>
+                {{ doctor.assigned ? 'Đã phân công' : 'Chưa phân công' }}
+              </span>
+            </div>
+
+            <div class="grid gap-6 p-4">
+              <!-- Form 1: Specialty & Room Assignment -->
+              <form class="grid gap-3.5 border-b border-slate-200 pb-5" [formGroup]="assignmentForm" (ngSubmit)="$event.preventDefault(); saveAssignment()">
+                <div>
+                  <h3 class="text-xs font-bold uppercase tracking-wider text-[#0e3d48]">1. Phân công chuyên môn & Phòng khám</h3>
+                  <p class="mt-0.5 text-[11px] text-slate-500">Phòng khám được lọc tương ứng theo chuyên khoa được gán.</p>
+                </div>
+                <div class="grid gap-3.5 sm:grid-cols-2">
+                  <label class="grid gap-1">
+                    <span class="erp-label">Chuyên khoa <span class="erp-label-required">*</span></span>
+                    <select formControlName="specialty" class="erp-select">
+                      <option value="">Chọn chuyên khoa</option>
+                      @for (specialty of specialties(); track specialty.code) {
+                        <option [value]="specialty.name">{{ specialty.name }}</option>
+                      }
+                    </select>
+                  </label>
+                  <label class="grid gap-1">
+                    <span class="erp-label">Phòng khám cố định <span class="erp-label-required">*</span></span>
+                    <select formControlName="roomId" class="erp-select">
+                      <option value="">Chọn phòng khám</option>
+                      @for (room of availableRooms(); track room.id) {
+                        <option [value]="room.id">{{ room.code }} · {{ room.name }}</option>
+                      }
+                    </select>
+                  </label>
+                </div>
+                <div>
+                  <button type="submit" class="erp-btn-primary" [disabled]="saving()">
+                    {{ saving() ? 'Đang lưu...' : 'Lưu phân công' }}
+                  </button>
+                </div>
+              </form>
+
+              <!-- Form 2: Weekly Schedule -->
+              <section class="grid gap-3.5">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-[#0e3d48]">2. Giờ làm việc theo tuần</h3>
+                    <p class="mt-0.5 text-[11px] text-slate-500">Chỉ thêm được sau khi đã gán chuyên khoa và phòng khám.</p>
+                  </div>
+                  <span class="font-mono text-xs font-bold text-slate-600">{{ schedules().length }} khung giờ</span>
+                </div>
+
+                <form class="erp-filter-bar grid gap-3 sm:grid-cols-[1.2fr_1fr_1fr_110px_auto] sm:items-end" [formGroup]="scheduleForm" (ngSubmit)="$event.preventDefault(); addSchedule()">
+                  <label class="grid gap-1">
+                    <span class="erp-label">Thứ</span>
+                    <select formControlName="dayOfWeek" class="erp-select">
+                      <option [value]="day.value" *ngFor="let day of days">{{ day.label }}</option>
+                    </select>
+                  </label>
+                  <label class="grid gap-1">
+                    <span class="erp-label">Từ giờ</span>
+                    <input formControlName="startTime" type="time" class="erp-input font-mono" />
+                  </label>
+                  <label class="grid gap-1">
+                    <span class="erp-label">Đến giờ</span>
+                    <input formControlName="endTime" type="time" class="erp-input font-mono" />
+                  </label>
+                  <label class="grid gap-1">
+                    <span class="erp-label">Phút/lượt</span>
+                    <input formControlName="slotDurationMinutes" type="number" min="15" max="180" step="15" class="erp-input font-mono" />
+                  </label>
+                  <button type="submit" class="erp-btn-primary w-full" [disabled]="!doctor.assigned || saving()">
+                    <span>Thêm</span>
+                  </button>
+                </form>
+
+                <div class="erp-table-container !rounded-none !border-0 !shadow-none">
+                  <table class="erp-table">
+                    <thead>
+                      <tr>
+                        <th class="erp-th w-36">Thứ</th>
+                        <th class="erp-th">Khung giờ</th>
+                        <th class="erp-th w-36">Thời lượng</th>
+                        <th class="erp-th w-24 text-right">Thao tác</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (schedule of schedules(); track schedule.id) {
+                        <tr class="erp-tr">
+                          <td class="erp-td font-semibold text-slate-800">{{ dayLabel(schedule.dayOfWeek) }}</td>
+                          <td class="erp-td font-mono text-xs text-slate-700">
+                            {{ schedule.startTime.slice(0, 5) }} – {{ schedule.endTime.slice(0, 5) }}
+                          </td>
+                          <td class="erp-td font-mono text-xs text-slate-600">{{ schedule.slotDurationMinutes }} phút/lượt</td>
+                          <td class="erp-td text-right">
+                            <button type="button" class="erp-btn-danger !min-h-7 !px-2.5 !text-[11px]" (click)="removeSchedule(schedule)">
+                              Xóa
+                            </button>
+                          </td>
+                        </tr>
+                      } @empty {
+                        <tr>
+                          <td colspan="4" class="px-4 py-8 text-center text-xs text-slate-500">
+                            Chưa thiết lập giờ làm việc nào cho bác sĩ.
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
+          </section>
+        }
+      </div>
+    }
+  </div>
+
+  <!-- Modal: Create Doctor Account -->
+  @if (createDoctorOpen()) {
+    <div class="erp-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="create-doctor-title">
+      <section class="erp-modal-container max-w-md">
+        <div class="erp-modal-header">
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-wider text-[#0284c7]">Nhân sự chuyên môn</p>
+            <h2 id="create-doctor-title" class="text-sm font-bold text-slate-900">Tạo tài khoản bác sĩ</h2>
+          </div>
+          <button type="button" class="erp-btn-icon" aria-label="Đóng" (click)="closeCreateDoctor()">
+            <mat-icon class="!h-4 !w-4 !text-[18px]">close</mat-icon>
+          </button>
+        </div>
+
+        <form [formGroup]="createDoctorForm" (ngSubmit)="$event.preventDefault(); createDoctor()">
+          <div class="erp-modal-body grid gap-3.5">
+            <label class="grid gap-1">
+              <span class="erp-label">Tên đăng nhập <span class="erp-label-required">*</span></span>
+              <input data-testid="doctor-username" formControlName="username" autocomplete="username" class="erp-input font-mono" placeholder="vd. bs.nguyenan" />
+            </label>
+            <label class="grid gap-1">
+              <span class="erp-label">Họ và tên bác sĩ <span class="erp-label-required">*</span></span>
+              <input data-testid="doctor-full-name" formControlName="fullName" autocomplete="name" class="erp-input" placeholder="Bác sĩ Nguyễn An" />
+            </label>
+            <label class="grid gap-1">
+              <span class="erp-label">Mật khẩu tạm <span class="erp-label-required">*</span></span>
+              <input data-testid="doctor-password" type="password" formControlName="password" autocomplete="new-password" class="erp-input font-mono" placeholder="Tối thiểu 6 ký tự" />
+            </label>
+          </div>
+
+          <div class="erp-modal-footer">
+            <button type="button" class="erp-btn-secondary" (click)="closeCreateDoctor()">
+              Hủy
+            </button>
+            <button data-testid="submit-create-doctor" type="submit" class="erp-btn-primary" [disabled]="saving()">
+              {{ saving() ? 'Đang tạo...' : 'Tạo tài khoản' }}
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
+  }
 </app-staff-workspace-shell>
