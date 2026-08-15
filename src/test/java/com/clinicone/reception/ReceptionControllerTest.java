@@ -41,6 +41,7 @@ class ReceptionControllerTest {
     @Autowired
     private ReceptionPatientService patientService;
 
+    // Nhóm đối chiếu thông tin
     @Test
     void receptionistCanSearchTodaysAppointmentByPhone() throws Exception {
         when(service.search(eq("0912345678"), eq(LocalDate.of(2026, 8, 7))))
@@ -53,6 +54,20 @@ class ReceptionControllerTest {
                 .andExpect(jsonPath("$[0].roomCode").value("NOI-01"));
     }
 
+    @Test
+    void receptionistCanSeeWhetherTheAccountStillNeedsPasswordChange() throws Exception {
+        when(service.profiles("0912345678")).thenReturn(List.of(new ReceptionPatientProfileResponse(
+                UUID.randomUUID(), "Nguyễn Thanh Vũ", "Bản thân", LocalDate.of(2005, 6, 7), true,
+                com.clinicone.auth.AccountStatus.ACTIVE, true)));
+
+        mockMvc.perform(get("/api/v1/reception/profiles?phone=0912345678")
+                        .with(authentication(authenticated("ROLE_RECEPTIONIST"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].mustChangePassword").value(true))
+                .andExpect(jsonPath("$[0].accountStatus").value("ACTIVE"));
+    }
+
+    // Nhóm Bảo mật API cho nhóm tiếp nhận
     @Test
     void doctorCannotUseReceptionSearch() throws Exception {
         mockMvc.perform(get("/api/v1/reception/appointments?query=0912345678")
@@ -69,6 +84,7 @@ class ReceptionControllerTest {
                 .andExpect(status().isForbidden());
     }
 
+    // Nhóm xử lý ngoại lệ
     @Test
     void receptionistCanConfirmArrival() throws Exception {
         when(service.checkIn(eq(APPOINTMENT_ID), any(), eq(STAFF_ID.toString()))).thenReturn(responseWithTicket());
@@ -96,19 +112,7 @@ class ReceptionControllerTest {
                 .andExpect(jsonPath("$.queueStatus").value("LEFT_BEFORE_EXAM"));
     }
 
-    @Test
-    void receptionistCanSeeWhetherTheAccountStillNeedsPasswordChange() throws Exception {
-        when(service.profiles("0912345678")).thenReturn(List.of(new ReceptionPatientProfileResponse(
-                UUID.randomUUID(), "Nguyễn Thanh Vũ", "Bản thân", LocalDate.of(2005, 6, 7), true,
-                com.clinicone.auth.AccountStatus.ACTIVE, true)));
-
-        mockMvc.perform(get("/api/v1/reception/profiles?phone=0912345678")
-                        .with(authentication(authenticated("ROLE_RECEPTIONIST"))))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].mustChangePassword").value(true))
-                .andExpect(jsonPath("$[0].accountStatus").value("ACTIVE"));
-    }
-
+    // Nhóm định dạng dữ liệu đầu vào
     @Test
     void receptionistCannotUseExceptionCheckInWithoutReason() throws Exception {
         mockMvc.perform(post("/api/v1/reception/appointments/" + APPOINTMENT_ID + "/check-in")
@@ -117,6 +121,19 @@ class ReceptionControllerTest {
                         .content("{\"roomCode\":\"NOI-01\"}"))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    void receptionistCannotCreateWalkInWithInvalidPhone() throws Exception {
+        mockMvc.perform(post("/api/v1/reception/walk-in")
+                        .with(authentication(authenticated("ROLE_RECEPTIONIST")))
+                        .contentType("application/json")
+                        .content("{\"phone\":\"09123\",\"doctorId\":\"7d9e3fb4-1045-4ca4-86d2-7d1fca4c1a13\","
+                                + "\"appointmentDate\":\"2026-08-07\",\"startTime\":\"09:00\","
+                                + "\"reason\":\"Đau đầu từ sáng\",\"exceptionReason\":\"Người bệnh đến quầy không có lịch\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    // Nhóm tiếp nhận không có lịch (FR-REC-03)
 
     @Test
     void receptionistCanCreateWalkInFromExistingPatientAccount() throws Exception {
@@ -150,16 +167,7 @@ class ReceptionControllerTest {
                 .andExpect(jsonPath("$.accountStatus").doesNotExist());
     }
 
-    @Test
-    void receptionistCannotCreateWalkInWithInvalidPhone() throws Exception {
-        mockMvc.perform(post("/api/v1/reception/walk-in")
-                        .with(authentication(authenticated("ROLE_RECEPTIONIST")))
-                        .contentType("application/json")
-                        .content("{\"phone\":\"09123\",\"doctorId\":\"7d9e3fb4-1045-4ca4-86d2-7d1fca4c1a13\","
-                                + "\"appointmentDate\":\"2026-08-07\",\"startTime\":\"09:00\","
-                                + "\"reason\":\"Đau đầu từ sáng\",\"exceptionReason\":\"Người bệnh đến quầy không có lịch\"}"))
-                .andExpect(status().isBadRequest());
-    }
+    
 
     private static UsernamePasswordAuthenticationToken authenticated(String role) {
         return UsernamePasswordAuthenticationToken.authenticated(STAFF_ID.toString(), null,
