@@ -68,6 +68,107 @@ class ReceptionServiceTest {
                 queueService, clock, patientAccountRepository, appointmentService, patientProfileRepository);
     }
 
+    // 1. NHÓM TIẾP NHẬN BẰNG MÃ LỊCH HẸN / NGOẠI LỆ (FR-REC-01)
+    @Test
+    void rejectsCheckInBeforePatientCompletesPasswordActivation() {
+        PatientAccount patient = mock(PatientAccount.class);
+        when(patient.isMustChangePassword()).thenReturn(true);
+        Appointment appointment = mock(Appointment.class);
+        when(appointment.getId()).thenReturn(APPOINTMENT_ID);
+        when(appointment.getPatient()).thenReturn(patient);
+        when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
+
+        assertThatThrownBy(() -> service.checkIn(APPOINTMENT_ID,
+                new ReceptionCheckInRequest("NOI-01", "Người bệnh chưa kích hoạt tài khoản")))
+                .hasMessageContaining("đổi mật khẩu");
+        verifyNoInteractions(queueService);
+    }
+
+    @Test
+    void rejectsCheckInForLockedPatientAccount() {
+        PatientAccount patient = mock(PatientAccount.class);
+        when(patient.getStatus()).thenReturn(AccountStatus.LOCKED);
+        Appointment appointment = mock(Appointment.class);
+        when(appointment.getPatient()).thenReturn(patient);
+        when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
+
+        assertThatThrownBy(() -> service.checkIn(APPOINTMENT_ID,
+                new ReceptionCheckInRequest("NOI-01", "locked account")))
+                .isInstanceOf(com.clinicone.auth.AuthException.class);
+        verifyNoInteractions(queueService);
+    }
+
+    //2. NHÓM ĐẶT LẠI LỊCH CHO BỆNH NHÂN VẮNG MẶT
+    @Test
+    void rebooksAbsentAppointmentWithoutRestoringOldAppointment() {
+        PatientAccount patient = mock(PatientAccount.class);
+        when(patient.getId()).thenReturn(PATIENT_ID);
+        when(patient.getFullName()).thenReturn("Nguyen Van A");
+        when(patient.getPhone()).thenReturn("0912345678");
+
+        Appointment previous = mock(Appointment.class);
+        when(previous.getId()).thenReturn(APPOINTMENT_ID);
+        when(previous.getStatus()).thenReturn(AppointmentStatus.ABSENT);
+        when(previous.getPatient()).thenReturn(patient);
+        when(previous.getPatientProfile()).thenReturn(null);
+        when(previous.getSpecialty()).thenReturn("Noi tong quat");
+        when(previous.getReason()).thenReturn("Dau dau keo dai");
+        when(previous.getServiceId()).thenReturn(null);
+        when(appointmentRepository.findByIdForUpdate(APPOINTMENT_ID)).thenReturn(Optional.of(previous));
+
+        StaffAccount staff = mock(StaffAccount.class);
+        when(staff.getFullName()).thenReturn("BS. Nguyen An");
+        DoctorProfile doctor = mock(DoctorProfile.class);
+        when(doctor.isActive()).thenReturn(true);
+        when(doctor.getSpecialty()).thenReturn("Noi tong quat");
+        when(doctor.getStaffAccount()).thenReturn(staff);
+        when(doctor.getRoom()).thenReturn(ClinicRoom.create("NOI-01", "Phong Noi 01", "Noi tong quat"));
+        when(doctorProfileRepository.findById(DOCTOR_ID)).thenReturn(Optional.of(doctor));
+
+        UUID replacementId = UUID.randomUUID();
+        AppointmentResponse created = new AppointmentResponse(replacementId, "CL-20260810-0001",
+                "Noi tong quat", "BS. Nguyen An", LocalDate.of(2026, 8, 10), LocalTime.of(9, 0),
+                "Dau dau keo dai", "BOOKED", "Da dat", null, null, DOCTOR_ID);
+        when(appointmentService.create(anyString(), any(CreateAppointmentRequest.class))).thenReturn(created);
+
+        Appointment replacement = mock(Appointment.class);
+        when(replacement.getId()).thenReturn(replacementId);
+        when(replacement.getAppointmentCode()).thenReturn("CL-20260810-0001");
+        when(replacement.getAppointmentDate()).thenReturn(LocalDate.of(2026, 8, 10));
+        when(replacement.getStartTime()).thenReturn(LocalTime.of(9, 0));
+        when(replacement.getSpecialty()).thenReturn("Noi tong quat");
+        when(replacement.getDoctorName()).thenReturn("BS. Nguyen An");
+        when(replacement.getDoctorStaffId()).thenReturn(DOCTOR_ID);
+        when(replacement.getPatient()).thenReturn(patient);
+        when(replacement.getPatientProfile()).thenReturn(null);
+        when(replacement.getStatus()).thenReturn(AppointmentStatus.BOOKED);
+        when(appointmentRepository.findById(replacementId)).thenReturn(Optional.of(replacement));
+        when(doctorProfileRepository.findByStaffAccount_Id(DOCTOR_ID)).thenReturn(Optional.of(doctor));
+
+        ReceptionAppointmentResponse response = service.rebookAbsent(APPOINTMENT_ID,
+                new ReceptionRebookRequest(DOCTOR_ID, LocalDate.of(2026, 8, 10), LocalTime.of(9, 0),
+                        "Benh nhan quay lai sau khi vang mat"), "reception-1");
+
+        assertThat(response.id()).isEqualTo(replacementId);
+        assertThat(response.status()).isEqualTo("BOOKED");
+        assertThat(response.queueNumber()).isNull();
+        verify(appointmentService).create(anyString(), any(CreateAppointmentRequest.class));
+    }
+
+    @Test
+    void rejectsRebookingWhenAppointmentIsNotAbsent() {
+        Appointment previous = mock(Appointment.class);
+        when(previous.getStatus()).thenReturn(AppointmentStatus.BOOKED);
+        when(appointmentRepository.findByIdForUpdate(APPOINTMENT_ID)).thenReturn(Optional.of(previous));
+
+        assertThatThrownBy(() -> service.rebookAbsent(APPOINTMENT_ID,
+                new ReceptionRebookRequest(DOCTOR_ID, TODAY, LocalTime.of(9, 0),
+                        "Benh nhan quay lai sau khi vang mat"), "reception-1"))
+                .extracting("code").isEqualTo("REBOOK_STATUS_INVALID");
+        verifyNoInteractions(doctorProfileRepository, appointmentService);
+    }
+
+    // 3. NHÓM TIẾP NHẬN VÃNG LAI & HỒ SƠ TẠI QUẦY
     @Test
     void createsAppointmentAndQueueTicketForExistingPatient() {
         PatientAccount patient = mock(PatientAccount.class);
@@ -213,6 +314,7 @@ class ReceptionServiceTest {
         verify(patientProfileRepository).save(any(PatientProfile.class));
     }
 
+    // 4. NHÓM RỜI TRƯỚC KHÁM (FR-REC-04)
     @Test
     void receptionistCanRecordCheckedInPatientLeftBeforeExam() {
         UUID ticketId = UUID.randomUUID();
@@ -270,101 +372,4 @@ class ReceptionServiceTest {
         verify(queueService).leaveBeforeExam(ticketId, "Người bệnh bận việc đột xuất", "staff-1");
     }
 
-    @Test
-    void rejectsCheckInBeforePatientCompletesPasswordActivation() {
-        PatientAccount patient = mock(PatientAccount.class);
-        when(patient.isMustChangePassword()).thenReturn(true);
-        Appointment appointment = mock(Appointment.class);
-        when(appointment.getId()).thenReturn(APPOINTMENT_ID);
-        when(appointment.getPatient()).thenReturn(patient);
-        when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
-
-        assertThatThrownBy(() -> service.checkIn(APPOINTMENT_ID,
-                new ReceptionCheckInRequest("NOI-01", "Người bệnh chưa kích hoạt tài khoản")))
-                .hasMessageContaining("đổi mật khẩu");
-        verifyNoInteractions(queueService);
-    }
-
-    @Test
-    void rejectsCheckInForLockedPatientAccount() {
-        PatientAccount patient = mock(PatientAccount.class);
-        when(patient.getStatus()).thenReturn(AccountStatus.LOCKED);
-        Appointment appointment = mock(Appointment.class);
-        when(appointment.getPatient()).thenReturn(patient);
-        when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
-
-        assertThatThrownBy(() -> service.checkIn(APPOINTMENT_ID,
-                new ReceptionCheckInRequest("NOI-01", "locked account")))
-                .isInstanceOf(com.clinicone.auth.AuthException.class);
-        verifyNoInteractions(queueService);
-    }
-
-    @Test
-    void rebooksAbsentAppointmentWithoutRestoringOldAppointment() {
-        PatientAccount patient = mock(PatientAccount.class);
-        when(patient.getId()).thenReturn(PATIENT_ID);
-        when(patient.getFullName()).thenReturn("Nguyen Van A");
-        when(patient.getPhone()).thenReturn("0912345678");
-
-        Appointment previous = mock(Appointment.class);
-        when(previous.getId()).thenReturn(APPOINTMENT_ID);
-        when(previous.getStatus()).thenReturn(AppointmentStatus.ABSENT);
-        when(previous.getPatient()).thenReturn(patient);
-        when(previous.getPatientProfile()).thenReturn(null);
-        when(previous.getSpecialty()).thenReturn("Noi tong quat");
-        when(previous.getReason()).thenReturn("Dau dau keo dai");
-        when(previous.getServiceId()).thenReturn(null);
-        when(appointmentRepository.findByIdForUpdate(APPOINTMENT_ID)).thenReturn(Optional.of(previous));
-
-        StaffAccount staff = mock(StaffAccount.class);
-        when(staff.getFullName()).thenReturn("BS. Nguyen An");
-        DoctorProfile doctor = mock(DoctorProfile.class);
-        when(doctor.isActive()).thenReturn(true);
-        when(doctor.getSpecialty()).thenReturn("Noi tong quat");
-        when(doctor.getStaffAccount()).thenReturn(staff);
-        when(doctor.getRoom()).thenReturn(ClinicRoom.create("NOI-01", "Phong Noi 01", "Noi tong quat"));
-        when(doctorProfileRepository.findById(DOCTOR_ID)).thenReturn(Optional.of(doctor));
-
-        UUID replacementId = UUID.randomUUID();
-        AppointmentResponse created = new AppointmentResponse(replacementId, "CL-20260810-0001",
-                "Noi tong quat", "BS. Nguyen An", LocalDate.of(2026, 8, 10), LocalTime.of(9, 0),
-                "Dau dau keo dai", "BOOKED", "Da dat", null, null, DOCTOR_ID);
-        when(appointmentService.create(anyString(), any(CreateAppointmentRequest.class))).thenReturn(created);
-
-        Appointment replacement = mock(Appointment.class);
-        when(replacement.getId()).thenReturn(replacementId);
-        when(replacement.getAppointmentCode()).thenReturn("CL-20260810-0001");
-        when(replacement.getAppointmentDate()).thenReturn(LocalDate.of(2026, 8, 10));
-        when(replacement.getStartTime()).thenReturn(LocalTime.of(9, 0));
-        when(replacement.getSpecialty()).thenReturn("Noi tong quat");
-        when(replacement.getDoctorName()).thenReturn("BS. Nguyen An");
-        when(replacement.getDoctorStaffId()).thenReturn(DOCTOR_ID);
-        when(replacement.getPatient()).thenReturn(patient);
-        when(replacement.getPatientProfile()).thenReturn(null);
-        when(replacement.getStatus()).thenReturn(AppointmentStatus.BOOKED);
-        when(appointmentRepository.findById(replacementId)).thenReturn(Optional.of(replacement));
-        when(doctorProfileRepository.findByStaffAccount_Id(DOCTOR_ID)).thenReturn(Optional.of(doctor));
-
-        ReceptionAppointmentResponse response = service.rebookAbsent(APPOINTMENT_ID,
-                new ReceptionRebookRequest(DOCTOR_ID, LocalDate.of(2026, 8, 10), LocalTime.of(9, 0),
-                        "Benh nhan quay lai sau khi vang mat"), "reception-1");
-
-        assertThat(response.id()).isEqualTo(replacementId);
-        assertThat(response.status()).isEqualTo("BOOKED");
-        assertThat(response.queueNumber()).isNull();
-        verify(appointmentService).create(anyString(), any(CreateAppointmentRequest.class));
-    }
-
-    @Test
-    void rejectsRebookingWhenAppointmentIsNotAbsent() {
-        Appointment previous = mock(Appointment.class);
-        when(previous.getStatus()).thenReturn(AppointmentStatus.BOOKED);
-        when(appointmentRepository.findByIdForUpdate(APPOINTMENT_ID)).thenReturn(Optional.of(previous));
-
-        assertThatThrownBy(() -> service.rebookAbsent(APPOINTMENT_ID,
-                new ReceptionRebookRequest(DOCTOR_ID, TODAY, LocalTime.of(9, 0),
-                        "Benh nhan quay lai sau khi vang mat"), "reception-1"))
-                .extracting("code").isEqualTo("REBOOK_STATUS_INVALID");
-        verifyNoInteractions(doctorProfileRepository, appointmentService);
-    }
 }
