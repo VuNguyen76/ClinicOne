@@ -720,17 +720,21 @@ input {
   margin-right: 0;
 }
 
-/* The staff workspace is an operator-facing screen, so its labels and table
-   content stay readable at normal desktop zoom instead of inheriting 11–12px
-   utility text. */
+/* Operator screens should remain readable at normal desktop zoom. Keep the
+   dense ERP layout, but do not let utility classes collapse into tiny text. */
+.erp-workspace-canvas .text-\[10px\] {
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
 .erp-workspace-canvas .text-xs {
-  font-size: 0.8125rem;
-  line-height: 1.25rem;
+  font-size: 0.875rem;
+  line-height: 1.35rem;
 }
 
 .erp-workspace-canvas .text-\[11px\] {
-  font-size: 0.75rem;
-  line-height: 1.125rem;
+  font-size: 0.8125rem;
+  line-height: 1.2rem;
 }
 
 .erp-modal-header {
