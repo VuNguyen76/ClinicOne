@@ -149,6 +149,37 @@ class ReceptionServiceTest {
         verifyNoInteractions(queueService);
     }// Chặn check-in khi không tìm thấy lịch hẹn
 
+    @Test
+    void recordsStaffIdentityWhenPerformingCheckIn() {
+        PatientAccount patient = mock(PatientAccount.class);
+        when(patient.getStatus()).thenReturn(AccountStatus.ACTIVE);
+        when(patient.isMustChangePassword()).thenReturn(false);
+        when(patient.getFullName()).thenReturn("Nguyễn Thanh Vũ");
+
+        Appointment appointment = mock(Appointment.class);
+        when(appointment.getId()).thenReturn(APPOINTMENT_ID);
+        when(appointment.getAppointmentCode()).thenReturn("CL-20260807-1234");
+        when(appointment.getAppointmentDate()).thenReturn(TODAY);
+        when(appointment.getStartTime()).thenReturn(LocalTime.of(9, 0));
+        when(appointment.getSpecialty()).thenReturn("Nội tổng quát");
+        when(appointment.getDoctorName()).thenReturn("BS. Nguyễn An");
+        when(appointment.getDoctorStaffId()).thenReturn(DOCTOR_ID);
+        when(appointment.getPatient()).thenReturn(patient);
+        when(appointment.getStatus()).thenReturn(AppointmentStatus.BOOKED);
+        when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
+
+        QueueTicketResponse ticket = new QueueTicketResponse(UUID.randomUUID(), 7, "NOI-01", "Phòng Nội 01",
+                TODAY, LocalTime.of(9, 0), "WAITING", "Đang chờ", "CL-20260807-1234", "Nội tổng quát", "BS. Nguyễn An");
+        when(queueService.checkInByStaff("NOI-01", APPOINTMENT_ID, "QR phòng bị mờ", "reception-staff-01"))
+                .thenReturn(ticket);
+
+        ReceptionAppointmentResponse response = service.checkIn(APPOINTMENT_ID,
+                new ReceptionCheckInRequest("NOI-01", "QR phòng bị mờ"), "reception-staff-01");
+
+        assertThat(response.queueNumber()).isEqualTo(7);
+        verify(queueService).checkInByStaff("NOI-01", APPOINTMENT_ID, "QR phòng bị mờ", "reception-staff-01");
+    }// Định danh nhân viên khi thực hiện checkin
+
     //2. NHÓM ĐẶT LẠI LỊCH CHO BỆNH NHÂN VẮNG MẶT
     @Test
     void rebooksAbsentAppointmentWithoutRestoringOldAppointment() {
