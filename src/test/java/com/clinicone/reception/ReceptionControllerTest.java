@@ -112,6 +112,16 @@ class ReceptionControllerTest {
                 .andExpect(jsonPath("$[1].appointmentCode").value("CL-20260807-9999"));
     }// Nhập SDT trả đủ số lịch hẹn >1
 
+    @Test
+    void receptionistGetsEmptyListWhenProfileNotFound() throws Exception {
+        when(service.profiles("0900000000")).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/v1/reception/profiles?phone=0900000000")
+                        .with(authentication(authenticated("ROLE_RECEPTIONIST"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }// Tra cứu hồ sơ bệnh nhân không tồn tại
+
     // Nhóm Bảo mật API cho nhóm tiếp nhận
     @Test
     void doctorCannotUseReceptionSearch() throws Exception {
@@ -140,8 +150,8 @@ class ReceptionControllerTest {
         mockMvc.perform(get("/api/v1/reception/profiles?phone=0912345678")
                         .with(authentication(authenticated("ROLE_DOCTOR"))))
                 .andExpect(status().isForbidden());
-    }
-    
+    }// Chặn Bác sĩ tra cứu danh sách hồ sơ
+
     // Nhóm xử lý ngoại lệ
     @Test
     void receptionistCanConfirmArrival() throws Exception {
