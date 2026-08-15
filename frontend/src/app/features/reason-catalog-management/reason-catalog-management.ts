@@ -20,6 +20,7 @@ export class ReasonCatalogManagement implements OnInit {
   protected readonly saving = signal(false);
   protected readonly error = signal('');
   protected readonly notice = signal('');
+  protected readonly modalOpen = signal(false);
 
   ngOnInit(): void {
     this.load();
@@ -36,9 +37,20 @@ export class ReasonCatalogManagement implements OnInit {
     this.notice.set('');
     this.saving.set(true);
     this.authApi.createCancellationReason(code, label).subscribe({
-      next: (item) => { this.reasons.update((items) => [...items, item].sort((a, b) => a.label.localeCompare(b.label))); this.code.set(''); this.label.set(''); this.notice.set('Đã thêm lý do.'); this.saving.set(false); },
+      next: (item) => { this.reasons.update((items) => [...items, item].sort((a, b) => a.label.localeCompare(b.label))); this.code.set(''); this.label.set(''); this.notice.set('Đã thêm lý do.'); this.saving.set(false); this.modalOpen.set(false); },
       error: (response: ApiErrorResponse) => { this.error.set(apiErrorMessage(response)); this.saving.set(false); },
     });
+  }
+
+  protected openCreate(): void {
+    this.error.set('');
+    this.notice.set('');
+    this.modalOpen.set(true);
+  }
+
+  protected closeModal(): void {
+    if (this.saving()) return;
+    this.modalOpen.set(false);
   }
 
   protected toggle(item: ReasonCatalogResponse): void {

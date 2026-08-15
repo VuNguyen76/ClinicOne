@@ -1,5 +1,9 @@
 <app-staff-workspace-shell moduleTitle="Danh mục" pageTitle="Chuyên khoa">
   <div workspace-actions>
+    <button type="button" class="erp-btn-primary" (click)="openCreate()">
+      <mat-icon class="!h-4 !w-4 !text-[18px]">add</mat-icon>
+      <span>Thêm chuyên khoa</span>
+    </button>
     <button type="button" class="erp-btn-secondary" (click)="load()" [disabled]="loading()">
       <mat-icon class="!h-4 !w-4 !text-[18px]">refresh</mat-icon>
       <span>Tải lại</span>
@@ -7,8 +11,6 @@
   </div>
 
   <div class="grid gap-4">
-    <p class="text-xs text-slate-500">Quản lý danh mục chuyên khoa dùng chung cho phân loại phòng khám, bác sĩ và lịch đặt khám.</p>
-
     @if (error()) {
       <div class="rounded-md border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs font-semibold text-rose-700" role="alert">
         {{ error() }}
@@ -20,33 +22,6 @@
       </div>
     }
 
-    <div class="grid gap-5 lg:grid-cols-[320px_minmax(0,1fr)]">
-      <!-- Add Specialty Card -->
-      <section class="erp-card h-fit">
-        <div class="erp-card-header">
-          <h2 class="text-xs font-bold uppercase tracking-wider text-[#0e3d48]">Thêm chuyên khoa</h2>
-          <mat-icon class="text-slate-400">category</mat-icon>
-        </div>
-        <div class="grid gap-3.5 p-4">
-          <label class="grid gap-1">
-            <span class="erp-label">Mã chuyên khoa <span class="erp-label-required">*</span></span>
-            <input class="erp-input font-mono uppercase" [ngModel]="code()" (ngModelChange)="code.set($event)" maxlength="20" placeholder="VD: NOI" />
-          </label>
-          <label class="grid gap-1">
-            <span class="erp-label">Tên chuyên khoa <span class="erp-label-required">*</span></span>
-            <input class="erp-input" [ngModel]="name()" (ngModelChange)="name.set($event)" maxlength="120" placeholder="VD: Nội khoa tổng quát" />
-          </label>
-          <label class="grid gap-1">
-            <span class="erp-label">Mô tả</span>
-            <textarea class="erp-textarea min-h-20" [ngModel]="description()" (ngModelChange)="description.set($event)" maxlength="500" placeholder="Mô tả phạm vi khám..."></textarea>
-          </label>
-          <button type="button" class="erp-btn-primary" [disabled]="saving()" (click)="create()">
-            {{ saving() ? 'Đang lưu...' : 'Thêm chuyên khoa' }}
-          </button>
-        </div>
-      </section>
-
-      <!-- Active Specialties Table -->
       <section class="erp-card overflow-hidden">
         <div class="erp-card-header">
           <div>
@@ -99,6 +74,38 @@
           </div>
         }
       </section>
-    </div>
   </div>
+
+  @if (modalOpen()) {
+    <div class="erp-modal-overlay" role="presentation" (click)="closeModal()">
+      <section class="erp-modal-container max-w-lg" role="dialog" aria-modal="true" aria-label="Thêm chuyên khoa" (click)="$event.stopPropagation()">
+        <div class="erp-modal-header">
+          <h2 class="text-base font-bold text-slate-900">Thêm chuyên khoa</h2>
+          <button type="button" class="erp-btn-icon" aria-label="Đóng" (click)="closeModal()">
+            <mat-icon class="!h-5 !w-5 !text-[20px]">close</mat-icon>
+          </button>
+        </div>
+        <form class="erp-modal-body grid gap-3.5" (ngSubmit)="$event.preventDefault(); create()">
+          <label class="grid gap-1">
+            <span class="erp-label">Mã chuyên khoa <span class="erp-label-required">*</span></span>
+            <input class="erp-input font-mono uppercase" [ngModel]="code()" (ngModelChange)="code.set($event)" maxlength="20" placeholder="VD: NOI" name="specialtyCode" />
+          </label>
+          <label class="grid gap-1">
+            <span class="erp-label">Tên chuyên khoa <span class="erp-label-required">*</span></span>
+            <input class="erp-input" [ngModel]="name()" (ngModelChange)="name.set($event)" maxlength="120" placeholder="VD: Nội khoa tổng quát" name="specialtyName" />
+          </label>
+          <label class="grid gap-1">
+            <span class="erp-label">Mô tả</span>
+            <textarea class="erp-textarea min-h-20" [ngModel]="description()" (ngModelChange)="description.set($event)" maxlength="500" placeholder="Mô tả phạm vi khám..." name="specialtyDescription"></textarea>
+          </label>
+          <div class="erp-modal-footer -mx-4 -mb-4 mt-2">
+            <button type="button" class="erp-btn-secondary" (click)="closeModal()">Hủy</button>
+            <button type="submit" class="erp-btn-primary" [disabled]="saving()">
+              {{ saving() ? 'Đang lưu...' : 'Thêm chuyên khoa' }}
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
+  }
 </app-staff-workspace-shell>

@@ -26,6 +26,7 @@ export class DoctorTimeOffManagement implements OnInit {
   protected readonly saving = signal(false);
   protected readonly error = signal('');
   protected readonly notice = signal('');
+  protected readonly modalOpen = signal(false);
 
   ngOnInit(): void {
     this.loadData();
@@ -75,12 +76,25 @@ export class DoctorTimeOffManagement implements OnInit {
         this.notice.set(`Đã khóa ${item.lockedSlotCount} khung giờ và mở ${item.affectedAppointmentCount} lịch cần sắp xếp lại.`);
         this.reason.set('');
         this.saving.set(false);
+        this.modalOpen.set(false);
       },
       error: (response) => {
         this.saving.set(false);
         this.error.set(apiErrorMessage(response));
       },
     });
+  }
+
+  protected openCreate(): void {
+    if (!this.canManageTimeOff()) return;
+    this.error.set('');
+    this.notice.set('');
+    this.modalOpen.set(true);
+  }
+
+  protected closeModal(): void {
+    if (this.saving()) return;
+    this.modalOpen.set(false);
   }
 
   protected doctorName(id: string): string {

@@ -1,7 +1,5 @@
 <app-staff-workspace-shell moduleTitle="Kiểm soát" pageTitle="Đối soát sai sót">
   <div class="grid gap-4">
-    <p class="text-xs text-slate-500">Đối soát và xử lý các sự cố nghiệp vụ phát sinh trong quá trình vận hành khám bệnh. Chỉ đóng khi đã có hành động xử lý và ghi chú kết quả.</p>
-
     @if (error()) {
       <div class="rounded-md border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs font-semibold text-rose-700" role="alert">
         {{ error() }}

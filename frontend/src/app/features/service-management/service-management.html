@@ -9,8 +9,6 @@
   </div>
 
   <div class="grid gap-4">
-    <p class="text-xs text-slate-500">Dịch vụ là nguồn chung cho phân công bác sĩ, mẫu lịch làm việc và đặt lịch khám.</p>
-
     @if (error()) {
       <div class="rounded-md border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs font-semibold text-rose-700" role="alert">
         {{ error() }}
@@ -27,13 +25,13 @@
         Đang tải danh mục dịch vụ...
       </div>
     } @else {
-      <div class="grid gap-5 lg:grid-cols-[minmax(0,1.25fr)_minmax(360px,0.75fr)]">
+      <div class="grid gap-4">
         <!-- Service Table Card -->
         <section class="erp-card overflow-hidden">
           <div class="erp-card-header">
             <div>
               <h2 class="text-xs font-bold uppercase tracking-wider text-[#0e3d48]">Dịch vụ đang khai báo</h2>
-              <p class="mt-0.5 text-[11px] text-slate-500">{{ services().length }} dịch vụ · thay đổi không ảnh hưởng lịch đã tạo</p>
+              <p class="mt-0.5 text-[11px] text-slate-500">{{ services().length }} dịch vụ</p>
             </div>
             <mat-icon class="text-slate-400">medical_services</mat-icon>
           </div>
@@ -82,7 +80,7 @@
                           <button type="button" class="erp-btn-secondary !min-h-7 !px-2.5 !text-[11px]" (click)="edit(service)">
                             Sửa
                           </button>
-                          <button type="button" class="erp-btn-secondary !min-h-7 !px-2.5 !text-[11px]" (click)="toggleActive(service)">
+                          <button type="button" class="erp-btn-secondary !min-h-7 !px-2.5 !text-[11px]" [class.erp-btn-danger]="service.active" (click)="toggleActive(service)">
                             {{ service.active ? 'Tạm dừng' : 'Bật lại' }}
                           </button>
                         </div>
@@ -103,24 +101,16 @@
           </div>
         </section>
 
-        <!-- Right Form Panel -->
-        @if (!canManageServices()) {
-          <section class="h-fit rounded-lg border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900">
-            <p class="font-bold">Chế độ xem</p>
-            <p class="mt-1">Chỉ điều phối viên được tạo, sửa hoặc tạm dừng dịch vụ khám.</p>
-          </section>
-        }
-        <section class="erp-card h-fit" [class.hidden]="!canManageServices()">
+        @if (modalOpen() && canManageServices()) {
+          <div class="erp-modal-overlay" role="presentation" (click)="closeModal()">
+            <section class="erp-modal-container max-w-2xl" role="dialog" aria-modal="true" [attr.aria-label]="editingId() ? 'Sửa dịch vụ khám' : 'Thêm dịch vụ khám'" (click)="$event.stopPropagation()">
           <div class="erp-card-header">
             <div>
-              <p class="text-[10px] font-bold uppercase tracking-wider text-[#0284c7]">
-                {{ editingId() ? 'Chỉnh sửa' : 'Tạo mới' }}
-              </p>
-              <h2 class="text-xs font-bold text-slate-900">
-                {{ editingId() ? 'Cập nhật dịch vụ' : 'Dịch vụ khám mới' }}
-              </h2>
+              <h2 class="text-base font-bold text-slate-900">{{ editingId() ? 'Cập nhật dịch vụ' : 'Dịch vụ khám mới' }}</h2>
             </div>
-            <span class="text-[11px] text-slate-500">Đúng chuyên khoa</span>
+            <button type="button" class="erp-btn-icon" aria-label="Đóng" (click)="closeModal()">
+              <mat-icon class="!h-5 !w-5 !text-[20px]">close</mat-icon>
+            </button>
           </div>
 
           <form class="grid gap-3.5 p-4" (ngSubmit)="$event.preventDefault(); submit()">
@@ -184,7 +174,9 @@
               </button>
             </div>
           </form>
-        </section>
+            </section>
+          </div>
+        }
       </div>
     }
   </div>

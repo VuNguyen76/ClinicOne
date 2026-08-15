@@ -45,6 +45,7 @@ describe('ScheduleTemplateManagement', () => {
     component.selectedServiceId.set('service-1');
     component.selectedDoctorId.set('doctor-1');
     component.selectedRoomId.set('room-1');
+    (fixture.nativeElement.querySelector('button.erp-btn-primary') as HTMLButtonElement).click();
     fixture.detectChanges();
 
     (fixture.nativeElement.querySelector('[data-testid="save-template"]') as HTMLButtonElement).click();
@@ -69,8 +70,8 @@ describe('ScheduleTemplateManagement', () => {
     http.expectOne('/api/v1/admin/schedule-templates').flush([template()]);
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('[data-testid="save-template"]').closest('section').classList).toContain('hidden');
-    expect(fixture.nativeElement.textContent).toContain('Chế độ xem');
+    expect(fixture.nativeElement.querySelector('[data-testid="save-template"]')).toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('Chế độ xem');
   });
 });
 

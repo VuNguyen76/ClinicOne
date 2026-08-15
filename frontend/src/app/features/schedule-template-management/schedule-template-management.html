@@ -1,6 +1,12 @@
 <app-staff-workspace-shell moduleTitle="Vận hành" pageTitle="Mẫu lịch làm việc">
   <!-- Window Action Toolbar Slot -->
   <div workspace-actions class="flex items-center gap-2">
+    @if (canManageSchedule()) {
+      <button type="button" class="erp-btn-primary" (click)="openCreate()">
+        <mat-icon class="!h-4 !w-4 !text-[16px]">add</mat-icon>
+        <span>Tạo mẫu lịch</span>
+      </button>
+    }
     <button
       type="button"
       class="erp-btn-secondary"
@@ -37,7 +43,7 @@
       </div>
     }
     @else {
-      <div class="grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(380px,0.75fr)]">
+      <div class="grid gap-4">
         <!-- Left Pane: Templates List / High Density Table -->
         <section class="erp-card overflow-hidden" aria-label="Mẫu đang áp dụng">
           <div class="erp-toolbar">
@@ -117,22 +123,17 @@
           }
         </section>
 
-        <!-- Right Pane: Create Template Form -->
-        <div class="space-y-4">
-          @if (!canManageSchedule()) {
-            <section class="rounded-md border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900 shadow-xs">
-              <p class="text-sm font-bold text-amber-950">Chế độ xem</p>
-              <p class="mt-1">Chỉ điều phối viên được tạo hoặc sinh bổ sung khung giờ.</p>
-            </section>
-          }
-
-          <section class="erp-card h-fit overflow-hidden" [class.hidden]="!canManageSchedule()">
+        @if (modalOpen() && canManageSchedule()) {
+          <div class="erp-modal-overlay" role="presentation" (click)="closeModal()">
+            <section class="erp-modal-container max-w-3xl" role="dialog" aria-modal="true" aria-label="Tạo mẫu lịch" (click)="$event.stopPropagation()">
             <div class="erp-card-header">
               <div>
                 <span class="erp-badge erp-badge-info">Tạo mẫu mới</span>
                 <h2 class="mt-1 text-sm font-bold text-slate-900">Lịch lặp theo tuần</h2>
-                <p class="text-xs text-slate-500">Thời lượng được lấy theo dịch vụ đã chọn.</p>
               </div>
+              <button type="button" class="erp-btn-icon" aria-label="Đóng" (click)="closeModal()">
+                <mat-icon class="!h-5 !w-5 !text-[20px]">close</mat-icon>
+              </button>
             </div>
 
             <form class="space-y-3.5 p-4" (ngSubmit)="$event.preventDefault(); submit()">
@@ -292,8 +293,9 @@
                 <span>{{ saving() ? 'Đang sinh khung giờ...' : 'Lưu và sinh khung giờ' }}</span>
               </button>
             </form>
-          </section>
-        </div>
+            </section>
+          </div>
+        }
       </div>
     }
   </div>
