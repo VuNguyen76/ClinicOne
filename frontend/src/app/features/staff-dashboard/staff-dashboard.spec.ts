@@ -65,6 +65,8 @@ describe('StaffDashboard', () => {
 
     expect(fixture.nativeElement.querySelector('[data-testid="date-selector"]')).toBeNull();
     expect(fixture.nativeElement.textContent).toContain('Ca khám hiện tại');
+    expect(fixture.nativeElement.querySelector('[data-testid="doctor-shift-bar"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="doctor-main-grid"]')).not.toBeNull();
   });
 
   it('locks doctor actions and explains when there is no current shift', () => {
