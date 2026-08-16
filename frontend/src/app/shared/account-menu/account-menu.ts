@@ -66,7 +66,7 @@ export class AccountMenu {
   protected readonly canManageRooms = computed(() =>
     this.staffRoles().some((role) => role === 'ADMIN' || role === 'COORDINATOR'));
   protected readonly canReceivePatients = computed(() =>
-    this.staffRoles().some((role) => ['ADMIN', 'COORDINATOR', 'RECEPTIONIST'].includes(role)));
+    this.staffRoles().some((role) => ['COORDINATOR', 'RECEPTIONIST'].includes(role)));
   protected readonly staffRoleLabel = computed(() => {
     switch (this.staffRole()) {
       case 'ADMIN': return 'Quản trị viên';

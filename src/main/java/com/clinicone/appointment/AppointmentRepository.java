@@ -133,9 +133,23 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
             select a from Appointment a
             left join fetch a.patient p
             left join fetch a.patientProfile profile
+            where a.appointmentDate = :appointmentDate
+              and a.status in :statuses
+            order by a.startTime asc
+            """)
+    List<Appointment> findByAppointmentDateAndStatusInOrderByStartTimeAsc(
+            @Param("appointmentDate") LocalDate appointmentDate,
+            @Param("statuses") Collection<AppointmentStatus> statuses);
+
+    @Query("""
+            select a from Appointment a
+            left join fetch a.patient p
+            left join fetch a.patientProfile profile
             where a.status = :status
               and a.appointmentDate = :appointmentDate
-              and (lower(a.appointmentCode) = lower(:query) or p.phone = :query or profile.phone = :query)
+              and (lower(a.appointmentCode) like lower(concat('%', :query, '%'))
+                or p.phone like concat('%', :query, '%')
+                or profile.phone like concat('%', :query, '%'))
             order by a.startTime asc
             """)
     List<Appointment> findReceptionCandidates(@Param("query") String query,
@@ -148,7 +162,9 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
             left join fetch a.patientProfile profile
             where a.status in :statuses
               and a.appointmentDate = :appointmentDate
-              and (lower(a.appointmentCode) = lower(:query) or p.phone = :query or profile.phone = :query)
+              and (lower(a.appointmentCode) like lower(concat('%', :query, '%'))
+                or p.phone like concat('%', :query, '%')
+                or profile.phone like concat('%', :query, '%'))
             order by a.startTime asc
             """)
     List<Appointment> findReceptionCandidatesByStatuses(@Param("query") String query,
