@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink, Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
@@ -10,6 +10,8 @@ import { hasStaffRole } from '../../../core/auth/auth.guard';
 import { VietnamAddressService, VietnamAddressUnit } from '../../../core/address/vietnam-address.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { interval } from 'rxjs';
+
+type ReceptionTab = 'overview' | 'search' | 'intake' | 'queue' | 'exceptions' | 'profiles';
 
 @Component({
   selector: 'app-reception-check-in',
@@ -25,6 +27,10 @@ export class ReceptionCheckIn implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly query = signal('');
+  protected readonly activeTab = signal<ReceptionTab>('overview');
+  protected readonly profileQuery = signal('');
+  protected readonly profileResults = signal<ReceptionPatientProfile[]>([]);
+  protected readonly profileLoading = signal(false);
   protected readonly selectedDate = signal(clinicTodayIso());
   protected readonly exceptionReason = signal('');
   protected readonly leaveReason = signal('');
@@ -92,13 +98,72 @@ export class ReceptionCheckIn implements OnInit {
   protected readonly rebookReason = signal('');
   protected readonly rebookSlotsLoading = signal(false);
   protected readonly rebookLoading = signal(false);
+  protected readonly visibleAppointments = computed(() => {
+    if (this.activeTab() !== 'exceptions') return this.appointments();
+    return this.appointments().filter((appointment) => appointment.status === 'ABSENT'
+      || appointment.queuePresenceStatus === 'RETURN_REQUIRED'
+      || appointment.queueStatus === 'FACILITY_UNAVAILABLE'
+      || appointment.status === 'RESCHEDULE_REQUIRED');
+  });
+  protected readonly dashboardCounts = computed(() => {
+    const items = this.appointments();
+    return {
+      total: items.length,
+      waiting: items.filter((item) => item.queueStatus === 'WAITING').length,
+      checkedIn: items.filter((item) => item.queueStatus && item.queueStatus !== 'COMPLETED').length,
+      exceptions: items.filter((item) => item.status === 'ABSENT'
+        || item.queuePresenceStatus === 'RETURN_REQUIRED'
+        || item.queueStatus === 'FACILITY_UNAVAILABLE'
+        || item.status === 'RESCHEDULE_REQUIRED').length,
+    };
+  });
 
   ngOnInit(): void {
     this.query.set('');
     interval(3000).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.refreshSearch());
   }
 
+  protected selectTab(tab: ReceptionTab | string): void {
+    if (!['overview', 'search', 'intake', 'queue', 'exceptions', 'profiles'].includes(tab)) return;
+    this.activeTab.set(tab as ReceptionTab);
+    this.error.set('');
+  }
+
+  protected searchProfiles(): void {
+    const phone = this.profileQuery().trim();
+    if (!/^0\d{9}$/.test(phone)) {
+      this.error.set('Nhập số điện thoại gồm 10 chữ số để tra hồ sơ.');
+      return;
+    }
+    this.profileLoading.set(true);
+    this.error.set('');
+    this.authApi.getReceptionProfiles(phone).subscribe({
+      next: (profiles) => {
+        this.profileResults.set(profiles);
+        this.profileLoading.set(false);
+        if (profiles.length === 0) this.notice.set('Chưa có hồ sơ phù hợp.');
+      },
+      error: (response) => {
+        this.profileLoading.set(false);
+        if (response.status === 404) {
+          this.profileResults.set([]);
+          this.notice.set('Chưa có hồ sơ cho số điện thoại này.');
+          return;
+        }
+        this.handleError(response);
+      },
+    });
+  }
+
+  protected openIntakeForProfile(profile: ReceptionPatientProfile): void {
+    this.openWalkIn();
+    this.walkInPhone.set(profile.phone || this.profileQuery());
+    this.walkInProfileId.set(profile.id);
+    this.walkInProfiles.set([profile]);
+  }
+
   protected search(): void {
+    this.activeTab.set('search');
     const value = this.query().trim();
     if (value.length < 3) {
       this.error.set('Nhập ít nhất 3 ký tự của mã lịch hẹn hoặc số điện thoại.');

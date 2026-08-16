@@ -463,6 +463,32 @@
 }
 
 <app-staff-workspace-shell moduleTitle="Khám bệnh" pageTitle="Tiếp nhận bệnh nhân">
+  <nav workspace-tabs class="flex min-h-12 items-center gap-1 overflow-x-auto border-b border-slate-200 bg-white px-3 lg:px-6" aria-label="Màn hình tiếp nhận">
+    @for (tab of [
+      { id: 'overview', label: 'Tổng quan', icon: 'dashboard' },
+      { id: 'search', label: 'Tra cứu lịch', icon: 'event' },
+      { id: 'intake', label: 'Tiếp nhận tại quầy', icon: 'person_add' },
+      { id: 'queue', label: 'Hàng đợi', icon: 'format_list_numbered' },
+      { id: 'exceptions', label: 'Ngoại lệ', icon: 'rule' },
+      { id: 'profiles', label: 'Hồ sơ người bệnh', icon: 'badge' }
+    ]; track tab.id) {
+      <button
+        type="button"
+        [attr.data-testid]="'reception-tab-' + tab.id"
+        class="flex min-h-12 shrink-0 items-center gap-2 border-b-2 px-3 text-sm font-semibold transition-colors"
+        [class.border-[#0284c7]]="activeTab() === tab.id"
+        [class.text-[#0284c7]]="activeTab() === tab.id"
+        [class.border-transparent]="activeTab() !== tab.id"
+        [class.text-slate-600]="activeTab() !== tab.id"
+        [attr.aria-selected]="activeTab() === tab.id"
+        (click)="selectTab(tab.id)"
+      >
+        <mat-icon class="!h-5 !w-5 !text-[18px]">{{ tab.icon }}</mat-icon>
+        <span>{{ tab.label }}</span>
+      </button>
+    }
+  </nav>
+
   <!-- Workspace Action Slot -->
   <div workspace-actions class="flex items-center gap-2">
     <button
@@ -491,6 +517,60 @@
       </div>
     }
 
+    @if (activeTab() === 'overview') {
+      <section class="space-y-4" data-testid="reception-overview-screen">
+        <div class="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p class="text-xs font-bold uppercase tracking-[0.16em] text-[#0284c7]">Ca làm việc</p>
+            <h2 class="mt-1 text-xl font-bold tracking-tight text-slate-900">Tổng quan tiếp nhận</h2>
+            <p class="mt-1 text-sm text-slate-500">Tra cứu một lịch để nạp danh sách làm việc trong ngày.</p>
+          </div>
+          <button type="button" class="erp-btn-secondary" (click)="selectTab('search')"><mat-icon class="!h-4 !w-4 !text-[16px]">search</mat-icon>Tra lịch hôm nay</button>
+        </div>
+        <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div class="erp-card border-l-4 border-l-[#0284c7] p-4"><p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Lịch đã nạp</p><p class="mt-2 text-3xl font-bold text-slate-900">{{ dashboardCounts().total }}</p></div>
+          <div class="erp-card border-l-4 border-l-amber-400 p-4"><p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Đang chờ</p><p class="mt-2 text-3xl font-bold text-amber-600">{{ dashboardCounts().waiting }}</p></div>
+          <div class="erp-card border-l-4 border-l-emerald-500 p-4"><p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Đã tiếp nhận</p><p class="mt-2 text-3xl font-bold text-emerald-600">{{ dashboardCounts().checkedIn }}</p></div>
+          <div class="erp-card border-l-4 border-l-rose-400 p-4"><p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Ngoại lệ</p><p class="mt-2 text-3xl font-bold text-rose-600">{{ dashboardCounts().exceptions }}</p></div>
+        </div>
+        <div class="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+          <section class="erp-card overflow-hidden">
+            <div class="erp-toolbar"><div><h3 class="text-sm font-bold text-slate-900">Lịch đang theo dõi</h3><p class="text-xs text-slate-500">Danh sách lấy từ lần tra cứu gần nhất.</p></div><mat-icon class="!h-5 !w-5 !text-[20px] text-[#0284c7]">event_note</mat-icon></div>
+            @if (appointments().length === 0) {
+              <div class="grid min-h-36 place-items-center p-5 text-center text-sm text-slate-500"><div><mat-icon class="!h-8 !w-8 !text-[32px] text-slate-300">search</mat-icon><p class="mt-2">Chưa có dữ liệu. Mở Tra cứu lịch để bắt đầu.</p></div></div>
+            } @else {
+              <div class="divide-y divide-slate-100">@for (appointment of appointments().slice(0, 5); track appointment.id) {<div class="flex items-center justify-between gap-3 px-4 py-3"><div><p class="text-sm font-semibold text-slate-900">{{ appointment.patientName }}</p><p class="text-xs text-slate-500">{{ appointment.appointmentCode }} · {{ appointment.specialty }}</p></div><span class="erp-badge" [class]="queueClass(appointment)">{{ queueLabel(appointment) }}</span></div>}</div>
+            }
+          </section>
+          <section class="erp-card p-5"><h3 class="text-sm font-bold text-slate-900">Tác vụ nhanh</h3><div class="mt-4 grid gap-2"><button type="button" class="erp-btn-primary justify-start" (click)="selectTab('intake'); openWalkIn()"><mat-icon class="!h-4 !w-4 !text-[16px]">person_add</mat-icon>Tiếp nhận không có lịch</button><button type="button" class="erp-btn-secondary justify-start" (click)="selectTab('profiles')"><mat-icon class="!h-4 !w-4 !text-[16px]">badge</mat-icon>Tra hồ sơ người bệnh</button><button type="button" class="erp-btn-secondary justify-start" (click)="selectTab('exceptions')"><mat-icon class="!h-4 !w-4 !text-[16px]">rule</mat-icon>Xử lý ngoại lệ</button></div></section>
+        </div>
+      </section>
+    }
+
+    @if (activeTab() === 'intake') {
+      <section class="grid min-h-64 place-items-center" data-testid="reception-intake-screen">
+        <div class="erp-card max-w-xl p-8 text-center"><div class="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-sky-50 text-[#0284c7]"><mat-icon class="!h-8 !w-8 !text-[30px]">person_add</mat-icon></div><h2 class="mt-4 text-xl font-bold text-slate-900">Tiếp nhận tại quầy</h2><p class="mt-2 text-sm text-slate-500">Tìm hồ sơ, chọn khung giờ và cấp số cho người đi khám.</p><button type="button" class="erp-btn-primary mt-5" (click)="openWalkIn()"><mat-icon class="!h-4 !w-4 !text-[16px]">add</mat-icon>Mở phiếu tiếp nhận</button></div>
+      </section>
+    }
+
+    @if (activeTab() === 'queue') {
+      <section class="erp-card overflow-hidden" data-testid="reception-queue-screen">
+        <div class="erp-toolbar"><div><h2 class="text-sm font-bold text-slate-900">Hàng đợi tiếp nhận</h2><p class="text-xs text-slate-500">Theo dõi người đã check-in và chưa được bắt đầu khám.</p></div><button type="button" class="erp-btn-secondary !min-h-8 !px-3 !py-1.5 !text-xs" (click)="selectTab('search')">Nạp từ tra cứu</button></div>
+        @if (appointments().length === 0) {<div class="grid min-h-48 place-items-center p-6 text-center text-sm text-slate-500"><div><mat-icon class="!h-9 !w-9 !text-[36px] text-slate-300">format_list_numbered</mat-icon><p class="mt-2">Chưa có người trong hàng đợi.</p><p class="mt-1 text-xs text-slate-400">Tra cứu lịch để cập nhật danh sách.</p></div></div>} @else {<div class="divide-y divide-slate-100">@for (appointment of appointments(); track appointment.id) {<div class="grid gap-2 px-4 py-3 sm:grid-cols-[5rem_1fr_auto] sm:items-center"><span class="font-mono text-lg font-bold text-[#0284c7]">{{ appointment.queueNumber ? ('#' + appointment.queueNumber) : '—' }}</span><div><p class="text-sm font-semibold text-slate-900">{{ appointment.patientName }}</p><p class="text-xs text-slate-500">{{ appointment.roomCode || 'Chưa gán phòng' }} · {{ appointment.doctorName }}</p></div><span class="erp-badge" [class]="queueClass(appointment)">{{ queueLabel(appointment) }}</span></div>}</div>}
+      </section>
+    }
+
+    @if (activeTab() === 'profiles') {
+      <section class="space-y-4" data-testid="reception-profiles-screen">
+        <form class="erp-filter-bar flex flex-col gap-3 sm:flex-row sm:items-end" (ngSubmit)="$event.preventDefault(); searchProfiles()" aria-label="Tra hồ sơ người bệnh">
+          <div class="min-w-0 flex-1"><label class="erp-label">Số điện thoại</label><input class="erp-input font-mono" [ngModel]="profileQuery()" (ngModelChange)="profileQuery.set($event)" name="profileQuery" inputmode="numeric" placeholder="0912345678" /></div>
+          <button type="submit" class="erp-btn-primary" [disabled]="profileLoading()"><mat-icon class="!h-4 !w-4 !text-[16px]">search</mat-icon>{{ profileLoading() ? 'Đang tìm...' : 'Tra hồ sơ' }}</button>
+        </form>
+        @if (profileResults().length > 0) {<div class="grid gap-3 md:grid-cols-2">@for (profile of profileResults(); track profile.id) {<article class="erp-card p-4"><div class="flex items-start justify-between gap-3"><div><h3 class="text-base font-bold text-slate-900">{{ profile.fullName }}</h3><p class="mt-1 text-xs text-slate-500">{{ profile.relationship }} · {{ profile.phone || profileQuery() }}</p></div><span class="erp-badge" [class.erp-badge-success]="profile.accountStatus === 'ACTIVE'">{{ profile.accountStatus === 'ACTIVE' ? 'Đang hoạt động' : 'Hồ sơ tạm' }}</span></div><div class="mt-3 grid gap-1 text-xs text-slate-600"><p>Ngày sinh: {{ profile.dateOfBirth || 'Chưa cập nhật' }}</p><p>CCCD/CMND: {{ profile.identityNumber || 'Chưa cập nhật' }}</p><p>Địa chỉ: {{ profile.streetAddress || profile.address || 'Chưa cập nhật' }}</p></div><button type="button" data-testid="open-profile-intake" class="erp-btn-secondary mt-4 w-full justify-center" (click)="openIntakeForProfile(profile)"><mat-icon class="!h-4 !w-4 !text-[16px]">person_add</mat-icon>Tiếp nhận người này</button></article>}</div>}
+      </section>
+    }
+
+    @if (activeTab() === 'search' || activeTab() === 'exceptions') {
     <!-- Search / Filter Bar -->
     <form class="erp-filter-bar flex flex-col gap-3 sm:flex-row sm:items-end" (ngSubmit)="$event.preventDefault(); search()" aria-label="Tra cứu lịch hẹn">
       <div class="min-w-0 flex-1">
@@ -580,7 +660,7 @@
         </div>
 
         <div class="divide-y divide-slate-100">
-          @for (appointment of appointments(); track appointment.id) {
+          @for (appointment of visibleAppointments(); track appointment.id) {
             <article class="grid gap-3 p-3.5 sm:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_auto] sm:items-center hover:bg-slate-50/60 transition-colors">
               <div>
                 <div class="flex flex-wrap items-center gap-2">
@@ -684,6 +764,7 @@
           }
         </div>
       </section>
+    }
     }
   </div>
 </app-staff-workspace-shell>

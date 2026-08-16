@@ -37,6 +37,32 @@ describe('ReceptionCheckIn', () => {
     expect(fixture.nativeElement.textContent).toContain('NOI-01');
   });
 
+  it('switches between reception work screens without leaving the staff workspace', () => {
+    const component = fixture.componentInstance as any;
+
+    expect(component.activeTab()).toBe('overview');
+    (fixture.nativeElement.querySelector('[data-testid="reception-tab-search"]') as HTMLButtonElement).click();
+    expect(component.activeTab()).toBe('search');
+    (fixture.nativeElement.querySelector('[data-testid="reception-tab-queue"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(component.activeTab()).toBe('queue');
+    expect(fixture.nativeElement.querySelector('[data-testid="reception-queue-screen"]')).not.toBeNull();
+  });
+
+  it('searches patient profiles from the dedicated reception screen', () => {
+    const component = fixture.componentInstance as any;
+    component.selectTab('profiles');
+    component.profileQuery.set('0912345678');
+    component.searchProfiles();
+
+    const request = http.expectOne('/api/v1/reception/profiles?phone=0912345678');
+    request.flush([{ id: 'p-1', fullName: 'Nguyễn Thanh Vũ', relationship: 'Bản thân', phone: '0912345678', primaryProfile: true }]);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Nguyễn Thanh Vũ');
+    expect(fixture.nativeElement.querySelector('[data-testid="open-profile-intake"]')).not.toBeNull();
+  });
+
   it('confirms arrival and updates the queue number', () => {
     const component = fixture.componentInstance as any;
     component.query.set('CL-20260807-1234');
