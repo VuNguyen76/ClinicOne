@@ -30,12 +30,22 @@ public record MedicalRecordResponse(
     }
 
     public static MedicalRecordResponse from(MedicalRecord record) {
+        return from(record, true);
+    }
+
+    public static MedicalRecordResponse fromSummary(MedicalRecord record) {
+        return from(record, false);
+    }
+
+    private static MedicalRecordResponse from(MedicalRecord record, boolean includePrescriptionLines) {
         var session = record.getSession();
         var appointment = session == null ? null : session.getAppointment();
         return new MedicalRecordResponse(record.getId(), session == null ? null : session.getId(),
                 appointment == null ? null : appointment.getAppointmentCode(), record.getDoctorName(), record.getReason(),
                 record.getExaminationNotes(), record.getDiagnosis(), record.getConclusion(), record.getTreatmentPlan(),
                 record.getPrescription(), record.getFollowUpDate(), record.getFollowUpDays(), record.getFollowUpNote(), record.getSignedAt(),
-                record.getPrescriptionLines().stream().map(PrescriptionLineResponse::from).toList());
+                includePrescriptionLines
+                        ? record.getPrescriptionLines().stream().map(PrescriptionLineResponse::from).toList()
+                        : List.of());
     }
 }
