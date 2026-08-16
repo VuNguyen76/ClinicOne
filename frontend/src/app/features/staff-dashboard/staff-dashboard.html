@@ -19,7 +19,7 @@
     </button>
   </div>
 
-  <div class="mx-auto max-w-[1280px] space-y-4">
+  <div class="w-full space-y-4">
     <!-- Alerts & Warnings -->
     @if (error()) {
       <div class="flex items-center gap-2 rounded-md border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs font-medium text-rose-800 shadow-xs" role="alert">
@@ -31,6 +31,18 @@
       <div data-testid="queue-sync-warning" class="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs font-medium text-amber-800 shadow-xs" role="status">
         <mat-icon class="!h-4 !w-4 !text-[18px] text-amber-600">sync_problem</mat-icon>
         <span>Dữ liệu hàng đợi đang chậm cập nhật. Hệ thống vẫn giữ danh sách gần nhất và sẽ tự thử lại.</span>
+      </div>
+    }
+    @if (isOwnDoctor() && doctorShiftStatus() === 'NONE') {
+      <div class="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700" role="status">
+        <mat-icon class="!h-5 !w-5 !text-[20px] text-slate-500">event_busy</mat-icon>
+        <span>Không có ca làm việc tại thời điểm hiện tại.</span>
+      </div>
+    }
+    @if (isOwnDoctor() && doctorShiftStatus() === 'CONFLICT') {
+      <div class="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900" role="alert">
+        <mat-icon class="!h-5 !w-5 !text-[20px] text-amber-600">warning</mat-icon>
+        <span>Ca làm việc đang bị trùng. Các thao tác đã được khóa; vui lòng báo điều phối viên.</span>
       </div>
     }
 
@@ -54,24 +66,26 @@
         </div>
       } @else {
         <div class="min-w-0 flex-1">
-          <span class="erp-label">Phòng được phân công</span>
-          <div class="flex min-h-9 items-center gap-2 rounded-md border border-sky-200 bg-sky-50/60 px-3 text-xs font-semibold text-[#0284c7]">
+          <span class="erp-label">Ca khám hiện tại</span>
+          <div class="flex min-h-10 items-center gap-2 rounded-md border border-sky-200 bg-sky-50/60 px-3 text-sm font-semibold text-[#0284c7]">
             <mat-icon class="!h-4 !w-4 !text-[17px]">meeting_room</mat-icon>
-            <span class="truncate">{{ roomName() }}</span>
+            <span class="truncate">{{ roomName() }} · {{ formatDate(selectedDate()) }}</span>
           </div>
         </div>
       }
 
-      <div class="w-full sm:w-44">
-        <label class="erp-label">Ngày khám</label>
-        <input
-          data-testid="date-selector"
-          type="date"
-          class="erp-input font-mono"
-          [value]="selectedDate()"
-          (change)="selectDate($event)"
-        />
-      </div>
+      @if (!isOwnDoctor()) {
+        <div class="w-full sm:w-44">
+          <label class="erp-label">Ngày khám</label>
+          <input
+            data-testid="date-selector"
+            type="date"
+            class="erp-input font-mono"
+            [value]="selectedDate()"
+            (change)="selectDate($event)"
+          />
+        </div>
+      }
 
       @if (!isOwnDoctor()) {
         <div class="hidden min-h-9 items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-700 lg:flex">
@@ -171,7 +185,7 @@
             <thead>
               <tr>
                 <th class="w-16 text-center">Số TT</th>
-                <th>Chuyên khoa / Bác sĩ</th>
+                <th>Người bệnh</th>
                 <th class="w-28 text-center">Giờ hẹn</th>
                 <th class="w-32 text-center">Trạng thái</th>
                 <th class="w-56 text-right">Thao tác</th>
@@ -184,8 +198,15 @@
                     <span class="font-mono text-sm font-bold text-slate-900">{{ ticket.queueNumber }}</span>
                   </td>
                   <td>
-                    <p class="font-semibold text-slate-800">{{ ticket.specialty }}</p>
-                    <p class="font-mono text-[11px] text-slate-500">{{ ticket.doctorName }} · {{ ticket.appointmentCode }}</p>
+                    @if (ticket.patientName) {
+                      <p class="font-semibold text-slate-800">{{ ticket.patientName }}</p>
+                      <p class="text-sm text-slate-500">
+                        Sinh ngày {{ formatDate(ticket.patientDateOfBirth) }} · {{ ticket.appointmentCode }}
+                      </p>
+                    } @else {
+                      <p class="font-semibold text-slate-800">{{ ticket.appointmentCode }}</p>
+                      <p class="text-sm text-slate-500">Chưa có thông tin hồ sơ</p>
+                    }
                   </td>
                   <td class="text-center font-mono text-xs font-semibold text-slate-700">
                     {{ formatTime(ticket.appointmentTime) }}
@@ -218,6 +239,17 @@
                           (click)="act(ticket, 'start')"
                         >
                           Vào khám
+                        </button>
+                      }
+                      @if (isOwnDoctor() && ticket.status === 'IN_SERVICE') {
+                        <button
+                          data-testid="open-examination"
+                          type="button"
+                          class="erp-btn-primary !min-h-8 !px-3 !py-1.5 !text-sm"
+                          (click)="openExamination(ticket)"
+                        >
+                          <mat-icon class="!h-4 !w-4 !text-[16px]">clinical_notes</mat-icon>
+                          <span>Mở phiếu khám</span>
                         </button>
                       }
                     </div>

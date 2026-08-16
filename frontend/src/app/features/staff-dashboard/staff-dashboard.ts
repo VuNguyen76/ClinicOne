@@ -36,6 +36,7 @@ export class StaffDashboard implements OnInit, OnDestroy {
   protected readonly loadingRooms = signal(true);
   protected readonly loadingQueue = signal(false);
   protected readonly doctorRoomName = signal('');
+  protected readonly doctorShiftStatus = signal<'ACTIVE' | 'NONE' | 'CONFLICT'>('ACTIVE');
   protected readonly busyTicketId = signal('');
   protected readonly error = signal('');
   protected readonly queueSyncWarning = signal(false);
@@ -45,8 +46,10 @@ export class StaffDashboard implements OnInit, OnDestroy {
   protected readonly calledCount = computed(() => this.queue().filter((ticket) => ticket.status === 'CALLED').length);
   protected readonly inServiceCount = computed(() => this.queue().filter((ticket) => ticket.status === 'IN_SERVICE').length);
   protected readonly completedCount = computed(() => this.queue().filter((ticket) => ticket.status === 'COMPLETED').length);
-  protected readonly nextWaitingTicket = computed(() => this.queue().find((ticket) =>
-    (ticket.status === 'WAITING' && ticket.presenceStatus !== 'RETURN_REQUIRED') || ticket.status === 'SKIPPED'));
+  protected readonly nextWaitingTicket = computed(() => this.doctorShiftStatus() === 'ACTIVE'
+    ? this.queue().find((ticket) =>
+        (ticket.status === 'WAITING' && ticket.presenceStatus !== 'RETURN_REQUIRED') || ticket.status === 'SKIPPED')
+    : undefined);
 
   protected readonly isOwnDoctor = computed(() => this.role() === 'DOCTOR');
   protected readonly canManageRooms = computed(() => ['ADMIN', 'COORDINATOR'].includes(this.role()));
@@ -121,6 +124,7 @@ export class StaffDashboard implements OnInit, OnDestroy {
         this.doctorQueueRequestInFlight = false;
         this.selectedRoomCode.set(workspace.roomCode);
         this.doctorRoomName.set(workspace.roomName);
+        this.doctorShiftStatus.set(workspace.shiftStatus ?? 'ACTIVE');
         this.queue.set(workspace.tickets);
         this.lastSuccessfulDoctorQueueAt = Date.now();
         this.queueSyncWarning.set(false);
@@ -236,6 +240,16 @@ export class StaffDashboard implements OnInit, OnDestroy {
 
   protected formatTime(value: string): string {
     return value?.slice(0, 5) ?? '';
+  }
+
+  protected formatDate(value?: string | null): string {
+    if (!value) return 'Chưa cập nhật';
+    const [year, month, day] = value.split('-');
+    return day && month && year ? `${day}/${month}/${year}` : value;
+  }
+
+  protected openExamination(ticket: QueueTicketResponse): void {
+    void this.router.navigate(['/doctor/examinations', ticket.id]);
   }
 
   protected statusClass(status: string): string {

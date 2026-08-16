@@ -44,6 +44,24 @@ describe('DoctorExamination', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="draft-saved-at"]')).toBeTruthy();
   });
 
+  it('shows the clinical content of a signed previous examination', () => {
+    const previousRecord = {
+      id: 'record-old', examinationId: 'exam-old', appointmentCode: 'CLN-OLD',
+      doctorName: 'BS. Trần Bình', reason: 'Đau đầu', examinationNotes: 'Đau hai ngày',
+      diagnosis: 'Đau đầu căng thẳng', conclusion: 'Theo dõi tại nhà',
+      treatmentPlan: 'Nghỉ ngơi và uống đủ nước', prescription: null,
+      followUpDate: null, signedAt: '2026-07-01T09:00:00Z',
+    };
+    http.expectOne('/api/v1/doctor/examinations/ticket-1')
+      .flush({ ...examination(), history: [previousRecord] });
+    fixture.detectChanges();
+
+    const history = fixture.nativeElement.querySelector('[data-testid="medical-history-record-old"]');
+    expect(history?.textContent).toContain('Đau đầu căng thẳng');
+    expect(history?.textContent).toContain('Theo dõi tại nhà');
+    expect(history?.textContent).toContain('Nghỉ ngơi và uống đủ nước');
+  });
+
   it('loads active templates for the current specialty only when the doctor opens the template panel', () => {
     http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
     fixture.detectChanges();
