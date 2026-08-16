@@ -15,11 +15,14 @@
   --color-clinic-slate-muted: #f1f5f9;
   --color-clinic-border: #e2e8f0;
   --color-clinic-border-strong: #cbd5e1;
+  --font-sans: "Be Vietnam Pro", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Be Vietnam Pro", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 :root {
   color-scheme: light;
-  font-family: "Be Vietnam Pro", Roboto, "Helvetica Neue", sans-serif;
+  --font-clinic: "Be Vietnam Pro", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--font-clinic);
   --color-primary: #0ea5e9;
   --color-primary-dark: #0284c7;
   --color-primary-soft: #e0f2fe;
@@ -66,7 +69,22 @@ body {
 }
 
 body {
-  font-family: inherit;
+  font-family: var(--font-clinic);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Tailwind utilities, native controls, and Angular Material content all use
+ * the same ClinicOne typeface. Technical values opt into font-mono locally. */
+button,
+input,
+select,
+textarea,
+mat-label,
+.mat-mdc-button,
+.mat-mdc-menu-item,
+.mat-mdc-form-field {
+  font-family: var(--font-clinic);
 }
 
 /* Keep every staff and patient screen on one icon family. The old Material
