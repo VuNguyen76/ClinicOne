@@ -22,6 +22,7 @@ import com.clinicone.queue.QueueTicketRepository;
 import com.clinicone.queue.QueueTicketResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -35,6 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -179,6 +181,24 @@ class ReceptionServiceTest {
         assertThat(response.queueNumber()).isEqualTo(7);
         verify(queueService).checkInByStaff("NOI-01", APPOINTMENT_ID, "QR phòng bị mờ", "reception-staff-01");
     }// Định danh nhân viên khi thực hiện checkin
+
+    @Test
+    void rejectsCheckInWhenAppointmentIsAlreadyCancelled() {
+        Appointment appointment = mock(Appointment.class);
+        when(appointment.getId()).thenReturn(APPOINTMENT_ID);
+        when(appointment.getStatus()).thenReturn(AppointmentStatus.CANCELLED);
+        when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
+
+        // Giả lập queueService phát hiện lịch đã hủy và ném lỗi nghiệp vụ
+        when(queueService.checkInByStaff(eq("NOI-01"), eq(APPOINTMENT_ID), anyString()))
+                .thenThrow(new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_STATUS_INVALID", 
+                        "Lịch hẹn đã bị hủy, không thể tiếp nhận."));
+
+        assertThatThrownBy(() -> service.checkIn(APPOINTMENT_ID,
+                new ReceptionCheckInRequest("NOI-01", "Bệnh nhân đến quầy")))
+                .isInstanceOf(AuthException.class)
+                .extracting("code").isEqualTo("APPOINTMENT_STATUS_INVALID");
+    }// Chặn check-in khi lịch hẹn đã bị Hủy
 
     //2. NHÓM ĐẶT LẠI LỊCH CHO BỆNH NHÂN VẮNG MẶT
     @Test
