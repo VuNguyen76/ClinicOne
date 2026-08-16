@@ -3,7 +3,7 @@
   <div class="mx-auto max-w-[900px] px-5 py-8 lg:py-10"><div class="flex items-center gap-3 text-sm"><a routerLink="/medical-records" class="font-semibold text-slate-700 hover:text-[#0284c7]">Phiếu khám bệnh</a><mat-icon class="!h-4 !w-4 !text-[16px] text-slate-400">chevron_right</mat-icon><span class="font-semibold text-[#0284c7]">Chi tiết phiếu</span></div>
     @if (loading()) { <div class="mt-8 grid min-h-64 place-items-center rounded-xl border border-slate-200 bg-white text-sm text-slate-500">Đang tải phiếu khám...</div> } @else if (record(); as item) {
       <article class="mt-8 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
-        <div class="border-b border-slate-100 bg-[#0e3d48] px-6 py-6 sm:px-8">
+        <div class="border-b border-slate-100 bg-[#0284c7] px-6 py-6 sm:px-8">
           <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
             <div>
               <p class="text-xs font-bold uppercase tracking-[0.16em] text-sky-200">Phiếu khám đã ký</p>
