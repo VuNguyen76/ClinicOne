@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
+import { vi } from 'vitest';
 import { AccountMenu } from './account-menu';
 
 describe('AccountMenu', () => {
@@ -87,5 +88,22 @@ describe('AccountMenu', () => {
 
     expect(fixture.nativeElement.querySelectorAll('[role="menuitem"]').length).toBe(1);
     expect(fixture.nativeElement.querySelector('[role="menuitem"]')?.textContent).toContain('Đăng xuất');
+  });
+
+  it('returns staff to the staff login page after logout', async () => {
+    sessionStorage.setItem('clinicOneStaffRole', 'DOCTOR');
+    sessionStorage.setItem('clinicOneStaffRoles', '["DOCTOR"]');
+    await TestBed.resetTestingModule().configureTestingModule({
+      imports: [AccountMenu], providers: [provideRouter([])],
+    }).compileComponents();
+    fixture = TestBed.createComponent(AccountMenu);
+    fixture.componentRef.setInput('compact', true);
+    fixture.detectChanges();
+
+    const router = TestBed.inject(Router);
+    const navigateSpy = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+    (fixture.componentInstance as unknown as { finishLogout: () => void }).finishLogout();
+
+    expect(navigateSpy).toHaveBeenCalledWith('/staff/login');
   });
 });
