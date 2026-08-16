@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink, Router } from '@angular/router';
+import { ActivatedRoute, RouterLink, Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { ApiErrorResponse, AppointmentSlotResponse, AuthApiService, ReceptionAppointmentResponse, ReceptionDoctorOption, ReceptionPatientProfile, SpecialtyOption, apiErrorMessage } from '../../../core/auth/auth-api.service';
 import { AccountMenu } from '../../../shared/account-menu/account-menu';
@@ -16,18 +16,20 @@ type ReceptionTab = 'overview' | 'search' | 'intake' | 'queue' | 'exceptions' | 
 @Component({
   selector: 'app-reception-check-in',
   standalone: true,
-  imports: [FormsModule, MatIconModule, StaffWorkspaceShell],
+  imports: [FormsModule, MatIconModule, RouterLink, StaffWorkspaceShell],
   templateUrl: './reception-check-in.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ReceptionCheckIn implements OnInit {
   private readonly authApi = inject(AuthApiService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly addressApi = inject(VietnamAddressService);
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly query = signal('');
-  protected readonly activeTab = signal<ReceptionTab>('overview');
+  protected readonly activeTab = signal<ReceptionTab>(receptionTab(this.route.snapshot.data['receptionView']));
+  protected readonly pageTitle = computed(() => receptionPageTitle(this.activeTab()));
   protected readonly profileQuery = signal('');
   protected readonly profileResults = signal<ReceptionPatientProfile[]>([]);
   protected readonly profileLoading = signal(false);
@@ -163,7 +165,9 @@ export class ReceptionCheckIn implements OnInit {
   }
 
   protected search(): void {
-    this.activeTab.set('search');
+    if (this.activeTab() === 'overview') {
+      this.activeTab.set('search');
+    }
     const value = this.query().trim();
     if (value.length < 3) {
       this.error.set('Nhập ít nhất 3 ký tự của mã lịch hẹn hoặc số điện thoại.');
@@ -474,6 +478,7 @@ export class ReceptionCheckIn implements OnInit {
     this.activationOtp.set('');
     this.activationOtpSent.set(false);
     this.error.set('');
+    this.notice.set('');
     if (this.walkInSpecialties().length === 0) {
       this.authApi.getSpecialties().subscribe({
         next: (specialties) => this.walkInSpecialties.set(specialties),
@@ -486,6 +491,7 @@ export class ReceptionCheckIn implements OnInit {
     if (!this.walkInLoading()) {
       this.walkInRequestKey.set('');
       this.walkInOpen.set(false);
+      this.notice.set('');
     }
   }
 
@@ -748,7 +754,11 @@ export class ReceptionCheckIn implements OnInit {
     this.registrationDistrictName.set(profile.districtName ?? '');
     this.registrationWardCode.set(profile.wardCode ?? '');
     this.registrationWardName.set(profile.wardName ?? '');
-    this.registrationStreetAddress.set(profile.streetAddress ?? '');
+    this.registrationStreetAddress.set(streetAddressOnly(profile.streetAddress, [
+      profile.wardName,
+      profile.districtName,
+      profile.provinceName,
+    ]));
     this.walkInProfileNeedsCompletion.set([
       profile.fullName, profile.dateOfBirth, profile.gender, profile.identityNumber,
       profile.nationality, profile.ethnicity, profile.provinceCode, profile.districtCode,
@@ -783,7 +793,7 @@ export class ReceptionCheckIn implements OnInit {
       fullName: this.registrationFullName().trim(), dateOfBirth: this.registrationDateOfBirth(),
       gender: this.registrationGender(), identityNumber: this.registrationIdentityNumber().trim(),
       nationality: this.registrationNationality().trim(), ethnicity: this.registrationEthnicity().trim(),
-      address: this.registrationAddress().trim(),
+      address: this.completedAddress(),
       provinceCode: this.registrationProvinceCode(), provinceName: this.registrationProvinceName(),
       districtCode: this.registrationDistrictCode(), districtName: this.registrationDistrictName(),
       wardCode: this.registrationWardCode(), wardName: this.registrationWardName(),
@@ -793,7 +803,7 @@ export class ReceptionCheckIn implements OnInit {
         this.registrationLoading.set(false);
         this.walkInProfiles.update((items) => items.map((item) => item.id === profile.id ? profile : item));
         this.walkInProfileNeedsCompletion.set(false);
-        this.notice.set(`Đã bổ sung hồ sơ cho ${profile.fullName}.`);
+        this.notice.set('');
       },
       error: (response) => {
         this.registrationLoading.set(false);
@@ -911,5 +921,41 @@ export class ReceptionCheckIn implements OnInit {
 
   private toIsoDate(date: Date): string {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  }
+
+  private completedAddress(): string {
+    const parts = [
+      this.registrationStreetAddress().trim(),
+      this.registrationWardName().trim(),
+      this.registrationDistrictName().trim(),
+      this.registrationProvinceName().trim(),
+    ].filter((part, index, items) => part && items.indexOf(part) === index);
+    return parts.join(', ') || this.registrationAddress().trim();
+  }
+}
+
+function streetAddressOnly(value: string | null | undefined, administrativeNames: Array<string | null | undefined>): string {
+  const normalizedNames = new Set(administrativeNames.filter(Boolean).map((name) => name!.trim().toLocaleLowerCase('vi')));
+  return (value ?? '')
+    .split(',')
+    .map((part) => part.trim())
+    .filter((part) => part && !normalizedNames.has(part.toLocaleLowerCase('vi')))
+    .join(', ');
+}
+
+function receptionTab(value: unknown): ReceptionTab {
+  return typeof value === 'string' && ['overview', 'search', 'intake', 'queue', 'exceptions', 'profiles'].includes(value)
+    ? value as ReceptionTab
+    : 'overview';
+}
+
+function receptionPageTitle(tab: ReceptionTab): string {
+  switch (tab) {
+    case 'search': return 'Tra cứu lịch';
+    case 'intake': return 'Tiếp nhận tại quầy';
+    case 'queue': return 'Hàng đợi tiếp nhận';
+    case 'exceptions': return 'Ngoại lệ cần xử lý';
+    case 'profiles': return 'Hồ sơ người bệnh';
+    default: return 'Tổng quan tiếp nhận';
   }
 }

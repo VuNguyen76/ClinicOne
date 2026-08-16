@@ -40,7 +40,7 @@ export class StaffLogin {
           : roles.includes('ADMIN') || roles.includes('COORDINATOR')
             ? '/admin/rooms'
             : session.role === 'RECEPTIONIST'
-              ? '/reception/check-in'
+              ? '/reception'
               : '/staff/login';
         void this.router.navigateByUrl(destination);
       },

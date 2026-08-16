@@ -42,10 +42,10 @@
         [class.text-[#0284c7]]="isActive('/doctor')" [attr.aria-current]="isActive('/doctor') ? 'page' : null"
         class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-sky-50 hover:text-[#0284c7]"
         role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">monitor_heart</mat-icon>Không gian bác sĩ</a>}
-      @if (canReceivePatients()) {<a routerLink="/reception/check-in" [class.bg-sky-50]="isActive('/reception/check-in')"
-        [class.text-[#0284c7]]="isActive('/reception/check-in')" [attr.aria-current]="isActive('/reception/check-in') ? 'page' : null"
+      @if (canReceivePatients()) {<a routerLink="/reception" [class.bg-sky-50]="isActive('/reception')"
+        [class.text-[#0284c7]]="isActive('/reception')" [attr.aria-current]="isActive('/reception') ? 'page' : null"
         class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-sky-50 hover:text-[#0284c7]"
-        role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">how_to_reg</mat-icon>Tiếp nhận bệnh nhân</a>}
+        role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">how_to_reg</mat-icon>Tổng quan tiếp nhận</a>}
       @if (canManageRooms()) {<a routerLink="/admin/rooms" [class.bg-sky-50]="isActive('/admin/rooms')"
         [class.text-[#0284c7]]="isActive('/admin/rooms')" [attr.aria-current]="isActive('/admin/rooms') ? 'page' : null"
         class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-sky-50 hover:text-[#0284c7]"

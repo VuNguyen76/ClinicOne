@@ -74,6 +74,6 @@ describe('StaffLogin', () => {
       staffId: 'staff-reception', fullName: 'Nhân viên tiếp nhận', role: 'RECEPTIONIST',
     });
 
-    expect(navigateSpy).toHaveBeenCalledWith('/reception/check-in');
+    expect(navigateSpy).toHaveBeenCalledWith('/reception');
   });
 });
