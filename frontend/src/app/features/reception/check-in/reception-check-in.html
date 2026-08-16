@@ -171,7 +171,7 @@
           <div>
             <label class="erp-label">Số điện thoại</label>
             <input
-              class="erp-input font-mono"
+              class="erp-input"
               [ngModel]="walkInPhone()"
               (ngModelChange)="walkInPhone.set($event)"
               name="registrationPhone"
@@ -217,7 +217,7 @@
               <label class="erp-label">Ngày sinh</label>
               <input
                 type="date"
-                class="erp-input font-mono"
+                class="erp-input"
                 [ngModel]="registrationDateOfBirth()"
                 (ngModelChange)="registrationDateOfBirth.set($event)"
                 name="registrationDateOfBirth"
@@ -242,7 +242,7 @@
             <div>
               <label class="erp-label">CCCD/CMND</label>
               <input
-                class="erp-input font-mono"
+                class="erp-input"
                 [ngModel]="registrationIdentityNumber()"
                 (ngModelChange)="registrationIdentityNumber.set($event)"
                 name="registrationIdentityNumber"
@@ -320,7 +320,7 @@
             </div>
             <div>
               <label class="erp-label">CCCD/CMND</label>
-              <input class="erp-input font-mono" [ngModel]="registrationIdentityNumber()" (ngModelChange)="registrationIdentityNumber.set($event)" name="completionIdentity" inputmode="numeric" maxlength="12" />
+              <input class="erp-input" [ngModel]="registrationIdentityNumber()" (ngModelChange)="registrationIdentityNumber.set($event)" name="completionIdentity" inputmode="numeric" maxlength="12" />
             </div>
           </div>
           <div class="grid gap-3 sm:grid-cols-2">
@@ -403,7 +403,7 @@
           <div class="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
             <div>
               <label class="erp-label">Số điện thoại</label>
-              <input class="erp-input font-mono" [ngModel]="walkInPhone()" (ngModelChange)="walkInPhone.set($event)" name="walkInPhone" inputmode="numeric" placeholder="0912345678" />
+              <input class="erp-input" [ngModel]="walkInPhone()" (ngModelChange)="walkInPhone.set($event)" name="walkInPhone" inputmode="numeric" placeholder="0912345678" />
             </div>
             <button type="button" class="erp-btn-secondary" [disabled]="walkInProfilesLoading()" (click)="loadWalkInProfiles()">
               {{ walkInProfilesLoading() ? 'Đang tìm...' : 'Tìm hồ sơ' }}
@@ -589,7 +589,7 @@
                     {{ appointment.appointmentCode }}
                   </span>
                 </div>
-                <p class="mt-0.5 text-[11px] text-slate-500 font-mono">
+                <p class="mt-0.5 text-[11px] text-slate-500">
                   {{ appointment.patientPhone || 'Chưa có số phụ' }} · Hồ sơ {{ appointment.patientProfileId ? 'đã chọn' : 'tài khoản' }}
                 </p>
               </div>
