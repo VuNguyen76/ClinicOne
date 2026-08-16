@@ -61,7 +61,7 @@ export class AccountMenu {
     });
   }
 
-  protected readonly isStaff = computed(() => Boolean(this.staffRole()));
+  protected readonly isStaff = computed(() => Boolean(this.staffRole()) || this.staffRoles().length > 0);
   protected readonly isDoctor = computed(() => this.staffRoles().includes('DOCTOR'));
   protected readonly canManageRooms = computed(() =>
     this.staffRoles().some((role) => role === 'ADMIN' || role === 'COORDINATOR'));
@@ -90,7 +90,7 @@ export class AccountMenu {
   }
 
   protected logout(): void {
-    const logoutRequest = this.staffRole() ? this.authApi?.logoutStaff() : this.authApi?.logoutPatient();
+    const logoutRequest = this.isStaff() ? this.authApi?.logoutStaff() : this.authApi?.logoutPatient();
     if (logoutRequest) {
       logoutRequest.subscribe({ complete: () => this.finishLogout(), error: () => this.finishLogout() });
       return;
@@ -99,6 +99,7 @@ export class AccountMenu {
   }
 
   private finishLogout(): void {
+    const logoutRoute = this.isStaff() ? '/staff/login' : '/login';
     sessionStorage.removeItem('clinicOneAccessToken');
     sessionStorage.removeItem('clinicOnePatientName');
     sessionStorage.removeItem('clinicOneSessionType');
@@ -107,7 +108,7 @@ export class AccountMenu {
     sessionStorage.removeItem('clinicOneBookingSession');
     this.menuOpen.set(false);
     this.loggedIn.set(false);
-    void this.router.navigateByUrl('/home');
+    void this.router.navigateByUrl(logoutRoute);
   }
 
   private parseRoles(raw: string | null, fallback: string | null): string[] {
