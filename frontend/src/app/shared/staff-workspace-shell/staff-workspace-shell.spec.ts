@@ -72,4 +72,22 @@ describe('StaffWorkspaceShell', () => {
     const labels = Array.from(items).map((element) => element.textContent?.trim());
     expect(labels).toEqual(['Hàng đợi khám bệnh']);
   });
+
+  it('shows each reception workflow as a separate menu destination', () => {
+    fixture.destroy();
+    sessionStorage.setItem('clinicOneStaffRole', 'RECEPTIONIST');
+    sessionStorage.setItem('clinicOneStaffRoles', JSON.stringify(['RECEPTIONIST']));
+    fixture = TestBed.createComponent(HostComponent);
+    fixture.detectChanges();
+
+    const links = Array.from(fixture.nativeElement.querySelectorAll('[data-testid="staff-module-nav"] a')) as HTMLAnchorElement[];
+    expect(links.map((link) => link.getAttribute('href'))).toEqual([
+      '/reception',
+      '/reception/appointments',
+      '/reception/walk-in',
+      '/reception/queue',
+      '/reception/exceptions',
+      '/reception/profiles',
+    ]);
+  });
 });

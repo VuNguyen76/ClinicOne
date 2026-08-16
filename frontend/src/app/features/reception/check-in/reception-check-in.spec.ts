@@ -37,13 +37,12 @@ describe('ReceptionCheckIn', () => {
     expect(fixture.nativeElement.textContent).toContain('NOI-01');
   });
 
-  it('switches between reception work screens without leaving the staff workspace', () => {
+  it('renders one reception work screen without an additional in-page tab bar', () => {
     const component = fixture.componentInstance as any;
 
     expect(component.activeTab()).toBe('overview');
-    (fixture.nativeElement.querySelector('[data-testid="reception-tab-search"]') as HTMLButtonElement).click();
-    expect(component.activeTab()).toBe('search');
-    (fixture.nativeElement.querySelector('[data-testid="reception-tab-queue"]') as HTMLButtonElement).click();
+    expect(fixture.nativeElement.querySelector('[data-testid^="reception-tab-"]')).toBeNull();
+    component.selectTab('queue');
     fixture.detectChanges();
     expect(component.activeTab()).toBe('queue');
     expect(fixture.nativeElement.querySelector('[data-testid="reception-queue-screen"]')).not.toBeNull();
@@ -61,6 +60,46 @@ describe('ReceptionCheckIn', () => {
 
     expect(fixture.nativeElement.textContent).toContain('Nguyễn Thanh Vũ');
     expect(fixture.nativeElement.querySelector('[data-testid="open-profile-intake"]')).not.toBeNull();
+  });
+
+  it('keeps the walk-in dialog scrollable and removes redundant operational copy', () => {
+    const component = fixture.componentInstance as any;
+    component.walkInOpen.set(true);
+    component.walkInProfileNeedsCompletion.set(true);
+    fixture.detectChanges();
+
+    const dialog = fixture.nativeElement.querySelector('[data-testid="walk-in-dialog"]') as HTMLElement;
+    const body = fixture.nativeElement.querySelector('[data-testid="walk-in-scroll-body"]') as HTMLElement;
+    expect(dialog.classList.contains('flex')).toBe(true);
+    expect(body.classList.contains('overflow-y-auto')).toBe(true);
+    expect(dialog.textContent).not.toContain('Chỉ áp dụng cho ngày hôm nay');
+  });
+
+  it('does not leave a stale global notice after completing a profile inside the intake flow', () => {
+    const component = fixture.componentInstance as any;
+    component.walkInProfileId.set('p-1');
+    component.registrationFullName.set('Nguyễn Thanh Vũ');
+    component.registrationDateOfBirth.set('2005-06-07');
+    component.registrationGender.set('Nam');
+    component.submitProfileCompletion();
+
+    http.expectOne('/api/v1/patient-profiles/p-1/reception-update').flush({
+      id: 'p-1', fullName: 'Nguyễn Thanh Vũ', relationship: 'Bản thân', primaryProfile: true, accountStatus: 'ACTIVE',
+    });
+    expect(component.notice()).toBe('');
+  });
+
+  it('does not copy province district and ward names into the street field', () => {
+    const component = fixture.componentInstance as any;
+    component.registrationProvinces.set([{ code: '72', name: 'Tây Ninh' }]);
+
+    component.prepareProfileCompletion({
+      id: 'p-1', fullName: 'Nguyễn Thanh Vũ', relationship: 'Bản thân', primaryProfile: true, accountStatus: 'ACTIVE',
+      provinceName: 'Tây Ninh', districtName: 'Trảng Bàng', wardName: 'An Tịnh',
+      streetAddress: 'An Tịnh, Trảng Bàng, Tây Ninh',
+    });
+
+    expect(component.registrationStreetAddress()).toBe('');
   });
 
   it('confirms arrival and updates the queue number', () => {
@@ -152,8 +191,9 @@ describe('ReceptionCheckIn', () => {
 
   it('opens the walk-in form and creates an appointment from a selected slot', () => {
     const component = fixture.componentInstance as any;
-    const openButton = Array.from(fixture.nativeElement.querySelectorAll('button'))
-      .find((button: any) => button.textContent.includes('Tiếp nhận không có lịch')) as HTMLButtonElement;
+    component.activeTab.set('intake');
+    fixture.detectChanges();
+    const openButton = fixture.nativeElement.querySelector('[data-testid="open-walk-in"]') as HTMLButtonElement;
     openButton.click();
     fixture.detectChanges();
     http.expectOne((item) => item.url === '/api/v1/specialties').flush([
@@ -189,6 +229,8 @@ describe('ReceptionCheckIn', () => {
 
   it('starts OTP registration when the phone has no account', () => {
     const component = fixture.componentInstance as any;
+    component.activeTab.set('intake');
+    fixture.detectChanges();
     const openButton = fixture.nativeElement.querySelector('[data-testid="open-walk-in"]') as HTMLButtonElement;
     openButton.click();
     http.expectOne((item) => item.url === '/api/v1/specialties').flush([]);
@@ -228,6 +270,8 @@ describe('ReceptionCheckIn', () => {
 
   it('creates a temporary profile when the phone cannot be verified', () => {
     const component = fixture.componentInstance as any;
+    component.activeTab.set('intake');
+    fixture.detectChanges();
     (fixture.nativeElement.querySelector('[data-testid="open-walk-in"]') as HTMLButtonElement).click();
     http.expectOne((item) => item.url === '/api/v1/specialties').flush([]);
     component.walkInPhone.set('0912345678');
