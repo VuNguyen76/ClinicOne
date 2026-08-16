@@ -88,6 +88,19 @@ describe('StaffDashboard', () => {
     expect(fixture.nativeElement.textContent).toContain('07/06/2005');
   });
 
+  it('renders a complete doctor operations dashboard instead of only a queue table', () => {
+    createDashboard('DOCTOR');
+    http.expectOne((candidate) => candidate.url === '/api/v1/doctor/queue')
+      .flush(doctorQueue([ticket('ticket-1', 'CALLED')]));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[data-testid="doctor-metrics"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="doctor-current-patient"]')?.textContent)
+      .toContain('Nguyễn Thanh Vũ');
+    expect(fixture.nativeElement.querySelector('[data-testid="doctor-current-patient"]')?.textContent)
+      .toContain('Đang được gọi');
+  });
+
   it('starts an examination with one retry-safe request key', () => {
     createDashboard('DOCTOR');
     http.expectOne((candidate) => candidate.url === '/api/v1/doctor/queue')
