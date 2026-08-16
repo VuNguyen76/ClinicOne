@@ -7,7 +7,9 @@ spring:
     hikari:
       # The clinic database is remote; recycle and keep connections alive so a
       # server-side idle timeout cannot leave the pool handing out dead sockets.
-      connection-timeout: ${DB_CONNECTION_TIMEOUT_MS:5000}
+      # Allow a remote PostgreSQL instance enough time to accept a connection
+      # during startup before Flyway initializes the schema.
+      connection-timeout: ${DB_CONNECTION_TIMEOUT_MS:30000}
       validation-timeout: ${DB_VALIDATION_TIMEOUT_MS:5000}
       max-lifetime: ${DB_MAX_LIFETIME_MS:600000}
       keepalive-time: ${DB_KEEPALIVE_TIME_MS:30000}
