@@ -2,7 +2,7 @@
   <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
     <div class="mx-auto flex h-[72px] max-w-[1200px] items-center justify-between gap-8 px-5 lg:px-0">
       <a routerLink="/home" class="flex items-center gap-3" aria-label="ClinicOne, trang chủ">
-        <img class="h-11 w-11 object-contain" src="clinicone-mark.png" alt="" aria-hidden="true" />
+        <img class="h-11 w-11 object-contain" src="clinicone-mark-small.png" alt="" aria-hidden="true" />
         <span class="text-[21px] font-bold tracking-[-0.04em] text-slate-900">Clinic<span class="text-[#0284c7]">One</span></span>
       </a>
       <nav class="hidden items-center gap-7 text-sm font-medium text-slate-600 lg:flex" aria-label="Điều hướng chính">
@@ -50,15 +50,15 @@
 
       <article class="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
         <div class="space-y-6 px-6 py-7 sm:px-8">
-          <div class="grid gap-4 sm:grid-cols-2">
-            <div class="flex items-center gap-3 text-sm"><mat-icon class="text-slate-400">person</mat-icon><span class="text-slate-500">Họ và tên:</span><strong class="text-slate-900">{{ profile()?.fullName }}</strong></div>
-            <div class="flex items-center gap-3 text-sm"><mat-icon class="text-slate-400">phone</mat-icon><span class="text-slate-500">Số điện thoại:</span><strong class="text-slate-900">{{ maskedPhone() }}</strong></div>
-            <div class="flex items-center gap-3 text-sm"><mat-icon class="text-slate-400">cake</mat-icon><span class="text-slate-500">Ngày sinh:</span><strong class="text-slate-900">{{ formatDateOfBirth(profile()?.dateOfBirth) }}</strong></div>
-            <div class="flex items-center gap-3 text-sm"><mat-icon class="text-slate-400">wc</mat-icon><span class="text-slate-500">Giới tính:</span><strong class="text-slate-900">{{ profile()?.gender || 'Chưa cập nhật' }}</strong></div>
-            <div class="flex items-center gap-3 text-sm"><mat-icon class="text-slate-400">badge</mat-icon><span class="text-slate-500">CCCD/CMND:</span><strong class="font-mono text-slate-900">{{ profile()?.identityNumber || 'Chưa cập nhật' }}</strong></div>
-            <div class="flex items-center gap-3 text-sm"><mat-icon class="text-slate-400">public</mat-icon><span class="text-slate-500">Quốc tịch:</span><strong class="text-slate-900">{{ profile()?.nationality || 'Chưa cập nhật' }}</strong></div>
-            <div class="flex items-center gap-3 text-sm"><mat-icon class="text-slate-400">groups</mat-icon><span class="text-slate-500">Dân tộc:</span><strong class="text-slate-900">{{ profile()?.ethnicity || 'Chưa cập nhật' }}</strong></div>
-            <div class="flex items-start gap-3 text-sm sm:col-span-2"><mat-icon class="text-slate-400">location_on</mat-icon><span class="text-slate-500">Địa chỉ:</span><strong class="text-slate-900">{{ profile()?.address || 'Chưa cập nhật' }}</strong></div>
+            <div class="grid gap-4 sm:grid-cols-2">
+            <div class="flex items-center gap-3 text-sm"><mat-icon class="text-[#0284c7]">person</mat-icon><span class="text-slate-500">Họ và tên:</span><strong class="text-slate-900">{{ profile()?.fullName }}</strong></div>
+            <div class="flex items-center gap-3 text-sm"><mat-icon class="text-[#0284c7]">phone</mat-icon><span class="text-slate-500">Số điện thoại:</span><strong class="text-slate-900">{{ maskedPhone() }}</strong></div>
+            <div class="flex items-center gap-3 text-sm"><mat-icon class="text-[#0284c7]">cake</mat-icon><span class="text-slate-500">Ngày sinh:</span><strong class="text-slate-900">{{ formatDateOfBirth(profile()?.dateOfBirth) }}</strong></div>
+            <div class="flex items-center gap-3 text-sm"><mat-icon class="text-[#0284c7]">wc</mat-icon><span class="text-slate-500">Giới tính:</span><strong class="text-slate-900">{{ profile()?.gender || 'Chưa cập nhật' }}</strong></div>
+            <div class="flex items-center gap-3 text-sm"><mat-icon class="text-[#0284c7]">badge</mat-icon><span class="text-slate-500">CCCD/CMND:</span><strong class="font-mono text-slate-900">{{ profile()?.identityNumber || 'Chưa cập nhật' }}</strong></div>
+            <div class="flex items-center gap-3 text-sm"><mat-icon class="text-[#0284c7]">public</mat-icon><span class="text-slate-500">Quốc tịch:</span><strong class="text-slate-900">{{ profile()?.nationality || 'Chưa cập nhật' }}</strong></div>
+            <div class="flex items-center gap-3 text-sm"><mat-icon class="text-[#0284c7]">groups</mat-icon><span class="text-slate-500">Dân tộc:</span><strong class="text-slate-900">{{ profile()?.ethnicity || 'Chưa cập nhật' }}</strong></div>
+            <div class="flex items-start gap-3 text-sm sm:col-span-2"><mat-icon class="text-[#0284c7]">location_on</mat-icon><span class="text-slate-500">Địa chỉ:</span><strong class="text-slate-900">{{ profile()?.address || 'Chưa cập nhật' }}</strong></div>
           </div>
 
           <form class="grid gap-5 border-t border-slate-100 pt-6" [formGroup]="profileForm" (ngSubmit)="saveProfile()" novalidate>

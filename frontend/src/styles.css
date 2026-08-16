@@ -89,6 +89,14 @@ body {
   font-variation-settings: "FILL" 0, "wght" 450, "GRAD" 0, "opsz" 20;
 }
 
+/* Patient navigation keeps the brand accent on icons instead of inheriting
+ * the dark body text. This makes the active and inactive menu states easy to
+ * scan without changing the text contrast. */
+app-account-nav mat-icon,
+app-account-menu [role="menu"] mat-icon {
+  color: var(--erp-brand-cyan);
+}
+
 /* Legacy staff pages can stay functional while they are progressively moved
  * into the shared ERP shell; never show a second header inside that shell. */
 app-staff-workspace-shell .staff-legacy-page > header {
