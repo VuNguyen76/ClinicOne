@@ -161,6 +161,19 @@ class DoctorExaminationServiceTest {
     }
 
     @Test
+    void openingAnExaminationUsesTheSelectedPatientProfileInsteadOfTheAccountOwner() {
+        setField(appointment.getPatientProfile(), "fullName", "Nguyễn Minh An");
+        setField(appointment.getPatientProfile(), "dateOfBirth", LocalDate.of(2018, 4, 12));
+        setField(appointment.getPatientProfile(), "gender", "Nữ");
+
+        DoctorExaminationResponse response = service.open(TICKET_ID, DOCTOR_ID.toString());
+
+        assertThat(response.patientName()).isEqualTo("Nguyễn Minh An");
+        assertThat(response.patientDateOfBirth()).isEqualTo(LocalDate.of(2018, 4, 12));
+        assertThat(response.patientGender()).isEqualTo("Nữ");
+    }
+
+    @Test
     void signingCompletesTheWholeExaminationAndNotifiesPatient() {
         DoctorExaminationResponse response = service.sign(TICKET_ID, DOCTOR_ID.toString(), request(), "sign-visit-1");
 

@@ -10,7 +10,7 @@
     <span>Hàng đợi</span>
   </button>
 
-  <div class="mx-auto max-w-[1280px] space-y-4" data-testid="doctor-workspace">
+  <div class="w-full space-y-4" data-testid="doctor-workspace">
     <!-- Loading skeleton -->
     @if (loading()) {
       <div class="space-y-3" aria-label="Đang tải phiên khám">
@@ -59,7 +59,7 @@
       }
 
       <!-- Master-Detail Split Grid -->
-      <div class="grid gap-4 lg:grid-cols-[290px_minmax(0,1fr)]">
+      <div class="grid gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
         <!-- Master Left: Patient Summary Card -->
         <aside class="erp-card h-fit space-y-4 p-4 lg:sticky lg:top-4" data-testid="patient-summary">
           <div class="flex items-center justify-between gap-3 border-b border-slate-200 pb-3">
@@ -72,7 +72,7 @@
             </div>
           </div>
 
-          <dl class="divide-y divide-slate-100 text-xs">
+          <dl class="divide-y divide-slate-100 text-sm">
             <div class="flex justify-between gap-2 py-2">
               <dt class="text-slate-500">Ngày sinh</dt>
               <dd class="font-semibold text-slate-800">{{ formatDate(exam.patientDateOfBirth) }}</dd>
@@ -91,27 +91,46 @@
             </div>
           </dl>
 
-          <div class="border-t border-slate-200 pt-3 text-xs">
+          <div class="border-t border-slate-200 pt-3 text-sm">
             <span class="text-slate-500">Bác sĩ phụ trách</span>
             <strong class="mt-0.5 block text-xs font-bold text-[#0e3d48]">{{ exam.doctorName }}</strong>
           </div>
 
           <!-- History Timeline -->
           <div class="border-t border-slate-200 pt-3">
-            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Lịch sử khám</p>
+            <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Lịch sử khám</p>
             @if (exam.history?.length) {
               <div class="mt-2 space-y-2">
                 @for (record of exam.history; track record.id) {
-                  <div class="rounded-md border border-slate-200 bg-slate-50/60 p-2.5 text-xs">
-                    <p class="font-semibold text-slate-800">{{ record.diagnosis || 'Đã khám' }}</p>
-                    <p class="mt-0.5 text-[11px] text-slate-500">
-                      {{ record.doctorName }} · {{ formatDate(record.signedAt) }}
-                    </p>
-                  </div>
+                  <details
+                    class="group rounded-md border border-slate-200 bg-slate-50/60 text-sm open:bg-white"
+                    [attr.data-testid]="'medical-history-' + record.id"
+                  >
+                    <summary class="cursor-pointer list-none px-3 py-2.5">
+                      <div class="flex items-start justify-between gap-2">
+                        <div>
+                          <p class="font-semibold text-slate-800">{{ record.diagnosis || 'Đã khám' }}</p>
+                          <p class="mt-0.5 text-xs text-slate-500">
+                            {{ record.doctorName }} · {{ formatDate(record.signedAt) }}
+                          </p>
+                        </div>
+                        <mat-icon class="!h-4 !w-4 !text-[17px] text-slate-400 transition-transform group-open:rotate-180">expand_more</mat-icon>
+                      </div>
+                    </summary>
+                    <dl class="space-y-2 border-t border-slate-200 px-3 py-2.5 text-sm">
+                      <div><dt class="font-semibold text-slate-600">Lý do khám</dt><dd class="text-slate-800">{{ record.reason }}</dd></div>
+                      <div><dt class="font-semibold text-slate-600">Ghi nhận khám</dt><dd class="whitespace-pre-wrap text-slate-800">{{ record.examinationNotes }}</dd></div>
+                      <div><dt class="font-semibold text-slate-600">Kết luận</dt><dd class="whitespace-pre-wrap text-slate-800">{{ record.conclusion }}</dd></div>
+                      <div><dt class="font-semibold text-slate-600">Hướng xử trí</dt><dd class="whitespace-pre-wrap text-slate-800">{{ record.treatmentPlan }}</dd></div>
+                      @if (record.prescription) {
+                        <div><dt class="font-semibold text-slate-600">Đơn thuốc</dt><dd class="whitespace-pre-wrap text-slate-800">{{ record.prescription }}</dd></div>
+                      }
+                    </dl>
+                  </details>
                 }
               </div>
             } @else {
-              <p class="mt-1.5 text-xs text-slate-400">Chưa có phiếu khám đã ký trước đó.</p>
+              <p class="mt-1.5 text-sm text-slate-400">Chưa có phiếu khám đã ký trước đó.</p>
             }
           </div>
         </aside>

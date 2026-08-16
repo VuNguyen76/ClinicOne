@@ -309,6 +309,8 @@ export interface QueueTicketResponse {
   appointmentCode: string;
   specialty: string;
   doctorName: string;
+  patientName?: string | null;
+  patientDateOfBirth?: string | null;
   priority?: boolean;
   closureOutcome?: string | null;
   closureOutcomeLabel?: string | null;
@@ -318,6 +320,7 @@ export interface DoctorQueueResponse {
   roomCode: string;
   roomName: string;
   specialty: string;
+  shiftStatus: 'ACTIVE' | 'NONE' | 'CONFLICT';
   tickets: QueueTicketResponse[];
 }
 
