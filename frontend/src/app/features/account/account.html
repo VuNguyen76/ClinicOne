@@ -82,7 +82,7 @@
             @if (addressLoading()) { <p class="text-xs text-slate-500">Đang tải danh sách địa chỉ...</p> }
             @if (profileForm.controls.identityNumber.invalid && profileForm.controls.identityNumber.touched) { <p class="text-sm text-red-600">CMND/CCCD phải gồm 9 hoặc 12 chữ số.</p> }
             @if (profileForm.invalid && profileForm.touched) { <p class="text-sm text-red-600">Vui lòng kiểm tra lại các thông tin bắt buộc.</p> }
-            <button class="min-h-10 rounded-md bg-[#0e3d48] px-5 text-sm font-semibold text-white transition hover:bg-[#124f5e] disabled:cursor-not-allowed disabled:opacity-60 sm:w-fit" type="submit" [disabled]="busy()">{{ busy() ? 'Đang lưu...' : 'Lưu thông tin' }}</button>
+            <button class="min-h-10 rounded-md bg-[#0284c7] px-5 text-sm font-semibold text-white transition hover:bg-[#0369a1] disabled:cursor-not-allowed disabled:opacity-60 sm:w-fit" type="submit" [disabled]="busy()">{{ busy() ? 'Đang lưu...' : 'Lưu thông tin' }}</button>
           </form>
         </div>
       </article>

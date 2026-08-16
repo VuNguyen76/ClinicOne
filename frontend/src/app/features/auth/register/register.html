@@ -37,7 +37,7 @@
               } @else if (phoneForm.controls.phone.hasError('pattern') && phoneForm.controls.phone.touched) {
                 <p class="text-xs text-rose-600" role="alert">Vui lòng kiểm tra lại số điện thoại.</p>
               }
-              <button class="mt-2 min-h-11 rounded-lg bg-[#0e3d48] px-5 text-sm font-semibold text-white shadow-xs transition hover:bg-[#124f5e] disabled:cursor-not-allowed disabled:opacity-60" type="submit" [disabled]="busy()">
+              <button class="mt-2 min-h-11 rounded-lg bg-[#0284c7] px-5 text-sm font-semibold text-white shadow-xs transition hover:bg-[#0369a1] disabled:cursor-not-allowed disabled:opacity-60" type="submit" [disabled]="busy()">
                 {{ busy() ? 'Đang gửi mã...' : 'Nhận mã OTP' }}
               </button>
             </form>
@@ -50,7 +50,7 @@
               } @else if (otpForm.controls.code.hasError('pattern') && otpForm.controls.code.touched) {
                 <p class="text-xs text-rose-600" role="alert">Mã OTP phải gồm 6 chữ số.</p>
               }
-              <button class="mt-2 min-h-11 rounded-lg bg-[#0e3d48] px-5 text-sm font-semibold text-white shadow-xs transition hover:bg-[#124f5e] disabled:cursor-not-allowed disabled:opacity-60" type="submit" [disabled]="busy()">
+              <button class="mt-2 min-h-11 rounded-lg bg-[#0284c7] px-5 text-sm font-semibold text-white shadow-xs transition hover:bg-[#0369a1] disabled:cursor-not-allowed disabled:opacity-60" type="submit" [disabled]="busy()">
                 {{ busy() ? 'Đang xác thực...' : 'Tiếp tục' }}
               </button>
               <button class="text-xs font-semibold text-[#0284c7] hover:underline" type="button" (click)="backToPhone()">Đổi số điện thoại</button>
@@ -82,14 +82,14 @@
               @if (profileForm.hasError('passwordMismatch') && profileForm.controls.confirmPassword.touched) {
                 <p class="text-xs text-rose-600" role="alert">Hai mật khẩu chưa giống nhau.</p>
               }
-              <button class="mt-2 min-h-11 rounded-lg bg-[#0e3d48] px-5 text-sm font-semibold text-white shadow-xs transition hover:bg-[#124f5e] disabled:cursor-not-allowed disabled:opacity-60" type="submit" [disabled]="busy()">
+              <button class="mt-2 min-h-11 rounded-lg bg-[#0284c7] px-5 text-sm font-semibold text-white shadow-xs transition hover:bg-[#0369a1] disabled:cursor-not-allowed disabled:opacity-60" type="submit" [disabled]="busy()">
                 {{ busy() ? 'Đang tạo tài khoản...' : 'Tạo tài khoản' }}
               </button>
               <button class="text-xs font-semibold text-[#0284c7] hover:underline" type="button" (click)="backToOtp()">Quay lại nhập OTP</button>
             </form>
           } @else {
             <div class="mt-6 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-semibold text-emerald-800" role="status">Tài khoản đã tạo thành công.</div>
-            <button class="mt-4 min-h-11 w-full rounded-lg bg-[#0e3d48] px-5 text-sm font-semibold text-white shadow-xs transition hover:bg-[#124f5e]" type="button" (click)="goToLogin()">Đăng nhập ngay</button>
+            <button class="mt-4 min-h-11 w-full rounded-lg bg-[#0284c7] px-5 text-sm font-semibold text-white shadow-xs transition hover:bg-[#0369a1]" type="button" (click)="goToLogin()">Đăng nhập ngay</button>
           }
 
           @if (error()) {
@@ -102,9 +102,9 @@
       </div>
     </section>
 
-    <aside class="relative hidden min-h-[100dvh] overflow-hidden bg-[#0e3d48] lg:block" aria-label="Thông tin ClinicOne">
+    <aside class="relative hidden min-h-[100dvh] overflow-hidden bg-[#0284c7] lg:block" aria-label="Thông tin ClinicOne">
       <img class="absolute inset-0 h-full w-full object-cover object-center" src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1600&q=85" alt="Nhân viên y tế đang tư vấn cho bệnh nhân" />
-      <div class="absolute inset-0 bg-[#0e3d48]/70 backdrop-blur-[1px]"></div>
+      <div class="absolute inset-0 bg-[#0284c7]/70 backdrop-blur-[1px]"></div>
       <div class="relative flex min-h-[100dvh] flex-col justify-between p-10 text-white xl:p-14">
         <p class="text-xs font-bold uppercase tracking-[0.18em] text-sky-200">ClinicOne ERP</p>
         <div class="max-w-md">
