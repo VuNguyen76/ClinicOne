@@ -294,17 +294,25 @@
         </form>
       } @else if (walkInProfileNeedsCompletion()) {
         <form data-testid="walk-in-scroll-body" class="erp-modal-body min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain" (ngSubmit)="$event.preventDefault(); submitProfileCompletion()">
+          <div class="rounded-md border border-sky-200 bg-sky-50 px-3.5 py-2.5 text-xs font-medium text-sky-900">
+            Chỉ bổ sung thông tin còn thiếu để xác định đúng người đi khám.
+          </div>
           <div class="grid gap-3 sm:grid-cols-2">
+            @if (!completionFieldLocked('fullName')) {
             <div>
               <label class="erp-label">Họ và tên</label>
               <input class="erp-input" [ngModel]="registrationFullName()" (ngModelChange)="registrationFullName.set($event)" name="completionFullName" />
             </div>
+            }
+            @if (!completionFieldLocked('dateOfBirth')) {
             <div>
               <label class="erp-label">Ngày sinh</label>
               <input type="date" class="erp-input font-mono" [ngModel]="registrationDateOfBirth()" (ngModelChange)="registrationDateOfBirth.set($event)" name="completionDateOfBirth" />
             </div>
+            }
           </div>
-          <div class="grid gap-3 sm:grid-cols-2">
+          @if (!completionFieldLocked('gender')) {
+          <div>
             <div>
               <label class="erp-label">Giới tính</label>
               <select class="erp-select" [ngModel]="registrationGender()" (ngModelChange)="registrationGender.set($event)" name="completionGender">
@@ -314,72 +322,17 @@
                 <option value="Khác">Khác</option>
               </select>
             </div>
-            <div>
-              <label class="erp-label">CCCD/CMND</label>
-              <input class="erp-input" [ngModel]="registrationIdentityNumber()" (ngModelChange)="registrationIdentityNumber.set($event)" name="completionIdentity" inputmode="numeric" maxlength="12" />
-            </div>
           </div>
-          <div class="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label class="erp-label">Quốc tịch</label>
-              <input class="erp-input" [ngModel]="registrationNationality()" (ngModelChange)="registrationNationality.set($event)" name="completionNationality" />
-            </div>
-            <div>
-              <label class="erp-label">Dân tộc</label>
-              <input class="erp-input" [ngModel]="registrationEthnicity()" (ngModelChange)="registrationEthnicity.set($event)" name="completionEthnicity" />
-            </div>
-          </div>
-          <div>
-            <label class="erp-label">Tỉnh/Thành phố</label>
-            <select class="erp-select" [ngModel]="registrationProvinceCode()" (ngModelChange)="registrationProvinceCode.set($event); registrationProvinceChanged()" name="completionProvince">
-              <option value="">Chọn tỉnh/thành phố</option>
-              @for (item of registrationProvinces(); track item.code) {
-                <option [value]="item.code">{{ item.name }}</option>
-              }
-            </select>
-          </div>
-          <div class="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label class="erp-label">Quận/Huyện</label>
-              <select class="erp-select" [ngModel]="registrationDistrictCode()" (ngModelChange)="registrationDistrictCode.set($event); registrationDistrictChanged()" name="completionDistrict">
-                <option value="">Chọn quận/huyện</option>
-                @for (item of registrationDistricts(); track item.code) {
-                  <option [value]="item.code">{{ item.name }}</option>
-                }
-              </select>
-            </div>
-            <div>
-              <label class="erp-label">Xã/Phường</label>
-              <select class="erp-select" [ngModel]="registrationWardCode()" (ngModelChange)="registrationWardCode.set($event); registrationWardChanged()" name="completionWard">
-                <option value="">Chọn xã/phường</option>
-                @for (item of registrationWards(); track item.code) {
-                  <option [value]="item.code">{{ item.name }}</option>
-                }
-              </select>
-            </div>
-          </div>
-          <div>
-            <label class="erp-label">Số nhà/Tên đường</label>
-            <input class="erp-input" [ngModel]="registrationStreetAddress()" (ngModelChange)="registrationStreetAddress.set($event)" name="completionStreetAddress" />
-          </div>
+          }
           <div class="erp-modal-footer !px-0 !pb-0">
-            <button type="button" class="erp-btn-secondary" (click)="walkInProfileNeedsCompletion.set(false)">Để sau</button>
+            <button type="button" class="erp-btn-secondary" (click)="closeWalkIn()">Đóng</button>
             <button type="submit" class="erp-btn-primary" [disabled]="registrationLoading()">{{ registrationLoading() ? 'Đang lưu...' : 'Lưu hồ sơ' }}</button>
           </div>
         </form>
       } @else if (walkInNeedsPasswordChange()) {
         <form data-testid="walk-in-scroll-body" class="erp-modal-body min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain" (ngSubmit)="$event.preventDefault(); activatePendingAccount()">
           <div class="rounded-md border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs font-medium text-amber-900">
-            Tài khoản chưa kích hoạt. Gửi OTP, nhập mã rồi đặt mật khẩu mới.
-          </div>
-          <div class="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
-            <div>
-              <label class="erp-label">Mã OTP</label>
-              <input inputmode="numeric" maxlength="6" class="erp-input font-mono" [ngModel]="activationOtp()" (ngModelChange)="activationOtp.set($event)" name="activationOtp" placeholder="6 số" />
-            </div>
-            <button type="button" class="erp-btn-secondary" [disabled]="activationLoading() || activationOtpSent()" (click)="requestActivationOtp()">
-              {{ activationOtpSent() ? 'Đã gửi mã' : 'Gửi OTP' }}
-            </button>
+            Số điện thoại đã được xác thực. Đặt mật khẩu mới để tiếp tục tiếp nhận.
           </div>
           <div>
             <label class="erp-label">Mật khẩu mới</label>
@@ -450,7 +403,7 @@
           </div>
           <div class="erp-modal-footer !px-0 !pb-0">
             <button type="button" class="erp-btn-secondary" (click)="closeWalkIn()">Hủy</button>
-            <button type="submit" class="erp-btn-primary" [disabled]="walkInLoading()">{{ walkInLoading() ? 'Đang tạo...' : 'Tạo lịch và cấp số' }}</button>
+            <button type="submit" class="erp-btn-primary" [disabled]="walkInLoading()">{{ walkInLoading() ? 'Đang tạo...' : walkInIsToday() ? 'Tạo lịch và cấp số' : 'Đặt lịch' }}</button>
           </div>
         </form>
       }
@@ -523,7 +476,7 @@
     @if (activeTab() === 'queue') {
       <section class="erp-card overflow-hidden" data-testid="reception-queue-screen">
         <div class="erp-toolbar"><div><h2 class="text-sm font-bold text-slate-900">Hàng đợi tiếp nhận</h2><p class="text-xs text-slate-500">Theo dõi người đã check-in và chưa được bắt đầu khám.</p></div><a routerLink="/reception/appointments" class="erp-btn-secondary !min-h-8 !px-3 !py-1.5 !text-xs">Tra cứu lịch</a></div>
-        @if (appointments().length === 0) {<div class="grid min-h-48 place-items-center p-6 text-center text-sm text-slate-500"><div><mat-icon class="!h-9 !w-9 !text-[36px] text-slate-300">format_list_numbered</mat-icon><p class="mt-2">Chưa có người trong hàng đợi.</p><p class="mt-1 text-xs text-slate-400">Tra cứu lịch để cập nhật danh sách.</p></div></div>} @else {<div class="divide-y divide-slate-100">@for (appointment of appointments(); track appointment.id) {<div class="grid gap-2 px-4 py-3 sm:grid-cols-[5rem_1fr_auto] sm:items-center"><span class="font-mono text-lg font-bold text-[#0284c7]">{{ appointment.queueNumber ? ('#' + appointment.queueNumber) : '—' }}</span><div><p class="text-sm font-semibold text-slate-900">{{ appointment.patientName }}</p><p class="text-xs text-slate-500">{{ appointment.roomCode || 'Chưa gán phòng' }} · {{ appointment.doctorName }}</p></div><span class="erp-badge" [class]="queueClass(appointment)">{{ queueLabel(appointment) }}</span></div>}</div>}
+        @if (queueAppointments().length === 0) {<div class="grid min-h-48 place-items-center p-6 text-center text-sm text-slate-500"><div><mat-icon class="!h-9 !w-9 !text-[36px] text-slate-300">format_list_numbered</mat-icon><p class="mt-2">Chưa có người trong hàng đợi.</p></div></div>} @else {<div class="divide-y divide-slate-100">@for (appointment of queueAppointments(); track appointment.id) {<div class="grid gap-2 px-4 py-3 sm:grid-cols-[5rem_1fr_auto] sm:items-center"><span class="font-mono text-lg font-bold text-[#0284c7]">{{ appointment.queueNumber ? ('#' + appointment.queueNumber) : '—' }}</span><div><p class="text-sm font-semibold text-slate-900">{{ appointment.patientName }}</p><p class="text-xs text-slate-500">{{ appointment.roomCode || 'Chưa gán phòng' }} · {{ appointment.doctorName }}</p></div><span class="erp-badge" [class]="queueClass(appointment)">{{ queueLabel(appointment) }}</span></div>}</div>}
       </section>
     }
 
@@ -654,6 +607,26 @@
                 @if (appointment.queuePriority) {
                   <span class="erp-badge erp-badge-warning">Ưu tiên</span>
                 }
+                @if (appointment.queuePresenceStatus === 'RETURN_REQUIRED') {
+                  <button
+                    type="button"
+                    data-testid="mark-returned"
+                    class="erp-btn-primary !min-h-7 !px-2.5 !py-1 !text-[11px]"
+                    [disabled]="busyId() === appointment.id"
+                    (click)="markReturned(appointment)"
+                  >
+                    {{ busyId() === appointment.id ? 'Đang ghi...' : 'Đã quay lại' }}
+                  </button>
+                } @else if (appointment.lateArrival && appointment.status === 'BOOKED') {
+                  <button
+                    type="button"
+                    data-testid="reschedule-late"
+                    class="erp-btn-primary !min-h-7 !px-2.5 !py-1 !text-[11px]"
+                    (click)="openRebook(appointment)"
+                  >
+                    Chuyển lịch
+                  </button>
+                } @else {
                 <button
                   type="button"
                   data-testid="check-in"
@@ -663,6 +636,7 @@
                 >
                   {{ busyId() === appointment.id ? 'Đang cấp...' : appointment.queueStatus ? 'Đã nhận' : 'Cấp số ngoại lệ' }}
                 </button>
+                }
                 @if (appointment.queueStatus === 'WAITING') {
                   <button
                     type="button"

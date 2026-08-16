@@ -494,7 +494,7 @@ public class QueueService {
         }
         if (currentMax >= QueueTicket.MAX_QUEUE_NUMBER) {
             throw new AuthException(HttpStatus.CONFLICT, "QUEUE_NUMBER_LIMIT_REACHED",
-                    "Hàng đợi đã đủ 9999 số trong ngày; vui lòng liên hệ quầy để được hỗ trợ.");
+                    "Hàng đợi đã đủ 999 số trong ngày; vui lòng liên hệ quầy để được hỗ trợ.");
         }
         return currentMax + 1;
     }

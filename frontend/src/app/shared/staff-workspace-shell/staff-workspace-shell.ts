@@ -23,12 +23,12 @@ const NAVIGATION: StaffNavigationGroup[] = [
     label: 'Khám bệnh',
     items: [
       { label: 'Hàng đợi khám bệnh', route: '/doctor', icon: 'monitor_heart', roles: ['DOCTOR'] },
-      { label: 'Tổng quan tiếp nhận', route: '/reception', icon: 'dashboard', roles: ['ADMIN', 'COORDINATOR', 'RECEPTIONIST'], exact: true },
-      { label: 'Tra cứu lịch', route: '/reception/appointments', icon: 'event_search', roles: ['ADMIN', 'COORDINATOR', 'RECEPTIONIST'] },
-      { label: 'Tiếp nhận tại quầy', route: '/reception/walk-in', icon: 'person_add', roles: ['ADMIN', 'COORDINATOR', 'RECEPTIONIST'] },
-      { label: 'Hàng đợi tiếp nhận', route: '/reception/queue', icon: 'format_list_numbered', roles: ['ADMIN', 'COORDINATOR', 'RECEPTIONIST'] },
-      { label: 'Ngoại lệ cần xử lý', route: '/reception/exceptions', icon: 'rule', roles: ['ADMIN', 'COORDINATOR', 'RECEPTIONIST'] },
-      { label: 'Hồ sơ người bệnh', route: '/reception/profiles', icon: 'badge', roles: ['ADMIN', 'COORDINATOR', 'RECEPTIONIST'] },
+      { label: 'Tổng quan tiếp nhận', route: '/reception', icon: 'dashboard', roles: ['COORDINATOR', 'RECEPTIONIST'], exact: true },
+      { label: 'Tra cứu lịch', route: '/reception/appointments', icon: 'event_search', roles: ['COORDINATOR', 'RECEPTIONIST'] },
+      { label: 'Tiếp nhận tại quầy', route: '/reception/walk-in', icon: 'person_add', roles: ['COORDINATOR', 'RECEPTIONIST'] },
+      { label: 'Hàng đợi tiếp nhận', route: '/reception/queue', icon: 'format_list_numbered', roles: ['COORDINATOR', 'RECEPTIONIST'] },
+      { label: 'Ngoại lệ cần xử lý', route: '/reception/exceptions', icon: 'rule', roles: ['COORDINATOR', 'RECEPTIONIST'] },
+      { label: 'Hồ sơ người bệnh', route: '/reception/profiles', icon: 'badge', roles: ['COORDINATOR', 'RECEPTIONIST'] },
     ],
   },
   {
