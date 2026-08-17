@@ -138,8 +138,8 @@
 
   <!-- 4-Step Consultation Workflow -->
   <section class="border-y border-slate-200 bg-sky-50/50">
-    <div class="mx-auto grid max-w-[1200px] gap-10 px-5 py-14 lg:grid-cols-[0.9fr_1.1fr] lg:px-0 lg:py-20 lg:items-center">
-      <div class="flex flex-col justify-center">
+    <div class="mx-auto grid max-w-[1200px] gap-8 px-5 py-14 lg:grid-cols-[0.88fr_1.12fr] lg:items-stretch lg:px-0 lg:py-20">
+      <div class="flex flex-col justify-between">
         <div>
           <div class="inline-flex items-center gap-2 rounded-full bg-sky-100/70 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-[#0284c7]">
             <span class="h-1.5 w-1.5 rounded-full bg-[#0284c7]"></span>
@@ -152,20 +152,20 @@
             Hệ thống tự động hóa khép kín từ đặt lịch, lấy số thứ tự tới nhận kết quả điện tử.
           </p>
         </div>
-        <div class="mt-6 overflow-hidden rounded-2xl shadow-sm border border-sky-100/80">
-          <img class="h-[320px] lg:h-[360px] w-full object-cover transition duration-700 hover:scale-105" src="https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=1200&q=84" alt="Khu vực tiếp đón tại ClinicOne" loading="lazy" />
+        <div class="mt-6 flex-1 min-h-0 overflow-hidden rounded-2xl border border-sky-100/80 shadow-xs">
+          <img class="h-full w-full object-cover transition duration-700 hover:scale-105" src="https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=1200&q=84" alt="Khu vực tiếp đón tại ClinicOne" loading="lazy" />
         </div>
       </div>
       <div class="grid gap-4 sm:grid-cols-2">
         @for (step of processSteps; track step.order) {
-          <div class="co-reveal rounded-2xl border border-sky-100/80 bg-white p-5 shadow-xs transition duration-300 hover:border-[#0284c7] hover:shadow-md flex flex-col justify-between">
+          <div class="co-reveal rounded-2xl border border-sky-100/80 bg-white p-6 shadow-xs transition duration-300 hover:border-[#0284c7] hover:shadow-md flex flex-col justify-between">
             <div class="flex items-center justify-between">
               <span class="font-mono text-2xl font-bold text-[#0284c7]">{{ step.order }}</span>
-              <span class="grid h-9 w-9 place-items-center rounded-xl bg-sky-50 text-[#0284c7]">
+              <span class="grid h-10 w-10 place-items-center rounded-xl bg-sky-50 text-[#0284c7]">
                 <mat-icon class="!h-5 !w-5 !text-[20px]">{{ step.icon }}</mat-icon>
               </span>
             </div>
-            <div class="mt-4">
+            <div class="mt-5">
               <h3 class="text-sm font-bold text-slate-900">{{ step.title }}</h3>
               <p class="mt-1.5 text-xs leading-5 text-slate-600">{{ step.description }}</p>
             </div>
