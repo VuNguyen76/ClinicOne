@@ -14,6 +14,7 @@ import com.clinicone.doctor.DoctorScheduleRepository;
 import com.clinicone.examination.ExaminationSession;
 import com.clinicone.examination.ExaminationSessionRepository;
 import com.clinicone.examination.ExaminationSessionStatus;
+import com.clinicone.patientprofile.PatientProfile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -139,7 +140,7 @@ class QueueServiceTest {
 
     @Test
     void refusesToIssueAThousandthQueueNumber() {
-        when(ticketRepository.findMaxQueueNumberByRoomCodeAndQueueDate("NOI-01", TODAY)).thenReturn(9999);
+        when(ticketRepository.findMaxQueueNumberByRoomCodeAndQueueDate("NOI-01", TODAY)).thenReturn(999);
 
         AuthException exception = assertThrows(AuthException.class,
                 () -> service.checkIn(ACCOUNT_ID.toString(), "NOI-01", APPOINTMENT_ID));
@@ -588,6 +589,47 @@ class QueueServiceTest {
 
         assertEquals(List.of(priority.getId(), normal.getId()),
                 response.tickets().stream().map(QueueTicketResponse::id).toList());
+    }
+
+    @Test
+    void doctorQueueIncludesPatientIdentityForRoomSideVerification() {
+        UUID doctorId = UUID.randomUUID();
+        PatientAccount patient = new PatientAccount("0912345678", "hash", "Nguyễn Thanh Vũ",
+                AccountStatus.ACTIVE, false);
+        setId(patient, ACCOUNT_ID);
+        PatientProfile patientProfile = PatientProfile.create(patient, "Nguyễn Thanh Vũ", "Bản thân",
+                LocalDate.of(2005, 6, 7), "Nam", "0912345678", null, "Việt Nam", "Kinh", null, true);
+        Appointment patientAppointment = Appointment.create(patient, doctorId, patientProfile,
+                "CL-QUEUE-IDENTITY", "Nội tổng quát", "BS. Nguyễn An", TODAY,
+                LocalTime.of(9, 0), "Đau đầu");
+        QueueTicket ticket = QueueTicket.create(patientAppointment, room, TODAY, 1);
+
+        QueueTicketResponse response = QueueTicketResponse.from(ticket);
+
+        assertEquals("Nguyễn Thanh Vũ", response.patientName());
+        assertEquals(LocalDate.of(2005, 6, 7), response.patientDateOfBirth());
+    }
+
+    @Test
+    void doctorQueueIsEmptyWhenTheDoctorHasNoCurrentShift() {
+        UUID doctorId = UUID.randomUUID();
+        StaffAccount staff = StaffAccount.create("doctor-no-shift", "hash", "BS. Nguyễn An", StaffRole.DOCTOR);
+        setId(staff, doctorId);
+        DoctorProfile profile = DoctorProfile.create(staff, "Nội tổng quát", room);
+        DoctorScheduleRepository scheduleRepository = mock(DoctorScheduleRepository.class);
+        when(doctorProfileRepository.findByStaffAccount_Id(doctorId)).thenReturn(Optional.of(profile));
+        when(scheduleRepository.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(
+                profile.getId(), TODAY.getDayOfWeek())).thenReturn(List.of());
+        QueueService productionService = new QueueService(roomRepository, ticketRepository, appointmentRepository,
+                doctorProfileRepository, examinationSessionRepository, null, scheduleRepository, null,
+                Clock.fixed(Instant.parse("2026-08-06T02:00:00Z"), ZoneId.of("Asia/Ho_Chi_Minh")));
+
+        DoctorQueueResponse response = productionService.doctorQueue(TODAY, doctorId.toString());
+
+        assertEquals("NONE", response.shiftStatus());
+        assertEquals(List.of(), response.tickets());
+        verify(ticketRepository, never())
+                .findByRoomCodeAndQueueDateAndAppointment_DoctorStaffIdOrderByQueueNumberAsc(any(), any(), any());
     }
 
     @Test

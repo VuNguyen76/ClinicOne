@@ -104,7 +104,7 @@ describe('ClinicOne route guards', () => {
     sessionStorage.setItem('clinicOneStaffRole', 'RECEPTIONIST');
 
     expect(TestBed.runInInjectionContext(() => homeGuard(null as never, { url: '/home' } as never))).toEqual({
-      commands: ['/reception/check-in'],
+      commands: ['/reception'],
     });
   });
 
@@ -121,6 +121,6 @@ describe('ClinicOne route guards', () => {
     sessionStorage.setItem('clinicOneAccessToken', 'staff-token');
     sessionStorage.setItem('clinicOneStaffRole', 'RECEPTIONIST');
 
-    expect(staffLandingRedirect(null as never)).toBe('/reception/check-in');
+    expect(staffLandingRedirect(null as never)).toBe('/reception');
   });
 });

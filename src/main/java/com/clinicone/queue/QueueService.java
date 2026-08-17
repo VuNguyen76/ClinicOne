@@ -314,11 +314,14 @@ public class QueueService {
         UUID doctorId = AuthenticatedIds.staff(staffId);
         DoctorProfile profile = doctorProfile(doctorId);
         LocalDate queueDate = date == null ? today() : date;
-        List<QueueTicketResponse> tickets = doctorTickets(profile.getRoom().getCode(), queueDate, doctorId).stream()
-                .map(QueueTicketResponse::from)
-                .toList();
+        String shiftStatus = doctorShiftStatus(profile, queueDate);
+        List<QueueTicketResponse> tickets = "ACTIVE".equals(shiftStatus)
+                ? doctorTickets(profile.getRoom().getCode(), queueDate, doctorId).stream()
+                        .map(QueueTicketResponse::from)
+                        .toList()
+                : List.of();
         return new DoctorQueueResponse(profile.getRoom().getCode(), profile.getRoom().getName(),
-                profile.getSpecialty(), tickets);
+                profile.getSpecialty(), shiftStatus, tickets);
     }
 
     @Transactional
@@ -494,7 +497,7 @@ public class QueueService {
         }
         if (currentMax >= QueueTicket.MAX_QUEUE_NUMBER) {
             throw new AuthException(HttpStatus.CONFLICT, "QUEUE_NUMBER_LIMIT_REACHED",
-                    "Hàng đợi đã đủ 9999 số trong ngày; vui lòng liên hệ quầy để được hỗ trợ.");
+                    "Hàng đợi đã đủ 999 số trong ngày; vui lòng liên hệ quầy để được hỗ trợ.");
         }
         return currentMax + 1;
     }
@@ -628,11 +631,15 @@ public class QueueService {
     }
 
     private boolean hasActiveShift(DoctorProfile profile, LocalDate date) {
+        return "ACTIVE".equals(doctorShiftStatus(profile, date));
+    }
+
+    private String doctorShiftStatus(DoctorProfile profile, LocalDate date) {
         if (doctorScheduleRepository == null) {
-            return true;
+            return "ACTIVE";
         }
         if (!date.equals(today())) {
-            return false;
+            return "NONE";
         }
         var now = LocalTime.now(clock.withZone(CLINIC_ZONE));
         long activeSchedules = doctorScheduleRepository.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(
@@ -640,7 +647,10 @@ public class QueueService {
                 .filter(schedule -> !now.isBefore(schedule.getStartTime())
                         && now.isBefore(schedule.getEndTime()))
                 .count();
-        return activeSchedules == 1;
+        if (activeSchedules == 0) {
+            return "NONE";
+        }
+        return activeSchedules == 1 ? "ACTIVE" : "CONFLICT";
     }
 
     private void recordTransition(UUID eventId, String entityType, UUID entityId, String previousStatus,

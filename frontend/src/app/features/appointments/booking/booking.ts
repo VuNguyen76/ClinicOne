@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -28,6 +28,12 @@ interface TimeSlot {
   roomCode: string | null;
 }
 
+interface DoctorChoice {
+  id: string;
+  name: string;
+  roomCode: string | null;
+}
+
 @Component({
   selector: 'app-booking',
   standalone: true,
@@ -47,6 +53,7 @@ export class Booking implements OnInit {
   protected readonly selectedSpecialty = signal('');
   protected readonly selectedClinicService = signal<ClinicServiceResponse | null>(null);
   protected readonly selectedDate = signal('');
+  protected readonly selectedDoctorId = signal('');
   protected readonly selectedSlot = signal('');
   protected readonly holdId = signal<string | null>(null);
   protected readonly holdExpiresAt = signal<string | null>(null);
@@ -58,8 +65,21 @@ export class Booking implements OnInit {
   protected readonly specialtiesLoading = signal(true);
   protected readonly clinicServices = signal<ClinicServiceResponse[]>([]);
   protected readonly clinicServicesLoading = signal(true);
+  protected readonly monthSlots = signal<AppointmentSlotResponse[]>([]);
   protected readonly availableSlots = signal<TimeSlot[]>([]);
   protected readonly slotsLoading = signal(false);
+  protected readonly availableDoctors = computed<DoctorChoice[]>(() => {
+    const doctors = new Map<string, DoctorChoice>();
+    for (const slot of this.monthSlots()) {
+      if (!slot.doctorId) continue;
+      doctors.set(slot.doctorId, {
+        id: slot.doctorId,
+        name: slot.doctorName,
+        roomCode: slot.roomCode ?? null,
+      });
+    }
+    return [...doctors.values()].sort((left, right) => left.name.localeCompare(right.name, 'vi-VN'));
+  });
   protected profiles: PatientProfileItem[] = [];
   protected profilesLoading = true;
   protected busy = false;
@@ -121,6 +141,7 @@ export class Booking implements OnInit {
     this.form.controls.appointmentDate.reset('');
     this.form.controls.startTime.reset('');
     this.selectedDate.set('');
+    this.selectedDoctorId.set('');
     this.selectedSlot.set('');
     this.clearHold();
     this.monthSlots.set([]);
@@ -136,14 +157,13 @@ export class Booking implements OnInit {
     this.form.controls.appointmentDate.reset('');
     this.form.controls.startTime.reset('');
     this.selectedDate.set('');
+    this.selectedDoctorId.set('');
     this.selectedSlot.set('');
     this.clearHold();
     this.monthSlots.set([]);
     this.step.set(2);
     this.loadMonthAvailability();
   }
-
-  protected readonly monthSlots = signal<AppointmentSlotResponse[]>([]);
 
   protected monthLabel(): string {
     return new Intl.DateTimeFormat('vi-VN', { month: 'long', year: 'numeric' }).format(this.calendarMonth());
@@ -170,7 +190,20 @@ export class Booking implements OnInit {
   }
 
   protected hasAvailability(date: DateOption): boolean {
-    return this.monthSlots().some((slot) => slot.appointmentDate === date.iso);
+    return this.monthSlots().some((slot) => slot.appointmentDate === date.iso && this.matchesSelectedDoctor(slot));
+  }
+
+  protected chooseDoctor(doctorId: string): void {
+    if (this.selectedDoctorId() === doctorId) return;
+    this.clearError();
+    this.clearHold();
+    this.selectedDoctorId.set(doctorId);
+    this.selectedDate.set('');
+    this.selectedSlot.set('');
+    this.availableSlots.set([]);
+    this.form.controls.appointmentDate.reset('');
+    this.form.controls.startTime.reset('');
+    this.form.controls.doctorId.reset('');
   }
 
   protected chooseDate(date: DateOption): void {
@@ -181,7 +214,8 @@ export class Booking implements OnInit {
     this.availableSlots.set([]);
     this.form.controls.appointmentDate.setValue(date.iso);
     this.form.controls.startTime.reset('');
-    const slotsForDate = this.monthSlots().filter((slot) => slot.appointmentDate === date.iso);
+    const slotsForDate = this.monthSlots().filter((slot) =>
+      slot.appointmentDate === date.iso && this.matchesSelectedDoctor(slot));
     this.availableSlots.set(slotsForDate.map((slot) => this.toTimeSlot(slot)));
   }
 
@@ -207,6 +241,10 @@ export class Booking implements OnInit {
 
   protected slotsFor(period: TimeSlot['period']): TimeSlot[] {
     return this.availableSlots().filter((slot) => slot.period === period);
+  }
+
+  private matchesSelectedDoctor(slot: AppointmentSlotResponse): boolean {
+    return !this.selectedDoctorId() || slot.doctorId === this.selectedDoctorId();
   }
 
   protected continueToDetails(): void {

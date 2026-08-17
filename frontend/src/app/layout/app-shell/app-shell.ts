@@ -43,7 +43,10 @@ export class AppShell {
   }
 
   logout(): void {
+    const isStaff = sessionStorage.getItem('clinicOneSessionType') === 'STAFF'
+      || Boolean(sessionStorage.getItem('clinicOneStaffRole'))
+      || Boolean(sessionStorage.getItem('clinicOneStaffRoles'));
     sessionStorage.clear();
-    void this.router.navigateByUrl('/login');
+    void this.router.navigateByUrl(isStaff ? '/staff/login' : '/login');
   }
 }

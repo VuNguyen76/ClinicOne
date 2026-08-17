@@ -15,6 +15,8 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
@@ -70,6 +72,20 @@ class MedicalRecordServiceTest {
         assertEquals(1, result.items().size());
         assertEquals(21, result.totalElements());
         assertEquals(2, result.totalPages());
+    }
+
+    @Test
+    void doesNotLoadPrescriptionLinesWhenListingHistorySummaries() {
+        MedicalRecordRepository repository = mock(MedicalRecordRepository.class);
+        MedicalRecordService service = new MedicalRecordService(repository);
+        MedicalRecord record = mock(MedicalRecord.class);
+        when(record.getPrescriptionLines()).thenReturn(List.of());
+        when(repository.findSignedHistory(eq(ACCOUNT_ID), any(), any(), eq(PageRequest.of(0, 20))))
+                .thenReturn(new PageImpl<>(List.of(record), PageRequest.of(0, 20), 1));
+
+        service.listHistory(ACCOUNT_ID.toString(), new MedicalRecordHistoryQuery(null, null, null, 0, 20));
+
+        verify(record, never()).getPrescriptionLines();
     }
 
     @Test

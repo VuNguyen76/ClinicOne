@@ -43,6 +43,7 @@ async function mockReceptionApis(page: Page): Promise<void> {
   await page.route('**/api/v1/specialties', (route) => json(route, [
     { code: 'NOI', name: 'Nội tổng quát', description: '' },
   ]));
+  await page.route('**/api/v1/reception/worklist**', (route) => json(route, []));
   await page.route('**/api/v1/appointment-slots**', (route) => json(route, [
     { specialty: 'Nội tổng quát', appointmentDate: todayIso, startTime: '09:00:00', endTime: '09:30:00',
       doctorName: 'Bác sĩ Nguyễn An', doctorId: 'doctor-1', roomCode: 'NOI-01', remainingCapacity: 1 },
@@ -54,15 +55,16 @@ async function signInAsReceptionist(page: Page): Promise<void> {
   await page.getByLabel('Tên đăng nhập').fill('receptionist');
   await page.getByLabel('Mật khẩu').fill('admin123');
   await page.getByTestId('staff-login-submit').click();
-  await expect(page).toHaveURL(/\/reception\/check-in$/);
+  await expect(page).toHaveURL(/\/reception$/);
+  await page.goto('/reception/walk-in');
 }
 
 async function fillWalkInDetails(dialog: Locator, phone: string, reason: string): Promise<void> {
-  await dialog.getByLabel('Chuyên khoa').selectOption({ label: 'Nội tổng quát' });
-  await dialog.getByLabel('Khung giờ còn trống').selectOption('09:00:00');
-  await dialog.getByLabel('Lý do khám').fill(reason);
+  await dialog.locator('select[name="walkInSpecialty"]').selectOption({ label: 'Nội tổng quát' });
+  await dialog.locator('select[name="walkInStartTime"]').selectOption('09:00:00');
+  await dialog.locator('textarea[name="walkInReason"]').fill(reason);
   await dialog.locator('input[name="walkInExceptionReason"]').fill('Người bệnh đến quầy cần hỗ trợ');
-  await expect(dialog.getByLabel('Số điện thoại')).toHaveValue(phone);
+  await expect(dialog.locator('input[name="walkInPhone"]')).toHaveValue(phone);
 }
 
 test.describe('liên thông tiếp nhận và hàng đợi bác sĩ', () => {
@@ -74,7 +76,7 @@ test.describe('liên thông tiếp nhận và hàng đợi bác sĩ', () => {
 
     for (const entryPath of ['/staff', '/home']) {
       await page.goto(entryPath);
-      await expect(page).toHaveURL(/\/reception\/check-in$/);
+      await expect(page).toHaveURL(/\/reception$/);
     }
   });
   test('tài khoản đã có hồ sơ được tiếp nhận và lượt khám hiện ở màn hình bác sĩ', async ({ page, context }) => {
@@ -85,9 +87,9 @@ test.describe('liên thông tiếp nhận và hàng đợi bác sĩ', () => {
     await signInAsReceptionist(page);
     await page.getByTestId('open-walk-in').click();
     const dialog = page.getByRole('dialog');
-    await dialog.getByLabel('Số điện thoại').fill('0912345678');
+    await dialog.locator('input[name="walkInPhone"]').fill('0912345678');
     await dialog.getByRole('button', { name: 'Tìm hồ sơ' }).click();
-    await expect(dialog.getByLabel('Hồ sơ người đi khám')).toBeVisible();
+    await expect(dialog.locator('select[name="walkInProfileId"]')).toBeVisible();
     await fillWalkInDetails(dialog, '0912345678', 'Đau đầu từ sáng');
     await dialog.getByRole('button', { name: 'Tạo lịch và cấp số' }).click();
     await expect(page.getByText('Đã tạo lịch và cấp số 07')).toBeVisible();
@@ -125,20 +127,20 @@ test.describe('liên thông tiếp nhận và hàng đợi bác sĩ', () => {
     await signInAsReceptionist(page);
     await page.getByTestId('open-walk-in').click();
     const dialog = page.getByRole('dialog');
-    await dialog.getByLabel('Số điện thoại').fill('0900000001');
+    await dialog.locator('input[name="walkInPhone"]').fill('0900000001');
     await dialog.getByRole('button', { name: 'Tìm hồ sơ' }).click();
     await expect(dialog.getByText('Chưa có tài khoản')).toBeVisible();
     await dialog.getByRole('button', { name: 'Gửi OTP' }).click();
-    await dialog.getByLabel('Mã OTP').fill('123456');
-    await dialog.getByLabel('Họ và tên').fill('Trần Bình');
-    await dialog.getByLabel('Ngày sinh').fill('1995-05-05');
-    await dialog.getByLabel('Giới tính').selectOption('Nam');
+    await dialog.locator('input[name="walkInOtp"]').fill('123456');
+    await dialog.locator('input[name="registrationFullName"]').fill('Trần Bình');
+    await dialog.locator('input[name="registrationDateOfBirth"]').fill('1995-05-05');
+    await dialog.locator('select[name="registrationGender"]').selectOption('Nam');
     await dialog.getByRole('button', { name: 'Tạo tài khoản' }).click();
-    await expect(dialog).toContainText('Người bệnh cần tự đặt mật khẩu mới trước khi check-in');
-    await dialog.getByLabel('Mật khẩu mới').fill('correct-password');
-    await dialog.getByLabel('Nhập lại mật khẩu').fill('correct-password');
+    await expect(dialog).toContainText('Số điện thoại đã được xác thực');
+    await dialog.locator('input[name="activationPassword"]').fill('correct-password');
+    await dialog.locator('input[name="activationConfirmPassword"]').fill('correct-password');
     await dialog.getByRole('button', { name: 'Đặt mật khẩu và tiếp tục' }).click();
-    await expect(dialog.getByLabel('Hồ sơ người đi khám')).toBeVisible();
+    await expect(dialog.locator('select[name="walkInProfileId"]')).toBeVisible();
     await fillWalkInDetails(dialog, '0900000001', 'Người bệnh mới được hỗ trợ tại quầy');
     await dialog.getByRole('button', { name: 'Tạo lịch và cấp số' }).click();
     await expect(page.getByText('Đã tạo lịch và cấp số 08')).toBeVisible();
@@ -175,15 +177,15 @@ test.describe('liên thông tiếp nhận và hàng đợi bác sĩ', () => {
     await signInAsReceptionist(page);
     await page.getByTestId('open-walk-in').click();
     const dialog = page.getByRole('dialog');
-    await dialog.getByLabel('Số điện thoại').fill('0900000002');
+    await dialog.locator('input[name="walkInPhone"]').fill('0900000002');
     await dialog.getByRole('button', { name: 'Tìm hồ sơ' }).click();
     await expect(dialog.getByText('Chưa có tài khoản')).toBeVisible();
     await dialog.getByRole('button', { name: 'Không nhận được OTP? Tạo hồ sơ tạm' }).click();
-    await dialog.getByLabel('Họ và tên').fill('Lê Minh Anh');
-    await dialog.getByLabel('Ngày sinh').fill('1998-04-12');
-    await dialog.getByLabel('Giới tính').selectOption('Nữ');
+    await dialog.locator('input[name="registrationFullName"]').fill('Lê Minh Anh');
+    await dialog.locator('input[name="registrationDateOfBirth"]').fill('1998-04-12');
+    await dialog.locator('select[name="registrationGender"]').selectOption('Nữ');
     await dialog.getByRole('button', { name: 'Tạo hồ sơ tạm' }).click();
-    await expect(dialog.getByLabel('Hồ sơ người đi khám')).toBeVisible();
+    await expect(dialog.locator('select[name="walkInProfileId"]')).toBeVisible();
     await fillWalkInDetails(dialog, '0900000002', 'Người bệnh chưa xác thực số điện thoại');
     await dialog.getByRole('button', { name: 'Tạo lịch và cấp số' }).click();
     await expect(page.getByText('Đã tạo lịch và cấp số 10')).toBeVisible();

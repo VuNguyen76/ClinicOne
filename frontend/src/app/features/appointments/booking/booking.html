@@ -2,7 +2,7 @@
   <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
     <div class="mx-auto flex h-[72px] max-w-[1200px] items-center justify-between gap-8 px-5 lg:px-0">
       <a routerLink="/home" class="flex items-center gap-3" aria-label="ClinicOne, trang chủ"><img
-          class="h-11 w-11 object-contain" src="clinicone-mark.png" alt="" aria-hidden="true" /><span
+          class="h-11 w-11 object-contain" src="clinicone-mark-small.png" alt="" aria-hidden="true" /><span
           class="text-[21px] font-bold tracking-[-0.04em] text-slate-900">Clinic<span class="text-[#0284c7]">One</span></span></a>
       <nav class="hidden items-center gap-7 text-sm font-medium text-slate-600 lg:flex" aria-label="Điều hướng chính"><a
           routerLink="/home" class="hover:text-[#0284c7]">Trang chủ</a><a routerLink="/about"
@@ -31,7 +31,7 @@
 
   <div class="mx-auto grid max-w-[1200px] gap-6 px-5 py-8 lg:grid-cols-[265px_minmax(0,1fr)] lg:py-10 lg:px-0">
     <aside class="h-fit overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs lg:sticky lg:top-[96px]">
-      <div class="flex items-center gap-3 border-b border-slate-200 bg-[#0e3d48] px-5 py-4 text-sm font-bold text-white"><span class="grid h-8 w-8 place-items-center rounded-lg bg-white/15"><mat-icon class="!h-5 !w-5 !text-[20px]">event_note</mat-icon></span><span>Thông tin đặt lịch</span></div>
+      <div class="flex items-center gap-3 border-b border-slate-200 bg-[#0284c7] px-5 py-4 text-sm font-bold text-white"><span class="grid h-8 w-8 place-items-center rounded-lg bg-white/15"><mat-icon class="!h-5 !w-5 !text-[20px]">event_note</mat-icon></span><span>Thông tin đặt lịch</span></div>
       <div class="px-5 py-2 text-sm">
         <div class="flex min-w-0 gap-3 border-b border-slate-100 py-3.5"><mat-icon class="mt-0.5 !h-5 !w-5 !shrink-0 !text-[20px] text-[#0284c7]">local_hospital</mat-icon>
           <div class="min-w-0"><p class="truncate font-semibold text-slate-800">ClinicOne Medical Center</p><p class="mt-0.5 text-xs leading-5 text-slate-500">Cơ sở khám bệnh</p></div>
@@ -59,7 +59,7 @@
           <li class="flex items-center gap-3" [class.font-semibold]="step() === 2"
             [class.text-[#0284c7]]="step() === 2" [class.text-slate-700]="step() !== 2"><span class="grid h-6 w-6 place-items-center rounded-full border text-xs font-bold transition"
               [class.border-[#0284c7]]="step() === 2" [class.bg-[#0284c7]]="step() === 2"
-              [class.text-white]="step() === 2" [class.border-slate-300]="step() !== 2" [class.bg-white]="step() !== 2" [class.text-slate-500]="step() !== 2">2</span>Ngày và giờ</li>
+              [class.text-white]="step() === 2" [class.border-slate-300]="step() !== 2" [class.bg-white]="step() !== 2" [class.text-slate-500]="step() !== 2">2</span>Bác sĩ và lịch khám</li>
           <li class="flex items-center gap-3" [class.font-semibold]="step() === 3"
             [class.text-[#0284c7]]="step() === 3" [class.text-slate-700]="step() !== 3"><span class="grid h-6 w-6 place-items-center rounded-full border text-xs font-bold transition"
               [class.border-[#0284c7]]="step() === 3" [class.bg-[#0284c7]]="step() === 3"
@@ -70,7 +70,7 @@
 
     <section class="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
       @if (step() === 1) {
-      <div class="border-b border-slate-200 bg-[#0e3d48] px-6 py-4 text-base font-bold text-white sm:px-8">Bước 1: Vui lòng chọn
+      <div class="border-b border-slate-200 bg-[#0284c7] px-6 py-4 text-base font-bold text-white sm:px-8">Bước 1: Vui lòng chọn
         dịch vụ hoặc chuyên khoa khám</div>
       <div class="p-6 sm:p-8"><label class="relative block"><mat-icon
             class="pointer-events-none absolute left-4 top-1/2 !h-5 !w-5 !-translate-y-1/2 !text-[20px] text-slate-400">search</mat-icon><input
@@ -94,9 +94,49 @@
             khoa phù hợp.</p>}</div>}
       </div>
       } @else if (step() === 2) {
-      <div class="border-b border-slate-200 bg-[#0e3d48] px-6 py-4 text-base font-bold text-white sm:px-8">Bước 2: Vui lòng chọn
-        ngày và khung giờ khám</div>
+      <div class="border-b border-slate-200 bg-[#0284c7] px-6 py-4 text-base font-bold text-white sm:px-8">Bước 2: Vui lòng chọn
+        bác sĩ, ngày và khung giờ khám</div>
       <div class="p-6 sm:p-8">
+        @if (!slotsLoading() && availableDoctors().length > 0) {
+          <section class="mb-6 border-b border-slate-200 pb-6" aria-label="Chọn bác sĩ">
+            <h2 class="text-base font-bold text-slate-900">Chọn bác sĩ</h2>
+            <div class="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+              <button
+                type="button"
+                class="flex min-h-14 items-center gap-3 rounded-lg border border-slate-200 px-3 py-2.5 text-left transition hover:border-[#0284c7] hover:bg-sky-50/60"
+                [class.border-[#0284c7]]="selectedDoctorId() === ''"
+                [class.bg-sky-50]="selectedDoctorId() === ''"
+                (click)="chooseDoctor('')"
+              >
+                <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-sky-100 text-[#0284c7]">
+                  <mat-icon class="!h-5 !w-5 !text-[20px]">groups</mat-icon>
+                </span>
+                <span class="min-w-0">
+                  <strong class="block text-sm text-slate-900">Tất cả bác sĩ</strong>
+                  <span class="mt-0.5 block text-xs text-slate-500">Chọn giờ phù hợp nhất</span>
+                </span>
+              </button>
+              @for (doctor of availableDoctors(); track doctor.id) {
+                <button
+                  data-testid="doctor-option"
+                  type="button"
+                  class="flex min-h-14 items-center gap-3 rounded-lg border border-slate-200 px-3 py-2.5 text-left transition hover:border-[#0284c7] hover:bg-sky-50/60"
+                  [class.border-[#0284c7]]="selectedDoctorId() === doctor.id"
+                  [class.bg-sky-50]="selectedDoctorId() === doctor.id"
+                  (click)="chooseDoctor(doctor.id)"
+                >
+                  <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-sky-100 text-[#0284c7]">
+                    <mat-icon class="!h-5 !w-5 !text-[20px]">stethoscope</mat-icon>
+                  </span>
+                  <span class="min-w-0">
+                    <strong class="block truncate text-sm text-slate-900">{{ doctor.name }}</strong>
+                    <span class="mt-0.5 block truncate text-xs text-slate-500">{{ doctor.roomCode ? 'Phòng ' + doctor.roomCode : selectedSpecialty() }}</span>
+                  </span>
+                </button>
+              }
+            </div>
+          </section>
+        }
         <div class="co-reveal mt-2 flex items-center justify-between"><button type="button"
             class="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600 transition hover:border-[#0284c7] hover:text-[#0284c7] hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-35"
             aria-label="Tháng trước" [disabled]="isPreviousMonthDisabled()"
@@ -139,11 +179,11 @@
         </div>}<div class="mt-8 flex justify-between border-t border-slate-100 pt-5"><button type="button"
             class="min-h-10 rounded-md border border-slate-300 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
             (click)="back()">Quay lại</button><button type="button"
-            class="min-h-10 rounded-md bg-[#0e3d48] px-5 text-sm font-semibold text-white transition hover:bg-[#124f5e] disabled:cursor-not-allowed disabled:opacity-50"
+            class="min-h-10 rounded-md bg-[#0284c7] px-5 text-sm font-semibold text-white transition hover:bg-[#0369a1] disabled:cursor-not-allowed disabled:opacity-50"
             [disabled]="!selectedSlot() || holdBusy()" (click)="continueToDetails()">{{ holdBusy() ? 'Đang giữ chỗ...' : 'Tiếp tục' }}</button></div>
       </div>
       } @else {
-      <div class="flex items-center justify-between border-b border-slate-200 bg-[#0e3d48] px-6 py-4 text-base font-bold text-white sm:px-8"><span>Bước 3: Thông tin người đi khám</span>@if (holdId()) {<span class="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold text-white">Giữ chỗ còn {{ holdCountdownLabel() }}</span>}</div>
+      <div class="flex items-center justify-between border-b border-slate-200 bg-[#0284c7] px-6 py-4 text-base font-bold text-white sm:px-8"><span>Bước 3: Thông tin người đi khám</span>@if (holdId()) {<span class="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold text-white">Giữ chỗ còn {{ holdCountdownLabel() }}</span>}</div>
       <form class="grid gap-6 p-6 sm:p-8" [formGroup]="form" (ngSubmit)="submit()" novalidate>
         <div class="grid gap-4 border-b border-slate-100 pb-5 sm:grid-cols-2">
           <div>
@@ -158,8 +198,17 @@
               [value]="profile.id">{{ profile.fullName }} · {{ profile.relationship }}</option>}
           </select><span class="text-xs font-normal text-slate-500">{{ profilesLoading ? 'Đang tải hồ sơ...' : 'Chọn
             đúng người sẽ đi khám.' }}</span></label>
-        <div class="rounded-lg border border-sky-100 bg-sky-50/60 px-4 py-3 text-sm text-slate-700"><span
-            class="font-semibold text-slate-900">Bác sĩ phụ trách:</span> Phòng khám phân công theo chuyên khoa và lịch trực tại thời điểm khám.</div><label class="grid gap-2 text-sm font-semibold text-slate-700">Lý do khám *<textarea
+        @if (selectedSlotDetails(); as slot) {
+          <div data-testid="selected-doctor" class="flex items-center gap-3 rounded-lg border border-sky-200 bg-sky-50/60 px-4 py-3">
+            <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-[#0284c7]">
+              <mat-icon class="!h-5 !w-5 !text-[20px]">stethoscope</mat-icon>
+            </span>
+            <div class="min-w-0">
+              <p class="text-xs font-medium text-slate-500">Bác sĩ khám</p>
+              <p class="truncate text-sm font-bold text-slate-900">{{ slot.doctorName }}{{ slot.roomCode ? ' · Phòng ' + slot.roomCode : '' }}</p>
+            </div>
+          </div>
+        }<label class="grid gap-2 text-sm font-semibold text-slate-700">Lý do khám *<textarea
             class="min-h-24 rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal outline-none focus:border-[#0284c7] focus:ring-3 focus:ring-sky-500/15"
             formControlName="reason" maxlength="500" placeholder="Mô tả ngắn lý do bạn muốn khám (triệu chứng, nhu cầu...)"></textarea><span
             class="text-xs font-normal text-slate-500">Nhập ngắn gọn để nhân viên y tế chuẩn bị tiếp nhận.</span></label>@if
@@ -169,7 +218,7 @@
             type="button"
             class="min-h-10 rounded-md border border-slate-300 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
             (click)="back()">Quay lại</button><button
-            class="min-h-10 rounded-md bg-[#0e3d48] px-5 text-sm font-semibold text-white transition hover:bg-[#124f5e] disabled:cursor-not-allowed disabled:opacity-60"
+            class="min-h-10 rounded-md bg-[#0284c7] px-5 text-sm font-semibold text-white transition hover:bg-[#0369a1] disabled:cursor-not-allowed disabled:opacity-60"
             type="submit" [disabled]="busy">{{ busy ? 'Đang lưu...' : 'Xác nhận đặt lịch' }}</button></div>
       </form>
       }

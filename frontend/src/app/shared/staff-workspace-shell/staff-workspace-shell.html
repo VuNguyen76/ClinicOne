@@ -19,7 +19,7 @@
         class="flex h-full w-[224px] shrink-0 items-center gap-2.5 border-r border-slate-200 bg-white px-4 transition hover:bg-slate-50/80 lg:w-[256px]"
         aria-label="ClinicOne"
       >
-        <img class="h-8 w-8 object-contain" src="clinicone-mark.png" alt="" aria-hidden="true" />
+        <img class="h-8 w-8 object-contain" src="clinicone-mark-small.png" alt="" aria-hidden="true" />
         <span class="text-lg font-bold tracking-tight text-[#0e3d48]">Clinic<span class="text-[#0284c7]">One</span></span>
       </a>
 
@@ -78,7 +78,7 @@
                 <a
                   [routerLink]="item.route"
                   routerLinkActive="bg-sky-50 text-[#0284c7] font-semibold shadow-[inset_3px_0_0_#0284c7]"
-                  [routerLinkActiveOptions]="{ exact: false }"
+                  [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
                   class="flex min-h-11 items-center gap-3 rounded-md px-3.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100/80 hover:text-slate-900"
                   (click)="handleNavigationClick($event)"
                 >

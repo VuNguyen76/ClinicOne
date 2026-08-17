@@ -33,7 +33,7 @@ import java.util.UUID;
         @UniqueConstraint(name = "uk_queue_tickets_room_date_number", columnNames = {"room_id", "queue_date", "queue_number"})
 })
 public class QueueTicket {
-    public static final int MAX_QUEUE_NUMBER = 9999;
+    public static final int MAX_QUEUE_NUMBER = 999;
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

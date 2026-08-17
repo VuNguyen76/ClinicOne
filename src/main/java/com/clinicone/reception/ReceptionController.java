@@ -38,6 +38,12 @@ public class ReceptionController {
         return ResponseEntity.ok(service.search(query, date));
     }
 
+    @GetMapping("/worklist")
+    public ResponseEntity<List<ReceptionAppointmentResponse>> worklist(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return ResponseEntity.ok(service.worklist(date));
+    }
+
     @PostMapping("/appointments/{appointmentId}/check-in")
     public ResponseEntity<ReceptionAppointmentResponse> checkIn(@PathVariable UUID appointmentId,
                                                                   @Valid @RequestBody ReceptionCheckInRequest request,

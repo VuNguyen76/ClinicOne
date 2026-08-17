@@ -598,14 +598,14 @@ public class DoctorExaminationService {
         List<MedicalRecordResponse> history = profile == null ? List.of() : recordRepository
                 .findTop10BySession_Appointment_PatientProfile_IdAndSignedAtIsNotNullOrderBySignedAtDesc(profile.getId())
                 .stream().map(MedicalRecordResponse::from).toList();
-        String patientName = patient == null && profile == null ? null
-                : patient == null ? profile.getFullName() : patient.getFullName();
-        LocalDate patientDateOfBirth = patient == null && profile == null ? null
-                : patient == null ? profile.getDateOfBirth() : patient.getDateOfBirth();
-        String patientGender = patient == null && profile == null ? null
-                : patient == null ? profile.getGender() : patient.getGender();
-        String patientPhone = patient == null && profile == null ? null
-                : patient == null ? profile.getPhone() : patient.getPhone();
+        String patientName = profile != null ? profile.getFullName()
+                : patient == null ? null : patient.getFullName();
+        LocalDate patientDateOfBirth = profile != null ? profile.getDateOfBirth()
+                : patient == null ? null : patient.getDateOfBirth();
+        String patientGender = profile != null ? profile.getGender()
+                : patient == null ? null : patient.getGender();
+        String patientPhone = profile != null && profile.getPhone() != null && !profile.getPhone().isBlank()
+                ? profile.getPhone() : patient == null ? null : patient.getPhone();
         return new DoctorExaminationResponse(ticket.getId(), appointment.getId(), session.getId(), ticket.getQueueNumber(),
                 ticket.getRoom().getName(), appointment.getAppointmentCode(), appointment.getSpecialty(), appointment.getServiceId(),
                 recordDoctorName == null ? ticket.getEffectiveDoctorName() : recordDoctorName,
