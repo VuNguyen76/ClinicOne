@@ -111,6 +111,9 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
             UUID patientProfileId, LocalDate appointmentDate, LocalTime startTime,
             Collection<AppointmentStatus> statuses);
 
+    boolean existsByPatientIdAndAppointmentDateAndStartTime(
+            UUID patientId, LocalDate appointmentDate, LocalTime startTime);
+
     Optional<Appointment> findByAppointmentCode(String appointmentCode);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
