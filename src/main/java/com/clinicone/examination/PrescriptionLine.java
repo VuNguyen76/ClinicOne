@@ -66,8 +66,8 @@ public class PrescriptionLine {
                 request.dosage().trim(), request.quantity(), request.instructions().trim(), lineNumber);
     }
 
-    static PrescriptionLine create(MedicalRecord medicalRecord, UUID medicationId, String medicationName, String dosage,
-                                   int quantity, String instructions, int lineNumber) {
+    public static PrescriptionLine create(MedicalRecord medicalRecord, UUID medicationId, String medicationName, String dosage,
+                                          int quantity, String instructions, int lineNumber) {
         return new PrescriptionLine(medicalRecord, medicationId, medicationName.trim(), dosage.trim(), quantity,
                 instructions.trim(), lineNumber);
     }
