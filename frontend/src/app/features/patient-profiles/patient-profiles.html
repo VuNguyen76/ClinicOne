@@ -73,7 +73,15 @@
         <form class="mt-5 grid gap-5" [formGroup]="form" (ngSubmit)="save()" novalidate>
           <div class="grid gap-4 sm:grid-cols-2">
             <label class="grid gap-1.5 text-xs font-semibold text-slate-700">Họ và tên *<input class="h-10 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm font-normal outline-none transition focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" formControlName="fullName" /></label>
-            <label class="grid gap-1.5 text-xs font-semibold text-slate-700">Quan hệ *<input class="h-10 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm font-normal outline-none transition focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" formControlName="relationship" placeholder="Con, bố, mẹ..." /></label>
+            <label class="grid gap-1.5 text-xs font-semibold text-slate-700">
+              Quan hệ *
+              <select class="h-10 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm font-normal outline-none transition focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" formControlName="relationship">
+                <option value="">Chọn mối quan hệ</option>
+                @for (rel of relationshipOptions; track rel) {
+                  <option [value]="rel">{{ rel }}</option>
+                }
+              </select>
+            </label>
             <label class="grid gap-1.5 text-xs font-semibold text-slate-700">Ngày sinh *<input class="h-10 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm font-normal outline-none transition focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" type="date" [max]="'9999-12-31'" formControlName="dateOfBirth" /></label>
             <label class="grid gap-1.5 text-xs font-semibold text-slate-700">Giới tính *<select class="h-10 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm font-normal outline-none transition focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" formControlName="gender"><option value="">Chọn giới tính</option><option value="Nam">Nam</option><option value="Nữ">Nữ</option><option value="Khác">Khác</option></select></label>
             <label class="grid gap-1.5 text-xs font-semibold text-slate-700">Số điện thoại<input class="h-10 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm font-normal outline-none transition focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" formControlName="phone" inputmode="numeric" maxlength="10" /></label>

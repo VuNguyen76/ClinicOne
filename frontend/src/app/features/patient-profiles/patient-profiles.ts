@@ -30,6 +30,17 @@ export class PatientProfiles implements OnInit {
   protected readonly districts = signal<VietnamAddressUnit[]>([]);
   protected readonly wards = signal<VietnamAddressUnit[]>([]);
   protected readonly addressLoading = signal(false);
+  protected readonly relationshipOptions = [
+    'Người thân',
+    'Bố / Mẹ',
+    'Vợ / Chồng',
+    'Con cái',
+    'Anh / Chị / Em',
+    'Ông / Bà',
+    'Bạn bè',
+    'Bản thân',
+    'Khác',
+  ];
   protected readonly form = this.formBuilder.nonNullable.group({
     fullName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
     relationship: ['Người thân', [Validators.required, Validators.maxLength(50)]],
