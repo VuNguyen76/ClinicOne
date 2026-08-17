@@ -61,28 +61,87 @@
             <div class="flex items-start gap-3 text-sm sm:col-span-2"><mat-icon class="text-[#0284c7]">location_on</mat-icon><span class="text-slate-500">Địa chỉ:</span><strong class="text-slate-900">{{ profile()?.address || 'Chưa cập nhật' }}</strong></div>
           </div>
 
-          <form class="grid gap-5 border-t border-slate-100 pt-6" [formGroup]="profileForm" (ngSubmit)="saveProfile()" novalidate>
-            <div><h2 class="text-base font-bold text-slate-900">Cập nhật thông tin cá nhân</h2><p class="mt-0.5 text-xs text-slate-500">Các trường có dấu * giúp phòng khám xác định chính xác hồ sơ bệnh án.</p></div>
+          <form class="grid gap-6 border-t border-slate-100 pt-6" [formGroup]="profileForm" (ngSubmit)="saveProfile()" novalidate>
+            <div>
+              <h2 class="text-base font-bold text-slate-900">Cập nhật thông tin cá nhân</h2>
+              <p class="mt-0.5 text-xs text-slate-500">Các trường có dấu * giúp phòng khám xác định chính xác hồ sơ bệnh án.</p>
+            </div>
             <div class="grid gap-4 sm:grid-cols-2">
-              <label class="grid gap-1.5 text-xs font-semibold text-slate-700">Họ và tên *<input class="min-h-10 rounded-md border border-slate-300 px-3 text-sm font-normal outline-none focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" formControlName="fullName" autocomplete="name" /></label>
-              <label class="grid gap-1.5 text-xs font-semibold text-slate-700">Ngày sinh *<input class="min-h-10 rounded-md border border-slate-300 px-3 text-sm font-normal outline-none focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" type="date" min="1900-01-01" [max]="today" formControlName="dateOfBirth" autocomplete="bday" /></label>
-              <label class="grid gap-1.5 text-xs font-semibold text-slate-700">Giới tính *<select class="min-h-10 rounded-md border border-slate-300 bg-white px-3 text-sm font-normal outline-none focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" formControlName="gender"><option value="">Chọn giới tính</option><option value="Nam">Nam</option><option value="Nữ">Nữ</option><option value="Khác">Khác</option></select></label>
-              <label class="grid gap-1.5 text-xs font-semibold text-slate-700">CCCD/CMND<input class="min-h-10 rounded-md border border-slate-300 px-3 text-sm font-normal outline-none focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" inputmode="numeric" maxlength="12" formControlName="identityNumber" placeholder="9 hoặc 12 chữ số" autocomplete="off" /></label>
-              <label class="grid gap-1.5 text-xs font-semibold text-slate-700">Quốc tịch<select class="min-h-10 rounded-md border border-slate-300 bg-white px-3 text-sm font-normal outline-none focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" formControlName="nationality"><option value="Việt Nam">Việt Nam</option><option value="Khác">Khác</option></select></label>
-              <label class="grid gap-1.5 text-xs font-semibold text-slate-700">Dân tộc<input class="min-h-10 rounded-md border border-slate-300 px-3 text-sm font-normal outline-none focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" formControlName="ethnicity" placeholder="Kinh" autocomplete="off" /></label>
+              <label class="grid gap-1.5 text-xs font-semibold text-slate-700">
+                Họ và tên *
+                <input class="h-10 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm font-normal outline-none transition focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" formControlName="fullName" autocomplete="name" />
+              </label>
+              <label class="grid gap-1.5 text-xs font-semibold text-slate-700">
+                Ngày sinh *
+                <input class="h-10 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm font-normal outline-none transition focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" type="date" min="1900-01-01" [max]="today" formControlName="dateOfBirth" autocomplete="bday" />
+              </label>
+              <label class="grid gap-1.5 text-xs font-semibold text-slate-700">
+                Giới tính *
+                <select class="h-10 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm font-normal outline-none transition focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" formControlName="gender">
+                  <option value="">Chọn giới tính</option>
+                  <option value="Nam">Nam</option>
+                  <option value="Nữ">Nữ</option>
+                  <option value="Khác">Khác</option>
+                </select>
+              </label>
+              <label class="grid gap-1.5 text-xs font-semibold text-slate-700">
+                CCCD/CMND
+                <input class="h-10 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm font-normal outline-none transition focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" inputmode="numeric" maxlength="12" formControlName="identityNumber" placeholder="9 hoặc 12 chữ số" autocomplete="off" />
+              </label>
+              <label class="grid gap-1.5 text-xs font-semibold text-slate-700">
+                Quốc tịch
+                <select class="h-10 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm font-normal outline-none transition focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" formControlName="nationality">
+                  <option value="Việt Nam">Việt Nam</option>
+                  <option value="Khác">Khác</option>
+                </select>
+              </label>
+              <label class="grid gap-1.5 text-xs font-semibold text-slate-700">
+                Dân tộc
+                <input class="h-10 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm font-normal outline-none transition focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" formControlName="ethnicity" placeholder="Kinh" autocomplete="off" />
+              </label>
             </div>
 
-            <div class="border-t border-slate-100 pt-5"><h3 class="text-sm font-bold text-slate-900">Địa chỉ liên hệ</h3><p class="mt-0.5 text-xs text-slate-500">Chọn đúng tỉnh/thành, quận/huyện và xã/phường để hồ sơ được chuẩn hóa đồng bộ.</p></div>
+            <div class="border-t border-slate-100 pt-5">
+              <h3 class="text-sm font-bold text-slate-900">Địa chỉ liên hệ</h3>
+              <p class="mt-0.5 text-xs text-slate-500">Chọn đúng tỉnh/thành, quận/huyện và xã/phường để hồ sơ được chuẩn hóa đồng bộ.</p>
+            </div>
             <div class="grid gap-4 sm:grid-cols-2">
-              <label class="grid gap-1.5 text-xs font-semibold text-slate-700">Tỉnh/Thành phố<select class="min-h-10 rounded-md border border-slate-300 bg-white px-3 text-sm font-normal outline-none focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" formControlName="provinceCode" (change)="provinceChanged()"><option value="">Chọn tỉnh/thành phố</option>@for (province of provinces(); track province.code) {<option [value]="province.code">{{ province.name }}</option>}</select></label>
-              <label class="grid gap-1.5 text-xs font-semibold text-slate-700">Quận/Huyện<select class="min-h-10 rounded-md border border-slate-300 bg-white px-3 text-sm font-normal outline-none focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" formControlName="districtCode" (change)="districtChanged()"><option value="">Chọn quận/huyện</option>@for (district of districts(); track district.code) {<option [value]="district.code">{{ district.name }}</option>}</select></label>
-              <label class="grid gap-1.5 text-xs font-semibold text-slate-700">Xã/Phường<select class="min-h-10 rounded-md border border-slate-300 bg-white px-3 text-sm font-normal outline-none focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" formControlName="wardCode" (change)="wardChanged()"><option value="">Chọn xã/phường</option>@for (ward of wards(); track ward.code) {<option [value]="ward.code">{{ ward.name }}</option>}</select></label>
-              <label class="grid gap-1.5 text-xs font-semibold text-slate-700">Số nhà/Tên đường <span class="font-normal text-slate-400">(không bắt buộc)</span><input class="min-h-10 rounded-md border border-slate-300 px-3 text-sm font-normal outline-none focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" formControlName="streetAddress" autocomplete="street-address" /></label>
+              <label class="grid gap-1.5 text-xs font-semibold text-slate-700">
+                Tỉnh/Thành phố
+                <select class="h-10 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm font-normal outline-none transition focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" formControlName="provinceCode" (change)="provinceChanged()">
+                  <option value="">Chọn tỉnh/thành phố</option>
+                  @for (province of provinces(); track province.code) {
+                    <option [value]="province.code">{{ province.name }}</option>
+                  }
+                </select>
+              </label>
+              <label class="grid gap-1.5 text-xs font-semibold text-slate-700">
+                Quận/Huyện
+                <select class="h-10 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm font-normal outline-none transition focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" formControlName="districtCode" (change)="districtChanged()">
+                  <option value="">Chọn quận/huyện</option>
+                  @for (district of districts(); track district.code) {
+                    <option [value]="district.code">{{ district.name }}</option>
+                  }
+                </select>
+              </label>
+              <label class="grid gap-1.5 text-xs font-semibold text-slate-700">
+                Xã/Phường
+                <select class="h-10 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm font-normal outline-none transition focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" formControlName="wardCode" (change)="wardChanged()">
+                  <option value="">Chọn xã/phường</option>
+                  @for (ward of wards(); track ward.code) {
+                    <option [value]="ward.code">{{ ward.name }}</option>
+                  }
+                </select>
+              </label>
+              <label class="grid gap-1.5 text-xs font-semibold text-slate-700">
+                Số nhà/Tên đường <span class="font-normal text-slate-400">(không bắt buộc)</span>
+                <input class="h-10 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm font-normal outline-none transition focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" formControlName="streetAddress" autocomplete="street-address" />
+              </label>
             </div>
             @if (addressLoading()) { <p class="text-xs text-slate-500">Đang tải danh sách địa chỉ...</p> }
             @if (profileForm.controls.identityNumber.invalid && profileForm.controls.identityNumber.touched) { <p class="text-sm text-red-600">CMND/CCCD phải gồm 9 hoặc 12 chữ số.</p> }
             @if (profileForm.invalid && profileForm.touched) { <p class="text-sm text-red-600">Vui lòng kiểm tra lại các thông tin bắt buộc.</p> }
-            <button class="min-h-10 rounded-md bg-[#0284c7] px-5 text-sm font-semibold text-white transition hover:bg-[#0369a1] disabled:cursor-not-allowed disabled:opacity-60 sm:w-fit" type="submit" [disabled]="busy()">{{ busy() ? 'Đang lưu...' : 'Lưu thông tin' }}</button>
+            <button class="min-h-10 rounded-lg bg-[#0284c7] px-6 text-sm font-semibold text-white shadow-xs transition hover:bg-[#0369a1] disabled:cursor-not-allowed disabled:opacity-60 sm:w-fit" type="submit" [disabled]="busy()">{{ busy() ? 'Đang lưu...' : 'Lưu thông tin' }}</button>
           </form>
         </div>
       </article>
