@@ -148,4 +148,35 @@ describe('Booking calendar', () => {
     const holdRequest = http.expectOne('/api/v1/appointment-holds');
     expect(holdRequest.request.body.serviceId).toBe('service-1');
   });
+
+  it('lets the patient filter available times by doctor and keeps that doctor visible in patient details', () => {
+    component['chooseSpecialty']({ code: 'TQ', name: 'Khám Tổng Quát', description: 'Khám tổng quát' });
+    const request = http.expectOne((item) => item.url === '/api/v1/appointment-slots');
+    const date = component['dates']().find((item) => item.inCurrentMonth && item.iso >= component['today']);
+    request.flush([
+      {
+        specialty: 'Khám Tổng Quát', appointmentDate: date!.iso, startTime: '08:00:00', endTime: '08:30:00',
+        doctorName: 'Bác sĩ Nguyễn An', remainingCapacity: 1, doctorId: 'doctor-1', roomCode: 'TQ-01',
+      },
+      {
+        specialty: 'Khám Tổng Quát', appointmentDate: date!.iso, startTime: '08:30:00', endTime: '09:00:00',
+        doctorName: 'Bác sĩ Trần Minh', remainingCapacity: 1, doctorId: 'doctor-2', roomCode: 'TQ-02',
+      },
+    ]);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelectorAll('[data-testid="doctor-option"]')).toHaveLength(2);
+    component['chooseDoctor']('doctor-2');
+    component['chooseDate'](date!);
+
+    expect(component['availableSlots']()).toHaveLength(1);
+    expect(component['availableSlots']()[0].doctorName).toBe('Bác sĩ Trần Minh');
+    component['chooseSlot'](component['availableSlots']()[0]);
+    component['step'].set(3);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[data-testid="selected-doctor"]')?.textContent)
+      .toContain('Bác sĩ Trần Minh');
+    expect(fixture.nativeElement.textContent).not.toContain('Phòng khám phân công theo chuyên khoa');
+  });
 });
