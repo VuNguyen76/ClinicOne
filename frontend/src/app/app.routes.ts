@@ -16,6 +16,7 @@ export const routes: Routes = [
   { path: 'appointments/new', loadComponent: () => import('./features/appointments/booking/booking').then((m) => m.Booking), canActivate: [patientGuard] },
   { path: 'appointments', loadComponent: () => import('./features/appointments/list/appointments-list').then((m) => m.AppointmentsList), canActivate: [patientGuard] },
   { path: 'appointments/:id', loadComponent: () => import('./features/appointments/detail/appointment-detail').then((m) => m.AppointmentDetail), canActivate: [patientGuard] },
+  { path: 'queue/scan', loadComponent: () => import('./features/queue/scan/queue-qr-scanner').then((m) => m.QueueQrScanner), canActivate: [patientGuard] },
   { path: 'queue/check-in/:roomCode', loadComponent: () => import('./features/queue/check-in/queue-check-in').then((m) => m.QueueCheckIn), canActivate: [patientGuard] },
   { path: 'queue/rooms/:roomCode', loadComponent: () => import('./features/queue/board/queue-board').then((m) => m.QueueBoard), canActivate: [queueBoardGuard] },
   { path: 'reception', loadComponent: () => import('./features/reception/check-in/reception-check-in').then((m) => m.ReceptionCheckIn), canActivate: [receptionGuard], data: { receptionView: 'overview' } },
