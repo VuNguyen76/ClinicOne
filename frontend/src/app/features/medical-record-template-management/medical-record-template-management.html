@@ -1,1 +1,162 @@
-<main class="min-h-screen bg-[#f6f8f9] text-[#173f4b]"><header class="sticky top-0 z-30 h-16 border-b border-[#dce7ea] bg-white/95 backdrop-blur"><div class="mx-auto flex h-full max-w-[1440px] items-center justify-between gap-4 px-4 lg:px-8"><a routerLink="/admin/rooms" class="flex items-center gap-2.5" aria-label="ClinicOne"><img class="h-8 w-8" src="clinicone-mark.png" alt="" aria-hidden="true" /><span class="text-lg font-bold tracking-[-0.05em] text-[#0a303b]">Clinic<span class="text-[#0ea5e9]">One</span></span><span class="hidden border-l border-[#dce7ea] pl-3 text-sm font-medium text-slate-500 sm:inline">Mẫu phiếu khám</span></a></div></header><div class="mx-auto max-w-[1440px] px-4 py-8 lg:px-8"><div class="border-b border-[#dce7ea] pb-5"><p class="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0b91c9]">Cấu hình nghiệp vụ</p><h1 class="mt-2 text-3xl font-bold tracking-[-0.04em] text-[#0a303b]">Mẫu phiếu khám</h1><p class="mt-1 text-sm text-slate-500">Điều phối tạo mẫu; bác sĩ chọn mẫu phù hợp và bổ sung nội dung khi khám.</p></div>@if (error()) {<p class="mt-4 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{{ error() }}</p>} @if (notice()) {<p class="mt-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{{ notice() }}</p>}<section class="mt-6 grid gap-6 lg:grid-cols-[360px_1fr]"><form class="grid gap-3 border border-[#dce7ea] bg-white p-5" (submit)="$event.preventDefault(); create()"><h2 class="text-base font-bold">Tạo mẫu mới</h2><label class="grid gap-1 text-xs font-semibold">Mã mẫu<input [ngModel]="code()" (ngModelChange)="code.set($event)" name="code" class="min-h-10 rounded-md border border-[#d5e3e7] px-3 text-sm font-normal" /></label><label class="grid gap-1 text-xs font-semibold">Tên mẫu<input [ngModel]="name()" (ngModelChange)="name.set($event)" name="name" class="min-h-10 rounded-md border border-[#d5e3e7] px-3 text-sm font-normal" /></label><label class="grid gap-1 text-xs font-semibold">Chuyên khoa<input [ngModel]="specialty()" (ngModelChange)="specialty.set($event)" name="specialty" class="min-h-10 rounded-md border border-[#d5e3e7] px-3 text-sm font-normal" /></label><label class="grid gap-1 text-xs font-semibold">Mô tả<textarea [ngModel]="description()" (ngModelChange)="description.set($event)" name="description" rows="2" class="rounded-md border border-[#d5e3e7] px-3 py-2 text-sm font-normal"></textarea></label><label class="grid gap-1 text-xs font-semibold">Các trường (mỗi dòng một trường)<textarea [ngModel]="fieldDefinition()" (ngModelChange)="fieldDefinition.set($event)" name="fieldDefinition" rows="5" class="rounded-md border border-[#d5e3e7] px-3 py-2 font-mono text-xs font-normal"></textarea></label><button class="min-h-10 rounded-md bg-[#0b3846] px-4 text-sm font-semibold text-white disabled:opacity-50" [disabled]="saving()">{{ saving() ? 'Đang lưu...' : 'Tạo mẫu phiếu' }}</button></form><section class="overflow-hidden border border-[#dce7ea] bg-white"><div class="border-b border-[#e7eff1] px-5 py-4"><h2 class="text-base font-bold">Danh sách mẫu đang dùng</h2></div>@if (loading()) {<div class="p-8 text-sm text-slate-500">Đang tải...</div>} @else {<div class="divide-y divide-[#edf2f3]">@for (item of items(); track item.id) {<div class="flex items-start justify-between gap-4 px-5 py-4"><div><p class="font-semibold">{{ item.name }} <span class="font-mono text-xs text-slate-500">{{ item.code }}</span></p><p class="mt-1 text-sm text-slate-500">{{ item.specialty }} · {{ item.description || 'Không có mô tả' }}</p><p class="mt-2 whitespace-pre-line font-mono text-xs text-slate-500">{{ item.fieldDefinition }}</p></div><button type="button" class="shrink-0 rounded-md border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700" (click)="deactivate(item)">Ngưng dùng</button></div>} @empty {<div class="p-8 text-sm text-slate-500">Chưa có mẫu phiếu.</div>}</div>}</section></section></div></main>
+<app-staff-workspace-shell moduleTitle="Danh mục" pageTitle="Mẫu phiếu khám">
+  @if (editingId()) {
+    <button workspace-actions type="button"
+      class="inline-flex min-h-9 items-center gap-1.5 rounded-md border border-[#cbdadd] bg-white px-3 text-sm font-semibold text-[#173f4b] hover:bg-[#eef5f6]"
+      (click)="startCreate()">
+      <mat-icon class="!h-4 !w-4 !text-[17px]">add</mat-icon>Thêm mới
+    </button>
+  }
+
+  @if (error()) {
+    <p role="alert" class="mb-3 border-l-4 border-rose-500 bg-rose-50 px-3 py-2 text-sm text-rose-700">{{ error() }}</p>
+  }
+  @if (notice()) {
+    <p class="mb-3 border-l-4 border-emerald-500 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{{ notice() }}</p>
+  }
+
+  <nav workspace-tabs class="flex min-h-11 items-end gap-1 overflow-x-auto border-b border-[#cbdadd] bg-[#f7f9fa] px-3" aria-label="Các phần mẫu phiếu">
+    <button type="button" class="border-b-2 px-4 py-2.5 text-sm font-semibold transition" [class.border-[#0b91c9]]="activeTab() === 'list'" [class.text-[#086b8b]]="activeTab() === 'list'" [class.border-transparent]="activeTab() !== 'list'" [class.text-slate-500]="activeTab() !== 'list'" (click)="activeTab.set('list')">Danh sách mẫu</button>
+    <button type="button" class="border-b-2 px-4 py-2.5 text-sm font-semibold transition" [class.border-[#0b91c9]]="activeTab() === 'form'" [class.text-[#086b8b]]="activeTab() === 'form'" [class.border-transparent]="activeTab() !== 'form'" [class.text-slate-500]="activeTab() !== 'form'" (click)="activeTab.set('form')">Thiết lập mẫu</button>
+  </nav>
+
+  <div class="grid items-start gap-4">
+    <section class="min-w-0 overflow-hidden border border-[#cbdadd] bg-white" [class.hidden]="activeTab() !== 'list'">
+      <header class="flex min-h-12 items-center justify-between gap-3 border-b border-[#dce6e8] bg-[#f8fafb] px-4">
+        <div>
+          <h2 class="text-sm font-bold text-[#0a303b]">Danh sách mẫu</h2>
+          <p class="text-xs text-slate-500">{{ items().length }} mẫu đang sử dụng</p>
+        </div>
+        <mat-icon class="text-[#0b91c9]">description</mat-icon>
+      </header>
+
+      @if (loading()) {
+        <div class="flex min-h-48 items-center justify-center text-sm text-slate-500">Đang tải dữ liệu...</div>
+      } @else {
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-[720px] border-collapse text-left text-sm">
+            <thead class="bg-[#eef3f4] text-[11px] font-bold uppercase tracking-[0.04em] text-slate-500">
+              <tr>
+                <th class="border-b border-[#dce6e8] px-4 py-2.5">Mã</th>
+                <th class="border-b border-[#dce6e8] px-4 py-2.5">Tên mẫu</th>
+                <th class="border-b border-[#dce6e8] px-4 py-2.5">Phạm vi áp dụng</th>
+                <th class="border-b border-[#dce6e8] px-4 py-2.5">Nội dung điền sẵn</th>
+                <th class="w-24 border-b border-[#dce6e8] px-4 py-2.5 text-right">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-[#e7edef]">
+              @for (item of items(); track item.id; let index = $index) {
+                <tr class="align-top transition hover:bg-[#f4fafb]" [attr.data-testid]="'template-row-' + index">
+                  <td class="px-4 py-3 font-mono text-xs font-semibold text-[#0b7193]">{{ item.code }}</td>
+                  <td class="px-4 py-3">
+                    <p class="font-semibold text-[#173f4b]">{{ item.name }}</p>
+                    <p class="mt-0.5 max-w-xs text-xs text-slate-500">{{ item.description || 'Không có mô tả' }}</p>
+                  </td>
+                  <td class="px-4 py-3">
+                    <p class="font-medium text-slate-700">{{ item.specialty }}</p>
+                    <p class="mt-0.5 text-xs text-slate-500">{{ serviceName(item) }}</p>
+                  </td>
+                  <td class="max-w-sm px-4 py-3 text-xs leading-5 text-slate-600">{{ contentSummary(item) }}</td>
+                  <td class="px-4 py-2 text-right">
+                    <button type="button" class="grid h-8 w-8 place-items-center rounded-sm text-[#0b7193] hover:bg-[#dff3f8]"
+                      aria-label="Sửa mẫu" title="Sửa" (click)="edit(item)"><mat-icon class="!text-[18px]">edit</mat-icon></button>
+                    <button type="button" class="grid h-8 w-8 place-items-center rounded-sm text-rose-600 hover:bg-rose-50"
+                      aria-label="Ngưng sử dụng mẫu" title="Ngưng sử dụng" (click)="deactivate(item)"><mat-icon class="!text-[18px]">block</mat-icon></button>
+                  </td>
+                </tr>
+              } @empty {
+                <tr><td colspan="5" class="px-4 py-16 text-center text-sm text-slate-500">Chưa có mẫu phiếu khám.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
+    <form class="min-w-0 border border-[#cbdadd] bg-white" [class.hidden]="activeTab() !== 'form'" (submit)="$event.preventDefault(); save()">
+      <header class="border-b border-[#dce6e8] bg-[#f8fafb] px-4 py-3">
+        <h2 class="text-sm font-bold text-[#0a303b]">{{ formTitle() }}</h2>
+        <p class="mt-0.5 text-xs text-slate-500">Nội dung được điền sẵn khi bác sĩ chọn mẫu.</p>
+      </header>
+
+      <div class="grid gap-4 p-4">
+        <fieldset class="grid gap-3">
+          <legend class="mb-2 text-[11px] font-bold uppercase tracking-[0.06em] text-[#0b7193]">Thông tin áp dụng</legend>
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <label class="grid gap-1 text-xs font-semibold text-slate-700">Mã mẫu
+              <input data-testid="template-code" [ngModel]="code()" (ngModelChange)="code.set($event)" name="code"
+                class="h-9 min-w-0 rounded-md border border-[#cbdadd] px-2.5 text-sm font-normal outline-none focus:border-[#0b91c9]" />
+            </label>
+            <label class="grid gap-1 text-xs font-semibold text-slate-700">Tên mẫu
+              <input data-testid="template-name" [ngModel]="name()" (ngModelChange)="name.set($event)" name="name"
+                class="h-9 min-w-0 rounded-md border border-[#cbdadd] px-2.5 text-sm font-normal outline-none focus:border-[#0b91c9]" />
+            </label>
+          </div>
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <label class="grid gap-1 text-xs font-semibold text-slate-700">Chuyên khoa
+              <select data-testid="template-specialty" [ngModel]="specialty()" (ngModelChange)="selectSpecialty($event)" name="specialty"
+                class="h-9 min-w-0 rounded-md border border-[#cbdadd] bg-white px-2.5 text-sm font-normal outline-none focus:border-[#0b91c9]">
+                <option value="">Chọn chuyên khoa</option>
+                @for (option of specialties(); track option.code) {<option [value]="option.name">{{ option.name }}</option>}
+              </select>
+            </label>
+            <label class="grid gap-1 text-xs font-semibold text-slate-700">Dịch vụ khám
+              <select [ngModel]="clinicServiceId()" (ngModelChange)="clinicServiceId.set($event)" name="clinicServiceId"
+                class="h-9 min-w-0 rounded-md border border-[#cbdadd] bg-white px-2.5 text-sm font-normal outline-none focus:border-[#0b91c9]">
+                <option value="">Tất cả dịch vụ trong khoa</option>
+                @for (service of filteredServices(); track service.id) {<option [value]="service.id">{{ service.name }}</option>}
+              </select>
+            </label>
+          </div>
+          <label class="grid gap-1 text-xs font-semibold text-slate-700">Mô tả
+            <input [ngModel]="description()" (ngModelChange)="description.set($event)" name="description"
+              class="h-9 min-w-0 rounded-md border border-[#cbdadd] px-2.5 text-sm font-normal outline-none focus:border-[#0b91c9]" />
+          </label>
+        </fieldset>
+
+        <fieldset class="grid gap-3 border-t border-[#e2eaec] pt-4">
+          <legend class="mb-2 text-[11px] font-bold uppercase tracking-[0.06em] text-[#0b7193]">Nội dung phiếu</legend>
+          <label class="grid gap-1 text-xs font-semibold text-slate-700">Lý do khám
+            <textarea [ngModel]="reason()" (ngModelChange)="reason.set($event)" name="reason" rows="2"
+              class="rounded-md border border-[#cbdadd] px-2.5 py-2 text-sm font-normal outline-none focus:border-[#0b91c9]"></textarea>
+          </label>
+          <label class="grid gap-1 text-xs font-semibold text-slate-700">Ghi nhận khám
+            <textarea data-testid="template-notes" [ngModel]="examinationNotes()" (ngModelChange)="examinationNotes.set($event)" name="examinationNotes" rows="3"
+              class="rounded-md border border-[#cbdadd] px-2.5 py-2 text-sm font-normal outline-none focus:border-[#0b91c9]"></textarea>
+          </label>
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <label class="grid gap-1 text-xs font-semibold text-slate-700">Chẩn đoán
+              <textarea [ngModel]="diagnosis()" (ngModelChange)="diagnosis.set($event)" name="diagnosis" rows="2"
+                class="rounded-md border border-[#cbdadd] px-2.5 py-2 text-sm font-normal outline-none focus:border-[#0b91c9]"></textarea>
+            </label>
+            <label class="grid gap-1 text-xs font-semibold text-slate-700">Kết luận
+              <textarea [ngModel]="conclusion()" (ngModelChange)="conclusion.set($event)" name="conclusion" rows="2"
+                class="rounded-md border border-[#cbdadd] px-2.5 py-2 text-sm font-normal outline-none focus:border-[#0b91c9]"></textarea>
+            </label>
+          </div>
+          <label class="grid gap-1 text-xs font-semibold text-slate-700">Hướng xử trí
+            <textarea data-testid="template-plan" [ngModel]="treatmentPlan()" (ngModelChange)="treatmentPlan.set($event)" name="treatmentPlan" rows="2"
+              class="rounded-md border border-[#cbdadd] px-2.5 py-2 text-sm font-normal outline-none focus:border-[#0b91c9]"></textarea>
+          </label>
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-[110px_minmax(0,1fr)]">
+            <label class="grid gap-1 text-xs font-semibold text-slate-700">Tái khám sau
+              <input type="number" min="1" max="365" [ngModel]="followUpDays()" (ngModelChange)="followUpDays.set($event)" name="followUpDays"
+                class="h-9 min-w-0 rounded-md border border-[#cbdadd] px-2.5 text-sm font-normal outline-none focus:border-[#0b91c9]" placeholder="Số ngày" />
+            </label>
+            <label class="grid gap-1 text-xs font-semibold text-slate-700">Lưu ý tái khám
+              <input [ngModel]="followUpNote()" (ngModelChange)="followUpNote.set($event)" name="followUpNote"
+                class="h-9 min-w-0 rounded-md border border-[#cbdadd] px-2.5 text-sm font-normal outline-none focus:border-[#0b91c9]" />
+            </label>
+          </div>
+        </fieldset>
+      </div>
+
+      <footer class="flex justify-end gap-2 border-t border-[#dce6e8] bg-[#f8fafb] px-4 py-3">
+        @if (editingId()) {<button type="button" class="h-9 rounded-md border border-[#cbdadd] bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50" (click)="cancelEdit()">Hủy</button>}
+        <button data-testid="save-medical-template" type="submit" [disabled]="saving()"
+          class="h-9 rounded-md bg-[#086b8b] px-4 text-sm font-semibold text-white hover:bg-[#075a75] disabled:opacity-50">
+          {{ saving() ? 'Đang lưu...' : editingId() ? 'Lưu thay đổi' : 'Thêm mẫu' }}
+        </button>
+      </footer>
+    </form>
+  </div>
+</app-staff-workspace-shell>

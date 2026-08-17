@@ -67,17 +67,17 @@ export class AppointmentsList implements OnInit {
 
   protected statusClass(status: string): string {
     if (status === 'CANCELLED') {
-      return 'bg-slate-100 text-slate-600';
+      return 'erp-badge-neutral';
     }
     if (status === 'COMPLETED') {
-      return 'bg-emerald-50 text-emerald-700';
+      return 'erp-badge-success';
     }
     if (status === 'CHECKED_IN') {
-      return 'bg-sky-50 text-sky-700';
+      return 'erp-badge-info';
     }
     if (status === 'ABSENT' || status === 'NOT_PERFORMED') {
-      return 'bg-slate-100 text-slate-600';
+      return 'erp-badge-warning';
     }
-    return 'bg-sky-50 text-sky-700';
+    return 'erp-badge-info';
   }
 }

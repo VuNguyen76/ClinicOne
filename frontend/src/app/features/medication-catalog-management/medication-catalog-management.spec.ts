@@ -35,6 +35,7 @@ describe('MedicationCatalogManagement', () => {
     expect(text).toContain('Paracetamol 500 mg');
     expect(text).toContain('Đang dùng');
     expect(text).toContain('Tạm ngưng');
+    expect(fixture.nativeElement.querySelector('[data-testid="staff-workspace-shell"]')).toBeTruthy();
   });
 
   it('creates a medicine from the modal form', () => {

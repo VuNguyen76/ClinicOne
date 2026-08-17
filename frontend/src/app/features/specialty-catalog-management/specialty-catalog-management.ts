@@ -3,11 +3,12 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { AuthApiService, SpecialtyOption, apiErrorMessage } from '../../core/auth/auth-api.service';
+import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
 
 @Component({
   selector: 'app-specialty-catalog-management',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule],
+  imports: [CommonModule, FormsModule, MatIconModule, StaffWorkspaceShell],
   templateUrl: './specialty-catalog-management.html',
 })
 export class SpecialtyCatalogManagement implements OnInit {
@@ -20,6 +21,7 @@ export class SpecialtyCatalogManagement implements OnInit {
   protected readonly saving = signal(false);
   protected readonly error = signal('');
   protected readonly notice = signal('');
+  protected readonly modalOpen = signal(false);
 
   ngOnInit(): void { this.load(); }
 
@@ -39,9 +41,20 @@ export class SpecialtyCatalogManagement implements OnInit {
     this.saving.set(true);
     this.error.set('');
     this.api.createSpecialty({ code: this.code(), name: this.name(), description: this.description() }).subscribe({
-      next: () => { this.code.set(''); this.name.set(''); this.description.set(''); this.notice.set('Đã thêm chuyên khoa.'); this.saving.set(false); this.load(); },
+      next: () => { this.code.set(''); this.name.set(''); this.description.set(''); this.notice.set('Đã thêm chuyên khoa.'); this.saving.set(false); this.modalOpen.set(false); this.load(); },
       error: (response) => { this.error.set(apiErrorMessage(response)); this.saving.set(false); },
     });
+  }
+
+  protected openCreate(): void {
+    this.error.set('');
+    this.notice.set('');
+    this.modalOpen.set(true);
+  }
+
+  protected closeModal(): void {
+    if (this.saving()) return;
+    this.modalOpen.set(false);
   }
 
   protected deactivate(item: SpecialtyOption): void {

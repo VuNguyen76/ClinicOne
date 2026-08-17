@@ -1,102 +1,116 @@
-<main class="min-h-[100dvh] bg-[#f5f7f8] text-[#143b43]">
+<main class="min-h-[100dvh] bg-slate-50 text-slate-800">
   <div class="grid min-h-[100dvh] lg:grid-cols-[minmax(27rem,0.92fr)_minmax(34rem,1.08fr)]">
-    <section class="relative flex min-h-[100dvh] flex-col bg-[#f5f7f8] px-5 py-5 sm:px-10 lg:px-[clamp(3rem,7vw,7.5rem)]" aria-label="Đăng ký ClinicOne">
+    <section class="relative flex min-h-[100dvh] flex-col bg-slate-50 px-5 py-5 sm:px-10 lg:px-[clamp(3rem,7vw,7.5rem)]" aria-label="Đăng ký ClinicOne">
       <header class="flex items-center justify-between gap-4">
-        <a routerLink="/login" class="flex items-center gap-3 text-[#103f4c]" aria-label="ClinicOne, về trang đăng nhập">
+        <a routerLink="/login" class="flex items-center gap-3 text-slate-900" aria-label="ClinicOne, về trang đăng nhập">
           <img class="h-10 w-10 object-contain" src="clinicone-mark.png" alt="" aria-hidden="true" />
-          <span class="text-xl font-semibold tracking-[-0.03em]">ClinicOne</span>
+          <span class="text-xl font-bold tracking-[-0.03em]">Clinic<span class="text-[#0284c7]">One</span></span>
         </a>
-        <a routerLink="/login" [queryParams]="returnUrl ? { returnUrl: returnUrl } : null" class="text-sm font-medium text-[#0e6872] underline-offset-4 hover:underline">Đăng nhập</a>
+        <a routerLink="/login" [queryParams]="returnUrl ? { returnUrl: returnUrl } : null" class="text-xs font-semibold text-[#0284c7] underline-offset-4 hover:underline">Đã có tài khoản? Đăng nhập</a>
       </header>
 
       <div class="flex flex-1 items-center py-8 lg:py-12">
         <div class="w-full max-w-[27rem]">
-          <h1 class="max-w-[21rem] text-[clamp(1.5rem,2vw,2rem)] font-semibold leading-[1.15] tracking-[-0.04em] text-[#103f4c]">
+          <h1 class="max-w-[21rem] text-[clamp(1.5rem,2vw,2rem)] font-bold leading-[1.15] tracking-[-0.04em] text-slate-900">
             @switch (step()) {
               @case ('phone') { Nhập số điện thoại }
               @case ('otp') { Xác thực số điện thoại }
-              @case ('profile') { Hoàn tất tài khoản }
+              @case ('profile') { Hoàn tất thông tin cá nhân }
               @default { Tài khoản đã sẵn sàng }
             }
           </h1>
+          <p class="mt-1 text-xs text-slate-500">
+            @switch (step()) {
+              @case ('phone') { Bước 1/3: Nhận mã OTP kích hoạt qua tin nhắn SMS. }
+              @case ('otp') { Bước 2/3: Nhập mã 6 chữ số đã gửi về số điện thoại của bạn. }
+              @case ('profile') { Bước 3/3: Điền hồ sơ bệnh nhân và tạo mật khẩu an toàn. }
+              @default { Tài khoản của bạn đã được khởi tạo thành công. }
+            }
+          </p>
+
           @if (step() === 'phone') {
-            <form class="mt-5 grid gap-2.5" [formGroup]="phoneForm" (ngSubmit)="submitPhone()" novalidate>
-              <label for="register-phone" class="text-sm font-semibold text-[#143b43]">Số điện thoại</label>
-              <input class="rounded-[10px] border border-[#b9cacc] bg-white px-3 py-3 text-sm outline-none focus:border-[#0e6872] focus:ring-4 focus:ring-[#0e6872]/10" type="tel" inputmode="numeric" id="register-phone" formControlName="phone" autocomplete="tel" placeholder="0912 345 678" maxlength="10" />
+            <form class="mt-6 grid gap-3" [formGroup]="phoneForm" (ngSubmit)="submitPhone()" novalidate>
+              <label for="register-phone" class="text-xs font-semibold text-slate-700">Số điện thoại</label>
+              <input class="min-h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none transition focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" type="tel" inputmode="numeric" id="register-phone" formControlName="phone" autocomplete="tel" placeholder="0912 345 678" maxlength="10" />
               @if (phoneForm.controls.phone.hasError('required') && phoneForm.controls.phone.touched) {
-                <p class="text-sm text-[#b42318]" role="alert">Số điện thoại là thông tin bắt buộc.</p>
+                <p class="text-xs text-rose-600" role="alert">Số điện thoại là thông tin bắt buộc.</p>
               } @else if (phoneForm.controls.phone.hasError('pattern') && phoneForm.controls.phone.touched) {
-                <p class="text-sm text-[#b42318]" role="alert">Vui lòng kiểm tra lại số điện thoại.</p>
+                <p class="text-xs text-rose-600" role="alert">Vui lòng kiểm tra lại số điện thoại.</p>
               }
-              <button class="mt-3 min-h-11 rounded-[10px] bg-[#1592c5] px-5 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(21,146,197,0.18)] transition hover:bg-[#0f7fae] disabled:cursor-not-allowed disabled:opacity-60" type="submit" [disabled]="busy()">
+              <button class="mt-2 min-h-11 rounded-lg bg-[#0e3d48] px-5 text-sm font-semibold text-white shadow-xs transition hover:bg-[#124f5e] disabled:cursor-not-allowed disabled:opacity-60" type="submit" [disabled]="busy()">
                 {{ busy() ? 'Đang gửi mã...' : 'Nhận mã OTP' }}
               </button>
             </form>
           } @else if (step() === 'otp') {
-            <form class="mt-5 grid gap-2.5" [formGroup]="otpForm" (ngSubmit)="submitOtp()" novalidate>
-              <label for="register-code" class="text-sm font-semibold text-[#143b43]">Mã OTP</label>
-              <input class="rounded-[10px] border border-[#b9cacc] bg-white px-3 py-3 text-center text-xl tracking-[0.45em] outline-none focus:border-[#0e6872] focus:ring-4 focus:ring-[#0e6872]/10" type="text" inputmode="numeric" id="register-code" formControlName="code" autocomplete="one-time-code" placeholder="••••••" maxlength="6" />
+            <form class="mt-6 grid gap-3" [formGroup]="otpForm" (ngSubmit)="submitOtp()" novalidate>
+              <label for="register-code" class="text-xs font-semibold text-slate-700">Mã xác thực OTP</label>
+              <input class="min-h-12 rounded-lg border border-slate-300 bg-white px-3 text-center font-mono text-xl tracking-[0.45em] outline-none transition focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" type="text" inputmode="numeric" id="register-code" formControlName="code" autocomplete="one-time-code" placeholder="••••••" maxlength="6" />
               @if (otpForm.controls.code.hasError('required') && otpForm.controls.code.touched) {
-                <p class="text-sm text-[#b42318]" role="alert">Mã OTP là thông tin bắt buộc.</p>
+                <p class="text-xs text-rose-600" role="alert">Mã OTP là thông tin bắt buộc.</p>
               } @else if (otpForm.controls.code.hasError('pattern') && otpForm.controls.code.touched) {
-                <p class="text-sm text-[#b42318]" role="alert">Mã OTP phải gồm 6 chữ số.</p>
+                <p class="text-xs text-rose-600" role="alert">Mã OTP phải gồm 6 chữ số.</p>
               }
-              <button class="mt-3 min-h-11 rounded-[10px] bg-[#1592c5] px-5 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(21,146,197,0.18)] transition hover:bg-[#0f7fae] disabled:cursor-not-allowed disabled:opacity-60" type="submit" [disabled]="busy()">
+              <button class="mt-2 min-h-11 rounded-lg bg-[#0e3d48] px-5 text-sm font-semibold text-white shadow-xs transition hover:bg-[#124f5e] disabled:cursor-not-allowed disabled:opacity-60" type="submit" [disabled]="busy()">
                 {{ busy() ? 'Đang xác thực...' : 'Tiếp tục' }}
               </button>
-              <button class="text-sm font-semibold text-[#0e6872] hover:underline" type="button" (click)="backToPhone()">Đổi số điện thoại</button>
+              <button class="text-xs font-semibold text-[#0284c7] hover:underline" type="button" (click)="backToPhone()">Đổi số điện thoại</button>
             </form>
           } @else if (step() === 'profile') {
-            <form class="mt-5 grid gap-2.5" [formGroup]="profileForm" (ngSubmit)="submitProfile()" novalidate>
-              <div class="grid gap-2 sm:grid-cols-2">
-                <label for="full-name" class="text-sm font-semibold text-[#143b43]">Họ và tên<input class="mt-1 w-full rounded-[10px] border border-[#b9cacc] bg-white px-3 py-2.5 text-sm font-normal outline-none focus:border-[#0e6872] focus:ring-4 focus:ring-[#0e6872]/10" type="text" id="full-name" formControlName="fullName" autocomplete="name" placeholder="Nguyễn Văn A" /></label>
-                <label for="date-of-birth" class="text-sm font-semibold text-[#143b43]">Ngày sinh<input class="mt-1 w-full rounded-[10px] border border-[#b9cacc] bg-white px-3 py-2.5 text-sm font-normal outline-none focus:border-[#0e6872] focus:ring-4 focus:ring-[#0e6872]/10" type="date" id="date-of-birth" formControlName="dateOfBirth" min="1900-01-01" [max]="today" autocomplete="bday" /></label>
-                <label for="gender" class="text-sm font-semibold text-[#143b43]">Giới tính<select class="mt-1 w-full rounded-[10px] border border-[#b9cacc] bg-white px-3 py-2.5 text-sm font-normal outline-none focus:border-[#0e6872] focus:ring-4 focus:ring-[#0e6872]/10" id="gender" formControlName="gender"><option value="">Chọn giới tính</option><option value="Nam">Nam</option><option value="Nữ">Nữ</option><option value="Khác">Khác</option></select></label>
+            <form class="mt-6 grid gap-3" [formGroup]="profileForm" (ngSubmit)="submitProfile()" novalidate>
+              <div class="grid gap-3 sm:grid-cols-2">
+                <label for="full-name" class="grid gap-1 text-xs font-semibold text-slate-700">Họ và tên *<input class="min-h-10 rounded-md border border-slate-300 bg-white px-3 text-sm font-normal outline-none focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" type="text" id="full-name" formControlName="fullName" autocomplete="name" placeholder="Nguyễn Văn A" /></label>
+                <label for="date-of-birth" class="grid gap-1 text-xs font-semibold text-slate-700">Ngày sinh *<input class="min-h-10 rounded-md border border-slate-300 bg-white px-3 text-sm font-normal outline-none focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" type="date" id="date-of-birth" formControlName="dateOfBirth" min="1900-01-01" [max]="today" autocomplete="bday" /></label>
+                <label for="gender" class="grid gap-1 text-xs font-semibold text-slate-700 sm:col-span-2">Giới tính *<select class="min-h-10 rounded-md border border-slate-300 bg-white px-3 text-sm font-normal outline-none focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" id="gender" formControlName="gender"><option value="">Chọn giới tính</option><option value="Nam">Nam</option><option value="Nữ">Nữ</option><option value="Khác">Khác</option></select></label>
               </div>
-              @if (profileForm.controls.fullName.invalid && profileForm.controls.fullName.touched) { <p class="text-xs text-[#b42318]" role="alert">Nhập họ tên từ 2 đến 100 ký tự.</p> }
-              @if (profileForm.controls.dateOfBirth.invalid && profileForm.controls.dateOfBirth.touched) { <p class="text-xs text-[#b42318]" role="alert">Ngày sinh là thông tin bắt buộc.</p> }
-              @if (profileForm.controls.gender.invalid && profileForm.controls.gender.touched) { <p class="text-xs text-[#b42318]" role="alert">Giới tính là thông tin bắt buộc.</p> }
-              <div class="mt-2 grid gap-2 border-t border-[#d6e2e4] pt-3 sm:grid-cols-2">
-                <p class="sm:col-span-2 text-sm font-semibold text-[#143b43]">Địa chỉ <span class="font-normal text-slate-500">(không bắt buộc)</span></p>
-                <label class="text-sm font-semibold text-[#143b43]">Tỉnh/Thành phố<select class="mt-1 w-full rounded-[10px] border border-[#b9cacc] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#0e6872] focus:ring-4 focus:ring-[#0e6872]/10" formControlName="provinceCode" (change)="provinceChanged()"><option value="">Chọn tỉnh/thành phố</option>@for (province of provinces(); track province.code) {<option [value]="province.code">{{ province.name }}</option>}</select></label>
-                <label class="text-sm font-semibold text-[#143b43]">Quận/Huyện<select class="mt-1 w-full rounded-[10px] border border-[#b9cacc] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#0e6872] focus:ring-4 focus:ring-[#0e6872]/10" formControlName="districtCode" (change)="districtChanged()"><option value="">Chọn quận/huyện</option>@for (district of districts(); track district.code) {<option [value]="district.code">{{ district.name }}</option>}</select></label>
-                <label class="text-sm font-semibold text-[#143b43]">Xã/Phường<select class="mt-1 w-full rounded-[10px] border border-[#b9cacc] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#0e6872] focus:ring-4 focus:ring-[#0e6872]/10" formControlName="wardCode" (change)="wardChanged()"><option value="">Chọn xã/phường</option>@for (ward of wards(); track ward.code) {<option [value]="ward.code">{{ ward.name }}</option>}</select></label>
-                <label class="text-sm font-semibold text-[#143b43]">Số nhà/Tên đường<input class="mt-1 w-full rounded-[10px] border border-[#b9cacc] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#0e6872] focus:ring-4 focus:ring-[#0e6872]/10" formControlName="streetAddress" autocomplete="street-address" /></label>
+              @if (profileForm.controls.fullName.invalid && profileForm.controls.fullName.touched) { <p class="text-xs text-rose-600" role="alert">Nhập họ tên từ 2 đến 100 ký tự.</p> }
+              @if (profileForm.controls.dateOfBirth.invalid && profileForm.controls.dateOfBirth.touched) { <p class="text-xs text-rose-600" role="alert">Ngày sinh là thông tin bắt buộc.</p> }
+              @if (profileForm.controls.gender.invalid && profileForm.controls.gender.touched) { <p class="text-xs text-rose-600" role="alert">Giới tính là thông tin bắt buộc.</p> }
+
+              <div class="mt-2 grid gap-3 border-t border-slate-200 pt-3 sm:grid-cols-2">
+                <p class="sm:col-span-2 text-xs font-bold uppercase tracking-wider text-slate-700">Địa chỉ liên hệ <span class="font-normal text-slate-400 normal-case">(không bắt buộc)</span></p>
+                <label class="grid gap-1 text-xs font-semibold text-slate-700">Tỉnh/Thành phố<select class="min-h-10 rounded-md border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" formControlName="provinceCode" (change)="provinceChanged()"><option value="">Chọn tỉnh/thành phố</option>@for (province of provinces(); track province.code) {<option [value]="province.code">{{ province.name }}</option>}</select></label>
+                <label class="grid gap-1 text-xs font-semibold text-slate-700">Quận/Huyện<select class="min-h-10 rounded-md border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" formControlName="districtCode" (change)="districtChanged()"><option value="">Chọn quận/huyện</option>@for (district of districts(); track district.code) {<option [value]="district.code">{{ district.name }}</option>}</select></label>
+                <label class="grid gap-1 text-xs font-semibold text-slate-700">Xã/Phường<select class="min-h-10 rounded-md border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" formControlName="wardCode" (change)="wardChanged()"><option value="">Chọn xã/phường</option>@for (ward of wards(); track ward.code) {<option [value]="ward.code">{{ ward.name }}</option>}</select></label>
+                <label class="grid gap-1 text-xs font-semibold text-slate-700">Số nhà/Tên đường<input class="min-h-10 rounded-md border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" formControlName="streetAddress" autocomplete="street-address" /></label>
                 @if (addressLoading()) {<p class="sm:col-span-2 text-xs font-normal text-slate-500">Đang tải danh sách địa chỉ...</p>}
               </div>
-              <label for="password" class="mt-2 text-sm font-semibold text-[#143b43]">Mật khẩu</label>
-              <input class="rounded-[10px] border border-[#b9cacc] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#0e6872] focus:ring-4 focus:ring-[#0e6872]/10" type="password" id="password" formControlName="password" autocomplete="new-password" placeholder="Tối thiểu 8 ký tự" />
-              <label for="confirm-password" class="mt-2 text-sm font-semibold text-[#143b43]">Nhập lại mật khẩu</label>
-              <input class="rounded-[10px] border border-[#b9cacc] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#0e6872] focus:ring-4 focus:ring-[#0e6872]/10" type="password" id="confirm-password" formControlName="confirmPassword" autocomplete="new-password" placeholder="Nhập lại mật khẩu" />
+
+              <div class="mt-2 grid gap-3 border-t border-slate-200 pt-3 sm:grid-cols-2">
+                <label for="password" class="grid gap-1 text-xs font-semibold text-slate-700">Mật khẩu *<input class="min-h-10 rounded-md border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" type="password" id="password" formControlName="password" autocomplete="new-password" placeholder="Tối thiểu 8 ký tự" /></label>
+                <label for="confirm-password" class="grid gap-1 text-xs font-semibold text-slate-700">Nhập lại mật khẩu *<input class="min-h-10 rounded-md border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" type="password" id="confirm-password" formControlName="confirmPassword" autocomplete="new-password" placeholder="Nhập lại mật khẩu" /></label>
+              </div>
               @if (profileForm.hasError('passwordMismatch') && profileForm.controls.confirmPassword.touched) {
-                <p class="text-sm text-[#b42318]" role="alert">Hai mật khẩu chưa giống nhau.</p>
+                <p class="text-xs text-rose-600" role="alert">Hai mật khẩu chưa giống nhau.</p>
               }
-              <button class="mt-3 min-h-11 rounded-[10px] bg-[#1592c5] px-5 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(21,146,197,0.18)] transition hover:bg-[#0f7fae] disabled:cursor-not-allowed disabled:opacity-60" type="submit" [disabled]="busy()">
+              <button class="mt-2 min-h-11 rounded-lg bg-[#0e3d48] px-5 text-sm font-semibold text-white shadow-xs transition hover:bg-[#124f5e] disabled:cursor-not-allowed disabled:opacity-60" type="submit" [disabled]="busy()">
                 {{ busy() ? 'Đang tạo tài khoản...' : 'Tạo tài khoản' }}
               </button>
-              <button class="text-sm font-semibold text-[#0e6872] hover:underline" type="button" (click)="backToOtp()">Quay lại nhập OTP</button>
+              <button class="text-xs font-semibold text-[#0284c7] hover:underline" type="button" (click)="backToOtp()">Quay lại nhập OTP</button>
             </form>
           } @else {
-            <div class="mt-5 border-l-4 border-[#0e6872] bg-[#e5f1f0] px-4 py-2.5 text-sm text-[#164f55]" role="status">Tài khoản đã tạo.</div>
-            <button class="mt-4 min-h-11 w-full rounded-[10px] bg-[#1592c5] px-5 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(21,146,197,0.18)] transition hover:bg-[#0f7fae]" type="button" (click)="goToLogin()">Đăng nhập</button>
+            <div class="mt-6 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-semibold text-emerald-800" role="status">Tài khoản đã tạo thành công.</div>
+            <button class="mt-4 min-h-11 w-full rounded-lg bg-[#0e3d48] px-5 text-sm font-semibold text-white shadow-xs transition hover:bg-[#124f5e]" type="button" (click)="goToLogin()">Đăng nhập ngay</button>
           }
 
           @if (error()) {
-            <p class="mt-4 border-l-4 border-[#b42318] bg-[#fff1f0] px-3 py-2.5 text-sm leading-5 text-[#8a1c13]" role="alert">{{ error() }}</p>
+            <p class="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs leading-5 text-rose-700" role="alert">{{ error() }}</p>
           }
           @if (notice() && step() !== 'done') {
-            <p class="mt-4 border-l-4 border-[#0e6872] bg-[#e5f1f0] px-3 py-2.5 text-sm leading-5 text-[#164f55]" role="status">{{ notice() }}</p>
+            <p class="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-xs leading-5 text-emerald-700" role="status">{{ notice() }}</p>
           }
         </div>
       </div>
-
     </section>
 
-    <aside class="relative hidden min-h-[100dvh] overflow-hidden bg-[#103f4c] lg:block" aria-label="Thông tin ClinicOne">
+    <aside class="relative hidden min-h-[100dvh] overflow-hidden bg-[#0e3d48] lg:block" aria-label="Thông tin ClinicOne">
       <img class="absolute inset-0 h-full w-full object-cover object-center" src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1600&q=85" alt="Nhân viên y tế đang tư vấn cho bệnh nhân" />
-      <div class="absolute inset-0 bg-[#103f4c]/45"></div>
+      <div class="absolute inset-0 bg-[#0e3d48]/70 backdrop-blur-[1px]"></div>
       <div class="relative flex min-h-[100dvh] flex-col justify-between p-10 text-white xl:p-14">
-        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-white/75">ClinicOne</p>
+        <p class="text-xs font-bold uppercase tracking-[0.18em] text-sky-200">ClinicOne ERP</p>
+        <div class="max-w-md">
+          <blockquote class="text-2xl font-bold tracking-tight leading-snug">Chăm sóc sức khỏe thông minh và tiện lợi.</blockquote>
+          <p class="mt-3 text-xs text-sky-100/80">Tạo tài khoản nhanh chóng chỉ với số điện thoại để trải nghiệm dịch vụ y tế chuẩn mực.</p>
+        </div>
       </div>
     </aside>
   </div>

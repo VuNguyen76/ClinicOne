@@ -1,20 +1,201 @@
-<main class="min-h-screen bg-[#f6f8f9] text-[#173f4b]">
-  <header class="sticky top-0 z-30 h-16 border-b border-[#dce7ea] bg-white/95 backdrop-blur">
-    <div class="mx-auto flex h-full max-w-[1440px] items-center justify-between gap-4 px-4 lg:px-8">
-      <a routerLink="/admin/rooms" class="flex items-center gap-2.5" aria-label="ClinicOne"><img class="h-8 w-8 object-contain" src="clinicone-mark.png" alt="" aria-hidden="true" /><span class="text-lg font-bold tracking-[-0.05em] text-[#0a303b]">Clinic<span class="text-[#0ea5e9]">One</span></span><span class="hidden border-l border-[#dce7ea] pl-3 text-sm font-medium text-slate-500 sm:inline">Nghỉ đột xuất</span></a>
-      <app-account-menu />
-    </div>
-  </header>
-  <div class="mx-auto max-w-[1440px] px-4 py-6 lg:px-8 lg:py-8">
-    <section class="flex flex-wrap items-end justify-between gap-4 border-b border-[#dce7ea] pb-5"><div><p class="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0b91c9]">Cấu hình vận hành</p><h1 class="mt-2 text-2xl font-bold tracking-[-0.04em] text-[#0a303b]">Bác sĩ nghỉ đột xuất</h1><p class="mt-1 text-sm text-slate-500">Khóa khung giờ trống và đưa lịch đã đặt vào danh sách sắp xếp lại.</p></div><mat-icon class="!h-9 !w-9 !text-[36px] text-[#0b91c9]">event_busy</mat-icon></section>
-    @if (error()) {<p class="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700" role="alert">{{ error() }}</p>}
-    @if (notice()) {<p class="mt-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm text-emerald-700" role="status">{{ notice() }}</p>}
-    @if (loading()) {<div class="mt-5 grid min-h-64 place-items-center border border-[#dce7ea] bg-white text-sm text-slate-500">Đang tải danh sách bác sĩ...</div>}
-    @else {<div class="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.65fr)]">
-      <section class="overflow-hidden border border-[#dce7ea] bg-white"><div class="flex items-center justify-between border-b border-[#e7eff1] px-5 py-4"><div><h2 class="text-sm font-bold">Lịch nghỉ đã ghi nhận</h2><p class="mt-0.5 text-xs text-slate-500">{{ records().length }} lần nghỉ đang áp dụng</p></div><mat-icon class="text-[#0b91c9]">history</mat-icon></div><div class="divide-y divide-[#edf2f3]">
-        @for (item of records(); track item.id) {<article data-testid="time-off-row" class="px-5 py-4"><div class="flex flex-wrap items-center justify-between gap-2"><h3 class="font-semibold">{{ item.doctorName }}</h3><span class="rounded-full bg-amber-50 px-2 py-1 text-[10px] font-semibold text-amber-700">Đang áp dụng</span></div><p class="mt-1 text-xs text-slate-500">{{ formatDate(item.startDate) }} – {{ formatDate(item.endDate) }} · {{ item.reason }}</p><p class="mt-2 text-xs font-semibold text-[#087eae]">{{ item.lockedSlotCount }} khung giờ đã khóa · {{ item.affectedAppointmentCount }} lịch cần sắp xếp lại</p></article>} @empty {<div class="grid min-h-56 place-items-center px-5 text-center"><div><mat-icon class="!h-8 !w-8 !text-[32px] text-slate-300">event_available</mat-icon><p class="mt-2 text-sm font-semibold">Chưa có lịch nghỉ</p><p class="mt-1 text-xs text-slate-500">Ghi nhận một lần nghỉ để hệ thống xử lý lịch liên quan.</p></div></div>}
-      </div></section>
-      @if (canManageTimeOff()) {<section class="h-fit border border-[#dce7ea] bg-white"><div class="border-b border-[#e7eff1] px-5 py-4"><p class="text-[10px] font-bold uppercase tracking-[0.14em] text-[#0b91c9]">Tạo ghi nhận</p><h2 class="mt-1 text-lg font-bold">Thêm lịch nghỉ</h2></div><form class="grid gap-4 p-5" (ngSubmit)="$event.preventDefault(); submit()"><label class="grid gap-1.5 text-sm font-semibold">Bác sĩ<select class="min-h-10 rounded-md border border-[#d5e3e7] bg-white px-3 text-sm font-normal outline-none focus:border-[#0ea5e9]" [ngModel]="selectedDoctorId()" (ngModelChange)="selectedDoctorId.set($event)" name="doctor"><option value="">Chọn bác sĩ</option>@for (doctor of doctors(); track doctor.staffId) {<option [value]="doctor.staffId">{{ doctor.fullName }} · {{ doctor.specialty }}</option>}</select></label><div class="grid gap-3 sm:grid-cols-2"><label class="grid gap-1.5 text-sm font-semibold">Từ ngày<input type="date" [min]="today" [ngModel]="startDate()" (ngModelChange)="startDate.set($event)" name="startDate" class="min-h-10 rounded-md border border-[#d5e3e7] px-3 text-sm font-normal" /></label><label class="grid gap-1.5 text-sm font-semibold">Đến ngày<input type="date" [min]="startDate()" [ngModel]="endDate()" (ngModelChange)="endDate.set($event)" name="endDate" class="min-h-10 rounded-md border border-[#d5e3e7] px-3 text-sm font-normal" /></label></div><label class="grid gap-1.5 text-sm font-semibold">Lý do nghỉ<textarea rows="3" [ngModel]="reason()" (ngModelChange)="reason.set($event)" name="reason" maxlength="500" placeholder="Nhập lý do từ 10 ký tự" class="rounded-md border border-[#d5e3e7] px-3 py-2 text-sm font-normal outline-none focus:border-[#0ea5e9]"></textarea></label><button data-testid="save-time-off" type="submit" class="min-h-10 rounded-md bg-[#0b3846] px-4 text-sm font-semibold text-white hover:bg-[#082d39] disabled:opacity-50" [disabled]="saving()">{{ saving() ? 'Đang xử lý...' : 'Ghi nhận lịch nghỉ' }}</button></form></section>} @else {<section class="h-fit border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900"><p class="font-semibold">Chế độ xem</p><p class="mt-1 text-xs">Chỉ điều phối viên được ghi nhận lịch nghỉ của bác sĩ.</p></section>}
-    </div>}
+<app-staff-workspace-shell moduleTitle="Vận hành" pageTitle="Bác sĩ nghỉ đột xuất">
+  <!-- Window Action Toolbar Slot -->
+  <div workspace-actions class="flex items-center gap-2">
+    @if (canManageTimeOff()) {
+      <button type="button" class="erp-btn-primary" (click)="openCreate()">
+        <mat-icon class="!h-4 !w-4 !text-[16px]">add</mat-icon>
+        <span>Ghi nhận lịch nghỉ</span>
+      </button>
+    }
+    <button
+      type="button"
+      class="erp-btn-secondary"
+      (click)="loadData()"
+      [disabled]="loading()"
+    >
+      <mat-icon class="!h-4 !w-4 !text-[16px]">refresh</mat-icon>
+      <span>Làm mới</span>
+    </button>
   </div>
-</main>
+
+  <div class="mx-auto max-w-[1440px] space-y-4">
+    <!-- Alerts & Notices -->
+    @if (error()) {
+      <div class="flex items-center gap-2 rounded-md border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs font-medium text-rose-800 shadow-xs" role="alert">
+        <mat-icon class="!h-4 !w-4 !text-[18px] text-rose-600">error_outline</mat-icon>
+        <span>{{ error() }}</span>
+      </div>
+    }
+    @if (notice()) {
+      <div class="flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-xs font-medium text-emerald-800 shadow-xs" role="status">
+        <mat-icon class="!h-4 !w-4 !text-[18px] text-emerald-600">check_circle</mat-icon>
+        <span>{{ notice() }}</span>
+      </div>
+    }
+
+    @if (loading()) {
+      <div class="erp-card p-6">
+        <div class="space-y-2">
+          @for (line of [1, 2, 3]; track line) {
+            <div class="h-9 animate-pulse rounded-md bg-slate-100"></div>
+          }
+        </div>
+      </div>
+    }
+    @else {
+      <div class="grid gap-4">
+        <!-- Left Pane: Time-off Records Table -->
+        <section class="erp-card overflow-hidden" aria-label="Lịch nghỉ đã ghi nhận">
+          <div class="erp-toolbar">
+            <div class="flex items-center gap-2.5">
+              <h2 class="text-xs font-bold uppercase tracking-wider text-slate-800">Lịch nghỉ đã ghi nhận</h2>
+              <span class="rounded-full bg-slate-100 px-2 py-0.5 font-mono text-[11px] font-semibold text-slate-600">
+                {{ records().length }} lần nghỉ đang áp dụng
+              </span>
+            </div>
+            <mat-icon class="!h-5 !w-5 !text-[20px] text-[#0284c7]">history</mat-icon>
+          </div>
+
+          @if (records().length === 0) {
+            <div class="grid min-h-56 place-items-center p-6 text-center">
+              <div>
+                <mat-icon class="!h-9 !w-9 !text-[36px] text-slate-300">event_available</mat-icon>
+                <p class="mt-2 text-xs font-semibold text-slate-700">Chưa có lịch nghỉ</p>
+                <p class="mt-0.5 text-xs text-slate-400">Ghi nhận một lần nghỉ để hệ thống xử lý lịch liên quan.</p>
+              </div>
+            </div>
+          }
+          @else {
+            <div class="erp-table-container !rounded-none !border-0">
+              <table class="erp-table">
+                <thead>
+                  <tr>
+                    <th>Bác sĩ</th>
+                    <th>Thời gian nghỉ</th>
+                    <th>Lý do</th>
+                    <th>Ảnh hưởng</th>
+                    <th class="w-28 text-center">Trạng thái</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (item of records(); track item.id) {
+                    <tr data-testid="time-off-row" class="erp-tr">
+                      <td>
+                        <p class="font-semibold text-slate-800">{{ item.doctorName }}</p>
+                      </td>
+                      <td>
+                        <p class="font-mono text-xs text-slate-700">
+                          {{ formatDate(item.startDate) }} – {{ formatDate(item.endDate) }}
+                        </p>
+                      </td>
+                      <td>
+                        <p class="max-w-[200px] truncate text-xs text-slate-600" [title]="item.reason">
+                          {{ item.reason }}
+                        </p>
+                      </td>
+                      <td>
+                        <p class="font-mono text-xs font-semibold text-[#0284c7]">
+                          {{ item.lockedSlotCount }} khung giờ đã khóa
+                        </p>
+                        <p class="text-[11px] text-slate-500">
+                          {{ item.affectedAppointmentCount }} lịch cần sắp xếp lại
+                        </p>
+                      </td>
+                      <td class="text-center">
+                        <span class="erp-badge erp-badge-warning">
+                          <span class="erp-dot erp-dot-warning"></span>
+                          <span>Đang áp dụng</span>
+                        </span>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </section>
+
+        @if (modalOpen() && canManageTimeOff()) {
+          <div class="erp-modal-overlay" role="presentation" (click)="closeModal()">
+            <section class="erp-modal-container max-w-2xl" role="dialog" aria-modal="true" aria-label="Ghi nhận lịch nghỉ" (click)="$event.stopPropagation()">
+              <div class="erp-card-header">
+                <div>
+                  <span class="erp-badge erp-badge-info">Tạo ghi nhận</span>
+                  <h2 class="mt-1 text-sm font-bold text-slate-900">Thêm lịch nghỉ</h2>
+                </div>
+                <button type="button" class="erp-btn-icon" aria-label="Đóng" (click)="closeModal()">
+                  <mat-icon class="!h-5 !w-5 !text-[20px]">close</mat-icon>
+                </button>
+              </div>
+
+              <form class="space-y-3.5 p-4" (ngSubmit)="$event.preventDefault(); submit()">
+                <div>
+                  <label class="erp-label">Bác sĩ <span class="erp-label-required">*</span></label>
+                  <select
+                    class="erp-select"
+                    [ngModel]="selectedDoctorId()"
+                    (ngModelChange)="selectedDoctorId.set($event)"
+                    name="doctor"
+                  >
+                    <option value="">Chọn bác sĩ</option>
+                    @for (doctor of doctors(); track doctor.staffId) {
+                      <option [value]="doctor.staffId">{{ doctor.fullName }} · {{ doctor.specialty }}</option>
+                    }
+                  </select>
+                </div>
+
+                <div class="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label class="erp-label">Từ ngày <span class="erp-label-required">*</span></label>
+                    <input
+                      type="date"
+                      [min]="today"
+                      [ngModel]="startDate()"
+                      (ngModelChange)="startDate.set($event)"
+                      name="startDate"
+                      class="erp-input font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label class="erp-label">Đến ngày <span class="erp-label-required">*</span></label>
+                    <input
+                      type="date"
+                      [min]="startDate()"
+                      [ngModel]="endDate()"
+                      (ngModelChange)="endDate.set($event)"
+                      name="endDate"
+                      class="erp-input font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label class="erp-label">Lý do nghỉ <span class="erp-label-required">*</span></label>
+                  <textarea
+                    rows="3"
+                    [ngModel]="reason()"
+                    (ngModelChange)="reason.set($event)"
+                    name="reason"
+                    maxlength="500"
+                    placeholder="Nhập lý do từ 10 ký tự"
+                    class="erp-textarea"
+                  ></textarea>
+                </div>
+
+                <button
+                  data-testid="save-time-off"
+                  type="submit"
+                  class="erp-btn-primary w-full"
+                  [disabled]="saving()"
+                >
+                  <mat-icon class="!h-4 !w-4 !text-[16px]">save</mat-icon>
+                  <span>{{ saving() ? 'Đang xử lý...' : 'Ghi nhận lịch nghỉ' }}</span>
+                </button>
+              </form>
+            </section>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</app-staff-workspace-shell>

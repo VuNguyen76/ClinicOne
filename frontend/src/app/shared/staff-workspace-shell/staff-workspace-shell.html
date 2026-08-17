@@ -1,0 +1,123 @@
+<main class="min-h-[100dvh] bg-[#f8fafc] text-slate-800" data-testid="staff-workspace-shell">
+  <!-- Top Navigation Header -->
+  <header class="sticky top-0 z-40 h-14 border-b border-slate-200 bg-white shadow-xs">
+    <div class="flex h-full items-center">
+      <!-- Mobile menu toggle -->
+      <button
+        type="button"
+        class="grid h-14 w-14 shrink-0 place-items-center border-r border-slate-200 text-slate-600 transition hover:bg-slate-50 lg:hidden"
+        aria-label="Mở danh mục chức năng"
+        [attr.aria-expanded]="navigationOpen()"
+        (click)="toggleNavigation()"
+      >
+        <mat-icon>menu</mat-icon>
+      </button>
+
+      <!-- Brand Logo -->
+      <a
+        [routerLink]="landingRoute"
+        class="flex h-full w-[224px] shrink-0 items-center gap-2.5 border-r border-slate-200 bg-white px-4 transition hover:bg-slate-50/80 lg:w-[256px]"
+        aria-label="ClinicOne"
+      >
+        <img class="h-8 w-8 object-contain" src="clinicone-mark.png" alt="" aria-hidden="true" />
+        <span class="text-lg font-bold tracking-tight text-[#0e3d48]">Clinic<span class="text-[#0284c7]">One</span></span>
+      </a>
+
+      <!-- Center Search & Module Indicator -->
+      <div class="hidden min-w-0 flex-1 items-center gap-3 px-4 md:flex">
+        <span class="truncate text-xs font-bold uppercase tracking-wider text-slate-500">{{ moduleTitle() }}</span>
+        <span class="h-4 w-px bg-slate-200"></span>
+        <label class="flex h-8 w-full max-w-sm items-center gap-2 rounded-md border border-slate-200 bg-slate-50/80 px-2.5 text-xs text-slate-400 focus-within:border-[#0284c7] focus-within:bg-white focus-within:ring-2 focus-within:ring-sky-100" aria-label="Tra cứu chức năng">
+          <mat-icon class="!h-4 !w-4 !text-[16px] text-slate-400">search</mat-icon>
+          <input
+            type="search"
+            class="min-w-0 flex-1 bg-transparent text-xs text-slate-700 outline-none placeholder:text-slate-400"
+            placeholder="Tra cứu chức năng"
+            [value]="functionQuery()"
+            (input)="updateFunctionQuery($event)"
+          />
+        </label>
+      </div>
+
+      <!-- Right Staff Info & Profile -->
+      <div class="ml-auto flex items-center gap-3 px-3 sm:px-4">
+        <div class="hidden items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700 sm:inline-flex">
+          <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+          <span>{{ roleLabel }}</span>
+        </div>
+        <app-account-menu [compact]="true" />
+      </div>
+    </div>
+  </header>
+
+  <!-- Shell Body (Sidebar + Work Window) -->
+  <div class="lg:grid lg:grid-cols-[256px_minmax(0,1fr)]">
+    <!-- Backdrop for mobile sidebar -->
+    @if (navigationOpen()) {
+      <button
+        type="button"
+        class="fixed inset-0 z-30 bg-slate-900/40 backdrop-blur-xs lg:hidden"
+        aria-label="Đóng danh mục chức năng"
+        (click)="closeNavigation()"
+      ></button>
+    }
+
+    <!-- Left Navigation Rail -->
+    <aside
+      class="fixed inset-y-14 left-0 z-30 w-[256px] overflow-y-auto border-r border-slate-200 bg-white transition-transform lg:sticky lg:top-14 lg:h-[calc(100dvh-3.5rem)] lg:translate-x-0"
+      [class.translate-x-0]="navigationOpen()"
+      [class.-translate-x-full]="!navigationOpen()"
+      data-testid="staff-module-nav"
+    >
+      <nav class="py-3" aria-label="Danh mục chức năng">
+        @for (group of visibleNavigation(); track group.label) {
+          <section class="mb-3">
+            <h2 class="px-4 pb-1 text-xs font-bold uppercase tracking-[0.1em] text-slate-400">{{ group.label }}</h2>
+            <div class="grid gap-0.5 px-2">
+              @for (item of group.items; track item.route) {
+                <a
+                  [routerLink]="item.route"
+                  routerLinkActive="bg-sky-50 text-[#0284c7] font-semibold shadow-[inset_3px_0_0_#0284c7]"
+                  [routerLinkActiveOptions]="{ exact: false }"
+                  class="flex min-h-11 items-center gap-3 rounded-md px-3.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100/80 hover:text-slate-900"
+                  (click)="handleNavigationClick($event)"
+                >
+                  <mat-icon class="!h-5 !w-5 !text-[20px] text-slate-500">{{ item.icon }}</mat-icon>
+                  <span class="truncate">{{ item.label }}</span>
+                </a>
+              }
+            </div>
+          </section>
+        }
+      </nav>
+    </aside>
+
+    <!-- Work Area Window -->
+    <section class="min-w-0">
+      <!-- Window Header -->
+      <header class="flex min-h-14 flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-2.5 lg:px-6">
+        <div class="min-w-0">
+          <div class="flex items-center gap-1.5 text-xs text-slate-400">
+            <span>{{ moduleTitle() }}</span>
+            <span>/</span>
+            <span class="font-medium text-slate-600">{{ pageTitle() }}</span>
+          </div>
+          <h1 class="truncate text-base font-bold tracking-tight text-slate-900 sm:text-lg" data-testid="staff-window-title">
+            {{ pageTitle() }}
+          </h1>
+        </div>
+        <div class="flex items-center gap-2" data-testid="staff-window-actions">
+          <ng-content select="[workspace-actions]" />
+        </div>
+      </header>
+
+      <!-- Subheader Tab Bar Slot -->
+      <ng-content select="[workspace-tabs]" />
+
+      <!-- Main Workspace Canvas -->
+      <div class="erp-workspace-canvas p-3 sm:p-4 lg:p-6">
+        <ng-content />
+      </div>
+    </section>
+  </div>
+</main>

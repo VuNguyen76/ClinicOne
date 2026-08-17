@@ -1,14 +1,13 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { AuthApiService, BusinessLogResponse, apiErrorMessage } from '../../core/auth/auth-api.service';
-import { AccountMenu } from '../../shared/account-menu/account-menu';
+import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
 
 @Component({
   selector: 'app-business-audit',
   standalone: true,
-  imports: [FormsModule, RouterLink, MatIconModule, AccountMenu],
+  imports: [FormsModule, MatIconModule, StaffWorkspaceShell],
   templateUrl: './business-audit.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

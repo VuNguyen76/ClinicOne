@@ -71,4 +71,21 @@ describe('AccountMenu', () => {
 
     expect(fixture.nativeElement.querySelector('a[href="/admin/medications"]')?.textContent).toContain('Danh mục thuốc');
   });
+
+  it('keeps the compact staff menu focused on account actions', async () => {
+    sessionStorage.setItem('clinicOneStaffRole', 'DOCTOR');
+    sessionStorage.setItem('clinicOneStaffRoles', '["DOCTOR"]');
+    await TestBed.resetTestingModule().configureTestingModule({
+      imports: [AccountMenu], providers: [provideRouter([])],
+    }).compileComponents();
+    fixture = TestBed.createComponent(AccountMenu);
+    fixture.componentRef.setInput('compact', true);
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('[data-testid="account-menu-trigger"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelectorAll('[role="menuitem"]').length).toBe(1);
+    expect(fixture.nativeElement.querySelector('[role="menuitem"]')?.textContent).toContain('Đăng xuất');
+  });
 });

@@ -1,15 +1,14 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { AuthApiService, ReconciliationResponse, apiErrorMessage } from '../../core/auth/auth-api.service';
-import { AccountMenu } from '../../shared/account-menu/account-menu';
+import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
 import { hasStaffRole } from '../../core/auth/auth.guard';
 
 @Component({
   selector: 'app-reconciliation-management',
   standalone: true,
-  imports: [FormsModule, RouterLink, MatIconModule, AccountMenu],
+  imports: [FormsModule, MatIconModule, StaffWorkspaceShell],
   templateUrl: './reconciliation.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
