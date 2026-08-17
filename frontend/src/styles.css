@@ -74,6 +74,14 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+/* Keep identifiers, phone numbers and dates aligned without switching to a
+ * visibly different typeface. ClinicOne uses one font family across patient
+ * and staff surfaces; tabular numerals provide the needed data alignment. */
+.font-mono {
+  font-family: var(--font-clinic) !important;
+  font-variant-numeric: tabular-nums;
+}
+
 /* Tailwind utilities, native controls, and Angular Material content all use
  * the same ClinicOne typeface. Technical values opt into font-mono locally. */
 button,
