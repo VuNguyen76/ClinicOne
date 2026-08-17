@@ -286,6 +286,8 @@ public class LocalDataInitializer implements CommandLineRunner {
 
         if (queueTicketRepository != null && examinationSessionRepository != null && medicalRecordRepository != null) {
             QueueTicket ticket = QueueTicket.create(app, room, pastDate, 1);
+            ticket.call();
+            ticket.startService();
             ticket.complete();
             queueTicketRepository.save(ticket);
 
