@@ -1,10 +1,12 @@
 package com.clinicone.patientprofile;
 
+import com.clinicone.auth.AuthenticatedIds;
 import com.clinicone.auth.AuthException;
 import com.clinicone.auth.PatientAccount;
 import com.clinicone.auth.PatientAccountRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -13,20 +15,16 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 @Service
+@RequiredArgsConstructor
 public class PatientProfileService {
     private static final int MAX_ACTIVE_PROFILES = 10;
 
     private final PatientAccountRepository accountRepository;
     private final PatientProfileRepository profileRepository;
 
-    public PatientProfileService(PatientAccountRepository accountRepository, PatientProfileRepository profileRepository) {
-        this.accountRepository = accountRepository;
-        this.profileRepository = profileRepository;
-    }
-
     @Transactional
     public List<PatientProfileResponse> list(String accountId) {
-        UUID ownerId = parseAccountId(accountId);
+        UUID ownerId = AuthenticatedIds.patient(accountId);
         PatientAccount owner = findOwner(ownerId);
         List<PatientProfile> profiles = profileRepository.findByOwnerIdAndActiveTrueOrderByPrimaryProfileDescCreatedAtAsc(ownerId);
         if (profiles.isEmpty()) {
@@ -42,7 +40,7 @@ public class PatientProfileService {
 
     @Transactional
     public PatientProfileResponse create(String accountId, CreatePatientProfileRequest request) {
-        UUID ownerId = parseAccountId(accountId);
+        UUID ownerId = AuthenticatedIds.patient(accountId);
         PatientAccount owner = findOwner(ownerId);
         if (profileRepository.countByOwnerIdAndActiveTrue(ownerId) >= MAX_ACTIVE_PROFILES) {
             throw new AuthException(HttpStatus.CONFLICT, "PATIENT_PROFILE_LIMIT",
@@ -59,7 +57,7 @@ public class PatientProfileService {
 
     @Transactional
     public PatientProfileResponse update(String accountId, String profileId, UpdatePatientProfileRequest request) {
-        UUID ownerId = parseAccountId(accountId);
+        UUID ownerId = AuthenticatedIds.patient(accountId);
         PatientProfile profile = findOwned(profileId, ownerId);
         profile.update(normalize(request.fullName()), normalize(request.relationship()), request.dateOfBirth(),
                 normalize(request.gender()), normalize(request.phone()), normalize(request.identityNumber()),
@@ -142,7 +140,7 @@ public class PatientProfileService {
 
     @Transactional
     public void delete(String accountId, String profileId) {
-        UUID ownerId = parseAccountId(accountId);
+        UUID ownerId = AuthenticatedIds.patient(accountId);
         PatientProfile profile = findOwned(profileId, ownerId);
         if (profile.isPrimaryProfile()) {
             throw new AuthException(HttpStatus.CONFLICT, "PRIMARY_PROFILE_CANNOT_DELETE",
@@ -167,14 +165,6 @@ public class PatientProfileService {
 
     private PatientAccount findOwner(UUID ownerId) {
         return accountRepository.findById(ownerId).orElseThrow(this::authenticationRequired);
-    }
-
-    private UUID parseAccountId(String accountId) {
-        try {
-            return UUID.fromString(accountId);
-        } catch (IllegalArgumentException exception) {
-            throw authenticationRequired();
-        }
     }
 
     private String normalize(String value) {

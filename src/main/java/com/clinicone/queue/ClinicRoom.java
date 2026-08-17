@@ -1,5 +1,7 @@
 package com.clinicone.queue;
 
+import lombok.Getter;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -11,6 +13,7 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
 
+@Getter
 @Entity
 @Table(name = "clinic_rooms")
 public class ClinicRoom {
@@ -76,10 +79,4 @@ public class ClinicRoom {
         return qrToken;
     }
 
-    public UUID getId() { return id; }
-    public String getCode() { return code; }
-    public String getName() { return name; }
-    public String getSpecialty() { return specialty; }
-    public boolean isActive() { return active; }
-    public String getQrToken() { return qrToken; }
 }

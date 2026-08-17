@@ -16,6 +16,7 @@ import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -74,6 +75,39 @@ class AppointmentHoldServiceTest {
                         LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), DOCTOR_ID, serviceId));
 
         assertEquals(serviceId, response.serviceId());
+    }
+
+    @Test
+    void releasesThePatientsPreviousActiveHoldBeforeCreatingAnotherSlot() {
+        PatientAccount account = account();
+        AppointmentHold previous = AppointmentHold.create(account, "Nội tổng quát", "BS. Cũ", DOCTOR_ID,
+                LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), "DOCTOR:old:2026-08-10:08:30",
+                NOW.plusSeconds(120));
+        when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
+        when(holdRepository.findByHoldKey(any())).thenReturn(Optional.empty());
+        when(holdRepository.findByPatientIdAndExpiresAtAfter(ACCOUNT_ID, NOW)).thenReturn(List.of(previous));
+        when(holdRepository.saveAndFlush(any(AppointmentHold.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.create(ACCOUNT_ID.toString(), new CreateAppointmentHoldRequest("Nội tổng quát", "BS. Mới",
+                LocalDate.of(2026, 8, 10), LocalTime.of(9, 0), DOCTOR_ID));
+
+        verify(holdRepository).delete(previous);
+    }
+
+    @Test
+    void doesNotReleaseAnotherBrowserSessionHoldForTheSameAccount() {
+        PatientAccount account = account();
+        when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
+        when(holdRepository.findByHoldKey(any())).thenReturn(Optional.empty());
+        when(holdRepository.findByPatientIdAndSessionKeyAndExpiresAtAfter(ACCOUNT_ID, "session-b", NOW))
+                .thenReturn(List.of());
+        when(holdRepository.saveAndFlush(any(AppointmentHold.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.create(ACCOUNT_ID.toString(), new CreateAppointmentHoldRequest("Nội tổng quát", "BS. Mới",
+                LocalDate.of(2026, 8, 10), LocalTime.of(9, 0), DOCTOR_ID), "session-b");
+
+        verify(holdRepository).findByPatientIdAndSessionKeyAndExpiresAtAfter(ACCOUNT_ID, "session-b", NOW);
+        verify(holdRepository, never()).delete(any(AppointmentHold.class));
     }
 
     @Test

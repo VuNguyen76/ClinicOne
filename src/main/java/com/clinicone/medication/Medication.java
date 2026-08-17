@@ -9,11 +9,13 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import lombok.Getter;
 
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
+@Getter
 @Table(name = "medication_catalog", uniqueConstraints = {
         @UniqueConstraint(name = "uk_medication_catalog_code", columnNames = "code")
 })
@@ -71,8 +73,4 @@ public class Medication {
         updatedAt = Instant.now();
     }
 
-    public UUID getId() { return id; }
-    public String getCode() { return code; }
-    public String getName() { return name; }
-    public boolean isActive() { return active; }
 }

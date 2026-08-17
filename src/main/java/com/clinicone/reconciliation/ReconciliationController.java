@@ -1,5 +1,7 @@
 package com.clinicone.reconciliation;
 
+import lombok.RequiredArgsConstructor;
+
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,14 +19,11 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/reconciliations")
 @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
 public class ReconciliationController {
     private final ReconciliationService service;
-
-    public ReconciliationController(ReconciliationService service) {
-        this.service = service;
-    }
 
     @GetMapping
     public List<ReconciliationResponse> list(@RequestParam(required = false) ReconciliationStatus status) {
@@ -32,13 +31,13 @@ public class ReconciliationController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('COORDINATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
     public ResponseEntity<ReconciliationResponse> open(@Valid @RequestBody OpenReconciliationRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.open(request));
     }
 
     @PostMapping("/{id}/close")
-    @PreAuthorize("hasRole('COORDINATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
     public ReconciliationResponse close(Authentication authentication, @PathVariable UUID id,
                                         @Valid @RequestBody CloseReconciliationRequest request) {
         return service.close(id, request, authentication.getName());

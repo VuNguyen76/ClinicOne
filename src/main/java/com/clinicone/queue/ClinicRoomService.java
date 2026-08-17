@@ -1,5 +1,7 @@
 package com.clinicone.queue;
 
+import lombok.RequiredArgsConstructor;
+
 import com.clinicone.auth.AuthException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -10,12 +12,9 @@ import java.util.UUID;
 import java.util.Locale;
 
 @Service
+@RequiredArgsConstructor
 public class ClinicRoomService {
     private final ClinicRoomRepository repository;
-
-    public ClinicRoomService(ClinicRoomRepository repository) {
-        this.repository = repository;
-    }
 
     @Transactional
     public List<ClinicRoomResponse> list() {

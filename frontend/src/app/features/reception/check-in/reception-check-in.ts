@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink, Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
@@ -6,6 +6,9 @@ import { ApiErrorResponse, AppointmentSlotResponse, AuthApiService, ReceptionApp
 import { AccountMenu } from '../../../shared/account-menu/account-menu';
 import { clinicTodayIso } from '../../../core/time/clinic-time';
 import { hasStaffRole } from '../../../core/auth/auth.guard';
+import { VietnamAddressService, VietnamAddressUnit } from '../../../core/address/vietnam-address.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { interval } from 'rxjs';
 
 @Component({
   selector: 'app-reception-check-in',
@@ -17,6 +20,8 @@ import { hasStaffRole } from '../../../core/auth/auth.guard';
 export class ReceptionCheckIn implements OnInit {
   private readonly authApi = inject(AuthApiService);
   private readonly router = inject(Router);
+  private readonly addressApi = inject(VietnamAddressService);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly query = signal('');
   protected readonly selectedDate = signal(clinicTodayIso());
@@ -40,11 +45,13 @@ export class ReceptionCheckIn implements OnInit {
   protected readonly walkInReason = signal('');
   protected readonly walkInExceptionReason = signal('');
   protected readonly walkInLoading = signal(false);
+  protected readonly walkInRequestKey = signal('');
   protected readonly walkInProfilesLoading = signal(false);
   protected readonly walkInSlotsLoading = signal(false);
   protected readonly walkInRegistration = signal(false);
   protected readonly walkInTemporaryProfile = signal(false);
   protected readonly walkInNeedsPasswordChange = signal(false);
+  protected readonly walkInProfileNeedsCompletion = signal(false);
   protected readonly walkInOtp = signal('');
   protected readonly registrationFullName = signal('');
   protected readonly registrationDateOfBirth = signal('');
@@ -53,10 +60,23 @@ export class ReceptionCheckIn implements OnInit {
   protected readonly registrationNationality = signal('Việt Nam');
   protected readonly registrationEthnicity = signal('Kinh');
   protected readonly registrationAddress = signal('');
+  protected readonly registrationProvinceCode = signal('');
+  protected readonly registrationProvinceName = signal('');
+  protected readonly registrationDistrictCode = signal('');
+  protected readonly registrationDistrictName = signal('');
+  protected readonly registrationWardCode = signal('');
+  protected readonly registrationWardName = signal('');
+  protected readonly registrationStreetAddress = signal('');
+  protected readonly registrationProvinces = signal<VietnamAddressUnit[]>([]);
+  protected readonly registrationDistricts = signal<VietnamAddressUnit[]>([]);
+  protected readonly registrationWards = signal<VietnamAddressUnit[]>([]);
+  protected readonly registrationAddressLoading = signal(false);
   protected readonly registrationOtpSent = signal(false);
   protected readonly registrationLoading = signal(false);
   protected readonly activationPassword = signal('');
   protected readonly activationConfirmPassword = signal('');
+  protected readonly activationOtp = signal('');
+  protected readonly activationOtpSent = signal(false);
   protected readonly activationLoading = signal(false);
   protected readonly doctors = signal<ReceptionDoctorOption[]>([]);
   protected readonly adjustmentTicket = signal<ReceptionAppointmentResponse | null>(null);
@@ -64,6 +84,7 @@ export class ReceptionCheckIn implements OnInit {
   protected readonly adjustmentReason = signal('');
   protected readonly adjustmentLoading = signal(false);
   protected readonly rebookTicket = signal<ReceptionAppointmentResponse | null>(null);
+  protected readonly rebookMode = signal<'LATE' | 'ABSENT'>('ABSENT');
   protected readonly rebookDate = signal(clinicTodayIso());
   protected readonly rebookSlots = signal<AppointmentSlotResponse[]>([]);
   protected readonly rebookStartTime = signal('');
@@ -73,6 +94,7 @@ export class ReceptionCheckIn implements OnInit {
 
   ngOnInit(): void {
     this.query.set('');
+    interval(3000).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.refreshSearch());
   }
 
   protected search(): void {
@@ -102,6 +124,15 @@ export class ReceptionCheckIn implements OnInit {
     });
   }
 
+  private refreshSearch(): void {
+    const value = this.query().trim();
+    if (!this.searched() || value.length < 3 || this.loading() || this.walkInOpen()) return;
+    this.authApi.searchReceptionAppointments(value, this.selectedDate()).subscribe({
+      next: (appointments) => this.appointments.set(appointments),
+      error: (response) => this.handleError(response),
+    });
+  }
+
   protected hasAbsentAppointments(): boolean {
     return this.appointments().some((appointment) => appointment.status === 'ABSENT');
   }
@@ -124,6 +155,14 @@ export class ReceptionCheckIn implements OnInit {
       },
       error: (response) => {
         this.busyId.set('');
+        const errorCode = typeof response?.error === 'object' && response.error !== null
+          ? response.error.code
+          : undefined;
+        if (errorCode === 'QUEUE_LATE_APPOINTMENT') {
+          this.openRebook(appointment);
+          this.notice.set('Lịch đã quá giờ check-in; hãy chọn khung giờ thay thế cho người bệnh.');
+          return;
+        }
         this.handleError(response);
       },
     });
@@ -157,6 +196,29 @@ export class ReceptionCheckIn implements OnInit {
     });
   }
 
+  protected markFacilityUnavailable(appointment: ReceptionAppointmentResponse): void {
+    if (!this.canAdjustQueue() || !appointment.queueTicketId) return;
+    const reason = this.exceptionReason().trim();
+    if (reason.length < 10) {
+      this.error.set('Nhập lý do cơ sở tạm dừng phục vụ (ít nhất 10 ký tự).');
+      return;
+    }
+    this.busyId.set(appointment.id);
+    this.error.set('');
+    this.notice.set('');
+    this.authApi.markReceptionFacilityUnavailable(appointment.id, reason).subscribe({
+      next: (updated) => {
+        this.appointments.update((items) => items.map((item) => item.id === updated.id ? updated : item));
+        this.busyId.set('');
+        this.notice.set(`Đã ghi nhận cơ sở tạm dừng phục vụ cho ${updated.patientName}.`);
+      },
+      error: (response) => {
+        this.busyId.set('');
+        this.handleError(response);
+      },
+    });
+  }
+
   protected openAdjustment(appointment: ReceptionAppointmentResponse): void {
     if (appointment.queueStatus !== 'WAITING' || !appointment.queueTicketId) return;
     this.adjustmentTicket.set(appointment);
@@ -172,8 +234,9 @@ export class ReceptionCheckIn implements OnInit {
   }
 
   protected openRebook(appointment: ReceptionAppointmentResponse): void {
-    if (appointment.status !== 'ABSENT') return;
+    if (appointment.status !== 'ABSENT' && appointment.status !== 'BOOKED') return;
     this.rebookTicket.set(appointment);
+    this.rebookMode.set(appointment.status === 'BOOKED' ? 'LATE' : 'ABSENT');
     this.rebookDate.set(clinicTodayIso());
     this.rebookStartTime.set('');
     this.rebookReason.set('');
@@ -196,7 +259,7 @@ export class ReceptionCheckIn implements OnInit {
     this.rebookSlotsLoading.set(true);
     this.authApi.getAppointmentSlots(appointment.specialty, date, date).subscribe({
       next: (slots) => {
-        const available = slots.filter((slot) => !!slot.doctorId && slot.remainingCapacity > 0);
+        const available = slots.filter((slot) => !!slot.doctorId);
         this.rebookSlots.set(available);
         this.rebookStartTime.set(available[0]?.startTime ?? '');
         this.rebookSlotsLoading.set(false);
@@ -216,23 +279,33 @@ export class ReceptionCheckIn implements OnInit {
       this.error.set('Chọn một khung giờ còn trống.');
       return;
     }
-    if (reason.length < 10) {
-      this.error.set('Nhập lý do người bệnh quay lại (tối thiểu 10 ký tự).');
+    const minimumReasonLength = this.rebookMode() === 'LATE' ? 3 : 10;
+    if (reason.length < minimumReasonLength) {
+      this.error.set(`Nhập lý do (tối thiểu ${minimumReasonLength} ký tự).`);
       return;
     }
     this.rebookLoading.set(true);
     this.error.set('');
-    this.authApi.rebookReceptionAppointment(appointment.id, {
+    const request = {
       doctorId: slot.doctorId,
       appointmentDate: this.rebookDate(),
       startTime: slot.startTime,
       lateReason: reason,
-    }).subscribe({
-      next: (created) => {
+    };
+    const operation = this.rebookMode() === 'LATE'
+      ? this.authApi.rescheduleLateReceptionAppointment(appointment.id, request)
+      : this.authApi.rebookReceptionAppointment(appointment.id, request);
+    operation.subscribe({
+      next: (updated) => {
         this.rebookLoading.set(false);
         this.rebookTicket.set(null);
-        this.appointments.update((items) => [created, ...items]);
-        this.notice.set(`Đã tạo lịch mới ${created.appointmentCode} cho ${created.patientName}.`);
+        this.appointments.update((items) => items.map((item) => item.id === updated.id ? updated : item));
+        if (this.rebookMode() === 'LATE') {
+          this.notice.set(`Đã chuyển lịch ${updated.appointmentCode} sang khung giờ mới cho ${updated.patientName}.`);
+        } else {
+          this.appointments.update((items) => [updated, ...items]);
+          this.notice.set(`Đã tạo lịch mới ${updated.appointmentCode} cho ${updated.patientName}.`);
+        }
       },
       error: (response) => {
         this.rebookLoading.set(false);
@@ -300,6 +373,7 @@ export class ReceptionCheckIn implements OnInit {
 
   protected openWalkIn(): void {
     this.walkInOpen.set(true);
+    this.walkInRequestKey.set('');
     this.walkInPhone.set('');
     this.walkInDate.set(clinicTodayIso());
     this.walkInProfiles.set([]);
@@ -312,6 +386,7 @@ export class ReceptionCheckIn implements OnInit {
     this.walkInRegistration.set(false);
     this.walkInTemporaryProfile.set(false);
     this.walkInNeedsPasswordChange.set(false);
+    this.walkInProfileNeedsCompletion.set(false);
     this.walkInOtp.set('');
     this.registrationFullName.set('');
     this.registrationDateOfBirth.set('');
@@ -320,9 +395,18 @@ export class ReceptionCheckIn implements OnInit {
     this.registrationNationality.set('Việt Nam');
     this.registrationEthnicity.set('Kinh');
     this.registrationAddress.set('');
+    this.registrationProvinceCode.set('');
+    this.registrationProvinceName.set('');
+    this.registrationDistrictCode.set('');
+    this.registrationDistrictName.set('');
+    this.registrationWardCode.set('');
+    this.registrationWardName.set('');
+    this.registrationStreetAddress.set('');
     this.registrationOtpSent.set(false);
     this.activationPassword.set('');
     this.activationConfirmPassword.set('');
+    this.activationOtp.set('');
+    this.activationOtpSent.set(false);
     this.error.set('');
     if (this.walkInSpecialties().length === 0) {
       this.authApi.getSpecialties().subscribe({
@@ -333,7 +417,10 @@ export class ReceptionCheckIn implements OnInit {
   }
 
   protected closeWalkIn(): void {
-    if (!this.walkInLoading()) this.walkInOpen.set(false);
+    if (!this.walkInLoading()) {
+      this.walkInRequestKey.set('');
+      this.walkInOpen.set(false);
+    }
   }
 
   protected openTemporaryProfileForm(): void {
@@ -413,6 +500,13 @@ export class ReceptionCheckIn implements OnInit {
       nationality: this.registrationNationality().trim() || undefined,
       ethnicity: this.registrationEthnicity().trim() || undefined,
       address: this.registrationAddress().trim() || undefined,
+      provinceCode: this.registrationProvinceCode() || undefined,
+      provinceName: this.registrationProvinceName() || undefined,
+      districtCode: this.registrationDistrictCode() || undefined,
+      districtName: this.registrationDistrictName() || undefined,
+      wardCode: this.registrationWardCode() || undefined,
+      wardName: this.registrationWardName() || undefined,
+      streetAddress: this.registrationStreetAddress().trim() || undefined,
     }).subscribe({
       next: (response) => {
         this.registrationLoading.set(false);
@@ -430,8 +524,8 @@ export class ReceptionCheckIn implements OnInit {
   protected activatePendingAccount(): void {
     const phone = this.walkInPhone().trim();
     const password = this.activationPassword();
-    if (!/^0\d{9}$/.test(phone) || password.length < 8 || password.length > 64) {
-      this.error.set('Mật khẩu mới phải dài từ 8 đến 64 ký tự.');
+    if (!/^0\d{9}$/.test(phone) || !/^\d{6}$/.test(this.activationOtp()) || password.length < 8 || password.length > 64) {
+      this.error.set('Nhập mã OTP 6 số và mật khẩu mới từ 8 đến 64 ký tự.');
       return;
     }
     if (password !== this.activationConfirmPassword()) {
@@ -440,11 +534,13 @@ export class ReceptionCheckIn implements OnInit {
     }
     this.activationLoading.set(true);
     this.error.set('');
-    this.authApi.activateReceptionPatientAccount(phone, password, this.activationConfirmPassword()).subscribe({
+    this.authApi.activateReceptionPatientAccount(phone, this.activationOtp(), password, this.activationConfirmPassword()).subscribe({
       next: () => {
         this.activationLoading.set(false);
         this.activationPassword.set('');
         this.activationConfirmPassword.set('');
+        this.activationOtp.set('');
+        this.activationOtpSent.set(false);
         this.walkInNeedsPasswordChange.set(false);
         this.notice.set('Đã kích hoạt tài khoản. Có thể tiếp tục tiếp nhận.');
         this.loadWalkInProfiles();
@@ -467,7 +563,9 @@ export class ReceptionCheckIn implements OnInit {
     this.authApi.getReceptionProfiles(phone).subscribe({
       next: (profiles) => {
         this.walkInProfiles.set(profiles);
-        this.walkInProfileId.set(profiles.find((profile) => profile.primaryProfile)?.id ?? profiles[0]?.id ?? '');
+        const selected = profiles.find((profile) => profile.primaryProfile) ?? profiles[0];
+        this.walkInProfileId.set(selected?.id ?? '');
+        this.prepareProfileCompletion(selected);
         if (profiles.some((profile) => profile.mustChangePassword || profile.accountStatus === 'LOCKED')) {
           this.walkInNeedsPasswordChange.set(true);
           this.notice.set(profiles.some((profile) => profile.accountStatus === 'LOCKED')
@@ -519,12 +617,17 @@ export class ReceptionCheckIn implements OnInit {
     const reason = this.walkInReason().trim();
     const exceptionReason = this.walkInExceptionReason().trim();
     const temporaryProfile = this.temporaryProfileSelected();
+    const overCapacity = (slot?.remainingCapacity ?? 0) <= 0;
     if (!/^0\d{9}$/.test(phone)) {
       this.error.set('Nhập số điện thoại hợp lệ trước khi tiếp nhận.');
       return;
     }
     if (!slot?.doctorId) {
       this.error.set('Chọn một khung giờ còn trống.');
+      return;
+    }
+    if (overCapacity && !temporaryProfile && exceptionReason.length < 10) {
+      this.error.set('Nhập lý do nhận ngoài công suất (từ 10 đến 500 ký tự).');
       return;
     }
     if (reason.length < 3 || exceptionReason.length < (temporaryProfile ? 10 : 3)) {
@@ -535,6 +638,8 @@ export class ReceptionCheckIn implements OnInit {
     }
     this.walkInLoading.set(true);
     this.error.set('');
+    const requestKey = this.walkInRequestKey() || `walk-in-${crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`}`;
+    this.walkInRequestKey.set(requestKey);
     this.authApi.createReceptionWalkIn({
       phone,
       profileId: this.walkInProfileId() || null,
@@ -543,9 +648,11 @@ export class ReceptionCheckIn implements OnInit {
       startTime: slot.startTime,
       reason,
       exceptionReason,
-    }).subscribe({
+      ...(overCapacity ? { overCapacity: true } : {}),
+    }, requestKey).subscribe({
       next: (appointment) => {
         this.walkInLoading.set(false);
+        this.walkInRequestKey.set('');
         this.walkInOpen.set(false);
         this.appointments.update((items) => [appointment, ...items]);
         this.notice.set(`Đã tạo lịch và cấp số ${String(appointment.queueNumber).padStart(2, '0')} cho ${appointment.patientName}.`);
@@ -555,6 +662,139 @@ export class ReceptionCheckIn implements OnInit {
         this.handleError(response);
       },
     });
+  }
+
+  private prepareProfileCompletion(profile: ReceptionPatientProfile | undefined): void {
+    if (!profile || profile.accountStatus !== 'ACTIVE' || profile.mustChangePassword) {
+      this.walkInProfileNeedsCompletion.set(false);
+      return;
+    }
+    this.registrationFullName.set(profile.fullName ?? '');
+    this.registrationDateOfBirth.set(profile.dateOfBirth ?? '');
+    this.registrationGender.set(profile.gender ?? '');
+    this.registrationIdentityNumber.set(profile.identityNumber ?? '');
+    this.registrationNationality.set(profile.nationality ?? '');
+    this.registrationEthnicity.set(profile.ethnicity ?? '');
+    this.registrationAddress.set(profile.streetAddress ?? profile.address ?? '');
+    this.registrationProvinceCode.set(profile.provinceCode ?? '');
+    this.registrationProvinceName.set(profile.provinceName ?? '');
+    this.registrationDistrictCode.set(profile.districtCode ?? '');
+    this.registrationDistrictName.set(profile.districtName ?? '');
+    this.registrationWardCode.set(profile.wardCode ?? '');
+    this.registrationWardName.set(profile.wardName ?? '');
+    this.registrationStreetAddress.set(profile.streetAddress ?? '');
+    this.walkInProfileNeedsCompletion.set([
+      profile.fullName, profile.dateOfBirth, profile.gender, profile.identityNumber,
+      profile.nationality, profile.ethnicity, profile.provinceCode, profile.districtCode,
+      profile.wardCode, profile.streetAddress,
+    ].some((value) => !value || !String(value).trim()));
+    if (profile.provinceCode) {
+      this.addressApi.getDistricts(profile.provinceCode).subscribe((items) => this.registrationDistricts.set(items));
+    }
+    if (profile.districtCode) {
+      this.addressApi.getWards(profile.districtCode).subscribe((items) => this.registrationWards.set(items));
+    }
+    if (this.registrationProvinces().length === 0) {
+      this.addressApi.getProvinces().subscribe((items) => this.registrationProvinces.set(items));
+    }
+  }
+
+  protected selectWalkInProfile(profileId: string): void {
+    this.walkInProfileId.set(profileId);
+    this.prepareProfileCompletion(this.walkInProfiles().find((profile) => profile.id === profileId));
+  }
+
+  protected submitProfileCompletion(): void {
+    const profileId = this.walkInProfileId();
+    if (!profileId) return;
+    if (this.registrationFullName().trim().length < 2 || !this.registrationDateOfBirth() || !this.registrationGender()) {
+      this.error.set('Bổ sung họ tên, ngày sinh và giới tính trước khi tiếp nhận.');
+      return;
+    }
+    this.registrationLoading.set(true);
+    this.error.set('');
+    this.authApi.updateReceptionPatientProfile(profileId, {
+      fullName: this.registrationFullName().trim(), dateOfBirth: this.registrationDateOfBirth(),
+      gender: this.registrationGender(), identityNumber: this.registrationIdentityNumber().trim(),
+      nationality: this.registrationNationality().trim(), ethnicity: this.registrationEthnicity().trim(),
+      address: this.registrationAddress().trim(),
+      provinceCode: this.registrationProvinceCode(), provinceName: this.registrationProvinceName(),
+      districtCode: this.registrationDistrictCode(), districtName: this.registrationDistrictName(),
+      wardCode: this.registrationWardCode(), wardName: this.registrationWardName(),
+      streetAddress: this.registrationStreetAddress().trim(),
+    }).subscribe({
+      next: (profile) => {
+        this.registrationLoading.set(false);
+        this.walkInProfiles.update((items) => items.map((item) => item.id === profile.id ? profile : item));
+        this.walkInProfileNeedsCompletion.set(false);
+        this.notice.set(`Đã bổ sung hồ sơ cho ${profile.fullName}.`);
+      },
+      error: (response) => {
+        this.registrationLoading.set(false);
+        this.handleError(response);
+      },
+    });
+  }
+
+  protected requestActivationOtp(): void {
+    const phone = this.walkInPhone().trim();
+    if (!/^0\d{9}$/.test(phone)) {
+      this.error.set('Nhập số điện thoại hợp lệ trước khi gửi OTP.');
+      return;
+    }
+    this.activationLoading.set(true);
+    this.error.set('');
+    this.authApi.requestReceptionPatientOtp(phone).subscribe({
+      next: () => {
+        this.activationLoading.set(false);
+        this.activationOtpSent.set(true);
+        this.notice.set('Đã gửi mã OTP kích hoạt qua SMS.');
+      },
+      error: (response) => {
+        this.activationLoading.set(false);
+        this.handleError(response);
+      },
+    });
+  }
+
+  protected registrationProvinceChanged(): void {
+    const province = this.registrationProvinces().find((item) => String(item.code) === this.registrationProvinceCode());
+    this.registrationProvinceName.set(province?.name ?? '');
+    this.registrationDistrictCode.set('');
+    this.registrationDistrictName.set('');
+    this.registrationWardCode.set('');
+    this.registrationWardName.set('');
+    this.registrationDistricts.set([]);
+    this.registrationWards.set([]);
+    if (this.registrationProvinceCode()) {
+      this.registrationAddressLoading.set(true);
+      this.addressApi.getDistricts(this.registrationProvinceCode()).subscribe({
+        next: (items) => this.registrationDistricts.set(items),
+        complete: () => this.registrationAddressLoading.set(false),
+        error: () => this.registrationAddressLoading.set(false),
+      });
+    }
+  }
+
+  protected registrationDistrictChanged(): void {
+    const district = this.registrationDistricts().find((item) => String(item.code) === this.registrationDistrictCode());
+    this.registrationDistrictName.set(district?.name ?? '');
+    this.registrationWardCode.set('');
+    this.registrationWardName.set('');
+    this.registrationWards.set([]);
+    if (this.registrationDistrictCode()) {
+      this.registrationAddressLoading.set(true);
+      this.addressApi.getWards(this.registrationDistrictCode()).subscribe({
+        next: (items) => this.registrationWards.set(items),
+        complete: () => this.registrationAddressLoading.set(false),
+        error: () => this.registrationAddressLoading.set(false),
+      });
+    }
+  }
+
+  protected registrationWardChanged(): void {
+    const ward = this.registrationWards().find((item) => String(item.code) === this.registrationWardCode());
+    this.registrationWardName.set(ward?.name ?? '');
   }
 
   protected formatTime(value: string): string {

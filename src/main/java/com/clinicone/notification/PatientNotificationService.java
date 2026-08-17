@@ -1,5 +1,6 @@
 package com.clinicone.notification;
 
+import com.clinicone.auth.AuthenticatedIds;
 import com.clinicone.auth.AuthException;
 import com.clinicone.auth.PatientAccountRepository;
 import org.springframework.http.HttpStatus;
@@ -42,7 +43,7 @@ public class PatientNotificationService {
 
     @Transactional(readOnly = true)
     public List<PatientNotificationResponse> list(String accountId) {
-        UUID patientId = parseAccountId(accountId);
+        UUID patientId = AuthenticatedIds.patient(accountId);
         com.clinicone.auth.PatientAccount account = accountRepository == null
                 ? null : accountRepository.findById(patientId).orElse(null);
         boolean locked = account != null && account.getStatus() == com.clinicone.auth.AccountStatus.LOCKED;
@@ -59,12 +60,12 @@ public class PatientNotificationService {
 
     @Transactional(readOnly = true)
     public long unreadCount(String accountId) {
-        return repository.countByPatientAccountIdAndReadAtIsNull(parseAccountId(accountId));
+        return repository.countByPatientAccountIdAndReadAtIsNull(AuthenticatedIds.patient(accountId));
     }
 
     @Transactional
     public void markRead(String accountId, String notificationId) {
-        UUID patientId = parseAccountId(accountId);
+        UUID patientId = AuthenticatedIds.patient(accountId);
         UUID id;
         try {
             id = UUID.fromString(notificationId);
@@ -186,15 +187,6 @@ public class PatientNotificationService {
         }
         return "ClinicOne: " + notification.getTitle() + ". " + notification.getMessage()
                 + " Mở ứng dụng ClinicOne để xem.";
-    }
-
-    private UUID parseAccountId(String accountId) {
-        try {
-            return UUID.fromString(accountId);
-        } catch (IllegalArgumentException exception) {
-            throw new AuthException(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_REQUIRED",
-                    "Phiên đăng nhập không hợp lệ.");
-        }
     }
 
     private AuthException notFound() {

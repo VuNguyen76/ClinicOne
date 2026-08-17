@@ -13,6 +13,6 @@ public record ReceptionRebookRequest(
         @NotNull UUID doctorId,
         @NotNull @FutureOrPresent LocalDate appointmentDate,
         @NotNull LocalTime startTime,
-        @NotBlank @Size(min = 10, max = 500) String lateReason
+        @NotBlank @Size(min = 3, max = 500) String lateReason
 ) {
 }

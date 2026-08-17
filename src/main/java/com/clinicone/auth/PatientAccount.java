@@ -1,5 +1,7 @@
 package com.clinicone.auth;
 
+import lombok.Getter;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -18,6 +20,7 @@ import java.time.LocalDate;
 import java.util.UUID;
 import java.util.stream.Stream;
 
+@Getter
 @Entity
 @Table(name = "patient_accounts")
 public class PatientAccount {
@@ -236,26 +239,4 @@ public class PatientAccount {
                 .orElse(null);
     }
 
-    public UUID getId() { return id; }
-    public String getPhone() { return phone; }
-    public String getPasswordHash() { return passwordHash; }
-    public String getFullName() { return fullName; }
-    public LocalDate getDateOfBirth() { return dateOfBirth; }
-    public String getGender() { return gender; }
-    public String getAddress() { return address; }
-    public String getIdentityNumber() { return identityNumber; }
-    public String getNationality() { return nationality; }
-    public String getEthnicity() { return ethnicity; }
-    public String getProvinceCode() { return provinceCode; }
-    public String getProvinceName() { return provinceName; }
-    public String getDistrictCode() { return districtCode; }
-    public String getDistrictName() { return districtName; }
-    public String getWardCode() { return wardCode; }
-    public String getWardName() { return wardName; }
-    public String getStreetAddress() { return streetAddress; }
-    public AccountStatus getStatus() { return status; }
-    public boolean isMustChangePassword() { return mustChangePassword; }
-    public int getFailedPasswordAttempts() { return failedPasswordAttempts; }
-    public Instant getPasswordFailureWindowStartedAt() { return passwordFailureWindowStartedAt; }
-    public Instant getLockedUntil() { return lockedUntil; }
 }

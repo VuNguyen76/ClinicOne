@@ -40,6 +40,9 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
                 LoginSession session = repository
                         .findByTokenHashAndRevokedAtIsNullAndExpiresAtAfter(AccountAuthService.hashToken(token), Instant.now(clock))
                         .orElse(null);
+                if (session != null) {
+                    request.setAttribute("clinicOneLoginSessionId", session.getId().toString());
+                }
                 if (session != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                     var authentication = UsernamePasswordAuthenticationToken.authenticated(
                             session.getAccountId().toString(), null,

@@ -35,8 +35,14 @@ class DoctorManagementServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new DoctorManagementService(staffRepository, profileRepository, scheduleRepository,
-                roomRepository, specialtyCatalog, passwordEncoder);
+        service = DoctorManagementService.builder()
+                .staffRepository(staffRepository)
+                .profileRepository(profileRepository)
+                .scheduleRepository(scheduleRepository)
+                .roomRepository(roomRepository)
+                .specialtyCatalog(specialtyCatalog)
+                .passwordEncoder(passwordEncoder)
+                .build();
     }
 
     @Test

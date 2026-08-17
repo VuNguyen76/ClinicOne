@@ -1,5 +1,7 @@
 package com.clinicone.auth;
 
+import lombok.RequiredArgsConstructor;
+
 import com.clinicone.audit.AccessAuditService;
 import jakarta.validation.constraints.NotNull;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,16 +21,12 @@ import java.util.UUID;
 import jakarta.validation.Valid;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/staff")
 @PreAuthorize("hasRole('ADMIN')")
 public class StaffManagementController {
     private final StaffManagementService service;
     private final AccessAuditService accessAuditService;
-
-    public StaffManagementController(StaffManagementService service, AccessAuditService accessAuditService) {
-        this.service = service;
-        this.accessAuditService = accessAuditService;
-    }
 
     @GetMapping
     public ResponseEntity<List<StaffAccountResponse>> list() {

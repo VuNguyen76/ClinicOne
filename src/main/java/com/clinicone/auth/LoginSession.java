@@ -1,5 +1,7 @@
 package com.clinicone.auth;
 
+import lombok.Getter;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -11,6 +13,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.time.Instant;
 import java.util.UUID;
 
+@Getter
 @Entity
 @Table(name = "login_sessions")
 public class LoginSession {
@@ -57,10 +60,5 @@ public class LoginSession {
     }
 
     public void revoke(Instant now) { revokedAt = now; }
-    public UUID getAccountId() { return accountId; }
-    public String getTokenHash() { return tokenHash; }
-    public Instant getIssuedAt() { return issuedAt; }
-    public Instant getExpiresAt() { return expiresAt; }
-    public Instant getRevokedAt() { return revokedAt; }
     public String getRole() { return role == null || role.isBlank() ? "ROLE_PATIENT" : role; }
 }

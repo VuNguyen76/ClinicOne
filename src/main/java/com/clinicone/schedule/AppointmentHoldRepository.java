@@ -17,6 +17,10 @@ public interface AppointmentHoldRepository extends JpaRepository<AppointmentHold
 
     Optional<AppointmentHold> findByIdAndPatientId(UUID id, UUID patientId);
 
+    List<AppointmentHold> findByPatientIdAndExpiresAtAfter(UUID patientId, Instant now);
+
+    List<AppointmentHold> findByPatientIdAndSessionKeyAndExpiresAtAfter(UUID patientId, String sessionKey, Instant now);
+
     List<AppointmentHold> findByExpiresAtLessThanEqual(Instant expiresAt);
 
     @Query("""
