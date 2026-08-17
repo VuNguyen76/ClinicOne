@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
-import { RouterLink, Router } from '@angular/router';
+import { Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
-import { AccountMenu } from '../../shared/account-menu/account-menu';
+import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
 import { clinicTodayIso } from '../../core/time/clinic-time';
 import {
   ApiErrorResponse,
@@ -16,7 +16,7 @@ type QueueAction = 'skip' | 'start';
 @Component({
   selector: 'app-staff-dashboard',
   standalone: true,
-  imports: [RouterLink, MatIconModule, AccountMenu],
+  imports: [MatIconModule, StaffWorkspaceShell],
   templateUrl: './staff-dashboard.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -239,11 +239,19 @@ export class StaffDashboard implements OnInit, OnDestroy {
   }
 
   protected statusClass(status: string): string {
-    if (status === 'CALLED') return 'bg-amber-50 text-amber-700';
-    if (status === 'IN_SERVICE') return 'bg-violet-50 text-violet-700';
-    if (status === 'COMPLETED') return 'bg-emerald-50 text-emerald-700';
-    if (status === 'SKIPPED') return 'bg-slate-100 text-slate-600';
-    return 'bg-sky-50 text-sky-700';
+    if (status === 'CALLED') return 'erp-badge-warning';
+    if (status === 'IN_SERVICE') return 'erp-badge-info';
+    if (status === 'COMPLETED') return 'erp-badge-success';
+    if (status === 'SKIPPED') return 'erp-badge-neutral';
+    return 'erp-badge-info';
+  }
+
+  protected statusDotClass(status: string): string {
+    if (status === 'CALLED') return 'erp-dot-warning';
+    if (status === 'IN_SERVICE') return 'erp-dot-info';
+    if (status === 'COMPLETED') return 'erp-dot-success';
+    if (status === 'SKIPPED') return 'erp-dot-neutral';
+    return 'erp-dot-info';
   }
 
   private handleError(response: { status?: number } & ApiErrorResponse): void {

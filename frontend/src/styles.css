@@ -1,3 +1,22 @@
+@theme {
+  --color-clinic-teal-900: #071f29;
+  --color-clinic-teal-800: #0a303b;
+  --color-clinic-teal-700: #0e3d48;
+  --color-clinic-teal-600: #124f5e;
+  --color-clinic-teal-500: #166072;
+  --color-clinic-teal-100: #d9edf2;
+  --color-clinic-teal-50: #f0f7f9;
+  --color-clinic-cyan-600: #0284c7;
+  --color-clinic-cyan-500: #0ea5e9;
+  --color-clinic-cyan-hover: #0369a1;
+  --color-clinic-cyan-soft: #e0f2fe;
+  --color-clinic-slate-bg: #f8fafc;
+  --color-clinic-slate-panel: #ffffff;
+  --color-clinic-slate-muted: #f1f5f9;
+  --color-clinic-border: #e2e8f0;
+  --color-clinic-border-strong: #cbd5e1;
+}
+
 :root {
   color-scheme: light;
   font-family: "Be Vietnam Pro", Roboto, "Helvetica Neue", sans-serif;
@@ -20,6 +39,22 @@
   --mat-sys-outline: #94a3b8;
   --mat-sys-outline-variant: var(--color-border);
   --mat-sys-error: #ba1a1a;
+
+  /* Enterprise ERP Design Tokens */
+  --erp-brand-teal: #0e3d48;
+  --erp-brand-teal-dark: #071f29;
+  --erp-brand-teal-800: #0a303b;
+  --erp-brand-teal-hover: #124f5e;
+  --erp-brand-teal-light: #164e5b;
+  --erp-brand-teal-50: #f0f7f9;
+  --erp-brand-cyan: #0284c7;
+  --erp-brand-cyan-hover: #0369a1;
+  --erp-brand-cyan-soft: #e0f2fe;
+  --erp-slate-bg: #f8fafc;
+  --erp-slate-surface: #ffffff;
+  --erp-slate-muted: #f1f5f9;
+  --erp-border: #e2e8f0;
+  --erp-border-strong: #cbd5e1;
 }
 
 html,
@@ -34,6 +69,32 @@ body {
   font-family: inherit;
 }
 
+/* Keep every staff and patient screen on one icon family. The old Material
+ * Icons font renders newer ligatures such as clinical_notes as plain text. */
+.mat-icon {
+  font-family: "Material Symbols Outlined" !important;
+  font-weight: 450;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: "liga";
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "liga";
+  font-variation-settings: "FILL" 0, "wght" 450, "GRAD" 0, "opsz" 20;
+}
+
+/* Legacy staff pages can stay functional while they are progressively moved
+ * into the shared ERP shell; never show a second header inside that shell. */
+app-staff-workspace-shell .staff-legacy-page > header {
+  display: none;
+}
+
 *,
 *::before,
 *::after {
@@ -45,6 +106,660 @@ input {
   font: inherit;
 }
 
+/* ==========================================================================
+   Enterprise ERP Design System & Utility Classes (Milestone 1)
+   Inspired by modern ERP frameworks (iDempiere, ZK Framework, SAP Fiori)
+   ========================================================================== */
+
+/* 1. High-Density Compact Data Table (36px Row Height Standard) */
+.erp-table-container {
+  overflow-x: auto;
+  border-radius: 0.5rem;
+  border: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.erp-table {
+  width: 100%;
+  min-width: 600px;
+  text-align: left;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  border-collapse: collapse;
+}
+
+.erp-table th,
+.erp-th {
+  height: 2.25rem; /* 36px */
+  padding: 0.375rem 0.75rem;
+  text-align: left;
+  font-size: 0.75rem; /* 12px */
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #475569;
+  background-color: rgba(241, 245, 249, 0.95);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+  vertical-align: middle;
+  backdrop-filter: blur(4px);
+}
+
+.erp-table tr,
+.erp-tr {
+  height: 2.25rem; /* 36px */
+  border-bottom: 1px solid #f1f5f9;
+  transition: background-color 150ms ease-in-out;
+}
+
+.erp-table tbody tr:hover,
+.erp-tr:hover {
+  background-color: rgba(248, 250, 252, 0.9);
+}
+
+.erp-table td,
+.erp-td {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem; /* 14px */
+  color: #334155;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.erp-table-code,
+.erp-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  color: #0f172a;
+}
+
+/* 2. Enterprise Button Hierarchy */
+.erp-btn-primary {
+  display: inline-flex;
+  min-height: 2.25rem; /* 36px */
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  border-radius: 0.375rem;
+  border: 1px solid transparent;
+  background-color: #0e3d48;
+  padding: 0.375rem 0.875rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #ffffff;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease, transform 100ms ease;
+  user-select: none;
+}
+
+.erp-btn-primary:hover:not(:disabled) {
+  background-color: #124f5e;
+}
+
+.erp-btn-primary:active:not(:disabled) {
+  background-color: #0a303b;
+  transform: translateY(1px);
+}
+
+.erp-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.erp-btn-secondary {
+  display: inline-flex;
+  min-height: 2.25rem; /* 36px */
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  border-radius: 0.375rem;
+  border: 1px solid #cbd5e1;
+  background-color: #ffffff;
+  padding: 0.375rem 0.875rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #334155;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+  user-select: none;
+}
+
+.erp-btn-secondary:hover:not(:disabled) {
+  background-color: #f8fafc;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.erp-btn-secondary:active:not(:disabled) {
+  background-color: #f1f5f9;
+}
+
+.erp-btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.erp-btn-accent {
+  display: inline-flex;
+  min-height: 2.25rem; /* 36px */
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  border-radius: 0.375rem;
+  border: 1px solid transparent;
+  background-color: #0284c7;
+  padding: 0.375rem 0.875rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #ffffff;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease;
+  user-select: none;
+}
+
+.erp-btn-accent:hover:not(:disabled) {
+  background-color: #0369a1;
+}
+
+.erp-btn-accent:active:not(:disabled) {
+  background-color: #075985;
+}
+
+.erp-btn-accent:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.erp-btn-danger {
+  display: inline-flex;
+  min-height: 2.25rem; /* 36px */
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  border-radius: 0.375rem;
+  border: 1px solid #fecdd3;
+  background-color: #fff1f2;
+  padding: 0.375rem 0.875rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #be123c;
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease;
+  user-select: none;
+}
+
+.erp-btn-danger:hover:not(:disabled) {
+  background-color: #ffe4e6;
+  border-color: #fda4af;
+}
+
+.erp-btn-danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.erp-btn-icon {
+  display: inline-flex;
+  height: 2rem; /* 32px */
+  width: 2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.375rem;
+  border: 1px solid transparent;
+  color: #64748b;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
+  user-select: none;
+}
+
+.erp-btn-icon:hover:not(:disabled) {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+.erp-btn-icon:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.erp-btn-icon-accent {
+  display: inline-flex;
+  height: 2rem;
+  width: 2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.375rem;
+  border: 1px solid transparent;
+  color: #0284c7;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.erp-btn-icon-accent:hover:not(:disabled) {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+
+.erp-btn-icon-danger {
+  display: inline-flex;
+  height: 2rem;
+  width: 2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.375rem;
+  border: 1px solid transparent;
+  color: #f43f5e;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.erp-btn-icon-danger:hover:not(:disabled) {
+  background-color: #ffe4e6;
+  color: #be123c;
+}
+
+/* 3. 5-Tier Status Badges */
+.erp-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: 9999px;
+  padding: 0.125rem 0.625rem;
+  font-size: 0.75rem; /* 12px */
+  font-weight: 600;
+  line-height: 1rem;
+  white-space: nowrap;
+  border-width: 1px;
+  border-style: solid;
+}
+
+.erp-badge-success {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: 9999px;
+  border: 1px solid #a7f3d0;
+  background-color: #ecfdf5;
+  padding: 0.125rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #047857;
+  white-space: nowrap;
+}
+
+.erp-badge-warning {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: 9999px;
+  border: 1px solid #fde68a;
+  background-color: #fffbeb;
+  padding: 0.125rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #b45309;
+  white-space: nowrap;
+}
+
+.erp-badge-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: 9999px;
+  border: 1px solid #bae6fd;
+  background-color: #f0f9ff;
+  padding: 0.125rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #0369a1;
+  white-space: nowrap;
+}
+
+.erp-badge-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: 9999px;
+  border: 1px solid #fecdd3;
+  background-color: #fff1f2;
+  padding: 0.125rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #be123c;
+  white-space: nowrap;
+}
+
+.erp-badge-neutral {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: 9999px;
+  border: 1px solid #e2e8f0;
+  background-color: #f1f5f9;
+  padding: 0.125rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #475569;
+  white-space: nowrap;
+}
+
+/* Status Indicator Dots */
+.erp-dot {
+  height: 0.375rem; /* 6px */
+  width: 0.375rem;
+  border-radius: 9999px;
+  flex-shrink: 0;
+}
+
+.erp-dot-success { height: 0.375rem; width: 0.375rem; border-radius: 9999px; flex-shrink: 0; background-color: #10b981; }
+.erp-dot-warning { height: 0.375rem; width: 0.375rem; border-radius: 9999px; flex-shrink: 0; background-color: #f59e0b; }
+.erp-dot-info { height: 0.375rem; width: 0.375rem; border-radius: 9999px; flex-shrink: 0; background-color: #0ea5e9; }
+.erp-dot-danger { height: 0.375rem; width: 0.375rem; border-radius: 9999px; flex-shrink: 0; background-color: #f43f5e; }
+.erp-dot-neutral { height: 0.375rem; width: 0.375rem; border-radius: 9999px; flex-shrink: 0; background-color: #94a3b8; }
+
+/* 4. Form Controls & Input Hierarchy */
+.erp-label {
+  display: block;
+  font-size: 0.8125rem; /* 13px */
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 0.25rem;
+}
+
+.erp-label-required {
+  color: #f43f5e;
+  font-style: normal;
+  margin-left: 0.125rem;
+}
+
+.erp-input {
+  min-height: 2.25rem; /* 36px */
+  width: 100%;
+  border-radius: 0.375rem;
+  border: 1px solid #cbd5e1;
+  background-color: #ffffff;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  color: #0f172a;
+  outline: none;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.erp-input::placeholder {
+  color: #94a3b8;
+}
+
+.erp-input:focus {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+}
+
+.erp-input:disabled {
+  background-color: #f1f5f9;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.erp-select {
+  min-height: 2.25rem; /* 36px */
+  width: 100%;
+  border-radius: 0.375rem;
+  border: 1px solid #cbd5e1;
+  background-color: #ffffff;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  color: #0f172a;
+  outline: none;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.erp-select:focus {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+}
+
+.erp-select:disabled {
+  background-color: #f1f5f9;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.erp-textarea {
+  width: 100%;
+  border-radius: 0.375rem;
+  border: 1px solid #cbd5e1;
+  background-color: #ffffff;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: #0f172a;
+  outline: none;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.erp-textarea::placeholder {
+  color: #94a3b8;
+}
+
+.erp-textarea:focus {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+}
+
+.erp-textarea:disabled {
+  background-color: #f1f5f9;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+/* 5. Toolbars, Cards & Filter Bars */
+.erp-card {
+  border-radius: 0.5rem;
+  border: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+}
+
+.erp-card-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  padding: 0.75rem 1rem;
+}
+
+.erp-kpi-card {
+  border-radius: 0.5rem;
+  border: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  padding: 0.875rem 1rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+}
+
+.erp-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  padding: 0.625rem 1rem;
+}
+
+.erp-filter-bar {
+  border-radius: 0.5rem;
+  border: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  padding: 0.75rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+}
+
+/* 6. Tabs & Multi-Tab Bars */
+.erp-tab-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-bottom: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  padding: 0 1rem;
+}
+
+.erp-tab-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom: 2px solid transparent;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #475569;
+  cursor: pointer;
+  transition: all 150ms ease;
+  user-select: none;
+}
+
+.erp-tab-item:hover {
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
+.erp-tab-item-active {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom: 2px solid #0284c7;
+  background-color: rgba(224, 242, 254, 0.4);
+  padding: 0.625rem 0.875rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #0e3d48;
+  user-select: none;
+}
+
+/* 7. Real-Time Indicators & Pulse Badges */
+.erp-realtime-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(167, 243, 208, 0.8);
+  background-color: #ecfdf5;
+  padding: 0.25rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #047857;
+}
+
+.erp-pulse-dot {
+  position: relative;
+  display: flex;
+  height: 0.5rem;
+  width: 0.5rem;
+}
+
+.erp-pulse-dot .pulse {
+  position: absolute;
+  display: inline-flex;
+  height: 100%;
+  width: 100%;
+  border-radius: 9999px;
+  background-color: #34d399;
+  opacity: 0.75;
+  animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.erp-pulse-dot .dot {
+  position: relative;
+  display: inline-flex;
+  height: 0.5rem;
+  width: 0.5rem;
+  border-radius: 9999px;
+  background-color: #10b981;
+}
+
+/* 8. Modals & Dialogs */
+.erp-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(7, 31, 41, 0.55);
+  padding: 1rem;
+  backdrop-filter: blur(2px);
+}
+
+.erp-modal-container {
+  width: 100%;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  background-color: #ffffff;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+}
+
+/* Staff workspaces use the full available canvas. Individual screens may still
+   choose their own internal columns, but the shell must not leave a narrow
+   centered strip on wide displays. */
+.erp-workspace-canvas > .mx-auto {
+  max-width: none;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+/* Operator screens should remain readable at normal desktop zoom. Keep the
+   dense ERP layout, but do not let utility classes collapse into tiny text. */
+.erp-workspace-canvas .text-\[10px\] {
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.erp-workspace-canvas .text-xs {
+  font-size: 0.875rem;
+  line-height: 1.35rem;
+}
+
+.erp-workspace-canvas .text-\[11px\] {
+  font-size: 0.8125rem;
+  line-height: 1.2rem;
+}
+
+.erp-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 1rem 1.5rem;
+}
+
+.erp-modal-body {
+  padding: 1.25rem 1.5rem;
+}
+
+.erp-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  border-top: 1px solid #e2e8f0;
+  background-color: #f8fafc;
+  padding: 0.75rem 1.5rem;
+}
+
+/* Animation Keyframes */
 @keyframes co-reveal {
   from { opacity: 0; transform: translateY(18px); }
   to { opacity: 1; transform: translateY(0); }

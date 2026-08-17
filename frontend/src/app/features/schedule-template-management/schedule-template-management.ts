@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { forkJoin } from 'rxjs';
 import {
@@ -13,14 +12,14 @@ import {
   ScheduleTemplateResponse,
   apiErrorMessage,
 } from '../../core/auth/auth-api.service';
-import { AccountMenu } from '../../shared/account-menu/account-menu';
+import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
 import { clinicTodayIso } from '../../core/time/clinic-time';
 import { hasStaffRole } from '../../core/auth/auth.guard';
 
 @Component({
   selector: 'app-schedule-template-management',
   standalone: true,
-  imports: [FormsModule, RouterLink, MatIconModule, AccountMenu],
+  imports: [FormsModule, MatIconModule, StaffWorkspaceShell],
   templateUrl: './schedule-template-management.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -36,6 +35,7 @@ export class ScheduleTemplateManagement implements OnInit {
   protected readonly saving = signal(false);
   protected readonly error = signal('');
   protected readonly notice = signal('');
+  protected readonly modalOpen = signal(false);
 
   protected readonly selectedServiceId = signal('');
   protected readonly selectedDoctorId = signal('');
@@ -62,6 +62,11 @@ export class ScheduleTemplateManagement implements OnInit {
   ];
 
   ngOnInit(): void {
+    this.loadData();
+  }
+
+  protected loadData(): void {
+    this.loading.set(true);
     forkJoin({
       services: this.authApi.getClinicServices(true),
       doctors: this.authApi.getDoctors(),
@@ -74,10 +79,13 @@ export class ScheduleTemplateManagement implements OnInit {
         this.rooms.set(data.rooms);
         this.templates.set(data.templates);
         const first = data.services[0];
-        if (first) this.selectService(first.id);
+        if (first && !this.selectedServiceId()) this.selectService(first.id);
         this.loading.set(false);
       },
-      error: (response) => { this.loading.set(false); this.error.set(apiErrorMessage(response)); },
+      error: (response) => {
+        this.loading.set(false);
+        this.error.set(apiErrorMessage(response));
+      },
     });
   }
 
@@ -106,7 +114,9 @@ export class ScheduleTemplateManagement implements OnInit {
     return this.rooms().filter((room) => room.active && (!doctor?.roomId || room.id === doctor.roomId));
   }
 
-  protected isWeekdaySelected(day: string): boolean { return this.selectedWeekdays().includes(day); }
+  protected isWeekdaySelected(day: string): boolean {
+    return this.selectedWeekdays().includes(day);
+  }
 
   protected toggleWeekday(day: string, checked: boolean): void {
     this.selectedWeekdays.update((days) => checked
@@ -122,9 +132,16 @@ export class ScheduleTemplateManagement implements OnInit {
     const breaks: ScheduleBreakRequest[] = this.breakStart() && this.breakEnd()
       ? [{ startTime: this.breakStart(), endTime: this.breakEnd() }] : [];
     const request: ScheduleTemplateRequest = {
-      clinicServiceId: this.selectedServiceId(), doctorId: this.selectedDoctorId(), roomId: this.selectedRoomId(),
-      startDate: this.startDate(), endDate: this.endDate(), weekdays: this.selectedWeekdays(),
-      dayStart: this.dayStart(), dayEnd: this.dayEnd(), durationMinutes: Number(this.durationMinutes()), breaks,
+      clinicServiceId: this.selectedServiceId(),
+      doctorId: this.selectedDoctorId(),
+      roomId: this.selectedRoomId(),
+      startDate: this.startDate(),
+      endDate: this.endDate(),
+      weekdays: this.selectedWeekdays(),
+      dayStart: this.dayStart(),
+      dayEnd: this.dayEnd(),
+      durationMinutes: Number(this.durationMinutes()),
+      breaks,
       exceptionDates: this.exceptionDatesText().split(',').map((value) => value.trim()).filter(Boolean),
     };
     if (!request.clinicServiceId || !request.doctorId || !request.roomId || !request.startDate || !request.endDate
@@ -139,9 +156,25 @@ export class ScheduleTemplateManagement implements OnInit {
         this.templates.update((items) => [template, ...items]);
         this.notice.set(`Đã sinh ${template.generatedSlotCount} khung giờ.`);
         this.saving.set(false);
+        this.modalOpen.set(false);
       },
-      error: (response) => { this.saving.set(false); this.error.set(apiErrorMessage(response)); },
+      error: (response) => {
+        this.saving.set(false);
+        this.error.set(apiErrorMessage(response));
+      },
     });
+  }
+
+  protected openCreate(): void {
+    if (!this.canManageSchedule()) return;
+    this.error.set('');
+    this.notice.set('');
+    this.modalOpen.set(true);
+  }
+
+  protected closeModal(): void {
+    if (this.saving()) return;
+    this.modalOpen.set(false);
   }
 
   protected regenerate(template: ScheduleTemplateResponse): void {

@@ -39,6 +39,8 @@ describe('ServiceManagement', () => {
     http.expectOne('/api/v1/specialties').flush([{ code: 'TQ', name: 'Khám Tổng Quát', description: '' }]);
     fixture.detectChanges();
 
+    (fixture.nativeElement.querySelector('[data-testid="new-service"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
     const component = fixture.componentInstance as any;
     component.name.set('Khám tổng quát cơ bản');
     component.specialty.set('Khám Tổng Quát');
@@ -71,7 +73,7 @@ describe('ServiceManagement', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('[data-testid="new-service"]')).toBeNull();
-    expect(fixture.nativeElement.textContent).toContain('Chế độ xem');
+    expect(fixture.nativeElement.textContent).not.toContain('Chế độ xem');
   });
 });
 

@@ -1,36 +1,292 @@
-<main class="min-h-screen bg-[#f6f8f9] text-[#173f4b]">
-  <header class="sticky top-0 z-30 h-16 border-b border-[#dce7ea] bg-white/95 backdrop-blur">
-    <div class="mx-auto flex h-full max-w-[1440px] items-center justify-between gap-4 px-4 lg:px-8">
-      <a routerLink="/admin/rooms" class="flex items-center gap-2.5" aria-label="ClinicOne">
-        <img class="h-8 w-8 object-contain" src="clinicone-mark.png" alt="" aria-hidden="true" />
-        <span class="text-lg font-bold tracking-[-0.05em] text-[#0a303b]">Clinic<span class="text-[#0ea5e9]">One</span></span>
-        <span class="hidden border-l border-[#dce7ea] pl-3 text-sm font-medium text-slate-500 sm:inline">Tài khoản nội bộ</span>
-      </a>
-      <app-account-menu />
+<app-staff-workspace-shell moduleTitle="Hệ thống" pageTitle="Tài khoản nhân viên">
+  <div workspace-actions>
+    <div class="flex items-center gap-2">
+      <button data-testid="open-create-staff" type="button" class="erp-btn-primary" (click)="openCreate()">
+        <mat-icon class="!h-4 !w-4 !text-[18px]">person_add</mat-icon>
+        <span>Tạo tài khoản</span>
+      </button>
+      <button type="button" class="erp-btn-secondary" (click)="load()" [disabled]="loading()">
+        <mat-icon class="!h-4 !w-4 !text-[18px]">refresh</mat-icon>
+        <span>Làm mới</span>
+      </button>
     </div>
-  </header>
-
-  <div class="mx-auto max-w-[1440px] px-4 py-6 lg:px-8">
-    <section class="border-b border-[#dce7ea] pb-5">
-      <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0b91c9]">Quản trị / Phân quyền</p>
-      <div class="mt-2 flex flex-wrap items-end justify-between gap-4">
-        <div><h1 class="text-2xl font-bold tracking-[-0.04em] text-[#0a303b]">Tài khoản nhân viên</h1><p class="mt-1 text-sm text-slate-500">Tạo tài khoản, gán vai trò và khóa phiên đăng nhập khi cần.</p></div>
-        <div class="flex flex-wrap gap-2"><button data-testid="open-create-staff" type="button" class="inline-flex min-h-10 items-center gap-2 rounded-md bg-[#0b3846] px-4 text-sm font-semibold text-white transition hover:bg-[#082d39]" (click)="openCreate()"><mat-icon class="!text-[18px]">person_add</mat-icon>Tạo tài khoản</button><button type="button" class="inline-flex min-h-10 items-center gap-2 rounded-md border border-[#cbdde2] bg-white px-4 text-sm font-semibold text-[#173f4b] transition hover:border-[#0ea5e9] hover:text-[#0284c7]" (click)="load()" [disabled]="loading()"><mat-icon class="!text-[18px]">refresh</mat-icon>Làm mới</button></div>
-      </div>
-    </section>
-
-    @if (error()) {<p class="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700" role="alert">{{ error() }}</p>}
-    @if (notice()) {<p class="mt-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm text-emerald-700" role="status">{{ notice() }}</p>}
-
-    @if (loading()) {<div class="mt-5 grid min-h-64 place-items-center border border-[#dce7ea] bg-white text-sm text-slate-500">Đang tải tài khoản...</div>}
-    @else {<section class="mt-5 overflow-hidden border border-[#dce7ea] bg-white">
-      <div class="flex items-center justify-between border-b border-[#e7eff1] px-5 py-4"><div><h2 class="text-sm font-bold">Danh sách tài khoản</h2><p class="mt-0.5 text-xs text-slate-500">{{ accounts().length }} tài khoản · thông tin chỉ đọc</p></div><mat-icon class="text-[#0b91c9]">manage_accounts</mat-icon></div>
-      @if (accounts().length === 0) {<div class="grid min-h-52 place-items-center px-5 text-center text-sm text-slate-500">Chưa có tài khoản nhân viên.</div>}
-      @else {<div class="divide-y divide-[#edf2f3]">@for (account of accounts(); track account.staffId) {<article data-testid="staff-row" class="grid gap-4 px-5 py-4 md:grid-cols-[minmax(250px,1.3fr)_minmax(190px,1fr)_150px_auto] md:items-center"><div class="flex min-w-0 items-center gap-3"><span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#eaf8fb] font-bold text-[#0b84bd]">{{ account.fullName.slice(0, 1) }}</span><div class="min-w-0"><p class="truncate font-semibold text-[#0a303b]">{{ account.fullName }}</p><p class="truncate text-xs text-slate-500">{{ account.employeeCode || account.username }} · {{ account.departmentName || 'Chưa khai báo phòng ban' }}</p></div></div><div><p class="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400">Vai trò</p><p class="mt-1 text-sm font-semibold">{{ roleLabels(account) }}</p></div><span data-testid="staff-status" class="w-fit rounded-full px-2.5 py-1 text-xs font-semibold" [class.bg-emerald-50]="account.status !== 'LOCKED'" [class.text-emerald-700]="account.status !== 'LOCKED'" [class.bg-rose-50]="account.status === 'LOCKED'" [class.text-rose-700]="account.status === 'LOCKED'">{{ statusLabel(account.status) }}</span><div class="flex flex-wrap justify-start gap-2 md:justify-end">@if (account.roles?.includes('ADMIN') || account.role === 'ADMIN') {} @else {<button type="button" data-testid="edit-staff-roles" class="min-h-9 rounded-md border border-[#cbdde2] px-3 text-xs font-semibold text-[#0b84bd] hover:bg-[#eaf8fb]" [disabled]="updatingId() === account.staffId" (click)="openRoleEditor(account)">Sửa vai trò</button>} @if (account.status === 'LOCKED') {<button type="button" data-testid="unlock-staff" class="min-h-9 rounded-md border border-emerald-200 px-3 text-xs font-semibold text-emerald-700 hover:bg-emerald-50" [disabled]="updatingId() === account.staffId" (click)="updateStatus(account)">{{ updatingId() === account.staffId ? 'Đang xử lý...' : 'Mở khóa' }}</button>} @else {<button type="button" data-testid="lock-staff" class="min-h-9 rounded-md border border-rose-200 px-3 text-xs font-semibold text-rose-700 hover:bg-rose-50" [disabled]="updatingId() === account.staffId" (click)="askToLock(account)">Khóa tài khoản</button>}</div></article>}</div>}
-    </section>}
   </div>
 
-  @if (confirming(); as account) {<div class="fixed inset-0 z-50 grid place-items-center bg-[#092f3b]/35 p-4" role="dialog" aria-modal="true" aria-labelledby="lock-staff-title"><section class="w-full max-w-md rounded-lg border border-[#dce7ea] bg-white shadow-2xl"><div class="border-b border-[#e7eff1] px-5 py-4"><p class="text-[10px] font-bold uppercase tracking-[0.14em] text-rose-600">Xác nhận</p><h2 id="lock-staff-title" class="mt-1 text-lg font-bold">Khóa tài khoản?</h2><p class="mt-2 text-sm leading-6 text-slate-600">Tài khoản <strong>{{ account.fullName }}</strong> sẽ không thể đăng nhập. Các phiên đang mở sẽ được kết thúc ngay.</p></div><div class="flex justify-end gap-2 px-5 py-4"><button type="button" class="min-h-9 rounded-md border border-[#d5e3e7] px-4 text-sm font-semibold text-slate-600 hover:bg-slate-50" (click)="closeConfirm()">Hủy</button><button type="button" class="min-h-9 rounded-md bg-rose-600 px-4 text-sm font-semibold text-white hover:bg-rose-700" [disabled]="updatingId() === account.staffId" (click)="updateStatus(account)">{{ updatingId() === account.staffId ? 'Đang xử lý...' : 'Xác nhận khóa' }}</button></div></section></div>}
-  @if (createOpen()) {<div class="fixed inset-0 z-50 grid place-items-center bg-[#092f3b]/35 p-4" role="dialog" aria-modal="true" aria-labelledby="create-staff-title"><section class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-[#dce7ea] bg-white shadow-2xl"><div class="flex items-start justify-between border-b border-[#e7eff1] px-5 py-4"><div><p class="text-[10px] font-bold uppercase tracking-[0.14em] text-[#0b91c9]">Tài khoản mới</p><h2 id="create-staff-title" class="mt-1 text-lg font-bold">Tạo tài khoản nhân viên</h2><p class="mt-1 text-sm text-slate-500">Mật khẩu khởi tạo chỉ hiển thị một lần sau khi tạo.</p></div><button type="button" class="grid h-9 w-9 place-items-center rounded-md text-slate-500 hover:bg-slate-100" (click)="closeCreate()" aria-label="Đóng"><mat-icon>close</mat-icon></button></div>@if (createdCredentials(); as credentials) {<div class="m-5 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900"><p class="font-semibold">Đã tạo tài khoản</p><p class="mt-2">Tên đăng nhập: <strong>{{ credentials.username }}</strong></p><p class="mt-1">Mật khẩu khởi tạo: <strong class="font-mono">{{ credentials.password }}</strong></p><p class="mt-2 text-xs">Hãy bàn giao trực tiếp và yêu cầu nhân viên bảo vệ thông tin này.</p><button type="button" class="mt-3 min-h-9 rounded-md border border-emerald-300 px-3 text-xs font-semibold hover:bg-emerald-100" (click)="closeCreate()">Đã ghi nhận</button></div>} @else {<form class="grid gap-4 p-5" (ngSubmit)="$event.preventDefault(); createAccount()"><div class="grid gap-4 sm:grid-cols-2"><label class="grid gap-1.5 text-sm font-semibold">Họ tên<input name="fullName" [ngModel]="newFullName()" (ngModelChange)="newFullName.set($event)" maxlength="100" class="min-h-11 rounded-md border border-[#cbdde2] px-3 font-normal" /></label><label class="grid gap-1.5 text-sm font-semibold">Mã nhân viên<input name="employeeCode" [ngModel]="newEmployeeCode()" (ngModelChange)="newEmployeeCode.set($event)" maxlength="20" class="min-h-11 rounded-md border border-[#cbdde2] px-3 font-normal uppercase" placeholder="NV001" /></label></div><div class="grid gap-4 sm:grid-cols-2"><label class="grid gap-1.5 text-sm font-semibold">Đơn vị<input name="unitName" [ngModel]="newUnitName()" (ngModelChange)="newUnitName.set($event)" maxlength="160" class="min-h-11 rounded-md border border-[#cbdde2] px-3 font-normal" placeholder="ClinicOne" /></label><label class="grid gap-1.5 text-sm font-semibold">Phòng ban<input name="departmentName" [ngModel]="newDepartmentName()" (ngModelChange)="newDepartmentName.set($event)" maxlength="160" class="min-h-11 rounded-md border border-[#cbdde2] px-3 font-normal" placeholder="Khoa Nội" /></label></div><fieldset class="grid gap-2"><legend class="text-sm font-semibold">Vai trò (chọn 1-3)</legend><div class="grid gap-2 sm:grid-cols-3">@for (role of roleOptions; track role) {<label class="flex cursor-pointer items-center gap-2 rounded-md border border-[#dce7ea] px-3 py-2 text-sm hover:bg-[#f5fafb]"><input type="checkbox" [checked]="hasRole(role)" (change)="toggleRole(role)" />{{ roleLabel(role) }}</label>}</div></fieldset><div class="flex justify-end gap-2 border-t border-[#edf2f3] pt-4"><button type="button" class="min-h-10 rounded-md border border-[#d5e3e7] px-4 text-sm font-semibold text-slate-600" (click)="closeCreate()">Hủy</button><button data-testid="create-staff-submit" type="submit" class="min-h-10 rounded-md bg-[#0b3846] px-5 text-sm font-semibold text-white disabled:opacity-60" [disabled]="updatingId() === 'creating'">{{ updatingId() === 'creating' ? 'Đang tạo...' : 'Tạo tài khoản' }}</button></div></form>}</section></div>}
-  @if (editingAccount(); as account) {<div class="fixed inset-0 z-50 grid place-items-center bg-[#092f3b]/35 p-4" role="dialog" aria-modal="true" aria-labelledby="edit-staff-roles-title"><section class="w-full max-w-lg rounded-xl border border-[#dce7ea] bg-white shadow-2xl"><div class="flex items-start justify-between border-b border-[#e7eff1] px-5 py-4"><div><p class="text-[10px] font-bold uppercase tracking-[0.14em] text-[#0b91c9]">Phân quyền</p><h2 id="edit-staff-roles-title" class="mt-1 text-lg font-bold">Sửa vai trò</h2><p class="mt-1 text-sm text-slate-500">{{ account.fullName }}</p></div><button type="button" class="grid h-9 w-9 place-items-center rounded-md text-slate-500 hover:bg-slate-100" (click)="closeRoleEditor()" aria-label="Đóng"><mat-icon>close</mat-icon></button></div><div class="grid gap-2 p-5"><p class="text-xs text-slate-500">Tài khoản có thể có từ 1 đến 3 vai trò nghiệp vụ.</p><div class="grid gap-2 sm:grid-cols-3">@for (role of roleOptions; track role) {<label class="flex cursor-pointer items-center gap-2 rounded-md border border-[#dce7ea] px-3 py-2 text-sm hover:bg-[#f5fafb]"><input type="checkbox" [checked]="hasEditingRole(role)" (change)="toggleEditingRole(role)" />{{ roleLabel(role) }}</label>}</div></div><div class="flex justify-end gap-2 border-t border-[#edf2f3] px-5 py-4"><button type="button" class="min-h-10 rounded-md border border-[#d5e3e7] px-4 text-sm font-semibold text-slate-600" (click)="closeRoleEditor()">Hủy</button><button data-testid="save-staff-roles" type="button" class="min-h-10 rounded-md bg-[#0b3846] px-5 text-sm font-semibold text-white disabled:opacity-60" [disabled]="updatingId() === 'roles:' + account.staffId" (click)="saveRoles()">{{ updatingId() === 'roles:' + account.staffId ? 'Đang lưu...' : 'Lưu vai trò' }}</button></div></section></div>}
-</main>
+  <div class="grid gap-4">
+    @if (error()) {
+      <div class="rounded-md border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs font-semibold text-rose-700" role="alert">
+        {{ error() }}
+      </div>
+    }
+    @if (notice()) {
+      <div class="rounded-md border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-xs font-semibold text-emerald-700" role="status">
+        {{ notice() }}
+      </div>
+    }
+
+    @if (loading()) {
+      <div class="grid min-h-64 place-items-center rounded-lg border border-slate-200 bg-white text-xs text-slate-500">
+        Đang tải danh sách tài khoản nhân viên...
+      </div>
+    } @else {
+      <section class="erp-card overflow-hidden">
+        <div class="erp-card-header">
+          <div>
+            <h2 class="text-xs font-bold uppercase tracking-wider text-[#0e3d48]">Danh sách nhân viên</h2>
+            <p class="mt-0.5 text-[11px] text-slate-500">{{ accounts().length }} tài khoản trong hệ thống</p>
+          </div>
+          <mat-icon class="text-slate-400">manage_accounts</mat-icon>
+        </div>
+
+        <div class="erp-table-container !rounded-none !border-0 !shadow-none">
+          <table class="erp-table">
+            <thead>
+              <tr>
+                <th class="erp-th w-64">Họ và tên / Tài khoản</th>
+                <th class="erp-th w-32">Mã NV</th>
+                <th class="erp-th">Đơn vị & Phòng ban</th>
+                <th class="erp-th w-56">Vai trò nghiệp vụ</th>
+                <th class="erp-th w-36">Trạng thái</th>
+                <th class="erp-th w-48 text-right">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (account of accounts(); track account.staffId) {
+                <tr data-testid="staff-row" class="erp-tr">
+                  <td class="erp-td">
+                    <div class="flex items-center gap-2.5">
+                      <span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-sky-100 font-mono text-[10px] font-bold text-[#0284c7]">
+                        {{ account.fullName.slice(0, 1) }}
+                      </span>
+                      <div class="min-w-0">
+                        <p class="truncate font-semibold text-slate-900">{{ account.fullName }}</p>
+                        <p class="truncate font-mono text-[10px] text-slate-400">{{ account.username }}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="erp-td">
+                    <span class="erp-table-code font-mono text-[11px] text-slate-700">
+                      {{ account.employeeCode || account.username }}
+                    </span>
+                  </td>
+                  <td class="erp-td text-slate-600">
+                    {{ account.unitName || 'ClinicOne' }} · {{ account.departmentName || 'Chưa khai báo phòng ban' }}
+                  </td>
+                  <td class="erp-td">
+                    <span class="font-medium text-slate-800">{{ roleLabels(account) }}</span>
+                  </td>
+                  <td class="erp-td">
+                    <span
+                      data-testid="staff-status"
+                      [class]="account.status === 'LOCKED' ? 'erp-badge-danger' : 'erp-badge-success'"
+                    >
+                      <span [class]="account.status === 'LOCKED' ? 'erp-dot-danger' : 'erp-dot-success'"></span>
+                      {{ statusLabel(account.status) }}
+                    </span>
+                  </td>
+                  <td class="erp-td text-right">
+                    <div class="inline-flex items-center justify-end gap-1.5">
+                      @if (!account.roles?.includes('ADMIN') && account.role !== 'ADMIN') {
+                        <button
+                          type="button"
+                          data-testid="edit-staff-roles"
+                          class="erp-btn-secondary !min-h-7 !px-2.5 !text-[11px]"
+                          [disabled]="updatingId() === account.staffId"
+                          (click)="openRoleEditor(account)"
+                        >
+                          Sửa vai trò
+                        </button>
+                      }
+                      @if (account.status === 'LOCKED') {
+                        <button
+                          type="button"
+                          data-testid="unlock-staff"
+                          class="erp-btn-secondary !min-h-7 !px-2.5 !text-[11px] !border-emerald-300 !text-emerald-700 hover:!bg-emerald-50"
+                          [disabled]="updatingId() === account.staffId"
+                          (click)="updateStatus(account)"
+                        >
+                          {{ updatingId() === account.staffId ? 'Đang xử lý...' : 'Mở khóa' }}
+                        </button>
+                      } @else {
+                        <button
+                          type="button"
+                          data-testid="lock-staff"
+                          class="erp-btn-danger !min-h-7 !px-2.5 !text-[11px]"
+                          [disabled]="updatingId() === account.staffId"
+                          (click)="askToLock(account)"
+                        >
+                          Khóa
+                        </button>
+                      }
+                    </div>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="6" class="px-4 py-12 text-center text-xs text-slate-500">
+                    Chưa có tài khoản nhân viên nào.
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    }
+  </div>
+
+  <!-- Modal: Confirm Lock Staff -->
+  @if (confirming(); as account) {
+    <div class="erp-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="lock-staff-title">
+      <section class="erp-modal-container max-w-md">
+        <div class="erp-modal-header">
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-wider text-rose-600">Cảnh báo bảo mật</p>
+            <h2 id="lock-staff-title" class="text-sm font-bold text-slate-900">Xác nhận khóa tài khoản?</h2>
+          </div>
+        </div>
+        <div class="erp-modal-body">
+          <p class="text-xs leading-5 text-slate-600">
+            Tài khoản <strong class="text-slate-900">{{ account.fullName }}</strong> (<code class="font-mono">{{ account.username }}</code>) sẽ không thể đăng nhập. Mọi phiên làm việc đang mở sẽ bị chấm dứt ngay lập tức.
+          </p>
+        </div>
+        <div class="erp-modal-footer">
+          <button type="button" class="erp-btn-secondary" (click)="closeConfirm()">
+            Hủy
+          </button>
+          <button
+            type="button"
+            class="erp-btn-danger"
+            [disabled]="updatingId() === account.staffId"
+            (click)="updateStatus(account)"
+          >
+            {{ updatingId() === account.staffId ? 'Đang xử lý...' : 'Xác nhận khóa' }}
+          </button>
+        </div>
+      </section>
+    </div>
+  }
+
+  <!-- Modal: Create Staff Account -->
+  @if (createOpen()) {
+    <div class="erp-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="create-staff-title">
+      <section class="erp-modal-container max-w-lg">
+        <div class="erp-modal-header">
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-wider text-[#0284c7]">Nhân sự nội bộ</p>
+            <h2 id="create-staff-title" class="text-sm font-bold text-slate-900">Tạo tài khoản nhân viên</h2>
+          </div>
+          <button type="button" class="erp-btn-icon" (click)="closeCreate()" aria-label="Đóng">
+            <mat-icon class="!h-4 !w-4 !text-[18px]">close</mat-icon>
+          </button>
+        </div>
+
+        @if (createdCredentials(); as credentials) {
+          <div class="erp-modal-body">
+            <div class="rounded-lg border border-emerald-200 bg-emerald-50 p-3.5 text-xs text-emerald-900">
+              <p class="font-bold">Đã tạo tài khoản thành công</p>
+              <div class="mt-2 space-y-1">
+                <p>Tên đăng nhập: <strong class="font-mono text-slate-900">{{ credentials.username }}</strong></p>
+                <p>Mật khẩu khởi tạo: <strong class="font-mono text-slate-900">{{ credentials.password }}</strong></p>
+              </div>
+              <p class="mt-2 text-[11px] text-emerald-700">Mật khẩu chỉ hiển thị một lần. Hãy bàn giao trực tiếp cho nhân viên.</p>
+            </div>
+          </div>
+          <div class="erp-modal-footer">
+            <button type="button" class="erp-btn-primary" (click)="closeCreate()">
+              Đã ghi nhận
+            </button>
+          </div>
+        } @else {
+          <form (ngSubmit)="$event.preventDefault(); createAccount()">
+            <div class="erp-modal-body grid gap-3.5">
+              <div class="grid gap-3 sm:grid-cols-2">
+                <label class="grid gap-1">
+                  <span class="erp-label">Họ và tên <span class="erp-label-required">*</span></span>
+                  <input name="fullName" [ngModel]="newFullName()" (ngModelChange)="newFullName.set($event)" maxlength="100" class="erp-input" placeholder="Nguyễn Văn A" />
+                </label>
+                <label class="grid gap-1">
+                  <span class="erp-label">Mã nhân viên <span class="erp-label-required">*</span></span>
+                  <input name="employeeCode" [ngModel]="newEmployeeCode()" (ngModelChange)="newEmployeeCode.set($event)" maxlength="20" class="erp-input font-mono uppercase" placeholder="NV001" />
+                </label>
+              </div>
+              <div class="grid gap-3 sm:grid-cols-2">
+                <label class="grid gap-1">
+                  <span class="erp-label">Đơn vị <span class="erp-label-required">*</span></span>
+                  <input name="unitName" [ngModel]="newUnitName()" (ngModelChange)="newUnitName.set($event)" maxlength="160" class="erp-input" placeholder="ClinicOne" />
+                </label>
+                <label class="grid gap-1">
+                  <span class="erp-label">Phòng ban <span class="erp-label-required">*</span></span>
+                  <input name="departmentName" [ngModel]="newDepartmentName()" (ngModelChange)="newDepartmentName.set($event)" maxlength="160" class="erp-input" placeholder="Khoa Khám bệnh" />
+                </label>
+              </div>
+              <fieldset class="grid gap-1.5">
+                <legend class="erp-label">Vai trò nghiệp vụ (chọn 1-3) <span class="erp-label-required">*</span></legend>
+                <div class="grid gap-2 sm:grid-cols-3">
+                  @for (role of roleOptions; track role) {
+                    <label class="flex cursor-pointer items-center gap-2 rounded border border-slate-200 p-2 text-xs hover:bg-slate-50">
+                      <input type="checkbox" [checked]="hasRole(role)" (change)="toggleRole(role)" />
+                      <span class="font-medium text-slate-800">{{ roleLabel(role) }}</span>
+                    </label>
+                  }
+                </div>
+              </fieldset>
+            </div>
+            <div class="erp-modal-footer">
+              <button type="button" class="erp-btn-secondary" (click)="closeCreate()">
+                Hủy
+              </button>
+              <button data-testid="create-staff-submit" type="submit" class="erp-btn-primary" [disabled]="updatingId() === 'creating'">
+                {{ updatingId() === 'creating' ? 'Đang tạo...' : 'Tạo tài khoản' }}
+              </button>
+            </div>
+          </form>
+        }
+      </section>
+    </div>
+  }
+
+  <!-- Modal: Edit Staff Roles -->
+  @if (editingAccount(); as account) {
+    <div class="erp-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="edit-staff-roles-title">
+      <section class="erp-modal-container max-w-md">
+        <div class="erp-modal-header">
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-wider text-[#0284c7]">Phân quyền nhân sự</p>
+            <h2 id="edit-staff-roles-title" class="text-sm font-bold text-slate-900">Sửa vai trò: {{ account.fullName }}</h2>
+          </div>
+          <button type="button" class="erp-btn-icon" (click)="closeRoleEditor()" aria-label="Đóng">
+            <mat-icon class="!h-4 !w-4 !text-[18px]">close</mat-icon>
+          </button>
+        </div>
+
+        <div class="erp-modal-body grid gap-3">
+          <p class="text-xs text-slate-500">Mỗi tài khoản nhân viên có thể có từ 1 đến 3 vai trò nghiệp vụ.</p>
+          <div class="grid gap-2">
+            @for (role of roleOptions; track role) {
+              <label class="flex cursor-pointer items-center gap-2 rounded border border-slate-200 p-2 text-xs hover:bg-slate-50">
+                <input type="checkbox" [checked]="hasEditingRole(role)" (change)="toggleEditingRole(role)" />
+                <span class="font-medium text-slate-800">{{ roleLabel(role) }}</span>
+              </label>
+            }
+          </div>
+        </div>
+
+        <div class="erp-modal-footer">
+          <button type="button" class="erp-btn-secondary" (click)="closeRoleEditor()">
+            Hủy
+          </button>
+          <button
+            data-testid="save-staff-roles"
+            type="button"
+            class="erp-btn-primary"
+            [disabled]="updatingId() === 'roles:' + account.staffId"
+            (click)="saveRoles()"
+          >
+            {{ updatingId() === 'roles:' + account.staffId ? 'Đang lưu...' : 'Lưu vai trò' }}
+          </button>
+        </div>
+      </section>
+    </div>
+  }
+</app-staff-workspace-shell>
