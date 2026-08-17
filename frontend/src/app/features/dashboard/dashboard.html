@@ -52,7 +52,7 @@
         <section class="rounded-xl border border-slate-200 bg-white shadow-xs" aria-labelledby="appointments-heading">
           <div data-testid="appointments-header" class="flex items-center justify-between gap-4 border-b border-slate-100 px-6 py-4">
             <div class="min-w-0"><h2 id="appointments-heading" class="text-base font-bold text-slate-900">Lịch hẹn sắp tới</h2><p class="mt-0.5 text-xs text-slate-500">Các lịch khám đã đặt và đang chờ đến lượt.</p></div>
-            <div data-testid="appointments-actions" class="flex shrink-0 items-center gap-4"><a routerLink="/appointments" class="hidden items-center gap-1 text-xs font-semibold text-[#0284c7] hover:underline sm:inline-flex">Xem tất cả<mat-icon class="!text-[16px]">arrow_forward</mat-icon></a><mat-icon class="text-[#0284c7]">event_available</mat-icon></div>
+            <div data-testid="appointments-actions" class="flex shrink-0 items-center gap-4"><a routerLink="/appointments" class="hidden items-center gap-1.5 text-xs font-semibold text-[#0284c7] hover:underline sm:inline-flex"><span>Xem tất cả</span><mat-icon class="!h-3.5 !w-3.5 !text-[15px] !leading-none">arrow_forward</mat-icon></a><mat-icon class="!h-5 !w-5 !text-[20px] text-[#0284c7]">event_available</mat-icon></div>
           </div>
           @if (appointmentsLoading()) {
             <div class="grid min-h-56 place-items-center px-6 py-10 text-sm text-slate-500">Đang tải lịch hẹn...</div>
@@ -95,7 +95,7 @@
             <div><p class="text-slate-500">Họ và tên</p><p class="mt-0.5 font-bold text-slate-900 text-sm">{{ profile()?.fullName }}</p></div>
             <div><p class="text-slate-500">Số điện thoại</p><p class="mt-0.5 font-semibold text-slate-800">{{ profile()?.phone }}</p></div>
             <div><p class="text-slate-500">Ngày sinh</p><p class="mt-0.5 font-semibold text-slate-800">{{ formatDate(profile()?.dateOfBirth) }}</p></div>
-            <a routerLink="/account" class="inline-flex items-center gap-1.5 pt-2 text-xs font-semibold text-[#0284c7] hover:underline">Cập nhật hồ sơ <mat-icon class="!text-[16px]">arrow_forward</mat-icon></a>
+            <a routerLink="/account" class="inline-flex items-center gap-1.5 pt-2 text-xs font-semibold text-[#0284c7] hover:underline"><span>Cập nhật hồ sơ</span><mat-icon class="!h-3.5 !w-3.5 !text-[15px] !leading-none">arrow_forward</mat-icon></a>
           </div>
         </aside>
         </div>
