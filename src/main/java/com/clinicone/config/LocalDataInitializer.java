@@ -298,7 +298,7 @@ public class LocalDataInitializer implements CommandLineRunner {
             ExaminationSession session = ExaminationSession.create(app);
             session.begin();
             session.complete();
-            examinationSessionRepository.save(session);
+            session = examinationSessionRepository.saveAndFlush(session);
 
             MedicalRecord record = MedicalRecord.draft(session);
             int lineNumber = 1;
@@ -347,16 +347,17 @@ public class LocalDataInitializer implements CommandLineRunner {
                 ticket.complete();
                 session.begin();
                 session.complete();
-                if (medicalRecordRepository != null) {
-                    MedicalRecord record = MedicalRecord.draft(session);
-                    record.sign(doctor.getFullName(), "Khám định kỳ", "Thể trạng bình thường", "Z00.0 - Khám sức khỏe tổng quát",
-                            "Sức khỏe tốt", "Tập thể dục đều đặn", null, null, List.of(), null, null);
-                    medicalRecordRepository.save(record);
-                }
             }
 
             queueTicketRepository.save(ticket);
-            examinationSessionRepository.save(session);
+            session = examinationSessionRepository.saveAndFlush(session);
+
+            if (scenario == QueueScenario.COMPLETED && medicalRecordRepository != null) {
+                MedicalRecord record = MedicalRecord.draft(session);
+                record.sign(doctor.getFullName(), "Khám định kỳ", "Thể trạng bình thường", "Z00.0 - Khám sức khỏe tổng quát",
+                        "Sức khỏe tốt", "Tập thể dục đều đặn", null, null, List.of(), null, null);
+                medicalRecordRepository.save(record);
+            }
         }
     }
 
