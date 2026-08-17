@@ -174,6 +174,29 @@ export class StaffDashboard implements OnInit, OnDestroy {
     this.loadQueue();
   }
 
+  protected goToToday(): void {
+    this.selectedDate.set(clinicTodayIso());
+    this.loadQueue();
+  }
+
+  protected goToPreviousDay(): void {
+    const current = new Date(this.selectedDate());
+    current.setDate(current.getDate() - 1);
+    this.selectedDate.set(this.toIsoDate(current));
+    this.loadQueue();
+  }
+
+  protected goToNextDay(): void {
+    const current = new Date(this.selectedDate());
+    current.setDate(current.getDate() + 1);
+    this.selectedDate.set(this.toIsoDate(current));
+    this.loadQueue();
+  }
+
+  protected isToday(): boolean {
+    return this.selectedDate() === clinicTodayIso();
+  }
+
   protected act(ticket: QueueTicketResponse, action: QueueAction): void {
     this.busyTicketId.set(ticket.id);
     this.error.set('');
