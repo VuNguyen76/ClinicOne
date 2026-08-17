@@ -1,0 +1,46 @@
+<main class="min-h-screen bg-[#f4f8fb] text-slate-800">
+  <header class="border-b border-slate-200 bg-white">
+    <div class="mx-auto flex h-[68px] max-w-[1080px] items-center justify-between px-5">
+      <a routerLink="/home" class="flex items-center gap-3">
+        <img src="clinicone-mark-small.png" class="h-10 w-10 object-contain" alt="" />
+        <span class="text-xl font-bold text-slate-900">Clinic<span class="text-[#0284c7]">One</span></span>
+      </a>
+      <app-account-menu />
+    </div>
+  </header>
+
+  <div class="mx-auto max-w-xl px-5 py-8 sm:py-12">
+    <a routerLink="/appointments" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-[#0284c7]"><mat-icon class="!text-[18px]">arrow_back</mat-icon>Lịch hẹn của tôi</a>
+    <section class="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_16px_40px_rgba(15,23,42,0.08)]">
+      <div class="border-b border-slate-100 px-6 py-6 text-center">
+        <span class="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-sky-100 text-[#0284c7]"><mat-icon class="!h-7 !w-7 !text-[28px]">qr_code_scanner</mat-icon></span>
+        <h1 class="mt-3 text-2xl font-bold tracking-tight text-slate-950">Quét mã trước phòng khám</h1>
+        <p class="mt-2 text-sm leading-6 text-slate-500">Đưa mã QR cố định trước cửa phòng vào giữa khung hình.</p>
+      </div>
+
+      <div class="p-5 sm:p-6">
+        <div class="relative aspect-[4/3] overflow-hidden rounded-2xl bg-slate-950">
+          <video #camera class="h-full w-full object-cover" muted playsinline></video>
+          @if (!scanning()) {
+            <div class="absolute inset-0 grid place-items-center bg-slate-900 text-center text-white">
+              <div><mat-icon class="!h-12 !w-12 !text-[48px] text-white/65">photo_camera</mat-icon><p class="mt-2 text-sm text-white/70">Camera chưa bật</p></div>
+            </div>
+          } @else {
+            <div class="pointer-events-none absolute inset-[16%] rounded-2xl border-2 border-cyan-300 shadow-[0_0_0_999px_rgba(2,6,23,0.32)]"></div>
+            <div class="pointer-events-none absolute left-[18%] right-[18%] top-1/2 h-0.5 animate-pulse bg-cyan-300 shadow-[0_0_12px_#67e8f9]"></div>
+          }
+        </div>
+
+        @if (error()) { <p class="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm leading-6 text-rose-700" role="alert">{{ error() }}</p> }
+
+        @if (!scanning()) {
+          <button data-testid="start-qr-camera" type="button" class="mt-5 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#0284c7] px-5 font-semibold text-white shadow-[0_10px_24px_rgba(2,132,199,0.22)] transition hover:bg-[#0369a1] disabled:opacity-60" [disabled]="starting()" (click)="startCamera()">
+            <mat-icon>photo_camera</mat-icon>{{ starting() ? 'Đang mở camera...' : 'Mở camera quét mã' }}
+          </button>
+        } @else {
+          <button type="button" class="mt-5 min-h-12 w-full rounded-xl border border-slate-300 px-5 font-semibold text-slate-700 hover:bg-slate-50" (click)="stopCamera()">Dừng camera</button>
+        }
+      </div>
+    </section>
+  </div>
+</main>
