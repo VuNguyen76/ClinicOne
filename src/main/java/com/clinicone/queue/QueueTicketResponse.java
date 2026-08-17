@@ -22,7 +22,9 @@ public record QueueTicketResponse(
         String doctorName,
         boolean priority,
         String closureOutcome,
-        String closureOutcomeLabel
+        String closureOutcomeLabel,
+        String patientName,
+        LocalDate patientDateOfBirth
 ) {
     public QueueTicketResponse(UUID id, int queueNumber, String roomCode, String roomName,
                                LocalDate queueDate, LocalTime appointmentTime, String status,
@@ -30,17 +32,33 @@ public record QueueTicketResponse(
                                String doctorName) {
         this(id, queueNumber, roomCode, roomName, queueDate, appointmentTime, status, statusLabel,
                 QueuePresenceStatus.READY.name(), QueuePresenceStatus.READY.label(), null,
-                appointmentCode, specialty, doctorName, false, null, null);
+                appointmentCode, specialty, doctorName, false, null, null, null, null);
+    }
+
+    public QueueTicketResponse(UUID id, int queueNumber, String roomCode, String roomName,
+                               LocalDate queueDate, LocalTime appointmentTime, String status,
+                               String statusLabel, String presenceStatus, String presenceLabel,
+                               Instant returnedAt, String appointmentCode, String specialty,
+                               String doctorName, boolean priority, String closureOutcome,
+                               String closureOutcomeLabel) {
+        this(id, queueNumber, roomCode, roomName, queueDate, appointmentTime, status, statusLabel,
+                presenceStatus, presenceLabel, returnedAt, appointmentCode, specialty, doctorName,
+                priority, closureOutcome, closureOutcomeLabel, null, null);
     }
 
     public static QueueTicketResponse from(QueueTicket ticket) {
         var appointment = ticket.getAppointment();
+        var patientProfile = appointment.getPatientProfile();
+        String patientName = patientProfile != null
+                ? patientProfile.getFullName()
+                : appointment.getPatient() == null ? null : appointment.getPatient().getFullName();
+        LocalDate patientDateOfBirth = patientProfile == null ? null : patientProfile.getDateOfBirth();
         return new QueueTicketResponse(ticket.getId(), ticket.getQueueNumber(), ticket.getRoom().getCode(),
                 ticket.getRoom().getName(), ticket.getQueueDate(), appointment.getStartTime(),
                 ticket.getStatus().name(), ticket.getStatus().label(), ticket.getPresenceStatus().name(),
                 ticket.getPresenceLabel(), ticket.getReturnedAt(), appointment.getAppointmentCode(),
                 ticket.getEffectiveSpecialty(), ticket.getEffectiveDoctorName(), ticket.isPriority(),
                 ticket.getClosureOutcome() == null ? null : ticket.getClosureOutcome().name(),
-                ticket.getClosureOutcomeLabel());
+                ticket.getClosureOutcomeLabel(), patientName, patientDateOfBirth);
     }
 }

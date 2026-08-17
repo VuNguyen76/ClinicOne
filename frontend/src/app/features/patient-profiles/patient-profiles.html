@@ -1,7 +1,7 @@
 <main class="min-h-screen bg-slate-50 text-slate-800">
   <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
     <div class="mx-auto flex h-[72px] max-w-[1200px] items-center justify-between gap-8 px-5 lg:px-0">
-      <a routerLink="/home" class="flex items-center gap-3" aria-label="ClinicOne, trang chủ"><img class="h-11 w-11 object-contain" src="clinicone-mark.png" alt="" aria-hidden="true" /><span class="text-[21px] font-bold tracking-[-0.04em] text-slate-900">Clinic<span class="text-[#0284c7]">One</span></span></a>
+      <a routerLink="/home" class="flex items-center gap-3" aria-label="ClinicOne, trang chủ"><img class="h-11 w-11 object-contain" src="clinicone-mark-small.png" alt="" aria-hidden="true" /><span class="text-[21px] font-bold tracking-[-0.04em] text-slate-900">Clinic<span class="text-[#0284c7]">One</span></span></a>
       <nav class="hidden items-center gap-7 text-sm font-medium text-slate-600 lg:flex" aria-label="Điều hướng chính"><a routerLink="/home" class="hover:text-[#0284c7]">Trang chủ</a><a routerLink="/about" class="hover:text-[#0284c7]">Giới thiệu</a><a routerLink="/process" class="hover:text-[#0284c7]">Quy trình</a><a routerLink="/common-issues" class="hover:text-[#0284c7]">Hướng dẫn</a><a routerLink="/support" class="hover:text-[#0284c7]">Thắc mắc</a><a routerLink="/contact" class="hover:text-[#0284c7]">Liên hệ</a></nav>
       <div class="flex items-center gap-4"><a href="tel:1900000" class="hidden items-center gap-2 text-right sm:flex"><mat-icon class="!h-5 !w-5 !text-[19px] text-rose-500">phone_in_talk</mat-icon><span class="hidden text-xs text-slate-500 xl:block"><strong class="block text-slate-800">Tổng đài</strong><span class="font-semibold tracking-[0.08em] text-rose-500">1900000</span></span></a><app-account-menu /></div>
     </div>
@@ -9,7 +9,7 @@
 
   <div class="mx-auto max-w-[1200px] px-5 py-8 lg:px-0 lg:py-10">
     <div class="flex items-center gap-3 text-sm"><a routerLink="/account" class="font-semibold text-slate-700 hover:text-[#0284c7]">Hồ sơ bệnh nhân</a><mat-icon class="!h-4 !w-4 !text-[16px] text-slate-400">chevron_right</mat-icon><span class="font-semibold text-[#0284c7]">Hồ sơ người đi khám</span></div>
-    <section class="mt-8 flex flex-col justify-between gap-5 rounded-xl bg-gradient-to-r from-[#0e3d48] to-[#164e5b] px-6 py-6 text-white sm:flex-row sm:items-center sm:px-8">
+    <section class="mt-8 flex flex-col justify-between gap-5 rounded-xl bg-gradient-to-r from-[#0284c7] via-[#0ea5e9] to-[#38bdf8] px-6 py-6 text-white sm:flex-row sm:items-center sm:px-8">
       <div>
         <p class="text-xs font-bold uppercase tracking-[0.16em] text-sky-200">Quản lý hồ sơ khám</p>
         <h1 class="mt-1.5 text-2xl font-bold tracking-[-0.035em] text-white sm:text-3xl">Hồ sơ người đi khám</h1>
@@ -35,7 +35,7 @@
                     }
                   </div>
                   <p class="mt-0.5 text-xs text-slate-500">{{ profile.relationship }} · {{ formatDate(profile.dateOfBirth) }} · {{ profile.gender }}</p>
-                  <p class="mt-1 text-xs text-slate-600 font-mono">{{ profile.phone || 'Chưa có số điện thoại riêng' }}</p>
+                  <p class="mt-1 text-xs text-slate-600">{{ profile.phone || 'Chưa có số điện thoại riêng' }}</p>
                   @if (profile.address) {<p class="mt-0.5 text-xs text-slate-500">{{ profile.address }}</p>}
                 </div>
               </div>
@@ -82,7 +82,7 @@
           @if (form.invalid && form.touched) {<p class="text-sm text-red-600">Vui lòng kiểm tra các thông tin bắt buộc.</p>}
           <div class="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
             <button type="button" class="min-h-10 rounded-md border border-slate-300 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50" (click)="cancelEdit()">Hủy</button>
-            <button type="submit" class="min-h-10 rounded-md bg-[#0e3d48] px-5 text-sm font-semibold text-white transition hover:bg-[#124f5e] disabled:opacity-60" [disabled]="busy()">{{ busy() ? 'Đang lưu...' : 'Lưu hồ sơ' }}</button>
+            <button type="submit" class="min-h-10 rounded-md bg-[#0284c7] px-5 text-sm font-semibold text-white transition hover:bg-[#0369a1] disabled:opacity-60" [disabled]="busy()">{{ busy() ? 'Đang lưu...' : 'Lưu hồ sơ' }}</button>
           </div>
         </form>
       </section>

@@ -180,7 +180,7 @@ export class RoomManagement implements OnInit {
     qr.alt = `Mã QR check-in phòng ${room.name}`;
     qr.width = 420;
     const style = printWindow.document.createElement('style');
-    style.textContent = 'body{font-family:Arial,sans-serif;text-align:center;padding:32px;color:#082b35}h1{font-size:28px;margin:0 0 12px}p{font-size:16px;color:#536b73;margin:0 0 24px}img{max-width:100%;height:auto}';
+    style.textContent = 'body{font-family:"Be Vietnam Pro",Roboto,"Helvetica Neue",Arial,sans-serif;text-align:center;padding:32px;color:#082b35}h1{font-size:28px;margin:0 0 12px}p{font-size:16px;color:#536b73;margin:0 0 24px}img{max-width:100%;height:auto}';
     printWindow.document.head.appendChild(style);
     printWindow.document.body.append(title, subtitle, qr);
     printWindow.focus();

@@ -60,10 +60,10 @@ export class Home {
   ];
 
   readonly services: Service[] = [
-    { icon: 'person_search', title: 'Đặt khám theo bác sĩ', description: 'Tìm bác sĩ phù hợp với nhu cầu.', route: '/login' },
-    { icon: 'medical_services', title: 'Đặt khám theo chuyên khoa', description: 'Chọn chuyên khoa và lịch trống.', route: '/login' },
-    { icon: 'calendar_month', title: 'Đặt khám theo ngày', description: 'Chọn ngày thuận tiện để đi khám.', route: '/login' },
-    { icon: 'videocam', title: 'Tư vấn khám online', description: 'Trao đổi với bác sĩ từ xa.', route: '/login' },
+    { icon: 'person_search', title: 'Đặt khám theo bác sĩ', description: 'Tìm bác sĩ phù hợp với nhu cầu.', route: '/appointments/new' },
+    { icon: 'medical_services', title: 'Đặt khám theo chuyên khoa', description: 'Chọn chuyên khoa và lịch trống.', route: '/appointments/new' },
+    { icon: 'calendar_month', title: 'Đặt khám theo ngày', description: 'Chọn ngày thuận tiện để đi khám.', route: '/appointments/new' },
+    { icon: 'videocam', title: 'Tư vấn khám online', description: 'Trao đổi với bác sĩ từ xa.', route: '/support' },
     { icon: 'home_health', title: 'Xét nghiệm tại nhà', description: 'Lấy mẫu nhanh tại nơi bạn ở.', route: '/login' },
     { icon: 'vaccines', title: 'Tiêm chủng – vắc-xin', description: 'Đăng ký tiêm chủng chủ động.', route: '/login' },
   ];

@@ -309,6 +309,8 @@ export interface QueueTicketResponse {
   appointmentCode: string;
   specialty: string;
   doctorName: string;
+  patientName?: string | null;
+  patientDateOfBirth?: string | null;
   priority?: boolean;
   closureOutcome?: string | null;
   closureOutcomeLabel?: string | null;
@@ -318,6 +320,7 @@ export interface DoctorQueueResponse {
   roomCode: string;
   roomName: string;
   specialty: string;
+  shiftStatus: 'ACTIVE' | 'NONE' | 'CONFLICT';
   tickets: QueueTicketResponse[];
 }
 
@@ -643,6 +646,9 @@ export interface ReceptionAppointmentResponse {
   queuePresenceLabel?: string | null;
   queueTicketId?: string | null;
   queuePriority?: boolean;
+  queueClosureOutcome?: string | null;
+  queueClosureOutcomeLabel?: string | null;
+  lateArrival?: boolean;
 }
 
 export interface ReceptionDoctorOption {
@@ -1107,6 +1113,10 @@ export class AuthApiService {
     return this.http.post<ReceptionAppointmentResponse>(`/api/v1/reception/appointments/${appointmentId}/check-in`, { roomCode, reason });
   }
 
+  getReceptionWorklist(date: string): Observable<ReceptionAppointmentResponse[]> {
+    return this.http.get<ReceptionAppointmentResponse[]>('/api/v1/reception/worklist', { params: { date } });
+  }
+
   markReceptionFacilityUnavailable(appointmentId: string, reason: string): Observable<ReceptionAppointmentResponse> {
     return this.http.post<ReceptionAppointmentResponse>(`/api/v1/reception/appointments/${appointmentId}/facility-unavailable`, { reason });
   }
@@ -1153,8 +1163,8 @@ export class AuthApiService {
     return this.http.post<ReceptionPatientRegistrationResponse>('/api/v1/reception/patients', request);
   }
 
-  activateReceptionPatientAccount(phone: string, otpCode: string, newPassword: string, confirmPassword: string): Observable<void> {
-    return this.http.post<void>('/api/v1/auth/activate', { phone, otpCode, newPassword, confirmPassword });
+  activateReceptionPatientAccount(phone: string, newPassword: string, confirmPassword: string): Observable<void> {
+    return this.http.post<void>('/api/v1/auth/activate', { phone, otpCode: null, newPassword, confirmPassword });
   }
 
   saveDoctorExaminationDraft(ticketId: string, request: DoctorExaminationRequest): Observable<DoctorExaminationResponse> {

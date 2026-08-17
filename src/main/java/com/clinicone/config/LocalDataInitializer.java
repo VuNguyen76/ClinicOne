@@ -16,6 +16,8 @@ import com.clinicone.queue.ClinicRoom;
 import com.clinicone.queue.ClinicRoomRepository;
 import com.clinicone.patientprofile.PatientProfile;
 import com.clinicone.patientprofile.PatientProfileRepository;
+import com.clinicone.schedule.ClinicService;
+import com.clinicone.schedule.ClinicServiceRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,6 +53,7 @@ public class LocalDataInitializer implements CommandLineRunner {
     private final PatientAccountRepository patientRepository;
     private final PatientProfileRepository patientProfileRepository;
     private final AppointmentRepository appointmentRepository;
+    private final ClinicServiceRepository clinicServiceRepository;
     private final JdbcTemplate jdbcTemplate;
     private final String adminPassword;
     private final String receptionistPassword;
@@ -65,6 +68,7 @@ public class LocalDataInitializer implements CommandLineRunner {
                                 PatientAccountRepository patientRepository,
                                 PatientProfileRepository patientProfileRepository,
                                 AppointmentRepository appointmentRepository,
+                                ClinicServiceRepository clinicServiceRepository,
                                 JdbcTemplate jdbcTemplate,
                                 @Value("${LOCAL_ADMIN_PASSWORD}") String adminPassword,
                                 @Value("${LOCAL_RECEPTION_PASSWORD}") String receptionistPassword,
@@ -78,6 +82,7 @@ public class LocalDataInitializer implements CommandLineRunner {
         this.patientRepository = patientRepository;
         this.patientProfileRepository = patientProfileRepository;
         this.appointmentRepository = appointmentRepository;
+        this.clinicServiceRepository = clinicServiceRepository;
         this.jdbcTemplate = jdbcTemplate;
         this.adminPassword = adminPassword;
         this.receptionistPassword = receptionistPassword;
@@ -92,22 +97,44 @@ public class LocalDataInitializer implements CommandLineRunner {
         StaffAccount admin = ensureStaff("admin", adminPassword, "Quản trị viên", StaffRole.ADMIN);
         StaffAccount receptionist = ensureStaff("reception", receptionistPassword, "Nhân viên tiếp nhận", StaffRole.RECEPTIONIST);
         StaffAccount doctor = ensureStaff("doctor", doctorPassword, "Bác sĩ Nguyễn An", StaffRole.DOCTOR);
+        StaffAccount secondDoctor = ensureStaff("doctor2", doctorPassword, "Bác sĩ Trần Minh", StaffRole.DOCTOR);
+        StaffAccount thirdDoctor = ensureStaff("doctor3", doctorPassword, "Bác sĩ Lê Thu Hà", StaffRole.DOCTOR);
         DoctorProfile profile = profileRepository.findByStaffAccount_Id(doctor.getId()).orElse(null);
         ClinicRoom room;
         if (profile == null) {
-            room = ensureRoom();
+            room = ensureRoom(DEFAULT_ROOM_CODE, "Phòng Khám Tổng Quát 01");
             profile = profileRepository.save(DoctorProfile.create(doctor, DEFAULT_SPECIALTY, room));
         } else {
             // Reuse an existing assignment so local bootstrap never creates a
             // second room that is not actually used by the seeded doctor.
             room = profile.getRoom();
         }
+        DoctorProfile secondProfile = profileRepository.findByStaffAccount_Id(secondDoctor.getId()).orElse(null);
+        ClinicRoom secondRoom;
+        if (secondProfile == null) {
+            secondRoom = ensureRoom("TQ-02", "Phòng Khám Tổng Quát 02");
+            secondProfile = profileRepository.save(DoctorProfile.create(secondDoctor, DEFAULT_SPECIALTY, secondRoom));
+        } else {
+            secondRoom = secondProfile.getRoom();
+        }
+        DoctorProfile thirdProfile = profileRepository.findByStaffAccount_Id(thirdDoctor.getId()).orElse(null);
+        ClinicRoom thirdRoom;
+        if (thirdProfile == null) {
+            thirdRoom = ensureRoom("TQ-03", "Phòng Khám Tổng Quát 03");
+            thirdProfile = profileRepository.save(DoctorProfile.create(thirdDoctor, DEFAULT_SPECIALTY, thirdRoom));
+        } else {
+            thirdRoom = thirdProfile.getRoom();
+        }
         ensureWeekdaySchedules(profile);
+        ensureWeekdaySchedules(secondProfile);
+        ensureWeekdaySchedules(thirdProfile);
+        ensureClinicService(List.of(secondProfile, thirdProfile));
         PatientAccount patient = ensurePatient();
         PatientProfile patientProfile = ensurePatientProfile(patient);
         ensureDemoAppointment(patient, patientProfile, doctor, profile);
-        log.info("Local bootstrap ready: admin={}, receptionist={}, doctor={}, patient={}, room={}",
-                admin.getUsername(), receptionist.getUsername(), doctor.getUsername(), patient.getPhone(), room.getCode());
+        log.info("Local bootstrap ready: admin={}, receptionist={}, doctors=[{}, {}, {}], patient={}, rooms=[{}, {}, {}]",
+                admin.getUsername(), receptionist.getUsername(), doctor.getUsername(), secondDoctor.getUsername(),
+                thirdDoctor.getUsername(), patient.getPhone(), room.getCode(), secondRoom.getCode(), thirdRoom.getCode());
     }
 
     /**
@@ -140,12 +167,30 @@ public class LocalDataInitializer implements CommandLineRunner {
                         username, passwordEncoder.encode(password), fullName, role)));
     }
 
-    private ClinicRoom ensureRoom() {
+    private ClinicRoom ensureRoom(String code, String name) {
         return roomRepository.findAllByOrderByCodeAsc().stream()
-                .filter(item -> item.getCode().equalsIgnoreCase(DEFAULT_ROOM_CODE))
+                .filter(item -> item.getCode().equalsIgnoreCase(code))
                 .findFirst()
                 .orElseGet(() -> roomRepository.save(ClinicRoom.create(
-                        DEFAULT_ROOM_CODE, "Phòng Khám Tổng Quát 01", DEFAULT_SPECIALTY)));
+                        code, name, DEFAULT_SPECIALTY)));
+    }
+
+    private ClinicService ensureClinicService(List<DoctorProfile> doctors) {
+        String serviceName = "Khám tổng quát ClinicOne";
+        String visitType = "Khám thường";
+        ClinicService service = clinicServiceRepository.findAllByOrderByNameAsc().stream()
+                .filter(item -> item.getName().equalsIgnoreCase(serviceName)
+                        && item.getSpecialty().equalsIgnoreCase(DEFAULT_SPECIALTY)
+                        && item.getVisitType().equalsIgnoreCase(visitType))
+                .findFirst()
+                .orElse(null);
+        if (service == null) {
+            return clinicServiceRepository.save(ClinicService.create(
+                    serviceName, DEFAULT_SPECIALTY, visitType, 30, doctors));
+        }
+        service.update(serviceName, DEFAULT_SPECIALTY, visitType, 30, doctors);
+        service.setActive(true);
+        return clinicServiceRepository.save(service);
     }
 
     private void ensureWeekdaySchedules(DoctorProfile profile) {

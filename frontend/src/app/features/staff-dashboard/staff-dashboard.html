@@ -1,13 +1,6 @@
 <app-staff-workspace-shell moduleTitle="Khám bệnh" pageTitle="Hàng đợi khám bệnh">
   <!-- Window Action Toolbar Slot -->
   <div workspace-actions class="flex items-center gap-2">
-    <div class="hidden items-center gap-1.5 rounded-full border border-emerald-200/80 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 sm:inline-flex">
-      <span class="relative flex h-2 w-2">
-        <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
-        <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
-      </span>
-      <span>Đồng bộ thời gian thực</span>
-    </div>
     <button
       type="button"
       class="erp-btn-secondary"
@@ -19,7 +12,7 @@
     </button>
   </div>
 
-  <div class="mx-auto max-w-[1280px] space-y-4">
+  <div class="w-full space-y-4">
     <!-- Alerts & Warnings -->
     @if (error()) {
       <div class="flex items-center gap-2 rounded-md border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs font-medium text-rose-800 shadow-xs" role="alert">
@@ -33,10 +26,44 @@
         <span>Dữ liệu hàng đợi đang chậm cập nhật. Hệ thống vẫn giữ danh sách gần nhất và sẽ tự thử lại.</span>
       </div>
     }
-
     <!-- Filter Bar -->
-    <section class="erp-filter-bar flex flex-col gap-3 sm:flex-row sm:items-end" aria-label="Bộ lọc hàng đợi">
-      @if (!isOwnDoctor()) {
+    @if (isOwnDoctor()) {
+      <section
+        data-testid="doctor-shift-bar"
+        class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm"
+        aria-label="Ca khám hiện tại"
+      >
+        <div class="flex flex-col gap-3 border-b border-slate-200 px-4 py-3 md:flex-row md:items-center md:justify-between">
+          <div class="flex min-w-0 items-center gap-3">
+            <span class="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-sky-50 text-[#0284c7]">
+              <mat-icon class="!h-5 !w-5 !text-[20px]">meeting_room</mat-icon>
+            </span>
+            <div class="min-w-0">
+              <p class="text-xs font-bold uppercase tracking-wider text-[#0284c7]">Ca khám hiện tại</p>
+              <p class="truncate text-base font-bold text-slate-900">{{ roomName() }}</p>
+            </div>
+          </div>
+          <div class="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+            <span class="flex items-center gap-1.5 font-semibold text-slate-700">
+              <mat-icon class="!h-4 !w-4 !text-[17px] text-slate-400">calendar_today</mat-icon>
+              {{ formatDate(selectedDate()) }}
+            </span>
+            <span
+              class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold"
+              [class]="doctorShiftStatus() === 'ACTIVE'
+                ? 'bg-emerald-50 text-emerald-700'
+                : doctorShiftStatus() === 'CONFLICT'
+                  ? 'bg-amber-50 text-amber-800'
+                  : 'bg-slate-100 text-slate-600'"
+            >
+              <span class="h-2 w-2 rounded-full" [class]="doctorShiftStatus() === 'ACTIVE' ? 'bg-emerald-500' : doctorShiftStatus() === 'CONFLICT' ? 'bg-amber-500' : 'bg-slate-400'"></span>
+              {{ doctorShiftStatus() === 'ACTIVE' ? 'Đang trong ca' : doctorShiftStatus() === 'CONFLICT' ? 'Ca bị trùng' : 'Không có ca làm việc' }}
+            </span>
+          </div>
+        </div>
+      </section>
+    } @else {
+      <section class="erp-filter-bar flex flex-col gap-3 sm:flex-row sm:items-end" aria-label="Bộ lọc hàng đợi">
         <div class="min-w-0 flex-1">
           <label class="erp-label">Phòng khám</label>
           <select
@@ -52,66 +79,59 @@
             }
           </select>
         </div>
-      } @else {
-        <div class="min-w-0 flex-1">
-          <span class="erp-label">Phòng được phân công</span>
-          <div class="flex min-h-9 items-center gap-2 rounded-md border border-sky-200 bg-sky-50/60 px-3 text-xs font-semibold text-[#0284c7]">
-            <mat-icon class="!h-4 !w-4 !text-[17px]">meeting_room</mat-icon>
-            <span class="truncate">{{ roomName() }}</span>
-          </div>
+        <div class="w-full sm:w-44">
+          <label class="erp-label">Ngày khám</label>
+          <input
+            data-testid="date-selector"
+            type="date"
+            class="erp-input font-mono"
+            [value]="selectedDate()"
+            (change)="selectDate($event)"
+          />
         </div>
-      }
-
-      <div class="w-full sm:w-44">
-        <label class="erp-label">Ngày khám</label>
-        <input
-          data-testid="date-selector"
-          type="date"
-          class="erp-input font-mono"
-          [value]="selectedDate()"
-          (change)="selectDate($event)"
-        />
-      </div>
-
-      @if (!isOwnDoctor()) {
         <div class="hidden min-h-9 items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-700 lg:flex">
           <mat-icon class="!h-4 !w-4 !text-[17px] text-slate-500">meeting_room</mat-icon>
           <span class="truncate">{{ roomName() }}</span>
         </div>
-      }
-    </section>
+      </section>
+    }
 
-    @if (!isOwnDoctor()) {
-      <!-- Summary is useful for coordinators; doctors need the queue immediately. -->
-      <section class="grid grid-cols-2 gap-3 sm:grid-cols-4" aria-label="Tóm tắt hàng đợi">
+      <section
+        class="grid grid-cols-2 overflow-hidden rounded-lg border border-slate-200 bg-white lg:grid-cols-4"
+        aria-label="Tóm tắt hàng đợi"
+        [attr.data-testid]="isOwnDoctor() ? 'doctor-metrics' : null"
+      >
         <div class="erp-kpi-card border-t-2 border-t-[#0284c7]">
-          <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Đang chờ</p>
+          <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Đang chờ</p>
           <p data-testid="waiting-count" class="mt-1 font-mono text-2xl font-bold tracking-tight text-[#0284c7]">
             {{ waitingCount() }}
           </p>
         </div>
         <div class="erp-kpi-card border-t-2 border-t-amber-500">
-          <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Đã gọi</p>
+          <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Đã gọi</p>
           <p class="mt-1 font-mono text-2xl font-bold tracking-tight text-amber-600">
             {{ calledCount() }}
           </p>
         </div>
         <div class="erp-kpi-card border-t-2 border-t-violet-500">
-          <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Đang khám</p>
+          <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Đang khám</p>
           <p class="mt-1 font-mono text-2xl font-bold tracking-tight text-violet-600">
             {{ inServiceCount() }}
           </p>
         </div>
         <div class="erp-kpi-card border-t-2 border-t-emerald-500">
-          <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Hoàn tất</p>
+          <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Hoàn tất</p>
           <p class="mt-1 font-mono text-2xl font-bold tracking-tight text-emerald-600">
             {{ completedCount() }}
           </p>
         </div>
       </section>
-    }
 
     <!-- Queue Table Card -->
+    <div
+      data-testid="doctor-main-grid"
+      [class]="isOwnDoctor() ? 'grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_320px]' : 'block'"
+    >
     <section class="erp-card overflow-hidden" aria-label="Danh sách lượt khám">
       <div class="erp-toolbar">
         <div class="flex items-center gap-2.5">
@@ -133,9 +153,11 @@
               <span>Gọi bệnh nhân tiếp theo</span>
             </button>
           }
-          <span class="hidden rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-semibold text-slate-600 sm:inline">
-            {{ roleLabel() }}
-          </span>
+          @if (!isOwnDoctor()) {
+            <span class="hidden rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-semibold text-slate-600 sm:inline">
+              {{ roleLabel() }}
+            </span>
+          }
         </div>
       </div>
 
@@ -151,8 +173,8 @@
       @else if (!selectedRoomCode()) {
         <div class="grid min-h-48 place-items-center p-6 text-center">
           <div>
-            <mat-icon class="!h-9 !w-9 !text-[36px] text-slate-400">touch_app</mat-icon>
-            <p class="mt-2 text-xs font-semibold text-slate-700">Chọn phòng để xem lượt khám</p>
+            <mat-icon class="!h-9 !w-9 !text-[36px] text-slate-400">{{ isOwnDoctor() ? 'event_busy' : 'touch_app' }}</mat-icon>
+            <p class="mt-2 text-sm font-semibold text-slate-700">{{ isOwnDoctor() ? 'Không có ca làm việc' : 'Chọn phòng để xem lượt khám' }}</p>
           </div>
         </div>
       }
@@ -171,7 +193,7 @@
             <thead>
               <tr>
                 <th class="w-16 text-center">Số TT</th>
-                <th>Chuyên khoa / Bác sĩ</th>
+                <th>Người bệnh</th>
                 <th class="w-28 text-center">Giờ hẹn</th>
                 <th class="w-32 text-center">Trạng thái</th>
                 <th class="w-56 text-right">Thao tác</th>
@@ -184,8 +206,15 @@
                     <span class="font-mono text-sm font-bold text-slate-900">{{ ticket.queueNumber }}</span>
                   </td>
                   <td>
-                    <p class="font-semibold text-slate-800">{{ ticket.specialty }}</p>
-                    <p class="font-mono text-[11px] text-slate-500">{{ ticket.doctorName }} · {{ ticket.appointmentCode }}</p>
+                    @if (ticket.patientName) {
+                      <p class="font-semibold text-slate-800">{{ ticket.patientName }}</p>
+                      <p class="text-sm text-slate-500">
+                        Sinh ngày {{ formatDate(ticket.patientDateOfBirth) }} · {{ ticket.appointmentCode }}
+                      </p>
+                    } @else {
+                      <p class="font-semibold text-slate-800">{{ ticket.appointmentCode }}</p>
+                      <p class="text-sm text-slate-500">Chưa có thông tin hồ sơ</p>
+                    }
                   </td>
                   <td class="text-center font-mono text-xs font-semibold text-slate-700">
                     {{ formatTime(ticket.appointmentTime) }}
@@ -220,6 +249,17 @@
                           Vào khám
                         </button>
                       }
+                      @if (isOwnDoctor() && ticket.status === 'IN_SERVICE') {
+                        <button
+                          data-testid="open-examination"
+                          type="button"
+                          class="erp-btn-primary !min-h-8 !px-3 !py-1.5 !text-sm"
+                          (click)="openExamination(ticket)"
+                        >
+                          <mat-icon class="!h-4 !w-4 !text-[16px]">clinical_notes</mat-icon>
+                          <span>Mở phiếu khám</span>
+                        </button>
+                      }
                     </div>
                   </td>
                 </tr>
@@ -229,5 +269,55 @@
         </div>
       }
     </section>
+
+    @if (isOwnDoctor()) {
+      <aside class="erp-card self-start overflow-hidden" aria-label="Bệnh nhân đang xử lý">
+        <div class="erp-toolbar">
+          <h2 class="text-sm font-bold uppercase tracking-wider text-slate-800">Đang xử lý</h2>
+        </div>
+        @if (currentDoctorTicket(); as current) {
+          <div data-testid="doctor-current-patient" class="p-4">
+            <div class="flex items-start justify-between gap-3">
+              <div class="grid h-14 w-14 shrink-0 place-items-center rounded-lg bg-sky-50 text-center text-[#0284c7]">
+                <div>
+                  <span class="block text-[10px] font-bold uppercase leading-none">Số</span>
+                  <strong class="font-mono text-2xl leading-tight">{{ current.queueNumber }}</strong>
+                </div>
+              </div>
+              <span class="erp-badge" [class]="statusClass(current.status)">
+                {{ current.status === 'IN_SERVICE' ? 'Đang khám' : 'Đang được gọi' }}
+              </span>
+            </div>
+            <h3 class="mt-3 truncate text-base font-bold text-slate-900">{{ current.patientName || current.appointmentCode }}</h3>
+            <p class="mt-1 text-sm text-slate-500">{{ formatDate(current.patientDateOfBirth) }} · {{ formatTime(current.appointmentTime) }}</p>
+            <p class="mt-0.5 font-mono text-xs text-slate-400">{{ current.appointmentCode }}</p>
+            <div class="mt-4 grid gap-2">
+              @if (current.status === 'CALLED') {
+                <button type="button" class="erp-btn-primary w-full justify-center" [disabled]="busyTicketId() === current.id" (click)="act(current, 'start')">
+                  <mat-icon class="!h-4 !w-4 !text-[16px]">stethoscope</mat-icon>
+                  <span>Bắt đầu khám</span>
+                </button>
+                <button type="button" class="erp-btn-secondary w-full justify-center" [disabled]="busyTicketId() === current.id" (click)="act(current, 'skip')">
+                  Gọi lại sau
+                </button>
+              } @else {
+                <button type="button" class="erp-btn-primary w-full justify-center" (click)="openExamination(current)">
+                  <mat-icon class="!h-4 !w-4 !text-[16px]">clinical_notes</mat-icon>
+                  <span>Mở phiếu khám</span>
+                </button>
+              }
+            </div>
+          </div>
+        } @else {
+          <div data-testid="doctor-current-patient" class="grid min-h-36 place-items-center p-5 text-center">
+            <div>
+              <mat-icon class="!h-8 !w-8 !text-[32px] text-slate-300">person_search</mat-icon>
+              <p class="mt-2 text-sm font-semibold text-slate-600">Chưa có lượt đang xử lý</p>
+            </div>
+          </div>
+        }
+      </aside>
+    }
+    </div>
   </div>
 </app-staff-workspace-shell>

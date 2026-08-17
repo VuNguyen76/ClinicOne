@@ -28,6 +28,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.util.Optional;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -194,6 +195,68 @@ class ReceptionServiceTest {
                 .extracting("code").isEqualTo("TEMPORARY_EXCEPTION_REASON_INVALID");
 
         verifyNoInteractions(doctorProfileRepository, appointmentService, queueService);
+    }
+
+    @Test
+    void listsTheReceptionWorklistForADayWithoutAQuery() {
+        Appointment appointment = mock(Appointment.class);
+        when(appointment.getId()).thenReturn(APPOINTMENT_ID);
+        when(appointment.getAppointmentCode()).thenReturn("CL-20260807-1234");
+        when(appointment.getAppointmentDate()).thenReturn(TODAY);
+        when(appointment.getStartTime()).thenReturn(LocalTime.of(9, 0));
+        when(appointment.getSpecialty()).thenReturn("Nội tổng quát");
+        when(appointment.getDoctorName()).thenReturn("BS. Nguyễn An");
+        when(appointment.getStatus()).thenReturn(AppointmentStatus.CHECKED_IN);
+        when(appointmentRepository.findByAppointmentDateAndStatusInOrderByStartTimeAsc(any(), any()))
+                .thenReturn(List.of(appointment));
+
+        List<ReceptionAppointmentResponse> result = service.worklist(TODAY);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).appointmentCode()).isEqualTo("CL-20260807-1234");
+    }
+
+    @Test
+    void booksAFutureWalkInWithoutCheckingInOrIssuingAQueueNumber() {
+        LocalDate tomorrow = TODAY.plusDays(1);
+        PatientAccount patient = mock(PatientAccount.class);
+        when(patient.getId()).thenReturn(PATIENT_ID);
+        when(patient.getStatus()).thenReturn(AccountStatus.ACTIVE);
+        when(patient.getFullName()).thenReturn("Nguyễn Thanh Vũ");
+        when(patient.getPhone()).thenReturn("0912345678");
+        when(patientAccountRepository.findByPhone("0912345678")).thenReturn(Optional.of(patient));
+
+        StaffAccount staff = mock(StaffAccount.class);
+        when(staff.getFullName()).thenReturn("BS. Nguyễn An");
+        DoctorProfile doctor = mock(DoctorProfile.class);
+        when(doctor.isActive()).thenReturn(true);
+        when(doctor.getSpecialty()).thenReturn("Nội tổng quát");
+        when(doctor.getStaffAccount()).thenReturn(staff);
+        when(doctorProfileRepository.findById(DOCTOR_ID)).thenReturn(Optional.of(doctor));
+
+        AppointmentResponse created = new AppointmentResponse(APPOINTMENT_ID, "CL-20260808-1234",
+                "Nội tổng quát", "BS. Nguyễn An", tomorrow, LocalTime.of(9, 0), "Đau đầu từ sáng",
+                "BOOKED", "Đã đặt", null, null, DOCTOR_ID);
+        when(appointmentService.create(anyString(), any())).thenReturn(created);
+        Appointment appointment = mock(Appointment.class);
+        when(appointment.getId()).thenReturn(APPOINTMENT_ID);
+        when(appointment.getAppointmentCode()).thenReturn("CL-20260808-1234");
+        when(appointment.getAppointmentDate()).thenReturn(tomorrow);
+        when(appointment.getStartTime()).thenReturn(LocalTime.of(9, 0));
+        when(appointment.getSpecialty()).thenReturn("Nội tổng quát");
+        when(appointment.getDoctorName()).thenReturn("BS. Nguyễn An");
+        when(appointment.getDoctorStaffId()).thenReturn(DOCTOR_ID);
+        when(appointment.getPatient()).thenReturn(patient);
+        when(appointment.getStatus()).thenReturn(AppointmentStatus.BOOKED);
+        when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
+
+        ReceptionAppointmentResponse response = service.createWalkIn(new ReceptionWalkInRequest(
+                "0912345678", null, DOCTOR_ID, tomorrow, LocalTime.of(9, 0), "Đau đầu từ sáng",
+                "Hỗ trợ đặt lịch tại quầy"));
+
+        assertThat(response.status()).isEqualTo("BOOKED");
+        assertThat(response.queueNumber()).isNull();
+        verifyNoInteractions(queueService);
     }
 
     @Test

@@ -44,7 +44,7 @@
               @for (item of items(); track item.id) {
                 <tr class="erp-tr">
                   <td class="erp-td font-mono text-[11px] text-slate-500">{{ item.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
-                  <td class="erp-td font-mono text-xs font-semibold text-slate-800">{{ item.phone }}</td>
+                  <td class="erp-td text-xs font-semibold text-slate-800">{{ item.phone }}</td>
                   <td class="erp-td text-xs font-mono text-slate-700">{{ item.eventKey }}</td>
                   <td class="erp-td">
                     <span [class]="item.status === 'FAILED' ? 'erp-badge-danger' : (item.status === 'SENT' ? 'erp-badge-success' : 'erp-badge-warning')">

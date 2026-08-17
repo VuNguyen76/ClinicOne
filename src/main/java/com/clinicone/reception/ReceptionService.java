@@ -27,8 +27,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -36,6 +39,7 @@ import java.util.UUID;
 @Service
 public class ReceptionService {
     private static final ZoneId CLINIC_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
+    private static final int DEFAULT_SLOT_DURATION_MINUTES = 60;
     private static final Set<String> ALLOWED_GENDERS = Set.of("Nam", "Nữ", "Khác");
 
     private final AppointmentRepository appointmentRepository;
@@ -95,6 +99,15 @@ public class ReceptionService {
         LocalDate appointmentDate = date == null ? today() : date;
         return appointmentRepository.findReceptionCandidatesByStatuses(normalized, appointmentDate,
                         List.of(AppointmentStatus.BOOKED, AppointmentStatus.CHECKED_IN, AppointmentStatus.ABSENT))
+                .stream().map(this::toResponse).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ReceptionAppointmentResponse> worklist(LocalDate date) {
+        LocalDate workDate = date == null ? today() : date;
+        return appointmentRepository.findByAppointmentDateAndStatusInOrderByStartTimeAsc(workDate,
+                        List.of(AppointmentStatus.BOOKED, AppointmentStatus.CHECKED_IN,
+                                AppointmentStatus.ABSENT, AppointmentStatus.NOT_PERFORMED))
                 .stream().map(this::toResponse).toList();
     }
 
@@ -314,16 +327,17 @@ public class ReceptionService {
         }
 
         LocalDate appointmentDate = request.appointmentDate();
-        if (!today().equals(appointmentDate)) {
-            throw new AuthException(HttpStatus.CONFLICT, "WALK_IN_TODAY_ONLY",
-                    "Tiếp nhận không có lịch chỉ áp dụng cho ngày hôm nay.");
-        }
+        boolean appointmentIsToday = today().equals(appointmentDate);
 
         DoctorProfile doctor = doctorProfileRepository.findById(request.doctorId())
                 .filter(DoctorProfile::isActive)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "DOCTOR_ASSIGNMENT_NOT_FOUND",
                         "Không tìm thấy bác sĩ đang được phân công."));
 
+        if (Boolean.TRUE.equals(request.overCapacity()) && !appointmentIsToday) {
+            throw new AuthException(HttpStatus.CONFLICT, "FUTURE_OVER_CAPACITY_NOT_ALLOWED",
+                    "Chỉ được tiếp nhận ngoài công suất cho ngày hiện tại.");
+        }
         if (Boolean.TRUE.equals(request.overCapacity())) {
             // Serialize exception admissions per doctor so the check-and-insert
             // cannot allow a fourth admission under concurrent reception users.
@@ -364,12 +378,15 @@ public class ReceptionService {
                     ? appointmentService.create(patient.getId().toString(), appointmentRequest)
                     : appointmentService.create(patient.getId().toString(), appointmentRequest, normalizedRequestKey);
         }
-        QueueTicketResponse ticket = actor == null
-                ? queueService.checkInByStaff(doctor.getRoom().getCode(), created.id(), request.exceptionReason())
-                : queueService.checkInByStaff(doctor.getRoom().getCode(), created.id(), request.exceptionReason(), actor);
         Appointment appointment = appointmentRepository.findById(created.id())
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "APPOINTMENT_NOT_FOUND",
                         "Không tìm thấy lịch hẹn vừa tạo."));
+        if (!appointmentIsToday) {
+            return toResponse(appointment, null);
+        }
+        QueueTicketResponse ticket = actor == null
+                ? queueService.checkInByStaff(doctor.getRoom().getCode(), created.id(), request.exceptionReason())
+                : queueService.checkInByStaff(doctor.getRoom().getCode(), created.id(), request.exceptionReason(), actor);
         return toResponse(appointment, ticket);
     }
 
@@ -384,7 +401,21 @@ public class ReceptionService {
                 .filter(DoctorProfile::isActive).orElse(null);
         return ReceptionAppointmentResponse.from(appointment,
                 profile == null ? null : profile.getRoom().getCode(),
-                profile == null ? null : profile.getRoom().getName(), ticket);
+                profile == null ? null : profile.getRoom().getName(), ticket, isLateArrival(appointment));
+    }
+
+    private boolean isLateArrival(Appointment appointment) {
+        if (appointment.getStatus() != AppointmentStatus.BOOKED || !appointment.getAppointmentDate().equals(today())) {
+            return false;
+        }
+        int durationMinutes = appointment.getServiceDurationMinutes() == null
+                || appointment.getServiceDurationMinutes() <= 0
+                ? DEFAULT_SLOT_DURATION_MINUTES : appointment.getServiceDurationMinutes();
+        Instant scheduledEnd = ZonedDateTime.of(appointment.getAppointmentDate(), appointment.getStartTime(), CLINIC_ZONE)
+                .toInstant().plus(Duration.ofMinutes(durationMinutes));
+        Instant now = Instant.now(clock);
+        return !now.isBefore(scheduledEnd.plus(Duration.ofMinutes(15)))
+                && now.isBefore(scheduledEnd.plus(Duration.ofHours(24)));
     }
 
     private String normalizeQuery(String query) {

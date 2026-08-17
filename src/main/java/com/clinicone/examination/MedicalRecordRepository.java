@@ -2,6 +2,7 @@ package com.clinicone.examination;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -17,6 +18,7 @@ public interface MedicalRecordRepository extends JpaRepository<MedicalRecord, UU
     List<MedicalRecord> findTop10BySession_Appointment_PatientProfile_IdAndSignedAtIsNotNullOrderBySignedAtDesc(
             UUID patientProfileId);
 
+    @EntityGraph(attributePaths = {"session", "session.appointment", "prescriptionLines"})
     Optional<MedicalRecord> findByIdAndSession_Appointment_Patient_IdAndSignedAtIsNotNull(UUID id, UUID patientId);
 
     Optional<MedicalRecord> findBySession_Id(UUID sessionId);
@@ -35,23 +37,43 @@ public interface MedicalRecordRepository extends JpaRepository<MedicalRecord, UU
                                                    @Param("profileId") UUID profileId,
                                                    @Param("fromAt") Instant fromAt);
 
-    @Query("""
+    @Query(value = """
             select record from MedicalRecord record
+            join fetch record.session session
+            join fetch session.appointment appointment
+            where appointment.patient.id = :patientId
+              and record.signedAt is not null
+              and record.signedAt >= :fromAt
+              and record.signedAt < :toExclusive
+            order by record.signedAt desc
+            """,
+            countQuery = """
+            select count(record) from MedicalRecord record
             join record.session session
             join session.appointment appointment
             where appointment.patient.id = :patientId
               and record.signedAt is not null
               and record.signedAt >= :fromAt
               and record.signedAt < :toExclusive
-            order by record.signedAt desc
             """)
     Page<MedicalRecord> findSignedHistory(@Param("patientId") UUID patientId,
                                           @Param("fromAt") Instant fromAt,
                                           @Param("toExclusive") Instant toExclusive,
                                           Pageable pageable);
 
-    @Query("""
+    @Query(value = """
             select record from MedicalRecord record
+            join fetch record.session session
+            join fetch session.appointment appointment
+            where appointment.patient.id = :patientId
+              and appointment.patientProfile.id = :profileId
+              and record.signedAt is not null
+              and record.signedAt >= :fromAt
+              and record.signedAt < :toExclusive
+            order by record.signedAt desc
+            """,
+            countQuery = """
+            select count(record) from MedicalRecord record
             join record.session session
             join session.appointment appointment
             where appointment.patient.id = :patientId
@@ -59,7 +81,6 @@ public interface MedicalRecordRepository extends JpaRepository<MedicalRecord, UU
               and record.signedAt is not null
               and record.signedAt >= :fromAt
               and record.signedAt < :toExclusive
-            order by record.signedAt desc
             """)
     Page<MedicalRecord> findSignedHistoryForProfile(@Param("patientId") UUID patientId,
                                                     @Param("profileId") UUID profileId,

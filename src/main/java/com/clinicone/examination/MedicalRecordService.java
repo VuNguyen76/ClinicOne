@@ -38,7 +38,7 @@ public class MedicalRecordService {
                 ? repository.findSignedHistory(patientId, fromAt, toExclusive, pageRequest)
                 : repository.findSignedHistoryForProfile(patientId, normalized.profileId(), fromAt, toExclusive,
                         pageRequest);
-        return new MedicalRecordHistoryPage(records.getContent().stream().map(MedicalRecordResponse::from).toList(),
+        return new MedicalRecordHistoryPage(records.getContent().stream().map(MedicalRecordResponse::fromSummary).toList(),
                 records.getNumber(), records.getSize(), records.getTotalElements(), records.getTotalPages());
     }
 

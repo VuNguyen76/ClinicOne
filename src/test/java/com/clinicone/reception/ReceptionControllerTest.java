@@ -54,6 +54,18 @@ class ReceptionControllerTest {
     }
 
     @Test
+    void receptionistCanLoadTheDailyWorklistWithoutEnteringAQuery() throws Exception {
+        LocalDate date = LocalDate.of(2026, 8, 7);
+        when(service.worklist(date)).thenReturn(List.of(responseWithTicket()));
+
+        mockMvc.perform(get("/api/v1/reception/worklist?date=2026-08-07")
+                        .with(authentication(authenticated("ROLE_RECEPTIONIST"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].appointmentCode").value("CL-20260807-1234"))
+                .andExpect(jsonPath("$[0].queueStatus").value("WAITING"));
+    }
+
+    @Test
     void doctorCannotUseReceptionSearch() throws Exception {
         mockMvc.perform(get("/api/v1/reception/appointments?query=0912345678")
                         .with(authentication(authenticated("ROLE_DOCTOR"))))

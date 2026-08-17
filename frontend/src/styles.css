@@ -15,11 +15,14 @@
   --color-clinic-slate-muted: #f1f5f9;
   --color-clinic-border: #e2e8f0;
   --color-clinic-border-strong: #cbd5e1;
+  --font-sans: "Be Vietnam Pro", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Be Vietnam Pro", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 :root {
   color-scheme: light;
-  font-family: "Be Vietnam Pro", Roboto, "Helvetica Neue", sans-serif;
+  --font-clinic: "Be Vietnam Pro", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--font-clinic);
   --color-primary: #0ea5e9;
   --color-primary-dark: #0284c7;
   --color-primary-soft: #e0f2fe;
@@ -66,7 +69,30 @@ body {
 }
 
 body {
-  font-family: inherit;
+  font-family: var(--font-clinic);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Keep identifiers, phone numbers and dates aligned without switching to a
+ * visibly different typeface. ClinicOne uses one font family across patient
+ * and staff surfaces; tabular numerals provide the needed data alignment. */
+.font-mono {
+  font-family: var(--font-clinic) !important;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Tailwind utilities, native controls, and Angular Material content all use
+ * the same ClinicOne typeface. Technical values opt into font-mono locally. */
+button,
+input,
+select,
+textarea,
+mat-label,
+.mat-mdc-button,
+.mat-mdc-menu-item,
+.mat-mdc-form-field {
+  font-family: var(--font-clinic);
 }
 
 /* Keep every staff and patient screen on one icon family. The old Material
@@ -87,6 +113,14 @@ body {
   -webkit-font-smoothing: antialiased;
   font-feature-settings: "liga";
   font-variation-settings: "FILL" 0, "wght" 450, "GRAD" 0, "opsz" 20;
+}
+
+/* Patient navigation keeps the brand accent on icons instead of inheriting
+ * the dark body text. This makes the active and inactive menu states easy to
+ * scan without changing the text contrast. */
+app-account-nav mat-icon,
+app-account-menu [role="menu"] mat-icon {
+  color: var(--erp-brand-cyan);
 }
 
 /* Legacy staff pages can stay functional while they are progressively moved

@@ -3,7 +3,7 @@
     <section class="relative flex min-h-[100dvh] flex-col bg-slate-50 px-5 py-5 sm:px-10 lg:px-[clamp(3rem,7vw,7.5rem)]" aria-label="Đăng nhập ClinicOne">
       <header class="flex items-center justify-between gap-4">
         <a routerLink="/home" class="flex items-center gap-3" aria-label="ClinicOne, về trang chủ">
-          <img class="h-10 w-10 object-contain" src="clinicone-mark.png" alt="" aria-hidden="true" />
+          <img class="h-10 w-10 object-contain" src="clinicone-mark-small.png" alt="" aria-hidden="true" />
           <span class="text-xl font-bold tracking-[-0.03em] text-slate-900">Clinic<span class="text-[#0284c7]">One</span></span>
         </a>
         <a class="text-xs font-semibold text-[#0284c7] underline-offset-4 hover:underline" href="tel:1900000">Cần hỗ trợ?</a>
@@ -27,7 +27,7 @@
               } @else if (phoneForm.controls.phone.hasError('pattern') && phoneForm.controls.phone.touched) {
                 <p class="text-xs text-rose-600" role="alert">Vui lòng nhập đúng 10 chữ số.</p>
               }
-              <button class="mt-2 min-h-11 rounded-lg bg-[#0e3d48] px-5 text-sm font-semibold text-white shadow-xs transition hover:bg-[#124f5e] disabled:cursor-not-allowed disabled:opacity-60" type="submit" [disabled]="busy()">
+              <button class="mt-2 min-h-11 rounded-lg bg-[#0284c7] px-5 text-sm font-semibold text-white shadow-xs transition hover:bg-[#0369a1] disabled:cursor-not-allowed disabled:opacity-60" type="submit" [disabled]="busy()">
                 {{ busy() ? 'Đang đăng nhập...' : 'Đăng nhập' }}
               </button>
             </form>
@@ -40,7 +40,7 @@
               } @else if (passwordForm.controls.password.invalid && passwordForm.controls.password.touched) {
                 <p class="text-xs text-rose-600" role="alert">Mật khẩu phải có ít nhất 6 ký tự.</p>
               }
-              <button class="mt-2 min-h-11 rounded-lg bg-[#0e3d48] px-5 text-sm font-semibold text-white shadow-xs transition hover:bg-[#124f5e] disabled:cursor-not-allowed disabled:opacity-60" type="submit" [disabled]="busy()">
+              <button class="mt-2 min-h-11 rounded-lg bg-[#0284c7] px-5 text-sm font-semibold text-white shadow-xs transition hover:bg-[#0369a1] disabled:cursor-not-allowed disabled:opacity-60" type="submit" [disabled]="busy()">
                 {{ busy() ? 'Đang đăng nhập...' : 'Đăng nhập' }}
               </button>
               <div class="mt-2 flex items-center justify-between text-xs font-semibold">
@@ -57,9 +57,9 @@
       </div>
     </section>
 
-    <aside class="relative hidden min-h-[100dvh] overflow-hidden bg-[#0e3d48] lg:block" aria-label="Thông tin ClinicOne">
+    <aside class="relative hidden min-h-[100dvh] overflow-hidden bg-[#0284c7] lg:block" aria-label="Thông tin ClinicOne">
       <img class="absolute inset-0 h-full w-full object-cover object-center" src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1600&q=85" alt="Nhân viên y tế đang tư vấn cho bệnh nhân" />
-      <div class="absolute inset-0 bg-[#0e3d48]/70 backdrop-blur-[1px]"></div>
+      <div class="absolute inset-0 bg-[#0284c7]/70 backdrop-blur-[1px]"></div>
       <div class="relative flex min-h-[100dvh] flex-col justify-between p-10 text-white xl:p-14">
         <p class="text-xs font-bold uppercase tracking-[0.18em] text-sky-200">ClinicOne ERP</p>
         <div class="max-w-md">

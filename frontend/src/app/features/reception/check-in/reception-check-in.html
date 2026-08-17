@@ -144,13 +144,12 @@
 }
 
 @if (walkInOpen()) {
-  <div class="erp-modal-overlay" role="presentation" (click)="closeWalkIn()">
-    <section class="erp-modal-container max-w-2xl max-h-[calc(100vh-3rem)] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="walk-in-title" (click)="$event.stopPropagation()">
-      <div class="erp-modal-header">
+  <div class="erp-modal-overlay overflow-y-auto overscroll-contain" role="presentation" (click)="closeWalkIn()">
+    <section data-testid="walk-in-dialog" class="erp-modal-container flex max-h-[calc(100dvh-2rem)] max-w-2xl flex-col overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="walk-in-title" (click)="$event.stopPropagation()">
+      <div class="erp-modal-header shrink-0">
         <div>
           <span class="erp-badge erp-badge-info">Tiếp nhận tại quầy</span>
           <h2 id="walk-in-title" class="mt-1 text-base font-bold text-slate-900 sm:text-lg">Tạo lịch và cấp số</h2>
-          <p class="mt-0.5 text-xs text-slate-500">Chỉ áp dụng cho ngày hôm nay; hệ thống tự chọn phòng theo bác sĩ.</p>
         </div>
         <button type="button" aria-label="Đóng" class="erp-btn-icon" (click)="closeWalkIn()">
           <mat-icon class="!h-4 !w-4 !text-[18px]">close</mat-icon>
@@ -158,7 +157,7 @@
       </div>
 
       @if (walkInRegistration()) {
-        <form class="erp-modal-body space-y-4" (ngSubmit)="$event.preventDefault(); submitRegistration()">
+        <form data-testid="walk-in-scroll-body" class="erp-modal-body min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain" (ngSubmit)="$event.preventDefault(); submitRegistration()">
           <div class="rounded-md border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs font-medium text-amber-800">
             @if (walkInTemporaryProfile()) { Tạo hồ sơ tạm để tiếp nhận ngay; hồ sơ chưa hiển thị trên ứng dụng. }
             @else { Chưa có tài khoản. Tạo hồ sơ bằng OTP gửi tới số điện thoại này. }
@@ -171,7 +170,7 @@
           <div>
             <label class="erp-label">Số điện thoại</label>
             <input
-              class="erp-input font-mono"
+              class="erp-input"
               [ngModel]="walkInPhone()"
               (ngModelChange)="walkInPhone.set($event)"
               name="registrationPhone"
@@ -217,7 +216,7 @@
               <label class="erp-label">Ngày sinh</label>
               <input
                 type="date"
-                class="erp-input font-mono"
+                class="erp-input"
                 [ngModel]="registrationDateOfBirth()"
                 (ngModelChange)="registrationDateOfBirth.set($event)"
                 name="registrationDateOfBirth"
@@ -242,7 +241,7 @@
             <div>
               <label class="erp-label">CCCD/CMND</label>
               <input
-                class="erp-input font-mono"
+                class="erp-input"
                 [ngModel]="registrationIdentityNumber()"
                 (ngModelChange)="registrationIdentityNumber.set($event)"
                 name="registrationIdentityNumber"
@@ -294,21 +293,26 @@
           </div>
         </form>
       } @else if (walkInProfileNeedsCompletion()) {
-        <form class="erp-modal-body space-y-4" (ngSubmit)="$event.preventDefault(); submitProfileCompletion()">
+        <form data-testid="walk-in-scroll-body" class="erp-modal-body min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain" (ngSubmit)="$event.preventDefault(); submitProfileCompletion()">
           <div class="rounded-md border border-sky-200 bg-sky-50 px-3.5 py-2.5 text-xs font-medium text-sky-900">
-            Hồ sơ còn thiếu thông tin. Bổ sung một lần để tiếp nhận nhanh hơn; thông tin đã có sẽ không bị thay đổi.
+            Chỉ bổ sung thông tin còn thiếu để xác định đúng người đi khám.
           </div>
           <div class="grid gap-3 sm:grid-cols-2">
+            @if (!completionFieldLocked('fullName')) {
             <div>
               <label class="erp-label">Họ và tên</label>
               <input class="erp-input" [ngModel]="registrationFullName()" (ngModelChange)="registrationFullName.set($event)" name="completionFullName" />
             </div>
+            }
+            @if (!completionFieldLocked('dateOfBirth')) {
             <div>
               <label class="erp-label">Ngày sinh</label>
               <input type="date" class="erp-input font-mono" [ngModel]="registrationDateOfBirth()" (ngModelChange)="registrationDateOfBirth.set($event)" name="completionDateOfBirth" />
             </div>
+            }
           </div>
-          <div class="grid gap-3 sm:grid-cols-2">
+          @if (!completionFieldLocked('gender')) {
+          <div>
             <div>
               <label class="erp-label">Giới tính</label>
               <select class="erp-select" [ngModel]="registrationGender()" (ngModelChange)="registrationGender.set($event)" name="completionGender">
@@ -318,72 +322,17 @@
                 <option value="Khác">Khác</option>
               </select>
             </div>
-            <div>
-              <label class="erp-label">CCCD/CMND</label>
-              <input class="erp-input font-mono" [ngModel]="registrationIdentityNumber()" (ngModelChange)="registrationIdentityNumber.set($event)" name="completionIdentity" inputmode="numeric" maxlength="12" />
-            </div>
           </div>
-          <div class="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label class="erp-label">Quốc tịch</label>
-              <input class="erp-input" [ngModel]="registrationNationality()" (ngModelChange)="registrationNationality.set($event)" name="completionNationality" />
-            </div>
-            <div>
-              <label class="erp-label">Dân tộc</label>
-              <input class="erp-input" [ngModel]="registrationEthnicity()" (ngModelChange)="registrationEthnicity.set($event)" name="completionEthnicity" />
-            </div>
-          </div>
-          <div>
-            <label class="erp-label">Tỉnh/Thành phố</label>
-            <select class="erp-select" [ngModel]="registrationProvinceCode()" (ngModelChange)="registrationProvinceCode.set($event); registrationProvinceChanged()" name="completionProvince">
-              <option value="">Chọn tỉnh/thành phố</option>
-              @for (item of registrationProvinces(); track item.code) {
-                <option [value]="item.code">{{ item.name }}</option>
-              }
-            </select>
-          </div>
-          <div class="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label class="erp-label">Quận/Huyện</label>
-              <select class="erp-select" [ngModel]="registrationDistrictCode()" (ngModelChange)="registrationDistrictCode.set($event); registrationDistrictChanged()" name="completionDistrict">
-                <option value="">Chọn quận/huyện</option>
-                @for (item of registrationDistricts(); track item.code) {
-                  <option [value]="item.code">{{ item.name }}</option>
-                }
-              </select>
-            </div>
-            <div>
-              <label class="erp-label">Xã/Phường</label>
-              <select class="erp-select" [ngModel]="registrationWardCode()" (ngModelChange)="registrationWardCode.set($event); registrationWardChanged()" name="completionWard">
-                <option value="">Chọn xã/phường</option>
-                @for (item of registrationWards(); track item.code) {
-                  <option [value]="item.code">{{ item.name }}</option>
-                }
-              </select>
-            </div>
-          </div>
-          <div>
-            <label class="erp-label">Số nhà/Tên đường</label>
-            <input class="erp-input" [ngModel]="registrationStreetAddress()" (ngModelChange)="registrationStreetAddress.set($event)" name="completionStreetAddress" />
-          </div>
+          }
           <div class="erp-modal-footer !px-0 !pb-0">
-            <button type="button" class="erp-btn-secondary" (click)="walkInProfileNeedsCompletion.set(false)">Để sau</button>
+            <button type="button" class="erp-btn-secondary" (click)="closeWalkIn()">Đóng</button>
             <button type="submit" class="erp-btn-primary" [disabled]="registrationLoading()">{{ registrationLoading() ? 'Đang lưu...' : 'Lưu hồ sơ' }}</button>
           </div>
         </form>
       } @else if (walkInNeedsPasswordChange()) {
-        <form class="erp-modal-body space-y-4" (ngSubmit)="$event.preventDefault(); activatePendingAccount()">
+        <form data-testid="walk-in-scroll-body" class="erp-modal-body min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain" (ngSubmit)="$event.preventDefault(); activatePendingAccount()">
           <div class="rounded-md border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs font-medium text-amber-900">
-            Tài khoản chưa kích hoạt. Gửi OTP, nhập mã rồi đặt mật khẩu mới.
-          </div>
-          <div class="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
-            <div>
-              <label class="erp-label">Mã OTP</label>
-              <input inputmode="numeric" maxlength="6" class="erp-input font-mono" [ngModel]="activationOtp()" (ngModelChange)="activationOtp.set($event)" name="activationOtp" placeholder="6 số" />
-            </div>
-            <button type="button" class="erp-btn-secondary" [disabled]="activationLoading() || activationOtpSent()" (click)="requestActivationOtp()">
-              {{ activationOtpSent() ? 'Đã gửi mã' : 'Gửi OTP' }}
-            </button>
+            Số điện thoại đã được xác thực. Đặt mật khẩu mới để tiếp tục tiếp nhận.
           </div>
           <div>
             <label class="erp-label">Mật khẩu mới</label>
@@ -399,11 +348,11 @@
           </div>
         </form>
       } @else {
-        <form class="erp-modal-body space-y-4" (ngSubmit)="$event.preventDefault(); submitWalkIn()">
+        <form data-testid="walk-in-scroll-body" class="erp-modal-body min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain" (ngSubmit)="$event.preventDefault(); submitWalkIn()">
           <div class="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
             <div>
               <label class="erp-label">Số điện thoại</label>
-              <input class="erp-input font-mono" [ngModel]="walkInPhone()" (ngModelChange)="walkInPhone.set($event)" name="walkInPhone" inputmode="numeric" placeholder="0912345678" />
+              <input class="erp-input" [ngModel]="walkInPhone()" (ngModelChange)="walkInPhone.set($event)" name="walkInPhone" inputmode="numeric" placeholder="0912345678" />
             </div>
             <button type="button" class="erp-btn-secondary" [disabled]="walkInProfilesLoading()" (click)="loadWalkInProfiles()">
               {{ walkInProfilesLoading() ? 'Đang tìm...' : 'Tìm hồ sơ' }}
@@ -454,7 +403,7 @@
           </div>
           <div class="erp-modal-footer !px-0 !pb-0">
             <button type="button" class="erp-btn-secondary" (click)="closeWalkIn()">Hủy</button>
-            <button type="submit" class="erp-btn-primary" [disabled]="walkInLoading()">{{ walkInLoading() ? 'Đang tạo...' : 'Tạo lịch và cấp số' }}</button>
+            <button type="submit" class="erp-btn-primary" [disabled]="walkInLoading()">{{ walkInLoading() ? 'Đang tạo...' : walkInIsToday() ? 'Tạo lịch và cấp số' : 'Đặt lịch' }}</button>
           </div>
         </form>
       }
@@ -462,18 +411,16 @@
   </div>
 }
 
-<app-staff-workspace-shell moduleTitle="Khám bệnh" pageTitle="Tiếp nhận bệnh nhân">
+<app-staff-workspace-shell moduleTitle="Khám bệnh" [pageTitle]="pageTitle()">
+
   <!-- Workspace Action Slot -->
   <div workspace-actions class="flex items-center gap-2">
-    <button
-      type="button"
-      data-testid="open-walk-in"
-      class="erp-btn-primary"
-      (click)="openWalkIn()"
-    >
-      <mat-icon class="!h-4 !w-4 !text-[16px]">person_add</mat-icon>
-      <span>Tiếp nhận không có lịch</span>
-    </button>
+    @if (activeTab() === 'intake') {
+      <button type="button" data-testid="open-walk-in" class="erp-btn-primary" (click)="openWalkIn()">
+        <mat-icon class="!h-4 !w-4 !text-[16px]">person_add</mat-icon>
+        <span>Mở phiếu tiếp nhận</span>
+      </button>
+    }
   </div>
 
   <div class="mx-auto max-w-[1440px] space-y-4">
@@ -491,6 +438,59 @@
       </div>
     }
 
+    @if (activeTab() === 'overview') {
+      <section class="space-y-4" data-testid="reception-overview-screen">
+        <div class="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p class="text-xs font-bold uppercase tracking-[0.16em] text-[#0284c7]">Ca làm việc</p>
+            <h2 class="mt-1 text-xl font-bold tracking-tight text-slate-900">Tổng quan tiếp nhận</h2>
+          </div>
+          <a routerLink="/reception/appointments" class="erp-btn-secondary"><mat-icon class="!h-4 !w-4 !text-[16px]">search</mat-icon>Tra lịch hôm nay</a>
+        </div>
+        <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div class="erp-card border-l-4 border-l-[#0284c7] p-4"><p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Lịch đã nạp</p><p class="mt-2 text-3xl font-bold text-slate-900">{{ dashboardCounts().total }}</p></div>
+          <div class="erp-card border-l-4 border-l-amber-400 p-4"><p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Đang chờ</p><p class="mt-2 text-3xl font-bold text-amber-600">{{ dashboardCounts().waiting }}</p></div>
+          <div class="erp-card border-l-4 border-l-emerald-500 p-4"><p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Đã tiếp nhận</p><p class="mt-2 text-3xl font-bold text-emerald-600">{{ dashboardCounts().checkedIn }}</p></div>
+          <div class="erp-card border-l-4 border-l-rose-400 p-4"><p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Ngoại lệ</p><p class="mt-2 text-3xl font-bold text-rose-600">{{ dashboardCounts().exceptions }}</p></div>
+        </div>
+        <div class="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+          <section class="erp-card overflow-hidden">
+            <div class="erp-toolbar"><h3 class="text-sm font-bold text-slate-900">Lịch đang theo dõi</h3><mat-icon class="!h-5 !w-5 !text-[20px] text-[#0284c7]">event_note</mat-icon></div>
+            @if (appointments().length === 0) {
+              <div class="grid min-h-36 place-items-center p-5 text-center text-sm text-slate-500"><div><mat-icon class="!h-8 !w-8 !text-[32px] text-slate-300">search</mat-icon><p class="mt-2">Chưa có dữ liệu. Mở Tra cứu lịch để bắt đầu.</p></div></div>
+            } @else {
+              <div class="divide-y divide-slate-100">@for (appointment of appointments().slice(0, 5); track appointment.id) {<div class="flex items-center justify-between gap-3 px-4 py-3"><div><p class="text-sm font-semibold text-slate-900">{{ appointment.patientName }}</p><p class="text-xs text-slate-500">{{ appointment.appointmentCode }} · {{ appointment.specialty }}</p></div><span class="erp-badge" [class]="queueClass(appointment)">{{ queueLabel(appointment) }}</span></div>}</div>
+            }
+          </section>
+          <section class="erp-card p-5"><h3 class="text-sm font-bold text-slate-900">Tác vụ nhanh</h3><div class="mt-4 grid gap-2"><a routerLink="/reception/walk-in" class="erp-btn-primary justify-start"><mat-icon class="!h-4 !w-4 !text-[16px]">person_add</mat-icon>Tiếp nhận không có lịch</a><a routerLink="/reception/profiles" class="erp-btn-secondary justify-start"><mat-icon class="!h-4 !w-4 !text-[16px]">badge</mat-icon>Tra hồ sơ người bệnh</a><a routerLink="/reception/exceptions" class="erp-btn-secondary justify-start"><mat-icon class="!h-4 !w-4 !text-[16px]">rule</mat-icon>Xử lý ngoại lệ</a></div></section>
+        </div>
+      </section>
+    }
+
+    @if (activeTab() === 'intake') {
+      <section class="grid min-h-64 place-items-center" data-testid="reception-intake-screen">
+        <div class="erp-card max-w-xl p-8 text-center"><div class="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-sky-50 text-[#0284c7]"><mat-icon class="!h-8 !w-8 !text-[30px]">person_add</mat-icon></div><h2 class="mt-4 text-xl font-bold text-slate-900">Tiếp nhận tại quầy</h2><p class="mt-2 text-sm text-slate-500">Tìm hồ sơ, chọn khung giờ và cấp số cho người đi khám.</p><button type="button" class="erp-btn-primary mt-5" (click)="openWalkIn()"><mat-icon class="!h-4 !w-4 !text-[16px]">add</mat-icon>Mở phiếu tiếp nhận</button></div>
+      </section>
+    }
+
+    @if (activeTab() === 'queue') {
+      <section class="erp-card overflow-hidden" data-testid="reception-queue-screen">
+        <div class="erp-toolbar"><div><h2 class="text-sm font-bold text-slate-900">Hàng đợi tiếp nhận</h2><p class="text-xs text-slate-500">Theo dõi người đã check-in và chưa được bắt đầu khám.</p></div><a routerLink="/reception/appointments" class="erp-btn-secondary !min-h-8 !px-3 !py-1.5 !text-xs">Tra cứu lịch</a></div>
+        @if (queueAppointments().length === 0) {<div class="grid min-h-48 place-items-center p-6 text-center text-sm text-slate-500"><div><mat-icon class="!h-9 !w-9 !text-[36px] text-slate-300">format_list_numbered</mat-icon><p class="mt-2">Chưa có người trong hàng đợi.</p></div></div>} @else {<div class="divide-y divide-slate-100">@for (appointment of queueAppointments(); track appointment.id) {<div class="grid gap-2 px-4 py-3 sm:grid-cols-[5rem_1fr_auto] sm:items-center"><span class="font-mono text-lg font-bold text-[#0284c7]">{{ appointment.queueNumber ? ('#' + appointment.queueNumber) : '—' }}</span><div><p class="text-sm font-semibold text-slate-900">{{ appointment.patientName }}</p><p class="text-xs text-slate-500">{{ appointment.roomCode || 'Chưa gán phòng' }} · {{ appointment.doctorName }}</p></div><span class="erp-badge" [class]="queueClass(appointment)">{{ queueLabel(appointment) }}</span></div>}</div>}
+      </section>
+    }
+
+    @if (activeTab() === 'profiles') {
+      <section class="space-y-4" data-testid="reception-profiles-screen">
+        <form class="erp-filter-bar flex flex-col gap-3 sm:flex-row sm:items-end" (ngSubmit)="$event.preventDefault(); searchProfiles()" aria-label="Tra hồ sơ người bệnh">
+          <div class="min-w-0 flex-1"><label class="erp-label">Số điện thoại</label><input class="erp-input font-mono" [ngModel]="profileQuery()" (ngModelChange)="profileQuery.set($event)" name="profileQuery" inputmode="numeric" placeholder="0912345678" /></div>
+          <button type="submit" class="erp-btn-primary" [disabled]="profileLoading()"><mat-icon class="!h-4 !w-4 !text-[16px]">search</mat-icon>{{ profileLoading() ? 'Đang tìm...' : 'Tra hồ sơ' }}</button>
+        </form>
+        @if (profileResults().length > 0) {<div class="grid gap-3 md:grid-cols-2">@for (profile of profileResults(); track profile.id) {<article class="erp-card p-4"><div class="flex items-start justify-between gap-3"><div><h3 class="text-base font-bold text-slate-900">{{ profile.fullName }}</h3><p class="mt-1 text-xs text-slate-500">{{ profile.relationship }} · {{ profile.phone || profileQuery() }}</p></div><span class="erp-badge" [class.erp-badge-success]="profile.accountStatus === 'ACTIVE'">{{ profile.accountStatus === 'ACTIVE' ? 'Đang hoạt động' : 'Hồ sơ tạm' }}</span></div><div class="mt-3 grid gap-1 text-xs text-slate-600"><p>Ngày sinh: {{ profile.dateOfBirth || 'Chưa cập nhật' }}</p><p>CCCD/CMND: {{ profile.identityNumber || 'Chưa cập nhật' }}</p><p>Địa chỉ: {{ profile.streetAddress || profile.address || 'Chưa cập nhật' }}</p></div><button type="button" data-testid="open-profile-intake" class="erp-btn-secondary mt-4 w-full justify-center" (click)="openIntakeForProfile(profile)"><mat-icon class="!h-4 !w-4 !text-[16px]">person_add</mat-icon>Tiếp nhận người này</button></article>}</div>}
+      </section>
+    }
+
+    @if (activeTab() === 'search' || activeTab() === 'exceptions') {
     <!-- Search / Filter Bar -->
     <form class="erp-filter-bar flex flex-col gap-3 sm:flex-row sm:items-end" (ngSubmit)="$event.preventDefault(); search()" aria-label="Tra cứu lịch hẹn">
       <div class="min-w-0 flex-1">
@@ -580,7 +580,7 @@
         </div>
 
         <div class="divide-y divide-slate-100">
-          @for (appointment of appointments(); track appointment.id) {
+          @for (appointment of visibleAppointments(); track appointment.id) {
             <article class="grid gap-3 p-3.5 sm:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_auto] sm:items-center hover:bg-slate-50/60 transition-colors">
               <div>
                 <div class="flex flex-wrap items-center gap-2">
@@ -589,7 +589,7 @@
                     {{ appointment.appointmentCode }}
                   </span>
                 </div>
-                <p class="mt-0.5 text-[11px] text-slate-500 font-mono">
+                <p class="mt-0.5 text-[11px] text-slate-500">
                   {{ appointment.patientPhone || 'Chưa có số phụ' }} · Hồ sơ {{ appointment.patientProfileId ? 'đã chọn' : 'tài khoản' }}
                 </p>
               </div>
@@ -607,6 +607,26 @@
                 @if (appointment.queuePriority) {
                   <span class="erp-badge erp-badge-warning">Ưu tiên</span>
                 }
+                @if (appointment.queuePresenceStatus === 'RETURN_REQUIRED') {
+                  <button
+                    type="button"
+                    data-testid="mark-returned"
+                    class="erp-btn-primary !min-h-7 !px-2.5 !py-1 !text-[11px]"
+                    [disabled]="busyId() === appointment.id"
+                    (click)="markReturned(appointment)"
+                  >
+                    {{ busyId() === appointment.id ? 'Đang ghi...' : 'Đã quay lại' }}
+                  </button>
+                } @else if (appointment.lateArrival && appointment.status === 'BOOKED') {
+                  <button
+                    type="button"
+                    data-testid="reschedule-late"
+                    class="erp-btn-primary !min-h-7 !px-2.5 !py-1 !text-[11px]"
+                    (click)="openRebook(appointment)"
+                  >
+                    Chuyển lịch
+                  </button>
+                } @else {
                 <button
                   type="button"
                   data-testid="check-in"
@@ -616,6 +636,7 @@
                 >
                   {{ busyId() === appointment.id ? 'Đang cấp...' : appointment.queueStatus ? 'Đã nhận' : 'Cấp số ngoại lệ' }}
                 </button>
+                }
                 @if (appointment.queueStatus === 'WAITING') {
                   <button
                     type="button"
@@ -684,6 +705,7 @@
           }
         </div>
       </section>
+    }
     }
   </div>
 </app-staff-workspace-shell>
