@@ -43,11 +43,45 @@
               <p class="truncate text-base font-bold text-slate-900">{{ roomName() }}</p>
             </div>
           </div>
-          <div class="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
-            <span class="flex items-center gap-1.5 font-semibold text-slate-700">
-              <mat-icon class="!h-4 !w-4 !text-[17px] text-slate-400">calendar_today</mat-icon>
-              {{ formatDate(selectedDate()) }}
-            </span>
+          <div class="flex flex-wrap items-center gap-2 text-sm">
+            <div class="flex items-center gap-1 rounded-md border border-slate-200 bg-slate-50 p-0.5">
+              <button
+                type="button"
+                data-testid="doctor-prev-day-btn"
+                (click)="goToPreviousDay()"
+                class="rounded p-1 text-slate-500 hover:bg-white hover:text-slate-800 hover:shadow-xs transition"
+                title="Ngày hôm trước"
+              >
+                <mat-icon class="!h-4 !w-4 !text-[16px]">chevron_left</mat-icon>
+              </button>
+              <button
+                type="button"
+                data-testid="doctor-today-btn"
+                (click)="goToToday()"
+                class="rounded px-2 py-0.5 text-xs font-semibold transition"
+                [class]="isToday() ? 'bg-sky-100 text-[#0284c7]' : 'text-slate-600 hover:bg-white'"
+              >
+                Hôm nay
+              </button>
+              <button
+                type="button"
+                data-testid="doctor-next-day-btn"
+                (click)="goToNextDay()"
+                class="rounded p-1 text-slate-500 hover:bg-white hover:text-slate-800 hover:shadow-xs transition"
+                title="Ngày hôm sau"
+              >
+                <mat-icon class="!h-4 !w-4 !text-[16px]">chevron_right</mat-icon>
+              </button>
+            </div>
+            <div class="flex items-center gap-1.5 font-semibold text-slate-700">
+              <input
+                data-testid="doctor-date-selector"
+                type="date"
+                class="erp-input font-mono !py-1 !px-2.5 !text-xs !w-36"
+                [value]="selectedDate()"
+                (change)="selectDate($event)"
+              />
+            </div>
             <span
               class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold"
               [class]="doctorShiftStatus() === 'ACTIVE'
@@ -257,7 +291,18 @@
                           (click)="openExamination(ticket)"
                         >
                           <mat-icon class="!h-4 !w-4 !text-[16px]">clinical_notes</mat-icon>
-                          <span>Mở phiếu khám</span>
+                          <span>Khám</span>
+                        </button>
+                      }
+                      @if (isOwnDoctor() && ticket.status === 'COMPLETED') {
+                        <button
+                          data-testid="view-completed-examination"
+                          type="button"
+                          class="erp-btn-secondary !min-h-7 !px-2.5 !py-1 !text-[11px]"
+                          (click)="openExamination(ticket)"
+                        >
+                          <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">history_edu</mat-icon>
+                          <span>Bệnh án</span>
                         </button>
                       }
                     </div>
@@ -273,7 +318,7 @@
     @if (isOwnDoctor()) {
       <aside class="erp-card self-start overflow-hidden" aria-label="Bệnh nhân đang xử lý">
         <div class="erp-toolbar">
-          <h2 class="text-sm font-bold uppercase tracking-wider text-slate-800">Đang xử lý</h2>
+          <h2 class="text-sm font-bold uppercase tracking-wider text-slate-800">Đang khám</h2>
         </div>
         @if (currentDoctorTicket(); as current) {
           <div data-testid="doctor-current-patient" class="p-4">
@@ -295,10 +340,10 @@
               @if (current.status === 'CALLED') {
                 <button type="button" class="erp-btn-primary w-full justify-center" [disabled]="busyTicketId() === current.id" (click)="act(current, 'start')">
                   <mat-icon class="!h-4 !w-4 !text-[16px]">stethoscope</mat-icon>
-                  <span>Bắt đầu khám</span>
+                  <span>Khám</span>
                 </button>
                 <button type="button" class="erp-btn-secondary w-full justify-center" [disabled]="busyTicketId() === current.id" (click)="act(current, 'skip')">
-                  Gọi lại sau
+                  Gọi lại
                 </button>
               } @else {
                 <button type="button" class="erp-btn-primary w-full justify-center" (click)="openExamination(current)">
@@ -312,7 +357,7 @@
           <div data-testid="doctor-current-patient" class="grid min-h-36 place-items-center p-5 text-center">
             <div>
               <mat-icon class="!h-8 !w-8 !text-[32px] text-slate-300">person_search</mat-icon>
-              <p class="mt-2 text-sm font-semibold text-slate-600">Chưa có lượt đang xử lý</p>
+              <p class="mt-2 text-sm font-semibold text-slate-600">Chưa có lượt khám</p>
             </div>
           </div>
         }
