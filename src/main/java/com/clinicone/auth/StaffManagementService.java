@@ -1,6 +1,6 @@
 package com.clinicone.auth;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.Builder;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -25,13 +25,7 @@ public class StaffManagementService {
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final char[] PASSWORD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789".toCharArray();
 
-    public StaffManagementService(StaffAccountRepository accountRepository,
-                                  LoginSessionRepository sessionRepository,
-                                  Clock clock) {
-        this(accountRepository, sessionRepository, clock, null);
-    }
-
-    @Autowired
+    @Builder
     public StaffManagementService(StaffAccountRepository accountRepository,
                                   LoginSessionRepository sessionRepository,
                                   Clock clock,

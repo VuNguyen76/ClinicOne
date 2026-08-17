@@ -35,6 +35,10 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
                                                                          LocalTime startTime,
                                                                          Collection<AppointmentStatus> statuses);
 
+    long countByDoctorStaffIdAndAppointmentDateAndOverCapacityTrueAndStatusNot(UUID doctorStaffId,
+                                                                                 LocalDate appointmentDate,
+                                                                                 AppointmentStatus excludedStatus);
+
     @Query("""
             select new com.clinicone.schedule.SlotBookingCount(a.appointmentDate, a.startTime, count(a))
             from Appointment a
@@ -96,6 +100,8 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
     Optional<Appointment> findByIdAndPatientId(UUID appointmentId, UUID patientId);
 
     Optional<Appointment> findByPatientIdAndCreationRequestKey(UUID patientId, String creationRequestKey);
+
+    Optional<Appointment> findByPatientProfileIdAndCreationRequestKey(UUID patientProfileId, String creationRequestKey);
 
     Optional<Appointment> findByPatientIdAndCheckInRequestKey(UUID patientId, String checkInRequestKey);
 

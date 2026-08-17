@@ -16,6 +16,7 @@ import com.clinicone.queue.ClinicRoom;
 import com.clinicone.queue.ClinicRoomRepository;
 import com.clinicone.patientprofile.PatientProfile;
 import com.clinicone.patientprofile.PatientProfileRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
@@ -51,6 +52,10 @@ public class LocalDataInitializer implements CommandLineRunner {
     private final PatientProfileRepository patientProfileRepository;
     private final AppointmentRepository appointmentRepository;
     private final JdbcTemplate jdbcTemplate;
+    private final String adminPassword;
+    private final String receptionistPassword;
+    private final String doctorPassword;
+    private final String patientPassword;
 
     public LocalDataInitializer(StaffAccountRepository staffRepository,
                                 ClinicRoomRepository roomRepository,
@@ -60,7 +65,11 @@ public class LocalDataInitializer implements CommandLineRunner {
                                 PatientAccountRepository patientRepository,
                                 PatientProfileRepository patientProfileRepository,
                                 AppointmentRepository appointmentRepository,
-                                JdbcTemplate jdbcTemplate) {
+                                JdbcTemplate jdbcTemplate,
+                                @Value("${LOCAL_ADMIN_PASSWORD}") String adminPassword,
+                                @Value("${LOCAL_RECEPTION_PASSWORD}") String receptionistPassword,
+                                @Value("${LOCAL_DOCTOR_PASSWORD}") String doctorPassword,
+                                @Value("${LOCAL_PATIENT_PASSWORD}") String patientPassword) {
         this.staffRepository = staffRepository;
         this.roomRepository = roomRepository;
         this.profileRepository = profileRepository;
@@ -70,15 +79,19 @@ public class LocalDataInitializer implements CommandLineRunner {
         this.patientProfileRepository = patientProfileRepository;
         this.appointmentRepository = appointmentRepository;
         this.jdbcTemplate = jdbcTemplate;
+        this.adminPassword = adminPassword;
+        this.receptionistPassword = receptionistPassword;
+        this.doctorPassword = doctorPassword;
+        this.patientPassword = patientPassword;
     }
 
     @Override
     @Transactional
     public void run(String... args) {
         ensureAppointmentStatusConstraint();
-        StaffAccount admin = ensureStaff("admin", "admin123", "Quản trị viên", StaffRole.ADMIN);
-        StaffAccount receptionist = ensureStaff("reception", "reception123", "Nhân viên tiếp nhận", StaffRole.RECEPTIONIST);
-        StaffAccount doctor = ensureStaff("doctor", "doctor123", "Bác sĩ Nguyễn An", StaffRole.DOCTOR);
+        StaffAccount admin = ensureStaff("admin", adminPassword, "Quản trị viên", StaffRole.ADMIN);
+        StaffAccount receptionist = ensureStaff("reception", receptionistPassword, "Nhân viên tiếp nhận", StaffRole.RECEPTIONIST);
+        StaffAccount doctor = ensureStaff("doctor", doctorPassword, "Bác sĩ Nguyễn An", StaffRole.DOCTOR);
         DoctorProfile profile = profileRepository.findByStaffAccount_Id(doctor.getId()).orElse(null);
         ClinicRoom room;
         if (profile == null) {
@@ -151,7 +164,7 @@ public class LocalDataInitializer implements CommandLineRunner {
     private PatientAccount ensurePatient() {
         return patientRepository.findByPhone("0900000001")
                 .orElseGet(() -> patientRepository.save(new PatientAccount(
-                        "0900000001", passwordEncoder.encode("patient123"), "Nguyễn Thanh Vũ",
+                        "0900000001", passwordEncoder.encode(patientPassword), "Nguyễn Thanh Vũ",
                         AccountStatus.ACTIVE, false)));
     }
 

@@ -56,6 +56,24 @@ class SmsDeliveryTest {
     }
 
     @Test
+    void manualRetryResetsFailedDeliveryAndIsIdempotent() {
+        SmsDelivery delivery = SmsDelivery.pending(UUID.randomUUID(), "event-retry", "0900000001",
+                "ClinicOne: thử lại.", NOW);
+        delivery.claim(NOW, NOW.plusSeconds(300));
+        delivery.markFailed(NOW, "provider unavailable");
+        delivery.claim(NOW.plusSeconds(300), NOW.plusSeconds(600));
+        delivery.markFailed(NOW.plusSeconds(300), "provider unavailable");
+        delivery.claim(NOW.plusSeconds(600), NOW.plusSeconds(900));
+        delivery.markFailed(NOW.plusSeconds(600), "provider unavailable");
+
+        assertThat(delivery.manualRetry(NOW.plusSeconds(601), "retry-1")).isTrue();
+        assertThat(delivery.getStatus()).isEqualTo(SmsDeliveryStatus.PENDING);
+        assertThat(delivery.getAttempts()).isZero();
+        assertThat(delivery.manualRetry(NOW.plusSeconds(602), "retry-1")).isFalse();
+        assertThat(delivery.getAttempts()).isZero();
+    }
+
+    @Test
     void doesNotReclaimExpiredLeaseAfterTheThirdAttempt() {
         SmsDelivery delivery = SmsDelivery.pending(UUID.randomUUID(), "event-3", "0900000001",
                 "ClinicOne: Lịch hẹn đã được ghi nhận.", NOW);

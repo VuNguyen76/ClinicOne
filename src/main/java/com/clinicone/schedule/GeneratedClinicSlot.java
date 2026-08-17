@@ -1,5 +1,7 @@
 package com.clinicone.schedule;
 
+import lombok.Getter;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -19,6 +21,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.UUID;
 
+@Getter
 @Entity
 @Table(name = "generated_clinic_slots", uniqueConstraints = @UniqueConstraint(
         name = "uk_generated_slot_template_time",
@@ -102,18 +105,4 @@ public class GeneratedClinicSlot {
     @PrePersist
     void onCreate() { if (createdAt == null) createdAt = Instant.now(); }
 
-    public UUID getId() { return id; }
-    public WorkScheduleTemplate getTemplate() { return template; }
-    public UUID getClinicServiceId() { return clinicServiceId; }
-    public String getSpecialty() { return specialty; }
-    public String getVisitType() { return visitType; }
-    public int getDurationMinutes() { return durationMinutes; }
-    public UUID getDoctorStaffId() { return doctorStaffId; }
-    public String getDoctorName() { return doctorName; }
-    public UUID getRoomId() { return roomId; }
-    public String getRoomCode() { return roomCode; }
-    public LocalDate getAppointmentDate() { return appointmentDate; }
-    public LocalTime getStartTime() { return startTime; }
-    public LocalTime getEndTime() { return endTime; }
-    public GeneratedSlotStatus getStatus() { return status; }
 }

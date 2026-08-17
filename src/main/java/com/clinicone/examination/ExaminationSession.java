@@ -1,5 +1,7 @@
 package com.clinicone.examination;
 
+import lombok.Getter;
+
 import com.clinicone.appointment.Appointment;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -19,6 +21,7 @@ import jakarta.persistence.Version;
 import java.time.Instant;
 import java.util.UUID;
 
+@Getter
 @Entity
 @Table(name = "examination_sessions", uniqueConstraints = {
         @UniqueConstraint(name = "uk_examination_sessions_appointment", columnNames = "appointment_id"),
@@ -144,13 +147,4 @@ public class ExaminationSession {
         }
     }
 
-    public UUID getId() { return id; }
-    public Appointment getAppointment() { return appointment; }
-    public ExaminationSessionStatus getStatus() { return status; }
-    public Instant getCreatedAt() { return createdAt; }
-    public Instant getStartedAt() { return startedAt; }
-    public Instant getEndedAt() { return endedAt; }
-    public String getStartRequestKey() { return startRequestKey; }
-    public String getSignRequestKey() { return signRequestKey; }
-    public long getVersion() { return version; }
 }

@@ -1,5 +1,7 @@
 package com.clinicone.audit;
 
+import lombok.Getter;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -11,6 +13,7 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
 
+@Getter
 @Entity
 @Table(name = "access_audit_events")
 public class AccessAuditEvent {
@@ -56,11 +59,4 @@ public class AccessAuditEvent {
     @PrePersist
     void onCreate() { if (occurredAt == null) occurredAt = Instant.now(); }
 
-    public UUID getId() { return id; }
-    public String getEventType() { return eventType; }
-    public String getActor() { return actor; }
-    public String getOutcome() { return outcome; }
-    public String getFunction() { return function; }
-    public String getIpAddress() { return ipAddress; }
-    public Instant getOccurredAt() { return occurredAt; }
 }

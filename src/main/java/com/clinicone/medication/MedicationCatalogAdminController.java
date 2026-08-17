@@ -1,5 +1,7 @@
 package com.clinicone.medication;
 
+import lombok.RequiredArgsConstructor;
+
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,14 +20,11 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/medications")
 @PreAuthorize("hasRole('ADMIN')")
 public class MedicationCatalogAdminController {
     private final MedicationCatalogService service;
-
-    public MedicationCatalogAdminController(MedicationCatalogService service) {
-        this.service = service;
-    }
 
     @GetMapping
     public List<MedicationResponse> list(@RequestParam(defaultValue = "false") boolean activeOnly) {

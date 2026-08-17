@@ -14,6 +14,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -25,6 +27,9 @@ class AppointmentHoldControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
+    private AppointmentHoldService appointmentHoldService;
+
     @Test
     void staffCannotCreatePatientAppointmentHold() throws Exception {
         mockMvc.perform(post("/api/v1/appointment-holds")
@@ -33,6 +38,19 @@ class AppointmentHoldControllerTest {
                         .content("{\"specialty\":\"Nội tổng quát\",\"doctorName\":\"Bác sĩ An\","
                                 + "\"appointmentDate\":\"2099-01-01\",\"startTime\":\"08:30\"}"))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void authenticatedLoginSessionWinsOverClientSuppliedHoldSession() throws Exception {
+        mockMvc.perform(post("/api/v1/appointment-holds")
+                        .with(authentication(authenticated("patient-1", "ROLE_PATIENT")))
+                        .requestAttr("clinicOneLoginSessionId", "server-session")
+                        .header("X-ClinicOne-Session", "client-session")
+                        .contentType("application/json")
+                        .content("{\"specialty\":\"Nội tổng quát\",\"doctorName\":\"Bác sĩ An\","
+                                + "\"appointmentDate\":\"2099-01-01\",\"startTime\":\"08:30\"}"))
+                .andExpect(status().isCreated());
+        verify(appointmentHoldService).create(eq("patient-1"), org.mockito.ArgumentMatchers.any(), eq("server-session"));
     }
 
     private static UsernamePasswordAuthenticationToken authenticated(String principal, String role) {

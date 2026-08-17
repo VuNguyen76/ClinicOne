@@ -1,5 +1,7 @@
 package com.clinicone.rescheduling;
 
+import lombok.RequiredArgsConstructor;
+
 import com.clinicone.schedule.AvailableSlotResponse;
 import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -19,14 +21,11 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/rescheduling")
 @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
 public class ReschedulingController {
     private final ReschedulingService service;
-
-    public ReschedulingController(ReschedulingService service) {
-        this.service = service;
-    }
 
     @GetMapping
     public ResponseEntity<List<RescheduleCaseResponse>> listOpen() {
@@ -42,7 +41,7 @@ public class ReschedulingController {
     }
 
     @PostMapping("/{caseId}/resolve")
-    @PreAuthorize("hasRole('COORDINATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
     public ResponseEntity<RescheduleCaseResponse> resolve(Authentication authentication,
                                                            @PathVariable UUID caseId,
                                                            @Valid @RequestBody ResolveRescheduleRequest request) {

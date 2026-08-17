@@ -1,5 +1,7 @@
 package com.clinicone.rescheduling;
 
+import lombok.Getter;
+
 import com.clinicone.appointment.Appointment;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -20,6 +22,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.UUID;
 
+@Getter
 @Entity
 @Table(name = "appointment_reschedule_cases", indexes = {
         @Index(name = "idx_reschedule_cases_status_created", columnList = "status,created_at"),
@@ -116,19 +119,4 @@ public class RescheduleCase {
         if (createdAt == null) createdAt = Instant.now();
     }
 
-    public UUID getId() { return id; }
-    public Appointment getAppointment() { return appointment; }
-    public String getSpecialty() { return specialty; }
-    public String getOldDoctorName() { return oldDoctorName; }
-    public UUID getOldDoctorStaffId() { return oldDoctorStaffId; }
-    public LocalDate getOldAppointmentDate() { return oldAppointmentDate; }
-    public LocalTime getOldStartTime() { return oldStartTime; }
-    public String getReason() { return reason; }
-    public RescheduleCaseStatus getStatus() { return status; }
-    public String getNewDoctorName() { return newDoctorName; }
-    public UUID getNewDoctorStaffId() { return newDoctorStaffId; }
-    public LocalDate getNewAppointmentDate() { return newAppointmentDate; }
-    public LocalTime getNewStartTime() { return newStartTime; }
-    public Instant getCreatedAt() { return createdAt; }
-    public Instant getResolvedAt() { return resolvedAt; }
 }

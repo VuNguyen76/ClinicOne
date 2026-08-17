@@ -1,5 +1,7 @@
 package com.clinicone.patientprofile;
 
+import lombok.RequiredArgsConstructor;
+
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -17,13 +19,10 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import java.util.List;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/patient-profiles")
 public class PatientProfileController {
     private final PatientProfileService service;
-
-    public PatientProfileController(PatientProfileService service) {
-        this.service = service;
-    }
 
     @GetMapping
     @PreAuthorize("hasRole('PATIENT')")

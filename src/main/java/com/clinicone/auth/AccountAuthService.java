@@ -7,7 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.Builder;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -40,40 +40,7 @@ public class AccountAuthService {
     private final PatientNotificationService patientNotificationService;
     private final PatientNotificationBackfillService patientNotificationBackfillService;
 
-    public AccountAuthService(PatientAccountRepository accountRepository, LoginSessionRepository sessionRepository,
-                              OtpService otpService, PasswordEncoder passwordEncoder,
-                              SessionTokenGenerator tokenGenerator, Clock clock) {
-        this(accountRepository, sessionRepository, otpService, passwordEncoder, tokenGenerator, clock, null, null);
-    }
-
-    public AccountAuthService(PatientAccountRepository accountRepository, LoginSessionRepository sessionRepository,
-                              OtpService otpService, PasswordEncoder passwordEncoder,
-                              SessionTokenGenerator tokenGenerator, Clock clock,
-                              PatientProfileRepository patientProfileRepository) {
-        this(accountRepository, sessionRepository, otpService, passwordEncoder, tokenGenerator, clock,
-                patientProfileRepository, null, null);
-    }
-
-    public AccountAuthService(PatientAccountRepository accountRepository, LoginSessionRepository sessionRepository,
-                              OtpService otpService, PasswordEncoder passwordEncoder,
-                              SessionTokenGenerator tokenGenerator, Clock clock,
-                              PatientProfileRepository patientProfileRepository,
-                              AppointmentRepository appointmentRepository) {
-        this(accountRepository, sessionRepository, otpService, passwordEncoder, tokenGenerator, clock,
-                patientProfileRepository, appointmentRepository, null);
-    }
-
-    public AccountAuthService(PatientAccountRepository accountRepository, LoginSessionRepository sessionRepository,
-                              OtpService otpService, PasswordEncoder passwordEncoder,
-                              SessionTokenGenerator tokenGenerator, Clock clock,
-                              PatientProfileRepository patientProfileRepository,
-                              AppointmentRepository appointmentRepository,
-                              PatientNotificationService patientNotificationService) {
-        this(accountRepository, sessionRepository, otpService, passwordEncoder, tokenGenerator, clock,
-                patientProfileRepository, appointmentRepository, patientNotificationService, null);
-    }
-
-    @Autowired
+    @Builder
     public AccountAuthService(PatientAccountRepository accountRepository, LoginSessionRepository sessionRepository,
                               OtpService otpService, PasswordEncoder passwordEncoder,
                               SessionTokenGenerator tokenGenerator, Clock clock,
@@ -217,7 +184,9 @@ public class AccountAuthService {
             throw new AuthException(HttpStatus.BAD_REQUEST, "PASSWORD_MISMATCH",
                     "Hai lần nhập mật khẩu mới không giống nhau.");
         }
-        if (!otpService.isPhoneVerifiedWithin(phone, OtpPurpose.REGISTRATION, Duration.ofMinutes(30))) {
+        if (request.otpCode() != null && !request.otpCode().isBlank()) {
+            otpService.verifySmsOtp(phone, OtpPurpose.REGISTRATION, request.otpCode());
+        } else if (!otpService.isPhoneVerifiedWithin(phone, OtpPurpose.REGISTRATION, Duration.ofMinutes(30))) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "ACTIVATION_OTP_REQUIRED",
                     "Mã xác thực kích hoạt đã hết thời gian. Vui lòng xác thực lại số điện thoại.");
         }

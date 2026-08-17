@@ -1,10 +1,12 @@
 package com.clinicone.appointment;
 
+import com.clinicone.auth.AuthenticatedIds;
 import com.clinicone.auth.AuthException;
 import com.clinicone.auth.PatientAccount;
 import com.clinicone.auth.PatientAccountRepository;
 import com.clinicone.patientprofile.PatientProfile;
 import com.clinicone.patientprofile.PatientProfileRepository;
+import com.clinicone.validation.IdempotencyKeys;
 import com.clinicone.schedule.AppointmentAvailabilityService;
 import com.clinicone.schedule.AppointmentHold;
 import com.clinicone.schedule.AppointmentHoldService;
@@ -25,6 +27,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import lombok.Builder;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -56,84 +59,8 @@ public class AppointmentService {
     private final RescheduleCaseRepository rescheduleCaseRepository;
     private final GeneratedClinicSlotRepository generatedSlotRepository;
 
-    public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository) {
-        this(accountRepository, appointmentRepository, null, null, null, null, null, null, null, null, null);
-    }
-
-    public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
-                              PatientProfileRepository profileRepository) {
-        this(accountRepository, appointmentRepository, profileRepository, null, null, null, null, null, null, null, null);
-    }
-
-    public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
-                              PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService) {
-        this(accountRepository, appointmentRepository, profileRepository, availabilityService, null, null, null, null, null, null, null);
-    }
-
-    public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
-                              PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService,
-                              PatientNotificationService notificationService) {
-        this(accountRepository, appointmentRepository, profileRepository, availabilityService, notificationService, null, null, null, null, null, null);
-    }
-
-    public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
-                              PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService,
-                              PatientNotificationService notificationService, BusinessLogService businessLogService) {
-        this(accountRepository, appointmentRepository, profileRepository, availabilityService, notificationService,
-                businessLogService, null, null, null, null, null);
-    }
-
-    public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
-                              PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService,
-                              PatientNotificationService notificationService, BusinessLogService businessLogService,
-                              AppointmentHoldService holdService) {
-        this(accountRepository, appointmentRepository, profileRepository, availabilityService, notificationService,
-                businessLogService, holdService, null, null, null, Clock.systemUTC());
-    }
-
-    public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
-                              PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService,
-                              PatientNotificationService notificationService, BusinessLogService businessLogService,
-                              AppointmentHoldService holdService, ClinicServiceRepository clinicServiceRepository) {
-        this(accountRepository, appointmentRepository, profileRepository, availabilityService, notificationService,
-                businessLogService, holdService, clinicServiceRepository, null, null, Clock.systemUTC());
-    }
-
-    public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
-                              PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService,
-                              PatientNotificationService notificationService, BusinessLogService businessLogService,
-                              AppointmentHoldService holdService, ClinicServiceRepository clinicServiceRepository,
-                              ClinicConfigurationService configurationService, ReasonCatalogService reasonCatalogService,
-                              Clock clock) {
-        this(accountRepository, appointmentRepository, profileRepository, availabilityService, notificationService,
-                businessLogService, holdService, clinicServiceRepository, configurationService, reasonCatalogService,
-                clock, new AppointmentCodeGenerator());
-    }
-
-    public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
-                              PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService,
-                              PatientNotificationService notificationService, BusinessLogService businessLogService,
-                              AppointmentHoldService holdService, ClinicServiceRepository clinicServiceRepository,
-                              ClinicConfigurationService configurationService, ReasonCatalogService reasonCatalogService,
-                              Clock clock, AppointmentCodeGenerator appointmentCodeGenerator) {
-        this(accountRepository, appointmentRepository, profileRepository, availabilityService, notificationService,
-                businessLogService, holdService, clinicServiceRepository, configurationService, reasonCatalogService,
-                clock, appointmentCodeGenerator, null);
-    }
-
-    public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
-                              PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService,
-                              PatientNotificationService notificationService, BusinessLogService businessLogService,
-                              AppointmentHoldService holdService, ClinicServiceRepository clinicServiceRepository,
-                              ClinicConfigurationService configurationService, ReasonCatalogService reasonCatalogService,
-                              Clock clock, AppointmentCodeGenerator appointmentCodeGenerator,
-                              RescheduleCaseRepository rescheduleCaseRepository) {
-        this(accountRepository, appointmentRepository, profileRepository, availabilityService, notificationService,
-                businessLogService, holdService, clinicServiceRepository, configurationService, reasonCatalogService,
-                clock, appointmentCodeGenerator, rescheduleCaseRepository, null);
-    }
-
     @Autowired
+    @Builder
     public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
                               PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService,
                               PatientNotificationService notificationService, BusinessLogService businessLogService,
@@ -159,19 +86,9 @@ public class AppointmentService {
         this.generatedSlotRepository = generatedSlotRepository;
     }
 
-    /** Backward-compatible constructor for isolated unit tests and integrations. */
-    public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
-                              PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService,
-                              PatientNotificationService notificationService, BusinessLogService businessLogService,
-                              AppointmentHoldService holdService, ClinicServiceRepository clinicServiceRepository,
-                              ClinicConfigurationService configurationService, Clock clock) {
-        this(accountRepository, appointmentRepository, profileRepository, availabilityService, notificationService,
-                businessLogService, holdService, clinicServiceRepository, configurationService, null, clock);
-    }
-
     @Transactional(readOnly = true)
     public List<AppointmentResponse> list(String accountId) {
-        UUID patientId = parseAccountId(accountId);
+        UUID patientId = AuthenticatedIds.patient(accountId);
         return appointmentRepository.findByPatientIdOrderByAppointmentDateAscStartTimeAsc(patientId).stream()
                 .map(AppointmentResponse::from)
                 .toList();
@@ -179,20 +96,35 @@ public class AppointmentService {
 
     @Transactional(readOnly = true)
     public AppointmentResponse get(String accountId, String appointmentId) {
-        UUID patientId = parseAccountId(accountId);
+        UUID patientId = AuthenticatedIds.patient(accountId);
         UUID id = parseAppointmentId(appointmentId);
         return AppointmentResponse.from(findOwned(id, patientId));
     }
 
     @Transactional
     public AppointmentResponse create(String accountId, CreateAppointmentRequest request) {
-        return create(accountId, request, null);
+        return createInternal(accountId, request, null, false);
     }
 
     @Transactional
     public AppointmentResponse create(String accountId, CreateAppointmentRequest request, String requestKey) {
-        UUID patientId = parseAccountId(accountId);
-        String normalizedRequestKey = normalizeRequestKey(requestKey);
+        return createInternal(accountId, request, requestKey, false);
+    }
+
+    @Transactional
+    public AppointmentResponse createReception(String accountId, CreateAppointmentRequest request) {
+        return createReception(accountId, request, null);
+    }
+
+    @Transactional
+    public AppointmentResponse createReception(String accountId, CreateAppointmentRequest request, String requestKey) {
+        return createInternal(accountId, request, requestKey, true);
+    }
+
+    private AppointmentResponse createInternal(String accountId, CreateAppointmentRequest request, String requestKey,
+                                               boolean allowOverCapacity) {
+        UUID patientId = AuthenticatedIds.patient(accountId);
+        String normalizedRequestKey = IdempotencyKeys.optional(requestKey);
         if (normalizedRequestKey != null) {
             var existing = appointmentRepository.findByPatientIdAndCreationRequestKey(patientId, normalizedRequestKey);
             if (existing.isPresent()) {
@@ -212,6 +144,10 @@ public class AppointmentService {
         ClinicService selectedService = resolveService(request);
         LocalDate appointmentDate = request.appointmentDate();
         LocalTime startTime = request.startTime();
+        if (allowOverCapacity && availabilityService != null) {
+            availabilityService.ensureDoctorScheduled(request.specialty(), request.doctorName(), request.doctorId(),
+                    appointmentDate, startTime);
+        }
         AppointmentHold hold = null;
         if (request.holdId() != null) {
             if (holdService == null) {
@@ -220,7 +156,7 @@ public class AppointmentService {
             }
             hold = holdService.requireForBooking(accountId, request.holdId(), request);
         }
-        if (availabilityService != null) {
+        if (availabilityService != null && !allowOverCapacity) {
             if (hold == null) {
                 if (request.serviceId() == null) {
                     availabilityService.ensureBookable(request.specialty(), request.doctorName(), request.doctorId(),
@@ -256,6 +192,9 @@ public class AppointmentService {
                     selectedService.getVisitType(), selectedService.getDurationMinutes(),
                     selectedService.requiresMedicalRecord());
         }
+        if (allowOverCapacity) {
+            appointment.markOverCapacity();
+        }
         appointment.assignCreationRequestKey(normalizedRequestKey);
         Appointment saved = appointmentRepository.save(appointment);
         if (hold != null) {
@@ -271,6 +210,37 @@ public class AppointmentService {
 
     @Transactional
     public AppointmentResponse createTemporary(PatientProfile temporaryProfile, CreateAppointmentRequest request) {
+        return createTemporary(temporaryProfile, request, null);
+    }
+
+    @Transactional
+    public AppointmentResponse createTemporary(PatientProfile temporaryProfile, CreateAppointmentRequest request,
+                                                String requestKey) {
+        return createTemporaryInternal(temporaryProfile, request, requestKey, false);
+    }
+
+    @Transactional
+    public AppointmentResponse createTemporaryReception(PatientProfile temporaryProfile,
+                                                         CreateAppointmentRequest request) {
+        return createTemporaryReception(temporaryProfile, request, null);
+    }
+
+    @Transactional
+    public AppointmentResponse createTemporaryReception(PatientProfile temporaryProfile,
+                                                         CreateAppointmentRequest request, String requestKey) {
+        return createTemporaryInternal(temporaryProfile, request, requestKey, true);
+    }
+
+    private AppointmentResponse createTemporaryInternal(PatientProfile temporaryProfile,
+                                                         CreateAppointmentRequest request,
+                                                         boolean allowOverCapacity) {
+        return createTemporaryInternal(temporaryProfile, request, null, allowOverCapacity);
+    }
+
+    private AppointmentResponse createTemporaryInternal(PatientProfile temporaryProfile,
+                                                         CreateAppointmentRequest request,
+                                                         String requestKey,
+                                                         boolean allowOverCapacity) {
         if (temporaryProfile == null || !temporaryProfile.isTemporaryProfile()) {
             throw new AuthException(HttpStatus.CONFLICT, "TEMPORARY_PROFILE_REQUIRED",
                     "Lịch ngoại lệ phải gắn với hồ sơ tạm tại quầy.");
@@ -280,8 +250,24 @@ public class AppointmentService {
             throw new AuthException(HttpStatus.CONFLICT, "TEMPORARY_PROFILE_MISMATCH",
                     "Hồ sơ tạm không khớp với lịch đang tạo.");
         }
+        String normalizedRequestKey = IdempotencyKeys.optional(requestKey);
+        if (normalizedRequestKey != null && temporaryProfile.getId() != null) {
+            var existing = appointmentRepository.findByPatientProfileIdAndCreationRequestKey(
+                    temporaryProfile.getId(), normalizedRequestKey);
+            if (existing.isPresent()) {
+                if (!sameCreateRequest(existing.get(), request)) {
+                    throw new AuthException(HttpStatus.CONFLICT, "IDEMPOTENCY_KEY_REUSED",
+                            "Khóa chống trùng đã được dùng cho một yêu cầu tiếp nhận khác.");
+                }
+                return AppointmentResponse.from(existing.get());
+            }
+        }
         ClinicService selectedService = resolveService(request);
-        if (availabilityService != null) {
+        if (allowOverCapacity && availabilityService != null) {
+            availabilityService.ensureDoctorScheduled(request.specialty(), request.doctorName(), request.doctorId(),
+                    request.appointmentDate(), request.startTime());
+        }
+        if (availabilityService != null && !allowOverCapacity) {
             if (request.serviceId() == null) {
                 availabilityService.ensureBookable(request.specialty(), request.doctorName(), request.doctorId(),
                         request.appointmentDate(), request.startTime());
@@ -305,6 +291,10 @@ public class AppointmentService {
                     selectedService.getVisitType(), selectedService.getDurationMinutes(),
                     selectedService.requiresMedicalRecord());
         }
+        if (allowOverCapacity) {
+            appointment.markOverCapacity();
+        }
+        appointment.assignCreationRequestKey(normalizedRequestKey);
         Appointment saved = appointmentRepository.save(appointment);
         recordTransition(UUID.randomUUID(), saved.getId(), null, saved.getStatus().name(),
                 "CREATE_TEMPORARY_APPOINTMENT", "STAFF", null);
@@ -371,8 +361,8 @@ public class AppointmentService {
     @Transactional
     public void cancel(String accountId, String appointmentId, CancelAppointmentRequest request,
                        String requestKey) {
-        Appointment appointment = findOwned(parseAppointmentId(appointmentId), parseAccountId(accountId));
-        String normalizedRequestKey = normalizeRequestKey(requestKey);
+        Appointment appointment = findOwned(parseAppointmentId(appointmentId), AuthenticatedIds.patient(accountId));
+        String normalizedRequestKey = IdempotencyKeys.optional(requestKey);
         if (appointment.getStatus() == AppointmentStatus.CANCELLED
                 && normalizedRequestKey != null
                 && normalizedRequestKey.equals(appointment.getCancellationRequestKey())) {
@@ -397,7 +387,7 @@ public class AppointmentService {
 
     @Transactional
     public AppointmentResponse reschedule(String accountId, String appointmentId, RescheduleAppointmentRequest request) {
-        UUID patientId = parseAccountId(accountId);
+        UUID patientId = AuthenticatedIds.patient(accountId);
         Appointment appointment = findOwned(parseAppointmentId(appointmentId), patientId);
         ensureBookable(appointment);
         if (rescheduleCaseRepository != null
@@ -435,19 +425,99 @@ public class AppointmentService {
         return AppointmentResponse.from(saved);
     }
 
+    /**
+     * Moves a booked appointment after the patient arrives late. The original
+     * appointment and code are retained; only the booked slot and assigned
+     * doctor are changed. This is deliberately separate from the patient
+     * self-service reschedule flow so that reception can record the reason and
+     * use the same late-window rules as the lifecycle job.
+     */
+    @Transactional
+    public AppointmentResponse rescheduleForReception(UUID appointmentId, UUID doctorStaffId, String doctorName,
+                                                      LocalDate appointmentDate, LocalTime startTime,
+                                                      String reason, String actor) {
+        Appointment appointment = appointmentRepository.findByIdForUpdate(appointmentId)
+                .orElseThrow(this::appointmentNotFound);
+        if (appointment.getStatus() != AppointmentStatus.BOOKED) {
+            throw new AuthException(HttpStatus.CONFLICT, "LATE_RESCHEDULE_STATUS_INVALID",
+                    "Chỉ lịch hẹn đang đặt mới được chuyển sang khung giờ khác.");
+        }
+        String normalizedReason = reason == null ? null : reason.trim();
+        if (normalizedReason == null || normalizedReason.length() < 3 || normalizedReason.length() > 500) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "LATE_RESCHEDULE_REASON_INVALID",
+                    "Lý do đến muộn phải có từ 3 đến 500 ký tự.");
+        }
+        if (!appointment.getAppointmentDate().equals(today())
+                || !isWithinLateRescheduleWindow(appointment)) {
+            throw new AuthException(HttpStatus.CONFLICT, "LATE_RESCHEDULE_WINDOW_CLOSED",
+                    "Chỉ có thể chuyển lịch trong thời gian đến muộn của ngày khám.");
+        }
+        boolean sameSlot = appointment.getAppointmentDate().equals(appointmentDate)
+                && appointment.getStartTime().equals(startTime)
+                && Objects.equals(appointment.getDoctorStaffId(), doctorStaffId);
+        if (sameSlot) {
+            throw new AuthException(HttpStatus.CONFLICT, "LATE_RESCHEDULE_SLOT_UNCHANGED",
+                    "Vui lòng chọn một khung giờ hoặc bác sĩ khác.");
+        }
+        if (availabilityService == null) {
+            throw new AuthException(HttpStatus.SERVICE_UNAVAILABLE, "APPOINTMENT_AVAILABILITY_UNAVAILABLE",
+                    "Chưa thể kiểm tra khung giờ thay thế.");
+        }
+        availabilityService.ensureBookable(appointment.getSpecialty(), doctorName, doctorStaffId,
+                appointmentDate, startTime, null, appointment.getServiceId());
+        if (appointment.getPatient() != null
+                && hasActiveAppointment(appointment.getPatient().getId(), appointmentDate, startTime)) {
+            throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_DUPLICATE",
+                    "Người bệnh đã có lịch hẹn trong khung giờ này.");
+        }
+
+        String previousDate = appointment.getAppointmentDate().toString();
+        String previousTime = appointment.getStartTime().toString();
+        markPreviousGeneratedSlotUnavailable(appointment);
+        appointment.reschedule(appointmentDate, startTime, doctorStaffId, doctorName);
+        Appointment saved = appointmentRepository.save(appointment);
+        if (businessLogService != null) {
+            businessLogService.recordActivity(UUID.randomUUID(), "APPOINTMENT", saved.getId(),
+                    AppointmentStatus.BOOKED.name(), AppointmentStatus.BOOKED.name(),
+                    "RECEPTION_RESCHEDULE_LATE", actor, normalizedReason);
+        }
+        if (notificationService != null) {
+            notificationService.notifyAppointmentRescheduled(saved, previousDate, previousTime);
+        }
+        return AppointmentResponse.from(saved);
+    }
+
+    private boolean isWithinLateRescheduleWindow(Appointment appointment) {
+        Instant scheduledEnd = ZonedDateTime.of(appointment.getAppointmentDate(), appointment.getStartTime(), CLINIC_ZONE)
+                .toInstant()
+                .plusSeconds(effectiveDurationMinutes(appointment) * 60L);
+        Instant now = Instant.now(clock);
+        return !now.isBefore(scheduledEnd.plus(Duration.ofMinutes(15)))
+                && now.isBefore(scheduledEnd.plus(Duration.ofHours(24)));
+    }
+
+    private int effectiveDurationMinutes(Appointment appointment) {
+        Integer duration = appointment.getServiceDurationMinutes();
+        return duration == null || duration <= 0 ? 60 : duration;
+    }
+
+    private LocalDate today() {
+        return ZonedDateTime.now(clock).withZoneSameInstant(CLINIC_ZONE).toLocalDate();
+    }
+
     private void markPreviousGeneratedSlotUnavailable(Appointment appointment) {
         if (generatedSlotRepository == null || appointment.getServiceId() == null
                 || appointment.getDoctorStaffId() == null) {
             return;
         }
-        GeneratedClinicSlot slot = generatedSlotRepository
+        generatedSlotRepository
                 .findFirstByClinicServiceIdAndDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
                         appointment.getServiceId(), appointment.getDoctorStaffId(), appointment.getAppointmentDate(),
                         appointment.getStartTime(), GeneratedSlotStatus.OPEN)
-                .orElseThrow(() -> new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_SLOT_NOT_FOUND",
-                        "Khong tim thay khung gio cu de dong sau khi doi lich."));
-        slot.cancel();
-        generatedSlotRepository.save(slot);
+                .ifPresent(slot -> {
+                    slot.cancel();
+                    generatedSlotRepository.save(slot);
+                });
     }
 
     private void markCancelledSlotUnavailableIfPast(Appointment appointment) {
@@ -481,14 +551,6 @@ public class AppointmentService {
                 "Không thể tạo mã lịch hẹn duy nhất lúc này. Vui lòng thử lại.");
     }
 
-    private UUID parseAccountId(String accountId) {
-        try {
-            return UUID.fromString(accountId);
-        } catch (IllegalArgumentException exception) {
-            throw authenticationRequired();
-        }
-    }
-
     private UUID parseAppointmentId(String appointmentId) {
         try {
             return UUID.fromString(appointmentId);
@@ -516,18 +578,6 @@ public class AppointmentService {
     private AuthException authenticationRequired() {
         return new AuthException(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_REQUIRED",
                 "Phiên đăng nhập không hợp lệ.");
-    }
-
-    private String normalizeRequestKey(String requestKey) {
-        if (requestKey == null || requestKey.isBlank()) {
-            return null;
-        }
-        String normalized = requestKey.trim();
-        if (normalized.length() > 80) {
-            throw new AuthException(HttpStatus.BAD_REQUEST, "IDEMPOTENCY_KEY_INVALID",
-                    "Khóa chống trùng không được dài quá 80 ký tự.");
-        }
-        return normalized;
     }
 
     private boolean hasActiveAppointment(UUID patientId, LocalDate appointmentDate, LocalTime startTime) {

@@ -10,7 +10,9 @@ import static org.mockito.Mockito.*;
 
 class BusinessLogServiceTest {
     private final BusinessLogRepository repository = mock(BusinessLogRepository.class);
-    private final BusinessLogService service = new BusinessLogService(repository);
+    private final BusinessLogService service = BusinessLogService.builder()
+            .repository(repository)
+            .build();
 
     @Test
     void doesNotWriteWhenStateDidNotChange() {

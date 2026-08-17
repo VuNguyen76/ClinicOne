@@ -3,6 +3,7 @@ package com.clinicone.reception;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
+import com.clinicone.validation.VietnamesePhone;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
@@ -10,7 +11,7 @@ import java.time.LocalDate;
 
 /** Thông tin tối thiểu để lập hồ sơ tạm khi người bệnh chưa có tài khoản. */
 public record ReceptionTemporaryProfileRequest(
-        @NotBlank @Pattern(regexp = "0\\d{9}", message = "Số điện thoại phải gồm 10 chữ số và bắt đầu bằng 0")
+        @NotBlank @VietnamesePhone
         String phone,
         @NotBlank @Size(min = 2, max = 100) String fullName,
         @NotNull @PastOrPresent LocalDate dateOfBirth,

@@ -11,6 +11,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.EnumSet;
 import java.util.UUID;
+import com.clinicone.auth.AuthException;
+import org.springframework.http.HttpStatus;
 
 @Service
 public class SmsDeliveryService {
@@ -82,6 +84,25 @@ public class SmsDeliveryService {
     @Transactional(readOnly = true)
     public List<SmsDelivery> listRecent() {
         return repository.findTop100ByOrderByCreatedAtDesc();
+    }
+
+    @Transactional
+    public SmsDelivery retry(UUID deliveryId, String requestKey) {
+        if (deliveryId == null || requestKey == null || requestKey.isBlank() || requestKey.length() > 120) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "SMS_RETRY_KEY_INVALID",
+                    "Khóa thử lại SMS không hợp lệ.");
+        }
+        SmsDelivery delivery = repository.findByIdForUpdate(deliveryId)
+                .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "SMS_DELIVERY_NOT_FOUND",
+                        "Không tìm thấy bản ghi SMS."));
+        try {
+            delivery.manualRetry(now(), requestKey);
+        } catch (IllegalStateException exception) {
+            throw new AuthException(HttpStatus.CONFLICT, "SMS_RETRY_NOT_ALLOWED", exception.getMessage());
+        } catch (IllegalArgumentException exception) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "SMS_RETRY_KEY_INVALID", exception.getMessage());
+        }
+        return repository.save(delivery);
     }
 
     boolean claim(UUID deliveryId, Instant current) {

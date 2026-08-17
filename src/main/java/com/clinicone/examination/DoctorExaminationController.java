@@ -1,5 +1,8 @@
 package com.clinicone.examination;
 
+import lombok.RequiredArgsConstructor;
+
+import com.clinicone.validation.IdempotencyKey;
 import com.clinicone.audit.AccessAuditService;
 import jakarta.validation.Valid;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,17 +22,12 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.UUID;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/doctor/examinations")
 @PreAuthorize("hasRole('DOCTOR')")
 public class DoctorExaminationController {
     private final DoctorExaminationService service;
     private final ObjectProvider<AccessAuditService> accessAudit;
-
-    public DoctorExaminationController(DoctorExaminationService service,
-                                       ObjectProvider<AccessAuditService> accessAudit) {
-        this.service = service;
-        this.accessAudit = accessAudit;
-    }
 
     @GetMapping("/{ticketId}")
     public ResponseEntity<DoctorExaminationResponse> open(Authentication authentication,
@@ -50,6 +48,7 @@ public class DoctorExaminationController {
     @PostMapping("/{ticketId}/start")
     public ResponseEntity<DoctorExaminationResponse> start(Authentication authentication,
                                                             @PathVariable UUID ticketId,
+                                                            @IdempotencyKey
                                                             @RequestHeader(value = "Idempotency-Key", required = false)
                                                             String requestKey) {
         return ResponseEntity.ok(service.start(ticketId, authentication.getName(), requestKey));
@@ -65,7 +64,7 @@ public class DoctorExaminationController {
     @PostMapping("/{ticketId}/sign")
     public ResponseEntity<DoctorExaminationResponse> sign(Authentication authentication,
                                                            @PathVariable UUID ticketId,
-                                                           @RequestHeader("Idempotency-Key") String requestKey,
+                                                           @IdempotencyKey @RequestHeader("Idempotency-Key") String requestKey,
                                                            @Valid @RequestBody DoctorExaminationRequest request) {
         return ResponseEntity.ok(service.sign(ticketId, authentication.getName(), request, requestKey));
     }
