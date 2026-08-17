@@ -73,10 +73,10 @@ class LocalDataInitializerTest {
         verify(clinicServiceRepository).save(serviceCaptor.capture());
         assertThat(serviceCaptor.getValue().getEligibleDoctors()).hasSize(2);
         ArgumentCaptor<String> passwordCaptor = ArgumentCaptor.forClass(String.class);
-        verify(passwordEncoder, org.mockito.Mockito.times(6)).encode(passwordCaptor.capture());
+        verify(passwordEncoder, org.mockito.Mockito.times(8)).encode(passwordCaptor.capture());
         assertThat(passwordCaptor.getAllValues()).containsExactlyInAnyOrder(
                 "test-admin-password", "test-reception-password", "test-doctor-password", "test-doctor-password",
-                "test-doctor-password", "test-patient-password");
+                "test-doctor-password", "test-patient-password", "test-patient-password", "test-patient-password");
         verify(jdbcTemplate).execute(org.mockito.ArgumentMatchers.anyString());
         verifyNoMoreInteractions(passwordEncoder);
     }
