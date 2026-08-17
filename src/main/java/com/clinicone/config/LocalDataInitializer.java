@@ -276,10 +276,14 @@ public class LocalDataInitializer implements CommandLineRunner {
                                         String reason, String notes, String diagnosis, String conclusion, String plan,
                                         List<SeedMedication> meds) {
         LocalDate pastDate = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh")).minusDays(daysAgo);
-        if (appointmentRepository.findByAppointmentCode(code).isPresent()) return;
+        LocalTime pastTime = LocalTime.of(9, 0);
+        if (appointmentRepository.findByAppointmentCode(code).isPresent()
+                || appointmentRepository.existsByPatientIdAndAppointmentDateAndStartTime(patient.getId(), pastDate, pastTime)) {
+            return;
+        }
 
         Appointment app = appointmentRepository.save(Appointment.create(patient, doctor.getId(), profile, code,
-                doctorProfile.getSpecialty(), doctor.getFullName(), pastDate, LocalTime.of(9, 0), reason));
+                doctorProfile.getSpecialty(), doctor.getFullName(), pastDate, pastTime, reason));
         app.checkIn();
         app.complete();
         appointmentRepository.save(app);
@@ -313,7 +317,10 @@ public class LocalDataInitializer implements CommandLineRunner {
     private void ensureActiveQueueScenario(PatientAccount patient, PatientProfile profile, StaffAccount doctor,
                                            DoctorProfile doctorProfile, ClinicRoom room, LocalDate date,
                                            int queueNum, LocalTime time, String code, QueueScenario scenario) {
-        if (appointmentRepository.findByAppointmentCode(code).isPresent()) return;
+        if (appointmentRepository.findByAppointmentCode(code).isPresent()
+                || appointmentRepository.existsByPatientIdAndAppointmentDateAndStartTime(patient.getId(), date, time)) {
+            return;
+        }
 
         Appointment app = appointmentRepository.save(Appointment.create(patient, doctor.getId(), profile, code,
                 doctorProfile.getSpecialty(), doctor.getFullName(), date, time, "Khám tổng quát định kỳ"));
