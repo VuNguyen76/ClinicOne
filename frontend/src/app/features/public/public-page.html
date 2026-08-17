@@ -1,22 +1,25 @@
-<main class="min-h-screen bg-slate-50 text-slate-800">
-  <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
+<main class="min-h-screen bg-slate-50 text-slate-800 antialiased">
+  <!-- Sticky Navigation Header -->
+  <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur-md shadow-xs">
     <div class="mx-auto flex h-[72px] max-w-[1200px] items-center justify-between gap-8 px-5 lg:px-0">
       <a routerLink="/home" class="flex items-center gap-3" aria-label="ClinicOne, trang chủ" (click)="closeMenu()">
-        <img class="h-11 w-11 object-contain transition duration-500 hover:rotate-6 hover:scale-110" src="clinicone-mark-small.png" alt="" aria-hidden="true" />
-        <span class="text-[21px] font-bold tracking-[-0.04em] text-slate-900">Clinic<span class="text-[#0284c7]">One</span></span>
+        <img class="h-10 w-10 object-contain transition-transform duration-500 hover:scale-105" src="clinicone-mark-small.png" alt="" aria-hidden="true" />
+        <span class="text-xl font-bold tracking-tight text-slate-900">Clinic<span class="text-[#0284c7]">One</span></span>
       </a>
       <nav class="hidden items-center gap-7 text-sm font-medium text-slate-600 lg:flex" aria-label="Điều hướng chính">
         @for (link of publicLinks; track link.route) {
           <a [routerLink]="link.route" routerLinkActive="text-[#0284c7] font-semibold" [routerLinkActiveOptions]="{ exact: link.route === '/home' }" class="transition-colors hover:text-[#0284c7]">{{ link.label }}</a>
         }
       </nav>
-      <div class="flex items-center gap-3">
-        <a href="tel:1900000" class="hidden items-center gap-2 text-right sm:flex">
-          <mat-icon class="!h-5 !w-5 !text-[19px] text-rose-500">phone_in_talk</mat-icon>
-          <span class="hidden text-xs text-slate-500 xl:block"><strong class="block text-slate-800">Tổng đài</strong><span class="font-semibold tracking-[0.08em] text-rose-500">1900000</span></span>
+      <div class="flex items-center gap-3.5">
+        <a href="tel:1900000" class="hidden items-center gap-2.5 rounded-full border border-slate-200 bg-slate-50/80 px-3 py-1.5 transition hover:border-slate-300 sm:flex">
+          <mat-icon class="!h-4 !w-4 !text-[18px] text-rose-500">phone_in_talk</mat-icon>
+          <span class="text-xs text-slate-500 font-medium"><strong class="font-bold text-slate-800">1900000</strong></span>
         </a>
         <app-account-menu />
-        <button type="button" class="grid h-10 w-10 place-items-center rounded-lg border border-slate-200 text-slate-700 lg:hidden" aria-label="Mở menu" [attr.aria-expanded]="mobileMenuOpen()" (click)="toggleMenu()"><mat-icon>{{ mobileMenuOpen() ? 'close' : 'menu' }}</mat-icon></button>
+        <button type="button" class="grid h-10 w-10 place-items-center rounded-lg border border-slate-200 text-slate-700 lg:hidden" aria-label="Mở menu" [attr.aria-expanded]="mobileMenuOpen()" (click)="toggleMenu()">
+          <mat-icon>{{ mobileMenuOpen() ? 'close' : 'menu' }}</mat-icon>
+        </button>
       </div>
     </div>
     @if (mobileMenuOpen()) {
@@ -30,17 +33,21 @@
     }
   </header>
 
+  <!-- Page Hero Banner -->
   <section class="border-b border-slate-200 bg-white">
-    <div class="mx-auto grid max-w-[1200px] items-stretch lg:grid-cols-[1fr_0.8fr]">
-      <div class="co-reveal px-5 py-16 lg:px-0 lg:py-24">
-        <p class="text-xs font-bold uppercase tracking-[0.18em] text-[#0284c7]">{{ content.eyebrow }}</p>
-        <h1 class="mt-4 max-w-[760px] text-4xl font-bold leading-[1.08] tracking-[-0.05em] text-slate-900 sm:text-5xl lg:text-6xl">{{ content.title }}</h1>
-        <p class="mt-5 max-w-[620px] text-base leading-7 text-slate-600">{{ content.description }}</p>
+    <div class="mx-auto grid max-w-[1200px] items-center gap-10 px-5 py-12 lg:grid-cols-[1fr_0.85fr] lg:px-0 lg:py-16">
+      <div class="co-reveal">
+        <div class="inline-flex items-center gap-2 rounded-full bg-sky-100/70 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-[#0284c7]">
+          <span class="h-1.5 w-1.5 rounded-full bg-[#0284c7]"></span>
+          {{ content.eyebrow }}
+        </div>
+        <h1 class="mt-4 max-w-[760px] text-3xl font-bold leading-tight tracking-tight text-slate-900 sm:text-4xl lg:text-5xl">{{ content.title }}</h1>
+        <p class="mt-4 max-w-[600px] text-sm leading-relaxed text-slate-600 sm:text-base">{{ content.description }}</p>
       </div>
-      <div class="relative min-h-[280px] overflow-hidden lg:min-h-[420px]">
-        <img class="co-image-drift absolute inset-0 h-full w-full object-cover" [src]="content.image" [alt]="content.title" />
-        <div class="absolute inset-0 bg-gradient-to-t from-[#0e3d48]/80 to-transparent"></div>
-        <span class="co-float absolute bottom-6 left-6 rounded-full bg-white/95 px-4 py-2 text-xs font-bold text-[#0e3d48] shadow-lg border border-slate-100">ClinicOne · Chăm sóc chủ động</span>
+      <div class="relative overflow-hidden rounded-2xl border border-sky-100/80 shadow-sm">
+        <img class="h-[280px] w-full object-cover sm:h-[340px] transition duration-700 hover:scale-105" [src]="content.image" [alt]="content.title" />
+        <div class="absolute inset-0 bg-gradient-to-t from-[#0e3d48]/70 via-transparent to-transparent"></div>
+        <span class="absolute bottom-4 left-4 rounded-full bg-white/95 px-3.5 py-1.5 text-xs font-bold text-[#0e3d48] shadow-sm border border-slate-100 backdrop-blur-xs">ClinicOne · Chăm sóc chủ động</span>
       </div>
     </div>
   </section>
@@ -49,29 +56,29 @@
     <section class="mx-auto grid max-w-[1200px] gap-10 px-5 py-14 lg:grid-cols-[0.9fr_1.1fr] lg:px-0 lg:py-20">
       <div>
         <p class="text-xs font-bold uppercase tracking-[0.16em] text-[#0284c7]">Vì người bệnh</p>
-        <h2 class="mt-3 text-3xl font-bold tracking-[-0.04em] text-slate-900">Ít chờ đợi hơn, chủ động hơn.</h2>
+        <h2 class="mt-3 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Ít chờ đợi hơn, chủ động hơn.</h2>
       </div>
-      <div class="space-y-5 text-[15px] leading-7 text-slate-600">
+      <div class="space-y-4 text-sm leading-relaxed text-slate-600">
         <p>ClinicOne giúp người bệnh đặt lịch trước, đến đúng nơi và theo dõi lượt khám mà không phải hỏi lại nhiều lần.</p>
         <p>Đội ngũ trong phòng khám có cùng một thông tin về lịch làm việc, lịch hẹn, tiếp nhận và phiếu khám.</p>
       </div>
     </section>
     <section class="bg-sky-50/60 border-y border-slate-200">
-      <div class="mx-auto grid max-w-[1200px] gap-8 px-5 py-14 sm:grid-cols-3 lg:px-0">
-        <div class="rounded-xl border border-sky-100 bg-white p-6 shadow-xs">
-          <p class="font-mono text-4xl font-bold text-[#0284c7]">01</p>
+      <div class="mx-auto grid max-w-[1200px] gap-6 px-5 py-14 sm:grid-cols-3 lg:px-0">
+        <div class="rounded-2xl border border-sky-100 bg-white p-6 shadow-xs transition hover:shadow-md">
+          <p class="font-mono text-3xl font-bold text-[#0284c7]">01</p>
           <p class="mt-2 text-base font-bold text-slate-900">Một tài khoản</p>
-          <p class="mt-1 text-xs leading-6 text-slate-600">Lưu thông tin cá nhân và lịch sử khám trọn đời.</p>
+          <p class="mt-1 text-xs leading-5 text-slate-600">Lưu thông tin cá nhân và lịch sử khám trọn đời.</p>
         </div>
-        <div class="rounded-xl border border-sky-100 bg-white p-6 shadow-xs">
-          <p class="font-mono text-4xl font-bold text-[#0284c7]">24/7</p>
+        <div class="rounded-2xl border border-sky-100 bg-white p-6 shadow-xs transition hover:shadow-md">
+          <p class="font-mono text-3xl font-bold text-[#0284c7]">24/7</p>
           <p class="mt-2 text-base font-bold text-slate-900">Theo dõi lịch hẹn</p>
-          <p class="mt-1 text-xs leading-6 text-slate-600">Xem trạng thái và thông tin cần thiết mọi lúc mọi nơi.</p>
+          <p class="mt-1 text-xs leading-5 text-slate-600">Xem trạng thái và thông tin cần thiết mọi lúc mọi nơi.</p>
         </div>
-        <div class="rounded-xl border border-sky-100 bg-white p-6 shadow-xs">
-          <p class="font-mono text-4xl font-bold text-[#0284c7]">01</p>
+        <div class="rounded-2xl border border-sky-100 bg-white p-6 shadow-xs transition hover:shadow-md">
+          <p class="font-mono text-3xl font-bold text-[#0284c7]">01</p>
           <p class="mt-2 text-base font-bold text-slate-900">Hành trình liền mạch</p>
-          <p class="mt-1 text-xs leading-6 text-slate-600">Từ đặt lịch đến nhận phiếu khám đã ký số.</p>
+          <p class="mt-1 text-xs leading-5 text-slate-600">Từ đặt lịch đến nhận phiếu khám đã ký số.</p>
         </div>
       </div>
     </section>
@@ -79,15 +86,15 @@
 
   @if (page === 'process') {
     <section class="mx-auto max-w-[1200px] px-5 py-14 lg:px-0 lg:py-20">
-      <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+      <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         @for (step of processSteps; track step.order; let stepIndex = $index) {
-          <article class="co-reveal rounded-xl border border-slate-200 bg-white p-6 shadow-xs transition hover:border-[#0284c7]" [class.co-delay-1]="stepIndex === 1" [class.co-delay-2]="stepIndex === 2" [class.co-delay-3]="stepIndex === 3">
+          <article class="co-reveal rounded-2xl border border-slate-200 bg-white p-6 shadow-xs transition hover:border-[#0284c7] hover:shadow-md" [class.co-delay-1]="stepIndex === 1" [class.co-delay-2]="stepIndex === 2" [class.co-delay-3]="stepIndex === 3">
             <div class="flex items-center justify-between">
-              <span class="font-mono text-3xl font-bold text-[#0284c7]">{{ step.order }}</span>
-              <span class="grid h-10 w-10 place-items-center rounded-lg bg-sky-50 text-[#0284c7]"><mat-icon>{{ step.icon }}</mat-icon></span>
+              <span class="font-mono text-2xl font-bold text-[#0284c7]">{{ step.order }}</span>
+              <span class="grid h-10 w-10 place-items-center rounded-xl bg-sky-50 text-[#0284c7]"><mat-icon class="!h-5 !w-5 !text-[20px]">{{ step.icon }}</mat-icon></span>
             </div>
-            <h2 class="mt-5 text-base font-bold text-slate-900">{{ step.title }}</h2>
-            <p class="mt-1.5 text-xs leading-6 text-slate-600">{{ step.description }}</p>
+            <h2 class="mt-4 text-base font-bold text-slate-900">{{ step.title }}</h2>
+            <p class="mt-1.5 text-xs leading-5 text-slate-600">{{ step.description }}</p>
           </article>
         }
       </div>
@@ -98,11 +105,11 @@
     <section class="mx-auto max-w-[900px] px-5 py-14 lg:py-20">
       <div class="space-y-4">
         @for (guide of guides; track guide.title) {
-          <article class="grid gap-4 rounded-xl border border-slate-200 bg-white p-6 shadow-xs sm:grid-cols-[auto_1fr]">
-            <span class="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-sky-50 text-[#0284c7]"><mat-icon>{{ guide.icon }}</mat-icon></span>
+          <article class="grid gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-xs sm:grid-cols-[auto_1fr] transition hover:border-[#0284c7] hover:shadow-md">
+            <span class="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-sky-50 text-[#0284c7]"><mat-icon class="!h-6 !w-6 !text-[24px]">{{ guide.icon }}</mat-icon></span>
             <div>
               <h2 class="text-base font-bold text-slate-900">{{ guide.title }}</h2>
-              <p class="mt-1.5 text-xs leading-6 text-slate-600">{{ guide.text }}</p>
+              <p class="mt-1.5 text-xs leading-relaxed text-slate-600">{{ guide.text }}</p>
             </div>
           </article>
         }
@@ -112,11 +119,11 @@
 
   @if (page === 'support') {
     <section class="mx-auto max-w-[1200px] px-5 py-14 lg:px-0 lg:py-20">
-      <div class="grid gap-5 md:grid-cols-3">
+      <div class="grid gap-6 md:grid-cols-3">
         @for (channel of supportChannels; track channel.title) {
-          <a [href]="channel.href" class="group rounded-xl border border-slate-200 bg-white p-6 shadow-xs transition hover:-translate-y-1 hover:border-[#0284c7]">
-            <span class="grid h-11 w-11 place-items-center rounded-lg bg-sky-50 text-[#0284c7]"><mat-icon>{{ channel.icon }}</mat-icon></span>
-            <h2 class="mt-5 text-base font-bold text-slate-900">{{ channel.title }}</h2>
+          <a [href]="channel.href" class="group rounded-2xl border border-slate-200 bg-white p-6 shadow-xs transition hover:-translate-y-1 hover:border-[#0284c7] hover:shadow-md">
+            <span class="grid h-11 w-11 place-items-center rounded-xl bg-sky-50 text-[#0284c7]"><mat-icon class="!h-5 !w-5 !text-[22px]">{{ channel.icon }}</mat-icon></span>
+            <h2 class="mt-4 text-base font-bold text-slate-900">{{ channel.title }}</h2>
             <p class="mt-1 font-mono text-sm font-bold text-[#0284c7]">{{ channel.value }}</p>
             <p class="mt-1.5 text-xs leading-5 text-slate-500">{{ channel.detail }}</p>
           </a>
@@ -142,10 +149,10 @@
   }
 
   @if (page === 'contact') {
-    <section id="contact-form" class="mx-auto grid max-w-[1200px] gap-12 px-5 py-14 lg:grid-cols-[0.8fr_1.2fr] lg:px-0 lg:py-20">
+    <section id="contact-form" class="mx-auto grid max-w-[1200px] gap-12 px-5 py-14 lg:grid-cols-[0.85fr_1.15fr] lg:px-0 lg:py-20">
       <div>
         <p class="text-xs font-bold uppercase tracking-[0.16em] text-[#0284c7]">Liên hệ trực tiếp</p>
-        <h2 class="mt-2 text-2xl font-bold tracking-[-0.03em] text-slate-900 sm:text-3xl">Chúng tôi muốn lắng nghe bạn.</h2>
+        <h2 class="mt-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Chúng tôi muốn lắng nghe bạn.</h2>
         <p class="mt-3 text-xs leading-6 text-slate-600">Gọi tổng đài 1900000 hoặc gửi thông tin, đội ngũ ClinicOne sẽ phản hồi trong giờ làm việc.</p>
         <div class="mt-7 space-y-3 text-xs text-slate-600">
           <p><strong class="text-slate-900">Địa chỉ:</strong> 123 Nguyễn Huệ, Quận 1, TP. Hồ Chí Minh</p>
@@ -153,15 +160,16 @@
           <p><strong class="text-slate-900">Giờ hỗ trợ:</strong> 07:00 – 20:00 mỗi ngày</p>
         </div>
       </div>
-      <form class="grid gap-4 rounded-xl border border-slate-200 bg-white p-6 shadow-xs sm:p-8" (submit)="$event.preventDefault()">
-        <label class="grid gap-1.5 text-xs font-semibold text-slate-700">Họ và tên<input class="min-h-10 rounded-md border border-slate-300 px-3 text-sm font-normal outline-none focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" type="text" placeholder="Nhập họ và tên" /></label>
-        <label class="grid gap-1.5 text-xs font-semibold text-slate-700">Số điện thoại<input class="min-h-10 rounded-md border border-slate-300 px-3 text-sm font-normal outline-none focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" type="tel" placeholder="0912 345 678" /></label>
-        <label class="grid gap-1.5 text-xs font-semibold text-slate-700">Nội dung yêu cầu<textarea class="min-h-24 rounded-md border border-slate-300 px-3 py-2 text-sm font-normal outline-none focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" placeholder="Bạn cần ClinicOne hỗ trợ điều gì?"></textarea></label>
-        <button type="submit" class="mt-1 min-h-10 rounded-md bg-[#0e3d48] px-5 text-sm font-semibold text-white transition hover:bg-[#124f5e]">Gửi yêu cầu</button>
+      <form class="grid gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-xs sm:p-8" (submit)="$event.preventDefault()">
+        <label class="grid gap-1.5 text-xs font-semibold text-slate-700">Họ và tên<input class="h-10 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm font-normal outline-none transition focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" type="text" placeholder="Nhập họ và tên" /></label>
+        <label class="grid gap-1.5 text-xs font-semibold text-slate-700">Số điện thoại<input class="h-10 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm font-normal outline-none transition focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" type="tel" placeholder="0912 345 678" /></label>
+        <label class="grid gap-1.5 text-xs font-semibold text-slate-700">Nội dung yêu cầu<textarea class="min-h-24 w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm font-normal outline-none transition focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15" placeholder="Bạn cần ClinicOne hỗ trợ điều gì?"></textarea></label>
+        <button type="submit" class="mt-1 h-10 rounded-lg bg-[#0284c7] px-6 text-sm font-semibold text-white shadow-xs transition hover:bg-[#0369a1] sm:w-fit">Gửi yêu cầu</button>
       </form>
     </section>
   }
 
+  <!-- Global Footer -->
   <footer class="relative overflow-hidden bg-[#0e3d48] text-white/70">
     <div class="absolute inset-0 opacity-10">
       <img class="h-full w-full object-cover" src="https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=1600&q=70" alt="" aria-hidden="true" />
