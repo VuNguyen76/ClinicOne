@@ -118,6 +118,12 @@ export interface MedicalRecordResponse {
   followUpDays?: number | null;
   followUpNote?: string | null;
   signedAt: string;
+  patientName?: string | null;
+  patientDateOfBirth?: string | null;
+  patientGender?: string | null;
+  patientPhone?: string | null;
+  specialty?: string | null;
+  appointmentDate?: string | null;
 }
 
 export interface PrescriptionLineResponse {

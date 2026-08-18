@@ -595,4 +595,8 @@ export class DoctorExamination implements OnInit {
     }
     this.error.set(apiErrorMessage(response));
   }
+
+  protected printRecord(): void {
+    window.print();
+  }
 }
