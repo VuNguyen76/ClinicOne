@@ -129,6 +129,7 @@ public class LocalDataInitializer implements CommandLineRunner {
     public void run(String... args) {
         ensureAppointmentStatusConstraint();
         StaffAccount admin = ensureStaff("admin", adminPassword, "Quản trị viên", StaffRole.ADMIN);
+        StaffAccount coordinator = ensureStaff("coordinator", adminPassword, "Điều phối viên Trần Hoàng", StaffRole.COORDINATOR);
         StaffAccount receptionist = ensureStaff("reception", receptionistPassword, "Nhân viên tiếp nhận", StaffRole.RECEPTIONIST);
         StaffAccount doctor = ensureStaff("doctor", doctorPassword, "Bác sĩ Nguyễn An", StaffRole.DOCTOR);
         StaffAccount secondDoctor = ensureStaff("doctor2", doctorPassword, "Bác sĩ Trần Minh", StaffRole.DOCTOR);
