@@ -134,6 +134,12 @@ public class PatientAccount {
         clearPasswordFailures();
     }
 
+    public void unlock() {
+        this.status = AccountStatus.ACTIVE;
+        this.lockedUntil = null;
+        clearPasswordFailures();
+    }
+
     /** Records one failed password attempt and returns whether the account was locked. */
     public boolean recordPasswordFailure(Instant now) {
         if (passwordFailureWindowStartedAt == null

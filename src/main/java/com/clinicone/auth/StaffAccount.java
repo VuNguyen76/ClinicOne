@@ -113,6 +113,7 @@ public class StaffAccount {
 
     public void lock() { status = AccountStatus.LOCKED; }
     public void unlock() { status = AccountStatus.ACTIVE; }
+    public void changePassword(String nextPasswordHash) { this.passwordHash = nextPasswordHash; }
 
     @PrePersist
     void onCreate() {
