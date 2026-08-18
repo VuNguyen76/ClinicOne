@@ -8,15 +8,22 @@ import com.clinicone.auth.StaffRole;
 import com.clinicone.auth.AccountStatus;
 import com.clinicone.auth.PatientAccount;
 import com.clinicone.auth.PatientAccountRepository;
+import com.clinicone.diagnosis.DiagnosisCatalog;
+import com.clinicone.diagnosis.DiagnosisCatalogRepository;
 import com.clinicone.doctor.DoctorProfile;
 import com.clinicone.doctor.DoctorProfileRepository;
 import com.clinicone.doctor.DoctorSchedule;
 import com.clinicone.doctor.DoctorScheduleRepository;
+import com.clinicone.examination.DoctorExaminationService;
 import com.clinicone.examination.ExaminationSession;
 import com.clinicone.examination.ExaminationSessionRepository;
 import com.clinicone.examination.MedicalRecord;
 import com.clinicone.examination.MedicalRecordRepository;
+import com.clinicone.examination.MedicalRecordTemplate;
+import com.clinicone.examination.MedicalRecordTemplateRepository;
 import com.clinicone.examination.PrescriptionLine;
+import com.clinicone.medication.Medication;
+import com.clinicone.medication.MedicationRepository;
 import com.clinicone.queue.ClinicRoom;
 import com.clinicone.queue.ClinicRoomRepository;
 import com.clinicone.queue.QueueTicket;
@@ -77,6 +84,15 @@ public class LocalDataInitializer implements CommandLineRunner {
 
     @Autowired(required = false)
     private MedicalRecordRepository medicalRecordRepository;
+
+    @Autowired(required = false)
+    private MedicationRepository medicationRepository;
+
+    @Autowired(required = false)
+    private DiagnosisCatalogRepository diagnosisCatalogRepository;
+
+    @Autowired(required = false)
+    private MedicalRecordTemplateRepository medicalRecordTemplateRepository;
 
     public LocalDataInitializer(StaffAccountRepository staffRepository,
                                 ClinicRoomRepository roomRepository,
@@ -146,7 +162,12 @@ public class LocalDataInitializer implements CommandLineRunner {
         ensureWeekdaySchedules(thirdProfile);
         ensureClinicService(List.of(secondProfile, thirdProfile));
 
-        // 1. Seed Patients & Sub-profiles
+        // 1. Seed Essential Medications, ICD-10 Diagnoses, and Medical Record Templates
+        ensureMedications();
+        ensureDiagnoses();
+        ensureTemplates();
+
+        // 2. Seed Patients & Sub-profiles
         PatientAccount patient1 = ensurePatient("0900000001", "Nguyễn Thanh Vũ");
         PatientProfile profile1 = ensurePatientProfile(patient1, "Nguyễn Thanh Vũ", "Bản thân", LocalDate.of(2000, 1, 1), "Nam", patient1.getPhone(), true);
         PatientProfile childProfile = ensurePatientProfile(patient1, "Bé Nguyễn Bảo Nam", "Con cái", LocalDate.of(2020, 5, 15), "Nam", patient1.getPhone(), false);
@@ -157,7 +178,7 @@ public class LocalDataInitializer implements CommandLineRunner {
         PatientAccount patient3 = ensurePatient("0900000004", "Phạm Minh Đức");
         PatientProfile profile3 = ensurePatientProfile(patient3, "Phạm Minh Đức", "Bản thân", LocalDate.of(1958, 11, 12), "Nam", patient3.getPhone(), true);
 
-        // 2. Seed Past Signed Medical Records (for clinical history visualization)
+        // 3. Seed Past Signed Medical Records (for clinical history visualization)
         ensurePastSignedRecord(patient1, profile1, doctor, profile, room, 7, "PAST-REC-001",
                 "Đau rát họng 3 ngày, sốt nhẹ 38°C, ho khan nhiều về đêm",
                 "Niêm mạc họng đỏ, amidan sưng nhẹ độ 1, không có giả mạc, tim phổi bình thường",
@@ -165,9 +186,9 @@ public class LocalDataInitializer implements CommandLineRunner {
                 "Viêm đường hô hấp trên thể nhẹ",
                 "Nghỉ ngơi, uống nhiều nước ấm, súc họng nước muối sinh lý",
                 List.of(
-                        new SeedMedication("Paracetamol 500mg", "500mg", 10, "Uống 1 viên khi sốt trên 38.5°C cách 6h"),
-                        new SeedMedication("Cefuroxime 500mg", "500mg", 14, "Uống 1 viên x 2 lần/ngày sau ăn sáng/tối"),
-                        new SeedMedication("Vitamin C 500mg", "500mg", 10, "Uống 1 viên/ngày sau ăn sáng")
+                        new SeedMedication("Paracetamol 500mg (Hạ sốt, giảm đau)", "500mg", 10, "Uống 1 viên khi sốt trên 38.5°C cách 6h"),
+                        new SeedMedication("Cefuroxime 500mg / Zinnat (Kháng sinh Cephalosporin)", "500mg", 14, "Uống 1 viên x 2 lần/ngày sau ăn sáng/tối"),
+                        new SeedMedication("Vitamin C 500mg (Tăng cường đề kháng)", "500mg", 10, "Uống 1 viên/ngày sau ăn sáng")
                 ));
 
         ensurePastSignedRecord(patient3, profile3, doctor, profile, room, 3, "PAST-REC-002",
@@ -177,19 +198,106 @@ public class LocalDataInitializer implements CommandLineRunner {
                 "Tăng huyết áp độ 1 có kiểm soát",
                 "Duy trì thuốc hạ áp hàng ngày, ăn nhạt, hạn chế muối",
                 List.of(
-                        new SeedMedication("Amlodipine 5mg", "5mg", 30, "Uống 1 viên vào 8h sáng hàng ngày"),
-                        new SeedMedication("Losartan 50mg", "50mg", 30, "Uống 1 viên vào 8h sáng hàng ngày")
+                        new SeedMedication("Amlodipine 5mg (Hạ huyết áp chẹn kênh Canxi)", "5mg", 30, "Uống 1 viên vào 8h sáng hàng ngày"),
+                        new SeedMedication("Losartan 50mg (Hạ huyết áp ức chế thụ thể ARB)", "50mg", 30, "Uống 1 viên vào 8h sáng hàng ngày")
                 ));
 
-        // 3. Seed Today's Active Clinic Queue Tickets (for 2026-08-17)
+        // 4. Seed Today's Active Clinic Queue Tickets
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
         ensureActiveQueueScenario(patient1, profile1, doctor, profile, room, today, 1, LocalTime.of(8, 30), "TODAY-TQ01-001", QueueScenario.IN_SERVICE);
         ensureActiveQueueScenario(patient2, profile2, doctor, profile, room, today, 2, LocalTime.of(9, 0), "TODAY-TQ01-002", QueueScenario.WAITING);
         ensureActiveQueueScenario(patient3, profile3, doctor, profile, room, today, 3, LocalTime.of(9, 30), "TODAY-TQ01-003", QueueScenario.PRIORITY_WAITING);
         ensureActiveQueueScenario(patient1, childProfile, doctor, profile, room, today, 4, LocalTime.of(8, 0), "TODAY-TQ01-004", QueueScenario.COMPLETED);
 
-        log.info("Local bootstrap ready: admin={}, receptionist={}, doctors=[{}, {}, {}], seeded 4 live queue tickets & past clinical histories",
+        log.info("Local bootstrap ready: admin={}, receptionist={}, doctors=[{}, {}, {}], seeded clinical catalogs, templates, 4 queue tickets & histories",
                 admin.getUsername(), receptionist.getUsername(), doctor.getUsername(), secondDoctor.getUsername(), thirdDoctor.getUsername());
+    }
+
+    private void ensureMedications() {
+        if (medicationRepository == null) return;
+        List<String[]> meds = List.of(
+                new String[]{"MED-PARA-500", "Paracetamol 500mg (Hạ sốt, giảm đau)"},
+                new String[]{"MED-AMOX-500", "Amoxicillin 500mg (Kháng sinh nhóm Penicillin)"},
+                new String[]{"MED-CEFU-500", "Cefuroxime 500mg / Zinnat (Kháng sinh Cephalosporin)"},
+                new String[]{"MED-IBUP-400", "Ibuprofen 400mg (Kháng viêm, giảm đau NSAID)"},
+                new String[]{"MED-OMEP-20", "Omeprazole 20mg (Ức chế bơm Proton, dạ dày)"},
+                new String[]{"MED-ESOM-40", "Esomeprazole 40mg / Nexium (Trào ngược dạ dày GERD)"},
+                new String[]{"MED-AMLO-5", "Amlodipine 5mg (Hạ huyết áp chẹn kênh Canxi)"},
+                new String[]{"MED-LOSA-50", "Losartan 50mg (Hạ huyết áp ức chế thụ thể ARB)"},
+                new String[]{"MED-METF-500", "Metformin 500mg (Hạ đường huyết đái tháo đường)"},
+                new String[]{"MED-ATOR-20", "Atorvastatin 20mg (Hạ mỡ máu, giảm Cholesterol)"},
+                new String[]{"MED-BERB-100", "Berberin 100mg (Kháng khuẩn tiêu hóa, tiêu chảy)"},
+                new String[]{"MED-LORA-10", "Loratadine 10mg (Kháng Histamin, chống dị ứng)"},
+                new String[]{"MED-CETI-10", "Cetirizine 10mg (Chống dị ứng, viêm mũi dị ứng)"},
+                new String[]{"MED-SALB-2", "Salbutamol 2mg (Giãn phế quản, hen suyễn)"},
+                new String[]{"MED-VITC-500", "Vitamin C 500mg (Tăng cường đề kháng)"},
+                new String[]{"MED-GLUC-1500", "Glucosamine 1500mg (Hỗ trợ khớp, sụn khớp)"},
+                new String[]{"MED-TOBR-03", "Tobramycin 0.3% / Tobrex (Thuốc nhỏ mắt kháng khuẩn)"}
+        );
+        for (String[] item : meds) {
+            if (!medicationRepository.existsByCodeIgnoreCase(item[0])) {
+                medicationRepository.save(Medication.create(item[0], item[1]));
+            }
+        }
+    }
+
+    private void ensureDiagnoses() {
+        if (diagnosisCatalogRepository == null) return;
+        List<String[]> list = List.of(
+                new String[]{"J00", "J00 - Viêm mũi họng cấp tính (cảm thường)"},
+                new String[]{"J02", "J02 - Viêm họng cấp"},
+                new String[]{"J03", "J03 - Viêm amiđan cấp"},
+                new String[]{"J20", "J20 - Viêm phế quản cấp"},
+                new String[]{"K21", "K21 - Bệnh trào ngược dạ dày - thực quản (GERD)"},
+                new String[]{"K29", "K29 - Viêm dạ dày và tá tràng"},
+                new String[]{"I10", "I10 - Tăng huyết áp vô căn (nguyên phát)"},
+                new String[]{"E11", "E11 - Đái tháo đường không phụ thuộc insulin (Type 2)"},
+                new String[]{"E78", "E78 - Rối loạn chuyển hóa lipoprotein và tăng lipid máu"},
+                new String[]{"M17", "M17 - Thoái hóa khớp gối"},
+                new String[]{"M54.5", "M54.5 - Đau thắt lưng"},
+                new String[]{"H10", "H10 - Viêm kết mạc (đau mắt đỏ)"},
+                new String[]{"L20", "L20 - Viêm da cơ địa (chàm)"},
+                new String[]{"Z00.0", "Z00.0 - Khám sức khỏe tổng quát định kỳ"}
+        );
+        for (String[] item : list) {
+            if (!diagnosisCatalogRepository.existsByCodeIgnoreCase(item[0])) {
+                diagnosisCatalogRepository.save(DiagnosisCatalog.create(item[0], item[1]));
+            }
+        }
+    }
+
+    private void ensureTemplates() {
+        if (medicalRecordTemplateRepository == null) return;
+        ensureOneTemplate("TMPL-TQ-01", "Mẫu khám tổng quát định kỳ", "Khám Tổng Quát",
+                "Mẫu chuẩn khám sức khỏe tổng quát định kỳ",
+                """
+                {"reason":"Khám sức khỏe tổng quát định kỳ theo dõi thể trạng","examinationNotes":"Thể trạng chung tốt, huyết áp 120/80 mmHg, nhịp tim đều 75 ck/phút, phổi trong, tim T1 T2 rõ không âm thổi, bụng mềm không điểm đau khu trú.","diagnosis":"Z00.0 - Khám sức khỏe tổng quát định kỳ","conclusion":"Tình trạng sức khỏe hiện tại ổn định","treatmentPlan":"Duy trì chế độ ăn uống khoa học, tập thể dục ít nhất 30 phút/ngày, uống đủ 2 lít nước.","followUpDays":180,"followUpNote":"Khám định kỳ sau 6 tháng hoặc khi có dấu hiệu bất thường"}
+                """);
+
+        ensureOneTemplate("TMPL-HH-01", "Mẫu khám viêm đường hô hấp / Cảm cúm", "Khám Hô Hấp",
+                "Mẫu chuẩn viêm mũi họng, cảm cúm, ho khan sốt nhẹ",
+                """
+                {"reason":"Đau rát họng, ho húng hắng, sốt nhẹ 38°C, nghẹt mũi","examinationNotes":"Niêm mạc họng đỏ, amidan sung huyết nhẹ không giả mạc, mũi xuất tiết dịch trong, phổi thông khí tốt không rale.","diagnosis":"J00 - Viêm mũi họng cấp tính (cảm thường)","conclusion":"Viêm đường hô hấp trên cấp tính thể nhẹ","treatmentPlan":"Nghỉ ngơi, súc họng nước muối sinh lý 3 lần/ngày, giữ ấm cổ ngực, uống nhiều nước ấm.","followUpDays":7,"followUpNote":"Tái khám sau 7 ngày nếu còn sốt cao hoặc ho kéo dài"}
+                """);
+
+        ensureOneTemplate("TMPL-TM-01", "Mẫu khám Tăng huyết áp", "Khám Tim Mạch",
+                "Mẫu chuẩn theo dõi và điều trị tăng huyết áp nguyên phát",
+                """
+                {"reason":"Đo kiểm tra huyết áp định kỳ, thỉnh thoảng hơi căng tức thái dương","examinationNotes":"Huyết áp đo tại phòng khám 140/85 mmHg, mạch 76 lần/phút, tim T1 T2 đều rõ, không phù chi dưới, không ran phổi.","diagnosis":"I10 - Tăng huyết áp vô căn (nguyên phát)","conclusion":"Tăng huyết áp độ 1 giai đoạn ổn định","treatmentPlan":"Duy trì thuốc hạ áp hàng ngày vào buổi sáng, chế độ ăn giảm muối, hạn chế dầu mỡ và thức uống có cồn.","followUpDays":30,"followUpNote":"Tái khám đo lại huyết áp và đánh giá chức năng sau 1 tháng"}
+                """);
+
+        ensureOneTemplate("TMPL-TH-01", "Mẫu khám Dạ dày - GERD", "Khám Tiêu Hoá - Gan Mật",
+                "Mẫu chuẩn viêm dạ dày, trào ngược dạ dày thực quản",
+                """
+                {"reason":"Đau âm ỉ vùng thượng vị sau ăn, ợ hơi ợ chua, cồn cào","examinationNotes":"Bụng mềm, ấn tức nhẹ vùng thượng vị, không đề kháng thành bụng, gan lách không to.","diagnosis":"K21 - Bệnh trào ngược dạ dày - thực quản (GERD)","conclusion":"Viêm dạ dày kết hợp trào ngược thực quản","treatmentPlan":"Uống thuốc bảo vệ niêm mạc trước ăn sáng 30 phút, ăn đúng giờ, không ăn no sát giờ ngủ, tránh thức ăn cay nóng, cà phê.","followUpDays":14,"followUpNote":"Tái khám sau 2 tuần để đánh giá đáp ứng điều trị"}
+                """);
+    }
+
+    private void ensureOneTemplate(String code, String name, String specialty, String description, String fieldDef) {
+        boolean exists = medicalRecordTemplateRepository.findAll().stream().anyMatch(t -> t.getCode().equalsIgnoreCase(code));
+        if (!exists) {
+            medicalRecordTemplateRepository.save(MedicalRecordTemplate.create(code, name, specialty, null, description, fieldDef.trim(), "admin"));
+        }
     }
 
     private void ensureAppointmentStatusConstraint() {
