@@ -69,19 +69,21 @@
                       </span>
                     </td>
                     <td class="erp-td">
-                      <span [class]="service.active ? 'erp-badge-success' : 'erp-badge-neutral'">
-                        <span [class]="service.active ? 'erp-dot-success' : 'erp-dot-neutral'"></span>
-                        {{ service.active ? 'Đang dùng' : 'Tạm dừng' }}
+                      <span class="erp-badge" [class.erp-badge-success]="service.active" [class.erp-badge-neutral]="!service.active">
+                        <span class="erp-dot" [class.erp-dot-success]="service.active" [class.erp-dot-neutral]="!service.active"></span>
+                        <span>{{ service.active ? 'Đang dùng' : 'Tạm dừng' }}</span>
                       </span>
                     </td>
                     @if (canManageServices()) {
                       <td class="erp-td text-right">
                         <div class="inline-flex items-center justify-end gap-1.5">
-                          <button type="button" class="erp-btn-secondary !min-h-7 !px-2.5 !text-[11px]" (click)="edit(service)">
-                            Sửa
+                          <button type="button" class="erp-btn-secondary !min-h-7 !px-2.5 !text-[11px] inline-flex items-center gap-1" (click)="edit(service)">
+                            <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">edit</mat-icon>
+                            <span>Sửa</span>
                           </button>
-                          <button type="button" class="erp-btn-secondary !min-h-7 !px-2.5 !text-[11px]" [class.erp-btn-danger]="service.active" (click)="toggleActive(service)">
-                            {{ service.active ? 'Tạm dừng' : 'Bật lại' }}
+                          <button type="button" class="erp-btn-secondary !min-h-7 !px-2.5 !text-[11px] inline-flex items-center gap-1" [class.erp-btn-danger]="service.active" (click)="toggleActive(service)">
+                            <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">{{ service.active ? 'pause' : 'play_arrow' }}</mat-icon>
+                            <span>{{ service.active ? 'Tạm dừng' : 'Bật lại' }}</span>
                           </button>
                         </div>
                       </td>

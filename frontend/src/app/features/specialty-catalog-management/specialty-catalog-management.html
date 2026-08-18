@@ -57,8 +57,9 @@
                     <td class="erp-td font-semibold text-slate-900">{{ item.name }}</td>
                     <td class="erp-td max-w-xs truncate text-slate-600">{{ item.description || 'Chưa có mô tả' }}</td>
                     <td class="erp-td text-right">
-                      <button type="button" class="erp-btn-danger !min-h-7 !px-2.5 !text-[11px]" (click)="deactivate(item)">
-                        Tạm dừng
+                      <button type="button" class="erp-btn-danger !min-h-7 !px-2.5 !text-[11px] inline-flex items-center gap-1" (click)="deactivate(item)">
+                        <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">pause</mat-icon>
+                        <span>Tạm dừng</span>
                       </button>
                     </td>
                   </tr>

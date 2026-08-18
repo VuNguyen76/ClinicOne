@@ -78,10 +78,12 @@
                   <td class="erp-td">
                     <span
                       data-testid="staff-status"
-                      [class]="account.status === 'LOCKED' ? 'erp-badge-danger' : 'erp-badge-success'"
+                      class="erp-badge"
+                      [class.erp-badge-danger]="account.status === 'LOCKED'"
+                      [class.erp-badge-success]="account.status !== 'LOCKED'"
                     >
-                      <span [class]="account.status === 'LOCKED' ? 'erp-dot-danger' : 'erp-dot-success'"></span>
-                      {{ statusLabel(account.status) }}
+                      <span class="erp-dot" [class.erp-dot-danger]="account.status === 'LOCKED'" [class.erp-dot-success]="account.status !== 'LOCKED'"></span>
+                      <span>{{ statusLabel(account.status) }}</span>
                     </span>
                   </td>
                   <td class="erp-td text-right">
@@ -90,32 +92,35 @@
                         <button
                           type="button"
                           data-testid="edit-staff-roles"
-                          class="erp-btn-secondary !min-h-7 !px-2.5 !text-[11px]"
+                          class="erp-btn-secondary !min-h-7 !px-2.5 !text-[11px] inline-flex items-center gap-1"
                           [disabled]="updatingId() === account.staffId"
                           (click)="openRoleEditor(account)"
                         >
-                          Sửa vai trò
+                          <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">admin_panel_settings</mat-icon>
+                          <span>Vai trò</span>
                         </button>
                       }
                       @if (account.status === 'LOCKED') {
                         <button
                           type="button"
                           data-testid="unlock-staff"
-                          class="erp-btn-secondary !min-h-7 !px-2.5 !text-[11px] !border-emerald-300 !text-emerald-700 hover:!bg-emerald-50"
+                          class="erp-btn-secondary !min-h-7 !px-2.5 !text-[11px] !border-emerald-300 !text-emerald-700 hover:!bg-emerald-50 inline-flex items-center gap-1"
                           [disabled]="updatingId() === account.staffId"
                           (click)="updateStatus(account)"
                         >
-                          {{ updatingId() === account.staffId ? 'Đang xử lý...' : 'Mở khóa' }}
+                          <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">lock_open</mat-icon>
+                          <span>{{ updatingId() === account.staffId ? 'Đang xử lý...' : 'Mở khóa' }}</span>
                         </button>
                       } @else {
                         <button
                           type="button"
                           data-testid="lock-staff"
-                          class="erp-btn-danger !min-h-7 !px-2.5 !text-[11px]"
+                          class="erp-btn-danger !min-h-7 !px-2.5 !text-[11px] inline-flex items-center gap-1"
                           [disabled]="updatingId() === account.staffId"
                           (click)="askToLock(account)"
                         >
-                          Khóa
+                          <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">lock</mat-icon>
+                          <span>Khóa</span>
                         </button>
                       }
                     </div>
