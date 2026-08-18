@@ -76,14 +76,18 @@
                     </td>
                     @if (canManageServices()) {
                       <td class="erp-td text-right">
-                        <div class="inline-flex items-center justify-end gap-1.5">
-                          <button type="button" class="erp-btn-secondary !min-h-7 !px-2.5 !text-[11px] inline-flex items-center gap-1" (click)="edit(service)">
-                            <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">edit</mat-icon>
-                            <span>Sửa</span>
+                        <div class="inline-flex items-center justify-end gap-1">
+                          <button type="button" class="erp-btn-icon" title="Sửa dịch vụ" [attr.aria-label]="'Sửa dịch vụ ' + service.name" (click)="edit(service)">
+                            <mat-icon class="!h-4 !w-4 !text-[18px]">edit</mat-icon>
                           </button>
-                          <button type="button" class="erp-btn-secondary !min-h-7 !px-2.5 !text-[11px] inline-flex items-center gap-1" [class.erp-btn-danger]="service.active" (click)="toggleActive(service)">
-                            <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">{{ service.active ? 'pause' : 'play_arrow' }}</mat-icon>
-                            <span>{{ service.active ? 'Tạm dừng' : 'Bật lại' }}</span>
+                          <button
+                            type="button"
+                            class="erp-btn-icon"
+                            [title]="service.active ? 'Tạm dừng dịch vụ' : 'Bật lại dịch vụ'"
+                            [attr.aria-label]="service.active ? 'Tạm dừng dịch vụ ' + service.name : 'Bật lại dịch vụ ' + service.name"
+                            (click)="toggleActive(service)"
+                          >
+                            <mat-icon class="!h-4 !w-4 !text-[18px]">{{ service.active ? 'pause' : 'play_arrow' }}</mat-icon>
                           </button>
                         </div>
                       </td>

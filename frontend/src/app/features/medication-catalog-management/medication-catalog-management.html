@@ -57,7 +57,7 @@
                 <th class="erp-th w-36">Mã thuốc</th>
                 <th class="erp-th">Tên thuốc</th>
                 <th class="erp-th w-32">Trạng thái</th>
-                <th class="erp-th w-40 text-right">Thao tác</th>
+                <th class="erp-th w-24 text-right">Thao tác</th>
               </tr>
             </thead>
             <tbody>
@@ -76,20 +76,19 @@
                     </span>
                   </td>
                   <td class="erp-td text-right">
-                    <div class="inline-flex items-center justify-end gap-1.5">
-                      <button type="button" class="erp-btn-secondary !min-h-7 !px-2.5 !text-[11px] inline-flex items-center gap-1" (click)="openEdit(item)">
-                        <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">edit</mat-icon>
-                        <span>Sửa</span>
+                    <div class="inline-flex items-center justify-end gap-1">
+                      <button type="button" class="erp-btn-icon" title="Sửa thuốc" [attr.aria-label]="'Sửa thuốc ' + item.name" (click)="openEdit(item)">
+                        <mat-icon class="!h-4 !w-4 !text-[18px]">edit</mat-icon>
                       </button>
                       <button
                         [attr.data-testid]="'toggle-medication-' + item.id"
                         type="button"
-                        class="erp-btn-secondary !min-h-7 !px-2.5 !text-[11px] inline-flex items-center gap-1"
-                        [class.erp-btn-danger]="item.active"
+                        class="erp-btn-icon"
+                        [title]="item.active ? 'Tạm ngưng thuốc' : 'Bật lại thuốc'"
+                        [attr.aria-label]="item.active ? 'Tạm ngưng thuốc ' + item.name : 'Bật lại thuốc ' + item.name"
                         (click)="toggle(item)"
                       >
-                        <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">{{ item.active ? 'pause' : 'play_arrow' }}</mat-icon>
-                        <span>{{ item.active ? 'Tạm ngưng' : 'Bật lại' }}</span>
+                        <mat-icon class="!h-4 !w-4 !text-[18px]">{{ item.active ? 'pause' : 'play_arrow' }}</mat-icon>
                       </button>
                     </div>
                   </td>

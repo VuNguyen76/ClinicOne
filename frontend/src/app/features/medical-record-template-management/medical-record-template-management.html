@@ -57,16 +57,12 @@
                   </td>
                   <td class="max-w-sm px-4 py-3 text-xs leading-5 text-slate-600">{{ contentSummary(item) }}</td>
                   <td class="px-4 py-2 text-right">
-                    <div class="inline-flex items-center justify-end gap-1.5">
-                      <button type="button" class="erp-btn-secondary !min-h-7 !px-2.5 !text-[11px] inline-flex items-center gap-1"
-                        aria-label="Sửa mẫu" (click)="edit(item)">
-                        <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">edit</mat-icon>
-                        <span>Sửa</span>
+                    <div class="inline-flex items-center justify-end gap-1">
+                      <button type="button" class="erp-btn-icon" title="Sửa mẫu" aria-label="Sửa mẫu" (click)="edit(item)">
+                        <mat-icon class="!h-4 !w-4 !text-[18px]">edit</mat-icon>
                       </button>
-                      <button type="button" class="erp-btn-danger !min-h-7 !px-2.5 !text-[11px] inline-flex items-center gap-1"
-                        aria-label="Ngưng sử dụng mẫu" (click)="deactivate(item)">
-                        <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">pause</mat-icon>
-                        <span>Tạm ngưng</span>
+                      <button type="button" class="erp-btn-icon" title="Ngưng sử dụng mẫu" aria-label="Ngưng sử dụng mẫu" (click)="deactivate(item)">
+                        <mat-icon class="!h-4 !w-4 !text-[18px]">pause</mat-icon>
                       </button>
                     </div>
                   </td>

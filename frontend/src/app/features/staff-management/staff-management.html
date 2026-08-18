@@ -87,40 +87,43 @@
                     </span>
                   </td>
                   <td class="erp-td text-right">
-                    <div class="inline-flex items-center justify-end gap-1.5">
+                    <div class="inline-flex items-center justify-end gap-1">
                       @if (!account.roles?.includes('ADMIN') && account.role !== 'ADMIN') {
                         <button
                           type="button"
                           data-testid="edit-staff-roles"
-                          class="erp-btn-secondary !min-h-7 !px-2.5 !text-[11px] inline-flex items-center gap-1"
+                          class="erp-btn-icon"
+                          title="Sửa vai trò"
+                          [attr.aria-label]="'Sửa vai trò ' + account.fullName"
                           [disabled]="updatingId() === account.staffId"
                           (click)="openRoleEditor(account)"
                         >
-                          <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">admin_panel_settings</mat-icon>
-                          <span>Vai trò</span>
+                          <mat-icon class="!h-4 !w-4 !text-[18px]">admin_panel_settings</mat-icon>
                         </button>
                       }
                       @if (account.status === 'LOCKED') {
                         <button
                           type="button"
                           data-testid="unlock-staff"
-                          class="erp-btn-secondary !min-h-7 !px-2.5 !text-[11px] !border-emerald-300 !text-emerald-700 hover:!bg-emerald-50 inline-flex items-center gap-1"
+                          class="erp-btn-icon-accent"
+                          title="Mở khóa tài khoản"
+                          [attr.aria-label]="'Mở khóa tài khoản ' + account.fullName"
                           [disabled]="updatingId() === account.staffId"
                           (click)="updateStatus(account)"
                         >
-                          <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">lock_open</mat-icon>
-                          <span>{{ updatingId() === account.staffId ? 'Đang xử lý...' : 'Mở khóa' }}</span>
+                          <mat-icon class="!h-4 !w-4 !text-[18px]">lock_open</mat-icon>
                         </button>
                       } @else {
                         <button
                           type="button"
                           data-testid="lock-staff"
-                          class="erp-btn-danger !min-h-7 !px-2.5 !text-[11px] inline-flex items-center gap-1"
+                          class="erp-btn-icon"
+                          title="Khóa tài khoản"
+                          [attr.aria-label]="'Khóa tài khoản ' + account.fullName"
                           [disabled]="updatingId() === account.staffId"
                           (click)="askToLock(account)"
                         >
-                          <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">lock</mat-icon>
-                          <span>Khóa</span>
+                          <mat-icon class="!h-4 !w-4 !text-[18px]">lock</mat-icon>
                         </button>
                       }
                     </div>
