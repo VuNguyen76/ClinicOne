@@ -212,9 +212,14 @@ public class LocalDataInitializer implements CommandLineRunner {
     }
 
     private StaffAccount ensureStaff(String username, String password, String fullName, StaffRole role) {
-        return staffRepository.findByUsernameIgnoreCase(username)
-                .orElseGet(() -> staffRepository.save(StaffAccount.create(
-                        username, passwordEncoder.encode(password), fullName, role)));
+        StaffAccount account = staffRepository.findByUsernameIgnoreCase(username).orElse(null);
+        if (account == null) {
+            return staffRepository.save(StaffAccount.create(
+                    username, passwordEncoder.encode(password), fullName, role));
+        }
+        account.unlock();
+        account.changePassword(passwordEncoder.encode(password));
+        return staffRepository.save(account);
     }
 
     private ClinicRoom ensureRoom(String code, String name) {
@@ -257,10 +262,15 @@ public class LocalDataInitializer implements CommandLineRunner {
     }
 
     private PatientAccount ensurePatient(String phone, String fullName) {
-        return patientRepository.findByPhone(phone)
-                .orElseGet(() -> patientRepository.save(new PatientAccount(
-                        phone, passwordEncoder.encode(patientPassword), fullName,
-                        AccountStatus.ACTIVE, false)));
+        PatientAccount patient = patientRepository.findByPhone(phone).orElse(null);
+        if (patient == null) {
+            return patientRepository.save(new PatientAccount(
+                    phone, passwordEncoder.encode(patientPassword), fullName,
+                    AccountStatus.ACTIVE, false));
+        }
+        patient.unlock();
+        patient.changePassword(passwordEncoder.encode(patientPassword));
+        return patientRepository.save(patient);
     }
 
     private PatientProfile ensurePatientProfile(PatientAccount patient, String fullName, String relationship,
