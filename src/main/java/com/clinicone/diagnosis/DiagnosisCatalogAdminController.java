@@ -22,7 +22,7 @@ import java.util.UUID;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/diagnoses")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
 public class DiagnosisCatalogAdminController {
     private final DiagnosisCatalogService service;
 
