@@ -828,3 +828,33 @@ input {
     scroll-behavior: auto !important;
   }
 }
+
+/* Circular 33/2025/TT-BYT Print Optimization */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm 10mm 12mm 10mm;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    font-size: 11pt !important;
+    line-height: 1.4 !important;
+  }
+
+  header,
+  nav,
+  footer,
+  aside,
+  app-account-menu,
+  .print\:hidden {
+    display: none !important;
+  }
+
+  article, section {
+    page-break-inside: avoid;
+    box-shadow: none !important;
+  }
+}
+

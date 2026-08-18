@@ -1,5 +1,6 @@
-<main class="min-h-screen bg-slate-50 text-slate-800 antialiased">
-  <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur-md shadow-xs">
+<main class="min-h-screen bg-slate-50 text-slate-800 antialiased print:bg-white print:p-0">
+  <!-- Screen-only Header -->
+  <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur-md shadow-xs print:hidden">
     <div class="mx-auto flex h-[72px] max-w-[1200px] items-center justify-between gap-8 px-5 lg:px-0">
       <a routerLink="/home" class="flex items-center gap-3" aria-label="ClinicOne, trang chủ">
         <img class="h-10 w-10 object-contain transition-transform duration-500 hover:scale-105" src="clinicone-mark-small.png" alt="" aria-hidden="true" />
@@ -22,63 +23,184 @@
       </div>
     </div>
   </header>
-  <div class="mx-auto max-w-[900px] px-5 py-8 lg:py-10"><div class="flex items-center gap-3 text-sm"><a routerLink="/medical-records" class="font-semibold text-slate-700 hover:text-[#0284c7]">Phiếu khám bệnh</a><mat-icon class="!h-4 !w-4 !text-[16px] text-slate-400">chevron_right</mat-icon><span class="font-semibold text-[#0284c7]">Chi tiết phiếu</span></div>
-    @if (loading()) { <div class="mt-8 grid min-h-64 place-items-center rounded-xl border border-slate-200 bg-white text-sm text-slate-500">Đang tải phiếu khám...</div> } @else if (record(); as item) {
-      <article class="mt-8 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
-        <div class="border-b border-slate-100 bg-[#0284c7] px-6 py-6 sm:px-8">
+
+  <div class="mx-auto max-w-[900px] px-5 py-8 lg:py-10 print:max-w-full print:p-0">
+    <!-- Breadcrumb & Print Toolbar -->
+    <div class="flex items-center justify-between gap-4 print:hidden">
+      <div class="flex items-center gap-3 text-sm">
+        <a routerLink="/medical-records" class="font-semibold text-slate-700 hover:text-[#0284c7]">Phiếu khám bệnh</a>
+        <mat-icon class="!h-4 !w-4 !text-[16px] text-slate-400">chevron_right</mat-icon>
+        <span class="font-semibold text-[#0284c7]">Chi tiết phiếu</span>
+      </div>
+      @if (record()) {
+        <button
+          type="button"
+          (click)="printRecord()"
+          class="inline-flex min-h-9 items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 text-xs font-semibold text-slate-700 shadow-xs transition hover:border-slate-400 hover:bg-slate-50 active:scale-[0.98]"
+        >
+          <mat-icon class="!h-4 !w-4 !text-[17px] text-[#0284c7]">print</mat-icon>
+          <span>In phiếu khám (A4)</span>
+        </button>
+      }
+    </div>
+
+    @if (loading()) {
+      <div class="mt-8 grid min-h-64 place-items-center rounded-xl border border-slate-200 bg-white text-sm text-slate-500 print:hidden">
+        Đang tải phiếu khám...
+      </div>
+    } @else if (record(); as item) {
+      <!-- Official Circular 33/2025/TT-BYT Print Header (Visible on Print) -->
+      <div class="hidden border-b-2 border-slate-800 pb-4 text-slate-900 print:block">
+        <div class="flex items-start justify-between text-xs leading-relaxed">
+          <div>
+            <p class="font-bold uppercase tracking-wide">PHÒNG KHÁM ĐA KHOA CLINICONE</p>
+            <p class="text-slate-600">Địa chỉ: 123 Nguyễn Văn Cừ, Quận 5, TP. Hồ Chí Minh</p>
+            <p class="text-slate-600">Hotline: 1900 0000 · Giấy phép hoạt động: 01234/SYT-GPHĐ</p>
+          </div>
+          <div class="text-right">
+            <p class="font-bold uppercase">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</p>
+            <p class="italic text-slate-700">Độc lập - Tự do - Hạnh phúc</p>
+            <p class="mt-1 font-mono text-[11px] text-slate-500">Mã BA: {{ item.appointmentCode || item.id.slice(0,8) }}</p>
+          </div>
+        </div>
+        <div class="mt-4 text-center">
+          <h2 class="text-xl font-bold uppercase tracking-wider text-slate-900">PHIẾU KHÁM BỆNH NGOẠI TRÚ</h2>
+          <p class="text-[11px] italic text-slate-600">(Ban hành kèm theo Thông tư số 33/2025/TT-BYT của Bộ Y tế)</p>
+        </div>
+      </div>
+
+      <!-- Main Medical Record Container -->
+      <article class="mt-8 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs print:mt-4 print:border-none print:shadow-none">
+        <!-- Banner on screen -->
+        <div class="border-b border-slate-100 bg-[#0284c7] px-6 py-6 sm:px-8 print:hidden">
           <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
             <div>
               <p class="text-xs font-bold uppercase tracking-[0.16em] text-sky-200">Phiếu khám đã ký</p>
               <h1 class="mt-1.5 text-2xl font-bold tracking-[-0.035em] text-white">{{ item.diagnosis || 'Kết quả khám' }}</h1>
               <p class="mt-1 font-mono text-xs text-sky-100/80">{{ item.appointmentCode || 'Không có mã lịch hẹn' }}</p>
             </div>
-            <span class="inline-flex w-fit items-center gap-1.5 rounded-full bg-emerald-500/20 px-3.5 py-1 text-xs font-semibold text-emerald-100 border border-emerald-400/30"><mat-icon class="!h-4 !w-4 !text-[15px]">verified</mat-icon>Đã ký số</span>
+            <span class="inline-flex w-fit items-center gap-1.5 rounded-full bg-emerald-500/20 px-3.5 py-1 text-xs font-semibold text-emerald-100 border border-emerald-400/30">
+              <mat-icon class="!h-4 !w-4 !text-[15px]">verified</mat-icon>Đã ký số
+            </span>
           </div>
         </div>
-        <div class="grid gap-x-8 gap-y-6 px-6 py-7 sm:grid-cols-2 sm:px-8">
-          <div><p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Bác sĩ phụ trách</p><p class="mt-1 text-base font-semibold text-slate-900">{{ item.doctorName }}</p></div>
-          <div><p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Thời điểm ký số</p><p class="mt-1 text-base font-semibold text-slate-900">{{ formatDateTime(item.signedAt) }}</p></div>
-          <div class="sm:col-span-2"><p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Lý do khám</p><p class="mt-1 whitespace-pre-line text-sm leading-6 text-slate-700">{{ item.reason || 'Không ghi nhận' }}</p></div>
-          <div class="sm:col-span-2"><p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Ghi nhận lâm sàng</p><p class="mt-1 whitespace-pre-line text-sm leading-6 text-slate-700">{{ item.examinationNotes || 'Không ghi nhận' }}</p></div>
-          <div><p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Chẩn đoán</p><p class="mt-1 whitespace-pre-line text-sm leading-6 text-slate-700">{{ item.diagnosis || 'Không ghi nhận' }}</p></div>
-          <div><p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Kết luận</p><p class="mt-1 whitespace-pre-line text-sm leading-6 text-slate-700">{{ item.conclusion || 'Không ghi nhận' }}</p></div>
-          <div class="sm:col-span-2"><p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Hướng xử trí</p><p class="mt-1 whitespace-pre-line text-sm leading-6 text-slate-700">{{ item.treatmentPlan || 'Không ghi nhận' }}</p></div>
+
+        <!-- Demographic Information Block (Clean Grid) -->
+        <div class="grid gap-x-8 gap-y-4 border-b border-slate-100 bg-slate-50/60 px-6 py-5 sm:grid-cols-3 sm:px-8 print:border-b print:border-slate-300 print:bg-transparent print:p-2">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 print:text-slate-600">Người bệnh</p>
+            <p class="mt-0.5 text-sm font-bold text-slate-900">{{ item.patientName || 'Bệnh nhân' }}</p>
+          </div>
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 print:text-slate-600">Bác sĩ phụ trách</p>
+            <p class="mt-0.5 text-sm font-bold text-slate-900">{{ item.doctorName }}</p>
+          </div>
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 print:text-slate-600">Thời điểm ký số</p>
+            <p class="mt-0.5 text-sm font-bold text-slate-900">{{ formatDateTime(item.signedAt) }}</p>
+          </div>
+        </div>
+
+        <!-- Clinical Content -->
+        <div class="grid gap-x-8 gap-y-6 px-6 py-7 sm:grid-cols-2 sm:px-8 print:gap-y-4 print:p-2">
+          <div class="sm:col-span-2">
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 print:text-slate-600">1. Lý do khám</p>
+            <p class="mt-1 whitespace-pre-line text-sm leading-6 text-slate-700 print:text-slate-900">{{ item.reason || 'Không ghi nhận' }}</p>
+          </div>
+
+          <div class="sm:col-span-2">
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 print:text-slate-600">2. Ghi nhận lâm sàng / Triệu chứng</p>
+            <p class="mt-1 whitespace-pre-line text-sm leading-6 text-slate-700 print:text-slate-900">{{ item.examinationNotes || 'Không ghi nhận' }}</p>
+          </div>
+
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 print:text-slate-600">3. Chẩn đoán (ICD-10)</p>
+            <p class="mt-1 whitespace-pre-line text-sm font-semibold leading-6 text-[#0284c7] print:text-slate-900">{{ item.diagnosis || 'Không ghi nhận' }}</p>
+          </div>
+
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 print:text-slate-600">4. Kết luận</p>
+            <p class="mt-1 whitespace-pre-line text-sm leading-6 text-slate-700 print:text-slate-900">{{ item.conclusion || 'Không ghi nhận' }}</p>
+          </div>
+
+          <div class="sm:col-span-2">
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 print:text-slate-600">5. Hướng xử trí & Điều trị</p>
+            <p class="mt-1 whitespace-pre-line text-sm leading-6 text-slate-700 print:text-slate-900">{{ item.treatmentPlan || 'Không ghi nhận' }}</p>
+          </div>
+
+          <!-- Prescription Section -->
           @if (item.prescriptionLines?.length) {
             <div class="sm:col-span-2">
-              <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Đơn thuốc chỉ định</p>
-              <div class="mt-2 overflow-hidden rounded-lg border border-slate-200">
-                <div class="hidden grid-cols-[minmax(0,1.2fr)_minmax(0,.8fr)_92px_minmax(0,1fr)] gap-3 bg-slate-100/90 px-3.5 py-2 text-[11px] font-bold uppercase tracking-wide text-slate-600 sm:grid">
-                  <span>Thuốc</span><span>Liều dùng</span><span>Số lượng</span><span>Hướng dẫn</span>
+              <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 print:text-slate-600">6. Đơn thuốc chỉ định</p>
+              <div class="mt-2 overflow-hidden rounded-lg border border-slate-200 print:border-slate-300">
+                <div class="grid grid-cols-[minmax(0,1.2fr)_minmax(0,.8fr)_92px_minmax(0,1fr)] gap-3 bg-slate-100/90 px-3.5 py-2 text-[11px] font-bold uppercase tracking-wide text-slate-600 print:bg-slate-200 print:text-slate-900">
+                  <span>Thuốc</span>
+                  <span>Liều dùng</span>
+                  <span>Số lượng</span>
+                  <span>Hướng dẫn</span>
                 </div>
                 @for (line of item.prescriptionLines; track $index) {
-                  <div class="grid gap-1 border-t border-slate-100 px-3.5 py-2.5 text-xs sm:grid-cols-[minmax(0,1.2fr)_minmax(0,.8fr)_92px_minmax(0,1fr)] sm:gap-3">
-                    <p class="font-semibold text-slate-800">{{ line.medicationName }}</p>
-                    <p class="text-slate-600">{{ line.dosage }}</p>
-                    <p class="font-semibold text-slate-700">{{ line.quantity }} viên</p>
-                    <p class="text-slate-600">{{ line.instructions }}</p>
+                  <div class="grid grid-cols-[minmax(0,1.2fr)_minmax(0,.8fr)_92px_minmax(0,1fr)] gap-3 border-t border-slate-100 px-3.5 py-2.5 text-xs print:border-slate-200">
+                    <p class="font-semibold text-slate-800 print:text-slate-900">{{ line.medicationName }}</p>
+                    <p class="text-slate-600 print:text-slate-800">{{ line.dosage }}</p>
+                    <p class="font-semibold text-slate-700 print:text-slate-900">{{ line.quantity }} viên</p>
+                    <p class="text-slate-600 print:text-slate-800">{{ line.instructions }}</p>
                   </div>
                 }
               </div>
             </div>
           } @else if (item.prescription) {
             <div class="sm:col-span-2">
-              <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Đơn thuốc</p>
-              <p class="mt-1 whitespace-pre-line text-sm leading-6 text-slate-700">{{ item.prescription }}</p>
+              <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 print:text-slate-600">6. Đơn thuốc</p>
+              <p class="mt-1 whitespace-pre-line text-sm leading-6 text-slate-700 print:text-slate-900">{{ item.prescription }}</p>
             </div>
           }
+
           @if (item.followUpDate) {
-            <div><p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Hẹn tái khám</p><p class="mt-1 font-semibold text-slate-900">{{ formatDate(item.followUpDate) }}</p></div>
+            <div class="sm:col-span-2">
+              <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 print:text-slate-600">7. Hẹn tái khám</p>
+              <p class="mt-1 font-semibold text-slate-900">{{ formatDate(item.followUpDate) }}</p>
+            </div>
           }
         </div>
+
+        <!-- Digital Signature & Compliance Section for Print -->
+        <div class="hidden border-t border-slate-200 p-4 print:block">
+          <div class="flex items-start justify-between text-xs">
+            <div class="space-y-1">
+              <p class="font-bold text-slate-800">Xác nhận ký số điện tử y tế</p>
+              <p class="text-[11px] text-slate-500">Mã băm SHA-256: {{ item.id }}</p>
+              <p class="text-[11px] text-slate-500">Lưu trữ hồ sơ điện tử 10 năm theo Thông tư 33/2025/TT-BYT</p>
+            </div>
+            <div class="text-center space-y-1">
+              <p class="italic text-slate-600">Ngày ký: {{ formatDateTime(item.signedAt) }}</p>
+              <p class="font-bold uppercase text-slate-900">Bác sĩ khám bệnh</p>
+              <p class="mt-6 font-bold text-slate-900">{{ item.doctorName }}</p>
+              <p class="text-[10px] text-emerald-700">[Đã ký số điện tử]</p>
+            </div>
+          </div>
+        </div>
       </article>
+
       @if (item.followUpDays) {
-        <section class="mt-4 rounded-xl border border-sky-200 bg-sky-50/70 px-5 py-4">
+        <section class="mt-4 rounded-xl border border-sky-200 bg-sky-50/70 px-5 py-4 print:hidden">
           <p class="text-xs font-bold uppercase tracking-wide text-[#0284c7]">Kế hoạch tái khám</p>
           <p class="mt-1 font-semibold text-slate-900">Sau {{ item.followUpDays }} ngày</p>
-          @if (item.followUpNote) {<p class="mt-1 whitespace-pre-line text-sm leading-6 text-slate-600">{{ item.followUpNote }}</p>}
+          @if (item.followUpNote) {
+            <p class="mt-1 whitespace-pre-line text-sm leading-6 text-slate-600">{{ item.followUpNote }}</p>
+          }
         </section>
       }
-    } @else { <div class="mt-8 rounded-xl border border-red-200 bg-red-50 px-6 py-5 text-sm text-red-700">{{ error() || 'Không tìm thấy phiếu khám đã ký.' }}</div> }
+    } @else {
+      <div class="mt-8 rounded-xl border border-red-200 bg-red-50 px-6 py-5 text-sm text-red-700 print:hidden">
+        {{ error() || 'Không tìm thấy phiếu khám đã ký.' }}
+      </div>
+    }
   </div>
-  @if (error() && record()) { <p class="fixed bottom-5 left-1/2 z-40 -translate-x-1/2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-lg" role="alert">{{ error() }}</p> }
+
+  @if (error() && record()) {
+    <p class="fixed bottom-5 left-1/2 z-40 -translate-x-1/2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-lg print:hidden" role="alert">
+      {{ error() }}
+    </p>
+  }
 </main>

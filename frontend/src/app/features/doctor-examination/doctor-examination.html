@@ -10,6 +10,18 @@
     <span>Hàng đợi</span>
   </button>
 
+  @if (examination()?.status === 'COMPLETED') {
+    <button
+      workspace-actions
+      type="button"
+      class="erp-btn-secondary"
+      (click)="printRecord()"
+    >
+      <mat-icon class="!h-4 !w-4 !text-[16px] text-[#0284c7]">print</mat-icon>
+      <span>In phiếu khám</span>
+    </button>
+  }
+
   <div class="w-full space-y-4" data-testid="doctor-workspace">
     <!-- Loading skeleton -->
     @if (loading()) {

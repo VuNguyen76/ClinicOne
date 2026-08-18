@@ -56,4 +56,8 @@ export class MedicalRecordDetail implements OnInit {
     const date = new Date(value);
     return Number.isNaN(date.valueOf()) ? value : new Intl.DateTimeFormat('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
   }
+
+  protected printRecord(): void {
+    window.print();
+  }
 }
