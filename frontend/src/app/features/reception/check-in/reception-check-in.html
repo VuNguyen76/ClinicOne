@@ -637,6 +637,17 @@
                   {{ busyId() === appointment.id ? 'Đang cấp...' : appointment.queueStatus ? 'Đã nhận' : 'Cấp số ngoại lệ' }}
                 </button>
                 }
+                @if (appointment.queueNumber && (appointment.queueStatus === 'WAITING' || appointment.status === 'CHECKED_IN')) {
+                  <button
+                    type="button"
+                    data-testid="print-slip"
+                    class="erp-btn-secondary !min-h-7 !px-2.5 !py-1 !text-[11px]"
+                    (click)="printQueueSlip(appointment)"
+                  >
+                    <mat-icon class="!h-3.5 !w-3.5 !text-[14px] text-[#0284c7]">print</mat-icon>
+                    <span>In phiếu</span>
+                  </button>
+                }
                 @if (appointment.queueStatus === 'WAITING') {
                   <button
                     type="button"
@@ -708,4 +719,27 @@
     }
     }
   </div>
+
+  <!-- Thermal / Slip Queue Ticket Print Layout (Visible only on Print) -->
+  @if (printingSlip(); as slip) {
+    <div class="hidden print:block fixed inset-0 z-50 bg-white p-4 text-slate-900">
+      <div class="mx-auto max-w-[80mm] border border-dashed border-slate-400 p-4 text-center font-sans text-xs">
+        <h3 class="font-bold uppercase text-sm">PHÒNG KHÁM CLINICONE</h3>
+        <p class="text-[10px] text-slate-500">123 Nguyễn Văn Cừ, Q.5, TP.HCM · Hotline: 1900 0000</p>
+        <div class="my-3 border-y border-dashed border-slate-300 py-3">
+          <p class="text-[11px] uppercase text-slate-600 font-semibold">SỐ THỨ TỰ KHÁM</p>
+          <p class="text-4xl font-bold text-slate-950 my-1 font-mono">#{{ slip.queueNumber }}</p>
+          <p class="text-xs font-bold text-slate-800">{{ slip.patientName }}</p>
+        </div>
+        <div class="text-left space-y-1 text-[11px]">
+          <p><span class="text-slate-500">Chuyên khoa:</span> <strong class="text-slate-800">{{ slip.specialty }}</strong></p>
+          <p><span class="text-slate-500">Phòng khám:</span> <strong class="text-slate-800">{{ slip.roomCode || 'Phòng khám' }}</strong></p>
+          <p><span class="text-slate-500">Bác sĩ:</span> <strong class="text-slate-800">{{ slip.doctorName }}</strong></p>
+          <p><span class="text-slate-500">Giờ hẹn:</span> {{ formatTime(slip.startTime) }} · {{ selectedDate() }}</p>
+          <p><span class="text-slate-500">Mã lịch hẹn:</span> <span class="font-mono font-bold">{{ slip.appointmentCode }}</span></p>
+        </div>
+        <p class="mt-4 text-[10px] italic text-slate-500">Quý khách vui lòng theo dõi số thứ tự trên màn hình TV trước cửa phòng khám.</p>
+      </div>
+    </div>
+  }
 </app-staff-workspace-shell>

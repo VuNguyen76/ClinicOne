@@ -99,6 +99,7 @@ export class ReceptionCheckIn implements OnInit {
   protected readonly rebookReason = signal('');
   protected readonly rebookSlotsLoading = signal(false);
   protected readonly rebookLoading = signal(false);
+  protected readonly printingSlip = signal<ReceptionAppointmentResponse | null>(null);
   protected readonly visibleAppointments = computed(() => {
     if (this.activeTab() !== 'exceptions') return this.appointments();
     return this.appointments().filter((appointment) => appointment.status === 'ABSENT'
@@ -256,6 +257,17 @@ export class ReceptionCheckIn implements OnInit {
         this.handleError(response);
       },
     });
+  }
+
+  protected printQueueSlip(appointment: ReceptionAppointmentResponse): void {
+    this.printingSlip.set(appointment);
+    setTimeout(() => {
+      window.print();
+    }, 100);
+  }
+
+  protected closePrintSlip(): void {
+    this.printingSlip.set(null);
   }
 
   protected markReturned(appointment: ReceptionAppointmentResponse): void {
