@@ -70,23 +70,25 @@
                     {{ item.name }}
                   </td>
                   <td class="erp-td">
-                    <span [class]="item.active ? 'erp-badge-success' : 'erp-badge-neutral'">
-                      <span [class]="item.active ? 'erp-dot-success' : 'erp-dot-neutral'"></span>
-                      {{ item.active ? 'Đang dùng' : 'Tạm ngưng' }}
+                    <span class="erp-badge" [class.erp-badge-success]="item.active" [class.erp-badge-neutral]="!item.active">
+                      <span class="erp-dot" [class.erp-dot-success]="item.active" [class.erp-dot-neutral]="!item.active"></span>
+                      <span>{{ item.active ? 'Đang dùng' : 'Tạm ngưng' }}</span>
                     </span>
                   </td>
                   <td class="erp-td text-right">
                     <div class="inline-flex items-center justify-end gap-1.5">
-                      <button type="button" class="erp-btn-secondary !min-h-7 !px-2.5 !text-[11px]" (click)="openEdit(item)">
-                        Sửa
+                      <button type="button" class="erp-btn-secondary !min-h-7 !px-2.5 !text-[11px] inline-flex items-center gap-1" (click)="openEdit(item)">
+                        <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">edit</mat-icon>
+                        <span>Sửa</span>
                       </button>
                       <button
                         type="button"
-                        class="erp-btn-secondary !min-h-7 !px-2.5 !text-[11px]"
+                        class="erp-btn-secondary !min-h-7 !px-2.5 !text-[11px] inline-flex items-center gap-1"
                         [class.erp-btn-danger]="item.active"
                         (click)="toggle(item)"
                       >
-                        {{ item.active ? 'Tạm ngưng' : 'Bật lại' }}
+                        <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">{{ item.active ? 'pause' : 'play_arrow' }}</mat-icon>
+                        <span>{{ item.active ? 'Tạm ngưng' : 'Bật lại' }}</span>
                       </button>
                     </div>
                   </td>
