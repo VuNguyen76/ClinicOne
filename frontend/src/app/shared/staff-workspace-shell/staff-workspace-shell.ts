@@ -47,9 +47,8 @@ const NAVIGATION: StaffNavigationGroup[] = [
       { label: 'Dịch vụ khám', route: '/admin/services', icon: 'category', roles: ['ADMIN', 'COORDINATOR'] },
       { label: 'Chuyên khoa', route: '/admin/specialties', icon: 'domain', roles: ['ADMIN', 'COORDINATOR'] },
       { label: 'Mẫu phiếu khám', route: '/admin/medical-record-templates', icon: 'description', roles: ['ADMIN', 'COORDINATOR'] },
-      { label: 'Thuốc', route: '/admin/medications', icon: 'medication', roles: ['ADMIN'] },
-      { label: 'Chẩn đoán', route: '/admin/diagnoses', icon: 'clinical_notes', roles: ['ADMIN'] },
-      { label: 'Lý do vận hành', route: '/admin/reason-catalog', icon: 'list_alt', roles: ['ADMIN'] },
+      { label: 'Thuốc', route: '/admin/medications', icon: 'medication', roles: ['ADMIN', 'COORDINATOR'] },
+      { label: 'Chẩn đoán', route: '/admin/diagnoses', icon: 'clinical_notes', roles: ['ADMIN', 'COORDINATOR'] },
     ],
   },
   {
