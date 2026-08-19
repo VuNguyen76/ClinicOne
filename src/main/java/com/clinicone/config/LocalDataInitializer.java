@@ -210,14 +210,36 @@ public class LocalDataInitializer implements CommandLineRunner {
         ClinicService srvTMH = ensureOneService("Khám & Nội soi Tai Mũi Họng", "Khám Tai Mũi Họng", "Khám chuyên khoa", 30, List.of(docTMH));
         ClinicService srvMAT = ensureOneService("Khám khúc xạ & Mắt chuyên sâu", "Khám Mắt", "Khám chuyên khoa", 30, List.of(docMat));
 
-        // 5. Work Schedule Templates & Slot Generation
-        ensureScheduleTemplates(srvTQ, docTongQuat, docTongQuat.getRoom());
-        ensureScheduleTemplates(srvTM, docTimMach, docTimMach.getRoom());
-        ensureScheduleTemplates(srvHH, docHoHap, docHoHap.getRoom());
-        ensureScheduleTemplates(srvTH, docTieuHoa, docTieuHoa.getRoom());
-        ensureScheduleTemplates(srvNK, docNhiKhoa, docNhiKhoa.getRoom());
-        ensureScheduleTemplates(srvTMH, docTMH, docTMH.getRoom());
-        ensureScheduleTemplates(srvMAT, docMat, docMat.getRoom());
+        // 5. Work Schedule Templates & Slot Generation for all 7 Specialty Doctors
+        List<ScheduleBreakRequest> standardLunch = List.of(new ScheduleBreakRequest(LocalTime.of(12, 0), LocalTime.of(13, 0)));
+
+        ensureScheduleTemplates(srvTQ, docTongQuat, docTongQuat.getRoom(),
+                Set.of(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY),
+                LocalTime.of(8, 0), LocalTime.of(17, 0), standardLunch);
+
+        ensureScheduleTemplates(srvTM, docTimMach, docTimMach.getRoom(),
+                Set.of(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY, DayOfWeek.FRIDAY),
+                LocalTime.of(8, 0), LocalTime.of(17, 0), standardLunch);
+
+        ensureScheduleTemplates(srvHH, docHoHap, docHoHap.getRoom(),
+                Set.of(DayOfWeek.TUESDAY, DayOfWeek.THURSDAY),
+                LocalTime.of(8, 0), LocalTime.of(17, 0), standardLunch);
+
+        ensureScheduleTemplates(srvTH, docTieuHoa, docTieuHoa.getRoom(),
+                Set.of(DayOfWeek.MONDAY, DayOfWeek.THURSDAY),
+                LocalTime.of(8, 0), LocalTime.of(17, 0), standardLunch);
+
+        ensureScheduleTemplates(srvNK, docNhiKhoa, docNhiKhoa.getRoom(),
+                Set.of(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY),
+                LocalTime.of(8, 0), LocalTime.of(12, 0), List.of());
+
+        ensureScheduleTemplates(srvTMH, docTMH, docTMH.getRoom(),
+                Set.of(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY),
+                LocalTime.of(13, 0), LocalTime.of(17, 0), List.of());
+
+        ensureScheduleTemplates(srvMAT, docMat, docMat.getRoom(),
+                Set.of(DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.FRIDAY),
+                LocalTime.of(8, 0), LocalTime.of(17, 0), standardLunch);
 
         // 6. Patients & Comprehensive Family Sub-Profiles
         PatientAccount patient1 = ensurePatient("0900000001", "Nguyễn Thanh Vũ");
@@ -673,7 +695,9 @@ public class LocalDataInitializer implements CommandLineRunner {
         }
     }
 
-    private void ensureScheduleTemplates(ClinicService service, DoctorProfile doctorProfile, ClinicRoom room) {
+    private void ensureScheduleTemplates(ClinicService service, DoctorProfile doctorProfile, ClinicRoom room,
+                                        Set<DayOfWeek> weekdays, LocalTime dayStart, LocalTime dayEnd,
+                                        List<ScheduleBreakRequest> breaks) {
         if (scheduleTemplateService == null || workScheduleTemplateRepository == null) return;
         boolean exists = workScheduleTemplateRepository.findByActiveTrueOrderByStartDateAsc().stream()
                 .anyMatch(t -> t.getDoctorProfile().getId().equals(doctorProfile.getId())
@@ -689,11 +713,11 @@ public class LocalDataInitializer implements CommandLineRunner {
                     room.getId(),
                     startDate,
                     endDate,
-                    Set.of(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY),
-                    LocalTime.of(8, 0),
-                    LocalTime.of(17, 0),
+                    weekdays,
+                    dayStart,
+                    dayEnd,
                     30,
-                    List.of(new ScheduleBreakRequest(LocalTime.of(12, 0), LocalTime.of(13, 0))),
+                    breaks,
                     Set.of()
             ));
         } catch (Exception e) {

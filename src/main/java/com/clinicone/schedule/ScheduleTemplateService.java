@@ -69,7 +69,7 @@ public class ScheduleTemplateService {
         templateRepository.save(template);
         List<GeneratedClinicSlot> slots = slotRepository.findByTemplateIdOrderByAppointmentDateAscStartTimeAsc(templateId);
         List<GeneratedClinicSlot> unbooked = slots.stream()
-                .filter(s -> s.getStatus() == GeneratedSlotStatus.AVAILABLE)
+                .filter(s -> s.getStatus() == GeneratedSlotStatus.OPEN)
                 .toList();
         if (!unbooked.isEmpty()) {
             slotRepository.deleteAll(unbooked);
