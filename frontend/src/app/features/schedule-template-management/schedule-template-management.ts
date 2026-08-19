@@ -182,7 +182,14 @@ export class ScheduleTemplateManagement implements OnInit {
   }
 
   protected getDoctorAvatar(doctorName: string): string | null {
-    const doc = this.doctors().find((d) => d.fullName.toLowerCase() === doctorName.toLowerCase());
+    if (!doctorName) return null;
+    const cleanName = doctorName.replace(/^(bs\.|ths\.|ckii|cki|bác sĩ|tiến sĩ|ts\.)\s*/i, '').trim().toLowerCase();
+    const doc = this.doctors().find((d) => {
+      const dClean = d.fullName.replace(/^(bs\.|ths\.|ckii|cki|bác sĩ|tiến sĩ|ts\.)\s*/i, '').trim().toLowerCase();
+      return d.fullName.toLowerCase() === doctorName.toLowerCase()
+        || (cleanName.length >= 3 && dClean.includes(cleanName))
+        || (dClean.length >= 3 && cleanName.includes(dClean));
+    });
     return doc?.avatarUrl ?? null;
   }
 
