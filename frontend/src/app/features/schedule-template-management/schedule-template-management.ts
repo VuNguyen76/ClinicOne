@@ -36,7 +36,7 @@ export class ScheduleTemplateManagement implements OnInit {
   protected readonly error = signal('');
   protected readonly notice = signal('');
   protected readonly modalOpen = signal(false);
-  protected readonly activeTab = signal<'list' | 'form'>('list');
+  protected readonly activeTab = signal<'grid' | 'list' | 'form'>('grid');
 
   protected readonly selectedServiceId = signal('');
   protected readonly selectedDoctorId = signal('');
@@ -296,10 +296,10 @@ export class ScheduleTemplateManagement implements OnInit {
     this.authApi.createScheduleTemplate(request).subscribe({
       next: (template) => {
         this.templates.update((items) => [template, ...items]);
-        this.notice.set(`Đã sinh ${template.generatedSlotCount} khung giờ.`);
+        this.notice.set(`Đã thiết lập lịch trực và sinh ${template.generatedSlotCount} lượt khám.`);
         this.saving.set(false);
         this.modalOpen.set(false);
-        this.activeTab.set('list');
+        this.activeTab.set('grid');
       },
       error: (response) => {
         this.saving.set(false);
@@ -319,7 +319,7 @@ export class ScheduleTemplateManagement implements OnInit {
   protected cancelEdit(): void {
     if (this.saving()) return;
     this.modalOpen.set(false);
-    this.activeTab.set('list');
+    this.activeTab.set('grid');
   }
 
   protected openCreate(): void {
