@@ -736,16 +736,77 @@ input {
   justify-content: center;
   background-color: rgba(7, 31, 41, 0.55);
   padding: 1rem;
-  backdrop-filter: blur(2px);
+  backdrop-filter: blur(3px);
 }
 
 .erp-modal-container {
   width: 100%;
+  max-height: calc(100vh - 2rem);
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   border-radius: 0.75rem;
   border: 1px solid rgba(255, 255, 255, 0.8);
   background-color: #ffffff;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+}
+
+/* Slide-over Drawer component */
+.erp-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  justify-content: flex-end;
+  background-color: rgba(7, 31, 41, 0.55);
+  backdrop-filter: blur(3px);
+}
+
+.erp-drawer {
+  width: 100%;
+  max-width: 36rem;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #ffffff;
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
+  animation: co-slide-in-right 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.erp-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 1.125rem 1.5rem;
+  background-color: #f8fafc;
+  flex-shrink: 0;
+}
+
+.erp-drawer-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1 1 auto;
+}
+
+.erp-drawer-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  border-top: 1px solid #e2e8f0;
+  background-color: #f8fafc;
+  padding: 0.875rem 1.5rem;
+  flex-shrink: 0;
+}
+
+@keyframes co-slide-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
 }
 
 /* Staff workspaces use the full available canvas. Individual screens may still
@@ -780,10 +841,13 @@ input {
   justify-content: space-between;
   border-bottom: 1px solid #e2e8f0;
   padding: 1rem 1.5rem;
+  flex-shrink: 0;
 }
 
 .erp-modal-body {
   padding: 1.25rem 1.5rem;
+  overflow-y: auto;
+  flex: 1 1 auto;
 }
 
 .erp-modal-footer {
@@ -794,6 +858,7 @@ input {
   border-top: 1px solid #e2e8f0;
   background-color: #f8fafc;
   padding: 0.75rem 1.5rem;
+  flex-shrink: 0;
 }
 
 /* Animation Keyframes */
