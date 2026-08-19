@@ -45,16 +45,18 @@ public class SpecialtyCatalogService {
 
     @Cacheable(cacheNames = "specialties", key = "#query == null ? '' : #query.trim().toLowerCase()")
     public List<SpecialtyResponse> list(String query) {
-        List<SpecialtyResponse> source = new ArrayList<>(SPECIALTIES);
+        List<SpecialtyResponse> source;
         if (repository != null) {
-            repository.findByActiveTrueOrderByNameAsc().stream()
-                    .map(item -> new SpecialtyResponse(item.getCode(), item.getName(), item.getDescription()))
-                    .forEach(item -> {
-                        source.removeIf(existing -> existing.code().equalsIgnoreCase(item.code())
-                                || existing.name().equalsIgnoreCase(item.name())
-                                || normalize(existing.name()).equalsIgnoreCase(normalize(item.name())));
-                        source.add(item);
-                    });
+            List<SpecialtyCatalogEntry> dbEntries = repository.findByActiveTrueOrderByNameAsc();
+            if (!dbEntries.isEmpty()) {
+                source = dbEntries.stream()
+                        .map(item -> new SpecialtyResponse(item.getCode(), item.getName(), item.getDescription()))
+                        .toList();
+            } else {
+                source = SPECIALTIES;
+            }
+        } else {
+            source = SPECIALTIES;
         }
         if (query == null || query.isBlank()) {
             return source.stream().sorted(java.util.Comparator.comparing(SpecialtyResponse::name)).toList();

@@ -3,6 +3,7 @@ package com.clinicone.appointment;
 import com.clinicone.schedule.SlotBookingCount;
 import com.clinicone.schedule.DoctorSlotBookingCount;
 import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -16,6 +17,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface AppointmentRepository extends JpaRepository<Appointment, UUID> {
+    @EntityGraph(attributePaths = {"patient", "patientProfile"})
     List<Appointment> findByPatientIdOrderByAppointmentDateAscStartTimeAsc(UUID patientId);
 
     Optional<Appointment> findByPatientIdAndAppointmentDateAndStartTimeAndStatus(UUID patientId, LocalDate appointmentDate,
@@ -114,6 +116,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
     boolean existsByPatientIdAndAppointmentDateAndStartTime(
             UUID patientId, LocalDate appointmentDate, LocalTime startTime);
 
+    @EntityGraph(attributePaths = {"patient", "patientProfile"})
     Optional<Appointment> findByAppointmentCode(String appointmentCode);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
