@@ -36,7 +36,6 @@
             Cổng thông tin người bệnh
           </div>
           <h1 class="mt-2 text-2xl font-bold tracking-tight text-white sm:text-3xl">Xin chào, {{ profile()?.fullName || 'bạn' }}</h1>
-          <p class="mt-1 text-xs sm:text-sm text-white/85">Theo dõi lịch hẹn khám bệnh và chuẩn bị chu đáo cho buổi khám tiếp theo.</p>
         </div>
         <a routerLink="/appointments/new" class="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-[#0284c7] px-5 text-sm font-semibold text-white shadow-xs transition hover:bg-[#0369a1] hover:shadow-md">
           <mat-icon class="!text-[20px]">add</mat-icon>
@@ -51,13 +50,13 @@
       <div class="mt-8 grid gap-6 lg:grid-cols-[1fr_330px]">
         <section class="rounded-xl border border-slate-200 bg-white shadow-xs" aria-labelledby="appointments-heading">
           <div data-testid="appointments-header" class="flex items-center justify-between gap-4 border-b border-slate-100 px-6 py-4">
-            <div class="min-w-0"><h2 id="appointments-heading" class="text-base font-bold text-slate-900">Lịch hẹn sắp tới</h2><p class="mt-0.5 text-xs text-slate-500">Các lịch khám đã đặt và đang chờ đến lượt.</p></div>
+            <div class="min-w-0"><h2 id="appointments-heading" class="text-base font-bold text-slate-900">Lịch hẹn sắp tới</h2></div>
             <div data-testid="appointments-actions" class="flex shrink-0 items-center gap-4"><a routerLink="/appointments" class="hidden items-center gap-1.5 text-xs font-semibold text-[#0284c7] hover:underline sm:inline-flex"><span>Xem tất cả</span><mat-icon class="!h-3.5 !w-3.5 !text-[15px] !leading-none">arrow_forward</mat-icon></a><mat-icon class="!h-5 !w-5 !text-[20px] text-[#0284c7]">event_available</mat-icon></div>
           </div>
           @if (appointmentsLoading()) {
             <div class="grid min-h-56 place-items-center px-6 py-10 text-sm text-slate-500">Đang tải lịch hẹn...</div>
           } @else if (appointments().length === 0) {
-            <div class="grid min-h-56 place-items-center px-6 py-10 text-center"><div class="max-w-sm"><span class="mx-auto grid h-12 w-12 place-items-center rounded-full bg-sky-50 text-[#0284c7]"><mat-icon>calendar_month</mat-icon></span><h3 class="mt-4 font-semibold text-slate-800">Bạn chưa có lịch hẹn</h3><p class="mt-1.5 text-sm leading-6 text-slate-500">Đặt lịch trước để chủ động chọn chuyên khoa, bác sĩ và thời gian phù hợp.</p><a routerLink="/appointments/new" class="mt-5 inline-flex min-h-9 items-center justify-center rounded-lg bg-[#0284c7] px-4 text-xs font-semibold text-white transition hover:bg-[#0369a1]">Tìm lịch khám</a></div></div>
+            <div class="grid min-h-56 place-items-center px-6 py-10 text-center"><div class="max-w-sm"><span class="mx-auto grid h-12 w-12 place-items-center rounded-full bg-sky-50 text-[#0284c7]"><mat-icon>calendar_month</mat-icon></span><h3 class="mt-4 font-semibold text-slate-800">Bạn chưa có lịch hẹn</h3><a routerLink="/appointments/new" class="mt-5 inline-flex min-h-9 items-center justify-center rounded-lg bg-[#0284c7] px-4 text-xs font-semibold text-white transition hover:bg-[#0369a1]">Tìm lịch khám</a></div></div>
           } @else {
             <div class="divide-y divide-slate-100">
               @for (appointment of appointments(); track appointment.id) {
@@ -74,7 +73,7 @@
         @if (queueTickets().length > 0) {
           <section data-testid="my-queue-card" class="rounded-xl border border-sky-200 bg-white shadow-xs" aria-labelledby="my-queue-heading">
             <div class="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4 bg-sky-50/40">
-              <div><h2 id="my-queue-heading" class="text-sm font-bold text-slate-900">Lượt khám hôm nay</h2><p class="mt-0.5 text-xs text-slate-500">Số thứ tự đã lấy tại phòng khám.</p></div>
+              <div><h2 id="my-queue-heading" class="text-sm font-bold text-slate-900">Lượt khám hôm nay</h2></div>
               <mat-icon class="text-[#0284c7]">confirmation_number</mat-icon>
             </div>
             <div class="divide-y divide-slate-100">
@@ -90,7 +89,7 @@
         }
 
         <aside class="rounded-xl border border-slate-200 bg-white shadow-xs" aria-labelledby="profile-summary-heading">
-          <div class="border-b border-slate-100 px-5 py-4"><h2 id="profile-summary-heading" class="text-sm font-bold text-slate-900">Thông tin tài khoản</h2><p class="mt-0.5 text-xs text-slate-500">Hồ sơ mặc định dùng khi đặt lịch.</p></div>
+          <div class="border-b border-slate-100 px-5 py-4"><h2 id="profile-summary-heading" class="text-sm font-bold text-slate-900">Thông tin tài khoản</h2></div>
           <div class="space-y-3.5 px-5 py-4 text-xs">
             <div><p class="text-slate-500">Họ và tên</p><p class="mt-0.5 font-bold text-slate-900 text-sm">{{ profile()?.fullName }}</p></div>
             <div><p class="text-slate-500">Số điện thoại</p><p class="mt-0.5 font-semibold text-slate-800">{{ profile()?.phone }}</p></div>
