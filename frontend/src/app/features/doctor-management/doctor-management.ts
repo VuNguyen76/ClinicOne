@@ -182,11 +182,17 @@ export class DoctorManagement implements OnInit {
 
   protected saveAssignment(): void {
     const doctor = this.selectedDoctor();
-    if (!doctor || this.assignmentForm.invalid) { this.assignmentForm.markAllAsTouched(); return; }
+    if (!doctor || !this.assignmentForm.controls.roomId.value) {
+      this.assignmentForm.controls.roomId.markAsTouched();
+      return;
+    }
+    const roomId = this.assignmentForm.controls.roomId.value;
+    const selectedRoom = this.rooms().find((r) => r.id === roomId);
+    const specialty = selectedRoom?.specialty ?? this.assignmentForm.controls.specialty.value ?? doctor.specialty ?? 'Khám Tổng Quát';
+
     this.saving.set(true);
     this.error.set('');
-    const value = this.assignmentForm.getRawValue();
-    this.authApi.assignDoctor(doctor.staffId, value.specialty, value.roomId).subscribe({
+    this.authApi.assignDoctor(doctor.staffId, specialty, roomId).subscribe({
       next: (assigned) => {
         const updated = { ...doctor, specialty: assigned.specialty, roomId: assigned.roomId, roomCode: assigned.roomCode,
           roomName: assigned.roomName, assigned: true, active: assigned.active };
