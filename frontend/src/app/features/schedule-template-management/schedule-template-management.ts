@@ -454,6 +454,7 @@ export class ScheduleTemplateManagement implements OnInit {
 
   protected deleteTemplate(template: ScheduleTemplateResponse): void {
     if (!this.canManageSchedule()) return;
+    this.closeTemplateDetail();
     this.authApi.deleteScheduleTemplate(template.id).subscribe({
       next: () => {
         this.templates.update((items) => items.filter((item) => item.id !== template.id));
