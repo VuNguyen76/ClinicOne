@@ -163,6 +163,7 @@
                               <div class="flex items-center gap-1.5">
                                 <img
                                   [src]="getDoctorAvatar(tmpl.doctorName, tmpl.doctorAvatarUrl)"
+                                  (error)="handleAvatarError($event, tmpl.doctorName)"
                                   [alt]="tmpl.doctorName"
                                   class="h-6 w-6 rounded-full object-cover border border-slate-200 shrink-0 shadow-2xs"
                                 />
@@ -238,7 +239,7 @@
                   <tr data-testid="template-row" class="transition hover:bg-slate-50/70">
                     <td class="px-4 py-3">
                       <div class="flex items-center gap-3">
-                        <img [src]="getDoctorAvatar(template.doctorName, template.doctorAvatarUrl)" [alt]="template.doctorName" class="h-8 w-8 rounded-full object-cover border border-slate-200 shrink-0 shadow-2xs" />
+                        <img [src]="getDoctorAvatar(template.doctorName, template.doctorAvatarUrl)" (error)="handleAvatarError($event, template.doctorName)" [alt]="template.doctorName" class="h-8 w-8 rounded-full object-cover border border-slate-200 shrink-0 shadow-2xs" />
                         <div>
                           <p class="font-bold text-slate-900 text-xs">{{ template.doctorName }}</p>
                           <p class="text-[11px] text-slate-500 font-medium">{{ template.serviceName }} ({{ template.durationMinutes }}p/lượt)</p>
@@ -552,54 +553,61 @@
   <!-- Detail Modal for Selected Schedule Template -->
   @if (selectedTemplateForDetail()) {
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
-      <div class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl space-y-5 animate-in fade-in zoom-in-95 duration-150">
-        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-          <h3 class="text-sm font-bold text-slate-900">Chi tiết phân công trực</h3>
+      <div class="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 shadow-xl space-y-5 animate-in fade-in zoom-in-95 duration-150">
+        <!-- Header -->
+        <div class="flex items-center justify-between">
+          <h3 class="text-base font-bold text-slate-900">Chi tiết phân công trực</h3>
           <button type="button" class="erp-btn-icon !h-7 !w-7" (click)="closeTemplateDetail()">
             <mat-icon class="!h-4 !w-4">close</mat-icon>
           </button>
         </div>
 
-        <div class="flex items-center gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-100">
-          <img [src]="getDoctorAvatar(selectedTemplateForDetail()!.doctorName, selectedTemplateForDetail()!.doctorAvatarUrl)" [alt]="selectedTemplateForDetail()!.doctorName" class="h-12 w-12 rounded-full object-cover border border-slate-200 shadow-xs shrink-0" />
-          <div>
-            <h4 class="text-sm font-bold text-slate-900">{{ selectedTemplateForDetail()!.doctorName }}</h4>
+        <!-- Doctor Summary -->
+        <div class="flex items-center gap-3.5 pt-1">
+          <img
+            [src]="getDoctorAvatar(selectedTemplateForDetail()!.doctorName, selectedTemplateForDetail()!.doctorAvatarUrl)"
+            (error)="handleAvatarError($event, selectedTemplateForDetail()!.doctorName)"
+            [alt]="selectedTemplateForDetail()!.doctorName"
+            class="h-14 w-14 rounded-full object-cover border border-slate-200 shadow-xs shrink-0"
+          />
+          <div class="space-y-1">
+            <h4 class="text-sm font-bold text-slate-900 leading-tight">{{ selectedTemplateForDetail()!.doctorName }}</h4>
             <p class="text-xs text-slate-500 font-medium">{{ selectedTemplateForDetail()!.serviceName }}</p>
-            <span class="inline-block mt-1 rounded bg-sky-100 px-2 py-0.5 font-mono text-[10px] font-bold text-sky-800">Phòng {{ selectedTemplateForDetail()!.roomCode }}</span>
+            <span class="inline-block rounded-md bg-sky-50 border border-sky-200 px-2 py-0.5 font-mono text-[10px] font-bold text-sky-800">
+              Phòng {{ selectedTemplateForDetail()!.roomCode }}
+            </span>
           </div>
         </div>
 
-        <div class="space-y-2 text-xs text-slate-600">
-          <div class="flex justify-between py-1 border-b border-slate-100">
-            <span class="text-slate-400">Ca trực:</span>
-            <span class="font-bold text-slate-800">{{ getShiftBadge(selectedTemplateForDetail()!).label }}</span>
+        <!-- Minimal 2-Line Key Info -->
+        <div class="rounded-xl border border-slate-200 bg-white overflow-hidden text-xs divide-y divide-slate-100 shadow-2xs">
+          <div class="flex items-center justify-between p-3">
+            <span class="font-medium text-slate-600">Ca trực</span>
+            <span class="inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-bold" [class]="getShiftBadge(selectedTemplateForDetail()!).class">
+              {{ getShiftBadge(selectedTemplateForDetail()!).label }}
+            </span>
           </div>
-          <div class="flex justify-between py-1 border-b border-slate-100">
-            <span class="text-slate-400">Thời gian áp dụng:</span>
-            <span class="font-mono font-semibold text-slate-800">{{ selectedTemplateForDetail()!.startDate }} – {{ selectedTemplateForDetail()!.endDate }}</span>
-          </div>
-          <div class="flex justify-between py-1 border-b border-slate-100">
-            <span class="text-slate-400">Các ngày lặp:</span>
-            <span class="font-medium text-slate-800">{{ formatWeekdays(selectedTemplateForDetail()!.weekdays) }}</span>
-          </div>
-          <div class="flex justify-between py-1">
-            <span class="text-slate-400">Tổng số lượt khám đã sinh:</span>
-            <span class="font-mono font-bold text-teal-700 text-sm">{{ selectedTemplateForDetail()!.generatedSlotCount }} lượt</span>
+          <div class="flex items-center justify-between p-3">
+            <span class="font-medium text-slate-600">Lịch trực</span>
+            <span class="font-semibold text-slate-800">
+              {{ formatWeekdays(selectedTemplateForDetail()!.weekdays) }} <span class="text-slate-400 font-normal">({{ selectedTemplateForDetail()!.generatedSlotCount }} lượt)</span>
+            </span>
           </div>
         </div>
 
-        <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
-          <button type="button" class="erp-btn-secondary" (click)="closeTemplateDetail()">
+        <!-- Action Buttons -->
+        <div class="flex items-center justify-end gap-2.5 pt-1">
+          <button type="button" class="erp-btn-secondary !px-4" (click)="closeTemplateDetail()">
             Đóng
           </button>
           @if (canManageSchedule()) {
             <button
               type="button"
-              class="erp-btn-secondary !text-rose-600 !hover:bg-rose-50"
+              class="erp-btn-secondary !text-rose-600 !hover:bg-rose-50 !border-rose-200"
               (click)="deleteTemplate(selectedTemplateForDetail()!); closeTemplateDetail()"
             >
               <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">delete_outline</mat-icon>
-              <span>Xóa ca trực này</span>
+              <span>Xóa ca trực</span>
             </button>
           }
         </div>
