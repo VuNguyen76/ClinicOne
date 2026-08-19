@@ -198,171 +198,248 @@
     }
   </div>
 
-  <!-- Modal: Create Schedule Template -->
+  <!-- Slide-Over Drawer: Create Schedule Template -->
   @if (modalOpen() && canManageSchedule()) {
-    <div class="erp-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="template-dialog-title" (click)="closeModal()">
-      <section class="erp-modal-container max-w-2xl" (click)="$event.stopPropagation()">
-        <div class="erp-modal-header">
-          <div>
-            <p class="text-[10px] font-bold uppercase tracking-wider text-[#0284c7]">Quy tắc vận hành</p>
-            <h2 id="template-dialog-title" class="text-sm font-bold text-slate-900">Tạo mẫu lịch làm việc lặp theo tuần</h2>
+    <div class="erp-drawer-overlay" role="dialog" aria-modal="true" aria-labelledby="template-dialog-title" (click)="closeModal()">
+      <section class="erp-drawer" (click)="$event.stopPropagation()">
+        <!-- Header -->
+        <div class="erp-drawer-header">
+          <div class="flex items-center gap-2.5">
+            <div class="grid h-9 w-9 place-items-center rounded-xl bg-sky-50 text-[#0284c7]">
+              <mat-icon class="!h-5 !w-5 !text-[20px]">calendar_today</mat-icon>
+            </div>
+            <div>
+              <h2 id="template-dialog-title" class="text-sm font-bold text-slate-900">Tạo mẫu lịch làm việc lặp tuần</h2>
+              <p class="text-[11px] font-medium text-slate-500">Tự động sinh các ca và khung giờ khám</p>
+            </div>
           </div>
           <button type="button" class="erp-btn-icon" aria-label="Đóng" (click)="closeModal()">
             <mat-icon class="!h-4 !w-4 !text-[18px]">close</mat-icon>
           </button>
         </div>
 
-        <form (ngSubmit)="$event.preventDefault(); submit()">
-          <div class="erp-modal-body grid gap-3.5">
-            <label class="grid gap-1">
-              <span class="erp-label">Dịch vụ khám <span class="erp-label-required">*</span></span>
-              <select
-                data-testid="template-service"
-                class="erp-select"
-                [ngModel]="selectedServiceId()"
-                (ngModelChange)="selectService($event)"
-                name="service"
-              >
-                <option value="">Chọn dịch vụ</option>
-                @for (service of services(); track service.id) {
-                  <option [value]="service.id">{{ service.name }} · {{ service.durationMinutes }} phút</option>
-                }
-              </select>
-            </label>
+        <form (ngSubmit)="$event.preventDefault(); submit()" class="flex flex-1 flex-col overflow-hidden">
+          <div class="erp-drawer-body space-y-5">
+            <!-- Section 1: Service & Room -->
+            <div class="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-3.5">
+              <div class="flex items-center gap-2 border-b border-slate-200/80 pb-2">
+                <mat-icon class="!h-4 !w-4 !text-[16px] text-sky-600">medical_services</mat-icon>
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-700">1. Dịch vụ & Phòng khám</span>
+              </div>
 
-            <div class="grid gap-3 sm:grid-cols-2">
               <label class="grid gap-1">
-                <span class="erp-label">Bác sĩ phụ trách <span class="erp-label-required">*</span></span>
+                <span class="erp-label">Dịch vụ khám <span class="erp-label-required">*</span></span>
                 <select
+                  data-testid="template-service"
                   class="erp-select"
-                  [ngModel]="selectedDoctorId()"
-                  (ngModelChange)="selectDoctor($event)"
-                  name="doctor"
+                  [ngModel]="selectedServiceId()"
+                  (ngModelChange)="selectService($event)"
+                  name="service"
                 >
-                  <option value="">Chọn bác sĩ</option>
-                  @for (doctor of availableDoctors(); track doctor.staffId) {
-                    <option [value]="doctor.staffId">{{ doctor.fullName }}</option>
+                  <option value="">-- Chọn dịch vụ khám --</option>
+                  @for (service of services(); track service.id) {
+                    <option [value]="service.id">{{ service.name }} ({{ service.durationMinutes }} phút / lượt)</option>
                   }
                 </select>
               </label>
 
-              <label class="grid gap-1">
-                <span class="erp-label">Phòng khám <span class="erp-label-required">*</span></span>
-                <select
-                  class="erp-select"
-                  [ngModel]="selectedRoomId()"
-                  (ngModelChange)="selectedRoomId.set($event)"
-                  name="room"
-                >
-                  <option value="">Chọn phòng</option>
-                  @for (room of availableRooms(); track room.id) {
-                    <option [value]="room.id">{{ room.code }} · {{ room.name }}</option>
-                  }
-                </select>
-              </label>
+              <div class="grid gap-3 sm:grid-cols-2">
+                <label class="grid gap-1">
+                  <span class="erp-label">Bác sĩ phụ trách <span class="erp-label-required">*</span></span>
+                  <select
+                    class="erp-select"
+                    [ngModel]="selectedDoctorId()"
+                    (ngModelChange)="selectDoctor($event)"
+                    name="doctor"
+                  >
+                    <option value="">-- Chọn bác sĩ --</option>
+                    @for (doctor of availableDoctors(); track doctor.staffId) {
+                      <option [value]="doctor.staffId">{{ doctor.fullName }}</option>
+                    }
+                  </select>
+                </label>
+
+                <label class="grid gap-1">
+                  <span class="erp-label">Phòng khám <span class="erp-label-required">*</span></span>
+                  <select
+                    class="erp-select"
+                    [ngModel]="selectedRoomId()"
+                    (ngModelChange)="selectedRoomId.set($event)"
+                    name="room"
+                  >
+                    <option value="">-- Chọn phòng --</option>
+                    @for (room of availableRooms(); track room.id) {
+                      <option [value]="room.id">{{ room.code }} · {{ room.name }}</option>
+                    }
+                  </select>
+                </label>
+              </div>
             </div>
 
-            <div class="grid gap-3 sm:grid-cols-2">
-              <label class="grid gap-1">
-                <span class="erp-label">Từ ngày <span class="erp-label-required">*</span></span>
-                <input
-                  type="date"
-                  [min]="today"
-                  [ngModel]="startDate()"
-                  (ngModelChange)="startDate.set($event)"
-                  name="startDate"
-                  class="erp-input font-mono"
-                />
-              </label>
-              <label class="grid gap-1">
-                <span class="erp-label">Đến ngày <span class="erp-label-required">*</span></span>
-                <input
-                  type="date"
-                  [min]="startDate()"
-                  [ngModel]="endDate()"
-                  (ngModelChange)="endDate.set($event)"
-                  name="endDate"
-                  class="erp-input font-mono"
-                />
-              </label>
+            <!-- Section 2: Date Range & Shift Hours -->
+            <div class="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-3.5">
+              <div class="flex items-center justify-between border-b border-slate-200/80 pb-2">
+                <div class="flex items-center gap-2">
+                  <mat-icon class="!h-4 !w-4 !text-[16px] text-sky-600">date_range</mat-icon>
+                  <span class="text-xs font-bold uppercase tracking-wider text-slate-700">2. Thời gian & Khung giờ</span>
+                </div>
+                <!-- Period Quick Presets -->
+                <div class="flex items-center gap-1.5">
+                  <button type="button" (click)="applyPeriodPreset(14)" class="rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-100">14 ngày</button>
+                  <button type="button" (click)="applyPeriodPreset(30)" class="rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-100">1 tháng</button>
+                  <button type="button" (click)="applyPeriodPreset(60)" class="rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-100">2 tháng</button>
+                </div>
+              </div>
+
+              <div class="grid gap-3 sm:grid-cols-2">
+                <label class="grid gap-1">
+                  <span class="erp-label">Từ ngày <span class="erp-label-required">*</span></span>
+                  <input
+                    type="date"
+                    [min]="today"
+                    [ngModel]="startDate()"
+                    (ngModelChange)="startDate.set($event)"
+                    name="startDate"
+                    class="erp-input font-mono"
+                  />
+                </label>
+                <label class="grid gap-1">
+                  <span class="erp-label">Đến ngày <span class="erp-label-required">*</span></span>
+                  <input
+                    type="date"
+                    [min]="startDate()"
+                    [ngModel]="endDate()"
+                    (ngModelChange)="endDate.set($event)"
+                    name="endDate"
+                    class="erp-input font-mono"
+                  />
+                </label>
+              </div>
+
+              <div>
+                <div class="flex items-center justify-between mb-1">
+                  <span class="erp-label !mb-0">Giờ ca làm việc <span class="erp-label-required">*</span></span>
+                  <!-- Time Quick Presets -->
+                  <div class="flex items-center gap-1">
+                    <button type="button" (click)="applyTimePreset('08:00', '17:00')" class="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-medium text-slate-600 hover:bg-slate-100">08:00 - 17:00</button>
+                    <button type="button" (click)="applyTimePreset('07:30', '11:30')" class="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-medium text-slate-600 hover:bg-slate-100">Sáng</button>
+                    <button type="button" (click)="applyTimePreset('13:30', '17:30')" class="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-medium text-slate-600 hover:bg-slate-100">Chiều</button>
+                  </div>
+                </div>
+                <div class="grid gap-3 sm:grid-cols-2">
+                  <label class="grid gap-0.5">
+                    <span class="text-[11px] text-slate-500">Giờ bắt đầu:</span>
+                    <input
+                      type="time"
+                      [ngModel]="dayStart()"
+                      (ngModelChange)="dayStart.set($event)"
+                      name="dayStart"
+                      class="erp-input font-mono"
+                    />
+                  </label>
+                  <label class="grid gap-0.5">
+                    <span class="text-[11px] text-slate-500">Giờ kết thúc:</span>
+                    <input
+                      type="time"
+                      [ngModel]="dayEnd()"
+                      (ngModelChange)="dayEnd.set($event)"
+                      name="dayEnd"
+                      class="erp-input font-mono"
+                    />
+                  </label>
+                </div>
+              </div>
             </div>
 
-            <div class="grid gap-3 sm:grid-cols-2">
-              <label class="grid gap-1">
-                <span class="erp-label">Giờ bắt đầu <span class="erp-label-required">*</span></span>
-                <input
-                  type="time"
-                  [ngModel]="dayStart()"
-                  (ngModelChange)="dayStart.set($event)"
-                  name="dayStart"
-                  class="erp-input font-mono"
-                />
-              </label>
-              <label class="grid gap-1">
-                <span class="erp-label">Giờ kết thúc <span class="erp-label-required">*</span></span>
-                <input
-                  type="time"
-                  [ngModel]="dayEnd()"
-                  (ngModelChange)="dayEnd.set($event)"
-                  name="dayEnd"
-                  class="erp-input font-mono"
-                />
-              </label>
-            </div>
+            <!-- Section 3: Weekdays, Breaks & Exceptions -->
+            <div class="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-3.5">
+              <div class="flex items-center justify-between border-b border-slate-200/80 pb-2">
+                <div class="flex items-center gap-2">
+                  <mat-icon class="!h-4 !w-4 !text-[16px] text-sky-600">view_week</mat-icon>
+                  <span class="text-xs font-bold uppercase tracking-wider text-slate-700">3. Thứ lặp & Nghỉ trưa</span>
+                </div>
+                <!-- Weekday Presets -->
+                <div class="flex items-center gap-1.5">
+                  <button type="button" (click)="applyWeekdayPreset('WEEKDAYS')" class="rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-100">T2-T6</button>
+                  <button type="button" (click)="applyWeekdayPreset('ALL_EXCEPT_SUNDAY')" class="rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-100">T2-T7</button>
+                  <button type="button" (click)="applyWeekdayPreset('ALL')" class="rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-100">Cả tuần</button>
+                </div>
+              </div>
 
-            <fieldset class="grid gap-1.5">
-              <legend class="erp-label">Ngày làm trong tuần <span class="erp-label-required">*</span></legend>
-              <div class="grid grid-cols-4 gap-2">
+              <!-- Weekday toggle buttons -->
+              <div class="grid grid-cols-4 gap-2 sm:grid-cols-7">
                 @for (day of weekdays; track day.value) {
-                  <label class="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50/50 px-2.5 py-1.5 text-xs text-slate-800 cursor-pointer hover:bg-slate-100">
+                  <button
+                    type="button"
+                    (click)="toggleWeekday(day.value, !isWeekdaySelected(day.value))"
+                    [class]="isWeekdaySelected(day.value) ? 'border-[#0e3d48] bg-[#0e3d48] text-white shadow-xs' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100'"
+                    class="flex min-h-10 flex-col items-center justify-center rounded-xl border p-1 text-center transition cursor-pointer"
+                  >
+                    <span class="text-xs font-bold">{{ day.label }}</span>
+                    <span class="text-[10px] opacity-75">{{ isWeekdaySelected(day.value) ? '✓ Chọn' : '—' }}</span>
+                  </button>
+                }
+              </div>
+
+              <!-- Lunch Break Toggle -->
+              <div class="rounded-lg border border-slate-200 bg-white p-3 space-y-2.5">
+                <div class="flex items-center justify-between">
+                  <label class="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
                       class="rounded border-slate-300 text-[#0e3d48] focus:ring-[#0e3d48]"
-                      [checked]="isWeekdaySelected(day.value)"
-                      (change)="toggleWeekday(day.value, $any($event.target).checked)"
+                      [checked]="hasBreak()"
+                      (change)="toggleBreakOption($any($event.target).checked)"
                     />
-                    <span>{{ day.label }}</span>
+                    <span class="text-xs font-semibold text-slate-800">Trừ giờ nghỉ trưa</span>
                   </label>
+                  @if (hasBreak()) {
+                    <span class="text-[11px] font-mono font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded">12:00 – 13:00</span>
+                  }
+                </div>
+
+                @if (hasBreak()) {
+                  <div class="grid grid-cols-2 gap-3 pt-1 border-t border-slate-100">
+                    <label class="grid gap-0.5">
+                      <span class="text-[11px] text-slate-500">Nghỉ từ:</span>
+                      <input
+                        type="time"
+                        [ngModel]="breakStart()"
+                        (ngModelChange)="breakStart.set($event)"
+                        name="breakStart"
+                        class="erp-input font-mono"
+                      />
+                    </label>
+                    <label class="grid gap-0.5">
+                      <span class="text-[11px] text-slate-500">Nghỉ đến:</span>
+                      <input
+                        type="time"
+                        [ngModel]="breakEnd()"
+                        (ngModelChange)="breakEnd.set($event)"
+                        name="breakEnd"
+                        class="erp-input font-mono"
+                      />
+                    </label>
+                  </div>
                 }
               </div>
-            </fieldset>
 
-            <div class="grid gap-3 sm:grid-cols-2">
+              <!-- Exception Dates -->
               <label class="grid gap-1">
-                <span class="erp-label">Nghỉ từ (nếu có)</span>
+                <span class="erp-label">Ngày nghỉ ngoại lệ (tùy chọn)</span>
                 <input
-                  type="time"
-                  [ngModel]="breakStart()"
-                  (ngModelChange)="breakStart.set($event)"
-                  name="breakStart"
-                  class="erp-input font-mono"
-                />
-              </label>
-              <label class="grid gap-1">
-                <span class="erp-label">Nghỉ đến</span>
-                <input
-                  type="time"
-                  [ngModel]="breakEnd()"
-                  (ngModelChange)="breakEnd.set($event)"
-                  name="breakEnd"
+                  [ngModel]="exceptionDatesText()"
+                  (ngModelChange)="exceptionDatesText.set($event)"
+                  name="exceptions"
+                  placeholder="vd: 2026-09-02, 2026-09-03"
                   class="erp-input font-mono"
                 />
               </label>
             </div>
-
-            <label class="grid gap-1">
-              <span class="erp-label">Ngày nghỉ ngoại lệ (cách nhau bằng dấu phẩy)</span>
-              <input
-                [ngModel]="exceptionDatesText()"
-                (ngModelChange)="exceptionDatesText.set($event)"
-                name="exceptions"
-                placeholder="2026-08-20, 2026-08-27"
-                class="erp-input font-mono"
-              />
-            </label>
           </div>
 
-          <div class="erp-modal-footer">
+          <!-- Sticky Drawer Footer -->
+          <div class="erp-drawer-footer">
             <button type="button" class="erp-btn-secondary" (click)="closeModal()">
               Hủy
             </button>
@@ -372,7 +449,8 @@
               class="erp-btn-primary"
               [disabled]="saving()"
             >
-              {{ saving() ? 'Đang sinh ca...' : 'Lưu và sinh khung giờ' }}
+              <mat-icon class="!h-4 !w-4 !text-[18px]">{{ saving() ? 'sync' : 'auto_fix_high' }}</mat-icon>
+              <span>{{ saving() ? 'Đang sinh ca...' : 'Lưu và sinh khung giờ' }}</span>
             </button>
           </div>
         </form>

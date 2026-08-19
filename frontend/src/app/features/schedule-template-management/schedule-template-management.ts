@@ -62,6 +62,38 @@ export class ScheduleTemplateManagement implements OnInit {
   ];
 
   protected readonly searchTerm = signal('');
+  protected readonly hasBreak = signal(false);
+
+  protected applyWeekdayPreset(preset: 'WEEKDAYS' | 'ALL_EXCEPT_SUNDAY' | 'ALL'): void {
+    if (preset === 'WEEKDAYS') {
+      this.selectedWeekdays.set(['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY']);
+    } else if (preset === 'ALL_EXCEPT_SUNDAY') {
+      this.selectedWeekdays.set(['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY']);
+    } else {
+      this.selectedWeekdays.set(['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']);
+    }
+  }
+
+  protected applyPeriodPreset(days: number): void {
+    this.startDate.set(this.today);
+    this.endDate.set(this.addDays(this.today, days));
+  }
+
+  protected applyTimePreset(start: string, end: string): void {
+    this.dayStart.set(start);
+    this.dayEnd.set(end);
+  }
+
+  protected toggleBreakOption(enabled: boolean): void {
+    this.hasBreak.set(enabled);
+    if (enabled) {
+      this.breakStart.set('12:00');
+      this.breakEnd.set('13:00');
+    } else {
+      this.breakStart.set('');
+      this.breakEnd.set('');
+    }
+  }
 
   protected filteredTemplates(): ScheduleTemplateResponse[] {
     const q = this.searchTerm().trim().toLowerCase();
@@ -153,7 +185,7 @@ export class ScheduleTemplateManagement implements OnInit {
       this.error.set('Chỉ điều phối viên được thay đổi lịch làm việc.');
       return;
     }
-    const breaks: ScheduleBreakRequest[] = this.breakStart() && this.breakEnd()
+    const breaks: ScheduleBreakRequest[] = this.hasBreak() && this.breakStart() && this.breakEnd()
       ? [{ startTime: this.breakStart(), endTime: this.breakEnd() }] : [];
     const request: ScheduleTemplateRequest = {
       clinicServiceId: this.selectedServiceId(),
