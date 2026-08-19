@@ -12,7 +12,7 @@ describe('AppointmentDetail', () => {
 
   const appointment = {
     id: 'appointment-1', appointmentCode: 'CL-001', specialty: 'Nội tổng quát', doctorName: 'BS. An',
-    appointmentDate: '2026-08-10', startTime: '08:30:00', reason: 'Đau đầu',
+    appointmentDate: '2099-08-10', startTime: '08:30:00', reason: 'Đau đầu',
     status: 'BOOKED', statusLabel: 'Đã đặt', doctorId: 'doctor-1', serviceId: 'service-1',
   };
 
@@ -145,5 +145,23 @@ describe('AppointmentDetail', () => {
     expect(fixture.nativeElement.textContent).toContain('09:00');
     expect(fixture.nativeElement.textContent).not.toContain('10:00');
     expect(fixture.nativeElement.textContent).toContain('BS. An');
+  });
+
+  it('locks cancel and reschedule actions and displays warning when appointment is late', () => {
+    http.expectOne('/api/v1/appointments/appointment-1').flush({
+      ...appointment,
+      appointmentDate: '2020-01-01',
+      startTime: '08:00:00',
+    });
+    http.expectOne((request) => request.url === '/api/v1/reasons'
+      && request.params.get('type') === 'APPOINTMENT_CANCELLATION').flush([]);
+    http.expectOne('/api/v1/patient/rescheduling/appointment-1').flush(
+      { message: 'Không tìm thấy lịch cần sắp xếp lại.' },
+      { status: 404, statusText: 'Not Found' });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Lịch hẹn đã quá giờ (Đi muộn)');
+    expect(fixture.nativeElement.querySelector('[data-testid="open-reschedule"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="qr-scan-action"]')).toBeNull();
   });
 });

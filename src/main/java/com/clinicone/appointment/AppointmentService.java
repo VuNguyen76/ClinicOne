@@ -564,11 +564,26 @@ public class AppointmentService {
                 .orElseThrow(this::appointmentNotFound);
     }
 
+    private static final Duration LATE_THRESHOLD = Duration.ofMinutes(15);
+    private static final int DEFAULT_SLOT_DURATION_MINUTES = 60;
+
     private void ensureBookable(Appointment appointment) {
         if (appointment.getStatus() != AppointmentStatus.BOOKED) {
             throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_NOT_ACTIONABLE",
                     "Lịch hẹn này không còn cho phép thao tác.");
         }
+        if (isLateAppointment(appointment)) {
+            throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_LATE_CANNOT_CANCEL",
+                    "Lịch hẹn đã quá giờ (đi muộn), không thể hủy hoặc đổi lịch. Vui lòng liên hệ quầy tiếp đón để được hỗ trợ.");
+        }
+    }
+
+    private boolean isLateAppointment(Appointment appointment) {
+        Instant appointmentAt = ZonedDateTime.of(appointment.getAppointmentDate(), appointment.getStartTime(), CLINIC_ZONE).toInstant();
+        int duration = appointment.getServiceDurationMinutes() != null && appointment.getServiceDurationMinutes() > 0
+                ? appointment.getServiceDurationMinutes() : DEFAULT_SLOT_DURATION_MINUTES;
+        Instant scheduledEndAt = appointmentAt.plus(Duration.ofMinutes(duration));
+        return !Instant.now(clock).isBefore(scheduledEndAt.plus(LATE_THRESHOLD));
     }
 
     private AuthException appointmentNotFound() {

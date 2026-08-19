@@ -54,7 +54,19 @@
           <div class="border-t border-slate-100 pt-5 sm:col-span-2 lg:col-span-4"><p class="text-xs font-medium text-slate-500">Lý do khám</p><p class="mt-1 text-sm leading-6 text-slate-700">{{ current.reason }}</p></div>
         </div>
 
-        @if (canEdit()) {
+        @if (isLate()) {
+          <div class="border-t border-amber-200 bg-amber-50/90 p-5 sm:px-8">
+            <div class="flex items-center gap-3">
+              <mat-icon class="!h-5 !w-5 !text-[22px] text-amber-600">warning_amber</mat-icon>
+              <div>
+                <strong class="text-xs font-bold text-amber-900">Lịch hẹn đã quá giờ (Đi muộn)</strong>
+                <p class="mt-0.5 text-xs text-amber-800">
+                  Lịch hẹn này đã quá thời gian quy định nên không thể tự hủy hoặc đổi giờ trên ứng dụng. Quý khách vui lòng liên hệ nhân viên tiếp đón tại phòng khám để được hỗ trợ sắp xếp lại.
+                </p>
+              </div>
+            </div>
+          </div>
+        } @else if (canEdit()) {
           <div class="grid border-t border-slate-200 bg-slate-50/80 sm:grid-cols-3">
             <a data-testid="qr-scan-action" routerLink="/queue/scan" class="group flex min-h-16 items-center gap-3 px-6 py-4 transition hover:bg-sky-50 sm:border-r sm:border-slate-200">
               <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#0284c7] text-white"><mat-icon>qr_code_scanner</mat-icon></span>
