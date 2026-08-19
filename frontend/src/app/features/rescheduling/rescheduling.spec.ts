@@ -72,6 +72,21 @@ describe('Rescheduling', () => {
     expect(fixture.nativeElement.querySelector('form')).toBeNull();
     expect(fixture.nativeElement.textContent).toContain('Chỉ Điều phối viên mới có thể xác nhận');
   });
+
+  it('accurately computes pending cases for both OPEN and PENDING statuses', () => {
+    http.expectOne('/api/v1/admin/rescheduling').flush([
+      { ...rescheduleCase(), id: 'c-1', status: 'OPEN' },
+      { ...rescheduleCase(), id: 'c-2', status: 'PENDING' },
+      { ...rescheduleCase(), id: 'c-3', status: 'RESOLVED' },
+    ]);
+    http.expectOne('/api/v1/admin/rescheduling/c-1/alternatives').flush([]);
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance as any;
+    expect(component.pendingCasesCount()).toBe(2);
+    expect(component.resolvedCasesCount()).toBe(1);
+    expect(component.totalCasesCount()).toBe(3);
+  });
 });
 
 function rescheduleCase() {

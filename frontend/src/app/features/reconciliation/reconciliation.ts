@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { AuthApiService, ReconciliationResponse, apiErrorMessage } from '../../core/auth/auth-api.service';
@@ -15,7 +15,7 @@ import { hasStaffRole } from '../../core/auth/auth.guard';
 export class ReconciliationManagement implements OnInit {
   private readonly authApi = inject(AuthApiService);
   protected readonly incidents = signal<ReconciliationResponse[]>([]);
-  protected canClose = hasStaffRole('COORDINATOR');
+  protected readonly canClose = computed(() => hasStaffRole('COORDINATOR'));
   protected readonly selected = signal<ReconciliationResponse | null>(null);
   protected readonly action = signal('RETRY_BUSINESS_ACTION');
   protected readonly referenceType = signal('INCIDENT');
@@ -60,8 +60,15 @@ export class ReconciliationManagement implements OnInit {
     this.error.set('');
   }
 
+  protected updateAction(val: string): void {
+    this.action.set(val);
+    if (val === 'REPLAY_LOG' && (!this.referenceType() || this.referenceType() === 'INCIDENT')) {
+      this.referenceType.set('BUSINESS_LOG');
+    }
+  }
+
   protected close(): void {
-    if (!this.canClose) {
+    if (!this.canClose()) {
       this.error.set('Chỉ điều phối viên được đóng đối soát.');
       return;
     }

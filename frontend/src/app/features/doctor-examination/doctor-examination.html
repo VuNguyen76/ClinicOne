@@ -625,12 +625,12 @@
       <!-- Sign Confirmation Modal -->
       @if (confirmingSign()) {
         <div
-          class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-xs"
+          class="erp-modal-overlay"
           role="dialog"
           aria-modal="true"
           aria-labelledby="sign-confirmation-title"
         >
-          <div class="w-full max-w-md overflow-hidden rounded-xl border border-slate-200 bg-white p-6 shadow-2xl space-y-4">
+          <div class="erp-modal-container max-w-md p-6 space-y-4">
             <div>
               <h3 id="sign-confirmation-title" class="text-base font-bold text-slate-900">
                 Ký hoàn tất phiếu khám?
@@ -663,12 +663,12 @@
       <!-- Wrong Profile Modal -->
       @if (confirmingWrongProfile()) {
         <div
-          class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-xs"
+          class="erp-modal-overlay"
           role="dialog"
           aria-modal="true"
           aria-labelledby="wrong-profile-title"
         >
-          <div class="w-full max-w-md overflow-hidden rounded-xl border border-slate-200 bg-white p-6 shadow-2xl space-y-4">
+          <div class="erp-modal-container max-w-md p-6 space-y-4">
             <div>
               <h3 id="wrong-profile-title" class="text-base font-bold text-slate-900">Bắt đầu nhầm hồ sơ?</h3>
               <p class="mt-1 text-xs text-slate-600">
@@ -699,7 +699,7 @@
               <button
                 data-testid="confirm-wrong-profile"
                 type="button"
-                class="erp-btn-accent !bg-amber-600 hover:!bg-amber-700"
+                class="erp-btn-accent"
                 [disabled]="returningWrongProfile()"
                 (click)="confirmWrongProfile()"
               >
@@ -713,12 +713,12 @@
       <!-- Stop Examination Modal -->
       @if (confirmingStop()) {
         <div
-          class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-xs"
+          class="erp-modal-overlay"
           role="dialog"
           aria-modal="true"
           aria-labelledby="stop-confirmation-title"
         >
-          <div class="w-full max-w-md overflow-hidden rounded-xl border border-slate-200 bg-white p-6 shadow-2xl space-y-4">
+          <div class="erp-modal-container max-w-md p-6 space-y-4">
             <div>
               <h3 id="stop-confirmation-title" class="text-base font-bold text-slate-900">
                 Dừng lượt khám?
@@ -765,12 +765,12 @@
       <!-- Template Overwrite Modal -->
       @if (confirmingTemplateOverwrite()) {
         <div
-          class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-xs"
+          class="erp-modal-overlay"
           role="dialog"
           aria-modal="true"
           aria-labelledby="template-overwrite-title"
         >
-          <div class="w-full max-w-md overflow-hidden rounded-xl border border-slate-200 bg-white p-6 shadow-2xl space-y-4">
+          <div class="erp-modal-container max-w-md p-6 space-y-4">
             <div>
               <h3 id="template-overwrite-title" class="text-base font-bold text-slate-900">Thay nội dung đang nhập?</h3>
               <p class="mt-1 text-xs text-slate-600">

@@ -58,7 +58,7 @@ describe('AccountMenu', () => {
     expect(trigger.getAttribute('aria-expanded')).toBe('false');
   });
 
-  it('shows the medication catalog only to an administrator', async () => {
+  it('shows the medication catalog to an administrator and coordinator', async () => {
     sessionStorage.setItem('clinicOneStaffRole', 'ADMIN');
     sessionStorage.setItem('clinicOneStaffRoles', '["ADMIN"]');
     await TestBed.resetTestingModule().configureTestingModule({
@@ -71,6 +71,23 @@ describe('AccountMenu', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('a[href="/admin/medications"]')?.textContent).toContain('Danh mục thuốc');
+    expect(fixture.nativeElement.querySelector('a[href="/admin/diagnoses"]')?.textContent).toContain('Danh mục chẩn đoán');
+  });
+
+  it('shows catalog links to a coordinator as well', async () => {
+    sessionStorage.setItem('clinicOneStaffRole', 'COORDINATOR');
+    sessionStorage.setItem('clinicOneStaffRoles', '["COORDINATOR"]');
+    await TestBed.resetTestingModule().configureTestingModule({
+      imports: [AccountMenu], providers: [provideRouter([])],
+    }).compileComponents();
+    fixture = TestBed.createComponent(AccountMenu);
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('[data-testid="account-menu-trigger"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('a[href="/admin/medications"]')?.textContent).toContain('Danh mục thuốc');
+    expect(fixture.nativeElement.querySelector('a[href="/admin/diagnoses"]')?.textContent).toContain('Danh mục chẩn đoán');
   });
 
   it('keeps the compact staff menu focused on account actions', async () => {

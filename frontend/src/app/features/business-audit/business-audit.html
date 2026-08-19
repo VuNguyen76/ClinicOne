@@ -75,7 +75,7 @@
         <button
           type="button"
           (click)="search()"
-          class="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0e3d48] px-6 py-2.5 text-xs font-semibold text-white shadow-xs transition hover:bg-[#082830] cursor-pointer w-full sm:w-auto"
+          class="erp-btn-primary w-full sm:w-auto"
           [disabled]="loading()"
         >
           <mat-icon class="!h-4 !w-4 !text-[18px]">search</mat-icon>
@@ -139,7 +139,7 @@
           <div class="flex items-center justify-between border-t border-slate-100 px-5 py-3 bg-slate-50/30">
             <button
               type="button"
-              class="rounded-xl border border-slate-200 bg-white px-4 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-50 disabled:opacity-40 cursor-pointer"
+              class="erp-btn-secondary"
               [disabled]="page() === 0 || loading()"
               (click)="previous()"
             >
@@ -148,7 +148,7 @@
             <span class="font-mono text-xs text-slate-500">Trang {{ page() + 1 }} / {{ totalPages() }}</span>
             <button
               type="button"
-              class="rounded-xl border border-slate-200 bg-white px-4 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-50 disabled:opacity-40 cursor-pointer"
+              class="erp-btn-secondary"
               [disabled]="page() + 1 >= totalPages() || loading()"
               (click)="next()"
             >

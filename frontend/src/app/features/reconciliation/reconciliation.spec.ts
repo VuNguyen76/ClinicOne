@@ -47,10 +47,21 @@ describe('ReconciliationManagement', () => {
   it('does not show closing controls to an administrator', () => {
     http.expectOne('/api/v1/admin/reconciliations?status=OPEN').flush([incident()]);
     const component = fixture.componentInstance as any;
-    component.canClose = false;
+    component.canClose = () => false;
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('[data-testid="close-reconciliation"]')).toBeNull();
     expect(fixture.nativeElement.textContent).toContain('chỉ được xem');
+  });
+
+  it('automatically sets referenceType to BUSINESS_LOG when choosing REPLAY_LOG', () => {
+    http.expectOne('/api/v1/admin/reconciliations?status=OPEN').flush([incident()]);
+    fixture.detectChanges();
+    const component = fixture.componentInstance as any;
+    expect(component.referenceType()).toBe('INCIDENT');
+    component.updateAction('REPLAY_LOG');
+    fixture.detectChanges();
+    expect(component.action()).toBe('REPLAY_LOG');
+    expect(component.referenceType()).toBe('BUSINESS_LOG');
   });
 });
 

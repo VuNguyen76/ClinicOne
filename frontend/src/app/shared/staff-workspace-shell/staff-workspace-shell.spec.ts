@@ -90,4 +90,16 @@ describe('StaffWorkspaceShell', () => {
       '/reception/profiles',
     ]);
   });
+
+  it('includes reason catalog in catalog navigation for administrator', () => {
+    fixture.destroy();
+    sessionStorage.setItem('clinicOneStaffRole', 'ADMIN');
+    sessionStorage.setItem('clinicOneStaffRoles', JSON.stringify(['ADMIN']));
+    fixture = TestBed.createComponent(HostComponent);
+    fixture.detectChanges();
+
+    const links = Array.from(fixture.nativeElement.querySelectorAll('[data-testid="staff-module-nav"] a')) as HTMLAnchorElement[];
+    const hrefs = links.map((link) => link.getAttribute('href'));
+    expect(hrefs).toContain('/admin/reason-catalog');
+  });
 });

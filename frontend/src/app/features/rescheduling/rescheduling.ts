@@ -54,7 +54,7 @@ export class Rescheduling implements OnInit {
   }
 
   protected pendingCasesCount(): number {
-    return this.cases().filter((c) => c.status === 'PENDING' || !c.status).length;
+    return this.cases().filter((c) => c.status === 'OPEN' || c.status === 'PENDING' || !c.status).length;
   }
 
   protected resolvedCasesCount(): number {
