@@ -169,16 +169,83 @@ export class ScheduleTemplateManagement implements OnInit {
     });
   }
 
+  protected readonly displayWeekdays = [
+    { value: 'MONDAY', label: 'Thứ 2' },
+    { value: 'TUESDAY', label: 'Thứ 3' },
+    { value: 'WEDNESDAY', label: 'Thứ 4' },
+    { value: 'THURSDAY', label: 'Thứ 5' },
+    { value: 'FRIDAY', label: 'Thứ 6' },
+    { value: 'SATURDAY', label: 'Thứ 7' },
+  ];
+
+  protected readonly selectedTemplateForDetail = signal<ScheduleTemplateResponse | null>(null);
+
+  protected openTemplateDetail(template: ScheduleTemplateResponse): void {
+    this.selectedTemplateForDetail.set(template);
+  }
+
+  protected closeTemplateDetail(): void {
+    this.selectedTemplateForDetail.set(null);
+  }
+
+  protected filteredRooms(): ClinicRoomResponse[] {
+    const spec = this.filterSpecialty().trim().toLowerCase();
+    const q = this.searchTerm().trim().toLowerCase();
+    return this.rooms().filter((r) => {
+      if (!r.active) return false;
+      if (spec && !r.specialty.toLowerCase().includes(spec)) return false;
+      if (q && !r.name.toLowerCase().includes(q) && !r.code.toLowerCase().includes(q) && !r.specialty.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }
+
+  protected getTemplatesForRoomAndDay(roomId: string, day: string): ScheduleTemplateResponse[] {
+    return this.filteredTemplates().filter((t) => t.roomId === roomId && t.weekdays.includes(day));
+  }
+
+  protected scheduleForRoomAndDay(room: ClinicRoomResponse, day: string): void {
+    if (!this.canManageSchedule()) return;
+    this.selectedRoomId.set(room.id);
+    const matchService = this.services().find((s) => s.specialty.toLowerCase() === room.specialty.toLowerCase()) || this.services()[0];
+    if (matchService) {
+      this.selectService(matchService.id);
+    }
+    this.selectedWeekdays.set([day]);
+    this.startCreate();
+  }
+
+  protected applyShiftPreset(preset: 'FULL_DAY' | 'MORNING' | 'AFTERNOON'): void {
+    if (preset === 'FULL_DAY') {
+      this.dayStart.set('08:00');
+      this.dayEnd.set('17:00');
+      this.hasBreak.set(true);
+      this.breakStart.set('12:00');
+      this.breakEnd.set('13:00');
+    } else if (preset === 'MORNING') {
+      this.dayStart.set('08:00');
+      this.dayEnd.set('12:00');
+      this.hasBreak.set(false);
+      this.breakStart.set('');
+      this.breakEnd.set('');
+    } else if (preset === 'AFTERNOON') {
+      this.dayStart.set('13:00');
+      this.dayEnd.set('17:00');
+      this.hasBreak.set(false);
+      this.breakStart.set('');
+      this.breakEnd.set('');
+    }
+  }
+
   protected getShiftBadge(template: ScheduleTemplateResponse): { label: string; class: string } {
     const startHour = Number(template.dayStart.split(':')[0]) || 0;
     const endHour = Number(template.dayEnd.split(':')[0]) || 0;
     if (startHour < 12 && endHour >= 16) {
-      return { label: 'Cả ngày', class: 'border-teal-200 bg-teal-50 text-teal-800' };
+      return { label: 'Cả ngày (08:00-17:00)', class: 'border-teal-200 bg-teal-50 text-teal-800' };
     }
     if (startHour < 12) {
-      return { label: 'Ca sáng', class: 'border-sky-200 bg-sky-50 text-sky-800' };
+      return { label: 'Ca sáng (08:00-12:00)', class: 'border-sky-200 bg-sky-50 text-sky-800' };
     }
-    return { label: 'Ca chiều', class: 'border-purple-200 bg-purple-50 text-purple-800' };
+    return { label: 'Ca chiều (13:00-17:00)', class: 'border-purple-200 bg-purple-50 text-purple-800' };
   }
 
   protected getDoctorAvatar(doctorName: string): string | null {
