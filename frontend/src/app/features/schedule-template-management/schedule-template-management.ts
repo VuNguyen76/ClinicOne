@@ -173,12 +173,12 @@ export class ScheduleTemplateManagement implements OnInit {
     const startHour = Number(template.dayStart.split(':')[0]) || 0;
     const endHour = Number(template.dayEnd.split(':')[0]) || 0;
     if (startHour < 12 && endHour >= 16) {
-      return { label: 'Cả ngày (08:00 - 17:00)', class: 'border-teal-200 bg-teal-50 text-teal-800' };
+      return { label: 'Cả ngày', class: 'border-teal-200 bg-teal-50 text-teal-800' };
     }
     if (startHour < 12) {
-      return { label: 'Ca sáng (08:00 - 12:00)', class: 'border-sky-200 bg-sky-50 text-sky-800' };
+      return { label: 'Ca sáng', class: 'border-sky-200 bg-sky-50 text-sky-800' };
     }
-    return { label: 'Ca chiều (13:00 - 17:00)', class: 'border-purple-200 bg-purple-50 text-purple-800' };
+    return { label: 'Ca chiều', class: 'border-purple-200 bg-purple-50 text-purple-800' };
   }
 
   protected getDoctorAvatar(doctorName: string): string | null {
