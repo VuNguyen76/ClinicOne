@@ -50,7 +50,9 @@ public class SpecialtyCatalogService {
             repository.findByActiveTrueOrderByNameAsc().stream()
                     .map(item -> new SpecialtyResponse(item.getCode(), item.getName(), item.getDescription()))
                     .forEach(item -> {
-                        source.removeIf(existing -> existing.code().equalsIgnoreCase(item.code()));
+                        source.removeIf(existing -> existing.code().equalsIgnoreCase(item.code())
+                                || existing.name().equalsIgnoreCase(item.name())
+                                || normalize(existing.name()).equalsIgnoreCase(normalize(item.name())));
                         source.add(item);
                     });
         }
