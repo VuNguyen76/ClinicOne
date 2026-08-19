@@ -31,7 +31,7 @@
           class="hover:text-white">Tổng quan</a><mat-icon class="!h-4 !w-4 !text-[16px]">chevron_right</mat-icon><span
           class="font-semibold text-white">Đặt lịch khám</span></div>
       <h1 class="mt-4 text-2xl font-bold tracking-[-0.035em] sm:text-3xl">Đặt lịch khám trực tuyến</h1>
-      <p class="mt-2 text-sm text-white/80">Chọn dịch vụ, chuyên khoa, ngày và giờ khám phù hợp với bạn.</p>
+      <p class="mt-2 text-sm text-white/80">Chọn chuyên khoa, bác sĩ và khung giờ khám nhanh chóng.</p>
     </div>
   </div>
 
@@ -77,7 +77,7 @@
     <section class="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
       @if (step() === 1) {
       <div class="border-b border-slate-200 bg-[#0284c7] px-6 py-4 text-base font-bold text-white sm:px-8">
-        Bước 1: Vui lòng chọn dịch vụ hoặc chuyên khoa khám
+        Bước 1: Chọn dịch vụ hoặc chuyên khoa khám
       </div>
       <div class="p-6 sm:p-8 space-y-6">
         <label class="relative block">
@@ -151,8 +151,9 @@
         }
       </div>
       } @else if (step() === 2) {
-      <div class="border-b border-slate-200 bg-[#0284c7] px-6 py-4 text-base font-bold text-white sm:px-8">Bước 2: Vui lòng chọn
-        bác sĩ, ngày và khung giờ khám</div>
+      <div class="border-b border-slate-200 bg-[#0284c7] px-6 py-4 text-base font-bold text-white sm:px-8">
+        Bước 2: Chọn bác sĩ, ngày và khung giờ khám
+      </div>
       <div class="p-6 sm:p-8">
         @if (!slotsLoading() && availableDoctors().length > 0) {
           <section class="mb-6 border-b border-slate-200 pb-6" aria-label="Chọn bác sĩ">
@@ -170,7 +171,7 @@
                 </span>
                 <span class="min-w-0">
                   <strong class="block text-sm text-slate-900">Tất cả bác sĩ</strong>
-                  <span class="mt-0.5 block text-xs text-slate-500">Chọn giờ phù hợp nhất</span>
+                  <span class="mt-0.5 block text-xs text-slate-500">Sắp xếp khung giờ tối ưu</span>
                 </span>
               </button>
               @for (doctor of availableDoctors(); track doctor.id) {
@@ -251,10 +252,9 @@
         </div><label class="grid gap-2 text-sm font-semibold text-slate-700">Người đi khám *<select
             class="min-h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm font-normal outline-none focus:border-[#0284c7] focus:ring-3 focus:ring-sky-500/15"
             formControlName="profileId">
-            <option value="">Dùng hồ sơ tài khoản</option>@for (profile of profiles; track profile.id) {<option
+            <option value="">Hồ sơ chính (Bản thân)</option>@for (profile of profiles; track profile.id) {<option
               [value]="profile.id">{{ profile.fullName }} · {{ profile.relationship }}</option>}
-          </select><span class="text-xs font-normal text-slate-500">{{ profilesLoading ? 'Đang tải hồ sơ...' : 'Chọn
-            đúng người sẽ đi khám.' }}</span></label>
+          </select></label>
         @if (selectedSlotDetails(); as slot) {
           <div data-testid="selected-doctor" class="flex items-center gap-3 rounded-lg border border-sky-200 bg-sky-50/60 px-4 py-3">
             <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-[#0284c7]">
@@ -267,8 +267,7 @@
           </div>
         }<label class="grid gap-2 text-sm font-semibold text-slate-700">Lý do khám *<textarea
             class="min-h-24 rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal outline-none focus:border-[#0284c7] focus:ring-3 focus:ring-sky-500/15"
-            formControlName="reason" maxlength="500" placeholder="Mô tả ngắn lý do bạn muốn khám (triệu chứng, nhu cầu...)"></textarea><span
-            class="text-xs font-normal text-slate-500">Nhập ngắn gọn để nhân viên y tế chuẩn bị tiếp nhận.</span></label>@if
+            formControlName="reason" maxlength="500" placeholder="Triệu chứng hoặc nhu cầu khám..."></textarea></label>@if
         (error) {<p class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">{{
           error }}</p>}<div
           class="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-between"><button

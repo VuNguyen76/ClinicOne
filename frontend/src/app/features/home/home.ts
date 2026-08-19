@@ -60,12 +60,12 @@ export class Home {
   ];
 
   readonly services: Service[] = [
-    { icon: 'person_search', title: 'Đặt khám theo bác sĩ', description: 'Tìm bác sĩ phù hợp với nhu cầu.', route: '/appointments/new' },
-    { icon: 'medical_services', title: 'Đặt khám theo chuyên khoa', description: 'Chọn chuyên khoa và lịch trống.', route: '/appointments/new' },
-    { icon: 'calendar_month', title: 'Đặt khám theo ngày', description: 'Chọn ngày thuận tiện để đi khám.', route: '/appointments/new' },
-    { icon: 'videocam', title: 'Tư vấn khám online', description: 'Trao đổi với bác sĩ từ xa.', route: '/support' },
-    { icon: 'home_health', title: 'Xét nghiệm tại nhà', description: 'Lấy mẫu nhanh tại nơi bạn ở.', route: '/login' },
-    { icon: 'vaccines', title: 'Tiêm chủng – vắc-xin', description: 'Đăng ký tiêm chủng chủ động.', route: '/login' },
+    { icon: 'person_search', title: 'Đặt khám theo bác sĩ', description: 'Đội ngũ bác sĩ chuyên khoa giàu kinh nghiệm.', route: '/appointments/new' },
+    { icon: 'medical_services', title: 'Đặt khám theo chuyên khoa', description: 'Đa dạng 7 chuyên khoa lâm sàng.', route: '/appointments/new' },
+    { icon: 'calendar_month', title: 'Đặt khám theo ngày', description: 'Tra cứu khung giờ trống linh hoạt.', route: '/appointments/new' },
+    { icon: 'videocam', title: 'Tư vấn khám online', description: 'Kết nối bác sĩ từ xa tiện lợi.', route: '/support' },
+    { icon: 'home_health', title: 'Xét nghiệm tại nhà', description: 'Lấy mẫu xét nghiệm tận nơi.', route: '/login' },
+    { icon: 'vaccines', title: 'Tiêm chủng – vắc-xin', description: 'Tiêm chủng và tầm soát định kỳ.', route: '/login' },
   ];
 
   readonly commonIssues = [
@@ -75,10 +75,10 @@ export class Home {
   ];
 
   readonly processSteps: ProcessStep[] = [
-    { order: '01', icon: 'touch_app', title: 'Chọn dịch vụ', description: 'Chọn hình thức khám phù hợp với nhu cầu của bạn.' },
-    { order: '02', icon: 'schedule', title: 'Chọn bác sĩ & thời gian', description: 'Xem lịch trống và giữ khung giờ thuận tiện.' },
-    { order: '03', icon: 'payments', title: 'Thanh toán', description: 'Hoàn tất phí khám theo hướng dẫn trên hệ thống.' },
-    { order: '04', icon: 'confirmation_number', title: 'Nhận phiếu khám', description: 'Lưu mã lịch hẹn để check-in và theo dõi lượt khám.' },
+    { order: '01', icon: 'touch_app', title: 'Chọn dịch vụ', description: 'Chọn gói dịch vụ hoặc chuyên khoa khám.' },
+    { order: '02', icon: 'schedule', title: 'Chọn bác sĩ & thời gian', description: 'Lựa chọn bác sĩ và giữ khung giờ khám.' },
+    { order: '03', icon: 'payments', title: 'Thanh toán', description: 'Xác nhận phí khám trực tuyến hoặc tại quầy.' },
+    { order: '04', icon: 'confirmation_number', title: 'Nhận phiếu khám', description: 'Lưu mã lịch hẹn để check-in nhận số thứ tự.' },
   ];
 
   readonly supportChannels: SupportItem[] = [
