@@ -1,12 +1,15 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { provideRouter } from '@angular/router';
+import { provideRouter, ActivatedRoute } from '@angular/router';
 import { Booking } from './appointments/booking/booking';
 import { RoomManagement } from './room-management/room-management';
 import { MedicationCatalogManagement } from './medication-catalog-management/medication-catalog-management';
 import { DiagnosisCatalogManagement } from './diagnosis-catalog-management/diagnosis-catalog-management';
 import { AppointmentsList } from './appointments/list/appointments-list';
+import { DoctorExamination } from './doctor-examination/doctor-examination';
+import { Rescheduling } from './rescheduling/rescheduling';
+import { ReconciliationManagement } from './reconciliation/reconciliation';
 
 describe('Empirical Adversarial Stress Suite - Challenger 1', () => {
 
@@ -334,3 +337,213 @@ describe('Empirical Adversarial Stress Suite - Challenger 1', () => {
     });
   });
 });
+
+describe('Empirical Adversarial Stress Suite - Challenger 2: Cross-Role Workflows', () => {
+
+  describe('Focus 1: Examination -> Medical Record Lifecycle & Concurrency', () => {
+    let fixture: ComponentFixture<DoctorExamination>;
+    let component: DoctorExamination;
+    let http: HttpTestingController;
+
+    beforeEach(async () => {
+      sessionStorage.setItem('clinicOneAccessToken', 'doctor-token');
+      sessionStorage.setItem('clinicOneStaffRole', 'DOCTOR');
+      await TestBed.configureTestingModule({
+        imports: [DoctorExamination],
+        providers: [
+          provideHttpClient(),
+          provideHttpClientTesting(),
+          provideRouter([{ path: 'doctor', component: DoctorExamination }]),
+          { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => 'ticket-stress-1' } } } },
+        ],
+      }).compileComponents();
+
+      fixture = TestBed.createComponent(DoctorExamination);
+      component = fixture.componentInstance;
+      http = TestBed.inject(HttpTestingController);
+      fixture.detectChanges();
+    });
+
+    afterEach(() => {
+      http.verify();
+      sessionStorage.clear();
+    });
+
+    it('adversarial test: stale recordVersion conflict shows optimistic locking error without clearing unsaved text', () => {
+      http.expectOne('/api/v1/doctor/examinations/ticket-stress-1').flush({
+        ticketId: 'ticket-stress-1', appointmentId: 'apt-1', examinationId: 'exam-1',
+        queueNumber: 5, roomName: 'Phòng Nội 01', appointmentCode: 'CLN-001', specialty: 'Nội tổng quát',
+        clinicServiceId: 'srv-1', doctorName: 'BS. Nguyễn An', appointmentDate: '2026-08-11',
+        startTime: '09:00:00', patientName: 'Nguyễn Thanh Vũ', patientDateOfBirth: '1990-01-01',
+        patientGender: 'Nam', patientPhone: '0912345678', reason: 'Đau đầu', examinationNotes: 'Khám ban đầu',
+        diagnosis: 'Đau đầu', conclusion: 'Theo dõi', treatmentPlan: 'Nghỉ ngơi',
+        prescription: null, followUpDate: null, followUpDays: null, followUpNote: null,
+        status: 'IN_PROGRESS', signedAt: null, draftSavedAt: '2026-08-11T09:30:00Z', recordVersion: 1,
+        requiresMedicalRecord: true, history: [], prescriptionLines: [],
+      });
+      fixture.detectChanges();
+
+      // Edit clinical notes
+      component['form'].patchValue({ examinationNotes: 'Ghi nhận sửa đổi từ tab 1' });
+      component['draftDirty'] = true;
+
+      // Trigger saveDraft
+      component['saveDraft']();
+      const saveReq = http.expectOne('/api/v1/doctor/examinations/ticket-stress-1/draft');
+      expect(saveReq.request.body.recordVersion).toBe(1);
+
+      // Simulate 409 Conflict from backend (stale record version)
+      saveReq.flush(
+        { code: 'MEDICAL_RECORD_VERSION_CONFLICT', message: 'Phiếu khám đã được cập nhật ở một cửa sổ khác. Hãy tải lại trang trước khi tiếp tục.' },
+        { status: 409, statusText: 'Conflict' }
+      );
+      fixture.detectChanges();
+
+      // Verify error is displayed and form value is retained
+      expect(component['error']()).toContain('Phiếu khám đã được cập nhật ở một cửa sổ khác');
+      expect(component['form'].controls.examinationNotes.value).toBe('Ghi nhận sửa đổi từ tab 1');
+    });
+
+    it('adversarial test: prescription line count strictly capped at 20 lines and quantity capped at 999', () => {
+      http.expectOne('/api/v1/doctor/examinations/ticket-stress-1').flush({
+        ticketId: 'ticket-stress-1', appointmentId: 'apt-1', examinationId: 'exam-1',
+        queueNumber: 5, roomName: 'Phòng Nội 01', appointmentCode: 'CLN-001', specialty: 'Nội tổng quát',
+        clinicServiceId: 'srv-1', doctorName: 'BS. Nguyễn An', appointmentDate: '2026-08-11',
+        startTime: '09:00:00', patientName: 'Nguyễn Thanh Vũ', patientDateOfBirth: '1990-01-01',
+        patientGender: 'Nam', patientPhone: '0912345678', reason: 'Đau đầu', examinationNotes: 'Khám ban đầu',
+        diagnosis: 'Đau đầu', conclusion: 'Theo dõi', treatmentPlan: 'Nghỉ ngơi',
+        prescription: null, followUpDate: null, followUpDays: null, followUpNote: null,
+        status: 'IN_PROGRESS', signedAt: null, draftSavedAt: null, recordVersion: 1,
+        requiresMedicalRecord: true, history: [], prescriptionLines: [],
+      });
+      fixture.detectChanges();
+
+      // Add up to 20 prescription lines
+      for (let i = 0; i < 20; i++) {
+        component['addPrescriptionLine']();
+      }
+      expect(component['prescriptionLines'].length).toBe(20);
+
+      // Attempting to add 21st line is ignored
+      component['addPrescriptionLine']();
+      expect(component['prescriptionLines'].length).toBe(20);
+
+      // Quantity clamping: setting > 999 is clamped to 999
+      component['prescriptionLines'].at(0).controls.quantity.setValue(1500);
+      component['limitPrescriptionQuantity'](0);
+      expect(component['prescriptionLines'].at(0).controls.quantity.value).toBe(999);
+      expect(component['notice']()).toContain('Số lượng thuốc tối đa 999');
+    });
+
+    it('adversarial test: wrong profile confirmation prompts for reason and calls rollback endpoint', () => {
+      http.expectOne('/api/v1/doctor/examinations/ticket-stress-1').flush({
+        ticketId: 'ticket-stress-1', appointmentId: 'apt-1', examinationId: 'exam-1',
+        queueNumber: 5, roomName: 'Phòng Nội 01', appointmentCode: 'CLN-001', specialty: 'Nội tổng quát',
+        clinicServiceId: 'srv-1', doctorName: 'BS. Nguyễn An', appointmentDate: '2026-08-11',
+        startTime: '09:00:00', patientName: 'Nguyễn Thanh Vũ', patientDateOfBirth: '1990-01-01',
+        patientGender: 'Nam', patientPhone: '0912345678', reason: 'Đau đầu', examinationNotes: 'Khám',
+        diagnosis: 'Đau đầu', conclusion: 'Theo dõi', treatmentPlan: 'Nghỉ ngơi',
+        prescription: null, followUpDate: null, followUpDays: null, followUpNote: null,
+        status: 'IN_PROGRESS', signedAt: null, draftSavedAt: null, recordVersion: 1,
+        requiresMedicalRecord: true, history: [], prescriptionLines: [],
+      });
+      fixture.detectChanges();
+
+      // Request wrong profile
+      component['requestWrongProfile']();
+      expect(component['confirmingWrongProfile']()).toBe(true);
+
+      // Submit with valid reason
+      component['wrongProfileReason'].set('Bác sĩ phát hiện đang mở nhầm hồ sơ người bệnh');
+      component['confirmWrongProfile']();
+
+      const req = http.expectOne('/api/v1/doctor/examinations/ticket-stress-1/wrong-profile');
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual({ reason: 'Bác sĩ phát hiện đang mở nhầm hồ sơ người bệnh' });
+      req.flush({});
+      fixture.detectChanges();
+
+      expect(component['confirmingWrongProfile']()).toBe(false);
+      expect(component['returningWrongProfile']()).toBe(false);
+    });
+
+    it('adversarial test: follow-up interval clamping to 365 days max', () => {
+      http.expectOne('/api/v1/doctor/examinations/ticket-stress-1').flush({
+        ticketId: 'ticket-stress-1', appointmentId: 'apt-1', examinationId: 'exam-1',
+        queueNumber: 5, roomName: 'Phòng Nội 01', appointmentCode: 'CLN-001', specialty: 'Nội tổng quát',
+        clinicServiceId: 'srv-1', doctorName: 'BS. Nguyễn An', appointmentDate: '2026-08-11',
+        startTime: '09:00:00', patientName: 'Nguyễn Thanh Vũ', patientDateOfBirth: '1990-01-01',
+        patientGender: 'Nam', patientPhone: '0912345678', reason: 'Đau đầu', examinationNotes: 'Khám',
+        diagnosis: 'Đau đầu', conclusion: 'Theo dõi', treatmentPlan: 'Nghỉ ngơi',
+        prescription: null, followUpDate: null, followUpDays: null, followUpNote: null,
+        status: 'IN_PROGRESS', signedAt: null, draftSavedAt: null, recordVersion: 1,
+        requiresMedicalRecord: true, history: [], prescriptionLines: [],
+      });
+      fixture.detectChanges();
+
+      component['form'].controls.followUpDays.setValue(400);
+      component['limitFollowUpDays']();
+      expect(component['form'].controls.followUpDays.value).toBe(365);
+      expect(component['notice']()).toContain('Số ngày tái khám tối đa 365');
+    });
+  });
+
+  describe('Focus 2: Rescheduling & Reconciliation Synchronization', () => {
+    let reschedFixture: ComponentFixture<Rescheduling>;
+    let reschedComponent: Rescheduling;
+    let reconFixture: ComponentFixture<ReconciliationManagement>;
+    let reconComponent: ReconciliationManagement;
+    let http: HttpTestingController;
+
+    beforeEach(async () => {
+      sessionStorage.setItem('clinicOneAccessToken', 'staff-token');
+      sessionStorage.setItem('clinicOneStaffRole', 'COORDINATOR');
+      await TestBed.configureTestingModule({
+        imports: [Rescheduling, ReconciliationManagement],
+        providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
+      }).compileComponents();
+
+      http = TestBed.inject(HttpTestingController);
+    });
+
+    afterEach(() => {
+      http.verify();
+      sessionStorage.clear();
+    });
+
+    it('adversarial test: pending reschedule cases count accurately combines OPEN, PENDING, and empty status', () => {
+      reschedFixture = TestBed.createComponent(Rescheduling);
+      reschedComponent = reschedFixture.componentInstance;
+      reschedFixture.detectChanges();
+
+      http.expectOne('/api/v1/admin/rescheduling').flush([
+        { id: 'c1', appointmentId: 'a1', appointmentCode: 'CL-01', specialty: 'Nội', oldDoctorName: 'BS A', oldDoctorId: 'd1', oldAppointmentDate: '2026-08-10', oldStartTime: '08:00:00', reason: 'Nghỉ', status: 'OPEN', newDoctorName: null, newDoctorId: null, newAppointmentDate: null, newStartTime: null, createdAt: '2026-08-10T00:00:00Z', resolvedAt: null },
+        { id: 'c2', appointmentId: 'a2', appointmentCode: 'CL-02', specialty: 'Ngoại', oldDoctorName: 'BS B', oldDoctorId: 'd2', oldAppointmentDate: '2026-08-10', oldStartTime: '09:00:00', reason: 'Nghỉ', status: 'PENDING', newDoctorName: null, newDoctorId: null, newAppointmentDate: null, newStartTime: null, createdAt: '2026-08-10T00:00:00Z', resolvedAt: null },
+        { id: 'c3', appointmentId: 'a3', appointmentCode: 'CL-03', specialty: 'Mắt', oldDoctorName: 'BS C', oldDoctorId: 'd3', oldAppointmentDate: '2026-08-10', oldStartTime: '10:00:00', reason: 'Nghỉ', status: 'RESOLVED', newDoctorName: 'BS D', newDoctorId: 'd4', newAppointmentDate: '2026-08-11', newStartTime: '10:00:00', createdAt: '2026-08-10T00:00:00Z', resolvedAt: '2026-08-10T01:00:00Z' },
+      ]);
+      http.expectOne('/api/v1/admin/rescheduling/c1/alternatives').flush([]);
+      reschedFixture.detectChanges();
+
+      expect(reschedComponent['pendingCasesCount']()).toBe(2);
+      expect(reschedComponent['resolvedCasesCount']()).toBe(1);
+      expect(reschedComponent['totalCasesCount']()).toBe(3);
+    });
+
+    it('adversarial test: reconciliation switching to REPLAY_LOG switches referenceType to BUSINESS_LOG', () => {
+      reconFixture = TestBed.createComponent(ReconciliationManagement);
+      reconComponent = reconFixture.componentInstance;
+      reconFixture.detectChanges();
+
+      http.expectOne('/api/v1/admin/reconciliations?status=OPEN').flush([
+        { id: 'inc-1', incidentCode: 'INC-2026-001', entityType: 'APPOINTMENT', entityId: 'a1', eventId: 'ev-1', reason: 'Lỗi đồng bộ', assignee: 'coordinator', status: 'OPEN', resolutionAction: null, referenceType: 'INCIDENT', referenceValue: 'INC-2026-001', resultNote: null, closedBy: null, closedAt: null, createdAt: '2026-08-10T00:00:00Z' },
+      ]);
+      reconFixture.detectChanges();
+
+      expect(reconComponent['referenceType']()).toBe('INCIDENT');
+      reconComponent['updateAction']('REPLAY_LOG');
+      expect(reconComponent['action']()).toBe('REPLAY_LOG');
+      expect(reconComponent['referenceType']()).toBe('BUSINESS_LOG');
+    });
+  });
+});
+
