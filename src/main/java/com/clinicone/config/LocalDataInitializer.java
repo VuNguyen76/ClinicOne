@@ -134,43 +134,34 @@ public class LocalDataInitializer implements CommandLineRunner {
         StaffAccount admin = ensureStaff("admin", adminPassword, "Quản trị viên", StaffRole.ADMIN);
         StaffAccount coordinator = ensureStaff("coordinator", adminPassword, "Điều phối viên Trần Hoàng", StaffRole.COORDINATOR);
         StaffAccount receptionist = ensureStaff("reception", receptionistPassword, "Nhân viên tiếp nhận", StaffRole.RECEPTIONIST);
-        StaffAccount doctor = ensureStaff("doctor", doctorPassword, "Bác sĩ Nguyễn An", StaffRole.DOCTOR);
-        StaffAccount secondDoctor = ensureStaff("doctor2", doctorPassword, "Bác sĩ Trần Minh", StaffRole.DOCTOR);
-        StaffAccount thirdDoctor = ensureStaff("doctor3", doctorPassword, "Bác sĩ Lê Thu Hà", StaffRole.DOCTOR);
-        DoctorProfile profile = profileRepository.findByStaffAccount_Id(doctor.getId()).orElse(null);
-        ClinicRoom room;
-        if (profile == null) {
-            room = ensureRoom(DEFAULT_ROOM_CODE, "Phòng Khám Tổng Quát 01");
-            profile = profileRepository.save(DoctorProfile.create(doctor, DEFAULT_SPECIALTY, room));
-        } else {
-            room = profile.getRoom();
-        }
-        DoctorProfile secondProfile = profileRepository.findByStaffAccount_Id(secondDoctor.getId()).orElse(null);
-        ClinicRoom secondRoom;
-        if (secondProfile == null) {
-            secondRoom = ensureRoom("TQ-02", "Phòng Khám Tổng Quát 02");
-            secondProfile = profileRepository.save(DoctorProfile.create(secondDoctor, DEFAULT_SPECIALTY, secondRoom));
-        } else {
-            secondRoom = secondProfile.getRoom();
-        }
-        DoctorProfile thirdProfile = profileRepository.findByStaffAccount_Id(thirdDoctor.getId()).orElse(null);
-        ClinicRoom thirdRoom;
-        if (thirdProfile == null) {
-            thirdRoom = ensureRoom("TQ-03", "Phòng Khám Tổng Quát 03");
-            thirdProfile = profileRepository.save(DoctorProfile.create(thirdDoctor, DEFAULT_SPECIALTY, thirdRoom));
-        } else {
-            thirdRoom = thirdProfile.getRoom();
-        }
-        ensureWeekdaySchedules(profile);
-        ensureWeekdaySchedules(secondProfile);
-        ensureWeekdaySchedules(thirdProfile);
-        ensureClinicService(List.of(secondProfile, thirdProfile));
 
-        // 1. Seed Essential Medications, ICD-10 Diagnoses, Specialties, and Medical Record Templates
+        // 1. Seed Essential Specialties, Medications, ICD-10 Diagnoses, and Medical Record Templates
         ensureSpecialties();
         ensureMedications();
         ensureDiagnoses();
         ensureTemplates();
+
+        // 2. Seed Doctors, Rooms, and Schedules across all specialties
+        DoctorProfile docTongQuat = ensureDoctorProfile("doctor", "Bác sĩ Nguyễn An", "Khám Tổng Quát", "TQ-01", "Phòng Khám Tổng Quát 01");
+        DoctorProfile docTimMach = ensureDoctorProfile("doctor2", "Bác sĩ Trần Minh", "Khám Tim Mạch", "TM-01", "Phòng Khám Tim Mạch 01");
+        DoctorProfile docHoHap = ensureDoctorProfile("doctor3", "Bác sĩ Lê Thu Hà", "Khám Hô Hấp", "HH-01", "Phòng Khám Hô Hấp 01");
+        DoctorProfile docTieuHoa = ensureDoctorProfile("doctor4", "Bác sĩ Phạm Quốc Dũng", "Khám Tiêu Hoá - Gan Mật", "TH-01", "Phòng Khám Tiêu Hóa 01");
+        DoctorProfile docNhiKhoa = ensureDoctorProfile("doctor5", "Bác sĩ Hoàng Thanh Nga", "Khám Nhi Khoa", "NK-01", "Phòng Khám Nhi Khoa 01");
+        DoctorProfile docTMH = ensureDoctorProfile("doctor6", "Bác sĩ Vũ Đình Toàn", "Khám Tai Mũi Họng", "TMH-01", "Phòng Khám Tai Mũi Họng 01");
+        DoctorProfile docMat = ensureDoctorProfile("doctor7", "Bác sĩ Đặng Mai Lan", "Khám Mắt", "MAT-01", "Phòng Khám Mắt 01");
+
+        // 3. Seed Clinic Services for each specialty
+        ensureOneService("Khám tổng quát ClinicOne", "Khám Tổng Quát", "Khám thường", 30, List.of(docTongQuat));
+        ensureOneService("Khám chuyên sâu Tim mạch", "Khám Tim Mạch", "Khám chuyên khoa", 30, List.of(docTimMach));
+        ensureOneService("Khám chuyên khoa Hô hấp", "Khám Hô Hấp", "Khám chuyên khoa", 30, List.of(docHoHap));
+        ensureOneService("Khám Tiêu hóa & Gan mật", "Khám Tiêu Hoá - Gan Mật", "Khám chuyên khoa", 30, List.of(docTieuHoa));
+        ensureOneService("Khám & Tư vấn Nhi khoa", "Khám Nhi Khoa", "Khám chuyên khoa", 30, List.of(docNhiKhoa));
+        ensureOneService("Khám & Nội soi Tai Mũi Họng", "Khám Tai Mũi Họng", "Khám chuyên khoa", 30, List.of(docTMH));
+        ensureOneService("Khám khúc xạ & Mắt chuyên sâu", "Khám Mắt", "Khám chuyên khoa", 30, List.of(docMat));
+
+        DoctorProfile profile = docTongQuat;
+        ClinicRoom room = profile.getRoom();
+        StaffAccount doctor = docTongQuat.getStaffAccount();
 
         // 2. Seed Patients & Sub-profiles
         PatientAccount patient1 = ensurePatient("0900000001", "Nguyễn Thanh Vũ");
@@ -214,8 +205,8 @@ public class LocalDataInitializer implements CommandLineRunner {
         ensureActiveQueueScenario(patient3, profile3, doctor, profile, room, today, 3, LocalTime.of(9, 30), "TODAY-TQ01-003", QueueScenario.PRIORITY_WAITING);
         ensureActiveQueueScenario(patient1, childProfile, doctor, profile, room, today, 4, LocalTime.of(8, 0), "TODAY-TQ01-004", QueueScenario.COMPLETED);
 
-        log.info("Local bootstrap ready: admin={}, receptionist={}, doctors=[{}, {}, {}], seeded clinical catalogs, templates, 4 queue tickets & histories",
-                admin.getUsername(), receptionist.getUsername(), doctor.getUsername(), secondDoctor.getUsername(), thirdDoctor.getUsername());
+        log.info("Local bootstrap ready: admin={}, receptionist={}, 7 specialty doctors seeded with schedules, services, catalogs, templates, and active tickets",
+                admin.getUsername(), receptionist.getUsername());
     }
 
     private void ensureSpecialties() {
@@ -459,30 +450,53 @@ public class LocalDataInitializer implements CommandLineRunner {
         return staffRepository.save(account);
     }
 
-    private ClinicRoom ensureRoom(String code, String name) {
-        return roomRepository.findAllByOrderByCodeAsc().stream()
-                .filter(item -> item.getCode().equalsIgnoreCase(code))
-                .findFirst()
-                .orElseGet(() -> roomRepository.save(ClinicRoom.create(
-                        code, name, DEFAULT_SPECIALTY)));
+    private DoctorProfile ensureDoctorProfile(String username, String fullName, String specialty, String roomCode, String roomName) {
+        StaffAccount staff = ensureStaff(username, doctorPassword, fullName, StaffRole.DOCTOR);
+        DoctorProfile docProfile = profileRepository.findByStaffAccount_Id(staff.getId()).orElse(null);
+        ClinicRoom room = ensureRoom(roomCode, roomName, specialty);
+        if (docProfile == null) {
+            docProfile = profileRepository.save(DoctorProfile.create(staff, specialty, room));
+        } else {
+            docProfile.updateAssignment(specialty, room);
+            docProfile = profileRepository.save(docProfile);
+        }
+        ensureWeekdaySchedules(docProfile);
+        return docProfile;
     }
 
-    private ClinicService ensureClinicService(List<DoctorProfile> doctors) {
-        String serviceName = "Khám tổng quát ClinicOne";
-        String visitType = "Khám thường";
+    private ClinicRoom ensureRoom(String code, String name, String specialty) {
+        ClinicRoom room = roomRepository.findAllByOrderByCodeAsc().stream()
+                .filter(item -> item.getCode().equalsIgnoreCase(code))
+                .findFirst()
+                .orElse(null);
+        if (room == null) {
+            return roomRepository.save(ClinicRoom.create(code, name, specialty));
+        }
+        room.update(code, name, specialty);
+        room.setActive(true);
+        return roomRepository.save(room);
+    }
+
+    private ClinicRoom ensureRoom(String code, String name) {
+        return ensureRoom(code, name, DEFAULT_SPECIALTY);
+    }
+
+    private ClinicService ensureOneService(String serviceName, String specialty, String visitType, int duration, List<DoctorProfile> doctors) {
         ClinicService service = clinicServiceRepository.findAllByOrderByNameAsc().stream()
-                .filter(item -> item.getName().equalsIgnoreCase(serviceName)
-                        && item.getSpecialty().equalsIgnoreCase(DEFAULT_SPECIALTY)
-                        && item.getVisitType().equalsIgnoreCase(visitType))
+                .filter(item -> item.getName().equalsIgnoreCase(serviceName))
                 .findFirst()
                 .orElse(null);
         if (service == null) {
             return clinicServiceRepository.save(ClinicService.create(
-                    serviceName, DEFAULT_SPECIALTY, visitType, 30, doctors));
+                    serviceName, specialty, visitType, duration, doctors));
         }
-        service.update(serviceName, DEFAULT_SPECIALTY, visitType, 30, doctors);
+        service.update(serviceName, specialty, visitType, duration, doctors);
         service.setActive(true);
         return clinicServiceRepository.save(service);
+    }
+
+    private ClinicService ensureClinicService(List<DoctorProfile> doctors) {
+        return ensureOneService("Khám tổng quát ClinicOne", DEFAULT_SPECIALTY, "Khám thường", 30, doctors);
     }
 
     private void ensureWeekdaySchedules(DoctorProfile profile) {
