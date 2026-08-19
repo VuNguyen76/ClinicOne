@@ -66,7 +66,7 @@
         <mat-icon class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 !h-4 !w-4 !text-[18px] text-slate-400">search</mat-icon>
         <input
           type="text"
-          class="w-full rounded-xl border border-slate-200 bg-white py-2 pl-10 pr-8 text-xs text-slate-800 placeholder-slate-400 outline-none transition focus:border-[#0e3d48] focus:ring-1 focus:ring-[#0e3d48] shadow-2xs"
+          class="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-8 text-xs text-slate-800 placeholder-slate-400 outline-none transition focus:border-[#0e3d48] focus:ring-1 focus:ring-[#0e3d48] shadow-2xs"
           placeholder="Tìm kiếm theo tên, tài khoản, phòng khám..."
           [value]="searchTerm()"
           (input)="searchTerm.set($any($event.target).value)"
@@ -85,7 +85,7 @@
       <button
         data-testid="open-create-doctor"
         type="button"
-        class="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0e3d48] px-5 py-2.5 text-xs font-semibold text-white shadow-xs transition hover:bg-[#082830]"
+        class="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0e3d48] px-5 py-2.5 text-xs font-semibold text-white shadow-xs transition hover:bg-[#082830] cursor-pointer"
         (click)="openCreateDoctor()"
       >
         <mat-icon class="!h-4 !w-4 !text-[18px]">add</mat-icon>
@@ -93,264 +93,317 @@
       </button>
     </div>
 
-    <!-- 3. Main DataGrid & Right Slide-Over Panel Split -->
+    <!-- 3. Main Full-Width Doctor List Table -->
     @if (loading()) {
       <div class="grid min-h-64 place-items-center rounded-2xl border border-slate-100 bg-white text-xs text-slate-500 shadow-xs">
         Đang tải danh sách bác sĩ...
       </div>
     } @else {
-      <div class="grid gap-6 transition-all" [class.lg:grid-cols-3]="isDrawerOpen()">
-        <!-- Main Full-Width DataGrid Table -->
-        <section class="rounded-2xl border border-slate-100 bg-white shadow-xs overflow-hidden" [class.lg:col-span-2]="isDrawerOpen()">
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs whitespace-nowrap">
-              <thead>
-                <tr class="border-b border-slate-100 text-[11px] font-semibold text-slate-500 uppercase tracking-wider bg-slate-50/50">
-                  <th class="w-10 px-4 py-3.5 text-center">
+      <section class="rounded-2xl border border-slate-100 bg-white shadow-xs overflow-hidden w-full">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs whitespace-nowrap">
+            <thead>
+              <tr class="border-b border-slate-100 text-[11px] font-semibold text-slate-500 uppercase tracking-wider bg-slate-50/50">
+                <th class="w-10 px-4 py-3.5 text-center">
+                  <input
+                    type="checkbox"
+                    class="rounded border-slate-300 text-[#0e3d48] focus:ring-[#0e3d48]"
+                    [checked]="isAllSelected()"
+                    (change)="toggleSelectAll()"
+                  />
+                </th>
+                <th class="px-4 py-3.5">Tên bác sĩ <span class="inline-block text-[10px] text-slate-400">↕</span></th>
+                <th class="px-4 py-3.5">Chuyên khoa</th>
+                <th class="px-4 py-3.5">Phòng khám phân công</th>
+                <th class="px-4 py-3.5">Lịch làm việc tuần</th>
+                <th class="px-4 py-3.5">Trạng thái</th>
+                <th class="px-4 py-3.5 text-right">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-50">
+              @for (doctor of filteredDoctors(); track doctor.staffId) {
+                <tr
+                  data-testid="doctor-row"
+                  class="cursor-pointer transition hover:bg-slate-50/70"
+                  (click)="openScheduleDrawer(doctor)"
+                >
+                  <!-- Checkbox -->
+                  <td class="px-4 py-3 text-center" (click)="$event.stopPropagation()">
                     <input
                       type="checkbox"
                       class="rounded border-slate-300 text-[#0e3d48] focus:ring-[#0e3d48]"
-                      [checked]="isAllSelected()"
-                      (change)="toggleSelectAll()"
+                      [checked]="selectedDoctorIds().has(doctor.staffId)"
+                      (click)="toggleSelectDoctor(doctor.staffId, $event)"
                     />
-                  </th>
-                  <th class="px-4 py-3.5">Tên bác sĩ <span class="inline-block text-[10px] text-slate-400">↕</span></th>
-                  <th class="px-4 py-3.5">Chuyên khoa</th>
-                  <th class="px-4 py-3.5">Phòng khám phân công</th>
-                  <th class="px-4 py-3.5">Lịch làm việc tuần</th>
-                  <th class="px-4 py-3.5">Trạng thái</th>
-                  <th class="px-4 py-3.5 text-right">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-50">
-                @for (doctor of filteredDoctors(); track doctor.staffId) {
-                  <tr
-                    data-testid="doctor-row"
-                    class="cursor-pointer transition hover:bg-slate-50/70"
-                    [class.bg-sky-50/40]="selectedDoctor()?.staffId === doctor.staffId"
-                    (click)="selectDoctor(doctor)"
-                  >
-                    <!-- Checkbox -->
-                    <td class="px-4 py-3 text-center" (click)="$event.stopPropagation()">
-                      <input
-                        type="checkbox"
-                        class="rounded border-slate-300 text-[#0e3d48] focus:ring-[#0e3d48]"
-                        [checked]="selectedDoctorIds().has(doctor.staffId)"
-                        (click)="toggleSelectDoctor(doctor.staffId, $event)"
-                      />
-                    </td>
+                  </td>
 
-                    <!-- Doctor Name & Avatar -->
-                    <td class="px-4 py-3">
-                      <div class="flex items-center gap-3">
-                        <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-slate-100 font-mono text-xs font-bold text-slate-700">
-                          {{ doctor.fullName.slice(0, 1) }}
-                        </span>
-                        <div>
-                          <strong class="block text-xs font-semibold text-slate-900">{{ doctor.fullName }}</strong>
-                          <span class="block font-mono text-[10px] text-slate-400">{{ doctor.username }}</span>
-                        </div>
-                      </div>
-                    </td>
-
-                    <!-- Specialty Pill Badge -->
-                    <td class="px-4 py-3">
-                      @if (doctor.specialty) {
-                        <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium {{ getSpecialtyBadgeClass(doctor.specialty) }}">
-                          {{ doctor.specialty }}
-                        </span>
-                      } @else {
-                        <span class="text-slate-400 italic">Chưa phân công</span>
-                      }
-                    </td>
-
-                    <!-- Assigned Room -->
-                    <td class="px-4 py-3 font-medium text-slate-700">
-                      {{ doctor.roomCode ? (doctor.roomCode + ' - ' + doctor.roomName) : 'Chưa gán phòng' }}
-                    </td>
-
-                    <!-- Weekly Schedule Pill -->
-                    <td class="px-4 py-3">
-                      <span class="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-0.5 font-mono text-[10px] font-medium text-slate-700">
-                        <span class="font-bold">Thứ 2 - Thứ 6</span>
-                        <span class="text-slate-300">|</span>
-                        <span>08:00-17:00</span>
+                  <!-- Doctor Name & Avatar -->
+                  <td class="px-4 py-3">
+                    <div class="flex items-center gap-3">
+                      <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-slate-100 font-mono text-xs font-bold text-slate-700">
+                        {{ doctor.fullName.slice(0, 1) }}
                       </span>
-                    </td>
-
-                    <!-- Status Indicator -->
-                    <td class="px-4 py-3">
-                      <span class="inline-flex items-center gap-1.5 font-medium text-[11px]" [class.text-emerald-600]="doctor.assigned" [class.text-amber-600]="!doctor.assigned">
-                        <span class="h-1.5 w-1.5 rounded-full" [class.bg-emerald-500]="doctor.assigned" [class.bg-amber-500]="!doctor.assigned"></span>
-                        <span>{{ doctor.assigned ? 'Đã phân công' : 'Chưa phân công' }}</span>
-                      </span>
-                    </td>
-
-                    <!-- Actions (Standardized ERP Icon Buttons) -->
-                    <td class="px-4 py-3 text-right" (click)="$event.stopPropagation()">
-                      <div class="flex items-center justify-end gap-1.5">
-                        <button
-                          type="button"
-                          class="erp-btn-icon-accent"
-                          title="Phân công phòng khám"
-                          (click)="selectDoctor(doctor)"
-                        >
-                          <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">edit</mat-icon>
-                        </button>
-                        <button
-                          type="button"
-                          class="erp-btn-icon"
-                          title="Lịch làm việc theo tuần"
-                          (click)="selectDoctor(doctor)"
-                        >
-                          <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">calendar_month</mat-icon>
-                        </button>
-                        <button
-                          type="button"
-                          class="erp-btn-icon"
-                          title="Khóa / Mở khóa tài khoản"
-                          (click)="selectDoctor(doctor)"
-                        >
-                          <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">lock_outline</mat-icon>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                } @empty {
-                  <tr>
-                    <td colspan="7" class="px-4 py-12 text-center text-xs text-slate-500">
                       <div>
-                        <p class="font-medium text-slate-700">Chưa có tài khoản bác sĩ nào.</p>
-                        <button
-                          data-testid="empty-create-doctor"
-                          type="button"
-                          class="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-[#0e3d48] px-4 py-2 text-xs font-semibold text-white"
-                          (click)="openCreateDoctor()"
-                        >
-                          <mat-icon class="!h-4 !w-4 !text-[18px]">add</mat-icon>
-                          <span>Thêm bác sĩ</span>
-                        </button>
+                        <strong class="block text-xs font-semibold text-slate-900">{{ doctor.fullName }}</strong>
+                        <span class="block font-mono text-[10px] text-slate-400">{{ doctor.username }}</span>
                       </div>
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        </section>
+                    </div>
+                  </td>
 
-        <!-- 4. Right Slide-Over Panel (Phân công phòng & Lịch làm việc) -->
-        @if (isDrawerOpen() && selectedDoctor(); as doctor) {
-          <aside class="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm h-fit space-y-5 lg:col-span-1">
-            <!-- Drawer Header -->
-            <div class="flex items-center justify-between border-b border-slate-100 pb-4">
-              <div class="flex items-center gap-3">
-                <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-slate-100 font-mono text-sm font-bold text-slate-700">
-                  {{ doctor.fullName.slice(0, 1) }}
-                </span>
-                <div>
-                  <h3 class="text-xs font-bold text-slate-900">{{ doctor.fullName }}</h3>
-                  <p class="text-[11px] text-slate-400">Bác sĩ chuyên khoa</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                class="erp-btn-icon"
-                (click)="closeDrawer()"
-                title="Đóng"
-              >
-                <mat-icon class="!h-4 !w-4 !text-[16px]">close</mat-icon>
-              </button>
-            </div>
-
-            <!-- Section 1: Single Room Assignment Dropdown (Tự động gán khoa theo phòng) -->
-            <form class="space-y-3" [formGroup]="assignmentForm" (ngSubmit)="$event.preventDefault(); saveAssignment()">
-              <div>
-                <label class="block text-xs font-semibold text-slate-700">Phân công phòng khám</label>
-                <div class="mt-1.5">
-                  <select formControlName="roomId" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-800 outline-none focus:border-[#0e3d48]">
-                    <option value="">Chọn phòng khám</option>
-                    @for (room of rooms(); track room.id) {
-                      <option [value]="room.id">{{ room.code }} · {{ room.name }} ({{ room.specialty }})</option>
+                  <!-- Specialty Pill Badge -->
+                  <td class="px-4 py-3">
+                    @if (doctor.specialty) {
+                      <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium {{ getSpecialtyBadgeClass(doctor.specialty) }}">
+                        {{ doctor.specialty }}
+                      </span>
+                    } @else {
+                      <span class="text-slate-400 italic">Chưa phân công</span>
                     }
-                  </select>
-                </div>
-              </div>
+                  </td>
 
-              <button
-                type="submit"
-                class="w-full rounded-xl bg-[#0e3d48] py-2.5 text-xs font-semibold text-white transition hover:bg-[#082830] disabled:opacity-50"
-                [disabled]="saving()"
-              >
-                {{ saving() ? 'Đang lưu...' : 'Lưu phân công' }}
-              </button>
-            </form>
+                  <!-- Assigned Room -->
+                  <td class="px-4 py-3 font-medium text-slate-700">
+                    {{ doctor.roomCode ? (doctor.roomCode + ' - ' + doctor.roomName) : 'Chưa gán phòng' }}
+                  </td>
 
-            <!-- Section 2: Weekly Schedule Day Chips -->
-            <div class="space-y-2 border-t border-slate-100 pt-4">
-              <label class="block text-xs font-semibold text-slate-700">Lịch làm việc theo tuần</label>
-              <div class="flex flex-wrap gap-1.5">
-                @for (preset of dayPresets; track preset.label) {
-                  <button
-                    type="button"
-                    class="rounded-full border px-3 py-1 text-[11px] font-medium transition cursor-pointer"
-                    [class.bg-[#0e3d48]]="selectedDayPreset() === preset.days[0]"
-                    [class.text-white]="selectedDayPreset() === preset.days[0]"
-                    [class.border-[#0e3d48]]="selectedDayPreset() === preset.days[0]"
-                    [class.bg-slate-100]="selectedDayPreset() !== preset.days[0]"
-                    [class.text-slate-600]="selectedDayPreset() !== preset.days[0]"
-                    [class.border-transparent]="selectedDayPreset() !== preset.days[0]"
-                    (click)="applyDayPreset(preset)"
-                  >
-                    {{ preset.label }}
-                  </button>
-                }
-              </div>
-            </div>
-
-            <!-- Section 3: Timeslot Picker Form -->
-            <form class="space-y-3 border-t border-slate-100 pt-4" [formGroup]="scheduleForm" (ngSubmit)="$event.preventDefault(); addSchedule()">
-              <label class="block text-xs font-semibold text-slate-700">Khung giờ làm việc</label>
-              <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-                <input formControlName="startTime" type="time" class="w-full rounded-xl border border-slate-200 px-2.5 py-2 font-mono text-xs text-slate-800 outline-none focus:border-[#0e3d48]" />
-                <span class="text-slate-400 font-bold">-</span>
-                <input formControlName="endTime" type="time" class="w-full rounded-xl border border-slate-200 px-2.5 py-2 font-mono text-xs text-slate-800 outline-none focus:border-[#0e3d48]" />
-              </div>
-
-              <div class="flex items-center gap-2">
-                <input formControlName="slotDurationMinutes" type="number" min="15" max="180" step="15" class="w-24 rounded-xl border border-slate-200 px-2.5 py-2 font-mono text-xs text-slate-800 outline-none focus:border-[#0e3d48]" placeholder="Phút" />
-                <button
-                  type="submit"
-                  class="flex-1 rounded-xl border border-[#0e3d48] bg-transparent py-2 text-xs font-semibold text-[#0e3d48] transition hover:bg-[#0e3d48] hover:text-white disabled:opacity-50"
-                  [disabled]="!doctor.assigned || saving()"
-                >
-                  + Thêm ca làm
-                </button>
-              </div>
-
-              <!-- List of existing slots with red delete icon -->
-              <div class="space-y-1.5 max-h-48 overflow-y-auto pt-2">
-                @for (slot of schedules(); track slot.id) {
-                  <div class="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-xs">
-                    <span class="font-mono text-slate-700 font-medium">{{ dayLabel(slot.dayOfWeek) }}: {{ slot.startTime.slice(0, 5) }} - {{ slot.endTime.slice(0, 5) }} ({{ slot.slotDurationMinutes }}p)</span>
+                  <!-- Weekly Schedule (Clickable Pill) -->
+                  <td class="px-4 py-3">
                     <button
                       type="button"
-                      class="erp-btn-icon-danger !h-6 !w-6"
-                      [attr.aria-label]="'Xóa ca ' + dayLabel(slot.dayOfWeek)"
-                      (click)="removeSchedule(slot)"
-                      title="Xóa ca làm việc"
+                      class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 hover:bg-sky-50 hover:border-sky-300 px-3 py-1 font-mono text-[11px] font-medium text-slate-700 hover:text-sky-700 transition cursor-pointer group shadow-2xs"
+                      (click)="openScheduleDrawer(doctor); $event.stopPropagation()"
+                      title="Bấm để chỉnh sửa lịch làm việc của bác sĩ"
                     >
-                      <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">delete_outline</mat-icon>
+                      <mat-icon class="!h-3.5 !w-3.5 !text-[14px] text-slate-400 group-hover:text-sky-600">calendar_month</mat-icon>
+                      <span class="font-semibold text-slate-800 group-hover:text-sky-800">Thứ 2 - Thứ 6</span>
+                      <span class="text-slate-300">|</span>
+                      <span class="text-slate-600 group-hover:text-sky-700">08:00-17:00</span>
                     </button>
-                  </div>
-                }
-              </div>
-            </form>
-          </aside>
-        }
-      </div>
+                  </td>
+
+                  <!-- Status Indicator -->
+                  <td class="px-4 py-3">
+                    <span class="inline-flex items-center gap-1.5 font-medium text-[11px]" [class.text-emerald-600]="doctor.assigned" [class.text-amber-600]="!doctor.assigned">
+                      <span class="h-1.5 w-1.5 rounded-full" [class.bg-emerald-500]="doctor.assigned" [class.bg-amber-500]="!doctor.assigned"></span>
+                      <span>{{ doctor.assigned ? 'Đã phân công' : 'Chưa phân công' }}</span>
+                    </span>
+                  </td>
+
+                  <!-- Actions (Standardized ERP Icon Buttons) -->
+                  <td class="px-4 py-3 text-right" (click)="$event.stopPropagation()">
+                    <div class="flex items-center justify-end gap-1.5">
+                      <button
+                        type="button"
+                        class="erp-btn-icon-accent"
+                        title="Phân công & Lịch làm việc"
+                        (click)="openScheduleDrawer(doctor)"
+                      >
+                        <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">edit</mat-icon>
+                      </button>
+                      <button
+                        type="button"
+                        class="erp-btn-icon"
+                        title="Lịch làm việc theo tuần"
+                        (click)="openScheduleDrawer(doctor)"
+                      >
+                        <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">calendar_month</mat-icon>
+                      </button>
+                      <button
+                        type="button"
+                        class="erp-btn-icon"
+                        title="Khóa / Mở khóa tài khoản"
+                        (click)="openScheduleDrawer(doctor)"
+                      >
+                        <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">lock_outline</mat-icon>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="7" class="px-4 py-12 text-center text-xs text-slate-500">
+                    <div>
+                      <p class="font-medium text-slate-700">Chưa có tài khoản bác sĩ nào.</p>
+                      <button
+                        data-testid="empty-create-doctor"
+                        type="button"
+                        class="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-[#0e3d48] px-4 py-2 text-xs font-semibold text-white"
+                        (click)="openCreateDoctor()"
+                      >
+                        <mat-icon class="!h-4 !w-4 !text-[18px]">add</mat-icon>
+                        <span>Thêm bác sĩ</span>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
     }
   </div>
+
+  <!-- 4. Right Slide-Over Drawer (Trượt từ bên phải vào khi click lịch) -->
+  @if (isDrawerOpen()) {
+    @if (selectedDoctor(); as doctor) {
+      <!-- Backdrop Overlay -->
+      <div
+        class="fixed inset-0 z-40 bg-slate-900/25 backdrop-blur-2xs transition-opacity"
+        (click)="closeDrawer()"
+        aria-hidden="true"
+      ></div>
+
+    <!-- Slide-in Drawer -->
+    <aside
+      class="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col bg-white shadow-2xl transition-transform duration-300 ease-out"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-label]="'Lịch làm việc của ' + doctor.fullName"
+    >
+      <!-- Drawer Header -->
+      <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4 bg-slate-50/70">
+        <div>
+          <h3 class="text-base font-bold text-slate-900">{{ doctor.fullName }}</h3>
+          <p class="text-xs text-slate-500 font-medium mt-0.5">
+            Bác sĩ · {{ doctor.specialty || 'Chưa phân chuyên khoa' }} · {{ doctor.roomCode || 'Chưa gán phòng' }}
+          </p>
+        </div>
+        <button
+          type="button"
+          class="erp-btn-icon !h-8 !w-8 text-slate-400 hover:text-slate-700"
+          (click)="closeDrawer()"
+          title="Đóng (X)"
+          aria-label="Đóng ngăn chỉnh lịch"
+        >
+          <mat-icon class="!h-5 !w-5 !text-[20px]">close</mat-icon>
+        </button>
+      </div>
+
+      <!-- Drawer Scrollable Content -->
+      <div class="flex-1 overflow-y-auto p-6 space-y-6">
+        <!-- Section 1: Assignment -->
+        <form class="space-y-3.5" [formGroup]="assignmentForm" (ngSubmit)="$event.preventDefault(); saveAssignment()">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-[#0e3d48]">Phân công chuyên môn</h4>
+          <div class="space-y-2">
+            <label class="grid gap-1">
+              <span class="text-[11px] font-semibold text-slate-600">Chuyên khoa</span>
+              <select formControlName="specialty" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus:border-[#0e3d48]">
+                <option value="">Chọn chuyên khoa</option>
+                @for (specialty of specialties(); track specialty.code) {
+                  <option [value]="specialty.name">{{ specialty.name }}</option>
+                }
+              </select>
+            </label>
+
+            <label class="grid gap-1">
+              <span class="text-[11px] font-semibold text-slate-600">Phòng khám</span>
+              <select formControlName="roomId" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus:border-[#0e3d48]">
+                <option value="">Chọn phòng khám</option>
+                @for (room of availableRooms(); track room.id) {
+                  <option [value]="room.id">{{ room.code }} · {{ room.name }}</option>
+                }
+              </select>
+            </label>
+          </div>
+
+          <button
+            type="submit"
+            class="w-full rounded-xl bg-[#0e3d48] py-2.5 text-xs font-semibold text-white transition hover:bg-[#082830] disabled:opacity-50 cursor-pointer shadow-xs"
+            [disabled]="saving()"
+          >
+            {{ saving() ? 'Đang lưu...' : 'Lưu phân công' }}
+          </button>
+        </form>
+
+        <!-- Section 2: Weekly Schedule Preset Chips -->
+        <div class="space-y-2.5 border-t border-slate-100 pt-5">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-[#0e3d48]">Lịch làm việc theo tuần</h4>
+          <div class="flex flex-wrap gap-2">
+            @for (preset of dayPresets; track preset.label) {
+              <button
+                type="button"
+                class="rounded-full border px-3.5 py-1 text-xs font-medium transition cursor-pointer"
+                [class.bg-[#0e3d48]]="selectedDayPreset() === preset.days[0]"
+                [class.text-white]="selectedDayPreset() === preset.days[0]"
+                [class.border-[#0e3d48]]="selectedDayPreset() === preset.days[0]"
+                [class.bg-slate-50]="selectedDayPreset() !== preset.days[0]"
+                [class.text-slate-600]="selectedDayPreset() !== preset.days[0]"
+                [class.border-slate-200]="selectedDayPreset() !== preset.days[0]"
+                (click)="applyDayPreset(preset)"
+              >
+                {{ preset.label }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- Section 3: Timeslots Picker -->
+        <form class="space-y-3.5 border-t border-slate-100 pt-5" [formGroup]="scheduleForm" (ngSubmit)="$event.preventDefault(); addSchedule()">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-[#0e3d48]">Khung giờ làm việc (Timeslots)</h4>
+          
+          <div class="grid grid-cols-2 gap-2.5">
+            <label class="grid gap-1">
+              <span class="text-[11px] font-semibold text-slate-600">Từ giờ</span>
+              <input formControlName="startTime" type="time" class="w-full rounded-xl border border-slate-200 px-3 py-2 font-mono text-xs text-slate-800 outline-none focus:border-[#0e3d48]" />
+            </label>
+            <label class="grid gap-1">
+              <span class="text-[11px] font-semibold text-slate-600">Đến giờ</span>
+              <input formControlName="endTime" type="time" class="w-full rounded-xl border border-slate-200 px-3 py-2 font-mono text-xs text-slate-800 outline-none focus:border-[#0e3d48]" />
+            </label>
+          </div>
+
+          <label class="grid gap-1">
+            <span class="text-[11px] font-semibold text-slate-600">Thời lượng (phút / lượt khám)</span>
+            <input formControlName="slotDurationMinutes" type="number" min="15" max="180" step="15" class="w-full rounded-xl border border-slate-200 px-3 py-2 font-mono text-xs text-slate-800 outline-none focus:border-[#0e3d48]" placeholder="30" />
+          </label>
+
+          <button
+            type="submit"
+            class="w-full rounded-xl border border-[#0e3d48] bg-transparent py-2.5 text-xs font-semibold text-[#0e3d48] transition hover:bg-[#0e3d48] hover:text-white disabled:opacity-50 cursor-pointer"
+            [disabled]="!doctor.assigned || saving()"
+          >
+            + Thêm khung giờ
+          </button>
+
+          <!-- Existing Timeslots List -->
+          <div class="space-y-2 pt-2">
+            <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Khung giờ hiện có ({{ schedules().length }})</p>
+            <div class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+              @for (slot of schedules(); track slot.id) {
+                <div class="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3.5 py-2.5 text-xs">
+                  <span class="font-mono text-slate-800 font-medium">{{ dayLabel(slot.dayOfWeek) }}: {{ slot.startTime.slice(0, 5) }} – {{ slot.endTime.slice(0, 5) }} ({{ slot.slotDurationMinutes }}p)</span>
+                  <button
+                    type="button"
+                    class="erp-btn-icon-danger !h-6 !w-6"
+                    [attr.aria-label]="'Xóa ca ' + dayLabel(slot.dayOfWeek)"
+                    (click)="removeSchedule(slot)"
+                    title="Xóa ca làm việc"
+                  >
+                    <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">delete_outline</mat-icon>
+                  </button>
+                </div>
+              } @empty {
+                <p class="py-4 text-center text-xs text-slate-400 italic">Chưa có khung giờ làm việc nào.</p>
+              }
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <!-- Drawer Footer -->
+      <div class="border-t border-slate-100 p-4 bg-slate-50/70 flex justify-end">
+        <button
+          type="button"
+          class="rounded-xl bg-[#0e3d48] px-5 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-[#082830] cursor-pointer"
+          (click)="closeDrawer()"
+        >
+          Hoàn tất & Đóng
+        </button>
+      </div>
+    </aside>
+    }
+  }
 
   <!-- Modal: Create Doctor Account -->
   @if (createDoctorOpen()) {

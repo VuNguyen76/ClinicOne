@@ -69,9 +69,19 @@ export class DoctorManagement implements OnInit {
         this.rooms.set(data.rooms.filter((room) => room.active));
         this.specialties.set(data.specialties);
         this.loading.set(false);
-        if (data.doctors[0]) this.selectDoctor(data.doctors[0]);
+        if (data.doctors[0]) this.preloadDoctor(data.doctors[0]);
       },
       error: (response) => { this.loading.set(false); this.error.set(apiErrorMessage(response)); },
+    });
+  }
+
+  protected preloadDoctor(doctor: DoctorAccountResponse): void {
+    this.selectedDoctor.set(doctor);
+    this.assignmentForm.setValue({ specialty: doctor.specialty ?? '', roomId: doctor.roomId ?? '' });
+    this.isDrawerOpen.set(false);
+    this.authApi.getDoctorSchedules(doctor.staffId).subscribe({
+      next: (schedules) => this.schedules.set(schedules),
+      error: (response) => this.error.set(apiErrorMessage(response)),
     });
   }
 
@@ -101,7 +111,7 @@ export class DoctorManagement implements OnInit {
     return this.doctors().filter((d) => d.active).length;
   }
 
-  protected selectDoctor(doctor: DoctorAccountResponse): void {
+  protected openScheduleDrawer(doctor: DoctorAccountResponse): void {
     this.selectedDoctor.set(doctor);
     this.isDrawerOpen.set(true);
     this.assignmentForm.setValue({ specialty: doctor.specialty ?? '', roomId: doctor.roomId ?? '' });
@@ -112,6 +122,10 @@ export class DoctorManagement implements OnInit {
       next: (schedules) => this.schedules.set(schedules),
       error: (response) => this.error.set(apiErrorMessage(response)),
     });
+  }
+
+  protected selectDoctor(doctor: DoctorAccountResponse): void {
+    this.openScheduleDrawer(doctor);
   }
 
   protected closeDrawer(): void {
