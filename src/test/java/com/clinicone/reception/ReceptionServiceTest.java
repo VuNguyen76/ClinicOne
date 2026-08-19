@@ -201,6 +201,24 @@ class ReceptionServiceTest {
     }// Chặn check-in khi lịch hẹn đã bị Hủy
 
     @Test
+    void rejectsCheckInWhenAppointmentAlreadyCompleted() {
+        Appointment appointment = mock(Appointment.class);
+        when(appointment.getId()).thenReturn(APPOINTMENT_ID);
+        when(appointment.getAppointmentDate()).thenReturn(TODAY);
+        when(appointment.getStatus()).thenReturn(AppointmentStatus.COMPLETED);
+        when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
+
+        when(queueService.checkInByStaff(eq("NOI-01"), eq(APPOINTMENT_ID), anyString()))
+                .thenThrow(new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_STATUS_INVALID", 
+                        "Lịch hẹn đã hoàn thành."));
+
+        assertThatThrownBy(() -> service.checkIn(APPOINTMENT_ID,
+                new ReceptionCheckInRequest("NOI-01", "Check-in lại lịch đã hoàn tất")))
+                .isInstanceOf(AuthException.class)
+                .extracting("code").isEqualTo("APPOINTMENT_STATUS_INVALID");
+    }// Chặn checkin khi lịch hẹn hoàn thành
+
+    @Test
     void rejectsCheckInWhenAppointmentDateIsNotToday() {
         LocalDate tomorrow = TODAY.plusDays(1);
         Appointment appointment = mock(Appointment.class);
