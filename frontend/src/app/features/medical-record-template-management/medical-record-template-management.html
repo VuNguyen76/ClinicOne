@@ -200,95 +200,126 @@
       }
     </div>
 
-    <!-- 4. Form View (Kept in DOM so form controls are always available) -->
+    <!-- 4. Form View (Full width expansive clinical layout) -->
     <div [class.hidden]="activeTab() !== 'form'">
-      <section class="rounded-2xl border border-slate-100 bg-white p-6 shadow-xs max-w-3xl mx-auto w-full">
-        <h3 class="text-base font-bold text-slate-900 border-b border-slate-100 pb-3 mb-5">{{ formTitle() }}</h3>
-        <form class="space-y-4" (ngSubmit)="$event.preventDefault(); save()">
-          <div class="grid gap-3.5 sm:grid-cols-2">
-            <label class="grid gap-1">
-              <span class="erp-label">Mã mẫu phiếu <span class="erp-label-required">*</span></span>
-              <input data-testid="template-code" class="erp-input font-mono uppercase" placeholder="vd. MAU-NOI-01" [ngModel]="code()" (ngModelChange)="code.set($event)" name="code" />
-            </label>
-            <label class="grid gap-1">
-              <span class="erp-label">Tên mẫu phiếu <span class="erp-label-required">*</span></span>
-              <input data-testid="template-name" class="erp-input" placeholder="vd. Phiếu khám Nội tổng quát" [ngModel]="name()" (ngModelChange)="name.set($event)" name="name" />
-            </label>
+      <section class="rounded-2xl border border-slate-100 bg-white p-6 sm:p-8 shadow-xs w-full">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-6">
+          <div class="flex items-center gap-3">
+            <div class="grid h-10 w-10 place-items-center rounded-xl bg-sky-50 text-[#0284c7]">
+              <mat-icon class="!h-6 !w-6 !text-[24px]">description</mat-icon>
+            </div>
+            <div>
+              <h3 class="text-lg font-bold text-slate-900">{{ formTitle() }}</h3>
+              <p class="text-xs text-slate-500">Thiết lập cấu trúc mẫu phiếu khám và nội dung lâm sàng mặc định theo Thông tư 33</p>
+            </div>
           </div>
+          <button type="button" class="erp-btn-secondary" (click)="cancelEdit()">
+            <mat-icon class="!h-4 !w-4 !text-[16px]">arrow_back</mat-icon>
+            <span>Quay lại danh sách</span>
+          </button>
+        </div>
 
-          <div class="grid gap-3.5 sm:grid-cols-2">
-            <label class="grid gap-1">
-              <span class="erp-label">Chuyên khoa <span class="erp-label-required">*</span></span>
-              <select data-testid="template-specialty" class="erp-select" [ngModel]="specialty()" (ngModelChange)="selectSpecialty($event)" name="specialty">
-                <option value="">Chọn chuyên khoa</option>
-                @for (spec of specialties(); track spec.code) {
-                  <option [value]="spec.name">{{ spec.name }}</option>
-                }
-              </select>
-            </label>
-            <label class="grid gap-1">
-              <span class="erp-label">Dịch vụ liên kết (tùy chọn)</span>
-              <select class="erp-select" [ngModel]="clinicServiceId()" (ngModelChange)="clinicServiceId.set($event)" name="clinicServiceId">
-                <option value="">Dùng chung cho toàn chuyên khoa</option>
-                @for (srv of filteredServices(); track srv.id) {
-                  <option [value]="srv.id">{{ srv.name }}</option>
-                }
-              </select>
-            </label>
-          </div>
+        <form class="space-y-6" (ngSubmit)="$event.preventDefault(); save()">
+          <div class="grid gap-6 lg:grid-cols-2">
+            <!-- Left Column: Identity & Scope -->
+            <div class="space-y-5 rounded-2xl border border-slate-200/80 bg-slate-50/50 p-5">
+              <div class="flex items-center gap-2 border-b border-slate-200 pb-3">
+                <mat-icon class="!h-4 !w-4 !text-[18px] text-sky-600">badge</mat-icon>
+                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-800">1. Thông tin định danh & Phạm vi</h4>
+              </div>
 
-          <label class="grid gap-1">
-            <span class="erp-label">Mô tả mẫu phiếu</span>
-            <input class="erp-input" placeholder="Ghi chú thêm về mục đích sử dụng..." [ngModel]="description()" (ngModelChange)="description.set($event)" name="description" />
-          </label>
+              <div class="grid gap-4 sm:grid-cols-2">
+                <label class="grid gap-1">
+                  <span class="erp-label">Mã mẫu phiếu <span class="erp-label-required">*</span></span>
+                  <input data-testid="template-code" class="erp-input font-mono uppercase" placeholder="vd. MAU-NOI-01" [ngModel]="code()" (ngModelChange)="code.set($event)" name="code" />
+                </label>
+                <label class="grid gap-1">
+                  <span class="erp-label">Tên mẫu phiếu <span class="erp-label-required">*</span></span>
+                  <input data-testid="template-name" class="erp-input" placeholder="vd. Phiếu khám Nội tổng quát" [ngModel]="name()" (ngModelChange)="name.set($event)" name="name" />
+                </label>
+              </div>
 
-          <div class="border-t border-slate-100 pt-4 space-y-3.5">
-            <h4 class="text-xs font-bold uppercase tracking-wider text-[#0e3d48]">Nội dung lâm sàng điền sẵn</h4>
+              <div class="grid gap-4 sm:grid-cols-2">
+                <label class="grid gap-1">
+                  <span class="erp-label">Chuyên khoa <span class="erp-label-required">*</span></span>
+                  <select data-testid="template-specialty" class="erp-select" [ngModel]="specialty()" (ngModelChange)="selectSpecialty($event)" name="specialty">
+                    <option value="">-- Chọn chuyên khoa --</option>
+                    @for (spec of specialties(); track spec.code) {
+                      <option [value]="spec.name">{{ spec.name }}</option>
+                    }
+                  </select>
+                </label>
+                <label class="grid gap-1">
+                  <span class="erp-label">Dịch vụ liên kết (tùy chọn)</span>
+                  <select class="erp-select" [ngModel]="clinicServiceId()" (ngModelChange)="clinicServiceId.set($event)" name="clinicServiceId">
+                    <option value="">Dùng chung cho toàn chuyên khoa</option>
+                    @for (srv of filteredServices(); track srv.id) {
+                      <option [value]="srv.id">{{ srv.name }}</option>
+                    }
+                  </select>
+                </label>
+              </div>
 
-            <label class="grid gap-1">
-              <span class="erp-label">Lý do khám mặc định</span>
-              <input class="erp-input" [ngModel]="reason()" (ngModelChange)="reason.set($event)" name="reason" />
-            </label>
-
-            <label class="grid gap-1">
-              <span class="erp-label">Bệnh sử / Khám lâm sàng</span>
-              <textarea data-testid="template-notes" rows="2" class="erp-input resize-none" [ngModel]="examinationNotes()" (ngModelChange)="examinationNotes.set($event)" name="examinationNotes"></textarea>
-            </label>
-
-            <div class="grid gap-3.5 sm:grid-cols-2">
               <label class="grid gap-1">
-                <span class="erp-label">Chẩn đoán gợi ý</span>
-                <input class="erp-input" [ngModel]="diagnosis()" (ngModelChange)="diagnosis.set($event)" name="diagnosis" />
-              </label>
-              <label class="grid gap-1">
-                <span class="erp-label">Kết luận</span>
-                <input class="erp-input" [ngModel]="conclusion()" (ngModelChange)="conclusion.set($event)" name="conclusion" />
+                <span class="erp-label">Mô tả mục đích sử dụng</span>
+                <textarea rows="3" class="erp-textarea resize-none" placeholder="Ghi chú thêm về trường hợp áp dụng hoặc mục đích của mẫu phiếu..." [ngModel]="description()" (ngModelChange)="description.set($event)" name="description"></textarea>
               </label>
             </div>
 
-            <label class="grid gap-1">
-              <span class="erp-label">Hướng điều trị</span>
-              <textarea data-testid="template-plan" rows="2" class="erp-input resize-none" [ngModel]="treatmentPlan()" (ngModelChange)="treatmentPlan.set($event)" name="treatmentPlan"></textarea>
-            </label>
+            <!-- Right Column: Clinical Pre-fill Content -->
+            <div class="space-y-5 rounded-2xl border border-slate-200/80 bg-slate-50/50 p-5">
+              <div class="flex items-center gap-2 border-b border-slate-200 pb-3">
+                <mat-icon class="!h-4 !w-4 !text-[18px] text-sky-600">clinical_notes</mat-icon>
+                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-800">2. Nội dung lâm sàng điền sẵn</h4>
+              </div>
 
-            <div class="grid gap-3.5 sm:grid-cols-2">
               <label class="grid gap-1">
-                <span class="erp-label">Tái khám sau (ngày)</span>
-                <input type="number" min="0" class="erp-input font-mono" [ngModel]="followUpDays()" (ngModelChange)="followUpDays.set($event)" name="followUpDays" />
+                <span class="erp-label">Lý do khám mặc định</span>
+                <input class="erp-input" placeholder="vd. Khám sức khỏe định kỳ / Tái khám theo hẹn" [ngModel]="reason()" (ngModelChange)="reason.set($event)" name="reason" />
               </label>
+
               <label class="grid gap-1">
-                <span class="erp-label">Lời dặn tái khám</span>
-                <input class="erp-input" [ngModel]="followUpNote()" (ngModelChange)="followUpNote.set($event)" name="followUpNote" />
+                <span class="erp-label">Bệnh sử / Diễn tiến lâm sàng</span>
+                <textarea data-testid="template-notes" rows="3" class="erp-textarea resize-none" placeholder="Tiền sử bệnh, triệu chứng cơ năng, thăm khám thể lực..." [ngModel]="examinationNotes()" (ngModelChange)="examinationNotes.set($event)" name="examinationNotes"></textarea>
               </label>
+
+              <div class="grid gap-4 sm:grid-cols-2">
+                <label class="grid gap-1">
+                  <span class="erp-label">Chẩn đoán gợi ý</span>
+                  <input class="erp-input" placeholder="vd. Viêm họng cấp / Tăng huyết áp độ 1" [ngModel]="diagnosis()" (ngModelChange)="diagnosis.set($event)" name="diagnosis" />
+                </label>
+                <label class="grid gap-1">
+                  <span class="erp-label">Kết luận</span>
+                  <input class="erp-input" placeholder="vd. Bệnh ổn định / Đang điều trị ngoại trú" [ngModel]="conclusion()" (ngModelChange)="conclusion.set($event)" name="conclusion" />
+                </label>
+              </div>
+
+              <label class="grid gap-1">
+                <span class="erp-label">Hướng điều trị / Kế hoạch xử trí</span>
+                <textarea data-testid="template-plan" rows="3" class="erp-textarea resize-none" placeholder="Chế độ dùng thuốc, dinh dưỡng, nghỉ ngơi..." [ngModel]="treatmentPlan()" (ngModelChange)="treatmentPlan.set($event)" name="treatmentPlan"></textarea>
+              </label>
+
+              <div class="grid gap-4 sm:grid-cols-2">
+                <label class="grid gap-1">
+                  <span class="erp-label">Tái khám sau (ngày)</span>
+                  <input type="number" min="0" class="erp-input font-mono" placeholder="vd. 7, 14, 30" [ngModel]="followUpDays()" (ngModelChange)="followUpDays.set($event)" name="followUpDays" />
+                </label>
+                <label class="grid gap-1">
+                  <span class="erp-label">Lời dặn tái khám</span>
+                  <input class="erp-input" placeholder="vd. Mang theo đơn thuốc cũ và kết quả xét nghiệm" [ngModel]="followUpNote()" (ngModelChange)="followUpNote.set($event)" name="followUpNote" />
+                </label>
+              </div>
             </div>
           </div>
 
-          <div class="flex items-center justify-end gap-2 border-t border-slate-100 pt-4">
+          <!-- Bottom Action Bar -->
+          <div class="flex items-center justify-end gap-3 border-t border-slate-100 pt-5">
             <button type="button" class="erp-btn-secondary" (click)="cancelEdit()">
-              Hủy
+              Hủy bỏ
             </button>
-            <button data-testid="save-medical-template" type="submit" class="erp-btn-primary" [disabled]="saving()">
-              {{ saving() ? 'Đang lưu...' : 'Lưu mẫu phiếu' }}
+            <button data-testid="save-medical-template" type="submit" class="erp-btn-primary !min-h-10 !px-6" [disabled]="saving()">
+              <mat-icon class="!h-4 !w-4 !text-[18px]">save</mat-icon>
+              <span>{{ saving() ? 'Đang lưu...' : 'Lưu mẫu phiếu khám' }}</span>
             </button>
           </div>
         </form>

@@ -1,4 +1,31 @@
 <app-staff-workspace-shell moduleTitle="Vận hành" pageTitle="Mẫu lịch làm việc">
+  <div workspace-tabs class="flex items-center gap-1.5 border-b border-slate-200">
+    <button
+      type="button"
+      class="px-4 py-2 text-xs font-semibold border-b-2 transition cursor-pointer"
+      [class.border-[#0e3d48]]="activeTab() === 'list'"
+      [class.text-[#0e3d48]]="activeTab() === 'list'"
+      [class.border-transparent]="activeTab() !== 'list'"
+      [class.text-slate-500]="activeTab() !== 'list'"
+      (click)="activeTab.set('list')"
+    >
+      Danh sách mẫu
+    </button>
+    @if (canManageSchedule()) {
+      <button
+        type="button"
+        class="px-4 py-2 text-xs font-semibold border-b-2 transition cursor-pointer"
+        [class.border-[#0e3d48]]="activeTab() === 'form'"
+        [class.text-[#0e3d48]]="activeTab() === 'form'"
+        [class.border-transparent]="activeTab() !== 'form'"
+        [class.text-slate-500]="activeTab() !== 'form'"
+        (click)="startCreate()"
+      >
+        Thiết lập mẫu
+      </button>
+    }
+  </div>
+
   <div class="grid gap-6">
     <!-- Alerts & Warnings -->
     @if (error()) {
@@ -61,7 +88,7 @@
     </div>
 
     <!-- 2. Search Bar + Add Template Button Header -->
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" [class.hidden]="activeTab() !== 'list'">
       <div class="relative w-full max-w-sm">
         <mat-icon class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 !h-4 !w-4 !text-[18px] text-slate-400">search</mat-icon>
         <input
@@ -87,7 +114,7 @@
           <button
             type="button"
             class="erp-btn-primary"
-            (click)="openCreate()"
+            (click)="startCreate()"
           >
             <mat-icon class="!h-4 !w-4 !text-[18px]">add</mat-icon>
             <span>Tạo mẫu lịch</span>
@@ -105,245 +132,347 @@
       </div>
     </div>
 
-    <!-- 3. Main DataGrid Table -->
-    @if (loading()) {
-      <div class="grid min-h-64 place-items-center rounded-2xl border border-slate-100 bg-white text-xs text-slate-500 shadow-xs">
-        Đang tải danh sách mẫu lịch làm việc...
-      </div>
-    } @else {
-      <section class="rounded-2xl border border-slate-100 bg-white shadow-xs overflow-hidden w-full">
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs whitespace-nowrap">
-            <thead>
-              <tr class="border-b border-slate-100 text-[11px] font-semibold text-slate-500 uppercase tracking-wider bg-slate-50/50">
-                <th class="px-4 py-3.5">Dịch vụ khám</th>
-                <th class="px-4 py-3.5">Bác sĩ phụ trách</th>
-                <th class="px-4 py-3.5">Phòng khám</th>
-                <th class="px-4 py-3.5">Thời gian & Thứ lặp</th>
-                <th class="px-4 py-3.5 text-center">Đã sinh ca</th>
-                @if (canManageSchedule()) {
-                  <th class="px-4 py-3.5 text-right">Thao tác</th>
-                }
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-50">
-              @for (template of filteredTemplates(); track template.id) {
-                <tr data-testid="template-row" class="transition hover:bg-slate-50/70">
-                  <!-- Service Name -->
-                  <td class="px-4 py-3">
-                    <strong class="block text-xs font-semibold text-slate-900">{{ template.serviceName }}</strong>
-                    <span class="block font-mono text-[10px] text-slate-400">{{ template.durationMinutes }} phút / lượt</span>
-                  </td>
-
-                  <!-- Doctor -->
-                  <td class="px-4 py-3">
-                    <span class="font-medium text-slate-800">{{ template.doctorName }}</span>
-                  </td>
-
-                  <!-- Room -->
-                  <td class="px-4 py-3">
-                    <span class="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-2.5 py-0.5 text-[11px] font-medium text-sky-800">
-                      Phòng {{ template.roomCode }}
-                    </span>
-                  </td>
-
-                  <!-- Dates & Weekdays -->
-                  <td class="px-4 py-3">
-                    <p class="font-mono text-slate-700 font-medium">{{ template.startDate }} – {{ template.endDate }}</p>
-                    <p class="text-[11px] text-slate-500 mt-0.5">{{ formatWeekdays(template.weekdays) }}</p>
-                  </td>
-
-                  <!-- Generated Count -->
-                  <td class="px-4 py-3 text-center">
-                    <span class="font-mono font-bold text-sky-700">{{ template.generatedSlotCount }}</span>
-                    <span class="text-[11px] text-slate-400"> ca</span>
-                  </td>
-
-                  <!-- Actions -->
+    <!-- 3. Main DataGrid Table (List View) -->
+    <div [class.hidden]="activeTab() !== 'list'">
+      @if (loading()) {
+        <div class="grid min-h-64 place-items-center rounded-2xl border border-slate-100 bg-white text-xs text-slate-500 shadow-xs">
+          Đang tải danh sách mẫu lịch làm việc...
+        </div>
+      } @else {
+        <section class="rounded-2xl border border-slate-100 bg-white shadow-xs overflow-hidden w-full">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs whitespace-nowrap">
+              <thead>
+                <tr class="border-b border-slate-100 text-[11px] font-semibold text-slate-500 uppercase tracking-wider bg-slate-50/50">
+                  <th class="px-4 py-3.5">Dịch vụ khám</th>
+                  <th class="px-4 py-3.5">Bác sĩ phụ trách</th>
+                  <th class="px-4 py-3.5">Phòng khám</th>
+                  <th class="px-4 py-3.5">Thời gian & Thứ lặp</th>
+                  <th class="px-4 py-3.5 text-center">Đã sinh ca</th>
                   @if (canManageSchedule()) {
-                    <td class="px-4 py-3 text-right">
-                      <button
-                        type="button"
-                        class="erp-btn-secondary"
-                        (click)="regenerate(template)"
-                      >
-                        Sinh bổ sung
-                      </button>
-                    </td>
+                    <th class="px-4 py-3.5 text-right">Thao tác</th>
                   }
                 </tr>
-              } @empty {
-                <tr>
-                  <td [attr.colspan]="canManageSchedule() ? 6 : 5" class="px-4 py-12 text-center text-xs text-slate-500">
-                    <div>
-                      <p class="font-medium text-slate-700">Chưa có mẫu lịch làm việc nào phù hợp.</p>
-                      @if (canManageSchedule()) {
+              </thead>
+              <tbody class="divide-y divide-slate-50">
+                @for (template of filteredTemplates(); track template.id) {
+                  <tr data-testid="template-row" class="transition hover:bg-slate-50/70">
+                    <!-- Service Name -->
+                    <td class="px-4 py-3">
+                      <strong class="block text-xs font-semibold text-slate-900">{{ template.serviceName }}</strong>
+                      <span class="block font-mono text-[10px] text-slate-400">{{ template.durationMinutes }} phút / lượt</span>
+                    </td>
+
+                    <!-- Doctor -->
+                    <td class="px-4 py-3">
+                      <span class="font-medium text-slate-800">{{ template.doctorName }}</span>
+                    </td>
+
+                    <!-- Room -->
+                    <td class="px-4 py-3">
+                      <span class="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-2.5 py-0.5 text-[11px] font-medium text-sky-800">
+                        Phòng {{ template.roomCode }}
+                      </span>
+                    </td>
+
+                    <!-- Dates & Weekdays -->
+                    <td class="px-4 py-3">
+                      <p class="font-mono text-slate-700 font-medium">{{ template.startDate }} – {{ template.endDate }}</p>
+                      <p class="text-[11px] text-slate-500 mt-0.5">{{ formatWeekdays(template.weekdays) }}</p>
+                    </td>
+
+                    <!-- Generated Count -->
+                    <td class="px-4 py-3 text-center">
+                      <span class="font-mono font-bold text-sky-700">{{ template.generatedSlotCount }}</span>
+                      <span class="text-[11px] text-slate-400"> ca</span>
+                    </td>
+
+                    <!-- Actions -->
+                    @if (canManageSchedule()) {
+                      <td class="px-4 py-3 text-right">
                         <button
                           type="button"
-                          class="erp-btn-primary mt-3"
-                          (click)="openCreate()"
+                          class="erp-btn-secondary"
+                          (click)="regenerate(template)"
                         >
-                          <mat-icon class="!h-4 !w-4 !text-[18px]">add</mat-icon>
-                          <span>Tạo mẫu lịch</span>
+                          Sinh bổ sung
                         </button>
+                      </td>
+                    }
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td [attr.colspan]="canManageSchedule() ? 6 : 5" class="px-4 py-12 text-center text-xs text-slate-500">
+                      <div>
+                        <p class="font-medium text-slate-700">Chưa có mẫu lịch làm việc nào phù hợp.</p>
+                        @if (canManageSchedule()) {
+                          <button
+                            type="button"
+                            class="erp-btn-primary mt-3"
+                            (click)="startCreate()"
+                          >
+                            <mat-icon class="!h-4 !w-4 !text-[18px]">add</mat-icon>
+                            <span>Tạo mẫu lịch</span>
+                          </button>
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+      }
+    </div>
+
+    <!-- 4. Form View (Full Screen Expansive 2-Column Canvas) -->
+    <div [class.hidden]="activeTab() !== 'form'">
+      @if (canManageSchedule()) {
+        <section class="rounded-2xl border border-slate-100 bg-white p-6 sm:p-8 shadow-xs w-full">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-6">
+            <div class="flex items-center gap-3">
+              <div class="grid h-10 w-10 place-items-center rounded-xl bg-sky-50 text-[#0284c7]">
+                <mat-icon class="!h-6 !w-6 !text-[24px]">calendar_today</mat-icon>
+              </div>
+              <div>
+                <h3 class="text-lg font-bold text-slate-900">Thiết lập mẫu lịch làm việc lặp theo tuần</h3>
+                <p class="text-xs text-slate-500">Tự động tính toán và sinh toàn bộ ca trực và khung giờ khám trong khoảng ngày áp dụng</p>
+              </div>
+            </div>
+            <button type="button" class="erp-btn-secondary" (click)="cancelEdit()">
+              <mat-icon class="!h-4 !w-4 !text-[16px]">arrow_back</mat-icon>
+              <span>Quay lại danh sách</span>
+            </button>
+          </div>
+
+          <form (ngSubmit)="$event.preventDefault(); submit()" class="space-y-6">
+            <div class="grid gap-6 lg:grid-cols-2">
+              <!-- Left Column: Service, Doctor, Room & Times -->
+              <div class="space-y-5">
+                <!-- Section 1: Professional Assignment -->
+                <div class="rounded-2xl border border-slate-200/80 bg-slate-50/50 p-5 space-y-4">
+                  <div class="flex items-center gap-2 border-b border-slate-200 pb-3">
+                    <mat-icon class="!h-4 !w-4 !text-[18px] text-sky-600">medical_services</mat-icon>
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-800">1. Dịch vụ & Phòng khám</h4>
+                  </div>
+
+                  <label class="grid gap-1">
+                    <span class="erp-label">Dịch vụ khám <span class="erp-label-required">*</span></span>
+                    <select
+                      data-testid="template-service"
+                      class="erp-select"
+                      [ngModel]="selectedServiceId()"
+                      (ngModelChange)="selectService($event)"
+                      name="service"
+                    >
+                      <option value="">-- Chọn dịch vụ khám --</option>
+                      @for (service of services(); track service.id) {
+                        <option [value]="service.id">{{ service.name }} ({{ service.durationMinutes }} phút / lượt)</option>
+                      }
+                    </select>
+                  </label>
+
+                  <div class="grid gap-4 sm:grid-cols-2">
+                    <label class="grid gap-1">
+                      <span class="erp-label">Bác sĩ phụ trách <span class="erp-label-required">*</span></span>
+                      <select
+                        class="erp-select"
+                        [ngModel]="selectedDoctorId()"
+                        (ngModelChange)="selectDoctor($event)"
+                        name="doctor"
+                      >
+                        <option value="">-- Chọn bác sĩ --</option>
+                        @for (doctor of availableDoctors(); track doctor.staffId) {
+                          <option [value]="doctor.staffId">{{ doctor.fullName }}</option>
+                        }
+                      </select>
+                    </label>
+
+                    <label class="grid gap-1">
+                      <span class="erp-label">Phòng khám <span class="erp-label-required">*</span></span>
+                      <select
+                        class="erp-select"
+                        [ngModel]="selectedRoomId()"
+                        (ngModelChange)="selectedRoomId.set($event)"
+                        name="room"
+                      >
+                        <option value="">-- Chọn phòng --</option>
+                        @for (room of availableRooms(); track room.id) {
+                          <option [value]="room.id">{{ room.code }} · {{ room.name }}</option>
+                        }
+                      </select>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- Section 2: Date Range & Shift Hours -->
+                <div class="rounded-2xl border border-slate-200/80 bg-slate-50/50 p-5 space-y-4">
+                  <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+                    <div class="flex items-center gap-2">
+                      <mat-icon class="!h-4 !w-4 !text-[18px] text-sky-600">date_range</mat-icon>
+                      <h4 class="text-xs font-bold uppercase tracking-wider text-slate-800">2. Thời gian & Khung giờ</h4>
+                    </div>
+                    <!-- Period Quick Presets -->
+                    <div class="flex items-center gap-1.5">
+                      <button type="button" (click)="applyPeriodPreset(14)" class="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600 hover:bg-slate-100">14 ngày</button>
+                      <button type="button" (click)="applyPeriodPreset(30)" class="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600 hover:bg-slate-100">1 tháng</button>
+                      <button type="button" (click)="applyPeriodPreset(60)" class="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600 hover:bg-slate-100">2 tháng</button>
+                    </div>
+                  </div>
+
+                  <div class="grid gap-4 sm:grid-cols-2">
+                    <label class="grid gap-1">
+                      <span class="erp-label">Từ ngày <span class="erp-label-required">*</span></span>
+                      <input
+                        type="date"
+                        [min]="today"
+                        [ngModel]="startDate()"
+                        (ngModelChange)="startDate.set($event)"
+                        name="startDate"
+                        class="erp-input font-mono"
+                      />
+                    </label>
+                    <label class="grid gap-1">
+                      <span class="erp-label">Đến ngày <span class="erp-label-required">*</span></span>
+                      <input
+                        type="date"
+                        [min]="startDate()"
+                        [ngModel]="endDate()"
+                        (ngModelChange)="endDate.set($event)"
+                        name="endDate"
+                        class="erp-input font-mono"
+                      />
+                    </label>
+                  </div>
+
+                  <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                      <span class="erp-label !mb-0">Giờ ca làm việc <span class="erp-label-required">*</span></span>
+                      <!-- Time Quick Presets -->
+                      <div class="flex items-center gap-1.5">
+                        <button type="button" (click)="applyTimePreset('08:00', '17:00')" class="rounded border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-600 hover:bg-slate-100">08:00 - 17:00</button>
+                        <button type="button" (click)="applyTimePreset('07:30', '11:30')" class="rounded border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-600 hover:bg-slate-100">Ca sáng</button>
+                        <button type="button" (click)="applyTimePreset('13:30', '17:30')" class="rounded border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-600 hover:bg-slate-100">Ca chiều</button>
+                      </div>
+                    </div>
+                    <div class="grid gap-4 sm:grid-cols-2">
+                      <label class="grid gap-0.5">
+                        <span class="text-[11px] text-slate-500">Giờ bắt đầu:</span>
+                        <input
+                          type="time"
+                          [ngModel]="dayStart()"
+                          (ngModelChange)="dayStart.set($event)"
+                          name="dayStart"
+                          class="erp-input font-mono"
+                        />
+                      </label>
+                      <label class="grid gap-0.5">
+                        <span class="text-[11px] text-slate-500">Giờ kết thúc:</span>
+                        <input
+                          type="time"
+                          [ngModel]="dayEnd()"
+                          (ngModelChange)="dayEnd.set($event)"
+                          name="dayEnd"
+                          class="erp-input font-mono"
+                        />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Right Column: Weekdays, Breaks & Exceptions -->
+              <div class="space-y-5">
+                <!-- Section 3: Weekdays -->
+                <div class="rounded-2xl border border-slate-200/80 bg-slate-50/50 p-5 space-y-4">
+                  <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+                    <div class="flex items-center gap-2">
+                      <mat-icon class="!h-4 !w-4 !text-[18px] text-sky-600">view_week</mat-icon>
+                      <h4 class="text-xs font-bold uppercase tracking-wider text-slate-800">3. Thứ lặp trong tuần</h4>
+                    </div>
+                    <!-- Weekday Presets -->
+                    <div class="flex items-center gap-1.5">
+                      <button type="button" (click)="applyWeekdayPreset('WEEKDAYS')" class="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600 hover:bg-slate-100">T2 - T6</button>
+                      <button type="button" (click)="applyWeekdayPreset('ALL_EXCEPT_SUNDAY')" class="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600 hover:bg-slate-100">T2 - T7</button>
+                      <button type="button" (click)="applyWeekdayPreset('ALL')" class="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600 hover:bg-slate-100">Cả tuần</button>
+                    </div>
+                  </div>
+
+                  <!-- Weekday toggle button chips -->
+                  <div class="grid grid-cols-4 gap-2.5 sm:grid-cols-7">
+                    @for (day of weekdays; track day.value) {
+                      <button
+                        type="button"
+                        (click)="toggleWeekday(day.value, !isWeekdaySelected(day.value))"
+                        [class]="isWeekdaySelected(day.value) ? 'border-[#0e3d48] bg-[#0e3d48] text-white shadow-xs' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100'"
+                        class="flex min-h-12 flex-col items-center justify-center rounded-xl border p-1 text-center transition cursor-pointer"
+                      >
+                        <span class="text-xs font-bold">{{ day.label }}</span>
+                        <span class="text-[10px] opacity-80">{{ isWeekdaySelected(day.value) ? '✓ Chọn' : '—' }}</span>
+                      </button>
+                    }
+                  </div>
+                </div>
+
+                <!-- Section 4: Breaks & Exceptions -->
+                <div class="rounded-2xl border border-slate-200/80 bg-slate-50/50 p-5 space-y-4">
+                  <div class="flex items-center gap-2 border-b border-slate-200 pb-3">
+                    <mat-icon class="!h-4 !w-4 !text-[18px] text-sky-600">coffee</mat-icon>
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-800">4. Nghỉ trưa & Ngày ngoại lệ</h4>
+                  </div>
+
+                  <!-- Lunch Break Toggle -->
+                  <div class="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
+                    <div class="flex items-center justify-between">
+                      <label class="flex items-center gap-2.5 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          class="rounded border-slate-300 text-[#0e3d48] focus:ring-[#0e3d48] h-4 w-4"
+                          [checked]="hasBreak()"
+                          (change)="toggleBreakOption($any($event.target).checked)"
+                        />
+                        <span class="text-xs font-semibold text-slate-800">Trừ giờ nghỉ trưa (không sinh slot khám)</span>
+                      </label>
+                      @if (hasBreak()) {
+                        <span class="text-[11px] font-mono font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full">12:00 – 13:00</span>
                       }
                     </div>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      </section>
-    }
-  </div>
 
-  <!-- Slide-Over Drawer: Create Schedule Template -->
-  @if (modalOpen() && canManageSchedule()) {
-    <div class="erp-drawer-overlay" role="dialog" aria-modal="true" aria-labelledby="template-dialog-title" (click)="closeModal()">
-      <section class="erp-drawer" (click)="$event.stopPropagation()">
-        <!-- Header -->
-        <div class="erp-drawer-header">
-          <div class="flex items-center gap-2.5">
-            <div class="grid h-9 w-9 place-items-center rounded-xl bg-sky-50 text-[#0284c7]">
-              <mat-icon class="!h-5 !w-5 !text-[20px]">calendar_today</mat-icon>
-            </div>
-            <div>
-              <h2 id="template-dialog-title" class="text-sm font-bold text-slate-900">Tạo mẫu lịch làm việc lặp tuần</h2>
-              <p class="text-[11px] font-medium text-slate-500">Tự động sinh các ca và khung giờ khám</p>
-            </div>
-          </div>
-          <button type="button" class="erp-btn-icon" aria-label="Đóng" (click)="closeModal()">
-            <mat-icon class="!h-4 !w-4 !text-[18px]">close</mat-icon>
-          </button>
-        </div>
-
-        <form (ngSubmit)="$event.preventDefault(); submit()" class="flex flex-1 flex-col overflow-hidden">
-          <div class="erp-drawer-body space-y-5">
-            <!-- Section 1: Service & Room -->
-            <div class="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-3.5">
-              <div class="flex items-center gap-2 border-b border-slate-200/80 pb-2">
-                <mat-icon class="!h-4 !w-4 !text-[16px] text-sky-600">medical_services</mat-icon>
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-700">1. Dịch vụ & Phòng khám</span>
-              </div>
-
-              <label class="grid gap-1">
-                <span class="erp-label">Dịch vụ khám <span class="erp-label-required">*</span></span>
-                <select
-                  data-testid="template-service"
-                  class="erp-select"
-                  [ngModel]="selectedServiceId()"
-                  (ngModelChange)="selectService($event)"
-                  name="service"
-                >
-                  <option value="">-- Chọn dịch vụ khám --</option>
-                  @for (service of services(); track service.id) {
-                    <option [value]="service.id">{{ service.name }} ({{ service.durationMinutes }} phút / lượt)</option>
-                  }
-                </select>
-              </label>
-
-              <div class="grid gap-3 sm:grid-cols-2">
-                <label class="grid gap-1">
-                  <span class="erp-label">Bác sĩ phụ trách <span class="erp-label-required">*</span></span>
-                  <select
-                    class="erp-select"
-                    [ngModel]="selectedDoctorId()"
-                    (ngModelChange)="selectDoctor($event)"
-                    name="doctor"
-                  >
-                    <option value="">-- Chọn bác sĩ --</option>
-                    @for (doctor of availableDoctors(); track doctor.staffId) {
-                      <option [value]="doctor.staffId">{{ doctor.fullName }}</option>
+                    @if (hasBreak()) {
+                      <div class="grid grid-cols-2 gap-4 pt-2 border-t border-slate-100">
+                        <label class="grid gap-0.5">
+                          <span class="text-[11px] text-slate-500">Nghỉ từ:</span>
+                          <input
+                            type="time"
+                            [ngModel]="breakStart()"
+                            (ngModelChange)="breakStart.set($event)"
+                            name="breakStart"
+                            class="erp-input font-mono"
+                          />
+                        </label>
+                        <label class="grid gap-0.5">
+                          <span class="text-[11px] text-slate-500">Nghỉ đến:</span>
+                          <input
+                            type="time"
+                            [ngModel]="breakEnd()"
+                            (ngModelChange)="breakEnd.set($event)"
+                            name="breakEnd"
+                            class="erp-input font-mono"
+                          />
+                        </label>
+                      </div>
                     }
-                  </select>
-                </label>
-
-                <label class="grid gap-1">
-                  <span class="erp-label">Phòng khám <span class="erp-label-required">*</span></span>
-                  <select
-                    class="erp-select"
-                    [ngModel]="selectedRoomId()"
-                    (ngModelChange)="selectedRoomId.set($event)"
-                    name="room"
-                  >
-                    <option value="">-- Chọn phòng --</option>
-                    @for (room of availableRooms(); track room.id) {
-                      <option [value]="room.id">{{ room.code }} · {{ room.name }}</option>
-                    }
-                  </select>
-                </label>
-              </div>
-            </div>
-
-            <!-- Section 2: Date Range & Shift Hours -->
-            <div class="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-3.5">
-              <div class="flex items-center justify-between border-b border-slate-200/80 pb-2">
-                <div class="flex items-center gap-2">
-                  <mat-icon class="!h-4 !w-4 !text-[16px] text-sky-600">date_range</mat-icon>
-                  <span class="text-xs font-bold uppercase tracking-wider text-slate-700">2. Thời gian & Khung giờ</span>
-                </div>
-                <!-- Period Quick Presets -->
-                <div class="flex items-center gap-1.5">
-                  <button type="button" (click)="applyPeriodPreset(14)" class="rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-100">14 ngày</button>
-                  <button type="button" (click)="applyPeriodPreset(30)" class="rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-100">1 tháng</button>
-                  <button type="button" (click)="applyPeriodPreset(60)" class="rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-100">2 tháng</button>
-                </div>
-              </div>
-
-              <div class="grid gap-3 sm:grid-cols-2">
-                <label class="grid gap-1">
-                  <span class="erp-label">Từ ngày <span class="erp-label-required">*</span></span>
-                  <input
-                    type="date"
-                    [min]="today"
-                    [ngModel]="startDate()"
-                    (ngModelChange)="startDate.set($event)"
-                    name="startDate"
-                    class="erp-input font-mono"
-                  />
-                </label>
-                <label class="grid gap-1">
-                  <span class="erp-label">Đến ngày <span class="erp-label-required">*</span></span>
-                  <input
-                    type="date"
-                    [min]="startDate()"
-                    [ngModel]="endDate()"
-                    (ngModelChange)="endDate.set($event)"
-                    name="endDate"
-                    class="erp-input font-mono"
-                  />
-                </label>
-              </div>
-
-              <div>
-                <div class="flex items-center justify-between mb-1">
-                  <span class="erp-label !mb-0">Giờ ca làm việc <span class="erp-label-required">*</span></span>
-                  <!-- Time Quick Presets -->
-                  <div class="flex items-center gap-1">
-                    <button type="button" (click)="applyTimePreset('08:00', '17:00')" class="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-medium text-slate-600 hover:bg-slate-100">08:00 - 17:00</button>
-                    <button type="button" (click)="applyTimePreset('07:30', '11:30')" class="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-medium text-slate-600 hover:bg-slate-100">Sáng</button>
-                    <button type="button" (click)="applyTimePreset('13:30', '17:30')" class="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-medium text-slate-600 hover:bg-slate-100">Chiều</button>
                   </div>
-                </div>
-                <div class="grid gap-3 sm:grid-cols-2">
-                  <label class="grid gap-0.5">
-                    <span class="text-[11px] text-slate-500">Giờ bắt đầu:</span>
+
+                  <!-- Exception Dates -->
+                  <label class="grid gap-1">
+                    <span class="erp-label">Ngày nghỉ ngoại lệ (cách nhau bằng dấu phẩy)</span>
                     <input
-                      type="time"
-                      [ngModel]="dayStart()"
-                      (ngModelChange)="dayStart.set($event)"
-                      name="dayStart"
-                      class="erp-input font-mono"
-                    />
-                  </label>
-                  <label class="grid gap-0.5">
-                    <span class="text-[11px] text-slate-500">Giờ kết thúc:</span>
-                    <input
-                      type="time"
-                      [ngModel]="dayEnd()"
-                      (ngModelChange)="dayEnd.set($event)"
-                      name="dayEnd"
+                      [ngModel]="exceptionDatesText()"
+                      (ngModelChange)="exceptionDatesText.set($event)"
+                      name="exceptions"
+                      placeholder="vd: 2026-09-02, 2026-09-03"
                       class="erp-input font-mono"
                     />
                   </label>
@@ -351,110 +480,24 @@
               </div>
             </div>
 
-            <!-- Section 3: Weekdays, Breaks & Exceptions -->
-            <div class="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-3.5">
-              <div class="flex items-center justify-between border-b border-slate-200/80 pb-2">
-                <div class="flex items-center gap-2">
-                  <mat-icon class="!h-4 !w-4 !text-[16px] text-sky-600">view_week</mat-icon>
-                  <span class="text-xs font-bold uppercase tracking-wider text-slate-700">3. Thứ lặp & Nghỉ trưa</span>
-                </div>
-                <!-- Weekday Presets -->
-                <div class="flex items-center gap-1.5">
-                  <button type="button" (click)="applyWeekdayPreset('WEEKDAYS')" class="rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-100">T2-T6</button>
-                  <button type="button" (click)="applyWeekdayPreset('ALL_EXCEPT_SUNDAY')" class="rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-100">T2-T7</button>
-                  <button type="button" (click)="applyWeekdayPreset('ALL')" class="rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-100">Cả tuần</button>
-                </div>
-              </div>
-
-              <!-- Weekday toggle buttons -->
-              <div class="grid grid-cols-4 gap-2 sm:grid-cols-7">
-                @for (day of weekdays; track day.value) {
-                  <button
-                    type="button"
-                    (click)="toggleWeekday(day.value, !isWeekdaySelected(day.value))"
-                    [class]="isWeekdaySelected(day.value) ? 'border-[#0e3d48] bg-[#0e3d48] text-white shadow-xs' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100'"
-                    class="flex min-h-10 flex-col items-center justify-center rounded-xl border p-1 text-center transition cursor-pointer"
-                  >
-                    <span class="text-xs font-bold">{{ day.label }}</span>
-                    <span class="text-[10px] opacity-75">{{ isWeekdaySelected(day.value) ? '✓ Chọn' : '—' }}</span>
-                  </button>
-                }
-              </div>
-
-              <!-- Lunch Break Toggle -->
-              <div class="rounded-lg border border-slate-200 bg-white p-3 space-y-2.5">
-                <div class="flex items-center justify-between">
-                  <label class="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      class="rounded border-slate-300 text-[#0e3d48] focus:ring-[#0e3d48]"
-                      [checked]="hasBreak()"
-                      (change)="toggleBreakOption($any($event.target).checked)"
-                    />
-                    <span class="text-xs font-semibold text-slate-800">Trừ giờ nghỉ trưa</span>
-                  </label>
-                  @if (hasBreak()) {
-                    <span class="text-[11px] font-mono font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded">12:00 – 13:00</span>
-                  }
-                </div>
-
-                @if (hasBreak()) {
-                  <div class="grid grid-cols-2 gap-3 pt-1 border-t border-slate-100">
-                    <label class="grid gap-0.5">
-                      <span class="text-[11px] text-slate-500">Nghỉ từ:</span>
-                      <input
-                        type="time"
-                        [ngModel]="breakStart()"
-                        (ngModelChange)="breakStart.set($event)"
-                        name="breakStart"
-                        class="erp-input font-mono"
-                      />
-                    </label>
-                    <label class="grid gap-0.5">
-                      <span class="text-[11px] text-slate-500">Nghỉ đến:</span>
-                      <input
-                        type="time"
-                        [ngModel]="breakEnd()"
-                        (ngModelChange)="breakEnd.set($event)"
-                        name="breakEnd"
-                        class="erp-input font-mono"
-                      />
-                    </label>
-                  </div>
-                }
-              </div>
-
-              <!-- Exception Dates -->
-              <label class="grid gap-1">
-                <span class="erp-label">Ngày nghỉ ngoại lệ (tùy chọn)</span>
-                <input
-                  [ngModel]="exceptionDatesText()"
-                  (ngModelChange)="exceptionDatesText.set($event)"
-                  name="exceptions"
-                  placeholder="vd: 2026-09-02, 2026-09-03"
-                  class="erp-input font-mono"
-                />
-              </label>
+            <!-- Bottom Action Bar -->
+            <div class="flex items-center justify-end gap-3 border-t border-slate-100 pt-5">
+              <button type="button" class="erp-btn-secondary" (click)="cancelEdit()">
+                Hủy bỏ
+              </button>
+              <button
+                data-testid="save-template"
+                type="submit"
+                class="erp-btn-primary !min-h-10 !px-6"
+                [disabled]="saving()"
+              >
+                <mat-icon class="!h-4 !w-4 !text-[18px]">{{ saving() ? 'sync' : 'auto_fix_high' }}</mat-icon>
+                <span>{{ saving() ? 'Đang sinh ca...' : 'Lưu & Tự động sinh lịch khám' }}</span>
+              </button>
             </div>
-          </div>
-
-          <!-- Sticky Drawer Footer -->
-          <div class="erp-drawer-footer">
-            <button type="button" class="erp-btn-secondary" (click)="closeModal()">
-              Hủy
-            </button>
-            <button
-              data-testid="save-template"
-              type="submit"
-              class="erp-btn-primary"
-              [disabled]="saving()"
-            >
-              <mat-icon class="!h-4 !w-4 !text-[18px]">{{ saving() ? 'sync' : 'auto_fix_high' }}</mat-icon>
-              <span>{{ saving() ? 'Đang sinh ca...' : 'Lưu và sinh khung giờ' }}</span>
-            </button>
-          </div>
-        </form>
-      </section>
+          </form>
+        </section>
+      }
     </div>
-  }
+  </div>
 </app-staff-workspace-shell>
