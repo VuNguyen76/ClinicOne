@@ -149,6 +149,15 @@ class ReceptionControllerTest {
     }
 
     @Test
+    void doctorCannotPerformReceptionCheckIn() throws Exception {
+        mockMvc.perform(post("/api/v1/reception/appointments/" + APPOINTMENT_ID + "/check-in")
+                        .with(authentication(authenticated("ROLE_DOCTOR")))
+                        .contentType("application/json")
+                        .content("{\"roomCode\":\"NOI-01\",\"reason\":\"Bác sĩ check-in hộ\"}"))
+                .andExpect(status().isForbidden());
+    }// Chặn Bác sĩ thực hiện tiếp nhận tại quầy
+
+    @Test
     void unauthenticatedUserCannotSearchAppointments() throws Exception {
         mockMvc.perform(get("/api/v1/reception/appointments?query=0912345678&date=2026-08-07"))
                 .andExpect(status().isForbidden());
