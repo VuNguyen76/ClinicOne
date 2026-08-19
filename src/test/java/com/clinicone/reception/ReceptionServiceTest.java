@@ -219,6 +219,31 @@ class ReceptionServiceTest {
     }// Chặn checkin khi lịch hẹn hoàn thành
 
     @Test
+    void rejectsCheckInWhenDoctorIsInactive() {
+        PatientAccount patient = mock(PatientAccount.class);
+        when(patient.getStatus()).thenReturn(AccountStatus.ACTIVE);
+
+        Appointment appointment = mock(Appointment.class);
+        when(appointment.getId()).thenReturn(APPOINTMENT_ID);
+        when(appointment.getAppointmentDate()).thenReturn(TODAY);
+        when(appointment.getDoctorStaffId()).thenReturn(DOCTOR_ID);
+        when(appointment.getPatient()).thenReturn(patient);
+        when(appointment.getStatus()).thenReturn(AppointmentStatus.BOOKED);
+        when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
+
+        DoctorProfile doctor = mock(DoctorProfile.class);
+        when(doctor.isActive()).thenReturn(false);
+        when(doctorProfileRepository.findByStaffAccount_Id(DOCTOR_ID)).thenReturn(Optional.of(doctor));
+
+        assertThatThrownBy(() -> service.checkIn(APPOINTMENT_ID,
+                new ReceptionCheckInRequest("NOI-01", "Bác sĩ nghỉ")))
+                .isInstanceOf(AuthException.class)
+                .extracting("code").isEqualTo("DOCTOR_INACTIVE");
+
+        verifyNoInteractions(queueService);
+    }// Chặn tiếp nhận khi bác sĩ ngưng hoạt động
+
+    @Test
     void rejectsCheckInWhenAppointmentDateIsNotToday() {
         LocalDate tomorrow = TODAY.plusDays(1);
         Appointment appointment = mock(Appointment.class);
