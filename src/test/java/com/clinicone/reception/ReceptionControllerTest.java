@@ -122,6 +122,15 @@ class ReceptionControllerTest {
                 .andExpect(jsonPath("$.length()").value(0));
     }// Tra cứu hồ sơ bệnh nhân không tồn tại
 
+    @Test
+    void receptionistCannotCheckInWithoutRoomCode() throws Exception {
+        mockMvc.perform(post("/api/v1/reception/appointments/" + APPOINTMENT_ID + "/check-in")
+                        .with(authentication(authenticated("ROLE_RECEPTIONIST")))
+                        .contentType("application/json")
+                        .content("{\"reason\":\"QR phòng bị lỗi\"}"))
+                .andExpect(status().isBadRequest());
+    }// Chặn tiếp nhận khi thiếu mã phòng khám
+
     // Nhóm Bảo mật API cho nhóm tiếp nhận
     @Test
     void doctorCannotUseReceptionSearch() throws Exception {
