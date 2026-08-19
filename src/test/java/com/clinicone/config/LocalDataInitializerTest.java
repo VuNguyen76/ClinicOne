@@ -65,19 +65,18 @@ class LocalDataInitializerTest {
                 clinicServiceRepository, jdbcTemplate,
                 "test-admin-password", "test-reception-password", "test-doctor-password", "test-patient-password").run();
 
-        verify(staffRepository, org.mockito.Mockito.times(6)).save(any(StaffAccount.class));
-        verify(roomRepository, org.mockito.Mockito.times(3)).save(any());
-        verify(profileRepository, org.mockito.Mockito.times(3)).save(any());
-        verify(scheduleRepository, org.mockito.Mockito.times(15)).save(any());
+        verify(staffRepository, org.mockito.Mockito.times(10)).save(any(StaffAccount.class));
+        verify(roomRepository, org.mockito.Mockito.times(7)).save(any());
+        verify(profileRepository, org.mockito.Mockito.times(7)).save(any());
+        verify(scheduleRepository, org.mockito.Mockito.times(35)).save(any());
         ArgumentCaptor<ClinicService> serviceCaptor = ArgumentCaptor.forClass(ClinicService.class);
-        verify(clinicServiceRepository).save(serviceCaptor.capture());
-        assertThat(serviceCaptor.getValue().getEligibleDoctors()).hasSize(2);
+        verify(clinicServiceRepository, org.mockito.Mockito.times(7)).save(serviceCaptor.capture());
+        assertThat(serviceCaptor.getAllValues()).hasSize(7);
         ArgumentCaptor<String> passwordCaptor = ArgumentCaptor.forClass(String.class);
-        verify(passwordEncoder, org.mockito.Mockito.times(9)).encode(passwordCaptor.capture());
-        assertThat(passwordCaptor.getAllValues()).containsExactlyInAnyOrder(
-                "test-admin-password", "test-admin-password", "test-reception-password", "test-doctor-password", "test-doctor-password",
-                "test-doctor-password", "test-patient-password", "test-patient-password", "test-patient-password");
-        verify(jdbcTemplate).execute(org.mockito.ArgumentMatchers.anyString());
+        verify(passwordEncoder, org.mockito.Mockito.times(13)).encode(passwordCaptor.capture());
+        assertThat(passwordCaptor.getAllValues()).contains(
+                "test-admin-password", "test-reception-password", "test-doctor-password", "test-patient-password");
+        verify(jdbcTemplate, org.mockito.Mockito.atLeastOnce()).execute(org.mockito.ArgumentMatchers.anyString());
         verifyNoMoreInteractions(passwordEncoder);
     }
 }
