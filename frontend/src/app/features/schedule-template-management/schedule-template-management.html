@@ -150,7 +150,7 @@
 
                     <!-- Weekday Columns for this Room -->
                     @for (day of displayWeekdays; track day.value) {
-                      <td class="p-2 border-r border-slate-200 last:border-r-0 align-middle min-w-[130px] max-w-[160px]">
+                      <td class="p-2 border-r border-slate-200 last:border-r-0 align-top min-w-[155px]">
                         @if (getTemplatesForRoomAndDay(room.id, day.value).length > 0) {
                           <div class="space-y-1.5">
                             @for (tmpl of getTemplatesForRoomAndDay(room.id, day.value); track tmpl.id) {
@@ -159,24 +159,23 @@
                                 tabindex="0"
                                 (click)="openTemplateDetail(tmpl)"
                                 (keydown.enter)="openTemplateDetail(tmpl)"
-                                class="rounded-xl border border-slate-200 bg-white p-2 text-xs shadow-2xs transition hover:border-[#0e3d48] hover:shadow-xs cursor-pointer group"
+                                class="rounded-xl border border-slate-200 bg-white p-2.5 text-xs shadow-2xs transition hover:border-[#0e3d48] hover:shadow-xs cursor-pointer group"
                               >
-                                <div class="flex items-center gap-2">
-                                  @if (getDoctorAvatar(tmpl.doctorName)) {
-                                    <img [src]="getDoctorAvatar(tmpl.doctorName)!" [alt]="tmpl.doctorName" class="h-7 w-7 rounded-full object-cover border border-slate-200 shrink-0" />
-                                  } @else {
-                                    <span class="grid h-7 w-7 place-items-center rounded-full bg-slate-100 text-slate-700 font-bold text-[10px] shrink-0">{{ tmpl.doctorName.slice(0, 1) }}</span>
-                                  }
+                                <div class="flex items-start gap-2.5">
+                                  <img
+                                    [src]="getDoctorAvatar(tmpl.doctorName, tmpl.doctorAvatarUrl)"
+                                    [alt]="tmpl.doctorName"
+                                    class="h-8 w-8 rounded-full object-cover border border-slate-200 shrink-0 shadow-2xs"
+                                  />
                                   <div class="min-w-0 flex-1">
-                                    <p class="font-bold text-slate-900 truncate text-[11px] group-hover:text-[#0e3d48]">{{ tmpl.doctorName }}</p>
-                                    <p class="text-[10px] text-slate-500 truncate">{{ tmpl.serviceName }}</p>
+                                    <p class="font-bold text-slate-900 text-xs leading-tight group-hover:text-[#0e3d48] truncate" [title]="tmpl.doctorName">{{ tmpl.doctorName }}</p>
+                                    <p class="text-[10px] text-slate-500 font-medium truncate mt-0.5" [title]="tmpl.serviceName">{{ tmpl.serviceName }}</p>
                                   </div>
                                 </div>
-                                <div class="mt-1.5 flex items-center justify-between">
-                                  <span class="inline-flex items-center rounded-md border px-1.5 py-0.5 text-[9px] font-bold" [class]="getShiftBadge(tmpl).class">
+                                <div class="mt-2 flex items-center justify-between">
+                                  <span class="inline-flex items-center rounded-md border px-2 py-0.5 text-[9px] font-bold" [class]="getShiftBadge(tmpl).class">
                                     {{ getShiftBadge(tmpl).label }}
                                   </span>
-                                  <span class="font-mono text-[10px] font-semibold text-slate-500">{{ tmpl.generatedSlotCount }} lượt</span>
                                 </div>
                               </div>
                             }
@@ -241,11 +240,7 @@
                   <tr data-testid="template-row" class="transition hover:bg-slate-50/70">
                     <td class="px-4 py-3">
                       <div class="flex items-center gap-3">
-                        @if (getDoctorAvatar(template.doctorName)) {
-                          <img [src]="getDoctorAvatar(template.doctorName)!" [alt]="template.doctorName" class="h-8 w-8 rounded-full object-cover border border-slate-200 shrink-0" />
-                        } @else {
-                          <span class="grid h-8 w-8 place-items-center rounded-full bg-slate-100 text-slate-700 font-bold text-xs shrink-0">{{ template.doctorName.slice(0, 1) }}</span>
-                        }
+                        <img [src]="getDoctorAvatar(template.doctorName, template.doctorAvatarUrl)" [alt]="template.doctorName" class="h-8 w-8 rounded-full object-cover border border-slate-200 shrink-0 shadow-2xs" />
                         <div>
                           <p class="font-bold text-slate-900 text-xs">{{ template.doctorName }}</p>
                           <p class="text-[11px] text-slate-500 font-medium">{{ template.serviceName }} ({{ template.durationMinutes }}p/lượt)</p>
@@ -568,11 +563,7 @@
         </div>
 
         <div class="flex items-center gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-100">
-          @if (getDoctorAvatar(selectedTemplateForDetail()!.doctorName)) {
-            <img [src]="getDoctorAvatar(selectedTemplateForDetail()!.doctorName)!" [alt]="selectedTemplateForDetail()!.doctorName" class="h-12 w-12 rounded-full object-cover border border-slate-200 shadow-xs shrink-0" />
-          } @else {
-            <span class="grid h-12 w-12 place-items-center rounded-full bg-[#0e3d48] text-white font-bold text-sm shrink-0">{{ selectedTemplateForDetail()!.doctorName.slice(0, 1) }}</span>
-          }
+          <img [src]="getDoctorAvatar(selectedTemplateForDetail()!.doctorName, selectedTemplateForDetail()!.doctorAvatarUrl)" [alt]="selectedTemplateForDetail()!.doctorName" class="h-12 w-12 rounded-full object-cover border border-slate-200 shadow-xs shrink-0" />
           <div>
             <h4 class="text-sm font-bold text-slate-900">{{ selectedTemplateForDetail()!.doctorName }}</h4>
             <p class="text-xs text-slate-500 font-medium">{{ selectedTemplateForDetail()!.serviceName }}</p>

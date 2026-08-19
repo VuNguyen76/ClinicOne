@@ -413,6 +413,7 @@ export interface ScheduleTemplateResponse {
   durationMinutes: number;
   doctorId: string;
   doctorName: string;
+  doctorAvatarUrl?: string | null;
   roomId: string;
   roomCode: string;
   startDate: string;

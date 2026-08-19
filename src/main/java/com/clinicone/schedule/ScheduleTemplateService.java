@@ -254,7 +254,9 @@ public class ScheduleTemplateService {
         return new ScheduleTemplateResponse(template.getId(), template.getClinicService().getId(),
                 template.getClinicService().getName(), template.getSpecialty(), template.getVisitType(),
                 template.getDurationMinutes(), template.getDoctorProfile().getStaffAccount().getId(),
-                template.getDoctorProfile().getStaffAccount().getFullName(), template.getRoom().getId(),
+                template.getDoctorProfile().getStaffAccount().getFullName(),
+                template.getDoctorProfile().getAvatarUrl(),
+                template.getRoom().getId(),
                 template.getRoom().getCode(), template.getStartDate(), template.getEndDate(), template.getWeekdays(),
                 template.getDayStart(), template.getDayEnd(), template.getBreaks().stream()
                 .map(ScheduleBreakResponse::from).toList(), template.getExceptionDates(), generatedCount,

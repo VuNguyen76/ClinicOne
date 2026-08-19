@@ -248,8 +248,19 @@ export class ScheduleTemplateManagement implements OnInit {
     return { label: 'Ca chiều (13:00-17:00)', class: 'border-purple-200 bg-purple-50 text-purple-800' };
   }
 
-  protected getDoctorAvatar(doctorName: string): string | null {
-    if (!doctorName) return null;
+  private readonly doctorAvatarMap: Record<string, string> = {
+    'nguyễn an': 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=150&auto=format&fit=crop&q=80',
+    'trần minh': 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?w=150&auto=format&fit=crop&q=80',
+    'lê thu hà': 'https://images.unsplash.com/photo-1594824813589-32212356c382?w=150&auto=format&fit=crop&q=80',
+    'phạm quốc dũng': 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=150&auto=format&fit=crop&q=80',
+    'hoàng thanh nga': 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=150&auto=format&fit=crop&q=80',
+    'vũ đình toàn': 'https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=150&auto=format&fit=crop&q=80',
+    'đặng mai lan': 'https://images.unsplash.com/photo-1651008376811-b90baee60c1f?w=150&auto=format&fit=crop&q=80',
+  };
+
+  protected getDoctorAvatar(doctorName: string, directAvatar?: string | null): string {
+    if (directAvatar) return directAvatar;
+    if (!doctorName) return 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=150&auto=format&fit=crop&q=80';
     const cleanName = doctorName.replace(/^(bs\.|ths\.|ckii|cki|bác sĩ|tiến sĩ|ts\.)\s*/i, '').trim().toLowerCase();
     const doc = this.doctors().find((d) => {
       const dClean = d.fullName.replace(/^(bs\.|ths\.|ckii|cki|bác sĩ|tiến sĩ|ts\.)\s*/i, '').trim().toLowerCase();
@@ -257,7 +268,11 @@ export class ScheduleTemplateManagement implements OnInit {
         || (cleanName.length >= 3 && dClean.includes(cleanName))
         || (dClean.length >= 3 && cleanName.includes(dClean));
     });
-    return doc?.avatarUrl ?? null;
+    if (doc?.avatarUrl) return doc.avatarUrl;
+    for (const [name, url] of Object.entries(this.doctorAvatarMap)) {
+      if (cleanName.includes(name) || name.includes(cleanName)) return url;
+    }
+    return 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=150&auto=format&fit=crop&q=80';
   }
 
   protected getDoctorSpecialty(doctorName: string): string {
