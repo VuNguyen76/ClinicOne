@@ -1,93 +1,166 @@
 <app-staff-workspace-shell moduleTitle="Hệ thống" pageTitle="Tài khoản nhân viên">
-  <div workspace-actions>
-    <div class="flex items-center gap-2">
-      <button data-testid="open-create-staff" type="button" class="erp-btn-primary" (click)="openCreate()">
-        <mat-icon class="!h-4 !w-4 !text-[18px]">person_add</mat-icon>
-        <span>Tạo tài khoản</span>
-      </button>
-      <button type="button" class="erp-btn-secondary" (click)="load()" [disabled]="loading()">
-        <mat-icon class="!h-4 !w-4 !text-[18px]">refresh</mat-icon>
-        <span>Làm mới</span>
-      </button>
-    </div>
-  </div>
-
-  <div class="grid gap-4">
+  <div class="grid gap-6">
+    <!-- Alerts -->
     @if (error()) {
-      <div class="rounded-md border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs font-semibold text-rose-700" role="alert">
-        {{ error() }}
+      <div class="flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-medium text-rose-800 shadow-xs" role="alert">
+        <div class="flex items-center gap-2">
+          <mat-icon class="!h-4 !w-4 !text-[18px] text-rose-600">error_outline</mat-icon>
+          <span>{{ error() }}</span>
+        </div>
+        <button type="button" class="erp-btn-icon !h-6 !w-6" (click)="error.set('')" title="Đóng thông báo">
+          <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">close</mat-icon>
+        </button>
       </div>
     }
     @if (notice()) {
-      <div class="rounded-md border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-xs font-semibold text-emerald-700" role="status">
-        {{ notice() }}
+      <div class="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-medium text-emerald-800 shadow-xs" role="status">
+        <div class="flex items-center gap-2">
+          <mat-icon class="!h-4 !w-4 !text-[18px] text-emerald-600">check_circle</mat-icon>
+          <span>{{ notice() }}</span>
+        </div>
+        <button type="button" class="erp-btn-icon !h-6 !w-6" (click)="notice.set('')" title="Đóng thông báo">
+          <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">close</mat-icon>
+        </button>
       </div>
     }
 
+    <!-- 1. Top 3 Metric Cards -->
+    <div class="grid gap-5 sm:grid-cols-3">
+      <!-- Card 1: Total Staff -->
+      <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs flex items-center gap-4">
+        <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#ecfdf5] text-[#059669]">
+          <mat-icon class="!h-6 !w-6 !text-[24px]">manage_accounts</mat-icon>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-slate-500">Tổng số Nhân viên</p>
+          <p class="text-2xl font-bold text-slate-900 mt-0.5">{{ totalAccountsCount() }}</p>
+        </div>
+      </div>
+
+      <!-- Card 2: Active Staff -->
+      <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs flex items-center gap-4">
+        <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#eff6ff] text-[#2563eb]">
+          <mat-icon class="!h-6 !w-6 !text-[24px]">verified_user</mat-icon>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-slate-500">Đang hoạt động</p>
+          <p class="text-2xl font-bold text-slate-900 mt-0.5">{{ activeAccountsCount() }}</p>
+        </div>
+      </div>
+
+      <!-- Card 3: Locked Staff -->
+      <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs flex items-center gap-4">
+        <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#fffbeb] text-[#d97706]">
+          <mat-icon class="!h-6 !w-6 !text-[24px]">lock_person</mat-icon>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-slate-500">Tài khoản bị khóa</p>
+          <p class="text-2xl font-bold text-slate-900 mt-0.5">{{ lockedAccountsCount() }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Search Bar + Add Staff Button Header -->
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div class="relative w-full max-w-sm">
+        <mat-icon class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 !h-4 !w-4 !text-[18px] text-slate-400">search</mat-icon>
+        <input
+          type="text"
+          class="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-8 text-xs text-slate-800 placeholder-slate-400 outline-none transition focus:border-[#0e3d48] focus:ring-1 focus:ring-[#0e3d48] shadow-2xs"
+          placeholder="Tìm kiếm theo tên, mã NV, tài khoản, phòng ban..."
+          [value]="searchTerm()"
+          (input)="searchTerm.set($any($event.target).value)"
+        />
+        @if (searchTerm()) {
+          <button
+            type="button"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            (click)="searchTerm.set('')"
+          >
+            <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">close</mat-icon>
+          </button>
+        }
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button
+          data-testid="open-create-staff"
+          type="button"
+          class="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0e3d48] px-5 py-2.5 text-xs font-semibold text-white shadow-xs transition hover:bg-[#082830] cursor-pointer"
+          (click)="openCreate()"
+        >
+          <mat-icon class="!h-4 !w-4 !text-[18px]">person_add</mat-icon>
+          <span>Tạo tài khoản</span>
+        </button>
+        <button
+          type="button"
+          class="erp-btn-icon !h-10 !w-10 rounded-xl border border-slate-200 bg-white shadow-2xs"
+          (click)="load()"
+          [disabled]="loading()"
+          title="Tải lại danh sách"
+        >
+          <mat-icon class="!h-4 !w-4 !text-[18px]">refresh</mat-icon>
+        </button>
+      </div>
+    </div>
+
+    <!-- 3. Main DataGrid Table -->
     @if (loading()) {
-      <div class="grid min-h-64 place-items-center rounded-lg border border-slate-200 bg-white text-xs text-slate-500">
-        Đang tải danh sách tài khoản nhân viên...
+      <div class="grid min-h-64 place-items-center rounded-2xl border border-slate-100 bg-white text-xs text-slate-500 shadow-xs">
+        Đang tải danh sách nhân viên...
       </div>
     } @else {
-      <section class="erp-card overflow-hidden">
-        <div class="erp-card-header">
-          <div>
-            <h2 class="text-xs font-bold uppercase tracking-wider text-[#0e3d48]">Danh sách nhân viên</h2>
-            <p class="mt-0.5 text-[11px] text-slate-500">{{ accounts().length }} tài khoản trong hệ thống</p>
-          </div>
-          <mat-icon class="text-slate-400">manage_accounts</mat-icon>
-        </div>
-
-        <div class="erp-table-container !rounded-none !border-0 !shadow-none">
-          <table class="erp-table">
+      <section class="rounded-2xl border border-slate-100 bg-white shadow-xs overflow-hidden w-full">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs whitespace-nowrap">
             <thead>
-              <tr>
-                <th class="erp-th w-64">Họ và tên / Tài khoản</th>
-                <th class="erp-th w-32">Mã NV</th>
-                <th class="erp-th">Đơn vị & Phòng ban</th>
-                <th class="erp-th w-56">Vai trò nghiệp vụ</th>
-                <th class="erp-th w-36">Trạng thái</th>
-                <th class="erp-th w-48 text-right">Thao tác</th>
+              <tr class="border-b border-slate-100 text-[11px] font-semibold text-slate-500 uppercase tracking-wider bg-slate-50/50">
+                <th class="px-4 py-3.5">Họ và tên / Tài khoản</th>
+                <th class="px-4 py-3.5">Mã NV</th>
+                <th class="px-4 py-3.5">Đơn vị & Phòng ban</th>
+                <th class="px-4 py-3.5">Vai trò nghiệp vụ</th>
+                <th class="px-4 py-3.5">Trạng thái</th>
+                <th class="px-4 py-3.5 text-right">Thao tác</th>
               </tr>
             </thead>
-            <tbody>
-              @for (account of accounts(); track account.staffId) {
-                <tr data-testid="staff-row" class="erp-tr">
-                  <td class="erp-td">
-                    <div class="flex items-center gap-2.5">
-                      <span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-sky-100 font-mono text-[10px] font-bold text-[#0284c7]">
+            <tbody class="divide-y divide-slate-50">
+              @for (account of filteredAccounts(); track account.staffId) {
+                <tr data-testid="staff-row" class="transition hover:bg-slate-50/70">
+                  <td class="px-4 py-3">
+                    <div class="flex items-center gap-3">
+                      <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-slate-100 font-mono text-xs font-bold text-slate-700">
                         {{ account.fullName.slice(0, 1) }}
                       </span>
-                      <div class="min-w-0">
-                        <p class="truncate font-semibold text-slate-900">{{ account.fullName }}</p>
-                        <p class="truncate font-mono text-[10px] text-slate-400">{{ account.username }}</p>
+                      <div>
+                        <strong class="block text-xs font-semibold text-slate-900">{{ account.fullName }}</strong>
+                        <span class="block font-mono text-[10px] text-slate-400">{{ account.username }}</span>
                       </div>
                     </div>
                   </td>
-                  <td class="erp-td">
-                    <span class="erp-table-code font-mono text-[11px] text-slate-700">
-                      {{ account.employeeCode || account.username }}
+                  <td class="px-4 py-3 font-mono font-bold text-slate-800">
+                    {{ account.employeeCode || account.username }}
+                  </td>
+                  <td class="px-4 py-3 text-slate-600 font-medium">
+                    {{ account.unitName || 'ClinicOne' }} · {{ account.departmentName || 'Chưa phân ban' }}
+                  </td>
+                  <td class="px-4 py-3">
+                    <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-medium text-slate-700">
+                      {{ roleLabels(account) }}
                     </span>
                   </td>
-                  <td class="erp-td text-slate-600">
-                    {{ account.unitName || 'ClinicOne' }} · {{ account.departmentName || 'Chưa khai báo phòng ban' }}
-                  </td>
-                  <td class="erp-td">
-                    <span class="font-medium text-slate-800">{{ roleLabels(account) }}</span>
-                  </td>
-                  <td class="erp-td">
+                  <td class="px-4 py-3">
                     <span
                       data-testid="staff-status"
-                      class="erp-badge"
-                      [class.erp-badge-danger]="account.status === 'LOCKED'"
-                      [class.erp-badge-success]="account.status !== 'LOCKED'"
+                      class="inline-flex items-center gap-1.5 font-medium text-[11px]"
+                      [class.text-rose-600]="account.status === 'LOCKED'"
+                      [class.text-emerald-600]="account.status !== 'LOCKED'"
                     >
-                      <span class="erp-dot" [class.erp-dot-danger]="account.status === 'LOCKED'" [class.erp-dot-success]="account.status !== 'LOCKED'"></span>
+                      <span class="h-1.5 w-1.5 rounded-full" [class.bg-rose-500]="account.status === 'LOCKED'" [class.bg-emerald-500]="account.status !== 'LOCKED'"></span>
                       <span>{{ statusLabel(account.status) }}</span>
                     </span>
                   </td>
-                  <td class="erp-td text-right">
-                    <div class="inline-flex items-center justify-end gap-1">
+                  <td class="px-4 py-3 text-right">
+                    <div class="flex items-center justify-end gap-1.5">
                       @if (!account.roles?.includes('ADMIN') && account.role !== 'ADMIN') {
                         <button
                           type="button"
@@ -98,7 +171,7 @@
                           [disabled]="updatingId() === account.staffId"
                           (click)="openRoleEditor(account)"
                         >
-                          <mat-icon class="!h-4 !w-4 !text-[18px]">admin_panel_settings</mat-icon>
+                          <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">admin_panel_settings</mat-icon>
                         </button>
                       }
                       @if (account.status === 'LOCKED') {
@@ -111,7 +184,7 @@
                           [disabled]="updatingId() === account.staffId"
                           (click)="updateStatus(account)"
                         >
-                          <mat-icon class="!h-4 !w-4 !text-[18px]">lock_open</mat-icon>
+                          <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">lock_open</mat-icon>
                         </button>
                       } @else {
                         <button
@@ -123,7 +196,7 @@
                           [disabled]="updatingId() === account.staffId"
                           (click)="askToLock(account)"
                         >
-                          <mat-icon class="!h-4 !w-4 !text-[18px]">lock</mat-icon>
+                          <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">lock</mat-icon>
                         </button>
                       }
                     </div>
@@ -132,7 +205,17 @@
               } @empty {
                 <tr>
                   <td colspan="6" class="px-4 py-12 text-center text-xs text-slate-500">
-                    Chưa có tài khoản nhân viên nào.
+                    <div>
+                      <p class="font-medium text-slate-700">Chưa có tài khoản nhân viên nào phù hợp.</p>
+                      <button
+                        type="button"
+                        class="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-[#0e3d48] px-4 py-2 text-xs font-semibold text-white"
+                        (click)="openCreate()"
+                      >
+                        <mat-icon class="!h-4 !w-4 !text-[18px]">person_add</mat-icon>
+                        <span>Tạo tài khoản</span>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               }

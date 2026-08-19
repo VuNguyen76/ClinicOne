@@ -1,166 +1,298 @@
 <app-staff-workspace-shell moduleTitle="Danh mục" pageTitle="Mẫu phiếu khám">
-  @if (editingId()) {
-    <button workspace-actions type="button"
-      class="inline-flex min-h-9 items-center gap-1.5 rounded-md border border-[#cbdadd] bg-white px-3 text-sm font-semibold text-[#173f4b] hover:bg-[#eef5f6]"
-      (click)="startCreate()">
-      <mat-icon class="!h-4 !w-4 !text-[17px]">add</mat-icon>Thêm mới
+  <div workspace-tabs class="flex items-center gap-1.5 border-b border-slate-200">
+    <button
+      type="button"
+      class="px-4 py-2 text-xs font-semibold border-b-2 transition cursor-pointer"
+      [class.border-[#0e3d48]]="activeTab() === 'list'"
+      [class.text-[#0e3d48]]="activeTab() === 'list'"
+      [class.border-transparent]="activeTab() !== 'list'"
+      [class.text-slate-500]="activeTab() !== 'list'"
+      (click)="activeTab.set('list')"
+    >
+      Danh sách mẫu
     </button>
-  }
+    <button
+      type="button"
+      class="px-4 py-2 text-xs font-semibold border-b-2 transition cursor-pointer"
+      [class.border-[#0e3d48]]="activeTab() === 'form'"
+      [class.text-[#0e3d48]]="activeTab() === 'form'"
+      [class.border-transparent]="activeTab() !== 'form'"
+      [class.text-slate-500]="activeTab() !== 'form'"
+      (click)="startCreate()"
+    >
+      Thiết lập mẫu
+    </button>
+  </div>
 
-  @if (error()) {
-    <p role="alert" class="mb-3 border-l-4 border-rose-500 bg-rose-50 px-3 py-2 text-sm text-rose-700">{{ error() }}</p>
-  }
-  @if (notice()) {
-    <p class="mb-3 border-l-4 border-emerald-500 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{{ notice() }}</p>
-  }
+  <div class="grid gap-6">
+    <!-- Alerts & Notices -->
+    @if (error()) {
+      <div class="flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-medium text-rose-800 shadow-xs" role="alert">
+        <div class="flex items-center gap-2">
+          <mat-icon class="!h-4 !w-4 !text-[18px] text-rose-600">error_outline</mat-icon>
+          <span>{{ error() }}</span>
+        </div>
+        <button type="button" class="erp-btn-icon !h-6 !w-6" (click)="error.set('')" title="Đóng thông báo">
+          <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">close</mat-icon>
+        </button>
+      </div>
+    }
+    @if (notice()) {
+      <div class="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-medium text-emerald-800 shadow-xs" role="status">
+        <div class="flex items-center gap-2">
+          <mat-icon class="!h-4 !w-4 !text-[18px] text-emerald-600">check_circle</mat-icon>
+          <span>{{ notice() }}</span>
+        </div>
+        <button type="button" class="erp-btn-icon !h-6 !w-6" (click)="notice.set('')" title="Đóng thông báo">
+          <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">close</mat-icon>
+        </button>
+      </div>
+    }
 
-  <nav workspace-tabs class="flex min-h-11 items-end gap-1 overflow-x-auto border-b border-[#cbdadd] bg-[#f7f9fa] px-3" aria-label="Các phần mẫu phiếu">
-    <button type="button" class="border-b-2 px-4 py-2.5 text-sm font-semibold transition" [class.border-[#0b91c9]]="activeTab() === 'list'" [class.text-[#086b8b]]="activeTab() === 'list'" [class.border-transparent]="activeTab() !== 'list'" [class.text-slate-500]="activeTab() !== 'list'" (click)="activeTab.set('list')">Danh sách mẫu</button>
-    <button type="button" class="border-b-2 px-4 py-2.5 text-sm font-semibold transition" [class.border-[#0b91c9]]="activeTab() === 'form'" [class.text-[#086b8b]]="activeTab() === 'form'" [class.border-transparent]="activeTab() !== 'form'" [class.text-slate-500]="activeTab() !== 'form'" (click)="activeTab.set('form')">Thiết lập mẫu</button>
-  </nav>
-
-  <div class="grid items-start gap-4">
-    <section class="min-w-0 overflow-hidden border border-[#cbdadd] bg-white" [class.hidden]="activeTab() !== 'list'">
-      <header class="flex min-h-12 items-center justify-between gap-3 border-b border-[#dce6e8] bg-[#f8fafb] px-4">
+    <!-- 1. Top 3 Metric Cards -->
+    <div class="grid gap-5 sm:grid-cols-3">
+      <!-- Card 1: Total Templates -->
+      <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs flex items-center gap-4">
+        <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#ecfdf5] text-[#059669]">
+          <mat-icon class="!h-6 !w-6 !text-[24px]">description</mat-icon>
+        </div>
         <div>
-          <h2 class="text-sm font-bold text-[#0a303b]">Danh sách mẫu</h2>
-          <p class="text-xs text-slate-500">{{ items().length }} mẫu đang sử dụng</p>
+          <p class="text-xs font-semibold text-slate-500">Tổng số Mẫu phiếu</p>
+          <p class="text-2xl font-bold text-slate-900 mt-0.5">{{ totalTemplatesCount() }}</p>
         </div>
-        <mat-icon class="text-[#0b91c9]">description</mat-icon>
-      </header>
-
-      @if (loading()) {
-        <div class="flex min-h-48 items-center justify-center text-sm text-slate-500">Đang tải dữ liệu...</div>
-      } @else {
-        <div class="overflow-x-auto">
-          <table class="w-full min-w-[720px] border-collapse text-left text-sm">
-            <thead class="bg-[#eef3f4] text-[11px] font-bold uppercase tracking-[0.04em] text-slate-500">
-              <tr>
-                <th class="border-b border-[#dce6e8] px-4 py-2.5">Mã</th>
-                <th class="border-b border-[#dce6e8] px-4 py-2.5">Tên mẫu</th>
-                <th class="border-b border-[#dce6e8] px-4 py-2.5">Phạm vi áp dụng</th>
-                <th class="border-b border-[#dce6e8] px-4 py-2.5">Nội dung điền sẵn</th>
-                <th class="w-24 border-b border-[#dce6e8] px-4 py-2.5 text-right">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-[#e7edef]">
-              @for (item of items(); track item.id; let index = $index) {
-                <tr class="align-top transition hover:bg-[#f4fafb]" [attr.data-testid]="'template-row-' + index">
-                  <td class="px-4 py-3 font-mono text-xs font-semibold text-[#0b7193]">{{ item.code }}</td>
-                  <td class="px-4 py-3">
-                    <p class="font-semibold text-[#173f4b]">{{ item.name }}</p>
-                    <p class="mt-0.5 max-w-xs text-xs text-slate-500">{{ item.description || 'Không có mô tả' }}</p>
-                  </td>
-                  <td class="px-4 py-3">
-                    <p class="font-medium text-slate-700">{{ item.specialty }}</p>
-                    <p class="mt-0.5 text-xs text-slate-500">{{ serviceName(item) }}</p>
-                  </td>
-                  <td class="max-w-sm px-4 py-3 text-xs leading-5 text-slate-600">{{ contentSummary(item) }}</td>
-                  <td class="px-4 py-2 text-right">
-                    <div class="inline-flex items-center justify-end gap-1">
-                      <button type="button" class="erp-btn-icon" title="Sửa mẫu" aria-label="Sửa mẫu" (click)="edit(item)">
-                        <mat-icon class="!h-4 !w-4 !text-[18px]">edit</mat-icon>
-                      </button>
-                      <button type="button" class="erp-btn-icon" title="Ngưng sử dụng mẫu" aria-label="Ngưng sử dụng mẫu" (click)="deactivate(item)">
-                        <mat-icon class="!h-4 !w-4 !text-[18px]">pause</mat-icon>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              } @empty {
-                <tr><td colspan="5" class="px-4 py-16 text-center text-sm text-slate-500">Chưa có mẫu phiếu khám.</td></tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      }
-    </section>
-
-    <form class="min-w-0 border border-[#cbdadd] bg-white" [class.hidden]="activeTab() !== 'form'" (submit)="$event.preventDefault(); save()">
-      <header class="border-b border-[#dce6e8] bg-[#f8fafb] px-4 py-3">
-        <h2 class="text-sm font-bold text-[#0a303b]">{{ formTitle() }}</h2>
-        <p class="mt-0.5 text-xs text-slate-500">Nội dung được điền sẵn khi bác sĩ chọn mẫu.</p>
-      </header>
-
-      <div class="grid gap-4 p-4">
-        <fieldset class="grid gap-3">
-          <legend class="mb-2 text-[11px] font-bold uppercase tracking-[0.06em] text-[#0b7193]">Thông tin áp dụng</legend>
-          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <label class="grid gap-1 text-xs font-semibold text-slate-700">Mã mẫu
-              <input data-testid="template-code" [ngModel]="code()" (ngModelChange)="code.set($event)" name="code"
-                class="h-9 min-w-0 rounded-md border border-[#cbdadd] px-2.5 text-sm font-normal outline-none focus:border-[#0b91c9]" />
-            </label>
-            <label class="grid gap-1 text-xs font-semibold text-slate-700">Tên mẫu
-              <input data-testid="template-name" [ngModel]="name()" (ngModelChange)="name.set($event)" name="name"
-                class="h-9 min-w-0 rounded-md border border-[#cbdadd] px-2.5 text-sm font-normal outline-none focus:border-[#0b91c9]" />
-            </label>
-          </div>
-          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <label class="grid gap-1 text-xs font-semibold text-slate-700">Chuyên khoa
-              <select data-testid="template-specialty" [ngModel]="specialty()" (ngModelChange)="selectSpecialty($event)" name="specialty"
-                class="h-9 min-w-0 rounded-md border border-[#cbdadd] bg-white px-2.5 text-sm font-normal outline-none focus:border-[#0b91c9]">
-                <option value="">Chọn chuyên khoa</option>
-                @for (option of specialties(); track option.code) {<option [value]="option.name">{{ option.name }}</option>}
-              </select>
-            </label>
-            <label class="grid gap-1 text-xs font-semibold text-slate-700">Dịch vụ khám
-              <select [ngModel]="clinicServiceId()" (ngModelChange)="clinicServiceId.set($event)" name="clinicServiceId"
-                class="h-9 min-w-0 rounded-md border border-[#cbdadd] bg-white px-2.5 text-sm font-normal outline-none focus:border-[#0b91c9]">
-                <option value="">Tất cả dịch vụ trong khoa</option>
-                @for (service of filteredServices(); track service.id) {<option [value]="service.id">{{ service.name }}</option>}
-              </select>
-            </label>
-          </div>
-          <label class="grid gap-1 text-xs font-semibold text-slate-700">Mô tả
-            <input [ngModel]="description()" (ngModelChange)="description.set($event)" name="description"
-              class="h-9 min-w-0 rounded-md border border-[#cbdadd] px-2.5 text-sm font-normal outline-none focus:border-[#0b91c9]" />
-          </label>
-        </fieldset>
-
-        <fieldset class="grid gap-3 border-t border-[#e2eaec] pt-4">
-          <legend class="mb-2 text-[11px] font-bold uppercase tracking-[0.06em] text-[#0b7193]">Nội dung phiếu</legend>
-          <label class="grid gap-1 text-xs font-semibold text-slate-700">Lý do khám
-            <textarea [ngModel]="reason()" (ngModelChange)="reason.set($event)" name="reason" rows="2"
-              class="rounded-md border border-[#cbdadd] px-2.5 py-2 text-sm font-normal outline-none focus:border-[#0b91c9]"></textarea>
-          </label>
-          <label class="grid gap-1 text-xs font-semibold text-slate-700">Ghi nhận khám
-            <textarea data-testid="template-notes" [ngModel]="examinationNotes()" (ngModelChange)="examinationNotes.set($event)" name="examinationNotes" rows="3"
-              class="rounded-md border border-[#cbdadd] px-2.5 py-2 text-sm font-normal outline-none focus:border-[#0b91c9]"></textarea>
-          </label>
-          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <label class="grid gap-1 text-xs font-semibold text-slate-700">Chẩn đoán
-              <textarea [ngModel]="diagnosis()" (ngModelChange)="diagnosis.set($event)" name="diagnosis" rows="2"
-                class="rounded-md border border-[#cbdadd] px-2.5 py-2 text-sm font-normal outline-none focus:border-[#0b91c9]"></textarea>
-            </label>
-            <label class="grid gap-1 text-xs font-semibold text-slate-700">Kết luận
-              <textarea [ngModel]="conclusion()" (ngModelChange)="conclusion.set($event)" name="conclusion" rows="2"
-                class="rounded-md border border-[#cbdadd] px-2.5 py-2 text-sm font-normal outline-none focus:border-[#0b91c9]"></textarea>
-            </label>
-          </div>
-          <label class="grid gap-1 text-xs font-semibold text-slate-700">Hướng xử trí
-            <textarea data-testid="template-plan" [ngModel]="treatmentPlan()" (ngModelChange)="treatmentPlan.set($event)" name="treatmentPlan" rows="2"
-              class="rounded-md border border-[#cbdadd] px-2.5 py-2 text-sm font-normal outline-none focus:border-[#0b91c9]"></textarea>
-          </label>
-          <div class="grid grid-cols-1 gap-3 sm:grid-cols-[110px_minmax(0,1fr)]">
-            <label class="grid gap-1 text-xs font-semibold text-slate-700">Tái khám sau
-              <input type="number" min="1" max="365" [ngModel]="followUpDays()" (ngModelChange)="followUpDays.set($event)" name="followUpDays"
-                class="h-9 min-w-0 rounded-md border border-[#cbdadd] px-2.5 text-sm font-normal outline-none focus:border-[#0b91c9]" placeholder="Số ngày" />
-            </label>
-            <label class="grid gap-1 text-xs font-semibold text-slate-700">Lưu ý tái khám
-              <input [ngModel]="followUpNote()" (ngModelChange)="followUpNote.set($event)" name="followUpNote"
-                class="h-9 min-w-0 rounded-md border border-[#cbdadd] px-2.5 text-sm font-normal outline-none focus:border-[#0b91c9]" />
-            </label>
-          </div>
-        </fieldset>
       </div>
 
-      <footer class="flex justify-end gap-2 border-t border-[#dce6e8] bg-[#f8fafb] px-4 py-3">
-        @if (editingId()) {<button type="button" class="h-9 rounded-md border border-[#cbdadd] bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50" (click)="cancelEdit()">Hủy</button>}
-        <button data-testid="save-medical-template" type="submit" [disabled]="saving()"
-          class="h-9 rounded-md bg-[#086b8b] px-4 text-sm font-semibold text-white hover:bg-[#075a75] disabled:opacity-50">
-          {{ saving() ? 'Đang lưu...' : editingId() ? 'Lưu thay đổi' : 'Thêm mẫu' }}
+      <!-- Card 2: Specialties -->
+      <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs flex items-center gap-4">
+        <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#eff6ff] text-[#2563eb]">
+          <mat-icon class="!h-6 !w-6 !text-[24px]">category</mat-icon>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-slate-500">Chuyên khoa áp dụng</p>
+          <p class="text-2xl font-bold text-slate-900 mt-0.5">{{ specialtiesCount() }}</p>
+        </div>
+      </div>
+
+      <!-- Card 3: Services Linked -->
+      <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs flex items-center gap-4">
+        <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#fffbeb] text-[#d97706]">
+          <mat-icon class="!h-6 !w-6 !text-[24px]">link</mat-icon>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-slate-500">Dịch vụ gắn mẫu</p>
+          <p class="text-2xl font-bold text-slate-900 mt-0.5">{{ servicesLinkedCount() }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Search Bar + Toolbar Header -->
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" [class.hidden]="activeTab() !== 'list'">
+      <div class="relative w-full max-w-sm">
+        <mat-icon class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 !h-4 !w-4 !text-[18px] text-slate-400">search</mat-icon>
+        <input
+          type="text"
+          class="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-8 text-xs text-slate-800 placeholder-slate-400 outline-none transition focus:border-[#0e3d48] focus:ring-1 focus:ring-[#0e3d48] shadow-2xs"
+          placeholder="Tìm kiếm theo mã, tên mẫu, chuyên khoa..."
+          [value]="searchTerm()"
+          (input)="searchTerm.set($any($event.target).value)"
+        />
+        @if (searchTerm()) {
+          <button
+            type="button"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            (click)="searchTerm.set('')"
+          >
+            <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">close</mat-icon>
+          </button>
+        }
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          class="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0e3d48] px-5 py-2.5 text-xs font-semibold text-white shadow-xs transition hover:bg-[#082830] cursor-pointer"
+          (click)="startCreate()"
+        >
+          <mat-icon class="!h-4 !w-4 !text-[18px]">add</mat-icon>
+          <span>Thêm mẫu phiếu</span>
         </button>
-      </footer>
-    </form>
+      </div>
+    </div>
+
+    <!-- 3. Master List View -->
+    <div [class.hidden]="activeTab() !== 'list'">
+      @if (loading()) {
+        <div class="grid min-h-64 place-items-center rounded-2xl border border-slate-100 bg-white text-xs text-slate-500 shadow-xs">
+          Đang tải danh mục mẫu phiếu khám...
+        </div>
+      } @else {
+        <section class="rounded-2xl border border-slate-100 bg-white shadow-xs overflow-hidden w-full">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs whitespace-nowrap">
+              <thead>
+                <tr class="border-b border-slate-100 text-[11px] font-semibold text-slate-500 uppercase tracking-wider bg-slate-50/50">
+                  <th class="px-4 py-3.5">Mã mẫu</th>
+                  <th class="px-4 py-3.5">Tên mẫu phiếu</th>
+                  <th class="px-4 py-3.5">Chuyên khoa & Dịch vụ</th>
+                  <th class="px-4 py-3.5">Nội dung điền sẵn</th>
+                  <th class="px-4 py-3.5 text-right">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-50">
+                @for (item of filteredItems(); track item.id; let index = $index) {
+                  <tr class="transition hover:bg-slate-50/70" [attr.data-testid]="'template-row-' + index">
+                    <td class="px-4 py-3 font-mono font-bold text-slate-800">{{ item.code }}</td>
+                    <td class="px-4 py-3">
+                      <strong class="block text-xs font-semibold text-slate-900">{{ item.name }}</strong>
+                      <span class="block max-w-xs truncate text-[11px] text-slate-400">{{ item.description || 'Không có mô tả' }}</span>
+                    </td>
+                    <td class="px-4 py-3">
+                      <span class="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-2.5 py-0.5 text-[11px] font-medium text-sky-800">
+                        {{ item.specialty }}
+                      </span>
+                      <p class="mt-1 text-[11px] text-slate-500">{{ serviceName(item) }}</p>
+                    </td>
+                    <td class="px-4 py-3 max-w-sm truncate text-slate-600">
+                      {{ contentSummary(item) }}
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                      <div class="flex items-center justify-end gap-1.5">
+                        <button
+                          type="button"
+                          class="erp-btn-icon-accent"
+                          title="Sửa mẫu"
+                          (click)="startEdit(item)"
+                        >
+                          <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">edit</mat-icon>
+                        </button>
+                        <button
+                          type="button"
+                          class="erp-btn-icon-danger"
+                          title="Xóa mẫu"
+                          (click)="delete(item)"
+                        >
+                          <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">delete_outline</mat-icon>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="5" class="px-4 py-12 text-center text-xs text-slate-500">
+                      <div>
+                        <p class="font-medium text-slate-700">Chưa có mẫu phiếu khám nào.</p>
+                        <button
+                          type="button"
+                          class="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-[#0e3d48] px-4 py-2 text-xs font-semibold text-white"
+                          (click)="startCreate()"
+                        >
+                          <mat-icon class="!h-4 !w-4 !text-[18px]">add</mat-icon>
+                          <span>Thêm mẫu phiếu</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+      }
+    </div>
+
+    <!-- 4. Form View (Kept in DOM so form controls are always available) -->
+    <div [class.hidden]="activeTab() !== 'form'">
+      <section class="rounded-2xl border border-slate-100 bg-white p-6 shadow-xs max-w-3xl mx-auto w-full">
+        <h3 class="text-base font-bold text-slate-900 border-b border-slate-100 pb-3 mb-5">{{ formTitle() }}</h3>
+        <form class="space-y-4" (ngSubmit)="$event.preventDefault(); save()">
+          <div class="grid gap-3.5 sm:grid-cols-2">
+            <label class="grid gap-1">
+              <span class="erp-label">Mã mẫu phiếu <span class="erp-label-required">*</span></span>
+              <input data-testid="template-code" class="erp-input font-mono uppercase" placeholder="vd. MAU-NOI-01" [ngModel]="code()" (ngModelChange)="code.set($event)" name="code" />
+            </label>
+            <label class="grid gap-1">
+              <span class="erp-label">Tên mẫu phiếu <span class="erp-label-required">*</span></span>
+              <input data-testid="template-name" class="erp-input" placeholder="vd. Phiếu khám Nội tổng quát" [ngModel]="name()" (ngModelChange)="name.set($event)" name="name" />
+            </label>
+          </div>
+
+          <div class="grid gap-3.5 sm:grid-cols-2">
+            <label class="grid gap-1">
+              <span class="erp-label">Chuyên khoa <span class="erp-label-required">*</span></span>
+              <select data-testid="template-specialty" class="erp-select" [ngModel]="specialty()" (ngModelChange)="selectSpecialty($event)" name="specialty">
+                <option value="">Chọn chuyên khoa</option>
+                @for (spec of specialties(); track spec.code) {
+                  <option [value]="spec.name">{{ spec.name }}</option>
+                }
+              </select>
+            </label>
+            <label class="grid gap-1">
+              <span class="erp-label">Dịch vụ liên kết (tùy chọn)</span>
+              <select class="erp-select" [ngModel]="clinicServiceId()" (ngModelChange)="clinicServiceId.set($event)" name="clinicServiceId">
+                <option value="">Dùng chung cho toàn chuyên khoa</option>
+                @for (srv of filteredServices(); track srv.id) {
+                  <option [value]="srv.id">{{ srv.name }}</option>
+                }
+              </select>
+            </label>
+          </div>
+
+          <label class="grid gap-1">
+            <span class="erp-label">Mô tả mẫu phiếu</span>
+            <input class="erp-input" placeholder="Ghi chú thêm về mục đích sử dụng..." [ngModel]="description()" (ngModelChange)="description.set($event)" name="description" />
+          </label>
+
+          <div class="border-t border-slate-100 pt-4 space-y-3.5">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-[#0e3d48]">Nội dung lâm sàng điền sẵn</h4>
+
+            <label class="grid gap-1">
+              <span class="erp-label">Lý do khám mặc định</span>
+              <input class="erp-input" [ngModel]="reason()" (ngModelChange)="reason.set($event)" name="reason" />
+            </label>
+
+            <label class="grid gap-1">
+              <span class="erp-label">Bệnh sử / Khám lâm sàng</span>
+              <textarea data-testid="template-notes" rows="2" class="erp-input resize-none" [ngModel]="examinationNotes()" (ngModelChange)="examinationNotes.set($event)" name="examinationNotes"></textarea>
+            </label>
+
+            <div class="grid gap-3.5 sm:grid-cols-2">
+              <label class="grid gap-1">
+                <span class="erp-label">Chẩn đoán gợi ý</span>
+                <input class="erp-input" [ngModel]="diagnosis()" (ngModelChange)="diagnosis.set($event)" name="diagnosis" />
+              </label>
+              <label class="grid gap-1">
+                <span class="erp-label">Kết luận</span>
+                <input class="erp-input" [ngModel]="conclusion()" (ngModelChange)="conclusion.set($event)" name="conclusion" />
+              </label>
+            </div>
+
+            <label class="grid gap-1">
+              <span class="erp-label">Hướng điều trị</span>
+              <textarea data-testid="template-plan" rows="2" class="erp-input resize-none" [ngModel]="treatmentPlan()" (ngModelChange)="treatmentPlan.set($event)" name="treatmentPlan"></textarea>
+            </label>
+
+            <div class="grid gap-3.5 sm:grid-cols-2">
+              <label class="grid gap-1">
+                <span class="erp-label">Tái khám sau (ngày)</span>
+                <input type="number" min="0" class="erp-input font-mono" [ngModel]="followUpDays()" (ngModelChange)="followUpDays.set($event)" name="followUpDays" />
+              </label>
+              <label class="grid gap-1">
+                <span class="erp-label">Lời dặn tái khám</span>
+                <input class="erp-input" [ngModel]="followUpNote()" (ngModelChange)="followUpNote.set($event)" name="followUpNote" />
+              </label>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-end gap-2 border-t border-slate-100 pt-4">
+            <button type="button" class="erp-btn-secondary" (click)="cancelEdit()">
+              Hủy
+            </button>
+            <button data-testid="save-medical-template" type="submit" class="erp-btn-primary" [disabled]="saving()">
+              {{ saving() ? 'Đang lưu...' : 'Lưu mẫu phiếu' }}
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
   </div>
 </app-staff-workspace-shell>

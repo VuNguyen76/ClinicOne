@@ -61,6 +61,30 @@ export class ScheduleTemplateManagement implements OnInit {
     { value: 'SUNDAY', label: 'Chủ nhật' },
   ];
 
+  protected readonly searchTerm = signal('');
+
+  protected filteredTemplates(): ScheduleTemplateResponse[] {
+    const q = this.searchTerm().trim().toLowerCase();
+    if (!q) return this.templates();
+    return this.templates().filter((t) =>
+      t.serviceName.toLowerCase().includes(q) ||
+      t.doctorName.toLowerCase().includes(q) ||
+      t.roomCode.toLowerCase().includes(q)
+    );
+  }
+
+  protected totalTemplatesCount(): number {
+    return this.templates().length;
+  }
+
+  protected activeServicesCount(): number {
+    return new Set(this.templates().map((t) => t.clinicServiceId)).size;
+  }
+
+  protected assignedRoomsCount(): number {
+    return new Set(this.templates().map((t) => t.roomId)).size;
+  }
+
   ngOnInit(): void {
     this.loadData();
   }

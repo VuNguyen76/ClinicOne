@@ -25,6 +25,30 @@ export class ReconciliationManagement implements OnInit {
   protected readonly saving = signal(false);
   protected readonly error = signal('');
   protected readonly notice = signal('');
+  protected readonly searchTerm = signal('');
+
+  protected filteredIncidents(): ReconciliationResponse[] {
+    const q = this.searchTerm().trim().toLowerCase();
+    if (!q) return this.incidents();
+    return this.incidents().filter((i) =>
+      i.incidentCode.toLowerCase().includes(q) ||
+      i.reason.toLowerCase().includes(q) ||
+      i.entityType.toLowerCase().includes(q) ||
+      (i.assignee && i.assignee.toLowerCase().includes(q))
+    );
+  }
+
+  protected totalIncidentsCount(): number {
+    return this.incidents().length;
+  }
+
+  protected openIncidentsCount(): number {
+    return this.incidents().filter((i) => i.status === 'OPEN' || !i.status).length;
+  }
+
+  protected syncErrorCount(): number {
+    return this.incidents().filter((i) => (i.resolutionAction && i.resolutionAction.includes('SYNC')) || (i.reason && i.reason.includes('đồng bộ'))).length;
+  }
 
   ngOnInit(): void { this.load(); }
 
@@ -60,7 +84,7 @@ export class ReconciliationManagement implements OnInit {
     return ({ RETRY_BUSINESS_ACTION: 'Thực hiện lại công việc', REPLAY_LOG: 'Đối chiếu lại nhật ký', TECHNICAL_REPAIR: 'Sửa lỗi kỹ thuật', NO_ACTION_REQUIRED: 'Không cần xử lý thêm' } as Record<string, string>)[value] ?? value;
   }
 
-  private load(): void {
+  protected load(): void {
     this.authApi.getReconciliations().subscribe({
       next: (items) => { this.incidents.set(items); this.loading.set(false); if (items[0]) this.select(items[0]); },
       error: (response) => { this.loading.set(false); this.error.set(apiErrorMessage(response)); },

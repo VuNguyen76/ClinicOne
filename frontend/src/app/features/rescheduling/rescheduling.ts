@@ -30,12 +30,36 @@ export class Rescheduling implements OnInit {
   protected readonly saving = signal(false);
   protected readonly error = signal('');
   protected readonly notice = signal('');
+  protected readonly searchTerm = signal('');
   protected readonly form = this.formBuilder.nonNullable.group({
     appointmentDate: ['', [Validators.required]],
     startTime: ['', [Validators.required]],
     doctorName: ['', [Validators.required, Validators.maxLength(120)]],
     doctorId: [''],
   });
+
+  protected filteredCases(): RescheduleCaseResponse[] {
+    const q = this.searchTerm().trim().toLowerCase();
+    if (!q) return this.cases();
+    return this.cases().filter((c) =>
+      c.appointmentCode.toLowerCase().includes(q) ||
+      c.specialty.toLowerCase().includes(q) ||
+      c.oldDoctorName.toLowerCase().includes(q) ||
+      (c.reason && c.reason.toLowerCase().includes(q))
+    );
+  }
+
+  protected totalCasesCount(): number {
+    return this.cases().length;
+  }
+
+  protected pendingCasesCount(): number {
+    return this.cases().filter((c) => c.status === 'PENDING' || !c.status).length;
+  }
+
+  protected resolvedCasesCount(): number {
+    return this.cases().filter((c) => c.status === 'RESOLVED').length;
+  }
 
   ngOnInit(): void {
     this.loadCases();

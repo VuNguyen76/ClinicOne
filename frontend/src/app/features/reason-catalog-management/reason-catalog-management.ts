@@ -21,6 +21,40 @@ export class ReasonCatalogManagement implements OnInit {
   protected readonly error = signal('');
   protected readonly notice = signal('');
   protected readonly modalOpen = signal(false);
+  protected readonly searchTerm = signal('');
+
+  protected filteredReasons(): ReasonCatalogResponse[] {
+    const q = this.searchTerm().trim().toLowerCase();
+    if (!q) return this.reasons();
+    return this.reasons().filter((r) =>
+      r.code.toLowerCase().includes(q) ||
+      r.label.toLowerCase().includes(q)
+    );
+  }
+
+  protected totalReasonsCount(): number {
+    return this.reasons().length;
+  }
+
+  protected activeCount(): number {
+    return this.reasons().filter((r) => r.active).length;
+  }
+
+  protected activeReasonsCount(): number {
+    return this.activeCount();
+  }
+
+  protected inactiveCount(): number {
+    return this.reasons().filter((r) => !r.active).length;
+  }
+
+  protected inactiveReasonsCount(): number {
+    return this.inactiveCount();
+  }
+
+  protected toggleActive(item: ReasonCatalogResponse): void {
+    this.toggle(item);
+  }
 
   ngOnInit(): void {
     this.load();
@@ -62,7 +96,7 @@ export class ReasonCatalogManagement implements OnInit {
     });
   }
 
-  private load(): void {
+  protected load(): void {
     this.authApi.getAdminCancellationReasons().subscribe({
       next: (items) => { this.reasons.set(items); this.loading.set(false); },
       error: (response: ApiErrorResponse) => { this.error.set(apiErrorMessage(response)); this.loading.set(false); },

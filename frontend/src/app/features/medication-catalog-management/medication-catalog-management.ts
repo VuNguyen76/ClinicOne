@@ -29,6 +29,7 @@ export class MedicationCatalogManagement implements OnInit {
     return this.medications().filter((item) => `${item.code} ${item.name}`.toLocaleLowerCase().includes(query));
   });
   protected readonly activeCount = computed(() => this.medications().filter((item) => item.active).length);
+  protected readonly inactiveCount = computed(() => this.medications().filter((item) => !item.active).length);
 
   ngOnInit(): void {
     this.load();
@@ -79,6 +80,10 @@ export class MedicationCatalogManagement implements OnInit {
     });
   }
 
+  protected toggleActive(item: MedicationSuggestionResponse): void {
+    this.toggle(item);
+  }
+
   protected toggle(item: MedicationSuggestionResponse): void {
     this.error.set('');
     this.notice.set('');
@@ -91,7 +96,7 @@ export class MedicationCatalogManagement implements OnInit {
     });
   }
 
-  private load(): void {
+  protected load(): void {
     this.authApi.getAdminMedications().subscribe({
       next: (items) => { this.medications.set(items); this.loading.set(false); },
       error: (response: ApiErrorResponse) => { this.error.set(apiErrorMessage(response)); this.loading.set(false); },
