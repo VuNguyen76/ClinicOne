@@ -21,10 +21,10 @@
           </h1>
           <p class="mt-1 text-xs text-slate-500">
             @switch (step()) {
-              @case ('phone') { Bước 1/3: Nhận mã OTP kích hoạt qua tin nhắn SMS. }
-              @case ('otp') { Bước 2/3: Nhập mã 6 chữ số đã gửi về số điện thoại của bạn. }
-              @case ('profile') { Bước 3/3: Điền hồ sơ bệnh nhân và tạo mật khẩu an toàn. }
-              @default { Tài khoản của bạn đã được khởi tạo thành công. }
+              @case ('phone') { Nhập số điện thoại để nhận mã OTP kích hoạt. }
+              @case ('otp') { Nhập mã OTP gồm 6 chữ số đã gửi qua SMS. }
+              @case ('profile') { Điền thông tin hồ sơ và mật khẩu. }
+              @default { Hoàn tất đăng ký tài khoản. }
             }
           </p>
 
