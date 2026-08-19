@@ -1,83 +1,156 @@
 <app-staff-workspace-shell moduleTitle="Hệ thống" pageTitle="Trạng thái gửi SMS">
-  <div workspace-actions>
-    <button type="button" class="erp-btn-secondary" (click)="refresh()" [disabled]="loading()">
-      <mat-icon class="!h-4 !w-4 !text-[18px]">refresh</mat-icon>
-      <span>Tải lại</span>
-    </button>
-  </div>
-
-  <div class="grid gap-4">
+  <div class="grid gap-6">
+    <!-- Alerts -->
     @if (error()) {
-      <div class="rounded-md border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs font-semibold text-rose-700" role="alert">
-        {{ error() }}
+      <div class="flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-medium text-rose-800 shadow-xs" role="alert">
+        <div class="flex items-center gap-2">
+          <mat-icon class="!h-4 !w-4 !text-[18px] text-rose-600">error_outline</mat-icon>
+          <span>{{ error() }}</span>
+        </div>
+        <button type="button" class="erp-btn-icon !h-6 !w-6" (click)="error.set('')" title="Đóng thông báo">
+          <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">close</mat-icon>
+        </button>
       </div>
     }
 
-    <section class="erp-card overflow-hidden">
-      <div class="erp-card-header">
-        <div>
-          <h2 class="text-xs font-bold uppercase tracking-wider text-[#0e3d48]">Lịch sử gửi SMS</h2>
-          <p class="mt-0.5 text-[11px] text-slate-500">{{ items().length }} bản ghi tin nhắn gần nhất</p>
+    <!-- 1. Top 3 Metric Cards -->
+    <div class="grid gap-5 sm:grid-cols-3">
+      <!-- Card 1: Total Messages -->
+      <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs flex items-center gap-4">
+        <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#ecfdf5] text-[#059669]">
+          <mat-icon class="!h-6 !w-6 !text-[24px]">sms</mat-icon>
         </div>
-        <mat-icon class="text-slate-400">sms</mat-icon>
+        <div>
+          <p class="text-xs font-semibold text-slate-500">Tổng số Tin nhắn</p>
+          <p class="text-2xl font-bold text-slate-900 mt-0.5">{{ totalCount() }}</p>
+        </div>
       </div>
 
-      @if (loading()) {
-        <div class="grid min-h-48 place-items-center text-xs text-slate-500">
-          Đang tải trạng thái gửi tin...
+      <!-- Card 2: Sent Successfully -->
+      <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs flex items-center gap-4">
+        <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#eff6ff] text-[#2563eb]">
+          <mat-icon class="!h-6 !w-6 !text-[24px]">mark_email_read</mat-icon>
         </div>
-      } @else {
-        <div class="erp-table-container !rounded-none !border-0 !shadow-none">
-          <table class="erp-table">
+        <div>
+          <p class="text-xs font-semibold text-slate-500">Đã gửi thành công</p>
+          <p class="text-2xl font-bold text-slate-900 mt-0.5">{{ sentCount() }}</p>
+        </div>
+      </div>
+
+      <!-- Card 3: Failed / Retrying -->
+      <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs flex items-center gap-4">
+        <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#fffbeb] text-[#d97706]">
+          <mat-icon class="!h-6 !w-6 !text-[24px]">warning_amber</mat-icon>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-slate-500">Gửi lỗi / Chờ gửi lại</p>
+          <p class="text-2xl font-bold text-slate-900 mt-0.5">{{ failedCount() }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Search & Filter Bar -->
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div class="relative w-full max-w-sm">
+        <mat-icon class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 !h-4 !w-4 !text-[18px] text-slate-400">search</mat-icon>
+        <input
+          type="text"
+          class="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-8 text-xs text-slate-800 placeholder-slate-400 outline-none transition focus:border-[#0e3d48] focus:ring-1 focus:ring-[#0e3d48] shadow-2xs"
+          placeholder="Tìm theo số điện thoại, mã sự kiện..."
+          [value]="searchTerm()"
+          (input)="searchTerm.set($any($event.target).value)"
+        />
+        @if (searchTerm()) {
+          <button
+            type="button"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            (click)="searchTerm.set('')"
+          >
+            <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">close</mat-icon>
+          </button>
+        }
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          class="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0e3d48] px-5 py-2.5 text-xs font-semibold text-white shadow-xs transition hover:bg-[#082830] cursor-pointer"
+          (click)="refresh()"
+          [disabled]="loading()"
+        >
+          <mat-icon class="!h-4 !w-4 !text-[18px]">refresh</mat-icon>
+          <span>Làm mới danh sách</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 3. Main DataGrid Table -->
+    @if (loading()) {
+      <div class="grid min-h-64 place-items-center rounded-2xl border border-slate-100 bg-white text-xs text-slate-500 shadow-xs">
+        Đang tải lịch sử gửi tin nhắn SMS...
+      </div>
+    } @else {
+      <section class="rounded-2xl border border-slate-100 bg-white shadow-xs overflow-hidden w-full">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs whitespace-nowrap">
             <thead>
-              <tr>
-                <th class="erp-th w-36">Thời điểm</th>
-                <th class="erp-th w-36">Số điện thoại</th>
-                <th class="erp-th w-44">Sự kiện</th>
-                <th class="erp-th w-36">Trạng thái</th>
-                <th class="erp-th w-24 text-center">Lần thử</th>
-                <th class="erp-th">Lỗi gần nhất</th>
-                <th class="erp-th w-24 text-right">Thao tác</th>
+              <tr class="border-b border-slate-100 text-[11px] font-semibold text-slate-500 uppercase tracking-wider bg-slate-50/50">
+                <th class="px-4 py-3.5 w-36">Thời điểm</th>
+                <th class="px-4 py-3.5 w-36">Số điện thoại</th>
+                <th class="px-4 py-3.5 w-44">Sự kiện SMS</th>
+                <th class="px-4 py-3.5 w-36">Trạng thái</th>
+                <th class="px-4 py-3.5 w-24 text-center">Lần thử</th>
+                <th class="px-4 py-3.5">Chi tiết phản hồi / Lỗi</th>
+                <th class="px-4 py-3.5 w-24 text-right">Thao tác</th>
               </tr>
             </thead>
-            <tbody>
-              @for (item of items(); track item.id) {
-                <tr class="erp-tr">
-                  <td class="erp-td font-mono text-[11px] text-slate-500">{{ item.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
-                  <td class="erp-td text-xs font-semibold text-slate-800">{{ item.phone }}</td>
-                  <td class="erp-td text-xs font-mono text-slate-700">{{ item.eventKey }}</td>
-                  <td class="erp-td">
-                    <span class="erp-badge" [class.erp-badge-danger]="item.status === 'FAILED'" [class.erp-badge-success]="item.status === 'SENT'" [class.erp-badge-warning]="item.status !== 'FAILED' && item.status !== 'SENT'">
-                      <span class="erp-dot" [class.erp-dot-danger]="item.status === 'FAILED'" [class.erp-dot-success]="item.status === 'SENT'" [class.erp-dot-warning]="item.status !== 'FAILED' && item.status !== 'SENT'"></span>
-                      <span>{{ statusLabel(item.status) }}</span>
-                    </span>
+            <tbody class="divide-y divide-slate-50">
+              @for (item of filteredItems(); track item.id) {
+                <tr class="transition hover:bg-slate-50/70">
+                  <td class="px-4 py-3 font-mono text-slate-600 text-[11px]">{{ item.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
+                  <td class="px-4 py-3 font-semibold text-slate-900 font-mono">{{ item.phone }}</td>
+                  <td class="px-4 py-3 font-mono text-slate-700 text-[11px]">{{ item.eventKey }}</td>
+                  <td class="px-4 py-3">
+                    @if (item.status === 'SENT') {
+                      <span class="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[11px] font-medium text-emerald-800">
+                        Đã gửi
+                      </span>
+                    } @else if (item.status === 'FAILED') {
+                      <span class="inline-flex items-center rounded-full bg-rose-50 border border-rose-200 px-2.5 py-0.5 text-[11px] font-medium text-rose-800">
+                        Gửi thất bại
+                      </span>
+                    } @else {
+                      <span class="inline-flex items-center rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-[11px] font-medium text-amber-800">
+                        {{ statusLabel(item.status) }}
+                      </span>
+                    }
                   </td>
-                  <td class="erp-td text-center font-mono text-xs font-bold text-slate-700">{{ item.attempts }}</td>
-                  <td class="erp-td max-w-xs truncate text-xs text-slate-500">{{ item.lastError || '—' }}</td>
-                  <td class="erp-td text-right">
+                  <td class="px-4 py-3 text-center font-mono font-bold text-slate-700">{{ item.attempts }}</td>
+                  <td class="px-4 py-3 max-w-xs truncate text-slate-500 font-mono text-[11px]">{{ item.lastError || '—' }}</td>
+                  <td class="px-4 py-3 text-right">
                     <button
                       type="button"
                       class="erp-btn-icon-accent"
-                      title="Thử gửi lại tin nhắn"
-                      [attr.aria-label]="'Thử gửi lại tin nhắn cho ' + item.phone"
+                      title="Gửi lại tin nhắn này"
+                      [attr.aria-label]="'Gửi lại SMS cho ' + item.phone"
                       [disabled]="item.status === 'SENT'"
                       (click)="retry(item)"
                     >
-                      <mat-icon class="!h-4 !w-4 !text-[18px]">send</mat-icon>
+                      <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">send</mat-icon>
                     </button>
                   </td>
                 </tr>
               } @empty {
                 <tr>
                   <td colspan="7" class="px-4 py-12 text-center text-xs text-slate-500">
-                    Chưa có bản ghi gửi SMS.
+                    Không có bản ghi SMS nào phù hợp với bộ lọc.
                   </td>
                 </tr>
               }
             </tbody>
           </table>
         </div>
-      }
-    </section>
+      </section>
+    }
   </div>
 </app-staff-workspace-shell>
