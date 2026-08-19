@@ -55,9 +55,18 @@ public class ScheduleTemplateService {
     public ScheduleTemplateResponse regenerate(UUID templateId) {
         WorkScheduleTemplate template = templateRepository.findById(templateId)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "SCHEDULE_TEMPLATE_NOT_FOUND",
-                        "Không tìm thấy mẫu lịch làm việc."));
+                        "Không tìm thấy lịch làm việc."));
         List<GeneratedClinicSlot> generated = generate(template, true);
         return toResponse(template, generated.size());
+    }
+
+    @Transactional
+    public void delete(UUID templateId) {
+        WorkScheduleTemplate template = templateRepository.findById(templateId)
+                .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "SCHEDULE_TEMPLATE_NOT_FOUND",
+                        "Không tìm thấy lịch làm việc."));
+        template.setActive(false);
+        templateRepository.save(template);
     }
 
     private List<GeneratedClinicSlot> generate(WorkScheduleTemplate template, boolean idempotent) {

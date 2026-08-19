@@ -1315,6 +1315,10 @@ export class AuthApiService {
     return this.http.post<ScheduleTemplateResponse>(`/api/v1/admin/schedule-templates/${id}/regenerate`, {});
   }
 
+  deleteScheduleTemplate(id: string): Observable<void> {
+    return this.http.delete<void>(`/api/v1/admin/schedule-templates/${id}`);
+  }
+
   createDoctor(request: CreateDoctorRequest): Observable<DoctorAccountResponse> {
     return this.http.post<DoctorAccountResponse>('/api/v1/admin/doctors', request);
   }

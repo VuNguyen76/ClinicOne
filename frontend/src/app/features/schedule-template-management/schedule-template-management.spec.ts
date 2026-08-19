@@ -30,7 +30,7 @@ describe('ScheduleTemplateManagement', () => {
     http.expectOne('/api/v1/admin/schedule-templates').flush([]);
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('Mẫu lịch làm việc');
+    expect(fixture.nativeElement.textContent).toContain('Lịch trực tuần');
     expect(fixture.nativeElement.querySelectorAll('[data-testid="template-row"]').length).toBe(0);
   });
 
