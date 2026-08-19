@@ -327,12 +327,18 @@ public class LocalDataInitializer implements CommandLineRunner {
         ensureFutureAppointment(patient1, profile1, docTimMach, today.plusDays(2), LocalTime.of(9, 0), "FUT-2026-TM01", "Tư vấn và kiểm tra tim mạch chuyên sâu");
         ensureFutureAppointment(patient1, motherProfile, docHoHap, today.plusDays(3), LocalTime.of(10, 0), "FUT-2026-HH01", "Tái khám kiểm tra chức năng hô hấp");
         ensureFutureAppointment(patient2, profile2, docMat, today.plusDays(4), LocalTime.of(14, 0), "FUT-2026-MAT01", "Khám kiểm tra thị lực và đo khúc xạ mắt");
-        ensureFutureAppointment(patient4, profile4, docTieuHoa, today.plusDays(5), LocalTime.of(15, 0), "FUT-2026-TH01", "Khám tầm soát chức năng gan mật và dạ dày");
+        // 10. Seed Doctor Time Off & Multiple Rescheduling Cases (Xếp lịch lại do bác sĩ nghỉ đột xuất)
+        ensureRescheduleScenario(patient1, profile1, docHoHap, today.plusDays(1), LocalTime.of(8, 30), "RES-CASE-001",
+                "Bác sĩ phụ trách có lịch công tác đột xuất tại Bệnh viện Phổi Trung ương; vui lòng chọn khung giờ thay thế.",
+                "Bác sĩ tham dự hội nghị Hô hấp toàn quốc");
+        ensureRescheduleScenario(patient2, profile2, docTimMach, today.plusDays(2), LocalTime.of(9, 30), "RES-CASE-002",
+                "Bác sĩ phụ trách có ca mổ cấp cứu can thiệp tim mạch đột xuất.",
+                "Bác sĩ thực hiện ca can thiệp tim mạch khẩn cấp");
+        ensureRescheduleScenario(patient4, profile4, docTieuHoa, today.plusDays(3), LocalTime.of(14, 0), "RES-CASE-003",
+                "Bác sĩ phụ trách tham gia hội đồng thẩm định chuyên môn tuyến trên.",
+                "Bác sĩ tham gia hội đồng thẩm định chuyên môn");
 
-        // 10. Seed Doctor Time Off & Open Reschedule Case
-        ensureRescheduleScenario(patient1, profile1, docHoHap, today.plusDays(1), LocalTime.of(8, 30), "RES-CASE-001");
-
-        // 11. Seed Reconciliation Incidents (For Coordinator & Admin Reconciliation Workspace)
+        // 11. Seed Reconciliation Incidents (Đối soát: Thanh toán, Giữ chỗ, Trùng lịch, Báo nhầm hồ sơ)
         ensureReconciliationIncidents();
 
         // 12. Seed Patient Notifications
@@ -852,24 +858,23 @@ public class LocalDataInitializer implements CommandLineRunner {
     }
 
     private void ensureRescheduleScenario(PatientAccount patient, PatientProfile profile, DoctorProfile doc,
-                                          LocalDate targetDate, LocalTime targetTime, String appCode) {
+                                          LocalDate targetDate, LocalTime targetTime, String appCode,
+                                          String rescheduleReason, String timeOffReason) {
         if (doctorTimeOffRepository == null || rescheduleCaseRepository == null) return;
         if (appointmentRepository.findByAppointmentCode(appCode).isPresent()) return;
 
         Appointment app = appointmentRepository.save(Appointment.create(patient, doc.getStaffAccount().getId(), profile,
                 appCode, doc.getSpecialty(), doc.getStaffAccount().getFullName(), targetDate, targetTime,
-                "Khám kiểm tra hô hấp định kỳ"));
+                "Khám kiểm tra chuyên khoa"));
 
         boolean hasTimeOff = doctorTimeOffRepository.findByActiveTrueOrderByStartDateAsc().stream()
                 .anyMatch(t -> t.getDoctorProfile().getId().equals(doc.getId()));
         if (!hasTimeOff) {
-            doctorTimeOffRepository.save(DoctorTimeOff.create(doc, targetDate, targetDate.plusDays(1),
-                    "Bác sĩ tham dự hội nghị Hô hấp toàn quốc"));
+            doctorTimeOffRepository.save(DoctorTimeOff.create(doc, targetDate, targetDate.plusDays(1), timeOffReason));
         }
 
         if (rescheduleCaseRepository.findByAppointmentIdAndStatus(app.getId(), com.clinicone.rescheduling.RescheduleCaseStatus.OPEN).isEmpty()) {
-            rescheduleCaseRepository.save(RescheduleCase.open(app,
-                    "Bác sĩ phụ trách có lịch công tác đột xuất; vui lòng chọn khung giờ thay thế."));
+            rescheduleCaseRepository.save(RescheduleCase.open(app, rescheduleReason));
         }
     }
 
@@ -880,7 +885,7 @@ public class LocalDataInitializer implements CommandLineRunner {
         if (!inc1Exists) {
             ReconciliationIncident openInc = ReconciliationIncident.open("INC-2026-001", "APPOINTMENT",
                     java.util.UUID.randomUUID(), java.util.UUID.randomUUID(),
-                    "Phát hiện trùng lịch do cập nhật ngoại lệ thời gian từ bên thứ ba", "coordinator");
+                    "Phát hiện trùng lịch do cập nhật ngoại lệ thời gian từ cổng đặt lịch đối tác", "coordinator");
             reconciliationIncidentRepository.save(openInc);
         }
 
@@ -891,9 +896,27 @@ public class LocalDataInitializer implements CommandLineRunner {
                     java.util.UUID.randomUUID(), java.util.UUID.randomUUID(),
                     "Báo nhầm hồ sơ người bệnh tại phòng khám Tai Mũi Họng", "coordinator");
             closedInc.close(ReconciliationAction.RETRY_BUSINESS_ACTION, ReconciliationReferenceType.BUSINESS_LOG,
-                    "CL-20260810-TM01", "Đã đối soát thông tin CCCD và hợp nhất dữ liệu bệnh án", "coordinator",
+                    "CL-20260810-TM01", "Đã đối soát thông tin CCCD và hợp nhất dữ liệu bệnh án chính xác", "coordinator",
                     Instant.now());
             reconciliationIncidentRepository.save(closedInc);
+        }
+
+        boolean inc3Exists = reconciliationIncidentRepository.findAll().stream()
+                .anyMatch(i -> "INC-2026-003".equalsIgnoreCase(i.getIncidentCode()));
+        if (!inc3Exists) {
+            ReconciliationIncident payInc = ReconciliationIncident.open("INC-2026-003", "PAYMENT",
+                    java.util.UUID.randomUUID(), java.util.UUID.randomUUID(),
+                    "Lệch giao dịch chuyển khoản VietQR: POS-102 ghi nhận thành công nhưng ngân hàng phản hồi trễ", "coordinator");
+            reconciliationIncidentRepository.save(payInc);
+        }
+
+        boolean inc4Exists = reconciliationIncidentRepository.findAll().stream()
+                .anyMatch(i -> "INC-2026-004".equalsIgnoreCase(i.getIncidentCode()));
+        if (!inc4Exists) {
+            ReconciliationIncident holdInc = ReconciliationIncident.open("INC-2026-004", "REGISTRATION",
+                    java.util.UUID.randomUUID(), java.util.UUID.randomUUID(),
+                    "Hết hạn giữ chỗ 10 phút trên hệ thống nhưng bệnh nhân walk-in đã đến quầy số 02", "reception");
+            reconciliationIncidentRepository.save(holdInc);
         }
     }
 

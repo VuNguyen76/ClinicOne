@@ -579,18 +579,12 @@
           </div>
         </div>
 
-        <!-- Minimal 2-Line Key Info -->
+        <!-- Minimal Key Info -->
         <div class="rounded-xl border border-slate-200 bg-white overflow-hidden text-xs divide-y divide-slate-100 shadow-2xs">
           <div class="flex items-center justify-between p-3">
             <span class="font-medium text-slate-600">Ca trực</span>
-            <span class="inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-bold" [class]="getShiftBadge(selectedTemplateForDetail()!).class">
+            <span class="inline-flex items-center rounded-md border px-2.5 py-0.5 text-[10px] font-bold" [class]="getShiftBadge(selectedTemplateForDetail()!).class">
               {{ getShiftBadge(selectedTemplateForDetail()!).label }}
-            </span>
-          </div>
-          <div class="flex items-center justify-between p-3">
-            <span class="font-medium text-slate-600">Lịch trực</span>
-            <span class="font-semibold text-slate-800">
-              {{ formatWeekdays(selectedTemplateForDetail()!.weekdays) }} <span class="text-slate-400 font-normal">({{ selectedTemplateForDetail()!.generatedSlotCount }} lượt)</span>
             </span>
           </div>
         </div>
@@ -604,7 +598,7 @@
             <button
               type="button"
               class="erp-btn-secondary !text-rose-600 !hover:bg-rose-50 !border-rose-200"
-              (click)="deleteTemplate(selectedTemplateForDetail()!); closeTemplateDetail()"
+              (click)="deleteTemplate(selectedTemplateForDetail()!)"
             >
               <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">delete_outline</mat-icon>
               <span>Xóa ca trực</span>
