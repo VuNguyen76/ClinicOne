@@ -82,8 +82,19 @@ export class AppointmentDetail implements OnInit {
     return value.slice(0, 5);
   }
 
+  protected isLate(): boolean {
+    const app = this.appointment();
+    if (!app || app.status !== 'BOOKED') return false;
+    const duration = app.serviceDurationMinutes || 60;
+    const [year, month, day] = app.appointmentDate.split('-').map(Number);
+    const [hour, minute] = app.startTime.split(':').map(Number);
+    const appointmentTime = new Date(year, month - 1, day, hour, minute);
+    const lateThresholdTime = new Date(appointmentTime.getTime() + (duration + 15) * 60 * 1000);
+    return Date.now() >= lateThresholdTime.getTime();
+  }
+
   protected canEdit(): boolean {
-    return this.appointment()?.status === 'BOOKED';
+    return this.appointment()?.status === 'BOOKED' && !this.isLate();
   }
 
   protected hasOpenReschedulingCase(): boolean {

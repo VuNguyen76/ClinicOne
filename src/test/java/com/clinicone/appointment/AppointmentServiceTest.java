@@ -89,7 +89,7 @@ class AppointmentServiceTest {
                 .clinicServiceRepository(clinicServiceRepository)
                 .configurationService(null)
                 .reasonCatalogService(null)
-                .clock(Clock.systemUTC())
+                .clock(Clock.fixed(Instant.parse("2026-08-10T00:00:00Z"), ZoneOffset.UTC))
                 .appointmentCodeGenerator(new AppointmentCodeGenerator())
                 .rescheduleCaseRepository(null)
                 .generatedSlotRepository(null);
@@ -546,6 +546,26 @@ class AppointmentServiceTest {
                 new CancelAppointmentRequest("nội dung không được tin cậy", "SCHEDULE_CHANGE"));
 
         assertEquals("Thay đổi kế hoạch", appointment.getCancellationReason());
+    }
+
+    @Test
+    void rejectsCancellationWhenAppointmentIsLate() {
+        PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
+        setId(account, ACCOUNT_ID);
+        Appointment appointment = Appointment.existing(account, "CL-20260810-AB12", "Nội khoa", "BS. Nguyễn An",
+                LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), "Đau đầu");
+        UUID appointmentId = UUID.randomUUID();
+        setId(appointment, appointmentId);
+        when(appointmentRepository.findByIdAndPatientId(appointmentId, ACCOUNT_ID)).thenReturn(Optional.of(appointment));
+
+        AppointmentService lateService = serviceBuilder()
+                .clock(Clock.fixed(Instant.parse("2026-08-10T03:00:00Z"), ZoneOffset.UTC))
+                .build();
+
+        AuthException exception = assertThrows(AuthException.class, () ->
+                lateService.cancel(ACCOUNT_ID.toString(), appointmentId.toString(), new CancelAppointmentRequest("Bận việc")));
+
+        assertEquals("APPOINTMENT_LATE_CANNOT_CANCEL", exception.getCode());
     }
 
     @Test
