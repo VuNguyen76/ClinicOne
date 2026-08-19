@@ -49,43 +49,7 @@
       </div>
     }
 
-    <!-- 1. Top 3 Metric Cards -->
-    <div class="grid gap-5 sm:grid-cols-3">
-      <!-- Card 1: Total Templates -->
-      <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs flex items-center gap-4">
-        <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#ecfdf5] text-[#059669]">
-          <mat-icon class="!h-6 !w-6 !text-[24px]">description</mat-icon>
-        </div>
-        <div>
-          <p class="text-xs font-semibold text-slate-500">Tổng số Mẫu phiếu</p>
-          <p class="text-2xl font-bold text-slate-900 mt-0.5">{{ totalTemplatesCount() }}</p>
-        </div>
-      </div>
-
-      <!-- Card 2: Specialties -->
-      <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs flex items-center gap-4">
-        <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#eff6ff] text-[#2563eb]">
-          <mat-icon class="!h-6 !w-6 !text-[24px]">category</mat-icon>
-        </div>
-        <div>
-          <p class="text-xs font-semibold text-slate-500">Chuyên khoa áp dụng</p>
-          <p class="text-2xl font-bold text-slate-900 mt-0.5">{{ specialtiesCount() }}</p>
-        </div>
-      </div>
-
-      <!-- Card 3: Services Linked -->
-      <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs flex items-center gap-4">
-        <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#fffbeb] text-[#d97706]">
-          <mat-icon class="!h-6 !w-6 !text-[24px]">link</mat-icon>
-        </div>
-        <div>
-          <p class="text-xs font-semibold text-slate-500">Dịch vụ gắn mẫu</p>
-          <p class="text-2xl font-bold text-slate-900 mt-0.5">{{ servicesLinkedCount() }}</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- 2. Search Bar + Toolbar Header -->
+    <!-- Search Bar + Toolbar Header -->
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" [class.hidden]="activeTab() !== 'list'">
       <div class="relative w-full max-w-sm">
         <mat-icon class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 !h-4 !w-4 !text-[18px] text-slate-400">search</mat-icon>
