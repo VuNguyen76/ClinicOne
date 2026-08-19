@@ -1,6 +1,18 @@
 <app-staff-workspace-shell moduleTitle="Điều phối" pageTitle="Lịch trực tuần">
-  <!-- Top Segmented View Tabs -->
+  <!-- Top Segmented View Tabs (3 Clean Tabs) -->
   <div workspace-tabs class="flex items-center gap-2 border-b border-slate-200">
+    <button
+      type="button"
+      class="px-4 py-2.5 text-xs font-semibold border-b-2 transition cursor-pointer flex items-center gap-1.5"
+      [class.border-[#0e3d48]]="activeTab() === 'grid'"
+      [class.text-[#0e3d48]]="activeTab() === 'grid'"
+      [class.border-transparent]="activeTab() !== 'grid'"
+      [class.text-slate-500]="activeTab() !== 'grid'"
+      (click)="activeTab.set('grid')"
+    >
+      <mat-icon class="!h-4 !w-4 !text-[18px]">calendar_view_week</mat-icon>
+      <span>Thời khóa biểu</span>
+    </button>
     <button
       type="button"
       class="px-4 py-2.5 text-xs font-semibold border-b-2 transition cursor-pointer flex items-center gap-1.5"
@@ -10,8 +22,8 @@
       [class.text-slate-500]="activeTab() !== 'list'"
       (click)="activeTab.set('list')"
     >
-      <mat-icon class="!h-4 !w-4 !text-[18px]">calendar_view_week</mat-icon>
-      <span>Thời khóa biểu</span>
+      <mat-icon class="!h-4 !w-4 !text-[18px]">format_list_bulleted</mat-icon>
+      <span>Danh sách ca trực</span>
       <span class="ml-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">{{ templates().length }}</span>
     </button>
     @if (canManageSchedule()) {
@@ -22,7 +34,7 @@
         [class.text-[#0e3d48]]="activeTab() === 'form'"
         [class.border-transparent]="activeTab() !== 'form'"
         [class.text-slate-500]="activeTab() !== 'form'"
-        (click)="startCreate()"
+        (click)="activeTab.set('form')"
       >
         <mat-icon class="!h-4 !w-4 !text-[18px]">add_circle_outline</mat-icon>
         <span>Thiết lập ca trực</span>
@@ -55,8 +67,8 @@
       </div>
     }
 
-    <!-- 1. Search Bar + Filter Controls (Image 1 Style) -->
-    <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between" [class.hidden]="activeTab() !== 'list'">
+    <!-- Search & Filter Controls (Shared for Grid & List tabs) -->
+    <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between" [class.hidden]="activeTab() === 'form'">
       <div class="relative w-full max-w-md">
         <mat-icon class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 !h-4 !w-4 !text-[18px] text-slate-400">search</mat-icon>
         <input
@@ -93,16 +105,6 @@
           </select>
         </div>
 
-        @if (canManageSchedule()) {
-          <button
-            type="button"
-            class="erp-btn-primary"
-            (click)="startCreate()"
-          >
-            <mat-icon class="!h-4 !w-4 !text-[18px]">add</mat-icon>
-            <span>Thiết lập ca trực</span>
-          </button>
-        }
         <button
           type="button"
           class="erp-btn-icon !h-10 !w-10 rounded-xl border border-slate-200 bg-white shadow-2xs"
@@ -115,8 +117,8 @@
       </div>
     </div>
 
-    <!-- 2. Weekly Master Timetable View (Image 1 Timetable Grid) -->
-    <div [class.hidden]="activeTab() !== 'list'" class="space-y-6">
+    <!-- TAB 1: Thời Khóa Biểu Tuần (Weekly Calendar Grid) -->
+    <div [class.hidden]="activeTab() !== 'grid'">
       @if (loading()) {
         <div class="grid min-h-64 place-items-center rounded-2xl border border-slate-100 bg-white text-xs text-slate-500 shadow-xs">
           Đang tải thời khóa biểu tuần...
@@ -352,13 +354,17 @@
             </div>
           </div>
         </section>
+      }
+    </div>
 
-        <!-- Master List Data Table (For Coordinator Management) -->
+    <!-- TAB 2: Danh Sách Ca Trực (DataGrid Table) -->
+    <div [class.hidden]="activeTab() !== 'list'">
+      @if (loading()) {
+        <div class="grid min-h-64 place-items-center rounded-2xl border border-slate-100 bg-white text-xs text-slate-500 shadow-xs">
+          Đang tải danh sách ca trực...
+        </div>
+      } @else {
         <section class="rounded-2xl border border-slate-100 bg-white shadow-xs overflow-hidden w-full">
-          <div class="px-5 py-3 border-b border-slate-100 flex items-center justify-between text-xs text-slate-500">
-            <span class="font-semibold text-slate-700">Tất cả lịch trực</span>
-            <span>{{ filteredTemplates().length }} ca trực</span>
-          </div>
           <div class="overflow-x-auto">
             <table class="w-full text-left text-xs whitespace-nowrap">
               <thead>
@@ -375,7 +381,6 @@
               <tbody class="divide-y divide-slate-50">
                 @for (template of filteredTemplates(); track template.id) {
                   <tr data-testid="template-row" class="transition hover:bg-slate-50/70">
-                    <!-- Service & Doctor with avatar -->
                     <td class="px-4 py-3">
                       <div class="flex items-center gap-3">
                         @if (getDoctorAvatar(template.doctorName)) {
@@ -389,15 +394,11 @@
                         </div>
                       </div>
                     </td>
-
-                    <!-- Room -->
                     <td class="px-4 py-3">
                       <span class="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-800">
                         Phòng {{ template.roomCode }}
                       </span>
                     </td>
-
-                    <!-- Dates & Weekdays -->
                     <td class="px-4 py-3">
                       <div class="flex items-center gap-2">
                         <span class="inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-bold" [class]="getShiftBadge(template).class">
@@ -407,36 +408,21 @@
                       </div>
                       <p class="text-[11px] text-slate-500 mt-1">{{ formatWeekdays(template.weekdays) }}</p>
                     </td>
-
-                    <!-- Generated Count -->
                     <td class="px-4 py-3 text-center">
                       <span class="font-mono font-bold text-sky-700 text-sm">{{ template.generatedSlotCount }}</span>
                       <span class="text-xs text-slate-400"> lượt</span>
                     </td>
-
-                    <!-- Actions (Sync & Delete) -->
                     @if (canManageSchedule()) {
                       <td class="px-4 py-3 text-right">
-                        <div class="flex items-center justify-end gap-1.5">
-                          <button
-                            type="button"
-                            class="erp-btn-secondary !py-1 !px-2.5"
-                            (click)="regenerate(template)"
-                            title="Đồng bộ lại khung giờ"
-                          >
-                            <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">sync</mat-icon>
-                            <span>Đồng bộ</span>
-                          </button>
-                          <button
-                            type="button"
-                            class="erp-btn-secondary !text-rose-600 !hover:bg-rose-50 !py-1 !px-2.5"
-                            (click)="deleteTemplate(template)"
-                            title="Xóa lịch trực"
-                          >
-                            <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">delete_outline</mat-icon>
-                            <span>Xóa</span>
-                          </button>
-                        </div>
+                        <button
+                          type="button"
+                          class="erp-btn-secondary !text-rose-600 !hover:bg-rose-50 !py-1 !px-2.5"
+                          (click)="deleteTemplate(template)"
+                          title="Xóa lịch trực"
+                        >
+                          <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">delete_outline</mat-icon>
+                          <span>Xóa</span>
+                        </button>
                       </td>
                     }
                   </tr>
@@ -445,16 +431,6 @@
                     <td [attr.colspan]="canManageSchedule() ? 5 : 4" class="px-4 py-12 text-center text-xs text-slate-500">
                       <div>
                         <p class="font-medium text-slate-700">Chưa có lịch trực nào phù hợp.</p>
-                        @if (canManageSchedule()) {
-                          <button
-                            type="button"
-                            class="erp-btn-primary mt-3"
-                            (click)="startCreate()"
-                          >
-                            <mat-icon class="!h-4 !w-4 !text-[18px]">add</mat-icon>
-                            <span>Thiết lập ca trực</span>
-                          </button>
-                        }
                       </div>
                     </td>
                   </tr>
@@ -466,24 +442,18 @@
       }
     </div>
 
-    <!-- 3. Form View (Image 2 Style - 2 Column Split Layout with Live Preview) -->
+    <!-- TAB 3: Thiết Lập Ca Trực (2-Column Form with Live Preview) -->
     <div [class.hidden]="activeTab() !== 'form'">
       @if (canManageSchedule()) {
         <div class="space-y-4">
           <div class="flex items-center justify-between">
             <h2 class="text-xl font-bold text-slate-900">Thiết Lập Lịch Trực - ClinicOne</h2>
-            <button type="button" class="erp-btn-secondary" (click)="cancelEdit()">
-              <mat-icon class="!h-4 !w-4 !text-[16px]">arrow_back</mat-icon>
-              <span>Quay lại thời khóa biểu</span>
-            </button>
           </div>
 
           <form (ngSubmit)="$event.preventDefault(); submit()" class="grid gap-6 lg:grid-cols-3">
-            <!-- Left 2 Cols: Form Configuration (Matching Image 2) -->
             <section class="lg:col-span-2 rounded-2xl border border-slate-100 bg-white p-6 sm:p-8 shadow-xs space-y-5">
               <h3 class="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3">Cấu hình ca trực</h3>
 
-              <!-- 1. Loại Dịch Vụ -->
               <div class="grid sm:grid-cols-4 items-center gap-3">
                 <label class="text-xs font-semibold text-slate-700 sm:col-span-1">Dịch vụ khám <span class="text-rose-500">*</span></label>
                 <div class="sm:col-span-3">
@@ -502,7 +472,6 @@
                 </div>
               </div>
 
-              <!-- 2. Bác Sĩ -->
               <div class="grid sm:grid-cols-4 items-center gap-3">
                 <label class="text-xs font-semibold text-slate-700 sm:col-span-1">Bác sĩ phụ trách <span class="text-rose-500">*</span></label>
                 <div class="sm:col-span-3">
@@ -520,7 +489,6 @@
                 </div>
               </div>
 
-              <!-- 3. Phòng Khám -->
               <div class="grid sm:grid-cols-4 items-center gap-3">
                 <label class="text-xs font-semibold text-slate-700 sm:col-span-1">Phòng khám <span class="text-rose-500">*</span></label>
                 <div class="sm:col-span-3">
@@ -538,7 +506,6 @@
                 </div>
               </div>
 
-              <!-- 4. Ngày trong tuần (Pill Buttons) -->
               <div class="grid sm:grid-cols-4 items-center gap-3">
                 <label class="text-xs font-semibold text-slate-700 sm:col-span-1">Lịch trong tuần <span class="text-rose-500">*</span></label>
                 <div class="sm:col-span-3 flex flex-wrap gap-2">
@@ -555,7 +522,6 @@
                 </div>
               </div>
 
-              <!-- 5. Giờ làm việc & Thời lượng lượt khám -->
               <div class="grid sm:grid-cols-4 items-center gap-3">
                 <label class="text-xs font-semibold text-slate-700 sm:col-span-1">Giờ làm việc <span class="text-rose-500">*</span></label>
                 <div class="sm:col-span-3 flex flex-wrap items-center gap-3">
@@ -576,7 +542,6 @@
                       class="outline-none"
                     />
                   </div>
-
                   <div class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-1.5 shadow-2xs text-xs font-semibold text-slate-700">
                     <input
                       type="number"
@@ -593,7 +558,6 @@
                 </div>
               </div>
 
-              <!-- 6. Giờ nghỉ trưa -->
               <div class="grid sm:grid-cols-4 items-center gap-3">
                 <label class="text-xs font-semibold text-slate-700 sm:col-span-1">Nghỉ trưa</label>
                 <div class="sm:col-span-3 flex items-center gap-3">
@@ -606,7 +570,6 @@
                     />
                     <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#0e3d48]"></div>
                   </label>
-
                   @if (hasBreak()) {
                     <div class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-1.5 shadow-2xs font-mono text-xs text-slate-800">
                       <input
@@ -629,7 +592,6 @@
                 </div>
               </div>
 
-              <!-- 7. Ngày áp dụng -->
               <div class="grid sm:grid-cols-4 items-center gap-3">
                 <label class="text-xs font-semibold text-slate-700 sm:col-span-1">Ngày áp dụng <span class="text-rose-500">*</span></label>
                 <div class="sm:col-span-3 flex items-center gap-3">
@@ -657,9 +619,8 @@
                 </div>
               </div>
 
-              <!-- Submit Action Button -->
               <div class="pt-4 border-t border-slate-100 flex justify-end gap-3">
-                <button type="button" class="erp-btn-secondary" (click)="cancelEdit()">
+                <button type="button" class="erp-btn-secondary" (click)="activeTab.set('grid')">
                   Hủy
                 </button>
                 <button
@@ -674,11 +635,9 @@
               </div>
             </section>
 
-            <!-- Right 1 Col: Live Preview Box (Matching Image 2 Right Side) -->
             <section class="rounded-2xl border border-slate-100 bg-white p-6 shadow-xs flex flex-col">
               <h3 class="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3 mb-4">Xem trước lượt khám dự kiến</h3>
               <p class="text-[11px] text-slate-500 mb-3">Khung giờ mở khám mỗi ngày ({{ durationMinutes() }} phút/lượt):</p>
-
               <div class="flex-1 space-y-1.5 max-h-[460px] overflow-y-auto pr-1">
                 @for (slot of previewSlots(); track slot.time) {
                   @if (slot.isBreak) {

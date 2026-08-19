@@ -67,6 +67,13 @@ public class ScheduleTemplateService {
                         "Không tìm thấy lịch làm việc."));
         template.setActive(false);
         templateRepository.save(template);
+        List<GeneratedClinicSlot> slots = slotRepository.findByTemplateIdOrderByAppointmentDateAscStartTimeAsc(templateId);
+        List<GeneratedClinicSlot> unbooked = slots.stream()
+                .filter(s -> s.getStatus() == GeneratedSlotStatus.AVAILABLE)
+                .toList();
+        if (!unbooked.isEmpty()) {
+            slotRepository.deleteAll(unbooked);
+        }
     }
 
     private List<GeneratedClinicSlot> generate(WorkScheduleTemplate template, boolean idempotent) {
