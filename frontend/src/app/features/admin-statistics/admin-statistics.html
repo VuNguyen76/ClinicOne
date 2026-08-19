@@ -1,14 +1,7 @@
 <app-staff-workspace-shell moduleTitle="Kiểm soát" pageTitle="Thống kê vận hành">
-  <div workspace-actions>
-    <button type="button" (click)="load()" class="erp-btn-secondary" [disabled]="loading()">
-      <mat-icon class="!h-4 !w-4 !text-[18px]">refresh</mat-icon>
-      <span>Làm mới</span>
-    </button>
-  </div>
-
-  <div class="grid gap-4">
-    <!-- Filter Bar -->
-    <section class="erp-filter-bar">
+  <div class="grid gap-6">
+    <!-- 1. Filter Bar Header -->
+    <div class="rounded-2xl border border-slate-100 bg-white p-4 shadow-xs">
       <div class="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 lg:items-end">
         <label class="grid gap-1">
           <span class="erp-label">Từ ngày</span>
@@ -44,120 +37,145 @@
             <option value="MONTH">Theo tháng</option>
           </select>
         </label>
-        <button type="button" (click)="load()" class="erp-btn-primary w-full" [disabled]="loading()">
+        <button
+          type="button"
+          (click)="load()"
+          class="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0e3d48] px-5 py-2.5 text-xs font-semibold text-white shadow-xs transition hover:bg-[#082830] cursor-pointer w-full"
+          [disabled]="loading()"
+        >
+          <mat-icon class="!h-4 !w-4 !text-[18px]">query_stats</mat-icon>
           <span>Xem thống kê</span>
         </button>
       </div>
-    </section>
+    </div>
 
     @if (error()) {
-      <div role="alert" class="rounded-md border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs font-semibold text-rose-700">
-        {{ error() }}
+      <div role="alert" class="flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-medium text-rose-800 shadow-xs">
+        <div class="flex items-center gap-2">
+          <mat-icon class="!h-4 !w-4 !text-[18px] text-rose-600">error_outline</mat-icon>
+          <span>{{ error() }}</span>
+        </div>
       </div>
     }
 
     @if (loading()) {
-      <div class="grid min-h-64 place-items-center rounded-lg border border-slate-200 bg-white text-xs text-slate-500">
-        Đang tính toán số liệu thống kê...
+      <div class="grid min-h-64 place-items-center rounded-2xl border border-slate-100 bg-white text-xs text-slate-500 shadow-xs">
+        Đang tính toán số liệu thống kê vận hành...
       </div>
     }
 
     @if (!loading() && report(); as data) {
-      <!-- 6 Primary Appointment Metrics -->
-      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <article class="erp-kpi-card">
-          <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Tổng lịch hẹn</p>
+      <!-- 2. Primary KPI Metric Cards (6 KPI Cards) -->
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <!-- Metric 1: Total -->
+        <div class="rounded-2xl border border-slate-100 bg-white p-4 shadow-xs">
+          <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Tổng lịch hẹn</p>
           <p class="mt-1 font-mono text-2xl font-bold text-slate-900">{{ data.totalAppointments }}</p>
-        </article>
-        <article class="erp-kpi-card border-l-4 border-l-[#0284c7]">
-          <p class="text-[11px] font-bold uppercase tracking-wider text-[#0284c7]">Đã check-in</p>
+        </div>
+
+        <!-- Metric 2: Checked In -->
+        <div class="rounded-2xl border border-slate-100 bg-white p-4 shadow-xs border-t-4 border-t-[#0284c7]">
+          <p class="text-[11px] font-semibold uppercase tracking-wider text-[#0284c7]">Đã check-in</p>
           <p class="mt-1 font-mono text-2xl font-bold text-[#0284c7]">{{ data.checkedInAppointments }}</p>
-        </article>
-        <article class="erp-kpi-card border-l-4 border-l-emerald-500">
-          <p class="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Đã thực hiện</p>
+        </div>
+
+        <!-- Metric 3: Completed -->
+        <div class="rounded-2xl border border-slate-100 bg-white p-4 shadow-xs border-t-4 border-t-emerald-600">
+          <p class="text-[11px] font-semibold uppercase tracking-wider text-emerald-700">Đã thực hiện</p>
           <p class="mt-1 font-mono text-2xl font-bold text-emerald-700">{{ data.completedAppointments }}</p>
-        </article>
-        <article class="erp-kpi-card border-l-4 border-l-amber-500">
-          <p class="text-[11px] font-bold uppercase tracking-wider text-amber-700">Vắng mặt</p>
+        </div>
+
+        <!-- Metric 4: Absent -->
+        <div class="rounded-2xl border border-slate-100 bg-white p-4 shadow-xs border-t-4 border-t-amber-500">
+          <p class="text-[11px] font-semibold uppercase tracking-wider text-amber-700">Vắng mặt</p>
           <p class="mt-1 font-mono text-2xl font-bold text-amber-700">{{ data.absentAppointments }}</p>
-        </article>
-        <article class="erp-kpi-card border-l-4 border-l-rose-500">
-          <p class="text-[11px] font-bold uppercase tracking-wider text-rose-700">Đã hủy</p>
+        </div>
+
+        <!-- Metric 5: Cancelled -->
+        <div class="rounded-2xl border border-slate-100 bg-white p-4 shadow-xs border-t-4 border-t-rose-500">
+          <p class="text-[11px] font-semibold uppercase tracking-wider text-rose-700">Đã hủy</p>
           <p class="mt-1 font-mono text-2xl font-bold text-rose-700">{{ data.cancelledAppointments }}</p>
-        </article>
-        <article class="erp-kpi-card">
-          <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Không thực hiện</p>
+        </div>
+
+        <!-- Metric 6: Not Performed -->
+        <div class="rounded-2xl border border-slate-100 bg-white p-4 shadow-xs">
+          <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Không thực hiện</p>
           <p class="mt-1 font-mono text-2xl font-bold text-slate-600">{{ data.notPerformedAppointments }}</p>
-        </article>
+        </div>
       </div>
 
-      <!-- 2 Duration / Efficiency Metrics -->
-      <div class="grid gap-3 sm:grid-cols-2">
-        <article class="erp-kpi-card flex items-center justify-between">
+      <!-- 3. Duration & Operational Efficiency Metrics -->
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs flex items-center justify-between">
           <div>
-            <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Thời gian chờ trung bình</p>
-            <p class="mt-1 font-mono text-xl font-bold text-[#0e3d48]">{{ formatAverage(data.averageWaitMinutes) }}</p>
-            <p class="mt-0.5 text-[10px] text-slate-400">Chỉ tính lượt có đủ mốc đến và bắt đầu khám</p>
+            <p class="text-xs font-semibold text-slate-500">Thời gian chờ trung bình</p>
+            <p class="mt-1 font-mono text-2xl font-bold text-[#0e3d48]">{{ formatAverage(data.averageWaitMinutes) }}</p>
+            <p class="mt-0.5 text-[11px] text-slate-400">Chỉ tính lượt có đủ mốc đến và bắt đầu khám</p>
           </div>
-          <mat-icon class="!h-8 !w-8 !text-[32px] text-slate-300">hourglass_top</mat-icon>
-        </article>
-        <article class="erp-kpi-card flex items-center justify-between">
+          <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#eff6ff] text-[#2563eb]">
+            <mat-icon class="!h-6 !w-6 !text-[24px]">hourglass_top</mat-icon>
+          </div>
+        </div>
+
+        <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs flex items-center justify-between">
           <div>
-            <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Thời lượng khám trung bình</p>
-            <p class="mt-1 font-mono text-xl font-bold text-[#0e3d48]">{{ formatAverage(data.averageExaminationMinutes) }}</p>
-            <p class="mt-0.5 text-[10px] text-slate-400">Chỉ tính lượt có đủ mốc bắt đầu và kết thúc</p>
+            <p class="text-xs font-semibold text-slate-500">Thời lượng khám trung bình</p>
+            <p class="mt-1 font-mono text-2xl font-bold text-[#0e3d48]">{{ formatAverage(data.averageExaminationMinutes) }}</p>
+            <p class="mt-0.5 text-[11px] text-slate-400">Chỉ tính lượt có đủ mốc bắt đầu và kết thúc</p>
           </div>
-          <mat-icon class="!h-8 !w-8 !text-[32px] text-slate-300">timer</mat-icon>
-        </article>
+          <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#ecfdf5] text-[#059669]">
+            <mat-icon class="!h-6 !w-6 !text-[24px]">timer</mat-icon>
+          </div>
+        </div>
       </div>
 
-      <!-- Breakdown Table Card -->
-      <section class="erp-card overflow-hidden" aria-label="Thống kê theo kỳ">
-        <div class="erp-card-header">
+      <!-- 4. Breakdown DataGrid Table -->
+      <section class="rounded-2xl border border-slate-100 bg-white shadow-xs overflow-hidden w-full" aria-label="Thống kê theo kỳ">
+        <div class="border-b border-slate-100 px-5 py-3.5 bg-slate-50/50 flex items-center justify-between">
           <div>
-            <h2 class="text-xs font-bold uppercase tracking-wider text-[#0e3d48]">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-[#0e3d48]">
               Chi tiết theo {{ data.groupBy === 'WEEK' ? 'tuần' : data.groupBy === 'MONTH' ? 'tháng' : 'ngày' }}
-            </h2>
+            </h3>
             <p class="mt-0.5 text-[11px] text-slate-500">Dữ liệu tổng hợp · {{ data.buckets.length }} kỳ</p>
           </div>
           <mat-icon class="text-slate-400">table_chart</mat-icon>
         </div>
 
         @if (data.buckets.length) {
-          <div class="erp-table-container !rounded-none !border-0 !shadow-none">
-            <table class="erp-table">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs whitespace-nowrap">
               <thead>
-                <tr>
-                  <th class="erp-th">Kỳ</th>
-                  <th class="erp-th text-right">Lịch hẹn</th>
-                  <th class="erp-th text-right">Check-in</th>
-                  <th class="erp-th text-right">Hoàn tất</th>
-                  <th class="erp-th text-right">Vắng</th>
-                  <th class="erp-th text-right">Hủy</th>
-                  <th class="erp-th text-right">Không TH</th>
-                  <th class="erp-th text-right">Chờ TB</th>
-                  <th class="erp-th text-right">Khám TB</th>
+                <tr class="border-b border-slate-100 text-[11px] font-semibold text-slate-500 uppercase tracking-wider bg-slate-50/50">
+                  <th class="px-4 py-3.5">Kỳ thống kê</th>
+                  <th class="px-4 py-3.5 text-right">Lịch hẹn</th>
+                  <th class="px-4 py-3.5 text-right">Check-in</th>
+                  <th class="px-4 py-3.5 text-right">Hoàn tất</th>
+                  <th class="px-4 py-3.5 text-right">Vắng mặt</th>
+                  <th class="px-4 py-3.5 text-right">Đã hủy</th>
+                  <th class="px-4 py-3.5 text-right">Không TH</th>
+                  <th class="px-4 py-3.5 text-right">Chờ TB</th>
+                  <th class="px-4 py-3.5 text-right">Khám TB</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody class="divide-y divide-slate-50">
                 @for (bucket of data.buckets; track bucket.period) {
-                  <tr class="erp-tr">
-                    <td class="erp-td font-mono font-bold text-slate-900">{{ bucket.period }}</td>
-                    <td class="erp-td text-right font-mono">{{ bucket.totalAppointments }}</td>
-                    <td class="erp-td text-right font-mono text-[#0284c7]">{{ bucket.checkedInAppointments }}</td>
-                    <td class="erp-td text-right font-mono text-emerald-700 font-semibold">{{ bucket.completedAppointments }}</td>
-                    <td class="erp-td text-right font-mono text-amber-700">{{ bucket.absentAppointments }}</td>
-                    <td class="erp-td text-right font-mono text-rose-700">{{ bucket.cancelledAppointments }}</td>
-                    <td class="erp-td text-right font-mono text-slate-500">{{ bucket.notPerformedAppointments }}</td>
-                    <td class="erp-td text-right font-mono text-slate-600">{{ formatAverage(bucket.averageWaitMinutes) }}</td>
-                    <td class="erp-td text-right font-mono text-slate-600">{{ formatAverage(bucket.averageExaminationMinutes) }}</td>
+                  <tr class="transition hover:bg-slate-50/70">
+                    <td class="px-4 py-3 font-mono font-bold text-slate-900">{{ bucket.period }}</td>
+                    <td class="px-4 py-3 text-right font-mono">{{ bucket.totalAppointments }}</td>
+                    <td class="px-4 py-3 text-right font-mono text-[#0284c7] font-semibold">{{ bucket.checkedInAppointments }}</td>
+                    <td class="px-4 py-3 text-right font-mono text-emerald-700 font-semibold">{{ bucket.completedAppointments }}</td>
+                    <td class="px-4 py-3 text-right font-mono text-amber-700">{{ bucket.absentAppointments }}</td>
+                    <td class="px-4 py-3 text-right font-mono text-rose-700">{{ bucket.cancelledAppointments }}</td>
+                    <td class="px-4 py-3 text-right font-mono text-slate-500">{{ bucket.notPerformedAppointments }}</td>
+                    <td class="px-4 py-3 text-right font-mono text-slate-600">{{ formatAverage(bucket.averageWaitMinutes) }}</td>
+                    <td class="px-4 py-3 text-right font-mono text-slate-600">{{ formatAverage(bucket.averageExaminationMinutes) }}</td>
                   </tr>
                 }
               </tbody>
             </table>
           </div>
         } @else {
-          <div class="px-5 py-10 text-center text-xs text-slate-500">
+          <div class="px-5 py-12 text-center text-xs text-slate-500">
             Không có lịch hẹn trong khoảng thời gian đã chọn.
           </div>
         }
