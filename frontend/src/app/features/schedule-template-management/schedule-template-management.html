@@ -42,7 +42,7 @@
     }
   </div>
 
-  <div class="grid gap-6">
+  <div class="grid gap-3.5">
     <!-- Alerts & Warnings -->
     @if (error()) {
       <div class="flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-medium text-rose-800 shadow-xs" role="alert">
@@ -124,92 +124,90 @@
           Đang tải thời khóa biểu...
         </div>
       } @else {
-        <section class="rounded-2xl border border-slate-200 bg-white shadow-xs overflow-hidden">
-          <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse min-w-[950px]">
-              <!-- Matrix Header: Days of the Week -->
-              <thead>
-                <tr class="border-b border-slate-200 bg-slate-50/80 text-xs font-bold text-slate-700">
-                  <th class="p-3.5 w-48 border-r border-slate-200 bg-slate-100/60">Phòng khám</th>
-                  @for (day of displayWeekdays; track day.value) {
-                    <th class="p-3.5 text-center border-r border-slate-200 last:border-r-0">
-                      {{ day.label }}
-                    </th>
-                  }
-                </tr>
-              </thead>
-              <!-- Matrix Body: 1 Row per Clinical Room -->
-              <tbody class="divide-y divide-slate-200 text-xs">
-                @for (room of filteredRooms(); track room.id) {
-                  <tr class="transition hover:bg-slate-50/40">
-                    <!-- Room Info Column -->
-                    <td class="p-3.5 border-r border-slate-200 bg-slate-50/40 align-middle">
-                      <div class="font-bold text-slate-900 text-xs">Phòng {{ room.code }}</div>
-                      <div class="text-[11px] text-slate-500 truncate font-medium">{{ room.name || room.specialty }}</div>
-                    </td>
+        <section class="rounded-xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
+          <table class="table-fixed w-full text-left border-collapse">
+            <!-- Matrix Header: Days of the Week (100% Full-Width) -->
+            <thead>
+              <tr class="border-b border-slate-200 bg-slate-50/90 text-[11px] font-bold text-slate-700">
+                <th class="py-2.5 px-3 w-[16%] border-r border-slate-200 bg-slate-100/70">Phòng khám</th>
+                @for (day of displayWeekdays; track day.value) {
+                  <th class="py-2.5 px-2 text-center w-[14%] border-r border-slate-200 last:border-r-0">
+                    {{ day.label }}
+                  </th>
+                }
+              </tr>
+            </thead>
+            <!-- Matrix Body: Compact High-Density Rows -->
+            <tbody class="divide-y divide-slate-200 text-xs">
+              @for (room of filteredRooms(); track room.id) {
+                <tr class="transition hover:bg-slate-50/40">
+                  <!-- Room Info Column -->
+                  <td class="py-2 px-3 border-r border-slate-200 bg-slate-50/40 align-middle">
+                    <div class="font-bold text-slate-900 text-xs leading-tight">Phòng {{ room.code }}</div>
+                    <div class="text-[10px] text-slate-500 truncate font-medium mt-0.5">{{ room.name || room.specialty }}</div>
+                  </td>
 
-                    <!-- Weekday Columns for this Room -->
-                    @for (day of displayWeekdays; track day.value) {
-                      <td class="p-2 border-r border-slate-200 last:border-r-0 align-top min-w-[155px]">
-                        @if (getTemplatesForRoomAndDay(room.id, day.value).length > 0) {
-                          <div class="space-y-1.5">
-                            @for (tmpl of getTemplatesForRoomAndDay(room.id, day.value); track tmpl.id) {
-                              <div
-                                role="button"
-                                tabindex="0"
-                                (click)="openTemplateDetail(tmpl)"
-                                (keydown.enter)="openTemplateDetail(tmpl)"
-                                class="rounded-xl border border-slate-200 bg-white p-2.5 text-xs shadow-2xs transition hover:border-[#0e3d48] hover:shadow-xs cursor-pointer group"
-                              >
-                                <div class="flex items-start gap-2.5">
-                                  <img
-                                    [src]="getDoctorAvatar(tmpl.doctorName, tmpl.doctorAvatarUrl)"
-                                    [alt]="tmpl.doctorName"
-                                    class="h-8 w-8 rounded-full object-cover border border-slate-200 shrink-0 shadow-2xs"
-                                  />
-                                  <div class="min-w-0 flex-1">
-                                    <p class="font-bold text-slate-900 text-xs leading-tight group-hover:text-[#0e3d48] truncate" [title]="tmpl.doctorName">{{ tmpl.doctorName }}</p>
-                                    <p class="text-[10px] text-slate-500 font-medium truncate mt-0.5" [title]="tmpl.serviceName">{{ tmpl.serviceName }}</p>
-                                  </div>
-                                </div>
-                                <div class="mt-2 flex items-center justify-between">
-                                  <span class="inline-flex items-center rounded-md border px-2 py-0.5 text-[9px] font-bold" [class]="getShiftBadge(tmpl).class">
-                                    {{ getShiftBadge(tmpl).label }}
-                                  </span>
+                  <!-- Weekday Columns for this Room -->
+                  @for (day of displayWeekdays; track day.value) {
+                    <td class="p-1 border-r border-slate-200 last:border-r-0 align-middle">
+                      @if (getTemplatesForRoomAndDay(room.id, day.value).length > 0) {
+                        <div class="space-y-1">
+                          @for (tmpl of getTemplatesForRoomAndDay(room.id, day.value); track tmpl.id) {
+                            <div
+                              role="button"
+                              tabindex="0"
+                              (click)="openTemplateDetail(tmpl)"
+                              (keydown.enter)="openTemplateDetail(tmpl)"
+                              class="rounded-lg border border-slate-200 bg-white p-1.5 text-xs shadow-2xs transition hover:border-[#0e3d48] hover:shadow-xs cursor-pointer group"
+                            >
+                              <div class="flex items-center gap-1.5">
+                                <img
+                                  [src]="getDoctorAvatar(tmpl.doctorName, tmpl.doctorAvatarUrl)"
+                                  [alt]="tmpl.doctorName"
+                                  class="h-6 w-6 rounded-full object-cover border border-slate-200 shrink-0 shadow-2xs"
+                                />
+                                <div class="min-w-0 flex-1">
+                                  <p class="font-bold text-slate-900 text-[11px] leading-tight group-hover:text-[#0e3d48] truncate" [title]="tmpl.doctorName">{{ tmpl.doctorName }}</p>
+                                  <p class="text-[9px] text-slate-500 font-medium truncate" [title]="tmpl.serviceName">{{ tmpl.serviceName }}</p>
                                 </div>
                               </div>
-                            }
-                          </div>
-                        } @else {
-                          @if (canManageSchedule()) {
-                            <button
-                              type="button"
-                              (click)="scheduleForRoomAndDay(room, day.value)"
-                              class="w-full h-16 rounded-xl border border-dashed border-slate-200 bg-slate-50/50 hover:bg-white hover:border-[#0e3d48] hover:text-[#0e3d48] text-slate-400 text-[11px] font-medium flex items-center justify-center gap-1 transition cursor-pointer"
-                              title="Xếp lịch trực cho phòng này"
-                            >
-                              <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">add</mat-icon>
-                              <span>Trống</span>
-                            </button>
-                          } @else {
-                            <div class="w-full h-16 rounded-xl border border-dashed border-slate-100 bg-slate-50/30 flex items-center justify-center text-slate-300 text-[10px]">
-                              Trống
+                              <div class="mt-1 flex items-center justify-between">
+                                <span class="inline-flex items-center rounded border px-1.5 py-0.2 text-[8.5px] font-semibold truncate" [class]="getShiftBadge(tmpl).class">
+                                  {{ getShiftBadge(tmpl).label }}
+                                </span>
+                              </div>
                             </div>
                           }
+                        </div>
+                      } @else {
+                        @if (canManageSchedule()) {
+                          <button
+                            type="button"
+                            (click)="scheduleForRoomAndDay(room, day.value)"
+                            class="w-full h-10 rounded-lg border border-dashed border-slate-200 bg-slate-50/40 hover:bg-white hover:border-[#0e3d48] hover:text-[#0e3d48] text-slate-400 text-[10px] font-medium flex items-center justify-center gap-1 transition cursor-pointer"
+                            title="Xếp lịch trực cho phòng này"
+                          >
+                            <mat-icon class="!h-3 !w-3 !text-[12px]">add</mat-icon>
+                            <span>Trống</span>
+                          </button>
+                        } @else {
+                          <div class="w-full h-10 rounded-lg border border-dashed border-slate-100 bg-slate-50/20 flex items-center justify-center text-slate-300 text-[10px]">
+                            Trống
+                          </div>
                         }
-                      </td>
-                    }
-                  </tr>
-                } @empty {
-                  <tr>
-                    <td colspan="7" class="p-12 text-center text-xs text-slate-500">
-                      Không tìm thấy phòng khám nào phù hợp bộ lọc.
+                      }
                     </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
+                  }
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="7" class="py-8 text-center text-xs text-slate-500">
+                    Không tìm thấy phòng khám nào phù hợp bộ lọc.
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
         </section>
       }
     </div>
