@@ -16,6 +16,7 @@ public record ScheduleTemplateResponse(
         int durationMinutes,
         UUID doctorId,
         String doctorName,
+        String doctorAvatarUrl,
         UUID roomId,
         String roomCode,
         LocalDate startDate,
