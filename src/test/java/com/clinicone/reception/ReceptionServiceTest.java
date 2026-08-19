@@ -200,6 +200,22 @@ class ReceptionServiceTest {
                 .extracting("code").isEqualTo("APPOINTMENT_STATUS_INVALID");
     }// Chặn check-in khi lịch hẹn đã bị Hủy
 
+    @Test
+    void rejectsCheckInWhenAppointmentDateIsNotToday() {
+        LocalDate tomorrow = TODAY.plusDays(1);
+        Appointment appointment = mock(Appointment.class);
+        when(appointment.getId()).thenReturn(APPOINTMENT_ID);
+        when(appointment.getAppointmentDate()).thenReturn(tomorrow);
+        when(appointment.getStatus()).thenReturn(AppointmentStatus.BOOKED);
+        when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
+
+        assertThatThrownBy(() -> service.checkIn(APPOINTMENT_ID,
+                new ReceptionCheckInRequest("NOI-01", "Bệnh nhân đến nhầm ngày")))
+                .isInstanceOf(AuthException.class)
+                .extracting("code").isEqualTo("APPOINTMENT_DATE_INVALID");
+
+        verifyNoInteractions(queueService);
+        }// Chặn tiếp nhận sai ngày hẹn
     
 
     // 3. NHÓM TIẾP NHẬN VÃNG LAI & HỒ SƠ TẠI QUẦY
