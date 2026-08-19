@@ -215,7 +215,32 @@ class ReceptionServiceTest {
                 .extracting("code").isEqualTo("APPOINTMENT_DATE_INVALID");
 
         verifyNoInteractions(queueService);
-        }// Chặn tiếp nhận sai ngày hẹn
+    }// Chặn tiếp nhận sai ngày hẹn
+
+    @Test
+    void returnsExistingTicketWhenAppointmentAlreadyCheckedIn() {
+        PatientAccount patient = mock(PatientAccount.class);
+        when(patient.getStatus()).thenReturn(AccountStatus.ACTIVE);
+        when(patient.getFullName()).thenReturn("Nguyễn Thanh Vũ");
+
+        Appointment appointment = mock(Appointment.class);
+        when(appointment.getId()).thenReturn(APPOINTMENT_ID);
+        when(appointment.getAppointmentCode()).thenReturn("CL-20260807-1234");
+        when(appointment.getAppointmentDate()).thenReturn(TODAY);
+        when(appointment.getPatient()).thenReturn(patient);
+        when(appointment.getStatus()).thenReturn(AppointmentStatus.CHECKED_IN);
+        when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
+
+        QueueTicketResponse existingTicket = new QueueTicketResponse(UUID.randomUUID(), 5, "NOI-01", "Phòng Nội 01",
+                TODAY, LocalTime.of(9, 0), "WAITING", "Đang chờ", "CL-20260807-1234", "Nội tổng quát", "BS. Nguyễn An");
+        when(queueService.checkInByStaff("NOI-01", APPOINTMENT_ID, "Thao tác lại")).thenReturn(existingTicket);
+
+        ReceptionAppointmentResponse response = service.checkIn(APPOINTMENT_ID,
+                new ReceptionCheckInRequest("NOI-01", "Thao tác lại"));
+
+        assertThat(response.queueNumber()).isEqualTo(5);
+        assertThat(response.queueStatus()).isEqualTo("WAITING");
+    }// Trả về kết quả cũ khi tiếp nhận lặp
     
 
     // 3. NHÓM TIẾP NHẬN VÃNG LAI & HỒ SƠ TẠI QUẦY
