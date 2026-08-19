@@ -75,7 +75,7 @@ class ClinicServiceControllerTest {
 
     private static ClinicServiceResponse response() {
         return new ClinicServiceResponse(SERVICE_ID, "Khám tổng quát cơ bản", "Khám Tổng Quát", "Khám thường",
-                30, true, List.of(new EligibleDoctorResponse(UUID.randomUUID(), UUID.randomUUID(), "Bác sĩ Nguyễn An")));
+                30, true, List.of(new EligibleDoctorResponse(UUID.randomUUID(), UUID.randomUUID(), "Bác sĩ Nguyễn An", null)));
     }
 
     private static UsernamePasswordAuthenticationToken authenticated(String role) {

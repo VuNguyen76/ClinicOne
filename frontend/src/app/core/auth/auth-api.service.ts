@@ -355,12 +355,14 @@ export interface DoctorAccountResponse {
   roomName: string | null;
   assigned: boolean;
   active: boolean;
+  avatarUrl?: string | null;
 }
 
 export interface EligibleDoctorResponse {
   doctorProfileId: string;
   staffId: string;
   fullName: string;
+  avatarUrl?: string | null;
 }
 
 export interface ClinicServiceResponse {

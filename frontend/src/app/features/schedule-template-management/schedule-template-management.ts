@@ -106,6 +106,75 @@ export class ScheduleTemplateManagement implements OnInit {
     );
   }
 
+  protected readonly filterSpecialty = signal('');
+  protected readonly selectedDateRange = signal('Tất cả thời gian');
+
+  protected selectedDoctor(): DoctorAccountResponse | undefined {
+    return this.doctors().find((doc) => doc.staffId === this.selectedDoctorId());
+  }
+
+  protected previewSlots(): { time: string; isBreak?: boolean; label?: string }[] {
+    const start = this.dayStart() || '08:00';
+    const end = this.dayEnd() || '17:00';
+    const step = Number(this.durationMinutes()) || 30;
+    const hasBrk = this.hasBreak();
+    const brkStart = this.breakStart() || '12:00';
+    const brkEnd = this.breakEnd() || '13:00';
+
+    const parseMinutes = (t: string) => {
+      const parts = t.split(':');
+      return (Number(parts[0]) || 0) * 60 + (Number(parts[1]) || 0);
+    };
+
+    const formatMinutes = (mins: number) => {
+      const h = Math.floor(mins / 60).toString().padStart(2, '0');
+      const m = (mins % 60).toString().padStart(2, '0');
+      return `${h}:${m}`;
+    };
+
+    const startMins = parseMinutes(start);
+    const endMins = parseMinutes(end);
+    const brkStartMins = parseMinutes(brkStart);
+    const brkEndMins = parseMinutes(brkEnd);
+
+    const result: { time: string; isBreak?: boolean; label?: string }[] = [];
+    let insertedBreak = false;
+
+    for (let cur = startMins; cur <= endMins; cur += step) {
+      if (hasBrk && cur >= brkStartMins && cur < brkEndMins) {
+        if (!insertedBreak) {
+          result.push({ time: `${brkStart} - ${brkEnd}`, isBreak: true, label: `Nghỉ trưa (${brkStart} - ${brkEnd})` });
+          insertedBreak = true;
+        }
+        continue;
+      }
+      result.push({ time: formatMinutes(cur) });
+    }
+
+    return result;
+  }
+
+  protected getTemplatesForDayAndShift(day: string, shift: 'morning' | 'afternoon'): ScheduleTemplateResponse[] {
+    const specialty = this.filterSpecialty().toLowerCase();
+    return this.templates().filter((t) => {
+      if (!t.weekdays.includes(day)) return false;
+      if (specialty && !t.serviceName.toLowerCase().includes(specialty)) return false;
+      const startHour = Number(t.dayStart.split(':')[0]) || 0;
+      if (shift === 'morning') return startHour < 12;
+      return startHour >= 12;
+    });
+  }
+
+  protected getDoctorAvatar(doctorName: string): string | null {
+    const doc = this.doctors().find((d) => d.fullName.toLowerCase() === doctorName.toLowerCase());
+    return doc?.avatarUrl ?? null;
+  }
+
+  protected getDoctorSpecialty(doctorName: string): string {
+    const doc = this.doctors().find((d) => d.fullName.toLowerCase() === doctorName.toLowerCase());
+    return doc?.specialty ?? 'Đa khoa';
+  }
+
   protected totalTemplatesCount(): number {
     return this.templates().length;
   }
