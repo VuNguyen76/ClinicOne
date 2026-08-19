@@ -36,6 +36,7 @@ export class ScheduleTemplateManagement implements OnInit {
   protected readonly error = signal('');
   protected readonly notice = signal('');
   protected readonly modalOpen = signal(false);
+  protected readonly activeTab = signal<'list' | 'form'>('list');
 
   protected readonly selectedServiceId = signal('');
   protected readonly selectedDoctorId = signal('');
@@ -213,6 +214,7 @@ export class ScheduleTemplateManagement implements OnInit {
         this.notice.set(`Đã sinh ${template.generatedSlotCount} khung giờ.`);
         this.saving.set(false);
         this.modalOpen.set(false);
+        this.activeTab.set('list');
       },
       error: (response) => {
         this.saving.set(false);
@@ -221,16 +223,26 @@ export class ScheduleTemplateManagement implements OnInit {
     });
   }
 
-  protected openCreate(): void {
+  protected startCreate(): void {
     if (!this.canManageSchedule()) return;
     this.error.set('');
     this.notice.set('');
     this.modalOpen.set(true);
+    this.activeTab.set('form');
+  }
+
+  protected cancelEdit(): void {
+    if (this.saving()) return;
+    this.modalOpen.set(false);
+    this.activeTab.set('list');
+  }
+
+  protected openCreate(): void {
+    this.startCreate();
   }
 
   protected closeModal(): void {
-    if (this.saving()) return;
-    this.modalOpen.set(false);
+    this.cancelEdit();
   }
 
   protected regenerate(template: ScheduleTemplateResponse): void {
