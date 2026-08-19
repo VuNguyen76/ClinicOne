@@ -469,13 +469,13 @@
 
     @if (activeTab() === 'intake') {
       <section class="grid min-h-64 place-items-center" data-testid="reception-intake-screen">
-        <div class="erp-card max-w-xl p-8 text-center"><div class="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-sky-50 text-[#0284c7]"><mat-icon class="!h-8 !w-8 !text-[30px]">person_add</mat-icon></div><h2 class="mt-4 text-xl font-bold text-slate-900">Tiếp nhận tại quầy</h2><p class="mt-2 text-sm text-slate-500">Tìm hồ sơ, chọn khung giờ và cấp số cho người đi khám.</p><button type="button" class="erp-btn-primary mt-5" (click)="openWalkIn()"><mat-icon class="!h-4 !w-4 !text-[16px]">add</mat-icon>Mở phiếu tiếp nhận</button></div>
+        <div class="erp-card max-w-xl p-8 text-center"><div class="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-sky-50 text-[#0284c7]"><mat-icon class="!h-8 !w-8 !text-[30px]">person_add</mat-icon></div><h2 class="mt-4 text-xl font-bold text-slate-900">Tiếp nhận tại quầy</h2><button type="button" class="erp-btn-primary mt-5" (click)="openWalkIn()"><mat-icon class="!h-4 !w-4 !text-[16px]">add</mat-icon>Mở phiếu tiếp nhận</button></div>
       </section>
     }
 
     @if (activeTab() === 'queue') {
       <section class="erp-card overflow-hidden" data-testid="reception-queue-screen">
-        <div class="erp-toolbar"><div><h2 class="text-sm font-bold text-slate-900">Hàng đợi tiếp nhận</h2><p class="text-xs text-slate-500">Theo dõi người đã check-in và chưa được bắt đầu khám.</p></div><a routerLink="/reception/appointments" class="erp-btn-secondary !min-h-8 !px-3 !py-1.5 !text-xs">Tra cứu lịch</a></div>
+        <div class="erp-toolbar"><div><h2 class="text-sm font-bold text-slate-900">Hàng đợi tiếp nhận</h2></div><a routerLink="/reception/appointments" class="erp-btn-secondary !min-h-8 !px-3 !py-1.5 !text-xs">Tra cứu lịch</a></div>
         @if (queueAppointments().length === 0) {<div class="grid min-h-48 place-items-center p-6 text-center text-sm text-slate-500"><div><mat-icon class="!h-9 !w-9 !text-[36px] text-slate-300">format_list_numbered</mat-icon><p class="mt-2">Chưa có người trong hàng đợi.</p></div></div>} @else {<div class="divide-y divide-slate-100">@for (appointment of queueAppointments(); track appointment.id) {<div class="grid gap-2 px-4 py-3 sm:grid-cols-[5rem_1fr_auto] sm:items-center"><span class="font-mono text-lg font-bold text-[#0284c7]">{{ appointment.queueNumber ? ('#' + appointment.queueNumber) : '—' }}</span><div><p class="text-sm font-semibold text-slate-900">{{ appointment.patientName }}</p><p class="text-xs text-slate-500">{{ appointment.roomCode || 'Chưa gán phòng' }} · {{ appointment.doctorName }}</p></div><span class="erp-badge" [class]="queueClass(appointment)">{{ queueLabel(appointment) }}</span></div>}</div>}
       </section>
     }
@@ -738,7 +738,6 @@
           <p><span class="text-slate-500">Giờ hẹn:</span> {{ formatTime(slip.startTime) }} · {{ selectedDate() }}</p>
           <p><span class="text-slate-500">Mã lịch hẹn:</span> <span class="font-mono font-bold">{{ slip.appointmentCode }}</span></p>
         </div>
-        <p class="mt-4 text-[10px] italic text-slate-500">Quý khách vui lòng theo dõi số thứ tự trên màn hình TV trước cửa phòng khám.</p>
       </div>
     </div>
   }

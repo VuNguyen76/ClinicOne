@@ -33,7 +33,6 @@
         <div>
           <p class="text-xs font-bold uppercase tracking-[0.16em] text-[#0284c7]">Hồ sơ bệnh án</p>
           <h1 id="medical-records-title" class="mt-1.5 text-2xl font-bold tracking-[-0.03em] text-slate-900 sm:text-3xl">Phiếu khám bệnh</h1>
-          <p class="mt-1.5 text-sm text-slate-500">Chỉ hiển thị các phiếu khám đã được bác sĩ hoàn tất và ký số.</p>
         </div>
 
         <section class="mt-6 rounded-xl border border-slate-200 bg-white p-4 shadow-xs" aria-label="Lọc phiếu khám">
@@ -49,7 +48,7 @@
         @if (loading()) {
           <div class="mt-6 grid min-h-48 place-items-center rounded-xl border border-slate-200 bg-white text-sm text-slate-500">Đang tải phiếu khám...</div>
         } @else if (records().length === 0) {
-          <section class="mt-6 grid min-h-64 place-items-center rounded-xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center"><div><span class="mx-auto grid h-14 w-14 place-items-center rounded-full bg-sky-50 text-[#0284c7]"><mat-icon>description</mat-icon></span><h2 class="mt-4 font-semibold text-slate-800">Chưa có phiếu khám đã ký</h2><p class="mt-2 max-w-sm text-sm leading-6 text-slate-500">Phiếu sẽ xuất hiện sau khi bác sĩ hoàn tất và ký.</p><a routerLink="/dashboard" class="mt-5 inline-flex min-h-10 items-center justify-center rounded-lg bg-[#0284c7] px-4 text-sm font-semibold text-white transition hover:bg-[#0369a1]">Về tổng quan</a></div></section>
+          <section class="mt-6 grid min-h-64 place-items-center rounded-xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center"><div><span class="mx-auto grid h-14 w-14 place-items-center rounded-full bg-sky-50 text-[#0284c7]"><mat-icon>description</mat-icon></span><h2 class="mt-4 font-semibold text-slate-800">Chưa có phiếu khám đã ký</h2><a routerLink="/dashboard" class="mt-5 inline-flex min-h-10 items-center justify-center rounded-lg bg-[#0284c7] px-4 text-sm font-semibold text-white transition hover:bg-[#0369a1]">Về tổng quan</a></div></section>
         } @else {
           <section class="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
             <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
