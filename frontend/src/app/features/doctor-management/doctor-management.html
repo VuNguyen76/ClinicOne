@@ -263,77 +263,16 @@
               {{ saving() ? 'Đang lưu...' : 'Lưu phân công' }}
             </button>
           </form>
-
-          <!-- Section 2: Timeslots Picker by Day -->
-          <form class="space-y-3.5 border-t border-slate-100 pt-5" [formGroup]="scheduleForm" (ngSubmit)="$event.preventDefault(); addSchedule()">
-            <h4 class="text-xs font-bold uppercase tracking-wider text-[#0e3d48]">2. Giờ làm việc theo thứ</h4>
-            
-            <label class="grid gap-1">
-              <span class="text-[11px] font-semibold text-slate-600">Thứ trong tuần</span>
-              <select formControlName="dayOfWeek" class="erp-select">
-                @for (day of days; track day.value) {
-                  <option [value]="day.value">{{ day.label }}</option>
-                }
-              </select>
-            </label>
-
-            <div class="grid grid-cols-2 gap-2.5">
-              <label class="grid gap-1">
-                <span class="text-[11px] font-semibold text-slate-600">Từ giờ</span>
-                <input formControlName="startTime" type="time" class="erp-input font-mono" />
-              </label>
-              <label class="grid gap-1">
-                <span class="text-[11px] font-semibold text-slate-600">Đến giờ</span>
-                <input formControlName="endTime" type="time" class="erp-input font-mono" />
-              </label>
-            </div>
-
-            <label class="grid gap-1">
-              <span class="text-[11px] font-semibold text-slate-600">Thời lượng (phút / lượt khám)</span>
-              <input formControlName="slotDurationMinutes" type="number" min="15" max="180" step="15" class="erp-input font-mono" placeholder="30" />
-            </label>
-
-            <button
-              type="submit"
-              class="erp-btn-primary w-full"
-              [disabled]="!doctor.assigned || saving()"
-            >
-              + Thêm khung giờ làm việc
-            </button>
-
-            <!-- Existing Timeslots List -->
-            <div class="space-y-2 pt-2">
-              <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Khung giờ đã lưu ({{ schedules().length }})</p>
-              <div class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                @for (slot of schedules(); track slot.id) {
-                  <div class="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3.5 py-2.5 text-xs">
-                    <span class="font-mono text-slate-800 font-medium">{{ dayLabel(slot.dayOfWeek) }}: {{ slot.startTime.slice(0, 5) }} – {{ slot.endTime.slice(0, 5) }} ({{ slot.slotDurationMinutes }}p)</span>
-                    <button
-                      type="button"
-                      class="erp-btn-icon-danger !h-6 !w-6"
-                      [attr.aria-label]="'Xóa ca ' + dayLabel(slot.dayOfWeek)"
-                      (click)="removeSchedule(slot)"
-                      title="Xóa ca làm việc"
-                    >
-                      <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">delete_outline</mat-icon>
-                    </button>
-                  </div>
-                } @empty {
-                  <p class="py-4 text-center text-xs text-slate-400 italic">Chưa có khung giờ làm việc nào.</p>
-                }
-              </div>
-            </div>
-          </form>
         </div>
 
         <!-- Drawer Footer -->
         <div class="border-t border-slate-100 p-4 bg-slate-50/70 flex justify-end">
           <button
             type="button"
-            class="erp-btn-primary"
+            class="erp-btn-secondary"
             (click)="closeDrawer()"
           >
-            Hoàn tất & Đóng
+            Đóng
           </button>
         </div>
       </aside>
