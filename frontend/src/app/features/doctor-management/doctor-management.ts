@@ -226,6 +226,49 @@ export class DoctorManagement implements OnInit {
     });
   }
 
+  protected readonly selectedDoctorIds = signal<Set<string>>(new Set());
+  protected readonly selectedDayPreset = signal<string>('MONDAY');
+
+  protected readonly dayPresets = [
+    { label: 'Thứ 2 - Thứ 6', days: ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY'] },
+    { label: 'Thứ 2 - Thứ 4', days: ['MONDAY', 'TUESDAY', 'WEDNESDAY'] },
+    { label: 'Thứ 5 - Thứ 7', days: ['THURSDAY', 'FRIDAY', 'SATURDAY'] },
+    { label: 'Thứ 7', days: ['SATURDAY'] },
+  ];
+
+  protected isAllSelected(): boolean {
+    const list = this.filteredDoctors();
+    return list.length > 0 && list.every((d) => this.selectedDoctorIds().has(d.staffId));
+  }
+
+  protected toggleSelectAll(): void {
+    if (this.isAllSelected()) {
+      this.selectedDoctorIds.set(new Set());
+    } else {
+      this.selectedDoctorIds.set(new Set(this.filteredDoctors().map((d) => d.staffId)));
+    }
+  }
+
+  protected toggleSelectDoctor(staffId: string, event: Event): void {
+    event.stopPropagation();
+    const current = new Set(this.selectedDoctorIds());
+    if (current.has(staffId)) {
+      current.delete(staffId);
+    } else {
+      current.add(staffId);
+    }
+    this.selectedDoctorIds.set(current);
+  }
+
+  protected applyDayPreset(preset: { label: string; days: string[] }): void {
+    this.selectedDayPreset.set(preset.days[0] ?? 'MONDAY');
+    this.scheduleForm.patchValue({ dayOfWeek: preset.days[0] ?? 'MONDAY' });
+  }
+
+  protected onDutyCount(): number {
+    return Math.max(1, Math.round(this.assignedDoctorsCount() * 0.4));
+  }
+
   protected dayLabel(value: string): string {
     return this.days.find((day) => day.value === value)?.label ?? value;
   }

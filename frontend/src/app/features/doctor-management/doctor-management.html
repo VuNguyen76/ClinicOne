@@ -1,15 +1,8 @@
-<app-staff-workspace-shell moduleTitle="Vận hành" pageTitle="Quản lý Bác sĩ">
-  <div workspace-actions>
-    <button data-testid="open-create-doctor" type="button" class="erp-btn-primary" (click)="openCreateDoctor()">
-      <mat-icon class="!h-4 !w-4 !text-[18px]">person_add</mat-icon>
-      <span>Tạo tài khoản bác sĩ</span>
-    </button>
-  </div>
-
-  <div class="grid gap-5">
+<app-staff-workspace-shell moduleTitle="Vận hành" pageTitle="Dashboard">
+  <div class="grid gap-6">
     <!-- Top Alerts (Dismissable) -->
     @if (error()) {
-      <div class="flex items-center justify-between rounded-lg border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs font-medium text-rose-800 shadow-xs" role="alert">
+      <div class="flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-medium text-rose-800 shadow-xs" role="alert">
         <div class="flex items-center gap-2">
           <mat-icon class="!h-4 !w-4 !text-[18px] text-rose-600">error_outline</mat-icon>
           <span>{{ error() }}</span>
@@ -20,7 +13,7 @@
       </div>
     }
     @if (notice()) {
-      <div class="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-medium text-emerald-800 shadow-xs" role="status">
+      <div class="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-medium text-emerald-800 shadow-xs" role="status">
         <div class="flex items-center gap-2">
           <mat-icon class="!h-4 !w-4 !text-[18px] text-emerald-600">check_circle</mat-icon>
           <span>{{ notice() }}</span>
@@ -31,192 +24,210 @@
       </div>
     }
 
-    <!-- 1. Top Dashboard Metric Cards -->
-    <div class="grid gap-4 sm:grid-cols-3">
+    <!-- 1. Top 3 Metric Cards (Exact as mockup) -->
+    <div class="grid gap-5 sm:grid-cols-3">
       <!-- Card 1: Total Doctors -->
-      <div class="erp-card flex items-center gap-4 p-4">
-        <div class="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-teal-50 text-[#0e3d48]">
-          <mat-icon class="!h-6 !w-6 !text-[24px]">group</mat-icon>
+      <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs flex items-center gap-4">
+        <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#ecfdf5] text-[#059669]">
+          <mat-icon class="!h-6 !w-6 !text-[24px]">person_outline</mat-icon>
         </div>
         <div>
-          <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Tổng số Bác sĩ</p>
+          <p class="text-xs font-semibold text-slate-500">Total Doctors</p>
           <p class="text-2xl font-bold text-slate-900 mt-0.5">{{ totalDoctorsCount() }}</p>
         </div>
       </div>
 
-      <!-- Card 2: Assigned Doctors -->
-      <div class="erp-card flex items-center gap-4 p-4">
-        <div class="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-sky-50 text-[#0284c7]">
-          <mat-icon class="!h-6 !w-6 !text-[24px]">assignment_ind</mat-icon>
+      <!-- Card 2: Assigned -->
+      <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs flex items-center gap-4">
+        <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#eff6ff] text-[#2563eb]">
+          <mat-icon class="!h-6 !w-6 !text-[24px]">work_outline</mat-icon>
         </div>
         <div>
-          <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Đã phân công</p>
+          <p class="text-xs font-semibold text-slate-500">Assigned</p>
           <p class="text-2xl font-bold text-slate-900 mt-0.5">{{ assignedDoctorsCount() }}</p>
         </div>
       </div>
 
-      <!-- Card 3: Active Status -->
-      <div class="erp-card flex items-center gap-4 p-4">
-        <div class="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-600">
-          <mat-icon class="!h-6 !w-6 !text-[24px]">verified_user</mat-icon>
+      <!-- Card 3: On Duty -->
+      <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs flex items-center gap-4">
+        <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#fffbeb] text-[#d97706]">
+          <mat-icon class="!h-6 !w-6 !text-[24px]">schedule</mat-icon>
         </div>
         <div>
-          <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Đang hoạt động</p>
-          <p class="text-2xl font-bold text-slate-900 mt-0.5">{{ activeDoctorsCount() }}</p>
+          <p class="text-xs font-semibold text-slate-500">On Duty</p>
+          <p class="text-2xl font-bold text-slate-900 mt-0.5">{{ onDutyCount() }}</p>
         </div>
       </div>
     </div>
 
-    <!-- 2. Search & Filter Bar -->
-    <div class="erp-card flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between">
-      <div class="flex flex-1 flex-wrap items-center gap-3">
-        <!-- Search Input -->
-        <div class="relative min-w-[260px] flex-1">
-          <mat-icon class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 !h-4 !w-4 !text-[18px] text-slate-400">search</mat-icon>
-          <input
-            type="text"
-            class="erp-input !py-1.5 !pl-9 !pr-8 !text-xs font-normal"
-            placeholder="Tìm theo tên bác sĩ, tài khoản, chuyên khoa, phòng..."
-            [value]="searchTerm()"
-            (input)="searchTerm.set($any($event.target).value)"
-          />
-          @if (searchTerm()) {
-            <button
-              type="button"
-              class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-              (click)="searchTerm.set('')"
-              title="Xóa tìm kiếm"
-            >
-              <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">close</mat-icon>
-            </button>
-          }
-        </div>
-
-        <!-- Specialty Filter Dropdown -->
-        <div class="min-w-[180px]">
-          <select
-            class="erp-select !py-1.5 !text-xs"
-            [value]="selectedSpecialtyFilter()"
-            (change)="selectedSpecialtyFilter.set($any($event.target).value)"
+    <!-- 2. Search Bar + Add Doctor Button Header -->
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div class="relative w-full max-w-sm">
+        <mat-icon class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 !h-4 !w-4 !text-[18px] text-slate-400">search</mat-icon>
+        <input
+          type="text"
+          class="w-full rounded-xl border border-slate-200 bg-white py-2 pl-10 pr-8 text-xs text-slate-800 placeholder-slate-400 outline-none transition focus:border-[#0e3d48] focus:ring-1 focus:ring-[#0e3d48] shadow-2xs"
+          placeholder="Search..."
+          [value]="searchTerm()"
+          (input)="searchTerm.set($any($event.target).value)"
+        />
+        @if (searchTerm()) {
+          <button
+            type="button"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            (click)="searchTerm.set('')"
           >
-            <option value="">Tất cả chuyên khoa</option>
-            @for (specialty of specialties(); track specialty.code) {
-              <option [value]="specialty.name">{{ specialty.name }}</option>
-            }
-          </select>
-        </div>
+            <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">close</mat-icon>
+          </button>
+        }
       </div>
 
-      <div class="flex items-center gap-2">
-        <button data-testid="open-create-doctor-inline" type="button" class="erp-btn-primary" (click)="openCreateDoctor()">
-          <mat-icon class="!h-4 !w-4 !text-[18px]">add</mat-icon>
-          <span>Tạo tài khoản</span>
-        </button>
-      </div>
+      <button
+        data-testid="open-create-doctor"
+        type="button"
+        class="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0e3d48] px-5 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-[#082830]"
+        (click)="openCreateDoctor()"
+      >
+        <span>Add Doctor</span>
+      </button>
     </div>
 
-    <!-- 3. Main DataGrid & Side Drawer Split -->
+    <!-- 3. Main DataGrid & Right Slide-Over Panel Split -->
     @if (loading()) {
-      <div class="grid min-h-64 place-items-center rounded-xl border border-slate-200 bg-white text-xs text-slate-500">
-        Đang tải danh sách bác sĩ...
+      <div class="grid min-h-64 place-items-center rounded-2xl border border-slate-100 bg-white text-xs text-slate-500 shadow-xs">
+        Loading doctors...
       </div>
     } @else {
-      <div class="grid gap-5 transition-all" [class.lg:grid-cols-3]="isDrawerOpen()">
+      <div class="grid gap-6 transition-all" [class.lg:grid-cols-3]="isDrawerOpen()">
         <!-- Main Full-Width DataGrid Table -->
-        <section class="erp-card overflow-hidden" [class.lg:col-span-2]="isDrawerOpen()">
-          <div class="erp-card-header !bg-slate-50/50">
-            <div>
-              <h2 class="text-xs font-bold uppercase tracking-wider text-[#0e3d48]">Danh sách Bác sĩ</h2>
-              <p class="mt-0.5 text-[11px] text-slate-500">{{ filteredDoctors().length }} / {{ doctors().length }} tài khoản</p>
-            </div>
-            <mat-icon class="text-slate-400">medical_information</mat-icon>
-          </div>
-
-          <div class="erp-table-container !rounded-none !border-0 !shadow-none">
-            <table class="erp-table">
+        <section class="rounded-2xl border border-slate-100 bg-white shadow-xs overflow-hidden" [class.lg:col-span-2]="isDrawerOpen()">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
               <thead>
-                <tr>
-                  <th class="erp-th w-64">Bác sĩ / Tài khoản</th>
-                  <th class="erp-th w-44">Chuyên khoa</th>
-                  <th class="erp-th w-44">Phòng khám</th>
-                  <th class="erp-th w-32 text-center">Trạng thái</th>
-                  <th class="erp-th w-28 text-right">Thao tác</th>
+                <tr class="border-b border-slate-100 text-[11px] font-semibold text-slate-500 uppercase tracking-wider bg-slate-50/50">
+                  <th class="w-12 px-4 py-3.5 text-center">
+                    <input
+                      type="checkbox"
+                      class="rounded border-slate-300 text-[#0e3d48] focus:ring-[#0e3d48]"
+                      [checked]="isAllSelected()"
+                      (change)="toggleSelectAll()"
+                    />
+                  </th>
+                  <th class="px-4 py-3.5">Doctor Name <span class="inline-block text-[10px] text-slate-400">↕</span></th>
+                  <th class="px-4 py-3.5">Specialty</th>
+                  <th class="px-4 py-3.5">Assigned Examination Room</th>
+                  <th class="px-4 py-3.5">Weekly Schedule</th>
+                  <th class="px-4 py-3.5">Status</th>
+                  <th class="px-4 py-3.5 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody class="divide-y divide-slate-50">
                 @for (doctor of filteredDoctors(); track doctor.staffId) {
                   <tr
                     data-testid="doctor-row"
-                    class="erp-tr cursor-pointer transition hover:bg-sky-50/50"
-                    [class.bg-sky-50]="selectedDoctor()?.staffId === doctor.staffId"
+                    class="cursor-pointer transition hover:bg-slate-50/70"
+                    [class.bg-sky-50/40]="selectedDoctor()?.staffId === doctor.staffId"
                     (click)="selectDoctor(doctor)"
                   >
-                    <!-- Doctor Identity -->
-                    <td class="erp-td">
+                    <!-- Checkbox -->
+                    <td class="px-4 py-3 text-center" (click)="$event.stopPropagation()">
+                      <input
+                        type="checkbox"
+                        class="rounded border-slate-300 text-[#0e3d48] focus:ring-[#0e3d48]"
+                        [checked]="selectedDoctorIds().has(doctor.staffId)"
+                        (click)="toggleSelectDoctor(doctor.staffId, $event)"
+                      />
+                    </td>
+
+                    <!-- Doctor Name & Avatar -->
+                    <td class="px-4 py-3">
                       <div class="flex items-center gap-3">
-                        <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-teal-100 font-mono text-xs font-bold text-[#0e3d48]">
+                        <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-slate-100 font-mono text-xs font-bold text-slate-700">
                           {{ doctor.fullName.slice(0, 1) }}
                         </span>
-                        <div class="min-w-0">
-                          <strong class="block truncate text-xs font-bold text-slate-900">{{ doctor.fullName }}</strong>
-                          <span class="block truncate font-mono text-[11px] text-slate-500">{{ doctor.username }}</span>
+                        <div>
+                          <strong class="block text-xs font-semibold text-slate-900">{{ doctor.fullName }}</strong>
+                          <span class="block font-mono text-[10px] text-slate-400">{{ doctor.username }}</span>
                         </div>
                       </div>
                     </td>
 
                     <!-- Specialty Pill Badge -->
-                    <td class="erp-td">
+                    <td class="px-4 py-3">
                       @if (doctor.specialty) {
-                        <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold {{ getSpecialtyBadgeClass(doctor.specialty) }}">
+                        <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium {{ getSpecialtyBadgeClass(doctor.specialty) }}">
                           {{ doctor.specialty }}
                         </span>
                       } @else {
-                        <span class="text-xs text-slate-400 italic">Chưa phân công</span>
+                        <span class="text-slate-400 italic">Chưa phân công</span>
                       }
                     </td>
 
                     <!-- Assigned Room -->
-                    <td class="erp-td">
-                      @if (doctor.roomCode) {
-                        <span class="font-mono text-xs font-semibold text-slate-800">{{ doctor.roomCode }}</span>
-                        <span class="block text-[11px] text-slate-500 truncate">{{ doctor.roomName }}</span>
-                      } @else {
-                        <span class="text-xs text-slate-400 italic">Chưa gán phòng</span>
-                      }
+                    <td class="px-4 py-3 font-medium text-slate-700">
+                      {{ doctor.roomCode ? (doctor.roomCode + ' - ' + doctor.roomName) : 'Chưa gán phòng' }}
                     </td>
 
-                    <!-- Status Badge -->
-                    <td class="erp-td text-center">
-                      <span class="erp-badge" [class.erp-badge-success]="doctor.assigned" [class.erp-badge-warning]="!doctor.assigned">
-                        <span class="erp-dot" [class.erp-dot-success]="doctor.assigned" [class.erp-dot-warning]="!doctor.assigned"></span>
+                    <!-- Weekly Schedule Pill -->
+                    <td class="px-4 py-3">
+                      <span class="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-0.5 font-mono text-[10px] font-medium text-slate-700">
+                        <span class="font-bold">Thứ 2 - Thứ 6</span>
+                        <span class="text-slate-300">|</span>
+                        <span>08:00-17:00</span>
+                      </span>
+                    </td>
+
+                    <!-- Status Indicator -->
+                    <td class="px-4 py-3">
+                      <span class="inline-flex items-center gap-1.5 font-medium text-[11px]" [class.text-emerald-600]="doctor.assigned" [class.text-amber-600]="!doctor.assigned">
+                        <span class="h-1.5 w-1.5 rounded-full" [class.bg-emerald-500]="doctor.assigned" [class.bg-amber-500]="!doctor.assigned"></span>
                         <span>{{ doctor.assigned ? 'Đã phân công' : 'Chưa phân công' }}</span>
                       </span>
                     </td>
 
-                    <!-- Action Icons -->
-                    <td class="erp-td text-right" (click)="$event.stopPropagation()">
+                    <!-- Actions (3 Rounded Square Icon Buttons) -->
+                    <td class="px-4 py-3 text-right" (click)="$event.stopPropagation()">
                       <div class="flex items-center justify-end gap-1.5">
                         <button
                           type="button"
-                          class="erp-btn-icon-accent"
-                          title="Phân công & Lịch làm việc"
-                          aria-label="Phân công & Lịch làm việc"
+                          class="grid h-7 w-7 place-items-center rounded-lg border border-slate-200 text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+                          title="Edit Assignment"
                           (click)="selectDoctor(doctor)"
                         >
-                          <mat-icon class="!h-4 !w-4 !text-[18px]">edit</mat-icon>
+                          <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">edit</mat-icon>
+                        </button>
+                        <button
+                          type="button"
+                          class="grid h-7 w-7 place-items-center rounded-lg border border-slate-200 text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+                          title="Manage Weekly Schedule"
+                          (click)="selectDoctor(doctor)"
+                        >
+                          <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">calendar_month</mat-icon>
+                        </button>
+                        <button
+                          type="button"
+                          class="grid h-7 w-7 place-items-center rounded-lg border border-slate-200 text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+                          title="Lock / Unlock Account"
+                          (click)="selectDoctor(doctor)"
+                        >
+                          <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">lock_outline</mat-icon>
                         </button>
                       </div>
                     </td>
                   </tr>
                 } @empty {
                   <tr>
-                    <td colspan="5" class="px-4 py-12 text-center text-xs text-slate-500">
+                    <td colspan="7" class="px-4 py-12 text-center text-xs text-slate-500">
                       <div>
-                        <p class="font-medium text-slate-700">Chưa có tài khoản bác sĩ</p>
-                        <p class="mt-1 text-slate-400">Tạo tài khoản đầu tiên để bắt đầu phân công chuyên môn và lịch làm việc.</p>
-                        <button data-testid="empty-create-doctor" type="button" class="erp-btn-primary mt-4 inline-flex items-center gap-1.5" (click)="openCreateDoctor()">
+                        <p class="font-medium text-slate-700">No doctors found.</p>
+                        <button
+                          data-testid="empty-create-doctor"
+                          type="button"
+                          class="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-[#0e3d48] px-4 py-2 text-xs font-semibold text-white"
+                          (click)="openCreateDoctor()"
+                        >
                           <mat-icon class="!h-4 !w-4 !text-[18px]">add</mat-icon>
-                          <span>Tạo tài khoản</span>
+                          <span>Add Doctor</span>
                         </button>
                       </div>
                     </td>
@@ -227,160 +238,113 @@
           </div>
         </section>
 
-        <!-- 4. Right Slide-Over Panel (Configuration & Schedule) -->
+        <!-- 4. Right Slide-Over Panel (Exact as in mockup) -->
         @if (isDrawerOpen() && selectedDoctor(); as doctor) {
-          <aside class="erp-card h-fit overflow-hidden lg:sticky lg:top-4 border-slate-300 shadow-md lg:col-span-1">
+          <aside class="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm h-fit space-y-5 lg:col-span-1">
             <!-- Drawer Header -->
-            <div class="erp-card-header !bg-[#0e3d48] text-white">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-4">
               <div class="flex items-center gap-3">
-                <div class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-teal-800 text-white font-mono text-xs font-bold">
+                <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-slate-100 font-mono text-sm font-bold text-slate-700">
                   {{ doctor.fullName.slice(0, 1) }}
-                </div>
+                </span>
                 <div>
-                  <h3 class="text-sm font-bold text-white">{{ doctor.fullName }}</h3>
-                  <p class="text-[11px] text-teal-200 font-mono">{{ doctor.username }}</p>
+                  <h3 class="text-xs font-bold text-slate-900">{{ doctor.fullName }}</h3>
+                  <p class="text-[11px] text-slate-400">Doctor</p>
                 </div>
               </div>
-              <button type="button" class="erp-btn-icon !text-white hover:!bg-white/10" title="Đóng" (click)="closeDrawer()">
-                <mat-icon class="!h-4 !w-4 !text-[18px]">close</mat-icon>
+              <button
+                type="button"
+                class="grid h-7 w-7 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition"
+                (click)="closeDrawer()"
+                title="Close"
+              >
+                <mat-icon class="!h-4 !w-4 !text-[16px]">close</mat-icon>
               </button>
             </div>
 
-            <div class="grid gap-5 p-4 divide-y divide-slate-100">
-              <!-- Section 1: Specialty & Room Assignment -->
-              <form class="grid gap-3.5 pt-1" [formGroup]="assignmentForm" (ngSubmit)="$event.preventDefault(); saveAssignment()">
-                <div class="flex items-center justify-between">
-                  <h4 class="text-xs font-bold uppercase tracking-wider text-[#0e3d48] flex items-center gap-1.5">
-                    <mat-icon class="!h-4 !w-4 !text-[16px] text-[#0284c7]">assignment_ind</mat-icon>
-                    1. Phân công Chuyên môn & Phòng
-                  </h4>
+            <!-- Section 1: Assignment Dropdown -->
+            <form class="space-y-3" [formGroup]="assignmentForm" (ngSubmit)="$event.preventDefault(); saveAssignment()">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700">Assignment</label>
+                <div class="mt-1.5 space-y-2">
+                  <select formControlName="specialty" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus:border-[#0e3d48]">
+                    <option value="">Select Specialty</option>
+                    @for (spec of specialties(); track spec.code) {
+                      <option [value]="spec.name">{{ spec.name }}</option>
+                    }
+                  </select>
+                  <select formControlName="roomId" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus:border-[#0e3d48]">
+                    <option value="">Select Room</option>
+                    @for (room of availableRooms(); track room.id) {
+                      <option [value]="room.id">{{ room.code }} · {{ room.name }}</option>
+                    }
+                  </select>
                 </div>
+              </div>
 
-                <div class="grid gap-3">
-                  <label class="grid gap-1">
-                    <span class="erp-label">Chuyên khoa <span class="erp-label-required">*</span></span>
-                    <select formControlName="specialty" class="erp-select !py-1.5 !text-xs">
-                      <option value="">Chọn chuyên khoa</option>
-                      @for (specialty of specialties(); track specialty.code) {
-                        <option [value]="specialty.name">{{ specialty.name }}</option>
-                      }
-                    </select>
-                  </label>
+              <button
+                type="submit"
+                class="w-full rounded-xl bg-[#0e3d48] py-2 text-xs font-semibold text-white transition hover:bg-[#082830] disabled:opacity-50"
+                [disabled]="saving()"
+              >
+                {{ saving() ? 'Saving...' : 'Save Assignment' }}
+              </button>
+            </form>
 
-                  <label class="grid gap-1">
-                    <span class="erp-label">Phòng khám cố định <span class="erp-label-required">*</span></span>
-                    <select formControlName="roomId" class="erp-select !py-1.5 !text-xs">
-                      <option value="">Chọn phòng khám</option>
-                      @for (room of availableRooms(); track room.id) {
-                        <option [value]="room.id">{{ room.code }} · {{ room.name }}</option>
-                      }
-                    </select>
-                  </label>
-                </div>
-
-                <div>
-                  <button type="submit" class="erp-btn-primary w-full" [disabled]="saving()" title="Lưu phân công">
-                    <mat-icon class="!h-4 !w-4 !text-[18px]">save</mat-icon>
-                    <span>{{ saving() ? 'Đang lưu...' : 'Lưu phân công' }}</span>
+            <!-- Section 2: Weekly Schedule Day Chips -->
+            <div class="space-y-2 border-t border-slate-100 pt-4">
+              <label class="block text-xs font-semibold text-slate-700">Weekly Schedule</label>
+              <div class="flex flex-wrap gap-1.5">
+                @for (preset of dayPresets; track preset.label) {
+                  <button
+                    type="button"
+                    class="rounded-full border px-2.5 py-1 text-[11px] font-medium transition"
+                    [class.bg-slate-900]="selectedDayPreset() === preset.days[0]"
+                    [class.text-white]="selectedDayPreset() === preset.days[0]"
+                    [class.border-slate-900]="selectedDayPreset() === preset.days[0]"
+                    [class.bg-slate-100]="selectedDayPreset() !== preset.days[0]"
+                    [class.text-slate-600]="selectedDayPreset() !== preset.days[0]"
+                    [class.border-transparent]="selectedDayPreset() !== preset.days[0]"
+                    (click)="applyDayPreset(preset)"
+                  >
+                    {{ preset.label }}
                   </button>
-                </div>
-              </form>
+                }
+              </div>
+            </div>
 
-              <!-- Section 2: Weekly Schedule (Timeslot Picker) -->
-              <section class="grid gap-3.5 pt-4">
-                <div class="flex items-center justify-between">
-                  <h4 class="text-xs font-bold uppercase tracking-wider text-[#0e3d48] flex items-center gap-1.5">
-                    <mat-icon class="!h-4 !w-4 !text-[16px] text-[#0284c7]">calendar_month</mat-icon>
-                    2. Giờ làm việc theo tuần
-                  </h4>
-                  <span class="font-mono text-[11px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">{{ schedules().length }} ca</span>
-                </div>
+            <!-- Section 3: Timeslot Picker Form -->
+            <form class="space-y-3 border-t border-slate-100 pt-4" [formGroup]="scheduleForm" (ngSubmit)="$event.preventDefault(); addSchedule()">
+              <label class="block text-xs font-semibold text-slate-700">Timeslot picker</label>
+              <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                <input formControlName="startTime" type="time" class="w-full rounded-xl border border-slate-200 px-2.5 py-1.5 font-mono text-xs text-slate-800 outline-none focus:border-[#0e3d48]" />
+                <span class="text-slate-400 font-bold">-</span>
+                <input formControlName="endTime" type="time" class="w-full rounded-xl border border-slate-200 px-2.5 py-1.5 font-mono text-xs text-slate-800 outline-none focus:border-[#0e3d48]" />
+              </div>
 
-                @if (!doctor.assigned) {
-                  <div class="rounded-md border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-800 flex items-center gap-2">
-                    <mat-icon class="!h-4 !w-4 !text-[16px] text-amber-600 shrink-0">info</mat-icon>
-                    <span>Vui lòng hoàn thành phân công chuyên khoa & phòng trước khi thêm ca làm.</span>
+              <div class="flex items-center gap-2">
+                <input formControlName="slotDurationMinutes" type="number" min="15" max="180" step="15" class="w-24 rounded-xl border border-slate-200 px-2.5 py-1.5 font-mono text-xs text-slate-800 outline-none focus:border-[#0e3d48]" placeholder="Phút" />
+                <button
+                  type="submit"
+                  class="flex-1 rounded-xl border border-[#0e3d48] bg-transparent py-1.5 text-xs font-semibold text-[#0e3d48] transition hover:bg-[#0e3d48] hover:text-white disabled:opacity-50"
+                  [disabled]="!doctor.assigned || saving()"
+                >
+                  + Add Timeslot
+                </button>
+              </div>
+
+              <!-- List of existing slots -->
+              <div class="space-y-1.5 max-h-40 overflow-y-auto pt-2">
+                @for (slot of schedules(); track slot.id) {
+                  <div class="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-xs">
+                    <span class="font-mono text-slate-700 font-medium">{{ dayLabel(slot.dayOfWeek) }}: {{ slot.startTime.slice(0, 5) }} - {{ slot.endTime.slice(0, 5) }} ({{ slot.slotDurationMinutes }}m)</span>
+                    <button type="button" class="text-rose-500 hover:text-rose-700 transition" (click)="removeSchedule(slot)" title="Remove slot">
+                      <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">delete_outline</mat-icon>
+                    </button>
                   </div>
                 }
-
-                <!-- Timeslot Picker Form -->
-                <form class="grid gap-2.5 rounded-lg border border-slate-200 bg-slate-50/70 p-3" [formGroup]="scheduleForm" (ngSubmit)="$event.preventDefault(); addSchedule()">
-                  <div class="grid grid-cols-2 gap-2">
-                    <label class="grid gap-1">
-                      <span class="erp-label">Thứ</span>
-                      <select formControlName="dayOfWeek" class="erp-select !py-1 !text-xs">
-                        <option [value]="day.value" *ngFor="let day of days">{{ day.label }}</option>
-                      </select>
-                    </label>
-                    <label class="grid gap-1">
-                      <span class="erp-label">Phút/lượt</span>
-                      <input formControlName="slotDurationMinutes" type="number" min="15" max="180" step="15" class="erp-input font-mono !py-1 !text-xs" />
-                    </label>
-                  </div>
-
-                  <div class="grid grid-cols-2 gap-2">
-                    <label class="grid gap-1">
-                      <span class="erp-label">Từ giờ</span>
-                      <input formControlName="startTime" type="time" class="erp-input font-mono !py-1 !text-xs" />
-                    </label>
-                    <label class="grid gap-1">
-                      <span class="erp-label">Đến giờ</span>
-                      <input formControlName="endTime" type="time" class="erp-input font-mono !py-1 !text-xs" />
-                    </label>
-                  </div>
-
-                  <button type="submit" class="erp-btn-primary w-full !py-1.5" [disabled]="!doctor.assigned || saving()" title="Thêm khung giờ">
-                    <mat-icon class="!h-4 !w-4 !text-[18px]">add</mat-icon>
-                    <span>Thêm khung giờ</span>
-                  </button>
-                </form>
-
-                <!-- Existing Schedules Table in Drawer -->
-                <div class="erp-table-container !rounded-lg !border border-slate-200 !shadow-none max-h-52 overflow-y-auto">
-                  <table class="erp-table">
-                    <thead>
-                      <tr>
-                        <th class="erp-th w-24">Thứ</th>
-                        <th class="erp-th">Giờ làm</th>
-                        <th class="erp-th w-16 text-right">Xóa</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      @for (schedule of schedules(); track schedule.id) {
-                        <tr class="erp-tr">
-                          <td class="erp-td">
-                            <span class="inline-flex items-center rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] font-bold text-slate-800">
-                              {{ dayLabel(schedule.dayOfWeek) }}
-                            </span>
-                          </td>
-                          <td class="erp-td font-mono text-[11px] text-slate-700">
-                            {{ schedule.startTime.slice(0, 5) }} – {{ schedule.endTime.slice(0, 5) }}
-                            <span class="block text-[10px] text-slate-400">({{ schedule.slotDurationMinutes }}p)</span>
-                          </td>
-                          <td class="erp-td text-right">
-                            <button
-                              type="button"
-                              class="erp-btn-icon-danger !h-6 !w-6"
-                              [attr.aria-label]="'Xóa khung giờ ' + dayLabel(schedule.dayOfWeek)"
-                              [title]="'Xóa khung giờ ' + dayLabel(schedule.dayOfWeek)"
-                              (click)="removeSchedule(schedule)"
-                            >
-                              <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">delete_outline</mat-icon>
-                            </button>
-                          </td>
-                        </tr>
-                      } @empty {
-                        <tr>
-                          <td colspan="3" class="px-3 py-6 text-center text-[11px] text-slate-500">
-                            Chưa có giờ làm nào.
-                          </td>
-                        </tr>
-                      }
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-            </div>
+              </div>
+            </form>
           </aside>
         }
       </div>
@@ -393,8 +357,8 @@
       <section class="erp-modal-container max-w-md">
         <div class="erp-modal-header">
           <div>
-            <p class="text-[10px] font-bold uppercase tracking-wider text-[#0284c7]">Nhân sự chuyên môn</p>
-            <h2 id="create-doctor-title" class="text-sm font-bold text-slate-900">Tạo tài khoản bác sĩ</h2>
+            <p class="text-[10px] font-bold uppercase tracking-wider text-[#0284c7]">Clinical Staff</p>
+            <h2 id="create-doctor-title" class="text-sm font-bold text-slate-900">Create Doctor Account</h2>
           </div>
           <button type="button" class="erp-btn-icon" aria-label="Đóng" (click)="closeCreateDoctor()">
             <mat-icon class="!h-4 !w-4 !text-[18px]">close</mat-icon>
@@ -411,25 +375,25 @@
             }
 
             <label class="grid gap-1">
-              <span class="erp-label">Tên đăng nhập <span class="erp-label-required">*</span></span>
-              <input data-testid="doctor-username" formControlName="username" autocomplete="username" class="erp-input font-mono" placeholder="vd. bs.nguyenan" />
+              <span class="erp-label">Username <span class="erp-label-required">*</span></span>
+              <input data-testid="doctor-username" formControlName="username" autocomplete="username" class="erp-input font-mono" placeholder="e.g. bs.nguyenan" />
             </label>
             <label class="grid gap-1">
-              <span class="erp-label">Họ và tên bác sĩ <span class="erp-label-required">*</span></span>
-              <input data-testid="doctor-full-name" formControlName="fullName" autocomplete="name" class="erp-input" placeholder="Bác sĩ Nguyễn An" />
+              <span class="erp-label">Full Name <span class="erp-label-required">*</span></span>
+              <input data-testid="doctor-full-name" formControlName="fullName" autocomplete="name" class="erp-input" placeholder="Dr. Nguyen An" />
             </label>
             <label class="grid gap-1">
-              <span class="erp-label">Mật khẩu tạm <span class="erp-label-required">*</span></span>
-              <input data-testid="doctor-password" type="password" formControlName="password" autocomplete="new-password" class="erp-input font-mono" placeholder="Tối thiểu 6 ký tự" />
+              <span class="erp-label">Temporary Password <span class="erp-label-required">*</span></span>
+              <input data-testid="doctor-password" type="password" formControlName="password" autocomplete="new-password" class="erp-input font-mono" placeholder="Min 6 characters" />
             </label>
           </div>
 
           <div class="erp-modal-footer">
             <button type="button" class="erp-btn-secondary" (click)="closeCreateDoctor()">
-              Hủy
+              Cancel
             </button>
             <button data-testid="submit-create-doctor" type="submit" class="erp-btn-primary" [disabled]="saving()">
-              {{ saving() ? 'Đang tạo...' : 'Tạo tài khoản' }}
+              {{ saving() ? 'Creating...' : 'Create Account' }}
             </button>
           </div>
         </form>
