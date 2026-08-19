@@ -48,7 +48,7 @@ describe('StaffManagement', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('[data-testid="staff-status"]').textContent).toContain('Đang khóa');
-    expect(fixture.nativeElement.querySelector('[data-testid="unlock-staff"]').textContent).toContain('Mở khóa');
+    expect(fixture.nativeElement.querySelector('[data-testid="unlock-staff"]').getAttribute('title')).toContain('Mở khóa');
   });
 
   it('creates a staff account with employee identity and selected roles', () => {
