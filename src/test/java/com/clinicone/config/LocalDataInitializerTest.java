@@ -66,14 +66,14 @@ class LocalDataInitializerTest {
                 "test-admin-password", "test-reception-password", "test-doctor-password", "test-patient-password").run();
 
         verify(staffRepository, org.mockito.Mockito.times(10)).save(any(StaffAccount.class));
-        verify(roomRepository, org.mockito.Mockito.times(7)).save(any());
+        verify(roomRepository, org.mockito.Mockito.times(10)).save(any());
         verify(profileRepository, org.mockito.Mockito.times(7)).save(any());
         verify(scheduleRepository, org.mockito.Mockito.times(35)).save(any());
         ArgumentCaptor<ClinicService> serviceCaptor = ArgumentCaptor.forClass(ClinicService.class);
         verify(clinicServiceRepository, org.mockito.Mockito.times(7)).save(serviceCaptor.capture());
         assertThat(serviceCaptor.getAllValues()).hasSize(7);
         ArgumentCaptor<String> passwordCaptor = ArgumentCaptor.forClass(String.class);
-        verify(passwordEncoder, org.mockito.Mockito.times(13)).encode(passwordCaptor.capture());
+        verify(passwordEncoder, org.mockito.Mockito.times(14)).encode(passwordCaptor.capture());
         assertThat(passwordCaptor.getAllValues()).contains(
                 "test-admin-password", "test-reception-password", "test-doctor-password", "test-patient-password");
         verify(jdbcTemplate, org.mockito.Mockito.atLeastOnce()).execute(org.mockito.ArgumentMatchers.anyString());

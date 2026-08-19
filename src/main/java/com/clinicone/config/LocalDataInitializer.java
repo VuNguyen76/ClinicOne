@@ -24,14 +24,33 @@ import com.clinicone.examination.MedicalRecordTemplateRepository;
 import com.clinicone.examination.PrescriptionLine;
 import com.clinicone.medication.Medication;
 import com.clinicone.medication.MedicationRepository;
+import com.clinicone.notification.PatientNotification;
+import com.clinicone.notification.PatientNotificationRepository;
 import com.clinicone.queue.ClinicRoom;
 import com.clinicone.queue.ClinicRoomRepository;
 import com.clinicone.queue.QueueTicket;
 import com.clinicone.queue.QueueTicketRepository;
 import com.clinicone.patientprofile.PatientProfile;
 import com.clinicone.patientprofile.PatientProfileRepository;
+import com.clinicone.reason.ReasonCatalog;
+import com.clinicone.reason.ReasonCatalogRepository;
+import com.clinicone.reason.ReasonCatalogType;
+import com.clinicone.reconciliation.ReconciliationAction;
+import com.clinicone.reconciliation.ReconciliationIncident;
+import com.clinicone.reconciliation.ReconciliationIncidentRepository;
+import com.clinicone.reconciliation.ReconciliationReferenceType;
+import com.clinicone.rescheduling.DoctorTimeOff;
+import com.clinicone.rescheduling.DoctorTimeOffRepository;
+import com.clinicone.rescheduling.RescheduleCase;
+import com.clinicone.rescheduling.RescheduleCaseRepository;
 import com.clinicone.schedule.ClinicService;
 import com.clinicone.schedule.ClinicServiceRepository;
+import com.clinicone.schedule.CreateScheduleTemplateRequest;
+import com.clinicone.schedule.ScheduleBreakRequest;
+import com.clinicone.schedule.ScheduleTemplateService;
+import com.clinicone.schedule.SpecialtyCatalogEntry;
+import com.clinicone.schedule.SpecialtyCatalogRepository;
+import com.clinicone.schedule.WorkScheduleTemplateRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.slf4j.Logger;
@@ -48,11 +67,13 @@ import java.time.LocalTime;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
- * Safe, idempotent local-only data so the complete staff flow can be exercised
- * against a real database. Production profiles never run this initializer.
+ * Safe, idempotent local-only data so the complete staff and patient flows
+ * can be exercised against a real database with rich, realistic Vietnamese clinical data.
  */
 @Component
 @Profile("local")
@@ -60,6 +81,7 @@ public class LocalDataInitializer implements CommandLineRunner {
     private static final Logger log = LoggerFactory.getLogger(LocalDataInitializer.class);
     private static final String DEFAULT_SPECIALTY = "Khám Tổng Quát";
     private static final String DEFAULT_ROOM_CODE = "TQ-01";
+    private static final ZoneId CLINIC_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
     private final StaffAccountRepository staffRepository;
     private final ClinicRoomRepository roomRepository;
@@ -95,7 +117,28 @@ public class LocalDataInitializer implements CommandLineRunner {
     private MedicalRecordTemplateRepository medicalRecordTemplateRepository;
 
     @Autowired(required = false)
-    private com.clinicone.schedule.SpecialtyCatalogRepository specialtyCatalogRepository;
+    private SpecialtyCatalogRepository specialtyCatalogRepository;
+
+    @Autowired(required = false)
+    private ReasonCatalogRepository reasonCatalogRepository;
+
+    @Autowired(required = false)
+    private WorkScheduleTemplateRepository workScheduleTemplateRepository;
+
+    @Autowired(required = false)
+    private ScheduleTemplateService scheduleTemplateService;
+
+    @Autowired(required = false)
+    private DoctorTimeOffRepository doctorTimeOffRepository;
+
+    @Autowired(required = false)
+    private RescheduleCaseRepository rescheduleCaseRepository;
+
+    @Autowired(required = false)
+    private ReconciliationIncidentRepository reconciliationIncidentRepository;
+
+    @Autowired(required = false)
+    private PatientNotificationRepository patientNotificationRepository;
 
     public LocalDataInitializer(StaffAccountRepository staffRepository,
                                 ClinicRoomRepository roomRepository,
@@ -131,63 +174,90 @@ public class LocalDataInitializer implements CommandLineRunner {
     @Transactional
     public void run(String... args) {
         ensureAppointmentStatusConstraint();
-        StaffAccount admin = ensureStaff("admin", adminPassword, "Quản trị viên", StaffRole.ADMIN);
-        StaffAccount coordinator = ensureStaff("coordinator", adminPassword, "Điều phối viên Trần Hoàng", StaffRole.COORDINATOR);
-        StaffAccount receptionist = ensureStaff("reception", receptionistPassword, "Nhân viên tiếp nhận", StaffRole.RECEPTIONIST);
 
-        // 1. Seed Essential Specialties, Medications, ICD-10 Diagnoses, and Medical Record Templates
+        // 1. Staff Accounts & Operational Roles
+        StaffAccount admin = ensureStaff("admin", adminPassword, "Quản trị viên Hệ thống", StaffRole.ADMIN);
+        StaffAccount coordinator = ensureStaff("coordinator", adminPassword, "Điều phối viên Trần Hoàng", StaffRole.COORDINATOR);
+        StaffAccount receptionist = ensureStaff("reception", receptionistPassword, "Tiếp đón Lê Thu Thảo", StaffRole.RECEPTIONIST);
+
+        // 2. Specialty Catalogs, Reason Catalogs, Medications, ICD-10, and Medical Record Templates
         ensureSpecialties();
+        ensureReasonCatalog();
         ensureMedications();
         ensureDiagnoses();
         ensureTemplates();
 
-        // 2. Seed Doctors, Rooms, and Schedules across all specialties
-        DoctorProfile docTongQuat = ensureDoctorProfile("doctor", "Bác sĩ Nguyễn An", "Khám Tổng Quát", "TQ-01", "Phòng Khám Tổng Quát 01");
-        DoctorProfile docTimMach = ensureDoctorProfile("doctor2", "Bác sĩ Trần Minh", "Khám Tim Mạch", "TM-01", "Phòng Khám Tim Mạch 01");
-        DoctorProfile docHoHap = ensureDoctorProfile("doctor3", "Bác sĩ Lê Thu Hà", "Khám Hô Hấp", "HH-01", "Phòng Khám Hô Hấp 01");
-        DoctorProfile docTieuHoa = ensureDoctorProfile("doctor4", "Bác sĩ Phạm Quốc Dũng", "Khám Tiêu Hoá - Gan Mật", "TH-01", "Phòng Khám Tiêu Hóa 01");
-        DoctorProfile docNhiKhoa = ensureDoctorProfile("doctor5", "Bác sĩ Hoàng Thanh Nga", "Khám Nhi Khoa", "NK-01", "Phòng Khám Nhi Khoa 01");
-        DoctorProfile docTMH = ensureDoctorProfile("doctor6", "Bác sĩ Vũ Đình Toàn", "Khám Tai Mũi Họng", "TMH-01", "Phòng Khám Tai Mũi Họng 01");
-        DoctorProfile docMat = ensureDoctorProfile("doctor7", "Bác sĩ Đặng Mai Lan", "Khám Mắt", "MAT-01", "Phòng Khám Mắt 01");
+        // 3. Rooms & 7 Specialty Doctors
+        DoctorProfile docTongQuat = ensureDoctorProfile("doctor", "BS. CKII Nguyễn An", "Khám Tổng Quát", "TQ-01", "Phòng Khám Tổng Quát 01");
+        DoctorProfile docTimMach = ensureDoctorProfile("doctor2", "BS. CKI Trần Minh", "Khám Tim Mạch", "TM-01", "Phòng Khám Tim Mạch 01");
+        DoctorProfile docHoHap = ensureDoctorProfile("doctor3", "ThS. BS Lê Thu Hà", "Khám Hô Hấp", "HH-01", "Phòng Khám Hô Hấp 01");
+        DoctorProfile docTieuHoa = ensureDoctorProfile("doctor4", "BS. CKI Phạm Quốc Dũng", "Khám Tiêu Hoá - Gan Mật", "TH-01", "Phòng Khám Tiêu Hóa 01");
+        DoctorProfile docNhiKhoa = ensureDoctorProfile("doctor5", "BS. CKI Hoàng Thanh Nga", "Khám Nhi Khoa", "NK-01", "Phòng Khám Nhi Khoa 01");
+        DoctorProfile docTMH = ensureDoctorProfile("doctor6", "BS. CKI Vũ Đình Toàn", "Khám Tai Mũi Họng", "TMH-01", "Phòng Khám Tai Mũi Họng 01");
+        DoctorProfile docMat = ensureDoctorProfile("doctor7", "BS. CKI Đặng Mai Lan", "Khám Mắt", "MAT-01", "Phòng Khám Mắt 01");
 
-        // 3. Seed Clinic Services for each specialty
-        ensureOneService("Khám tổng quát ClinicOne", "Khám Tổng Quát", "Khám thường", 30, List.of(docTongQuat));
-        ensureOneService("Khám chuyên sâu Tim mạch", "Khám Tim Mạch", "Khám chuyên khoa", 30, List.of(docTimMach));
-        ensureOneService("Khám chuyên khoa Hô hấp", "Khám Hô Hấp", "Khám chuyên khoa", 30, List.of(docHoHap));
-        ensureOneService("Khám Tiêu hóa & Gan mật", "Khám Tiêu Hoá - Gan Mật", "Khám chuyên khoa", 30, List.of(docTieuHoa));
-        ensureOneService("Khám & Tư vấn Nhi khoa", "Khám Nhi Khoa", "Khám chuyên khoa", 30, List.of(docNhiKhoa));
-        ensureOneService("Khám & Nội soi Tai Mũi Họng", "Khám Tai Mũi Họng", "Khám chuyên khoa", 30, List.of(docTMH));
-        ensureOneService("Khám khúc xạ & Mắt chuyên sâu", "Khám Mắt", "Khám chuyên khoa", 30, List.of(docMat));
+        // Extra Clinical Support Rooms
+        ensureRoom("CAP-CUU-01", "Phòng Cấp cứu & Xử trí ban đầu", "Cấp cứu");
+        ensureRoom("X-QUANG-01", "Phòng Chẩn đoán hình ảnh & X-Quang", "Chẩn đoán hình ảnh");
+        ensureRoom("XET-NGHIEM-01", "Phòng Xét nghiệm Hóa sinh - Huyết học", "Xét nghiệm");
 
-        DoctorProfile profile = docTongQuat;
-        ClinicRoom room = profile.getRoom();
-        StaffAccount doctor = docTongQuat.getStaffAccount();
+        // 4. Clinic Services for each specialty
+        ClinicService srvTQ = ensureOneService("Khám tổng quát ClinicOne", "Khám Tổng Quát", "Khám thường", 30, List.of(docTongQuat));
+        ClinicService srvTM = ensureOneService("Khám chuyên sâu Tim mạch", "Khám Tim Mạch", "Khám chuyên khoa", 30, List.of(docTimMach));
+        ClinicService srvHH = ensureOneService("Khám chuyên khoa Hô hấp", "Khám Hô Hấp", "Khám chuyên khoa", 30, List.of(docHoHap));
+        ClinicService srvTH = ensureOneService("Khám Tiêu hóa & Gan mật", "Khám Tiêu Hoá - Gan Mật", "Khám chuyên khoa", 30, List.of(docTieuHoa));
+        ClinicService srvNK = ensureOneService("Khám & Tư vấn Nhi khoa", "Khám Nhi Khoa", "Khám chuyên khoa", 30, List.of(docNhiKhoa));
+        ClinicService srvTMH = ensureOneService("Khám & Nội soi Tai Mũi Họng", "Khám Tai Mũi Họng", "Khám chuyên khoa", 30, List.of(docTMH));
+        ClinicService srvMAT = ensureOneService("Khám khúc xạ & Mắt chuyên sâu", "Khám Mắt", "Khám chuyên khoa", 30, List.of(docMat));
 
-        // 2. Seed Patients & Sub-profiles
+        // 5. Work Schedule Templates & Slot Generation
+        ensureScheduleTemplates(srvTQ, docTongQuat, docTongQuat.getRoom());
+        ensureScheduleTemplates(srvTM, docTimMach, docTimMach.getRoom());
+        ensureScheduleTemplates(srvHH, docHoHap, docHoHap.getRoom());
+        ensureScheduleTemplates(srvTH, docTieuHoa, docTieuHoa.getRoom());
+        ensureScheduleTemplates(srvNK, docNhiKhoa, docNhiKhoa.getRoom());
+        ensureScheduleTemplates(srvTMH, docTMH, docTMH.getRoom());
+        ensureScheduleTemplates(srvMAT, docMat, docMat.getRoom());
+
+        // 6. Patients & Comprehensive Family Sub-Profiles
         PatientAccount patient1 = ensurePatient("0900000001", "Nguyễn Thanh Vũ");
-        PatientProfile profile1 = ensurePatientProfile(patient1, "Nguyễn Thanh Vũ", "Bản thân", LocalDate.of(2000, 1, 1), "Nam", patient1.getPhone(), true);
-        PatientProfile childProfile = ensurePatientProfile(patient1, "Bé Nguyễn Bảo Nam", "Con cái", LocalDate.of(2020, 5, 15), "Nam", patient1.getPhone(), false);
+        PatientProfile profile1 = ensureDetailedProfile(patient1, "Nguyễn Thanh Vũ", "Bản thân", LocalDate.of(2000, 1, 1), "Nam",
+                patient1.getPhone(), "079200012345", "123 Đường Nguyễn Huệ", "79", "Thành phố Hồ Chí Minh", "760", "Quận 1", "26734", "Phường Bến Nghé", true);
+        PatientProfile childProfile = ensureDetailedProfile(patient1, "Bé Nguyễn Bảo Nam", "Con cái", LocalDate.of(2020, 5, 15), "Nam",
+                patient1.getPhone(), null, "123 Đường Nguyễn Huệ", "79", "Thành phố Hồ Chí Minh", "760", "Quận 1", "26734", "Phường Bến Nghé", false);
+        PatientProfile motherProfile = ensureDetailedProfile(patient1, "Nguyễn Thị Mai Lan", "Mẹ", LocalDate.of(1965, 3, 10), "Nữ",
+                "0903112233", "079165009876", "123 Đường Nguyễn Huệ", "79", "Thành phố Hồ Chí Minh", "760", "Quận 1", "26734", "Phường Bến Nghé", false);
 
         PatientAccount patient2 = ensurePatient("0900000002", "Trần Thị Mai");
-        PatientProfile profile2 = ensurePatientProfile(patient2, "Trần Thị Mai", "Bản thân", LocalDate.of(1994, 8, 20), "Nữ", patient2.getPhone(), true);
+        PatientProfile profile2 = ensureDetailedProfile(patient2, "Trần Thị Mai", "Bản thân", LocalDate.of(1994, 8, 20), "Nữ",
+                patient2.getPhone(), "079194005432", "456 Đường Lê Duẩn", "79", "Thành phố Hồ Chí Minh", "760", "Quận 1", "26734", "Phường Bến Nghé", true);
+        PatientProfile fatherProfile = ensureDetailedProfile(patient2, "Trần Văn Hùng", "Bố", LocalDate.of(1955, 12, 4), "Nam",
+                "0908776655", "079155001122", "456 Đường Lê Duẩn", "79", "Thành phố Hồ Chí Minh", "760", "Quận 1", "26734", "Phường Bến Nghé", false);
 
         PatientAccount patient3 = ensurePatient("0900000004", "Phạm Minh Đức");
-        PatientProfile profile3 = ensurePatientProfile(patient3, "Phạm Minh Đức", "Bản thân", LocalDate.of(1958, 11, 12), "Nam", patient3.getPhone(), true);
+        PatientProfile profile3 = ensureDetailedProfile(patient3, "Phạm Minh Đức", "Bản thân", LocalDate.of(1958, 11, 12), "Nam",
+                patient3.getPhone(), "079158003344", "789 Đường Hai Bà Trưng", "79", "Thành phố Hồ Chí Minh", "760", "Quận 1", "26740", "Phường Tân Định", true);
+        PatientProfile spouseProfile = ensureDetailedProfile(patient3, "Lê Thị Ngọc", "Vợ", LocalDate.of(1962, 7, 25), "Nữ",
+                "0909334455", "079162007788", "789 Đường Hai Bà Trưng", "79", "Thành phố Hồ Chí Minh", "760", "Quận 1", "26740", "Phường Tân Định", false);
 
-        // 3. Seed Past Signed Medical Records (for clinical history visualization)
-        ensurePastSignedRecord(patient1, profile1, doctor, profile, room, 7, "PAST-REC-001",
+        PatientAccount patient4 = ensurePatient("0912345678", "Hoàng Văn Hải");
+        PatientProfile profile4 = ensureDetailedProfile(patient4, "Hoàng Văn Hải", "Bản thân", LocalDate.of(1988, 9, 14), "Nam",
+                patient4.getPhone(), "079188009988", "12 Đường Nam Kỳ Khởi Nghĩa", "79", "Thành phố Hồ Chí Minh", "760", "Quận 1", "26737", "Phường Nguyễn Thái Bình", true);
+
+        // 7. Seed Past Signed Medical Records (Full Circular 33/2025/TT-BYT compliance)
+        ensurePastSignedRecord(patient1, profile1, docTongQuat.getStaffAccount(), docTongQuat, docTongQuat.getRoom(), 14, "PAST-REC-001",
                 "Đau rát họng 3 ngày, sốt nhẹ 38°C, ho khan nhiều về đêm",
-                "Niêm mạc họng đỏ, amidan sưng nhẹ độ 1, không có giả mạc, tim phổi bình thường",
+                "Niêm mạc họng đỏ, amidan sung huyết nhẹ độ 1, không có giả mạc, tim phổi bình thường",
                 "J00 - Viêm mũi họng cấp tính (cảm thường)",
                 "Viêm đường hô hấp trên thể nhẹ",
                 "Nghỉ ngơi, uống nhiều nước ấm, súc họng nước muối sinh lý",
                 List.of(
-                        new SeedMedication("Paracetamol 500mg (Hạ sốt, giảm đau)", "500mg", 10, "Uống 1 viên khi sốt trên 38.5°C cách 6h"),
-                        new SeedMedication("Cefuroxime 500mg / Zinnat (Kháng sinh Cephalosporin)", "500mg", 14, "Uống 1 viên x 2 lần/ngày sau ăn sáng/tối"),
-                        new SeedMedication("Vitamin C 500mg (Tăng cường đề kháng)", "500mg", 10, "Uống 1 viên/ngày sau ăn sáng")
+                        new SeedMedication("Paracetamol 500mg (Hạ sốt, giảm đau nhanh)", "500mg", 10, "Uống 1 viên khi sốt trên 38.5°C cách 6h"),
+                        new SeedMedication("Cefuroxime 500mg / Zinnat (Kháng sinh Cephalosporin thế hệ 2)", "500mg", 14, "Uống 1 viên x 2 lần/ngày sau ăn sáng/tối"),
+                        new SeedMedication("Vitamin C 500mg (Chống oxy hóa, tăng sức đề kháng)", "500mg", 10, "Uống 1 viên/ngày sau ăn sáng")
                 ));
 
-        ensurePastSignedRecord(patient3, profile3, doctor, profile, room, 3, "PAST-REC-002",
+        ensurePastSignedRecord(patient3, profile3, docTimMach.getStaffAccount(), docTimMach, docTimMach.getRoom(), 7, "PAST-REC-002",
                 "Kiểm tra huyết áp định kỳ, thỉnh thoảng có cảm giác hồi hộp nhẹ",
                 "Huyết áp 145/90 mmHg, nhịp tim 76 ck/phút, phổi trong không ran",
                 "I10 - Tăng huyết áp vô căn (nguyên phát)",
@@ -198,15 +268,55 @@ public class LocalDataInitializer implements CommandLineRunner {
                         new SeedMedication("Losartan 50mg (Hạ huyết áp ức chế thụ thể ARB)", "50mg", 30, "Uống 1 viên vào 8h sáng hàng ngày")
                 ));
 
-        // 4. Seed Today's Active Clinic Queue Tickets
-        LocalDate today = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
-        ensureActiveQueueScenario(patient1, profile1, doctor, profile, room, today, 1, LocalTime.of(8, 30), "TODAY-TQ01-001", QueueScenario.IN_SERVICE);
-        ensureActiveQueueScenario(patient2, profile2, doctor, profile, room, today, 2, LocalTime.of(9, 0), "TODAY-TQ01-002", QueueScenario.WAITING);
-        ensureActiveQueueScenario(patient3, profile3, doctor, profile, room, today, 3, LocalTime.of(9, 30), "TODAY-TQ01-003", QueueScenario.PRIORITY_WAITING);
-        ensureActiveQueueScenario(patient1, childProfile, doctor, profile, room, today, 4, LocalTime.of(8, 0), "TODAY-TQ01-004", QueueScenario.COMPLETED);
+        ensurePastSignedRecord(patient2, profile2, docTieuHoa.getStaffAccount(), docTieuHoa, docTieuHoa.getRoom(), 5, "PAST-REC-003",
+                "Đau âm ỉ vùng thượng vị sau ăn, ợ hơi, cồn cào",
+                "Bụng mềm, ấn tức nhẹ thượng vị, không đề kháng thành bụng",
+                "K21 - Bệnh trào ngược dạ dày - thực quản (GERD)",
+                "Viêm dạ dày kết hợp trào ngược thực quản độ A",
+                "Uống thuốc trước ăn sáng 30 phút, kiêng đồ chua cay, cà phê, không nằm ngay sau ăn",
+                List.of(
+                        new SeedMedication("Nexium 40mg / Esomeprazole (Ức chế tiết acid dạ dày, trào ngược GERD)", "40mg", 28, "Uống 1 viên trước ăn sáng 30 phút"),
+                        new SeedMedication("Phosphalugel (Gel chữ P trung hòa acid dạ dày, giảm ợ chua)", "Gói gel 20g", 20, "Uống 1 gói khi đau hoặc sau ăn 2 giờ")
+                ));
 
-        log.info("Local bootstrap ready: admin={}, receptionist={}, 7 specialty doctors seeded with schedules, services, catalogs, templates, and active tickets",
-                admin.getUsername(), receptionist.getUsername());
+        ensurePastSignedRecord(patient1, childProfile, docNhiKhoa.getStaffAccount(), docNhiKhoa, docNhiKhoa.getRoom(), 3, "PAST-REC-004",
+                "Bé ho húng hắng có đờm, chảy mũi trong, không sốt, ăn uống bình thường",
+                "Họng đỏ nhẹ, không rale phổi, tai hai bên sạch",
+                "J20 - Viêm phế quản cấp tính",
+                "Viêm phế quản cấp thể nhẹ ở trẻ em",
+                "Rửa mũi bằng nước muối sinh lý ấm, giữ ấm cổ ngực, uống nhiều nước ấm",
+                List.of(
+                        new SeedMedication("Acetylcystein 200mg (Long đờm, tiêu nhầy đường hô hấp)", "200mg", 10, "Pha 1 gói với 50ml nước ấm x 2 lần/ngày"),
+                        new SeedMedication("Natri Clorid 0.9% 500ml (Nước muối sinh lý đẳng trương súc họng, rửa mũi)", "500ml", 2, "Nhỏ và rửa mũi 3 lần/ngày")
+                ));
+
+        // 8. Seed Today's Active Clinic Queue Tickets Across Multiple Rooms
+        LocalDate today = LocalDate.now(CLINIC_ZONE);
+        ensureActiveQueueScenario(patient1, profile1, docTongQuat.getStaffAccount(), docTongQuat, docTongQuat.getRoom(), today, 1, LocalTime.of(8, 30), "TODAY-TQ01-001", QueueScenario.IN_SERVICE, "Khám sức khỏe tổng quát định kỳ");
+        ensureActiveQueueScenario(patient2, profile2, docTongQuat.getStaffAccount(), docTongQuat, docTongQuat.getRoom(), today, 2, LocalTime.of(9, 0), "TODAY-TQ01-002", QueueScenario.WAITING, "Kiểm tra sức khỏe tổng quát");
+        ensureActiveQueueScenario(patient3, profile3, docTongQuat.getStaffAccount(), docTongQuat, docTongQuat.getRoom(), today, 3, LocalTime.of(9, 30), "TODAY-TQ01-003", QueueScenario.PRIORITY_WAITING, "Khám kiểm tra định kỳ người cao tuổi");
+        ensureActiveQueueScenario(patient1, childProfile, docTongQuat.getStaffAccount(), docTongQuat, docTongQuat.getRoom(), today, 4, LocalTime.of(8, 0), "TODAY-TQ01-004", QueueScenario.COMPLETED, "Khám tổng quát học đường");
+
+        ensureActiveQueueScenario(patient2, fatherProfile, docTimMach.getStaffAccount(), docTimMach, docTimMach.getRoom(), today, 1, LocalTime.of(8, 30), "TODAY-TM01-001", QueueScenario.IN_SERVICE, "Tái khám theo dõi tăng huyết áp và đau ngực");
+        ensureActiveQueueScenario(patient1, motherProfile, docHoHap.getStaffAccount(), docHoHap, docHoHap.getRoom(), today, 1, LocalTime.of(9, 0), "TODAY-HH01-001", QueueScenario.WAITING, "Ho khan kéo dài và tức ngực khi thay đổi thời tiết");
+        ensureActiveQueueScenario(patient4, profile4, docTMH.getStaffAccount(), docTMH, docTMH.getRoom(), today, 1, LocalTime.of(9, 30), "TODAY-TMH01-001", QueueScenario.WAITING, "Nội soi kiểm tra viêm xoang và nghẹt mũi");
+
+        // 9. Seed Future Booked Appointments (For patient appointment lists and booking tests)
+        ensureFutureAppointment(patient1, profile1, docTimMach, today.plusDays(2), LocalTime.of(9, 0), "FUT-2026-TM01", "Tư vấn và kiểm tra tim mạch chuyên sâu");
+        ensureFutureAppointment(patient1, motherProfile, docHoHap, today.plusDays(3), LocalTime.of(10, 0), "FUT-2026-HH01", "Tái khám kiểm tra chức năng hô hấp");
+        ensureFutureAppointment(patient2, profile2, docMat, today.plusDays(4), LocalTime.of(14, 0), "FUT-2026-MAT01", "Khám kiểm tra thị lực và đo khúc xạ mắt");
+        ensureFutureAppointment(patient4, profile4, docTieuHoa, today.plusDays(5), LocalTime.of(15, 0), "FUT-2026-TH01", "Khám tầm soát chức năng gan mật và dạ dày");
+
+        // 10. Seed Doctor Time Off & Open Reschedule Case
+        ensureRescheduleScenario(patient1, profile1, docHoHap, today.plusDays(1), LocalTime.of(8, 30), "RES-CASE-001");
+
+        // 11. Seed Reconciliation Incidents (For Coordinator & Admin Reconciliation Workspace)
+        ensureReconciliationIncidents();
+
+        // 12. Seed Patient Notifications
+        ensureNotifications(patient1);
+
+        log.info("Local bootstrap complete: 10 staff accounts, 7 specialty doctors, 10 rooms, 7 services, 8 patient profiles, active queue tickets, templates, catalogs, and notifications successfully initialized");
     }
 
     private void ensureSpecialties() {
@@ -222,7 +332,38 @@ public class LocalDataInitializer implements CommandLineRunner {
         );
         for (String[] item : list) {
             if (!specialtyCatalogRepository.existsByCodeIgnoreCase(item[0])) {
-                specialtyCatalogRepository.save(com.clinicone.schedule.SpecialtyCatalogEntry.create(item[0], item[1], item[2]));
+                specialtyCatalogRepository.save(SpecialtyCatalogEntry.create(item[0], item[1], item[2]));
+            }
+        }
+    }
+
+    private void ensureReasonCatalog() {
+        if (reasonCatalogRepository == null) return;
+        List<Object[]> list = List.of(
+                new Object[]{ReasonCatalogType.APPOINTMENT_CANCELLATION, "RSN-CAN-01", "Thay đổi kế hoạch công tác / Bận việc đột xuất"},
+                new Object[]{ReasonCatalogType.APPOINTMENT_CANCELLATION, "RSN-CAN-02", "Đã khỏi bệnh hoặc tự chăm sóc theo dõi tại nhà"},
+                new Object[]{ReasonCatalogType.APPOINTMENT_CANCELLATION, "RSN-CAN-03", "Muốn đăng ký chuyển sang chuyên khoa khám khác"},
+                new Object[]{ReasonCatalogType.APPOINTMENT_CANCELLATION, "RSN-CAN-04", "Khung giờ bận, sẽ đặt lại vào dịp thuận tiện hơn"},
+                new Object[]{ReasonCatalogType.APPOINTMENT_CANCELLATION, "RSN-CAN-05", "Lý do cá nhân / Gia đình có việc riêng"},
+
+                new Object[]{ReasonCatalogType.RECEPTION_EXCEPTION, "RSN-REC-01", "Người bệnh đến muộn quá giờ hẹn khám"},
+                new Object[]{ReasonCatalogType.RECEPTION_EXCEPTION, "RSN-REC-02", "Bác sĩ phụ trách có ca mổ khẩn cấp hoặc bận đột xuất"},
+                new Object[]{ReasonCatalogType.RECEPTION_EXCEPTION, "RSN-REC-03", "Bảo trì nâng cấp trang thiết bị phòng khám"},
+
+                new Object[]{ReasonCatalogType.QUEUE_EXCEPTION, "RSN-QUE-01", "Người bệnh chưa có mặt khi gọi số lượt khám"},
+                new Object[]{ReasonCatalogType.QUEUE_EXCEPTION, "RSN-QUE-02", "Chuyển tuyến điều trị / Cấp cứu khẩn cấp"},
+                new Object[]{ReasonCatalogType.QUEUE_EXCEPTION, "RSN-QUE-03", "Người bệnh xin tạm hoãn chờ người nhà hỗ trợ"},
+
+                new Object[]{ReasonCatalogType.RECONCILIATION, "RSN-REC-01", "Đối soát và điều chỉnh lệch trạng thái lịch hẹn"},
+                new Object[]{ReasonCatalogType.RECONCILIATION, "RSN-REC-02", "Phát hiện trùng lịch do ngoại lệ mạng hoặc đồng bộ chậm"},
+                new Object[]{ReasonCatalogType.RECONCILIATION, "RSN-REC-03", "Báo nhầm hồ sơ và hoàn tác phiên khám"}
+        );
+        for (Object[] item : list) {
+            ReasonCatalogType type = (ReasonCatalogType) item[0];
+            String code = (String) item[1];
+            String label = (String) item[2];
+            if (!reasonCatalogRepository.existsByTypeAndCodeIgnoreCase(type, code)) {
+                reasonCatalogRepository.save(ReasonCatalog.create(type, code, label));
             }
         }
     }
@@ -394,22 +535,40 @@ public class LocalDataInitializer implements CommandLineRunner {
                 {"reason":"Khám sức khỏe tổng quát định kỳ theo dõi thể trạng","examinationNotes":"Thể trạng chung tốt, huyết áp 120/80 mmHg, nhịp tim đều 75 ck/phút, phổi trong, tim T1 T2 rõ không âm thổi, bụng mềm không điểm đau khu trú.","diagnosis":"Z00.0 - Khám sức khỏe tổng quát định kỳ","conclusion":"Tình trạng sức khỏe hiện tại ổn định","treatmentPlan":"Duy trì chế độ ăn uống khoa học, tập thể dục ít nhất 30 phút/ngày, uống đủ 2 lít nước.","followUpDays":180,"followUpNote":"Khám định kỳ sau 6 tháng hoặc khi có dấu hiệu bất thường"}
                 """);
 
+        ensureOneTemplate("TMPL-TM-01", "Mẫu khám Tăng huyết áp & Tim mạch", "Khám Tim Mạch",
+                "Mẫu chuẩn theo dõi và điều trị tăng huyết áp nguyên phát",
+                """
+                {"reason":"Đo kiểm tra huyết áp định kỳ, thỉnh thoảng hơi căng tức thái dương","examinationNotes":"Huyết áp đo tại phòng khám 140/85 mmHg, mạch 76 lần/phút, tim T1 T2 đều rõ, không phù chi dưới, không ran phổi.","diagnosis":"I10 - Tăng huyết áp vô căn (nguyên phát)","conclusion":"Tăng huyết áp độ 1 giai đoạn ổn định","treatmentPlan":"Duy trì thuốc hạ áp hàng ngày vào buổi sáng, chế độ ăn giảm muối, hạn chế dầu mỡ và thức uống có cồn.","followUpDays":30,"followUpNote":"Tái khám đo lại huyết áp và đánh giá chức năng sau 1 tháng"}
+                """);
+
         ensureOneTemplate("TMPL-HH-01", "Mẫu khám viêm đường hô hấp / Cảm cúm", "Khám Hô Hấp",
                 "Mẫu chuẩn viêm mũi họng, cảm cúm, ho khan sốt nhẹ",
                 """
                 {"reason":"Đau rát họng, ho húng hắng, sốt nhẹ 38°C, nghẹt mũi","examinationNotes":"Niêm mạc họng đỏ, amidan sung huyết nhẹ không giả mạc, mũi xuất tiết dịch trong, phổi thông khí tốt không rale.","diagnosis":"J00 - Viêm mũi họng cấp tính (cảm thường)","conclusion":"Viêm đường hô hấp trên cấp tính thể nhẹ","treatmentPlan":"Nghỉ ngơi, súc họng nước muối sinh lý 3 lần/ngày, giữ ấm cổ ngực, uống nhiều nước ấm.","followUpDays":7,"followUpNote":"Tái khám sau 7 ngày nếu còn sốt cao hoặc ho kéo dài"}
                 """);
 
-        ensureOneTemplate("TMPL-TM-01", "Mẫu khám Tăng huyết áp", "Khám Tim Mạch",
-                "Mẫu chuẩn theo dõi và điều trị tăng huyết áp nguyên phát",
-                """
-                {"reason":"Đo kiểm tra huyết áp định kỳ, thỉnh thoảng hơi căng tức thái dương","examinationNotes":"Huyết áp đo tại phòng khám 140/85 mmHg, mạch 76 lần/phút, tim T1 T2 đều rõ, không phù chi dưới, không ran phổi.","diagnosis":"I10 - Tăng huyết áp vô căn (nguyên phát)","conclusion":"Tăng huyết áp độ 1 giai đoạn ổn định","treatmentPlan":"Duy trì thuốc hạ áp hàng ngày vào buổi sáng, chế độ ăn giảm muối, hạn chế dầu mỡ và thức uống có cồn.","followUpDays":30,"followUpNote":"Tái khám đo lại huyết áp và đánh giá chức năng sau 1 tháng"}
-                """);
-
-        ensureOneTemplate("TMPL-TH-01", "Mẫu khám Dạ dày - GERD", "Khám Tiêu Hoá - Gan Mật",
+        ensureOneTemplate("TMPL-TH-01", "Mẫu khám Dạ dày - GERD - Gan mật", "Khám Tiêu Hoá - Gan Mật",
                 "Mẫu chuẩn viêm dạ dày, trào ngược dạ dày thực quản",
                 """
                 {"reason":"Đau âm ỉ vùng thượng vị sau ăn, ợ hơi ợ chua, cồn cào","examinationNotes":"Bụng mềm, ấn tức nhẹ vùng thượng vị, không đề kháng thành bụng, gan lách không to.","diagnosis":"K21 - Bệnh trào ngược dạ dày - thực quản (GERD)","conclusion":"Viêm dạ dày kết hợp trào ngược thực quản","treatmentPlan":"Uống thuốc bảo vệ niêm mạc trước ăn sáng 30 phút, ăn đúng giờ, không ăn no sát giờ ngủ, tránh thức ăn cay nóng, cà phê.","followUpDays":14,"followUpNote":"Tái khám sau 2 tuần để đánh giá đáp ứng điều trị"}
+                """);
+
+        ensureOneTemplate("TMPL-NK-01", "Mẫu khám Nhi khoa & Dinh dưỡng", "Khám Nhi Khoa",
+                "Mẫu khám nhi khoa tổng quát và viêm đường hô hấp trẻ em",
+                """
+                {"reason":"Trẻ ho, sổ mũi, quấy khóc nhẹ, không sốt cao","examinationNotes":"Tri giác tỉnh, họng đỏ nhẹ, không rale phổi, bụng mềm, thóp phẳng, dinh dưỡng cân đối.","diagnosis":"J20 - Viêm phế quản cấp tính","conclusion":"Viêm phế quản cấp thể nhẹ ở trẻ em","treatmentPlan":"Vệ sinh mũi họng bằng nước muối sinh lý, uống nhiều nước, giữ ấm, theo dõi nhịp thở.","followUpDays":5,"followUpNote":"Tái khám ngay nếu trẻ sốt cao li bì hoặc thở nhanh co lõm ngực"}
+                """);
+
+        ensureOneTemplate("TMPL-TMH-01", "Mẫu khám & Nội soi Tai Mũi Họng", "Khám Tai Mũi Họng",
+                "Mẫu chuẩn nội soi và chẩn đoán bệnh lý Tai Mũi Họng",
+                """
+                {"reason":"Nghẹt mũi 2 bên, chảy mũi trong, ngứa mũi hắt hơi","examinationNotes":"Nội soi TMH: Cuống mũi phù nề nhợt màu, xuất tiết dịch nhầy trong, vách ngăn không vẹo, họng sạch.","diagnosis":"J01 - Viêm xoang cấp tính","conclusion":"Viêm mũi xoang dị ứng cấp","treatmentPlan":"Xịt mũi nước muối ưu trương, tránh tiếp xúc khói bụi phấn hoa, dùng kháng histamin khi cần.","followUpDays":10,"followUpNote":"Tái khám sau 10 ngày để nội soi kiểm tra lại"}
+                """);
+
+        ensureOneTemplate("TMPL-MAT-01", "Mẫu khám Mắt & Đo khúc xạ", "Khám Mắt",
+                "Mẫu chuẩn kiểm tra thị lực, khúc xạ và viêm kết mạc",
+                """
+                {"reason":"Mắt mờ khi nhìn xa, mỏi mắt khi làm việc máy tính","examinationNotes":"Thị lực không kính: Mắt phải 3/10, Mắt trái 4/10. Khúc xạ có kính: Mắt phải 10/10 (-1.50D), Mắt trái 10/10 (-1.25D). Kết mạc hồng, giác mạc trong.","diagnosis":"H52 - Tật khúc xạ và điều tiết (Cận/loạn/viễn thị)","conclusion":"Cận thị hai mắt đơn thuần","treatmentPlan":"Đeo kính đúng độ khi làm việc và học tập, nghỉ ngơi quy tắc 20-20-20, nhỏ nước mắt nhân tạo khi mỏi mắt.","followUpDays":180,"followUpNote":"Kiểm tra lại độ khúc xạ sau 6 tháng"}
                 """);
     }
 
@@ -477,10 +636,6 @@ public class LocalDataInitializer implements CommandLineRunner {
         return roomRepository.save(room);
     }
 
-    private ClinicRoom ensureRoom(String code, String name) {
-        return ensureRoom(code, name, DEFAULT_SPECIALTY);
-    }
-
     private ClinicService ensureOneService(String serviceName, String specialty, String visitType, int duration, List<DoctorProfile> doctors) {
         ClinicService service = clinicServiceRepository.findAllByOrderByNameAsc().stream()
                 .filter(item -> item.getName().equalsIgnoreCase(serviceName))
@@ -493,10 +648,6 @@ public class LocalDataInitializer implements CommandLineRunner {
         service.update(serviceName, specialty, visitType, duration, doctors);
         service.setActive(true);
         return clinicServiceRepository.save(service);
-    }
-
-    private ClinicService ensureClinicService(List<DoctorProfile> doctors) {
-        return ensureOneService("Khám tổng quát ClinicOne", DEFAULT_SPECIALTY, "Khám thường", 30, doctors);
     }
 
     private void ensureWeekdaySchedules(DoctorProfile profile) {
@@ -512,6 +663,34 @@ public class LocalDataInitializer implements CommandLineRunner {
         }
     }
 
+    private void ensureScheduleTemplates(ClinicService service, DoctorProfile doctorProfile, ClinicRoom room) {
+        if (scheduleTemplateService == null || workScheduleTemplateRepository == null) return;
+        boolean exists = workScheduleTemplateRepository.findByActiveTrueOrderByStartDateAsc().stream()
+                .anyMatch(t -> t.getDoctorProfile().getId().equals(doctorProfile.getId())
+                        && t.getClinicService().getId().equals(service.getId()));
+        if (exists) return;
+
+        LocalDate startDate = LocalDate.now(CLINIC_ZONE);
+        LocalDate endDate = startDate.plusDays(45);
+        try {
+            scheduleTemplateService.create(new CreateScheduleTemplateRequest(
+                    service.getId(),
+                    doctorProfile.getStaffAccount().getId(),
+                    room.getId(),
+                    startDate,
+                    endDate,
+                    Set.of(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY),
+                    LocalTime.of(8, 0),
+                    LocalTime.of(17, 0),
+                    30,
+                    List.of(new ScheduleBreakRequest(LocalTime.of(12, 0), LocalTime.of(13, 0))),
+                    Set.of()
+            ));
+        } catch (Exception e) {
+            log.warn("Could not create schedule template for doctor {}: {}", doctorProfile.getStaffAccount().getFullName(), e.getMessage());
+        }
+    }
+
     private PatientAccount ensurePatient(String phone, String fullName) {
         PatientAccount patient = patientRepository.findByPhone(phone).orElse(null);
         if (patient == null) {
@@ -524,19 +703,25 @@ public class LocalDataInitializer implements CommandLineRunner {
         return patientRepository.save(patient);
     }
 
-    private PatientProfile ensurePatientProfile(PatientAccount patient, String fullName, String relationship,
-                                                LocalDate dob, String gender, String phone, boolean isPrimary) {
+    private PatientProfile ensureDetailedProfile(PatientAccount patient, String fullName, String relationship,
+                                                 LocalDate dob, String gender, String phone, String nationalId,
+                                                 String streetAddress, String provinceCode, String provinceName,
+                                                 String districtCode, String districtName, String wardCode,
+                                                 String wardName, boolean isPrimary) {
+        String fullAddress = streetAddress + ", " + wardName + ", " + districtName + ", " + provinceName;
         return patientProfileRepository.findByOwnerIdAndActiveTrueOrderByPrimaryProfileDescCreatedAtAsc(patient.getId())
                 .stream().filter(p -> p.getFullName().equalsIgnoreCase(fullName)).findFirst()
                 .orElseGet(() -> patientProfileRepository.save(PatientProfile.create(
-                        patient, fullName, relationship, dob, gender, phone, null, "Việt Nam", "Kinh", null, isPrimary)));
+                        patient, fullName, relationship, dob, gender, phone, nationalId, "Việt Nam", "Kinh",
+                        fullAddress, provinceCode, provinceName, districtCode, districtName, wardCode, wardName,
+                        streetAddress, isPrimary)));
     }
 
     private void ensurePastSignedRecord(PatientAccount patient, PatientProfile profile, StaffAccount doctor,
                                         DoctorProfile doctorProfile, ClinicRoom room, int daysAgo, String code,
                                         String reason, String notes, String diagnosis, String conclusion, String plan,
                                         List<SeedMedication> meds) {
-        LocalDate pastDate = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh")).minusDays(daysAgo);
+        LocalDate pastDate = LocalDate.now(CLINIC_ZONE).minusDays(daysAgo);
         LocalTime pastTime = LocalTime.of(9, 0);
         if (appointmentRepository.findByAppointmentCode(code).isPresent()
                 || appointmentRepository.existsByPatientIdAndAppointmentDateAndStartTime(patient.getId(), pastDate, pastTime)) {
@@ -563,7 +748,7 @@ public class LocalDataInitializer implements CommandLineRunner {
 
             MedicalRecord record = MedicalRecord.draft(session);
             int lineNumber = 1;
-            List<PrescriptionLine> lines = new java.util.ArrayList<>();
+            List<PrescriptionLine> lines = new ArrayList<>();
             for (SeedMedication m : meds) {
                 lines.add(PrescriptionLine.create(record, null, m.name(), m.dosage(), m.quantity(), m.instructions(), lineNumber++));
             }
@@ -577,14 +762,14 @@ public class LocalDataInitializer implements CommandLineRunner {
 
     private void ensureActiveQueueScenario(PatientAccount patient, PatientProfile profile, StaffAccount doctor,
                                            DoctorProfile doctorProfile, ClinicRoom room, LocalDate date,
-                                           int queueNum, LocalTime time, String code, QueueScenario scenario) {
+                                           int queueNum, LocalTime time, String code, QueueScenario scenario, String reason) {
         if (appointmentRepository.findByAppointmentCode(code).isPresent()
                 || appointmentRepository.existsByPatientIdAndAppointmentDateAndStartTime(patient.getId(), date, time)) {
             return;
         }
 
         Appointment app = appointmentRepository.save(Appointment.create(patient, doctor.getId(), profile, code,
-                doctorProfile.getSpecialty(), doctor.getFullName(), date, time, "Khám tổng quát định kỳ"));
+                doctorProfile.getSpecialty(), doctor.getFullName(), date, time, reason));
         app.checkIn();
 
         if (scenario == QueueScenario.COMPLETED) {
@@ -615,9 +800,82 @@ public class LocalDataInitializer implements CommandLineRunner {
 
             if (scenario == QueueScenario.COMPLETED && medicalRecordRepository != null) {
                 MedicalRecord record = MedicalRecord.draft(session);
-                record.sign(doctor.getFullName(), "Khám định kỳ", "Thể trạng bình thường", "Z00.0 - Khám sức khỏe tổng quát",
+                record.sign(doctor.getFullName(), reason, "Thể trạng bình thường", "Z00.0 - Khám sức khỏe tổng quát",
                         "Sức khỏe tốt", "Tập thể dục đều đặn", null, null, List.of(), null, null);
                 medicalRecordRepository.save(record);
+            }
+        }
+    }
+
+    private void ensureFutureAppointment(PatientAccount patient, PatientProfile profile, DoctorProfile doctorProfile,
+                                         LocalDate date, LocalTime time, String code, String reason) {
+        if (appointmentRepository.findByAppointmentCode(code).isPresent()
+                || appointmentRepository.existsByPatientIdAndAppointmentDateAndStartTime(patient.getId(), date, time)) {
+            return;
+        }
+        appointmentRepository.save(Appointment.create(patient, doctorProfile.getStaffAccount().getId(), profile,
+                code, doctorProfile.getSpecialty(), doctorProfile.getStaffAccount().getFullName(), date, time, reason));
+    }
+
+    private void ensureRescheduleScenario(PatientAccount patient, PatientProfile profile, DoctorProfile doc,
+                                          LocalDate targetDate, LocalTime targetTime, String appCode) {
+        if (doctorTimeOffRepository == null || rescheduleCaseRepository == null) return;
+        if (appointmentRepository.findByAppointmentCode(appCode).isPresent()) return;
+
+        Appointment app = appointmentRepository.save(Appointment.create(patient, doc.getStaffAccount().getId(), profile,
+                appCode, doc.getSpecialty(), doc.getStaffAccount().getFullName(), targetDate, targetTime,
+                "Khám kiểm tra hô hấp định kỳ"));
+
+        boolean hasTimeOff = doctorTimeOffRepository.findByActiveTrueOrderByStartDateAsc().stream()
+                .anyMatch(t -> t.getDoctorProfile().getId().equals(doc.getId()));
+        if (!hasTimeOff) {
+            doctorTimeOffRepository.save(DoctorTimeOff.create(doc, targetDate, targetDate.plusDays(1),
+                    "Bác sĩ tham dự hội nghị Hô hấp toàn quốc"));
+        }
+
+        if (rescheduleCaseRepository.findByAppointmentIdAndStatus(app.getId(), com.clinicone.rescheduling.RescheduleCaseStatus.OPEN).isEmpty()) {
+            rescheduleCaseRepository.save(RescheduleCase.open(app,
+                    "Bác sĩ phụ trách có lịch công tác đột xuất; vui lòng chọn khung giờ thay thế."));
+        }
+    }
+
+    private void ensureReconciliationIncidents() {
+        if (reconciliationIncidentRepository == null) return;
+        boolean inc1Exists = reconciliationIncidentRepository.findAll().stream()
+                .anyMatch(i -> "INC-2026-001".equalsIgnoreCase(i.getIncidentCode()));
+        if (!inc1Exists) {
+            ReconciliationIncident openInc = ReconciliationIncident.open("INC-2026-001", "APPOINTMENT",
+                    java.util.UUID.randomUUID(), java.util.UUID.randomUUID(),
+                    "Phát hiện trùng lịch do cập nhật ngoại lệ thời gian từ bên thứ ba", "coordinator");
+            reconciliationIncidentRepository.save(openInc);
+        }
+
+        boolean inc2Exists = reconciliationIncidentRepository.findAll().stream()
+                .anyMatch(i -> "INC-2026-002".equalsIgnoreCase(i.getIncidentCode()));
+        if (!inc2Exists) {
+            ReconciliationIncident closedInc = ReconciliationIncident.open("INC-2026-002", "EXAMINATION",
+                    java.util.UUID.randomUUID(), java.util.UUID.randomUUID(),
+                    "Báo nhầm hồ sơ người bệnh tại phòng khám Tai Mũi Họng", "coordinator");
+            closedInc.close(ReconciliationAction.RETRY_BUSINESS_ACTION, ReconciliationReferenceType.BUSINESS_LOG,
+                    "CL-20260810-TM01", "Đã đối soát thông tin CCCD và hợp nhất dữ liệu bệnh án", "coordinator",
+                    Instant.now());
+            reconciliationIncidentRepository.save(closedInc);
+        }
+    }
+
+    private void ensureNotifications(PatientAccount patient) {
+        if (patientNotificationRepository == null) return;
+        List<PatientNotification> notifs = List.of(
+                PatientNotification.appointmentCreated(patient.getId(), java.util.UUID.randomUUID(),
+                        "CL-20260820-TQ01", "Khám Tổng Quát", "BS. CKII Nguyễn An", "20/08/2026", "08:30"),
+                PatientNotification.appointmentReminder(patient.getId(), java.util.UUID.randomUUID(),
+                        "CL-20260820-TQ01", "Khám Tổng Quát", "BS. CKII Nguyễn An", "20/08/2026", "08:30", 24),
+                PatientNotification.recordSigned(patient.getId(), java.util.UUID.randomUUID(),
+                        "PAST-REC-001", "BS. CKII Nguyễn An", "Khám Tổng Quát")
+        );
+        for (PatientNotification n : notifs) {
+            if (patientNotificationRepository.findByEventKey(n.getEventKey()).isEmpty()) {
+                patientNotificationRepository.save(n);
             }
         }
     }
