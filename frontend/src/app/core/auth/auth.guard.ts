@@ -36,7 +36,7 @@ export const receptionGuard: CanActivateFn = (_route, state) => {
   if (!token || !isStaffSession() || !roles.length) {
     return router.createUrlTree(['/staff/login'], { queryParams: { returnUrl: state.url } });
   }
-  return roles.some((role) => ['COORDINATOR', 'RECEPTIONIST'].includes(role))
+  return roles.includes('RECEPTIONIST')
     ? true
     : router.createUrlTree(['/doctor']);
 };

@@ -26,7 +26,7 @@ import java.util.UUID;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/reception")
-@PreAuthorize("hasAnyRole('COORDINATOR', 'RECEPTIONIST')")
+@PreAuthorize("hasRole('RECEPTIONIST')")
 public class ReceptionController {
     private final ReceptionService service;
     private final ReceptionPatientService patientService;
@@ -76,7 +76,7 @@ public class ReceptionController {
     }
 
     @PostMapping("/appointments/{appointmentId}/facility-unavailable")
-    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'COORDINATOR')")
+    @PreAuthorize("hasRole('RECEPTIONIST')")
     public ResponseEntity<ReceptionAppointmentResponse> markFacilityUnavailable(
             @PathVariable UUID appointmentId, @Valid @RequestBody QueueLeaveRequest request,
             Authentication authentication) {
