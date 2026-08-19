@@ -40,4 +40,11 @@ public class ScheduleTemplateController {
     public ResponseEntity<ScheduleTemplateResponse> regenerate(@PathVariable UUID id) {
         return ResponseEntity.ok(service.regenerate(id));
     }
+
+    @org.springframework.web.bind.annotation.DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
+    public ResponseEntity<Void> delete(@PathVariable UUID id) {
+        service.delete(id);
+        return ResponseEntity.noContent().build();
+    }
 }

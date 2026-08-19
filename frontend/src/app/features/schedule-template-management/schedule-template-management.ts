@@ -160,9 +160,25 @@ export class ScheduleTemplateManagement implements OnInit {
       if (!t.weekdays.includes(day)) return false;
       if (specialty && !t.serviceName.toLowerCase().includes(specialty)) return false;
       const startHour = Number(t.dayStart.split(':')[0]) || 0;
-      if (shift === 'morning') return startHour < 12;
-      return startHour >= 12;
+      const endHour = Number(t.dayEnd.split(':')[0]) || 0;
+      if (shift === 'morning') {
+        return startHour < 12;
+      } else {
+        return endHour > 12 || startHour >= 12;
+      }
     });
+  }
+
+  protected getShiftBadge(template: ScheduleTemplateResponse): { label: string; class: string } {
+    const startHour = Number(template.dayStart.split(':')[0]) || 0;
+    const endHour = Number(template.dayEnd.split(':')[0]) || 0;
+    if (startHour < 12 && endHour >= 16) {
+      return { label: 'Cả ngày (08:00 - 17:00)', class: 'border-teal-200 bg-teal-50 text-teal-800' };
+    }
+    if (startHour < 12) {
+      return { label: 'Ca sáng (08:00 - 12:00)', class: 'border-sky-200 bg-sky-50 text-sky-800' };
+    }
+    return { label: 'Ca chiều (13:00 - 17:00)', class: 'border-purple-200 bg-purple-50 text-purple-800' };
   }
 
   protected getDoctorAvatar(doctorName: string): string | null {
@@ -316,13 +332,24 @@ export class ScheduleTemplateManagement implements OnInit {
 
   protected regenerate(template: ScheduleTemplateResponse): void {
     if (!this.canManageSchedule()) {
-      this.error.set('Chỉ điều phối viên được sinh bổ sung khung giờ.');
+      this.error.set('Chỉ điều phối viên được đồng bộ khung giờ.');
       return;
     }
     this.authApi.regenerateScheduleTemplate(template.id).subscribe({
       next: (updated) => {
         this.templates.update((items) => items.map((item) => item.id === updated.id ? updated : item));
-        this.notice.set(`Đã kiểm tra và bổ sung khung giờ cho ${updated.serviceName}.`);
+        this.notice.set(`Đã đồng bộ đầy đủ lượt khám cho ${updated.doctorName} (${updated.serviceName}).`);
+      },
+      error: (response) => this.error.set(apiErrorMessage(response)),
+    });
+  }
+
+  protected deleteTemplate(template: ScheduleTemplateResponse): void {
+    if (!this.canManageSchedule()) return;
+    this.authApi.deleteScheduleTemplate(template.id).subscribe({
+      next: () => {
+        this.templates.update((items) => items.filter((item) => item.id !== template.id));
+        this.notice.set(`Đã xóa lịch trực của ${template.doctorName}.`);
       },
       error: (response) => this.error.set(apiErrorMessage(response)),
     });
