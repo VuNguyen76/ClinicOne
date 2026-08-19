@@ -94,6 +94,9 @@ public class LocalDataInitializer implements CommandLineRunner {
     @Autowired(required = false)
     private MedicalRecordTemplateRepository medicalRecordTemplateRepository;
 
+    @Autowired(required = false)
+    private com.clinicone.schedule.SpecialtyCatalogRepository specialtyCatalogRepository;
+
     public LocalDataInitializer(StaffAccountRepository staffRepository,
                                 ClinicRoomRepository roomRepository,
                                 DoctorProfileRepository profileRepository,
@@ -163,7 +166,8 @@ public class LocalDataInitializer implements CommandLineRunner {
         ensureWeekdaySchedules(thirdProfile);
         ensureClinicService(List.of(secondProfile, thirdProfile));
 
-        // 1. Seed Essential Medications, ICD-10 Diagnoses, and Medical Record Templates
+        // 1. Seed Essential Medications, ICD-10 Diagnoses, Specialties, and Medical Record Templates
+        ensureSpecialties();
         ensureMedications();
         ensureDiagnoses();
         ensureTemplates();
@@ -214,26 +218,98 @@ public class LocalDataInitializer implements CommandLineRunner {
                 admin.getUsername(), receptionist.getUsername(), doctor.getUsername(), secondDoctor.getUsername(), thirdDoctor.getUsername());
     }
 
+    private void ensureSpecialties() {
+        if (specialtyCatalogRepository == null) return;
+        List<String[]> list = List.of(
+                new String[]{"NOI", "Khám Tổng Quát", "Khám sức khỏe tổng quát, tầm soát và điều trị các bệnh nội khoa phổ biến."},
+                new String[]{"TIM", "Khám Tim Mạch", "Chẩn đoán và điều trị tăng huyết áp, bệnh mạch vành, rối loạn nhịp tim."},
+                new String[]{"HO_HAP", "Khám Hô Hấp", "Khám và điều trị viêm phế quản, hen suyễn, viêm phổi, COPD."},
+                new String[]{"TIEU_HOA", "Khám Tiêu Hoá - Gan Mật", "Khám dạ dày, trào ngược thực quản GERD, viêm gan, đại tràng."},
+                new String[]{"NHI", "Khám Nhi Khoa", "Khám và tư vấn sức khỏe dinh dưỡng, tiêm chủng cho trẻ em."},
+                new String[]{"TMH", "Khám Tai Mũi Họng", "Nội soi chẩn đoán viêm xoang, viêm tai giữa, viêm amidan."},
+                new String[]{"MAT", "Khám Mắt", "Đo khúc xạ, khám tật khúc xạ và các bệnh lý về mắt."}
+        );
+        for (String[] item : list) {
+            if (!specialtyCatalogRepository.existsByCodeIgnoreCase(item[0])) {
+                specialtyCatalogRepository.save(com.clinicone.schedule.SpecialtyCatalogEntry.create(item[0], item[1], item[2]));
+            }
+        }
+    }
+
     private void ensureMedications() {
         if (medicationRepository == null) return;
         List<String[]> meds = List.of(
-                new String[]{"MED-PARA-500", "Paracetamol 500mg (Hạ sốt, giảm đau)"},
-                new String[]{"MED-AMOX-500", "Amoxicillin 500mg (Kháng sinh nhóm Penicillin)"},
-                new String[]{"MED-CEFU-500", "Cefuroxime 500mg / Zinnat (Kháng sinh Cephalosporin)"},
+                // 1. Giảm đau, Hạ sốt, Kháng viêm NSAID
+                new String[]{"MED-PARA-500", "Paracetamol 500mg (Hạ sốt, giảm đau nhanh)"},
+                new String[]{"MED-PARA-650", "Hapacol 650mg / Paracetamol 650mg (Hạ sốt, giảm đau liều cao)"},
+                new String[]{"MED-EFFER-500", "Efferalgan 500mg (Viên sủi hạ sốt, giảm đau)"},
                 new String[]{"MED-IBUP-400", "Ibuprofen 400mg (Kháng viêm, giảm đau NSAID)"},
-                new String[]{"MED-OMEP-20", "Omeprazole 20mg (Ức chế bơm Proton, dạ dày)"},
-                new String[]{"MED-ESOM-40", "Esomeprazole 40mg / Nexium (Trào ngược dạ dày GERD)"},
+                new String[]{"MED-MELO-15", "Meloxicam 15mg (Kháng viêm giảm đau thoái hóa khớp)"},
+                new String[]{"MED-CELE-200", "Celecoxib 200mg (Kháng viêm chọn lọc COX-2, êm dạ dày)"},
+                new String[]{"MED-DICLO-50", "Diclofenac 50mg / Voltaren (Giảm đau kháng viêm cơ xương khớp)"},
+                new String[]{"MED-ULTRA-375", "Ultracet / Tramadol 37.5mg + Paracetamol 325mg (Giảm đau mức độ vừa-nặng)"},
+
+                // 2. Kháng sinh & Kháng khuẩn
+                new String[]{"MED-AUGM-1000", "Augmentin 1g / Amoxicillin + Acid Clavulanic 1000mg (Kháng sinh phổ rộng)"},
+                new String[]{"MED-AMOX-500", "Amoxicillin 500mg (Kháng sinh nhóm Penicillin)"},
+                new String[]{"MED-CEFU-500", "Cefuroxime 500mg / Zinnat (Kháng sinh Cephalosporin thế hệ 2)"},
+                new String[]{"MED-CEFI-200", "Cefixime 200mg (Kháng sinh Cephalosporin thế hệ 3 đường uống)"},
+                new String[]{"MED-AZIT-500", "Azithromycin 500mg (Kháng sinh Macrolide trị nhiễm khuẩn hô hấp)"},
+                new String[]{"MED-KLAC-500", "Klacid 500mg / Clarithromycin 500mg (Kháng sinh Macrolide hô hấp & HP)"},
+                new String[]{"MED-CIPRO-500", "Ciprofloxacin 500mg (Kháng sinh Quinolone tiết niệu & tiêu hóa)"},
+                new String[]{"MED-LEVO-500", "Levofloxacin 500mg / Cravit (Kháng sinh Fluoroquinolone hô hấp nặng)"},
+                new String[]{"MED-METRO-250", "Metronidazol 250mg (Kháng khuẩn kỵ khí & ký sinh trùng tiêu hóa)"},
+
+                // 3. Kháng viêm Corticoid & Chống dị ứng
+                new String[]{"MED-MEDROL-16", "Medrol 16mg / Methylprednisolone (Kháng viêm Corticoid mạnh)"},
+                new String[]{"MED-MEDROL-4", "Medrol 4mg / Methylprednisolone (Kháng viêm Corticoid)"},
+                new String[]{"MED-PRED-5", "Prednisolone 5mg (Kháng viêm dị ứng, miễn dịch)"},
+                new String[]{"MED-LORA-10", "Loratadine 10mg (Kháng Histamin H1, chống dị ứng thế hệ 2)"},
+                new String[]{"MED-CETI-10", "Cetirizine 10mg (Chống dị ứng, viêm mũi dị ứng, ngứa)"},
+                new String[]{"MED-TELFAST-180", "Telfast 180mg / Fexofenadine 180mg (Chống dị ứng mề đay, không gây buồn ngủ)"},
+
+                // 4. Tiêu hóa, Dạ dày & Gan mật
+                new String[]{"MED-NEXIUM-40", "Nexium 40mg / Esomeprazole (Ức chế tiết acid dạ dày, trào ngược GERD)"},
+                new String[]{"MED-OMEP-20", "Omeprazole 20mg (Ức chế bơm Proton, viêm loét dạ dày)"},
+                new String[]{"MED-PANTO-40", "Pantoprazole 40mg (Bảo vệ niêm mạc, giảm acid dạ dày)"},
+                new String[]{"MED-PHOSPHO-P", "Phosphalugel (Gel chữ P trung hòa acid dạ dày, giảm ợ chua)"},
+                new String[]{"MED-DOMPER-10", "Domperidone 10mg / Motilium (Chống nôn, đầy hơi, chậm tiêu)"},
+                new String[]{"MED-BERB-100", "Berberin 100mg (Kháng khuẩn đường ruột, điều trị tiêu chảy)"},
+                new String[]{"MED-SMECTA-3G", "Smecta 3g (Bột pha bảo vệ niêm mạc ruột tiêu chảy cấp)"},
+                new String[]{"MED-ENTERO-5ML", "Enterogermina (Men vi sinh dạng ống uống cân bằng hệ vi sinh)"},
+                new String[]{"MED-SILY-140", "Silymarin 140mg (Bổ gan, tăng cường chức năng giải độc gan)"},
+
+                // 5. Tim mạch, Huyết áp & Mỡ máu
                 new String[]{"MED-AMLO-5", "Amlodipine 5mg (Hạ huyết áp chẹn kênh Canxi)"},
                 new String[]{"MED-LOSA-50", "Losartan 50mg (Hạ huyết áp ức chế thụ thể ARB)"},
+                new String[]{"MED-MICAR-40", "Micardis 40mg / Telmisartan 40mg (Hạ huyết áp bảo vệ tim thận)"},
+                new String[]{"MED-CONCOR-25", "Concor 2.5mg / Bisoprolol (Hạ huyết áp, kiểm soát nhịp tim chẹn Beta)"},
+                new String[]{"MED-LIPITOR-20", "Lipitor 20mg / Atorvastatin 20mg (Hạ mỡ máu, giảm Cholesterol xấu LDL)"},
+                new String[]{"MED-CRESTOR-10", "Crestor 10mg / Rosuvastatin 10mg (Hạ lipid máu thế hệ mới)"},
+                new String[]{"MED-ASPIRIN-81", "Aspirin 81mg (Chống kết tập tiểu cầu, phòng ngừa huyết khối tim mạch)"},
+
+                // 6. Nội tiết & Tiểu đường
+                new String[]{"MED-GLUCO-850", "Glucophage 850mg / Metformin (Hạ đường huyết Type 2 an toàn)"},
                 new String[]{"MED-METF-500", "Metformin 500mg (Hạ đường huyết đái tháo đường)"},
-                new String[]{"MED-ATOR-20", "Atorvastatin 20mg (Hạ mỡ máu, giảm Cholesterol)"},
-                new String[]{"MED-BERB-100", "Berberin 100mg (Kháng khuẩn tiêu hóa, tiêu chảy)"},
-                new String[]{"MED-LORA-10", "Loratadine 10mg (Kháng Histamin, chống dị ứng)"},
-                new String[]{"MED-CETI-10", "Cetirizine 10mg (Chống dị ứng, viêm mũi dị ứng)"},
-                new String[]{"MED-SALB-2", "Salbutamol 2mg (Giãn phế quản, hen suyễn)"},
-                new String[]{"MED-VITC-500", "Vitamin C 500mg (Tăng cường đề kháng)"},
-                new String[]{"MED-GLUC-1500", "Glucosamine 1500mg (Hỗ trợ khớp, sụn khớp)"},
-                new String[]{"MED-TOBR-03", "Tobramycin 0.3% / Tobrex (Thuốc nhỏ mắt kháng khuẩn)"}
+                new String[]{"MED-DIAMIC-60", "Diamicron MR 60mg / Gliclazide (Kích thích tiết insulin kéo dài)"},
+
+                // 7. Hô hấp, Hen suyễn & Giảm ho
+                new String[]{"MED-VENTO-INH", "Ventolin Inhaler 100mcg (Ống hít cắt cơn hen phế quản cấp)"},
+                new String[]{"MED-SALB-2", "Salbutamol 2mg (Giãn phế quản đường uống)"},
+                new String[]{"MED-ACETYL-200", "Acetylcystein 200mg (Long đờm, tiêu nhầy đường hô hấp)"},
+                new String[]{"MED-AMBROX-30", "Ambroxol 30mg / Mucosolvan (Tiêu đờm, giảm ho có đờm)"},
+
+                // 8. Bổ não, Khớp & Vi chất dinh dưỡng
+                new String[]{"MED-GINKGO-120", "Ginkgo Biloba 120mg / Tanakan (Tăng cường tuần hoàn máu não, giảm chóng mặt)"},
+                new String[]{"MED-GLUC-1500", "Glucosamine Sulfate 1500mg (Tái tạo sụn khớp, giảm đau thoái hóa)"},
+                new String[]{"MED-CALCI-D3", "Calci Nano + Vitamin D3 (Bổ sung Canxi, phòng ngừa loãng xương)"},
+                new String[]{"MED-VITC-500", "Vitamin C 500mg (Chống oxy hóa, tăng sức đề kháng)"},
+                new String[]{"MED-VIT-3B", "Vitamin 3B (B1 - B6 - B12) (Bổ thần kinh, giảm đau nhức tê bì chân tay)"},
+
+                // 9. Tai mũi họng & Mắt
+                new String[]{"MED-TOBR-03", "Tobramycin 0.3% / Tobrex (Thuốc nhỏ mắt kháng khuẩn)"},
+                new String[]{"MED-OTRIVIN-01", "Otrivin 0.1% / Xylometazoline (Thuốc xịt mũi thông mũi, giảm nghẹt cấp)"},
+                new String[]{"MED-NACL-09", "Natri Clorid 0.9% 500ml (Nước muối sinh lý đẳng trương súc họng, rửa mũi)"}
         );
         for (String[] item : meds) {
             if (!medicationRepository.existsByCodeIgnoreCase(item[0])) {
@@ -245,20 +321,72 @@ public class LocalDataInitializer implements CommandLineRunner {
     private void ensureDiagnoses() {
         if (diagnosisCatalogRepository == null) return;
         List<String[]> list = List.of(
+                // Hô hấp
                 new String[]{"J00", "J00 - Viêm mũi họng cấp tính (cảm thường)"},
-                new String[]{"J02", "J02 - Viêm họng cấp"},
-                new String[]{"J03", "J03 - Viêm amiđan cấp"},
-                new String[]{"J20", "J20 - Viêm phế quản cấp"},
-                new String[]{"K21", "K21 - Bệnh trào ngược dạ dày - thực quản (GERD)"},
-                new String[]{"K29", "K29 - Viêm dạ dày và tá tràng"},
+                new String[]{"J01", "J01 - Viêm xoang cấp tính"},
+                new String[]{"J02", "J02 - Viêm họng cấp tính"},
+                new String[]{"J03", "J03 - Viêm amiđan cấp tính"},
+                new String[]{"J04", "J04 - Viêm thanh quản và khí quản cấp tính"},
+                new String[]{"J06", "J06 - Nhiễm khuẩn hô hấp trên cấp tính ở nhiều vị trí"},
+                new String[]{"J15", "J15 - Viêm phổi do vi khuẩn"},
+                new String[]{"J18", "J18 - Viêm phổi không đặc hiệu"},
+                new String[]{"J20", "J20 - Viêm phế quản cấp tính"},
+                new String[]{"J44", "J44 - Bệnh phổi tắc nghẽn mạn tính (COPD)"},
+                new String[]{"J45", "J45 - Hen phế quản (Suyễn)"},
+
+                // Tim mạch & Tuần hoàn
                 new String[]{"I10", "I10 - Tăng huyết áp vô căn (nguyên phát)"},
+                new String[]{"I11", "I11 - Bệnh tim do tăng huyết áp"},
+                new String[]{"I20", "I20 - Cơn đau thắt ngực (thiếu máu cơ tim)"},
+                new String[]{"I25", "I25 - Bệnh tim thiếu máu cục bộ mạn tính"},
+                new String[]{"I48", "I48 - Rung nhĩ và cuồng nhĩ"},
+                new String[]{"I50", "I50 - Suy tim"},
+                new String[]{"I83", "I83 - Giãn tĩnh mạch chi dưới"},
+
+                // Tiêu hóa & Gan mật
+                new String[]{"K21", "K21 - Bệnh trào ngược dạ dày - thực quản (GERD)"},
+                new String[]{"K25", "K25 - Loét dạ dày"},
+                new String[]{"K26", "K26 - Loét tá tràng"},
+                new String[]{"K29", "K29 - Viêm dạ dày và tá tràng"},
+                new String[]{"K30", "K30 - Chứng khó tiêu chức năng"},
+                new String[]{"K58", "K58 - Hội chứng ruột kích thích (IBS)"},
+                new String[]{"K59", "K59 - Táo bón mạn tính"},
+                new String[]{"K76.0", "K76.0 - Gan nhiễm mỡ không do rượu"},
+                new String[]{"K80", "K80 - Sỏi mật"},
+
+                // Nội tiết, Chuyển hóa & Tiết niệu
                 new String[]{"E11", "E11 - Đái tháo đường không phụ thuộc insulin (Type 2)"},
                 new String[]{"E78", "E78 - Rối loạn chuyển hóa lipoprotein và tăng lipid máu"},
+                new String[]{"E79", "E79 - Tăng acid uric máu / Bệnh Gút"},
+                new String[]{"E03", "E03 - Suy tuyến giáp khác"},
+                new String[]{"E05", "E05 - Nhiễm độc giáp (Cường giáp)"},
+                new String[]{"N39.0", "N39.0 - Nhiễm trùng đường tiết niệu vị trí không xác định"},
+
+                // Cơ xương khớp
                 new String[]{"M17", "M17 - Thoái hóa khớp gối"},
-                new String[]{"M54.5", "M54.5 - Đau thắt lưng"},
-                new String[]{"H10", "H10 - Viêm kết mạc (đau mắt đỏ)"},
-                new String[]{"L20", "L20 - Viêm da cơ địa (chàm)"},
-                new String[]{"Z00.0", "Z00.0 - Khám sức khỏe tổng quát định kỳ"}
+                new String[]{"M19", "M19 - Thoái hóa các khớp khác"},
+                new String[]{"M54.5", "M54.5 - Đau vùng thắt lưng"},
+                new String[]{"M54.2", "M54.2 - Đau vùng cổ và vai gáy"},
+                new String[]{"M10", "M10 - Bệnh Gút cấp và mạn tính"},
+                new String[]{"M81", "M81 - Loãng xương không kèm gãy xương bệnh lý"},
+
+                // Thần kinh & Rối loạn chức năng
+                new String[]{"G43", "G43 - Đau nửa đầu (Migraine)"},
+                new String[]{"G44", "G44 - Các hội chứng đau đầu khác (Đau đầu căng thẳng)"},
+                new String[]{"G47", "G47 - Rối loạn giấc ngủ (Mất ngủ)"},
+                new String[]{"H81", "H81 - Rối loạn chức năng tiền đình (Chóng mặt tiền đình)"},
+
+                // Da liễu, Mắt, Tai Mũi Họng
+                new String[]{"H10", "H10 - Viêm kết mạc (Đau mắt đỏ)"},
+                new String[]{"H52", "H52 - Tật khúc xạ và điều tiết (Cận/loạn/viễn thị)"},
+                new String[]{"H66", "H66 - Viêm tai giữa có mủ và không mủ"},
+                new String[]{"L20", "L20 - Viêm da cơ địa (Eczema)"},
+                new String[]{"L50", "L50 - Mày đay dị ứng"},
+
+                // Khám tổng quát & Tầm soát
+                new String[]{"Z00.0", "Z00.0 - Khám sức khỏe tổng quát định kỳ"},
+                new String[]{"Z01.0", "Z01.0 - Khám và kiểm tra mắt và thị lực"},
+                new String[]{"Z71.3", "Z71.3 - Tư vấn và giám sát chế độ ăn kiêng"}
         );
         for (String[] item : list) {
             if (!diagnosisCatalogRepository.existsByCodeIgnoreCase(item[0])) {
