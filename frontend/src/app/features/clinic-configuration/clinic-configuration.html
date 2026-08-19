@@ -1,34 +1,82 @@
 <app-staff-workspace-shell moduleTitle="Hệ thống" pageTitle="Cấu hình phòng khám">
-  <div class="grid gap-4">
+  <div class="grid gap-6 max-w-5xl">
+    <!-- Alerts -->
     @if (error()) {
-      <div class="rounded-md border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs font-semibold text-rose-700" role="alert">
-        {{ error() }}
+      <div class="flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-medium text-rose-800 shadow-xs" role="alert">
+        <div class="flex items-center gap-2">
+          <mat-icon class="!h-4 !w-4 !text-[18px] text-rose-600">error_outline</mat-icon>
+          <span>{{ error() }}</span>
+        </div>
+        <button type="button" class="erp-btn-icon !h-6 !w-6" (click)="error.set('')" title="Đóng thông báo">
+          <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">close</mat-icon>
+        </button>
       </div>
     }
     @if (message()) {
-      <div class="rounded-md border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-xs font-semibold text-emerald-700" role="status">
-        {{ message() }}
+      <div class="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-medium text-emerald-800 shadow-xs" role="status">
+        <div class="flex items-center gap-2">
+          <mat-icon class="!h-4 !w-4 !text-[18px] text-emerald-600">check_circle</mat-icon>
+          <span>{{ message() }}</span>
+        </div>
+        <button type="button" class="erp-btn-icon !h-6 !w-6" (click)="message.set('')" title="Đóng thông báo">
+          <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">close</mat-icon>
+        </button>
       </div>
     }
 
+    <!-- 1. Top 3 Metric Cards -->
+    <div class="grid gap-5 sm:grid-cols-3">
+      <!-- Card 1: Unit Name -->
+      <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs flex items-center gap-4">
+        <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#ecfdf5] text-[#059669]">
+          <mat-icon class="!h-6 !w-6 !text-[24px]">local_hospital</mat-icon>
+        </div>
+        <div class="min-w-0">
+          <p class="text-xs font-semibold text-slate-500">Đơn vị chủ quản</p>
+          <p class="text-base font-bold text-slate-900 mt-1 truncate" [title]="unitName() || 'ClinicOne'">{{ unitName() || 'ClinicOne' }}</p>
+        </div>
+      </div>
+
+      <!-- Card 2: Hold Minutes -->
+      <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs flex items-center gap-4">
+        <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#eff6ff] text-[#2563eb]">
+          <mat-icon class="!h-6 !w-6 !text-[24px]">timer</mat-icon>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-slate-500">Thời gian giữ chỗ</p>
+          <p class="text-2xl font-bold text-slate-900 mt-0.5">{{ holdMinutes() }} <span class="text-xs font-normal text-slate-500">phút</span></p>
+        </div>
+      </div>
+
+      <!-- Card 3: Cancellation Threshold -->
+      <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs flex items-center gap-4">
+        <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#fffbeb] text-[#d97706]">
+          <mat-icon class="!h-6 !w-6 !text-[24px]">event_busy</mat-icon>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-slate-500">Hạn tự hủy lịch</p>
+          <p class="text-2xl font-bold text-slate-900 mt-0.5">{{ cancellationThresholdHours() }} <span class="text-xs font-normal text-slate-500">giờ trước khám</span></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Main Configuration Form -->
     @if (loading()) {
-      <div class="grid min-h-64 place-items-center rounded-lg border border-slate-200 bg-white text-xs text-slate-500">
+      <div class="grid min-h-64 place-items-center rounded-2xl border border-slate-100 bg-white text-xs text-slate-500 shadow-xs">
         Đang tải cấu hình phòng khám...
       </div>
     } @else {
-      <form class="grid max-w-4xl gap-5" (ngSubmit)="save()">
-        <!-- Card 1: Unit Info -->
-        <section class="erp-card">
-          <div class="erp-card-header">
-            <div>
-              <h2 class="text-xs font-bold uppercase tracking-wider text-[#0e3d48]">Thông tin đơn vị</h2>
-              <p class="mt-0.5 text-[11px] text-slate-500">Hiển thị trong phiếu khám, tài liệu và khu vực vận hành chuyên môn.</p>
-            </div>
-            <mat-icon class="text-slate-400">business</mat-icon>
+      <form class="space-y-5" (ngSubmit)="save()">
+        <!-- Section 1: Facility Information -->
+        <section class="rounded-2xl border border-slate-100 bg-white p-6 shadow-xs">
+          <div class="border-b border-slate-100 pb-3 mb-5">
+            <h3 class="text-base font-bold text-slate-900">Thông tin cơ sở y tế</h3>
+            <p class="text-xs text-slate-500 mt-0.5">Hiển thị trong phiếu in khám bệnh theo Thông tư 33, tiêu đề văn bản và giao diện người bệnh.</p>
           </div>
-          <div class="grid gap-3.5 p-4 md:grid-cols-2">
+
+          <div class="grid gap-4 sm:grid-cols-2">
             <label class="grid gap-1">
-              <span class="erp-label">Tên đơn vị y tế <span class="erp-label-required">*</span></span>
+              <span class="erp-label">Tên cơ sở y tế / Phòng khám <span class="erp-label-required">*</span></span>
               <input
                 name="unitName"
                 [ngModel]="unitName()"
@@ -36,11 +84,12 @@
                 required
                 maxlength="160"
                 class="erp-input"
-                placeholder="ClinicOne Healthcare"
+                placeholder="vd: Phòng khám Đa khoa ClinicOne"
               />
             </label>
+
             <label class="grid gap-1">
-              <span class="erp-label">Phòng ban quản lý <span class="erp-label-required">*</span></span>
+              <span class="erp-label">Khoa / Phòng chuyên môn quản lý <span class="erp-label-required">*</span></span>
               <input
                 name="departmentName"
                 [ngModel]="departmentName()"
@@ -48,66 +97,72 @@
                 required
                 maxlength="160"
                 class="erp-input"
-                placeholder="Khoa Khám bệnh"
+                placeholder="vd: Khoa Khám bệnh - Điều trị ngoại trú"
               />
             </label>
           </div>
         </section>
 
-        <!-- Card 2: Timing Configuration -->
-        <section class="erp-card">
-          <div class="erp-card-header">
-            <div>
-              <h2 class="text-xs font-bold uppercase tracking-wider text-[#0e3d48]">Thời gian nghiệp vụ</h2>
-              <p class="mt-0.5 text-[11px] text-slate-500">Các tham số kiểm soát luồng đặt lịch, giữ chỗ và hủy lịch khám.</p>
-            </div>
-            <mat-icon class="text-slate-400">schedule</mat-icon>
+        <!-- Section 2: Scheduling & Booking Workflow Policies -->
+        <section class="rounded-2xl border border-slate-100 bg-white p-6 shadow-xs">
+          <div class="border-b border-slate-100 pb-3 mb-5">
+            <h3 class="text-base font-bold text-slate-900">Quy chuẩn thời gian & Đặt lịch hẹn</h3>
+            <p class="text-xs text-slate-500 mt-0.5">Kiểm soát luồng giữ chỗ tạm thời và giới hạn hủy lịch trực tuyến của bệnh nhân.</p>
           </div>
-          <div class="grid gap-3.5 p-4 md:grid-cols-2">
+
+          <div class="grid gap-4 sm:grid-cols-2">
             <label class="grid gap-1">
-              <span class="erp-label">Thời gian giữ chỗ khi đặt khám (phút) <span class="erp-label-required">*</span></span>
+              <span class="erp-label">Thời gian giữ chỗ tạm thời (phút) <span class="erp-label-required">*</span></span>
               <input
-                name="holdMinutes"
                 type="number"
-                min="5"
-                max="30"
+                min="1"
+                max="60"
                 [ngModel]="holdMinutes()"
                 (ngModelChange)="setNumber('hold', $event)"
+                name="holdMinutes"
                 required
                 class="erp-input font-mono"
               />
-              <span class="text-[11px] text-slate-400">Quy định từ 5 đến 30 phút.</span>
+              <span class="text-[11px] text-slate-400 mt-0.5">Khung giờ đặt tạm sẽ tự động giải phóng nếu bệnh nhân không hoàn tất bước xác nhận.</span>
             </label>
+
             <label class="grid gap-1">
-              <span class="erp-label">Ngưỡng thời gian yêu cầu lý do hủy (giờ) <span class="erp-label-required">*</span></span>
+              <span class="erp-label">Ngưỡng hủy lịch hẹn trước giờ khám (giờ) <span class="erp-label-required">*</span></span>
               <input
-                name="cancellationThresholdHours"
                 type="number"
-                min="0"
+                min="1"
                 max="72"
                 [ngModel]="cancellationThresholdHours()"
                 (ngModelChange)="setNumber('cancel', $event)"
+                name="cancellationThresholdHours"
                 required
                 class="erp-input font-mono"
               />
-              <span class="text-[11px] text-slate-400">Quy định từ 0 đến 72 giờ trước giờ hẹn.</span>
+              <span class="text-[11px] text-slate-400 mt-0.5">Bệnh nhân không thể hủy lịch trực tuyến nếu thời gian đến giờ khám ít hơn ngưỡng này.</span>
             </label>
           </div>
 
-          <div class="m-4 mt-0 grid gap-2.5 rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600 sm:grid-cols-2">
+          <div class="mt-4 grid gap-2.5 rounded-xl border border-slate-200 bg-slate-50 p-3.5 text-xs text-slate-600 sm:grid-cols-2">
             <p><strong class="text-slate-800">Cảnh báo đến muộn:</strong> Hệ thống tự ghi nhận sau 15 phút trễ hẹn.</p>
             <p><strong class="text-slate-800">Tự động xử lý vắng mặt:</strong> Kết thúc trạng thái sau 24 giờ kể từ giờ hẹn.</p>
           </div>
         </section>
 
-        <!-- Actions -->
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <p class="text-xs text-slate-400">
-            {{ updatedAt() ? 'Cập nhật lần cuối: ' + (updatedAt() | date:'dd/MM/yyyy HH:mm') : '' }}
-          </p>
-          <button type="submit" [disabled]="saving()" class="erp-btn-primary">
+        <!-- Form Actions & Audit Timestamp -->
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pt-2">
+          <div class="text-[11px] text-slate-400 font-mono">
+            @if (updatedAt()) {
+              <span>Cập nhật lần cuối: {{ updatedAt() | date: 'dd/MM/yyyy HH:mm:ss' }}</span>
+            }
+          </div>
+
+          <button
+            type="submit"
+            class="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0e3d48] px-6 py-2.5 text-xs font-semibold text-white shadow-xs transition hover:bg-[#082830] cursor-pointer"
+            [disabled]="saving()"
+          >
             <mat-icon class="!h-4 !w-4 !text-[18px]">save</mat-icon>
-            <span>{{ saving() ? 'Đang lưu...' : 'Lưu cấu hình' }}</span>
+            <span>{{ saving() ? 'Đang lưu cấu hình...' : 'Lưu thay đổi cấu hình' }}</span>
           </button>
         </div>
       </form>

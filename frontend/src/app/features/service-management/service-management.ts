@@ -37,8 +37,31 @@ export class ServiceManagement implements OnInit {
   protected readonly specialty = signal('');
   protected readonly visitType = signal('Khám thường');
   protected readonly durationMinutes = signal(30);
+  protected readonly searchTerm = signal('');
   protected readonly selectedDoctorIds = signal<string[]>([]);
   protected readonly requiresMedicalRecord = signal(true);
+
+  protected filteredServices(): ClinicServiceResponse[] {
+    const q = this.searchTerm().trim().toLowerCase();
+    if (!q) return this.services();
+    return this.services().filter((s) =>
+      s.name.toLowerCase().includes(q) ||
+      s.specialty.toLowerCase().includes(q) ||
+      s.visitType.toLowerCase().includes(q)
+    );
+  }
+
+  protected totalServicesCount(): number {
+    return this.services().length;
+  }
+
+  protected activeServicesCount(): number {
+    return this.services().filter((s) => s.active).length;
+  }
+
+  protected specialtiesCount(): number {
+    return new Set(this.services().map((s) => s.specialty)).size;
+  }
 
   protected canManageServices(): boolean {
     return hasStaffRole('COORDINATOR');

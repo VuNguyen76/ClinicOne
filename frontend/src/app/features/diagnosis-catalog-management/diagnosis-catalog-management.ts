@@ -29,6 +29,7 @@ export class DiagnosisCatalogManagement implements OnInit {
     return this.diagnoses().filter((item) => `${item.code} ${item.name}`.toLocaleLowerCase().includes(query));
   });
   protected readonly activeCount = computed(() => this.diagnoses().filter((item) => item.active).length);
+  protected readonly inactiveCount = computed(() => this.diagnoses().filter((item) => !item.active).length);
 
   ngOnInit(): void { this.load(); }
 
@@ -65,6 +66,10 @@ export class DiagnosisCatalogManagement implements OnInit {
     });
   }
 
+  protected toggleActive(item: DiagnosisSuggestionResponse): void {
+    this.toggle(item);
+  }
+
   protected toggle(item: DiagnosisSuggestionResponse): void {
     this.error.set(''); this.notice.set('');
     this.authApi.setDiagnosisActive(item.id, !item.active).subscribe({
@@ -76,7 +81,7 @@ export class DiagnosisCatalogManagement implements OnInit {
     });
   }
 
-  private load(): void {
+  protected load(): void {
     this.authApi.getAdminDiagnoses().subscribe({
       next: (items) => { this.diagnoses.set(items); this.loading.set(false); },
       error: (response: ApiErrorResponse) => { this.error.set(apiErrorMessage(response)); this.loading.set(false); },

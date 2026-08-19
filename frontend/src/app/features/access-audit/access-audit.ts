@@ -22,6 +22,18 @@ export class AccessAuditManagement implements OnInit {
   protected readonly loading = signal(true);
   protected readonly error = signal('');
 
+  protected totalEventsCount(): number {
+    return this.events().length;
+  }
+
+  protected successEventsCount(): number {
+    return this.events().filter((e) => e.outcome === 'SUCCESS').length;
+  }
+
+  protected failureEventsCount(): number {
+    return this.events().filter((e) => e.outcome !== 'SUCCESS').length;
+  }
+
   ngOnInit(): void { this.refresh(); }
 
   protected refresh(): void {

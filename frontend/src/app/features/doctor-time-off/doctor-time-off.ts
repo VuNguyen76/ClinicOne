@@ -27,6 +27,28 @@ export class DoctorTimeOffManagement implements OnInit {
   protected readonly error = signal('');
   protected readonly notice = signal('');
   protected readonly modalOpen = signal(false);
+  protected readonly searchTerm = signal('');
+
+  protected filteredRecords(): DoctorTimeOffResponse[] {
+    const q = this.searchTerm().trim().toLowerCase();
+    if (!q) return this.records();
+    return this.records().filter((r) =>
+      r.doctorName.toLowerCase().includes(q) ||
+      r.reason.toLowerCase().includes(q)
+    );
+  }
+
+  protected totalRecordsCount(): number {
+    return this.records().length;
+  }
+
+  protected affectedDoctorsCount(): number {
+    return new Set(this.records().map((r) => r.doctorId)).size;
+  }
+
+  protected cancelledSlotsTotal(): number {
+    return this.records().reduce((sum, r) => sum + (r.affectedAppointmentCount || 0), 0);
+  }
 
   ngOnInit(): void {
     this.loadData();

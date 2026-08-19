@@ -47,10 +47,34 @@ export class MedicalRecordTemplateManagement implements OnInit {
   protected readonly error = signal('');
   protected readonly notice = signal('');
   protected readonly activeTab = signal<'list' | 'form'>('list');
+  protected readonly searchTerm = signal('');
 
   protected readonly filteredServices = computed(() => this.services()
     .filter((service) => !this.specialty() || service.specialty === this.specialty()));
   protected readonly formTitle = computed(() => this.editingId() ? 'Cập nhật mẫu phiếu' : 'Thêm mẫu phiếu');
+
+  protected filteredItems(): MedicalRecordTemplate[] {
+    const q = this.searchTerm().trim().toLowerCase();
+    if (!q) return this.items();
+    return this.items().filter((t) =>
+      t.code.toLowerCase().includes(q) ||
+      t.name.toLowerCase().includes(q) ||
+      t.specialty.toLowerCase().includes(q) ||
+      (t.description && t.description.toLowerCase().includes(q))
+    );
+  }
+
+  protected totalTemplatesCount(): number {
+    return this.items().length;
+  }
+
+  protected specialtiesCount(): number {
+    return new Set(this.items().map((t) => t.specialty)).size;
+  }
+
+  protected servicesLinkedCount(): number {
+    return this.items().filter((t) => t.clinicServiceId).length;
+  }
 
   ngOnInit(): void {
     this.loadInitialData();
@@ -93,6 +117,14 @@ export class MedicalRecordTemplateManagement implements OnInit {
         this.saving.set(false);
       },
     });
+  }
+
+  protected startEdit(item: MedicalRecordTemplate): void {
+    this.edit(item);
+  }
+
+  protected delete(item: MedicalRecordTemplate): void {
+    this.deactivate(item);
   }
 
   protected edit(item: MedicalRecordTemplate): void {

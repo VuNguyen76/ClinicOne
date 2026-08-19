@@ -1,122 +1,216 @@
 <app-staff-workspace-shell moduleTitle="Kiểm soát" pageTitle="Đối soát sai sót">
-  <div class="grid gap-4">
+  <div class="grid gap-6">
+    <!-- Alerts & Notices -->
     @if (error()) {
-      <div class="rounded-md border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs font-semibold text-rose-700" role="alert">
-        {{ error() }}
+      <div class="flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-medium text-rose-800 shadow-xs" role="alert">
+        <div class="flex items-center gap-2">
+          <mat-icon class="!h-4 !w-4 !text-[18px] text-rose-600">error_outline</mat-icon>
+          <span>{{ error() }}</span>
+        </div>
+        <button type="button" class="erp-btn-icon !h-6 !w-6" (click)="error.set('')" title="Đóng thông báo">
+          <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">close</mat-icon>
+        </button>
       </div>
     }
     @if (notice()) {
-      <div class="rounded-md border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-xs font-semibold text-emerald-700" role="status">
-        {{ notice() }}
+      <div class="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-medium text-emerald-800 shadow-xs" role="status">
+        <div class="flex items-center gap-2">
+          <mat-icon class="!h-4 !w-4 !text-[18px] text-emerald-600">check_circle</mat-icon>
+          <span>{{ notice() }}</span>
+        </div>
+        <button type="button" class="erp-btn-icon !h-6 !w-6" (click)="notice.set('')" title="Đóng thông báo">
+          <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">close</mat-icon>
+        </button>
       </div>
     }
 
+    <!-- 1. Top 3 Metric Cards -->
+    <div class="grid gap-5 sm:grid-cols-3">
+      <!-- Card 1: Total Incidents -->
+      <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs flex items-center gap-4">
+        <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#ecfdf5] text-[#059669]">
+          <mat-icon class="!h-6 !w-6 !text-[24px]">rule</mat-icon>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-slate-500">Tổng số Sự cố đối soát</p>
+          <p class="text-2xl font-bold text-slate-900 mt-0.5">{{ totalIncidentsCount() }}</p>
+        </div>
+      </div>
+
+      <!-- Card 2: Open Incidents -->
+      <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs flex items-center gap-4">
+        <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#eff6ff] text-[#2563eb]">
+          <mat-icon class="!h-6 !w-6 !text-[24px]">error_outline</mat-icon>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-slate-500">Đang chờ xử lý</p>
+          <p class="text-2xl font-bold text-slate-900 mt-0.5">{{ openIncidentsCount() }}</p>
+        </div>
+      </div>
+
+      <!-- Card 3: Sync Errors -->
+      <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs flex items-center gap-4">
+        <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#fffbeb] text-[#d97706]">
+          <mat-icon class="!h-6 !w-6 !text-[24px]">sync_problem</mat-icon>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-slate-500">Lỗi đồng bộ dữ liệu</p>
+          <p class="text-2xl font-bold text-slate-900 mt-0.5">{{ syncErrorCount() }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Search Bar + Refresh Header -->
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div class="relative w-full max-w-sm">
+        <mat-icon class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 !h-4 !w-4 !text-[18px] text-slate-400">search</mat-icon>
+        <input
+          type="text"
+          class="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-8 text-xs text-slate-800 placeholder-slate-400 outline-none transition focus:border-[#0e3d48] focus:ring-1 focus:ring-[#0e3d48] shadow-2xs"
+          placeholder="Tìm kiếm theo mã sự cố, lý do, người phụ trách..."
+          [value]="searchTerm()"
+          (input)="searchTerm.set($any($event.target).value)"
+        />
+        @if (searchTerm()) {
+          <button
+            type="button"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            (click)="searchTerm.set('')"
+          >
+            <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">close</mat-icon>
+          </button>
+        }
+      </div>
+
+      <button
+        type="button"
+        class="erp-btn-icon !h-10 !w-10 rounded-xl border border-slate-200 bg-white shadow-2xs"
+        (click)="load()"
+        [disabled]="loading()"
+        title="Làm mới dữ liệu"
+      >
+        <mat-icon class="!h-4 !w-4 !text-[18px]">refresh</mat-icon>
+      </button>
+    </div>
+
+    <!-- 3. Main DataGrid Table & Split Resolution Area -->
     @if (loading()) {
-      <div class="grid min-h-64 place-items-center rounded-lg border border-slate-200 bg-white text-xs text-slate-500">
+      <div class="grid min-h-64 place-items-center rounded-2xl border border-slate-100 bg-white text-xs text-slate-500 shadow-xs">
         Đang tải việc cần đối soát...
       </div>
     } @else {
       <div class="grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(380px,0.85fr)]">
-        <!-- Incidents List / Table -->
-        <section class="erp-card overflow-hidden">
-          <div class="erp-card-header">
+        <!-- Incidents List -->
+        <aside class="rounded-2xl border border-slate-100 bg-white shadow-xs overflow-hidden h-fit">
+          <div class="border-b border-slate-100 px-4 py-3 bg-slate-50/50 flex items-center justify-between">
             <div>
-              <h2 class="text-xs font-bold uppercase tracking-wider text-[#0e3d48]">Việc cần xử lý</h2>
-              <p class="mt-0.5 text-[11px] text-slate-500">{{ incidents().length }} sự cố chưa đóng đối soát</p>
+              <h3 class="text-xs font-bold uppercase tracking-wider text-slate-800">Sự cố đang mở</h3>
+              <p class="text-[11px] text-slate-500 mt-0.5">{{ filteredIncidents().length }} sự cố cần đối soát</p>
             </div>
             <mat-icon class="text-slate-400">rule</mat-icon>
           </div>
 
-          <div class="divide-y divide-slate-100">
-            @for (item of incidents(); track item.id) {
+          <div class="divide-y divide-slate-50 max-h-[600px] overflow-y-auto">
+            @for (item of filteredIncidents(); track item.id) {
               <button
                 type="button"
                 data-testid="incident-row"
-                class="flex w-full flex-col gap-1.5 p-3.5 text-left transition hover:bg-slate-50"
-                [class.bg-sky-50]="selected()?.id === item.id"
+                class="flex w-full flex-col gap-1.5 p-4 text-left transition hover:bg-slate-50/80 cursor-pointer"
+                [class.bg-sky-50/70]="selected()?.id === item.id"
                 [class.border-l-4]="selected()?.id === item.id"
-                [class.border-l-[#0284c7]]="selected()?.id === item.id"
+                [class.border-l-[#0e3d48]]="selected()?.id === item.id"
                 (click)="select(item)"
               >
                 <div class="flex items-center justify-between gap-2">
                   <span class="font-mono text-xs font-bold text-slate-900">{{ item.incidentCode }}</span>
-                  <span class="erp-badge-warning">
-                    <span class="erp-dot-warning"></span>
+                  <span class="inline-flex items-center rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
                     Đang mở
                   </span>
                 </div>
-                <p class="text-xs font-medium text-slate-700">{{ item.entityType }} · {{ item.reason }}</p>
-                <p class="text-[11px] text-slate-400">Phụ trách: {{ item.assignee }}</p>
+                <p class="text-xs font-medium text-slate-800">{{ item.entityType }} · {{ item.reason }}</p>
+                <p class="text-[11px] text-slate-400">Phụ trách: {{ item.assignee || 'Chưa gán' }}</p>
               </button>
             } @empty {
-              <div class="grid min-h-56 place-items-center p-6 text-center">
+              <div class="grid min-h-56 place-items-center p-8 text-center">
                 <div>
-                  <mat-icon class="!h-8 !w-8 !text-[32px] text-emerald-500">task_alt</mat-icon>
-                  <p class="mt-2 text-xs font-bold text-slate-800">Không có việc mở</p>
-                  <p class="mt-0.5 text-[11px] text-slate-500">Dữ liệu vận hành phòng khám đang nhất quán.</p>
+                  <mat-icon class="!h-10 !w-10 !text-[40px] text-emerald-500">task_alt</mat-icon>
+                  <p class="mt-3 text-sm font-bold text-slate-800">Không có sự cố nào</p>
+                  <p class="mt-1 text-xs text-slate-500">Dữ liệu vận hành của phòng khám hiện đang đồng bộ hoàn hảo.</p>
                 </div>
               </div>
             }
           </div>
-        </section>
+        </aside>
 
-        <!-- Incident Detail & Resolution Form -->
-        <section class="erp-card h-fit">
+        <!-- Resolution Form -->
+        <section class="rounded-2xl border border-slate-100 bg-white shadow-xs overflow-hidden">
+          <div class="border-b border-slate-100 px-6 py-4 bg-slate-50/50">
+            <h3 class="text-base font-bold text-slate-900">Xử lý & Đóng đối soát</h3>
+            <p class="text-xs text-slate-500 mt-0.5">Thực hiện hành động khắc phục và ghi nhận mã tham chiếu.</p>
+          </div>
+
           @if (selected(); as item) {
-            <div class="erp-card-header">
-              <div>
-                <p class="text-[10px] font-bold uppercase tracking-wider text-[#0284c7] font-mono">{{ item.incidentCode }}</p>
-                <h2 class="text-xs font-bold text-slate-900">Chi tiết đối soát sự cố</h2>
-              </div>
-              <span class="text-[11px] text-slate-500">{{ item.entityType }}</span>
-            </div>
-
-            @if (canClose) {
-              <div class="grid gap-3.5 p-4">
-                <div class="rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
-                  <p><span class="font-semibold text-slate-900">Lý do:</span> {{ item.reason }}</p>
-                  <p class="mt-1"><span class="font-semibold text-slate-900">Mã đối tượng:</span> <code class="font-mono text-[11px] text-slate-600">{{ item.entityId }}</code></p>
+            <form class="space-y-4 p-6" (ngSubmit)="$event.preventDefault(); close()">
+              <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-4 text-xs">
+                <div class="flex items-center justify-between">
+                  <span class="font-mono font-bold text-slate-800">{{ item.incidentCode }}</span>
+                  <span class="text-slate-500">{{ item.entityType }}</span>
                 </div>
+                <p class="mt-1.5 text-slate-700">{{ item.reason }}</p>
+              </div>
 
+              <label class="grid gap-1">
+                <span class="erp-label">Hành động khắc phục <span class="erp-label-required">*</span></span>
+                <select class="erp-select" [value]="action()" (change)="action.set($any($event.target).value)">
+                  <option value="RETRY_BUSINESS_ACTION">Thực hiện lại công việc</option>
+                  <option value="REPLAY_LOG">Đối chiếu lại nhật ký</option>
+                  <option value="TECHNICAL_REPAIR">Sửa lỗi kỹ thuật</option>
+                  <option value="NO_ACTION_REQUIRED">Không cần xử lý thêm</option>
+                </select>
+              </label>
+
+              <div class="grid grid-cols-2 gap-3">
                 <label class="grid gap-1">
-                  <span class="erp-label">Hành động đã thực hiện <span class="erp-label-required">*</span></span>
-                  <select class="erp-select" [ngModel]="action()" (ngModelChange)="action.set($event)" name="action">
-                    @for (value of ['RETRY_BUSINESS_ACTION','REPLAY_LOG','TECHNICAL_REPAIR','NO_ACTION_REQUIRED']; track value) {
-                      <option [value]="value">{{ label(value) }}</option>
-                    }
-                  </select>
+                  <span class="erp-label">Loại tham chiếu <span class="erp-label-required">*</span></span>
+                  <input class="erp-input font-mono uppercase" [value]="referenceType()" (input)="referenceType.set($any($event.target).value)" />
                 </label>
-
-                <label class="grid gap-1">
-                  <span class="erp-label">Loại mã tham chiếu <span class="erp-label-required">*</span></span>
-                  <select class="erp-select" [ngModel]="referenceType()" (ngModelChange)="referenceType.set($event)" name="referenceType">
-                    <option value="INCIDENT">Mã sự cố</option>
-                    <option value="BUSINESS_LOG">Mã nhật ký nghiệp vụ</option>
-                  </select>
-                </label>
-
                 <label class="grid gap-1">
                   <span class="erp-label">Mã tham chiếu <span class="erp-label-required">*</span></span>
-                  <input [ngModel]="referenceValue()" (ngModelChange)="referenceValue.set($event)" name="referenceValue" class="erp-input font-mono" />
+                  <input class="erp-input font-mono" [value]="referenceValue()" (input)="referenceValue.set($any($event.target).value)" />
                 </label>
-
-                <label class="grid gap-1">
-                  <span class="erp-label">Ghi chú kết quả <span class="erp-label-required">*</span></span>
-                  <textarea rows="3" [ngModel]="resultNote()" (ngModelChange)="resultNote.set($event)" name="resultNote" class="erp-textarea" placeholder="Mô tả chi tiết kết quả xử lý (tối thiểu 10 ký tự)..."></textarea>
-                </label>
-
-                <button data-testid="close-reconciliation" type="button" class="erp-btn-primary w-full" [disabled]="saving()" (click)="close()">
-                  {{ saving() ? 'Đang đóng...' : 'Đóng đối soát' }}
-                </button>
               </div>
-            } @else {
-              <div class="p-4 text-xs text-slate-500">
-                Tài khoản của bạn chỉ được xem thông tin đối soát, không có quyền đóng sự cố.
+
+              <label class="grid gap-1">
+                <span class="erp-label">Ghi chú kết quả xử lý (từ 10 ký tự) <span class="erp-label-required">*</span></span>
+                <textarea
+                  rows="4"
+                  class="erp-input resize-none"
+                  placeholder="Ghi rõ hành động đã thực hiện để khắc phục sai lệch..."
+                  [value]="resultNote()"
+                  (input)="resultNote.set($any($event.target).value)"
+                ></textarea>
+              </label>
+
+              <div class="flex items-center justify-between pt-2">
+                @if (!canClose) {
+                  <p class="text-xs text-slate-500">Tài khoản Quản trị viên chỉ được xem sự cố đối soát.</p>
+                } @else {
+                  <div></div>
+                  <button
+                    type="submit"
+                    data-testid="close-reconciliation"
+                    class="inline-flex items-center gap-2 rounded-xl bg-[#0e3d48] px-5 py-2.5 text-xs font-semibold text-white shadow-xs transition hover:bg-[#082830] cursor-pointer"
+                    [disabled]="saving()"
+                  >
+                    <mat-icon class="!h-4 !w-4 !text-[18px]">check_circle</mat-icon>
+                    <span>{{ saving() ? 'Đang xử lý...' : 'Đóng đối soát' }}</span>
+                  </button>
+                }
               </div>
-            }
+            </form>
           } @else {
-            <div class="grid min-h-64 place-items-center p-6 text-center text-xs text-slate-500">
-              Chọn một việc từ danh sách bên trái để xem chi tiết và đối soát.
+            <div class="grid min-h-64 place-items-center p-8 text-center text-xs text-slate-400">
+              Chọn một sự cố bên danh sách để tiến hành kiểm tra và đóng đối soát.
             </div>
           }
         </section>
