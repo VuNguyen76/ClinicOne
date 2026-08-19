@@ -13,43 +13,7 @@
       </div>
     }
 
-    <!-- 1. Top 3 Metric Cards -->
-    <div class="grid gap-5 sm:grid-cols-3">
-      <!-- Card 1: Total Messages -->
-      <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs flex items-center gap-4">
-        <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#ecfdf5] text-[#059669]">
-          <mat-icon class="!h-6 !w-6 !text-[24px]">sms</mat-icon>
-        </div>
-        <div>
-          <p class="text-xs font-semibold text-slate-500">Tổng số Tin nhắn</p>
-          <p class="text-2xl font-bold text-slate-900 mt-0.5">{{ totalCount() }}</p>
-        </div>
-      </div>
-
-      <!-- Card 2: Sent Successfully -->
-      <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs flex items-center gap-4">
-        <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#eff6ff] text-[#2563eb]">
-          <mat-icon class="!h-6 !w-6 !text-[24px]">mark_email_read</mat-icon>
-        </div>
-        <div>
-          <p class="text-xs font-semibold text-slate-500">Đã gửi thành công</p>
-          <p class="text-2xl font-bold text-slate-900 mt-0.5">{{ sentCount() }}</p>
-        </div>
-      </div>
-
-      <!-- Card 3: Failed / Retrying -->
-      <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs flex items-center gap-4">
-        <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#fffbeb] text-[#d97706]">
-          <mat-icon class="!h-6 !w-6 !text-[24px]">warning_amber</mat-icon>
-        </div>
-        <div>
-          <p class="text-xs font-semibold text-slate-500">Gửi lỗi / Chờ gửi lại</p>
-          <p class="text-2xl font-bold text-slate-900 mt-0.5">{{ failedCount() }}</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- 2. Search & Filter Bar -->
+    <!-- Search & Filter Bar -->
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div class="relative w-full max-w-sm">
         <mat-icon class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 !h-4 !w-4 !text-[18px] text-slate-400">search</mat-icon>

@@ -24,44 +24,7 @@
       </div>
     }
 
-    <!-- 1. Top 3 Metric Cards -->
-    <div class="grid gap-5 sm:grid-cols-3">
-      <!-- Card 1: Total Reasons -->
-      <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs flex items-center gap-4">
-        <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#ecfdf5] text-[#059669]">
-          <mat-icon class="!h-6 !w-6 !text-[24px]">rule</mat-icon>
-        </div>
-        <div>
-          <p class="text-xs font-semibold text-slate-500">Tổng số Lý do</p>
-          <p class="text-2xl font-bold text-slate-900 mt-0.5">{{ totalReasonsCount() }}</p>
-          <p class="text-[10px] text-slate-400 mt-0.5">Yêu cầu tối thiểu 3 lý do</p>
-        </div>
-      </div>
-
-      <!-- Card 2: Active Reasons -->
-      <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs flex items-center gap-4">
-        <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#eff6ff] text-[#2563eb]">
-          <mat-icon class="!h-6 !w-6 !text-[24px]">check_circle_outline</mat-icon>
-        </div>
-        <div>
-          <p class="text-xs font-semibold text-slate-500">Đang áp dụng</p>
-          <p class="text-2xl font-bold text-slate-900 mt-0.5">{{ activeReasonsCount() }}</p>
-        </div>
-      </div>
-
-      <!-- Card 3: Inactive Reasons -->
-      <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs flex items-center gap-4">
-        <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#fffbeb] text-[#d97706]">
-          <mat-icon class="!h-6 !w-6 !text-[24px]">pause_circle_outline</mat-icon>
-        </div>
-        <div>
-          <p class="text-xs font-semibold text-slate-500">Tạm ngưng sử dụng</p>
-          <p class="text-2xl font-bold text-slate-900 mt-0.5">{{ inactiveReasonsCount() }}</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- 2. Search Bar + Add Button Header -->
+    <!-- Search Bar + Add Button Header -->
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div class="relative w-full max-w-sm">
         <mat-icon class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 !h-4 !w-4 !text-[18px] text-slate-400">search</mat-icon>
@@ -83,7 +46,8 @@
         }
       </div>
 
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-3">
+        <span class="text-xs text-slate-500 font-medium hidden md:inline">Yêu cầu tối thiểu 3 lý do áp dụng</span>
         <button
           type="button"
           class="erp-btn-primary"
