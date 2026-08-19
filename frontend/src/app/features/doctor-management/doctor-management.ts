@@ -36,6 +36,11 @@ export class DoctorManagement implements OnInit {
   protected readonly error = signal('');
   protected readonly notice = signal('');
   protected readonly createDoctorOpen = signal(false);
+  protected readonly searchTerm = signal('');
+  protected readonly selectedSpecialtyFilter = signal('');
+  protected readonly isDrawerOpen = signal(false);
+  private noticeTimer: ReturnType<typeof setTimeout> | null = null;
+
   protected readonly assignmentForm = this.fb.nonNullable.group({
     specialty: ['', [Validators.required]],
     roomId: ['', [Validators.required]],
@@ -70,15 +75,49 @@ export class DoctorManagement implements OnInit {
     });
   }
 
+  protected filteredDoctors(): DoctorAccountResponse[] {
+    const query = this.searchTerm().trim().toLowerCase();
+    const spec = this.selectedSpecialtyFilter().trim().toLowerCase();
+    return this.doctors().filter((d) => {
+      const matchQuery = !query ||
+        d.fullName.toLowerCase().includes(query) ||
+        d.username.toLowerCase().includes(query) ||
+        (d.roomCode && d.roomCode.toLowerCase().includes(query)) ||
+        (d.specialty && d.specialty.toLowerCase().includes(query));
+      const matchSpec = !spec || (d.specialty && d.specialty.toLowerCase() === spec);
+      return matchQuery && matchSpec;
+    });
+  }
+
+  protected totalDoctorsCount(): number {
+    return this.doctors().length;
+  }
+
+  protected assignedDoctorsCount(): number {
+    return this.doctors().filter((d) => d.assigned).length;
+  }
+
+  protected activeDoctorsCount(): number {
+    return this.doctors().filter((d) => d.active).length;
+  }
+
   protected selectDoctor(doctor: DoctorAccountResponse): void {
     this.selectedDoctor.set(doctor);
+    this.isDrawerOpen.set(true);
     this.assignmentForm.setValue({ specialty: doctor.specialty ?? '', roomId: doctor.roomId ?? '' });
     this.schedules.set([]);
     this.notice.set('');
+    this.error.set('');
     this.authApi.getDoctorSchedules(doctor.staffId).subscribe({
       next: (schedules) => this.schedules.set(schedules),
       error: (response) => this.error.set(apiErrorMessage(response)),
     });
+  }
+
+  protected closeDrawer(): void {
+    this.isDrawerOpen.set(false);
+    this.selectedDoctor.set(null);
+    this.error.set('');
   }
 
   protected openCreateDoctor(): void {
@@ -89,7 +128,28 @@ export class DoctorManagement implements OnInit {
   }
 
   protected closeCreateDoctor(): void {
-    if (!this.saving()) this.createDoctorOpen.set(false);
+    if (!this.saving()) {
+      this.createDoctorOpen.set(false);
+      this.error.set('');
+    }
+  }
+
+  protected closeError(): void {
+    this.error.set('');
+  }
+
+  protected closeNotice(): void {
+    if (this.noticeTimer) clearTimeout(this.noticeTimer);
+    this.notice.set('');
+  }
+
+  private showNotice(message: string): void {
+    if (this.noticeTimer) clearTimeout(this.noticeTimer);
+    this.notice.set(message);
+    this.noticeTimer = setTimeout(() => {
+      this.notice.set('');
+      this.noticeTimer = null;
+    }, 5000);
   }
 
   protected createDoctor(): void {
@@ -105,10 +165,13 @@ export class DoctorManagement implements OnInit {
         this.doctors.update((items) => [...items, doctor].sort((a, b) => a.fullName.localeCompare(b.fullName)));
         this.createDoctorOpen.set(false);
         this.saving.set(false);
-        this.notice.set(`Đã tạo tài khoản cho ${doctor.fullName}. Tiếp tục phân công chuyên khoa và phòng.`);
+        this.showNotice(`Đã tạo tài khoản cho ${doctor.fullName}.`);
         this.selectDoctor(doctor);
       },
-      error: (response) => { this.saving.set(false); this.error.set(apiErrorMessage(response)); },
+      error: (response) => {
+        this.saving.set(false);
+        this.error.set(apiErrorMessage(response));
+      },
     });
   }
 
@@ -130,7 +193,7 @@ export class DoctorManagement implements OnInit {
         this.doctors.update((items) => items.map((item) => item.staffId === doctor.staffId ? updated : item));
         this.selectedDoctor.set(updated);
         this.saving.set(false);
-        this.notice.set('Đã lưu phân công bác sĩ.');
+        this.showNotice('Đã lưu phân công bác sĩ thành công.');
       },
       error: (response) => { this.saving.set(false); this.error.set(apiErrorMessage(response)); },
     });
@@ -145,7 +208,7 @@ export class DoctorManagement implements OnInit {
       next: (schedule) => {
         this.schedules.update((items) => [...items, schedule].sort((a, b) => `${a.dayOfWeek}${a.startTime}`.localeCompare(`${b.dayOfWeek}${b.startTime}`)));
         this.saving.set(false);
-        this.notice.set('Đã thêm giờ làm.');
+        this.showNotice('Đã thêm khung giờ làm việc.');
       },
       error: (response) => { this.saving.set(false); this.error.set(apiErrorMessage(response)); },
     });
@@ -155,7 +218,10 @@ export class DoctorManagement implements OnInit {
     const doctor = this.selectedDoctor();
     if (!doctor) return;
     this.authApi.removeDoctorSchedule(doctor.staffId, schedule.id).subscribe({
-      next: () => this.schedules.update((items) => items.filter((item) => item.id !== schedule.id)),
+      next: () => {
+        this.schedules.update((items) => items.filter((item) => item.id !== schedule.id));
+        this.showNotice('Đã xóa khung giờ làm việc.');
+      },
       error: (response) => this.error.set(apiErrorMessage(response)),
     });
   }
@@ -166,5 +232,17 @@ export class DoctorManagement implements OnInit {
 
   protected roomName(roomId: string | null): string {
     return this.rooms().find((room) => room.id === roomId)?.name ?? 'Chưa gán phòng';
+  }
+
+  protected getSpecialtyBadgeClass(specialty: string | null): string {
+    if (!specialty) return 'bg-slate-100 text-slate-600 border-slate-200';
+    const s = specialty.toLowerCase();
+    if (s.includes('tổng quát')) return 'bg-amber-50 text-amber-800 border-amber-200';
+    if (s.includes('mắt')) return 'bg-indigo-50 text-indigo-800 border-indigo-200';
+    if (s.includes('nhi')) return 'bg-sky-50 text-sky-800 border-sky-200';
+    if (s.includes('tim')) return 'bg-rose-50 text-rose-800 border-rose-200';
+    if (s.includes('da')) return 'bg-purple-50 text-purple-800 border-purple-200';
+    if (s.includes('tai')) return 'bg-emerald-50 text-emerald-800 border-emerald-200';
+    return 'bg-teal-50 text-teal-800 border-teal-200';
   }
 }
