@@ -75,7 +75,7 @@
               @for (item of events(); track item.id) {
                 <tr class="transition hover:bg-slate-50/70">
                   <td class="px-4 py-3 font-mono text-slate-600 text-[11px]">{{ formatDate(item.occurredAt) }}</td>
-                  <td class="px-4 py-3 font-bold text-slate-900">{{ item.actor }}</td>
+                  <td class="px-4 py-3 font-bold text-slate-900">{{ formatActor(item.actor) }}</td>
                   <td class="px-4 py-3 font-medium text-slate-800">{{ item.eventType }}</td>
                   <td class="px-4 py-3 text-slate-600 max-w-xs truncate">{{ item.function }}</td>
                   <td class="px-4 py-3 font-mono text-slate-500 text-[11px]">{{ item.ipAddress || '—' }}</td>
