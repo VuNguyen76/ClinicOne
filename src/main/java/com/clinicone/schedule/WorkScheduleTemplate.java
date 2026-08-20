@@ -135,6 +135,13 @@ public class WorkScheduleTemplate {
 
     public void setActive(boolean active) { this.active = active; }
 
+    public void setWeekdays(Collection<DayOfWeek> weekdays) {
+        this.weekdays.clear();
+        if (weekdays != null) {
+            this.weekdays.addAll(weekdays);
+        }
+    }
+
     @PrePersist
     void onCreate() {
         Instant now = Instant.now();

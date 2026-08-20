@@ -62,18 +62,45 @@ public class ScheduleTemplateService {
 
     @Transactional
     public void delete(UUID templateId) {
+        delete(templateId, null);
+    }
+
+    @Transactional
+    public void delete(UUID templateId, String weekday) {
         WorkScheduleTemplate template = templateRepository.findById(templateId)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "SCHEDULE_TEMPLATE_NOT_FOUND",
                         "Không tìm thấy lịch làm việc."));
+
+        if (weekday != null && !weekday.isBlank()) {
+            DayOfWeek dow = null;
+            try {
+                dow = DayOfWeek.valueOf(weekday.trim().toUpperCase());
+            } catch (IllegalArgumentException ignored) {
+            }
+            if (dow != null && template.getWeekdays().contains(dow)) {
+                if (template.getWeekdays().size() > 1) {
+                    Set<DayOfWeek> updatedWeekdays = new HashSet<>(template.getWeekdays());
+                    updatedWeekdays.remove(dow);
+                    template.setWeekdays(updatedWeekdays);
+                    templateRepository.save(template);
+
+                    List<GeneratedClinicSlot> slots = slotRepository.findByTemplateIdOrderByAppointmentDateAscStartTimeAsc(templateId);
+                    final DayOfWeek targetDow = dow;
+                    List<UUID> slotIdsToDelete = slots.stream()
+                            .filter(s -> s.getStatus() == GeneratedSlotStatus.OPEN && s.getAppointmentDate().getDayOfWeek() == targetDow)
+                            .map(GeneratedClinicSlot::getId)
+                            .toList();
+                    if (!slotIdsToDelete.isEmpty()) {
+                        slotRepository.deleteAllByIdIn(slotIdsToDelete);
+                    }
+                    return;
+                }
+            }
+        }
+
         template.setActive(false);
         templateRepository.save(template);
-        List<GeneratedClinicSlot> slots = slotRepository.findByTemplateIdOrderByAppointmentDateAscStartTimeAsc(templateId);
-        List<GeneratedClinicSlot> unbooked = slots.stream()
-                .filter(s -> s.getStatus() == GeneratedSlotStatus.OPEN)
-                .toList();
-        if (!unbooked.isEmpty()) {
-            slotRepository.deleteAll(unbooked);
-        }
+        slotRepository.deleteByTemplateIdAndStatus(templateId, GeneratedSlotStatus.OPEN);
     }
 
     private List<GeneratedClinicSlot> generate(WorkScheduleTemplate template, boolean idempotent) {
