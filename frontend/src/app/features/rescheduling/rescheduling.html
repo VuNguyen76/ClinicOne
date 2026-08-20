@@ -2,203 +2,147 @@
   <div class="grid gap-4">
     <!-- Alerts & Notices -->
     @if (error()) {
-      <div class="flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs font-medium text-rose-800 shadow-2xs" role="alert">
-        <div class="flex items-center gap-2">
-          <mat-icon class="!h-4 !w-4 !text-[18px] text-rose-600">error_outline</mat-icon>
-          <span>{{ error() }}</span>
-        </div>
-        <button type="button" class="erp-btn-icon !h-6 !w-6" (click)="error.set('')" title="Đóng thông báo">
-          <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">close</mat-icon>
-        </button>
+      <div class="flex items-center justify-between rounded-lg border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs text-rose-800" role="alert">
+        <span>{{ error() }}</span>
+        <button type="button" class="text-rose-500 hover:text-rose-700" (click)="error.set('')" title="Đóng">✕</button>
       </div>
     }
     @if (notice()) {
-      <div class="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-medium text-emerald-800 shadow-2xs" role="status">
-        <div class="flex items-center gap-2">
-          <mat-icon class="!h-4 !w-4 !text-[18px] text-emerald-600">check_circle</mat-icon>
-          <span>{{ notice() }}</span>
-        </div>
-        <button type="button" class="erp-btn-icon !h-6 !w-6" (click)="notice.set('')" title="Đóng thông báo">
-          <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">close</mat-icon>
-        </button>
+      <div class="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs text-emerald-800" role="status">
+        <span>{{ notice() }}</span>
+        <button type="button" class="text-emerald-500 hover:text-emerald-700" (click)="notice.set('')" title="Đóng">✕</button>
       </div>
     }
 
-    <!-- Clean Header Toolbar -->
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-white border border-slate-200 rounded-xl p-3 shadow-2xs">
+    <!-- Standard ERP Filter & Search Bar -->
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div class="flex items-center gap-3">
-        <div class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-teal-50 text-[#0e3d48] border border-teal-100">
-          <mat-icon class="!h-5 !w-5 !text-[20px]">event_repeat</mat-icon>
-        </div>
-        <div>
-          <h2 class="text-sm font-bold text-slate-900">Danh sách ca cần đổi lịch hẹn</h2>
-          <p class="text-[11px] text-slate-500">Tự động đề xuất khung giờ trống phù hợp chuyên khoa · 1 chạm để xác nhận</p>
-        </div>
-        <span class="ml-2 rounded-full bg-amber-100 text-amber-800 px-2.5 py-0.5 text-xs font-bold font-mono">
-          {{ pendingCasesCount() }} ca chờ xử lý
-        </span>
-      </div>
-
-      <div class="flex items-center gap-2">
-        <div class="relative w-64">
-          <mat-icon class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 !h-3.5 !w-3.5 !text-[16px] text-slate-400">search</mat-icon>
+        <div class="relative w-72">
           <input
             type="text"
-            class="w-full rounded-lg border border-slate-200 bg-slate-50/60 py-1.5 pl-8 pr-7 text-xs text-slate-800 placeholder-slate-400 outline-none focus:border-[#0e3d48] focus:bg-white"
-            placeholder="Tìm theo mã ca, chuyên khoa..."
+            class="w-full rounded-lg border border-slate-300 bg-white py-1.5 px-3 text-xs text-slate-800 placeholder-slate-400 outline-none focus:border-slate-800 focus:ring-1 focus:ring-slate-800"
+            placeholder="Tìm theo mã lịch, chuyên khoa, bác sĩ..."
             [value]="searchTerm()"
             (input)="searchTerm.set($any($event.target).value)"
           />
           @if (searchTerm()) {
-            <button type="button" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600" (click)="searchTerm.set('')">
-              <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">close</mat-icon>
-            </button>
+            <button type="button" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs" (click)="searchTerm.set('')">✕</button>
           }
         </div>
-        <button type="button" class="erp-btn-icon !h-8 !w-8 rounded-lg border border-slate-200 bg-white" (click)="loadCases()" [disabled]="loading()" title="Làm mới">
-          <mat-icon class="!h-4 !w-4 !text-[16px]">refresh</mat-icon>
-        </button>
+        <span class="text-xs text-slate-500 font-medium">
+          {{ pendingCasesCount() }} ca cần xử lý
+        </span>
       </div>
+
+      <button
+        type="button"
+        class="erp-btn-secondary !py-1.5 !px-3 text-xs"
+        (click)="loadCases()"
+        [disabled]="loading()"
+      >
+        Làm mới
+      </button>
     </div>
 
-    <!-- Main Workspace Content -->
+    <!-- Main DataGrid Table -->
     @if (loading()) {
-      <div class="grid min-h-48 place-items-center rounded-xl border border-slate-200 bg-white text-xs text-slate-500 shadow-2xs">
+      <div class="grid min-h-48 place-items-center rounded-lg border border-slate-200 bg-white text-xs text-slate-500">
         Đang tải danh sách lịch cần sắp xếp lại...
       </div>
     } @else if (cases().length === 0) {
-      <div class="rounded-xl border border-slate-200 bg-white p-12 text-center text-xs text-slate-500 shadow-2xs">
-        <mat-icon class="!h-10 !w-10 !text-[40px] text-emerald-500">event_available</mat-icon>
-        <p class="mt-2 text-sm font-semibold text-slate-800">Không có lịch nào cần sắp xếp lại</p>
-        <p class="mt-0.5 text-slate-400">Tất cả lịch khám hiện đang diễn ra bình thường.</p>
+      <div class="rounded-lg border border-slate-200 bg-white p-12 text-center text-xs text-slate-500">
+        <p class="text-sm font-semibold text-slate-800">Không có lịch nào cần sắp xếp lại</p>
+        <p class="mt-1 text-slate-400">Các lịch hẹn của phòng khám hiện đang hoạt động bình thường.</p>
       </div>
     } @else {
-      <!-- Ultra-Clean Direct Resolution Table -->
-      <div class="rounded-xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr class="border-b border-slate-200 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-600">
-                <th class="py-3 px-4 w-[160px]">Mã ca & Chuyên khoa</th>
-                <th class="py-3 px-4 w-[220px]">Lịch cũ bị gián đoạn</th>
-                <th class="py-3 px-4">Lý do</th>
-                <th class="py-3 px-4 w-[340px]">Khung giờ đang trống tương đương</th>
-                <th class="py-3 px-4 text-right w-[160px]">Thao tác</th>
+      <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
+        <table class="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr class="border-b border-slate-200 bg-slate-50 text-[11px] font-semibold text-slate-600">
+              <th class="py-2.5 px-3.5 w-32">MÃ LỊCH</th>
+              <th class="py-2.5 px-3.5 w-44">CHUYÊN KHOA</th>
+              <th class="py-2.5 px-3.5 w-48">LỊCH HẸN CŨ</th>
+              <th class="py-2.5 px-3.5">LÝ DO THAY ĐỔI</th>
+              <th class="py-2.5 px-3.5 w-80">Khung giờ đang trống tương đương</th>
+              <th class="py-2.5 px-3.5 text-right w-36">THAO TÁC</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            @for (item of filteredCases(); track item.id) {
+              <tr class="hover:bg-slate-50/70 transition" [class.bg-slate-50]="selectedCase()?.id === item.id">
+                <td class="py-3 px-3.5 align-middle font-mono font-semibold text-slate-900">
+                  {{ item.appointmentCode }}
+                </td>
+                <td class="py-3 px-3.5 align-middle font-medium text-slate-800">
+                  {{ item.specialty }}
+                </td>
+                <td class="py-3 px-3.5 align-middle">
+                  <div class="text-slate-900 font-medium">{{ item.oldDoctorName }}</div>
+                  <div class="text-[11px] text-slate-500 font-mono">{{ formatDate(item.oldAppointmentDate) }} {{ formatTime(item.oldStartTime) }}</div>
+                </td>
+                <td class="py-3 px-3.5 align-middle text-slate-600 text-xs">
+                  {{ item.reason }}
+                </td>
+                <td class="py-3 px-3.5 align-middle">
+                  @if (selectedCase()?.id === item.id) {
+                    @if (alternativesLoading()) {
+                      <span class="text-slate-400 text-xs italic">Đang tải...</span>
+                    } @else if (alternatives().length === 0) {
+                      <span class="text-slate-400 text-xs italic">Chưa có khung giờ thay thế</span>
+                    } @else {
+                      <select
+                        class="w-full rounded border border-slate-300 bg-white py-1.5 px-2.5 text-xs text-slate-800 outline-none focus:border-slate-800"
+                        (change)="onSlotDropdownChange($event)"
+                      >
+                        @for (slot of alternatives(); track slot.appointmentDate + slot.startTime) {
+                          <option [value]="$index" [selected]="isSlotSelected(slot)">
+                            {{ formatDate(slot.appointmentDate) }} {{ formatTime(slot.startTime) }} - {{ slot.doctorName }} ({{ slot.roomCode || 'Phòng khám' }})
+                          </option>
+                        }
+                      </select>
+                    }
+                  } @else {
+                    <button
+                      type="button"
+                      class="text-xs text-slate-700 underline hover:text-slate-900 cursor-pointer"
+                      (click)="selectCase(item)"
+                    >
+                      Chọn khung giờ trống
+                    </button>
+                  }
+                </td>
+                <td class="py-3 px-3.5 align-middle text-right">
+                  @if (selectedCase()?.id === item.id) {
+                    @if (canResolve()) {
+                      <form [formGroup]="form" (ngSubmit)="resolve()" class="inline-block">
+                        <button
+                          type="submit"
+                          class="erp-btn-primary !py-1.5 !px-3 text-xs whitespace-nowrap cursor-pointer"
+                          [disabled]="saving() || alternativesLoading() || form.invalid"
+                        >
+                          {{ saving() ? 'Đang lưu...' : 'Xác nhận đổi' }}
+                        </button>
+                      </form>
+                    } @else {
+                      <span class="text-[11px] text-slate-400">Chỉ Điều phối viên mới có thể xác nhận</span>
+                    }
+                  } @else {
+                    <button
+                      type="button"
+                      class="erp-btn-secondary !py-1 !px-2.5 text-xs cursor-pointer"
+                      (click)="selectCase(item)"
+                    >
+                      Chọn
+                    </button>
+                  }
+                </td>
               </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100">
-              @for (item of filteredCases(); track item.id) {
-                <tr
-                  class="transition hover:bg-slate-50/60"
-                  [class.bg-teal-50/30]="selectedCase()?.id === item.id"
-                >
-                  <!-- 1. Mã ca & Chuyên khoa -->
-                  <td class="py-3.5 px-4 align-top">
-                    <span class="font-mono font-bold text-slate-900 block">{{ item.appointmentCode }}</span>
-                    <span class="inline-block mt-1 rounded bg-sky-100 text-sky-800 text-[10px] font-semibold px-2 py-0.5">
-                      {{ item.specialty }}
-                    </span>
-                  </td>
-
-                  <!-- 2. Lịch cũ & Bác sĩ cũ -->
-                  <td class="py-3.5 px-4 align-top">
-                    <div class="flex items-center gap-2">
-                      <img
-                        [src]="getDoctorAvatar(item.oldDoctorName)"
-                        (error)="handleAvatarError($event, item.oldDoctorName)"
-                        [alt]="item.oldDoctorName"
-                        class="h-8 w-8 rounded-full object-cover border border-amber-200 shrink-0"
-                      />
-                      <div>
-                        <p class="font-semibold text-slate-900">{{ item.oldDoctorName }}</p>
-                        <p class="font-mono text-[11px] text-amber-800 font-medium mt-0.5">
-                          {{ formatDate(item.oldAppointmentDate) }} lúc {{ formatTime(item.oldStartTime) }}
-                        </p>
-                      </div>
-                    </div>
-                  </td>
-
-                  <!-- 3. Lý do -->
-                  <td class="py-3.5 px-4 align-top">
-                    <p class="text-xs text-slate-600 leading-relaxed bg-amber-50/70 border border-amber-200/80 rounded-lg p-2 text-[11px]">
-                      {{ item.reason }}
-                    </p>
-                  </td>
-
-                  <!-- 4. Khung giờ đề xuất & Đang trống -->
-                  <td class="py-3.5 px-4 align-top">
-                    @if (selectedCase()?.id === item.id) {
-                      @if (alternativesLoading()) {
-                        <span class="text-slate-400 text-xs italic">Đang tải khung giờ...</span>
-                      } @else if (alternatives().length === 0) {
-                        <span class="text-slate-400 text-xs italic">Chưa có khung giờ thay thế tự động</span>
-                      } @else {
-                        <div class="space-y-1.5">
-                          <select
-                            class="w-full rounded-lg border border-teal-600 bg-teal-50/40 py-2 px-2.5 text-xs font-semibold text-[#0e3d48] outline-none focus:ring-1 focus:ring-[#0e3d48]"
-                            (change)="onSlotDropdownChange($event)"
-                          >
-                            @for (slot of alternatives(); track slot.appointmentDate + slot.startTime) {
-                              <option [value]="$index" [selected]="isSlotSelected(slot)">
-                                📅 {{ formatDate(slot.appointmentDate) }} · {{ formatTime(slot.startTime) }} - {{ slot.doctorName }} ({{ slot.roomCode || 'Phòng khám' }})
-                              </option>
-                            }
-                          </select>
-                          @if (selectedSlot(); as sel) {
-                            <div class="text-[10px] text-emerald-700 font-medium flex items-center gap-1">
-                              <mat-icon class="!h-3 !w-3 !text-[13px]">check</mat-icon>
-                              <span>Đã chọn: {{ formatDate(sel.appointmentDate) }} lúc {{ formatTime(sel.startTime) }} ({{ sel.doctorName }})</span>
-                            </div>
-                          }
-                        </div>
-                      }
-                    } @else {
-                      <button
-                        type="button"
-                        class="text-xs text-[#0e3d48] font-semibold hover:underline cursor-pointer flex items-center gap-1"
-                        (click)="selectCase(item)"
-                      >
-                        <mat-icon class="!h-4 !w-4 !text-[16px]">schedule</mat-icon>
-                        <span>Xem khung giờ trống</span>
-                      </button>
-                    }
-                  </td>
-
-                  <!-- 5. Thao tác -->
-                  <td class="py-3.5 px-4 align-top text-right">
-                    @if (selectedCase()?.id === item.id) {
-                      @if (canResolve()) {
-                        <form [formGroup]="form" (ngSubmit)="resolve()" class="inline-block">
-                          <button
-                            type="submit"
-                            class="erp-btn-primary !py-1.5 !px-3.5 !text-xs !font-bold shadow-xs whitespace-nowrap cursor-pointer"
-                            [disabled]="saving() || alternativesLoading() || form.invalid"
-                          >
-                            <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">check</mat-icon>
-                            <span>{{ saving() ? 'Đang lưu...' : 'Đổi lịch ngay' }}</span>
-                          </button>
-                        </form>
-                      } @else {
-                        <span class="text-[10px] text-slate-400 block">Chỉ Điều phối viên mới có thể xác nhận</span>
-                      }
-                    } @else {
-                      <button
-                        type="button"
-                        class="rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
-                        (click)="selectCase(item)"
-                      >
-                        Chọn xử lý
-                      </button>
-                    }
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
+            }
+          </tbody>
+        </table>
 
         @if (!canResolve()) {
-          <div class="border-t border-slate-100 p-3 bg-slate-50 text-xs text-slate-500 text-center">
+          <div class="border-t border-slate-100 p-2.5 bg-slate-50 text-xs text-slate-500 text-center">
             Chỉ Điều phối viên mới có thể xác nhận sắp xếp lại lịch khám.
           </div>
         }

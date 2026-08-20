@@ -81,12 +81,10 @@ export class Rescheduling implements OnInit {
   }
 
   protected readonly selectedSlot = signal<AvailableReplacementSlot | null>(null);
-  protected readonly showManualForm = signal(false);
 
   protected selectCase(item: RescheduleCaseResponse): void {
     this.selectedCase.set(item);
     this.selectedSlot.set(null);
-    this.showManualForm.set(false);
     this.error.set('');
     this.notice.set('');
     this.form.reset({ appointmentDate: '', startTime: '', doctorName: '', doctorId: '' });
@@ -131,29 +129,6 @@ export class Rescheduling implements OnInit {
     const sel = this.selectedSlot();
     if (!sel) return false;
     return sel.appointmentDate === slot.appointmentDate && sel.startTime === slot.startTime && sel.doctorId === slot.doctorId;
-  }
-
-  protected isFemaleDoctor(doctorName: string): boolean {
-    const lower = (doctorName || '').toLowerCase();
-    return lower.includes('hà') || lower.includes('nga') || lower.includes('lan') || lower.includes('thảo') || lower.includes('mai');
-  }
-
-  protected getDoctorSvgAvatar(doctorName: string): string {
-    if (this.isFemaleDoctor(doctorName)) {
-      return 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><circle cx="60" cy="60" r="60" fill="%23e0f2fe"/><circle cx="60" cy="46" r="22" fill="%23fed7aa"/><path d="M38 42c0-12 10-20 22-20s22 8 22 20c0 4-2 10-4 12-2-8-8-12-18-12s-16 4-18 12c-2-2-4-8-4-12z" fill="%23334155"/><path d="M60 72c-20 0-36 14-36 34v14h72v-14c0-20-16-34-36-34z" fill="%23ffffff"/><path d="M48 72l12 24 12-24" fill="%230284c7"/><path d="M42 86c0 10 8 18 18 18s18-8 18-18" fill="none" stroke="%23334155" stroke-width="3" stroke-linecap="round"/><circle cx="60" cy="104" r="3" fill="%230284c7"/><path d="M50 46c2 1 6 1 8 0m4 0c2 1 6 1 8 0" fill="none" stroke="%23334155" stroke-width="1.5" stroke-linecap="round"/><path d="M56 56c2 2 6 2 8 0" fill="none" stroke="%23f43f5e" stroke-width="2" stroke-linecap="round"/></svg>';
-    }
-    return 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><circle cx="60" cy="60" r="60" fill="%23ccfbf1"/><circle cx="60" cy="46" r="22" fill="%23fde047" fill-opacity="0.6"/><path d="M38 40c0-14 10-22 22-22s22 8 22 22v4c-6-4-12-6-22-6s-16 2-22 6v-4z" fill="%231e293b"/><path d="M60 72c-20 0-36 14-36 34v14h72v-14c0-20-16-34-36-34z" fill="%23ffffff"/><path d="M48 72l12 24 12-24" fill="%230f766e"/><path d="M42 86c0 10 8 18 18 18s18-8 18-18" fill="none" stroke="%23334155" stroke-width="3" stroke-linecap="round"/><circle cx="60" cy="104" r="3" fill="%230f766e"/><path d="M50 46c2 1 6 1 8 0m4 0c2 1 6 1 8 0" fill="none" stroke="%23334155" stroke-width="1.5" stroke-linecap="round"/><path d="M56 56c2 2 6 2 8 0" fill="none" stroke="%23e11d48" stroke-width="1.5" stroke-linecap="round"/></svg>';
-  }
-
-  protected handleAvatarError(event: Event, doctorName: string): void {
-    const target = event.target as HTMLImageElement;
-    if (target) {
-      target.src = this.getDoctorSvgAvatar(doctorName);
-    }
-  }
-
-  protected getDoctorAvatar(doctorName: string): string {
-    return this.getDoctorSvgAvatar(doctorName);
   }
 
   protected resolve(): void {
