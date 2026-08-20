@@ -155,7 +155,9 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
               and a.appointmentDate = :appointmentDate
               and (lower(a.appointmentCode) like lower(concat('%', :query, '%'))
                 or p.phone like concat('%', :query, '%')
-                or profile.phone like concat('%', :query, '%'))
+                or profile.phone like concat('%', :query, '%')
+                or lower(p.fullName) like lower(concat('%', :query, '%'))
+                or lower(profile.fullName) like lower(concat('%', :query, '%')))
             order by a.startTime asc
             """)
     List<Appointment> findReceptionCandidates(@Param("query") String query,
@@ -170,7 +172,9 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
               and a.appointmentDate = :appointmentDate
               and (lower(a.appointmentCode) like lower(concat('%', :query, '%'))
                 or p.phone like concat('%', :query, '%')
-                or profile.phone like concat('%', :query, '%'))
+                or profile.phone like concat('%', :query, '%')
+                or lower(p.fullName) like lower(concat('%', :query, '%'))
+                or lower(profile.fullName) like lower(concat('%', :query, '%')))
             order by a.startTime asc
             """)
     List<Appointment> findReceptionCandidatesByStatuses(@Param("query") String query,

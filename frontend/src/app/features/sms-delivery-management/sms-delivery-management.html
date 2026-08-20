@@ -73,7 +73,7 @@
                 <tr class="transition hover:bg-slate-50/70">
                   <td class="px-4 py-3 font-mono text-slate-600 text-[11px]">{{ item.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
                   <td class="px-4 py-3 font-semibold text-slate-900 font-mono">{{ item.phone }}</td>
-                  <td class="px-4 py-3 font-mono text-slate-700 text-[11px]">{{ item.eventKey }}</td>
+                  <td class="px-4 py-3 text-slate-800 font-medium text-[11px]">{{ eventTitle(item.eventKey) }}</td>
                   <td class="px-4 py-3">
                     @if (item.status === 'SENT') {
                       <span class="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[11px] font-medium text-emerald-800">
@@ -92,16 +92,28 @@
                   <td class="px-4 py-3 text-center font-mono font-bold text-slate-700">{{ item.attempts }}</td>
                   <td class="px-4 py-3 max-w-xs truncate text-slate-500 font-mono text-[11px]">{{ item.lastError || '—' }}</td>
                   <td class="px-4 py-3 text-right">
-                    <button
-                      type="button"
-                      class="erp-btn-icon-accent"
-                      title="Gửi lại tin nhắn này"
-                      [attr.aria-label]="'Gửi lại SMS cho ' + item.phone"
-                      [disabled]="item.status === 'SENT'"
-                      (click)="retry(item)"
-                    >
-                      <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">send</mat-icon>
-                    </button>
+                    <div class="flex items-center justify-end gap-1.5">
+                      <button
+                        type="button"
+                        class="erp-btn-icon"
+                        data-testid="preview-sms-btn"
+                        title="Xem nội dung tin nhắn"
+                        [attr.aria-label]="'Xem nội dung tin nhắn cho ' + item.phone"
+                        (click)="showPreviewModal(item)"
+                      >
+                        <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">visibility</mat-icon>
+                      </button>
+                      <button
+                        type="button"
+                        class="erp-btn-icon-accent"
+                        title="Gửi lại tin nhắn này"
+                        [attr.aria-label]="'Gửi lại SMS cho ' + item.phone"
+                        [disabled]="item.status === 'SENT'"
+                        (click)="retry(item)"
+                      >
+                        <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">send</mat-icon>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               } @empty {
@@ -115,6 +127,96 @@
           </table>
         </div>
       </section>
+    }
+
+    <!-- SMS Message Content Preview Modal -->
+    @if (selectedMessage(); as msg) {
+      <div class="erp-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="sms-preview-dialog-title" (click)="closePreviewModal()">
+        <section class="erp-modal-container max-w-lg" (click)="$event.stopPropagation()">
+          <div class="erp-modal-header">
+            <div class="flex items-center gap-2.5">
+              <div class="grid h-8 w-8 place-items-center rounded-lg bg-sky-100 text-sky-700">
+                <mat-icon class="!h-4 !w-4 !text-[18px]">sms</mat-icon>
+              </div>
+              <div>
+                <p class="text-[10px] font-bold uppercase tracking-wider text-[#0284c7]">Chi tiết tin nhắn</p>
+                <h2 id="sms-preview-dialog-title" class="text-sm font-bold text-slate-900">Nội dung tin nhắn SMS</h2>
+              </div>
+            </div>
+            <button type="button" class="erp-btn-icon" data-testid="close-preview-btn" aria-label="Đóng" (click)="closePreviewModal()">
+              <mat-icon class="!h-4 !w-4 !text-[18px]">close</mat-icon>
+            </button>
+          </div>
+
+          <div class="erp-modal-body grid gap-4">
+            <!-- Metadata Cards -->
+            <div class="grid grid-cols-2 gap-3 rounded-xl border border-slate-100 bg-slate-50/70 p-3 text-xs">
+              <div>
+                <span class="text-[10px] font-semibold uppercase text-slate-400">Người nhận</span>
+                <p class="font-mono font-bold text-slate-900 mt-0.5">{{ msg.phone }}</p>
+              </div>
+              <div>
+                <span class="text-[10px] font-semibold uppercase text-slate-400">Loại sự kiện</span>
+                <p class="font-semibold text-slate-800 mt-0.5">{{ eventTitle(msg.eventKey) }}</p>
+              </div>
+              <div>
+                <span class="text-[10px] font-semibold uppercase text-slate-400">Thời gian tạo</span>
+                <p class="font-mono text-slate-600 mt-0.5">{{ msg.createdAt | date:'dd/MM/yyyy HH:mm:ss' }}</p>
+              </div>
+              <div>
+                <span class="text-[10px] font-semibold uppercase text-slate-400">Trạng thái</span>
+                <p class="mt-0.5">
+                  @if (msg.status === 'SENT') {
+                    <span class="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-800">
+                      Đã gửi thành công
+                    </span>
+                  } @else if (msg.status === 'FAILED') {
+                    <span class="inline-flex items-center rounded-full bg-rose-50 border border-rose-200 px-2.5 py-0.5 text-[10px] font-semibold text-rose-800">
+                      Gửi thất bại ({{ msg.attempts }} lần)
+                    </span>
+                  } @else {
+                    <span class="inline-flex items-center rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-[10px] font-semibold text-amber-800">
+                      {{ statusLabel(msg.status) }}
+                    </span>
+                  }
+                </p>
+              </div>
+            </div>
+
+            <!-- SMS Message Body Bubble -->
+            <div>
+              <label class="erp-label mb-1.5 block">Nội dung tin nhắn</label>
+              <div data-testid="sms-preview-body" class="rounded-2xl border border-sky-200 bg-sky-50/50 p-4 text-xs leading-relaxed text-slate-800 shadow-2xs font-sans whitespace-pre-wrap">
+                {{ msg.message || 'Không có nội dung tin nhắn lưu trữ.' }}
+              </div>
+            </div>
+
+            <!-- Error details if any -->
+            @if (msg.lastError) {
+              <div class="rounded-xl border border-rose-200 bg-rose-50/70 p-3 text-xs text-rose-700">
+                <span class="font-semibold block mb-0.5">Lỗi ghi nhận:</span>
+                <span class="font-mono text-[11px]">{{ msg.lastError }}</span>
+              </div>
+            }
+          </div>
+
+          <div class="erp-modal-footer flex items-center justify-between">
+            <button type="button" class="erp-btn-secondary" (click)="closePreviewModal()">
+              Đóng
+            </button>
+            @if (msg.status !== 'SENT') {
+              <button
+                type="button"
+                class="erp-btn-primary"
+                (click)="retry(msg); closePreviewModal()"
+              >
+                <mat-icon class="!h-4 !w-4 !text-[18px]">send</mat-icon>
+                <span>Gửi lại tin nhắn</span>
+              </button>
+            }
+          </div>
+        </section>
+      </div>
     }
   </div>
 </app-staff-workspace-shell>

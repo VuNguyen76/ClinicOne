@@ -542,6 +542,7 @@ export interface SmsDeliveryResponse {
   sentAt: string | null;
   lastError: string | null;
   createdAt: string;
+  message?: string;
 }
 
 export interface BusinessLogIntegrityResult {
@@ -560,6 +561,7 @@ export interface BusinessLogResponse {
   actor: string;
   reason: string | null;
   occurredAt: string;
+  hash?: string;
 }
 
 export interface BusinessLogPageResponse {
@@ -1387,10 +1389,20 @@ export class AuthApiService {
     return this.http.get<AccessAuditResponse[]>('/api/v1/admin/access-audit', { params });
   }
 
-  getBusinessLogPage(entityType: string, entityId: string, page = 0, size = 50): Observable<BusinessLogPageResponse> {
+  searchBusinessLogs(params: { entityType?: string; identifier?: string; page?: number; size?: number } = {}): Observable<BusinessLogPageResponse> {
+    const queryParams: Record<string, string | number> = {
+      page: params.page ?? 0,
+      size: params.size ?? 50,
+    };
+    if (params.entityType) queryParams['entityType'] = params.entityType;
+    if (params.identifier) queryParams['identifier'] = params.identifier;
     return this.http.get<BusinessLogPageResponse>('/api/v1/admin/audit/search', {
-      params: { entityType, entityId, page, size },
+      params: queryParams,
     });
+  }
+
+  getBusinessLogPage(entityType?: string, entityId?: string, page = 0, size = 50): Observable<BusinessLogPageResponse> {
+    return this.searchBusinessLogs({ entityType, identifier: entityId, page, size });
   }
 
   updateReceptionPatientProfile(id: string, request: ReceptionUpdatePatientProfileRequest): Observable<ReceptionPatientProfile> {

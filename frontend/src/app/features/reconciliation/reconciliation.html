@@ -86,12 +86,12 @@
                 (click)="select(item)"
               >
                 <div class="flex items-center justify-between gap-2">
-                  <span class="font-mono text-xs font-bold text-slate-900">{{ item.incidentCode }}</span>
+                  <span class="font-mono text-xs font-bold text-slate-900">{{ formatIncidentCode(item.incidentCode) }}</span>
                   <span class="inline-flex items-center rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
                     Đang mở
                   </span>
                 </div>
-                <p class="text-xs font-medium text-slate-800">{{ item.entityType }} · {{ item.reason }}</p>
+                <p class="text-xs font-medium text-slate-800">{{ formatEntityType(item.entityType) }} · {{ cleanReason(item.reason) }}</p>
                 <p class="text-[11px] text-slate-400">Phụ trách: {{ item.assignee || 'Chưa gán' }}</p>
               </button>
             } @empty {
@@ -116,10 +116,10 @@
             <form class="space-y-4 p-6" (ngSubmit)="$event.preventDefault(); close()">
               <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-4 text-xs">
                 <div class="flex items-center justify-between">
-                  <span class="font-mono font-bold text-slate-800">{{ item.incidentCode }}</span>
-                  <span class="text-slate-500">{{ item.entityType }}</span>
+                  <span class="font-mono font-bold text-slate-800">{{ formatIncidentCode(item.incidentCode) }}</span>
+                  <span class="inline-flex items-center rounded-full bg-slate-200/70 px-2 py-0.5 text-[10px] font-medium text-slate-700">{{ formatEntityType(item.entityType) }}</span>
                 </div>
-                <p class="mt-1.5 text-slate-700">{{ item.reason }}</p>
+                <p class="mt-1.5 text-slate-700 leading-relaxed">{{ cleanReason(item.reason) }}</p>
               </div>
 
               <label class="grid gap-1">

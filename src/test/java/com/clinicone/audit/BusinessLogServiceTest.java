@@ -1,11 +1,19 @@
 package com.clinicone.audit;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import com.clinicone.appointment.Appointment;
+import com.clinicone.appointment.AppointmentRepository;
 
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
 
 class BusinessLogServiceTest {
@@ -76,5 +84,84 @@ class BusinessLogServiceTest {
         assertThatThrownBy(() -> service.page("APPOINTMENT", UUID.randomUUID(), 0, 101))
                 .hasMessageContaining("1 đến 100");
         verifyNoInteractions(repository);
+    }
+
+    @Test
+    void searchRecentLogsWithoutIdentifierQueriesAllDescending() {
+        PageRequest pageable = PageRequest.of(0, 50);
+        when(repository.findAllByOrderByOccurredAtDescIdDesc(pageable))
+                .thenReturn(new PageImpl<>(List.of()));
+
+        BusinessLogPageResponse response = service.search(null, null, 0, 50);
+
+        assertThat(response.items()).isEmpty();
+        verify(repository).findAllByOrderByOccurredAtDescIdDesc(pageable);
+    }
+
+    @Test
+    void searchWithEntityTypeOnlyQueriesByEntityTypeDescending() {
+        PageRequest pageable = PageRequest.of(0, 50);
+        when(repository.findByEntityTypeOrderByOccurredAtDescIdDesc("APPOINTMENT", pageable))
+                .thenReturn(new PageImpl<>(List.of()));
+
+        BusinessLogPageResponse response = service.search("APPOINTMENT", null, 0, 50);
+
+        assertThat(response.items()).isEmpty();
+        verify(repository).findByEntityTypeOrderByOccurredAtDescIdDesc("APPOINTMENT", pageable);
+    }
+
+    @Test
+    void searchWithUUIDQueriesByEntityId() {
+        UUID entityId = UUID.randomUUID();
+        PageRequest pageable = PageRequest.of(0, 50);
+        when(repository.findByEntityIdOrderByOccurredAtDescIdDesc(entityId, pageable))
+                .thenReturn(new PageImpl<>(List.of()));
+
+        BusinessLogPageResponse response = service.search(null, entityId.toString(), 0, 50);
+
+        assertThat(response.items()).isEmpty();
+        verify(repository).findByEntityIdOrderByOccurredAtDescIdDesc(entityId, pageable);
+    }
+
+    @Test
+    void searchWithAppointmentCodeResolvesAppointmentUUID() {
+        AppointmentRepository appointmentRepository = mock(AppointmentRepository.class);
+        BusinessLogService searchService = BusinessLogService.builder()
+                .repository(repository)
+                .appointmentRepository(appointmentRepository)
+                .build();
+
+        UUID appointmentId = UUID.randomUUID();
+        Appointment appointment = mock(Appointment.class);
+        when(appointment.getId()).thenReturn(appointmentId);
+        when(appointmentRepository.findByAppointmentCode("CL-20260820-TQ01"))
+                .thenReturn(Optional.of(appointment));
+
+        PageRequest pageable = PageRequest.of(0, 50);
+        when(repository.findByEntityTypeAndEntityIdOrderByOccurredAtDescIdDesc("APPOINTMENT", appointmentId, pageable))
+                .thenReturn(new PageImpl<>(List.of()));
+
+        BusinessLogPageResponse response = searchService.search(null, "CL-20260820-TQ01", 0, 50);
+
+        assertThat(response.items()).isEmpty();
+        verify(repository).findByEntityTypeAndEntityIdOrderByOccurredAtDescIdDesc("APPOINTMENT", appointmentId, pageable);
+    }
+
+    @Test
+    void searchWithUnknownCodeReturnsEmptyPageWithoutThrowing() {
+        AppointmentRepository appointmentRepository = mock(AppointmentRepository.class);
+        BusinessLogService searchService = BusinessLogService.builder()
+                .repository(repository)
+                .appointmentRepository(appointmentRepository)
+                .build();
+
+        when(appointmentRepository.findByAppointmentCode("CL-UNKNOWN"))
+                .thenReturn(Optional.empty());
+
+        BusinessLogPageResponse response = searchService.search(null, "CL-UNKNOWN", 0, 50);
+
+        assertThat(response.items()).isEmpty();
+        assertThat(response.totalElements()).isEqualTo(0);
+        verify(repository, never()).findByEntityIdOrderByOccurredAtDescIdDesc(any(), any());
     }
 }

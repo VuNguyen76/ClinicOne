@@ -37,11 +37,13 @@ public class BusinessLogController {
     }
 
     @GetMapping("/search")
-    public BusinessLogPageResponse search(@RequestParam String entityType,
-                                          @RequestParam UUID entityId,
+    public BusinessLogPageResponse search(@RequestParam(required = false) String entityType,
+                                          @RequestParam(required = false) String identifier,
+                                          @RequestParam(required = false) String entityId,
                                           @RequestParam(defaultValue = "0") int page,
                                           @RequestParam(defaultValue = "50") int size) {
-        return service.page(entityType, entityId, page, size);
+        String effectiveIdentifier = (identifier != null && !identifier.isBlank()) ? identifier : entityId;
+        return service.search(entityType, effectiveIdentifier, page, size);
     }
 
     @PostMapping("/integrity-check")
