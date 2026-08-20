@@ -50,6 +50,7 @@ describe('Rescheduling', () => {
     component.form.setValue({
       appointmentDate: '2026-08-12', startTime: '09:00', doctorName: 'Bác sĩ Bình', doctorId: 'doctor-2',
     });
+    fixture.detectChanges();
     (fixture.nativeElement.querySelector('form button[type="submit"]') as HTMLButtonElement).click();
 
     const request = http.expectOne('/api/v1/admin/rescheduling/case-1/resolve');
