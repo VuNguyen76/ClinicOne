@@ -118,6 +118,15 @@ export class Rescheduling implements OnInit {
     this.error.set('');
   }
 
+  protected onSlotDropdownChange(event: Event): void {
+    const target = event.target as HTMLSelectElement;
+    const idx = Number(target.value);
+    const slots = this.alternatives();
+    if (slots[idx]) {
+      this.chooseAlternative(slots[idx]);
+    }
+  }
+
   protected isSlotSelected(slot: AvailableReplacementSlot): boolean {
     const sel = this.selectedSlot();
     if (!sel) return false;
