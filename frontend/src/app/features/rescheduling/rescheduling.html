@@ -1,5 +1,5 @@
 <app-staff-workspace-shell moduleTitle="Vận hành" pageTitle="Sắp xếp lại lịch">
-  <div class="grid gap-6">
+  <div class="grid gap-3.5">
     <!-- Alerts & Notices -->
     @if (error()) {
       <div class="flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-medium text-rose-800 shadow-xs" role="alert">
@@ -24,216 +24,314 @@
       </div>
     }
 
-    <!-- 1. Top 3 Metric Cards -->
-    <div class="grid gap-5 sm:grid-cols-3">
-      <!-- Card 1: Total Cases -->
-      <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs flex items-center gap-4">
-        <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#ecfdf5] text-[#059669]">
-          <mat-icon class="!h-6 !w-6 !text-[24px]">event_repeat</mat-icon>
+    <!-- Top 3 Metric Cards (Compact) -->
+    <div class="grid gap-3 sm:grid-cols-3">
+      <div class="rounded-xl border border-slate-200 bg-white p-3.5 shadow-2xs flex items-center gap-3.5">
+        <div class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-50 text-amber-600 border border-amber-100">
+          <mat-icon class="!h-5 !w-5 !text-[20px]">event_repeat</mat-icon>
         </div>
         <div>
-          <p class="text-xs font-semibold text-slate-500">Tổng số Lịch cần đổi</p>
-          <p class="text-2xl font-bold text-slate-900 mt-0.5">{{ totalCasesCount() }}</p>
+          <p class="text-[11px] font-semibold text-slate-500">Lịch cần đổi</p>
+          <p class="text-xl font-bold text-slate-900 leading-tight">{{ totalCasesCount() }}</p>
         </div>
       </div>
 
-      <!-- Card 2: Pending Cases -->
-      <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs flex items-center gap-4">
-        <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#eff6ff] text-[#2563eb]">
-          <mat-icon class="!h-6 !w-6 !text-[24px]">pending_actions</mat-icon>
+      <div class="rounded-xl border border-slate-200 bg-white p-3.5 shadow-2xs flex items-center gap-3.5">
+        <div class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-sky-50 text-sky-600 border border-sky-100">
+          <mat-icon class="!h-5 !w-5 !text-[20px]">pending_actions</mat-icon>
         </div>
         <div>
-          <p class="text-xs font-semibold text-slate-500">Đang chờ xử lý</p>
-          <p class="text-2xl font-bold text-slate-900 mt-0.5">{{ pendingCasesCount() }}</p>
+          <p class="text-[11px] font-semibold text-slate-500">Đang chờ xử lý</p>
+          <p class="text-xl font-bold text-slate-900 leading-tight">{{ pendingCasesCount() }}</p>
         </div>
       </div>
 
-      <!-- Card 3: Resolved Cases -->
-      <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs flex items-center gap-4">
-        <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#fffbeb] text-[#d97706]">
-          <mat-icon class="!h-6 !w-6 !text-[24px]">check_circle_outline</mat-icon>
+      <div class="rounded-xl border border-slate-200 bg-white p-3.5 shadow-2xs flex items-center gap-3.5">
+        <div class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100">
+          <mat-icon class="!h-5 !w-5 !text-[20px]">check_circle_outline</mat-icon>
         </div>
         <div>
-          <p class="text-xs font-semibold text-slate-500">Đã đổi lịch xong</p>
-          <p class="text-2xl font-bold text-slate-900 mt-0.5">{{ resolvedCasesCount() }}</p>
+          <p class="text-[11px] font-semibold text-slate-500">Đã đổi lịch xong</p>
+          <p class="text-xl font-bold text-slate-900 leading-tight">{{ resolvedCasesCount() }}</p>
         </div>
       </div>
     </div>
 
-    <!-- 2. Search Bar + Refresh Header -->
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div class="relative w-full max-w-sm">
-        <mat-icon class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 !h-4 !w-4 !text-[18px] text-slate-400">search</mat-icon>
-        <input
-          type="text"
-          class="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-8 text-xs text-slate-800 placeholder-slate-400 outline-none transition focus:border-[#0e3d48] focus:ring-1 focus:ring-[#0e3d48] shadow-2xs"
-          placeholder="Tìm kiếm theo mã lịch, chuyên khoa, bác sĩ..."
-          [value]="searchTerm()"
-          (input)="searchTerm.set($any($event.target).value)"
-        />
-        @if (searchTerm()) {
-          <button
-            type="button"
-            class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-            (click)="searchTerm.set('')"
-          >
-            <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">close</mat-icon>
-          </button>
-        }
-      </div>
-
-      <button
-        type="button"
-        class="erp-btn-icon !h-10 !w-10 rounded-xl border border-slate-200 bg-white shadow-2xs"
-        (click)="loadCases()"
-        [disabled]="loading()"
-        title="Làm mới dữ liệu"
-      >
-        <mat-icon class="!h-4 !w-4 !text-[18px]">refresh</mat-icon>
-      </button>
-    </div>
-
-    <!-- 3. Main DataGrid Table & Detail Split Area -->
+    <!-- Main Workspace Split Area -->
     @if (loading()) {
-      <div class="grid min-h-64 place-items-center rounded-2xl border border-slate-100 bg-white text-xs text-slate-500 shadow-xs">
+      <div class="grid min-h-64 place-items-center rounded-xl border border-slate-200 bg-white text-xs text-slate-500 shadow-2xs">
         Đang tải danh sách lịch cần sắp xếp lại...
       </div>
     } @else if (cases().length === 0) {
-      <div class="rounded-2xl border border-slate-100 bg-white p-12 text-center text-xs text-slate-500 shadow-xs">
-        <div>
-          <mat-icon class="!h-10 !w-10 !text-[40px] text-emerald-500">event_available</mat-icon>
-          <p class="mt-3 text-sm font-semibold text-slate-800">Không có lịch nào cần sắp xếp lại</p>
-          <p class="mt-1 text-slate-400">Các lịch hẹn của phòng khám hiện đang hoạt động bình thường.</p>
-        </div>
+      <div class="rounded-xl border border-slate-200 bg-white p-12 text-center text-xs text-slate-500 shadow-2xs">
+        <mat-icon class="!h-10 !w-10 !text-[40px] text-emerald-500">event_available</mat-icon>
+        <p class="mt-3 text-sm font-semibold text-slate-800">Không có lịch nào cần sắp xếp lại</p>
+        <p class="mt-1 text-slate-400">Các lịch hẹn của phòng khám hiện đang hoạt động bình thường.</p>
       </div>
     } @else {
-      <div class="grid gap-5 lg:grid-cols-[380px_minmax(0,1fr)]">
-        <!-- Left: Case List -->
-        <aside class="rounded-2xl border border-slate-100 bg-white shadow-xs overflow-hidden h-fit">
-          <div class="border-b border-slate-100 px-4 py-3 bg-slate-50/50 flex items-center justify-between">
-            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-800">Hàng chờ xử lý</h3>
-            <span class="rounded-full bg-slate-200/70 px-2 py-0.5 font-mono text-[10px] font-bold text-slate-700">
-              {{ filteredCases().length }} lịch
+      <div class="grid gap-4 lg:grid-cols-[340px_minmax(0,1fr)]">
+        <!-- Left: Case List Queue -->
+        <aside class="rounded-xl border border-slate-200 bg-white shadow-2xs overflow-hidden h-fit">
+          <div class="border-b border-slate-100 px-3.5 py-2.5 bg-slate-50/80 flex items-center justify-between">
+            <h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-700">Hàng chờ đổi lịch</h3>
+            <span class="rounded-full bg-amber-100 px-2 py-0.5 font-mono text-[10px] font-bold text-amber-800">
+              {{ filteredCases().length }} ca
             </span>
           </div>
 
-          <div class="divide-y divide-slate-50 max-h-[600px] overflow-y-auto">
+          <!-- Search in Queue -->
+          <div class="p-2.5 border-b border-slate-100 bg-white">
+            <div class="relative">
+              <mat-icon class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 !h-3.5 !w-3.5 !text-[16px] text-slate-400">search</mat-icon>
+              <input
+                type="text"
+                class="w-full rounded-lg border border-slate-200 bg-slate-50/50 py-1.5 pl-8 pr-7 text-xs text-slate-800 placeholder-slate-400 outline-none focus:border-[#0e3d48] focus:bg-white"
+                placeholder="Tìm mã lịch, chuyên khoa..."
+                [value]="searchTerm()"
+                (input)="searchTerm.set($any($event.target).value)"
+              />
+            </div>
+          </div>
+
+          <div class="divide-y divide-slate-100 max-h-[600px] overflow-y-auto">
             @for (item of filteredCases(); track item.id) {
               <button
                 type="button"
-                class="w-full p-4 text-left transition hover:bg-slate-50/80 cursor-pointer"
-                [class.bg-sky-50/70]="selectedCase()?.id === item.id"
+                class="w-full p-3 text-left transition hover:bg-slate-50/80 cursor-pointer group"
+                [class.bg-teal-50/60]="selectedCase()?.id === item.id"
                 [class.border-l-4]="selectedCase()?.id === item.id"
                 [class.border-l-[#0e3d48]]="selectedCase()?.id === item.id"
                 (click)="selectCase(item)"
               >
-                <div class="flex items-start justify-between gap-2">
-                  <span class="font-mono text-xs font-bold text-slate-900">{{ item.appointmentCode }}</span>
-                  <span class="inline-flex items-center rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
-                    Cần đổi lịch
-                  </span>
+                <div class="flex items-center gap-2.5">
+                  <img
+                    [src]="getDoctorAvatar(item.oldDoctorName)"
+                    (error)="handleAvatarError($event, item.oldDoctorName)"
+                    [alt]="item.oldDoctorName"
+                    class="h-9 w-9 rounded-full object-cover border border-slate-200 shrink-0 shadow-2xs"
+                  />
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center justify-between gap-1">
+                      <span class="font-mono text-xs font-bold text-slate-900">{{ item.appointmentCode }}</span>
+                      <span class="inline-flex items-center rounded px-1.5 py-0.5 text-[9px] font-bold bg-amber-100 text-amber-800">
+                        Cần đổi
+                      </span>
+                    </div>
+                    <p class="text-xs font-semibold text-slate-800 truncate mt-0.5">{{ item.specialty }}</p>
+                    <p class="font-mono text-[10px] text-slate-500 truncate mt-0.5">
+                      {{ formatDate(item.oldAppointmentDate) }} · {{ formatTime(item.oldStartTime) }}
+                    </p>
+                  </div>
                 </div>
-                <p class="mt-1 text-xs font-semibold text-slate-800">{{ item.specialty }}</p>
-                <p class="mt-0.5 font-mono text-[11px] text-slate-500">
-                  {{ formatDate(item.oldAppointmentDate) }} · {{ formatTime(item.oldStartTime) }}
-                </p>
               </button>
             }
           </div>
         </aside>
 
-        <!-- Right: Case Resolution Panel -->
+        <!-- Right: Before / After Comparison & 1-Click Slot Selector -->
         @if (selectedCase(); as item) {
-          <section class="rounded-2xl border border-slate-100 bg-white shadow-xs overflow-hidden">
-            <div class="border-b border-slate-100 px-6 py-4 bg-slate-50/50 flex items-center justify-between">
+          <section class="rounded-xl border border-slate-200 bg-white shadow-2xs overflow-hidden space-y-4 p-5">
+            <!-- Header -->
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-100 pb-3">
               <div>
-                <span class="font-mono text-xs font-bold text-[#0e3d48]">Mã lịch hẹn: {{ item.appointmentCode }}</span>
-                <h3 class="text-base font-bold text-slate-900 mt-0.5">Chọn khung giờ thay thế phù hợp</h3>
-                <p class="text-xs text-slate-500 mt-0.5">{{ item.reason }}</p>
+                <div class="flex items-center gap-2">
+                  <span class="font-mono text-xs font-bold text-[#0e3d48]">Mã ca: {{ item.appointmentCode }}</span>
+                  <span class="rounded bg-sky-100 text-sky-800 text-[10px] font-bold px-2 py-0.5">{{ item.specialty }}</span>
+                </div>
+                <h3 class="text-base font-bold text-slate-900 mt-1">Xếp lại lịch hẹn cho bệnh nhân</h3>
+              </div>
+              <span class="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg flex items-center gap-1.5">
+                <mat-icon class="!h-4 !w-4 !text-[16px]">info</mat-icon>
+                <span>{{ item.reason }}</span>
+              </span>
+            </div>
+
+            <!-- Before vs After Comparison Grid -->
+            <div class="grid gap-3.5 md:grid-cols-2">
+              <!-- Before Card (Lịch cũ bị hủy) -->
+              <div class="rounded-xl border border-amber-300 bg-amber-50/40 p-4 relative space-y-2.5">
+                <div class="flex items-center justify-between">
+                  <span class="text-[11px] font-bold uppercase tracking-wider text-amber-800 flex items-center gap-1">
+                    <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">event_busy</mat-icon>
+                    Lịch hẹn cũ bị gián đoạn
+                  </span>
+                  <span class="text-[10px] font-semibold bg-amber-200/70 text-amber-900 px-2 py-0.5 rounded">Hiện tại</span>
+                </div>
+                <div class="flex items-center gap-3 pt-1">
+                  <img
+                    [src]="getDoctorAvatar(item.oldDoctorName)"
+                    (error)="handleAvatarError($event, item.oldDoctorName)"
+                    [alt]="item.oldDoctorName"
+                    class="h-10 w-10 rounded-full object-cover border border-amber-200 shrink-0"
+                  />
+                  <div>
+                    <h4 class="text-xs font-bold text-slate-900">{{ item.oldDoctorName }}</h4>
+                    <p class="text-[11px] font-mono font-semibold text-amber-900 mt-0.5">
+                      {{ formatDate(item.oldAppointmentDate) }} lúc {{ formatTime(item.oldStartTime) }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- After Card (Lịch mới được chọn) -->
+              <div
+                class="rounded-xl border p-4 relative space-y-2.5 transition"
+                [class.border-emerald-400]="selectedSlot()"
+                [class.bg-emerald-50/40]="selectedSlot()"
+                [class.border-slate-200]="!selectedSlot()"
+                [class.bg-slate-50/50]="!selectedSlot()"
+              >
+                <div class="flex items-center justify-between">
+                  <span
+                    class="text-[11px] font-bold uppercase tracking-wider flex items-center gap-1"
+                    [class.text-emerald-800]="selectedSlot()"
+                    [class.text-slate-600]="!selectedSlot()"
+                  >
+                    <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">event_available</mat-icon>
+                    Lịch hẹn mới được đề xuất
+                  </span>
+                  @if (selectedSlot()) {
+                    <span class="text-[10px] font-semibold bg-emerald-200/80 text-emerald-900 px-2 py-0.5 rounded">Đã chọn</span>
+                  } @else {
+                    <span class="text-[10px] font-semibold bg-slate-200 text-slate-600 px-2 py-0.5 rounded">Chưa chọn</span>
+                  }
+                </div>
+                @if (selectedSlot(); as slot) {
+                  <div class="flex items-center gap-3 pt-1">
+                    <img
+                      [src]="getDoctorAvatar(slot.doctorName)"
+                      (error)="handleAvatarError($event, slot.doctorName)"
+                      [alt]="slot.doctorName"
+                      class="h-10 w-10 rounded-full object-cover border border-emerald-200 shrink-0"
+                    />
+                    <div>
+                      <h4 class="text-xs font-bold text-slate-900">{{ slot.doctorName }}</h4>
+                      <p class="text-[11px] font-mono font-bold text-emerald-800 mt-0.5">
+                        {{ formatDate(slot.appointmentDate) }} lúc {{ formatTime(slot.startTime) }}
+                        <span class="font-normal text-slate-600">({{ slot.roomCode || 'Phòng khám' }})</span>
+                      </p>
+                    </div>
+                  </div>
+                } @else {
+                  <div class="py-2 text-xs text-slate-400 italic">
+                    Vui lòng chọn 1 khung giờ gợi ý bên dưới để hoàn tất đổi lịch.
+                  </div>
+                }
               </div>
             </div>
 
-            <div class="p-6 space-y-6">
-              <!-- Old Schedule Notification Banner -->
-              <div class="rounded-xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-xs font-medium text-amber-900">
-                <strong>Lịch hẹn cũ:</strong> {{ formatDate(item.oldAppointmentDate) }} · {{ formatTime(item.oldStartTime) }} · {{ item.oldDoctorName }}
+            <!-- Alternative Slots Section -->
+            <div class="space-y-2.5 pt-2">
+              <div class="flex items-center justify-between">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                  <mat-icon class="!h-4 !w-4 !text-[16px] text-teal-700">schedule</mat-icon>
+                  <span>Khung giờ đang trống tương đương</span>
+                </h4>
+                <button
+                  type="button"
+                  class="text-xs text-[#0e3d48] hover:underline font-semibold cursor-pointer"
+                  (click)="showManualForm.set(!showManualForm())"
+                >
+                  {{ showManualForm() ? 'Ẩn chọn ngày thủ công' : '+ Tùy chỉnh ngày giờ khác' }}
+                </button>
               </div>
 
-              <!-- Available Alternative Slots -->
               @if (alternativesLoading()) {
-                <div class="grid min-h-28 place-items-center rounded-xl bg-slate-50 text-xs text-slate-500">
-                  Đang tìm khung giờ thay thế tương đương...
+                <div class="grid min-h-24 place-items-center rounded-xl bg-slate-50 text-xs text-slate-500">
+                  Đang tìm kiếm các khung giờ đang trống tương đương...
                 </div>
               } @else if (alternatives().length === 0) {
                 <div class="rounded-xl border border-dashed border-slate-200 p-6 text-center text-xs text-slate-500">
                   Chưa có khung giờ thay thế tự động. Bạn có thể chọn ngày/giờ thủ công bên dưới.
                 </div>
               } @else {
-                <div>
-                  <h4 class="text-xs font-bold uppercase tracking-wider text-[#0e3d48]">Khung giờ đang trống tương đương</h4>
-                  <div class="mt-3 grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
-                    @for (slot of alternatives(); track slot.appointmentDate + '-' + slot.startTime + '-' + slot.doctorId) {
-                      <button
-                        type="button"
-                        class="rounded-xl border border-slate-200 bg-white p-3.5 text-left transition hover:border-[#0e3d48] hover:bg-sky-50/40 hover:shadow-2xs cursor-pointer"
-                        (click)="chooseAlternative(slot)"
-                      >
-                        <span class="block font-mono text-xs font-bold text-slate-900">{{ formatDate(slot.appointmentDate) }}</span>
-                        <span class="mt-1 block font-mono text-xs font-medium text-[#0e3d48]">{{ formatTime(slot.startTime) }} – {{ formatTime(slot.endTime) }}</span>
-                        <span class="mt-1 block truncate text-[11px] text-slate-500">{{ slot.doctorName }} · {{ slot.roomCode || 'Chưa gán phòng' }}</span>
-                      </button>
-                    }
-                  </div>
-                </div>
-              }
-
-              <!-- Reschedule Form -->
-              @if (canResolve()) {
-                <form class="space-y-4 border-t border-slate-100 pt-5" [formGroup]="form" (ngSubmit)="resolve()">
-                  <div class="grid gap-3.5 sm:grid-cols-2">
-                    <label class="grid gap-1">
-                      <span class="erp-label">Ngày khám mới <span class="erp-label-required">*</span></span>
-                      <input
-                        type="date"
-                        formControlName="appointmentDate"
-                        class="erp-input font-mono"
-                      />
-                    </label>
-                    <label class="grid gap-1">
-                      <span class="erp-label">Giờ khám mới <span class="erp-label-required">*</span></span>
-                      <input
-                        type="time"
-                        formControlName="startTime"
-                        class="erp-input font-mono"
-                      />
-                    </label>
-                    <label class="sm:col-span-2 grid gap-1">
-                      <span class="erp-label">Bác sĩ phụ trách mới <span class="erp-label-required">*</span></span>
-                      <input
-                        formControlName="doctorName"
-                        class="erp-input"
-                      />
-                    </label>
-                    <input type="hidden" formControlName="doctorId" />
-                  </div>
-
-                  <div class="flex justify-end">
+                <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  @for (slot of alternatives(); track slot.appointmentDate + '-' + slot.startTime + '-' + slot.doctorId) {
                     <button
-                      type="submit"
-                      class="erp-btn-primary"
-                      [disabled]="saving() || alternativesLoading()"
+                      type="button"
+                      class="rounded-xl border p-3 text-left transition cursor-pointer relative group flex items-start gap-3"
+                      [class.border-emerald-500]="isSlotSelected(slot)"
+                      [class.bg-emerald-50/50]="isSlotSelected(slot)"
+                      [class.ring-2]="isSlotSelected(slot)"
+                      [class.ring-emerald-500/30]="isSlotSelected(slot)"
+                      [class.border-slate-200]="!isSlotSelected(slot)"
+                      [class.bg-white]="!isSlotSelected(slot)"
+                      [class.hover:border-[#0e3d48]]="!isSlotSelected(slot)"
+                      [class.hover:shadow-2xs]="!isSlotSelected(slot)"
+                      (click)="chooseAlternative(slot)"
                     >
-                      <mat-icon class="!h-4 !w-4 !text-[18px]">check_circle</mat-icon>
-                      <span>{{ saving() ? 'Đang lưu...' : 'Xác nhận sắp xếp lại' }}</span>
+                      <img
+                        [src]="getDoctorAvatar(slot.doctorName)"
+                        (error)="handleAvatarError($event, slot.doctorName)"
+                        [alt]="slot.doctorName"
+                        class="h-8 w-8 rounded-full object-cover border border-slate-200 shrink-0 shadow-2xs mt-0.5"
+                      />
+                      <div class="min-w-0 flex-1">
+                        <span class="block font-mono text-xs font-bold text-slate-900 leading-tight">
+                          {{ formatDate(slot.appointmentDate) }}
+                        </span>
+                        <span class="mt-0.5 block font-mono text-xs font-bold text-[#0e3d48]">
+                          {{ formatTime(slot.startTime) }} – {{ formatTime(slot.endTime) }}
+                        </span>
+                        <span class="mt-0.5 block truncate text-[10px] text-slate-500 font-medium">
+                          {{ slot.doctorName }} · {{ slot.roomCode || 'Phòng khám' }}
+                        </span>
+                      </div>
+                      @if (isSlotSelected(slot)) {
+                        <mat-icon class="!h-4 !w-4 !text-[18px] text-emerald-600 shrink-0">check_circle</mat-icon>
+                      }
                     </button>
-                  </div>
-                </form>
-              } @else {
-                <div class="border-t border-slate-100 pt-4 text-xs text-slate-500">
-                  Chỉ Điều phối viên mới có thể xác nhận sắp xếp lại lịch khám.
+                  }
                 </div>
               }
             </div>
+
+            <!-- Resolution Form for Coordinator -->
+            @if (canResolve()) {
+              <form class="space-y-4 border-t border-slate-100 pt-4" [formGroup]="form" (ngSubmit)="resolve()">
+                <!-- Manual Custom Date Picker (Toggled when needed) -->
+                @if (showManualForm()) {
+                  <div class="rounded-xl border border-slate-200 bg-slate-50/60 p-4 space-y-3 animate-in fade-in duration-150">
+                    <h5 class="text-xs font-bold text-slate-800">Tùy chỉnh thông tin lịch khám mới thủ công:</h5>
+                    <div class="grid gap-3 sm:grid-cols-3">
+                      <label class="grid gap-1 text-xs">
+                        <span class="font-medium text-slate-700">Ngày khám mới *</span>
+                        <input type="date" formControlName="appointmentDate" class="erp-input font-mono" />
+                      </label>
+                      <label class="grid gap-1 text-xs">
+                        <span class="font-medium text-slate-700">Giờ khám mới *</span>
+                        <input type="time" formControlName="startTime" class="erp-input font-mono" />
+                      </label>
+                      <label class="grid gap-1 text-xs">
+                        <span class="font-medium text-slate-700">Bác sĩ phụ trách *</span>
+                        <input formControlName="doctorName" class="erp-input" />
+                      </label>
+                    </div>
+                  </div>
+                }
+
+                <!-- Bottom Action Toolbar -->
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
+                  <div class="flex items-center gap-1.5 text-xs text-slate-500">
+                    <mat-icon class="!h-4 !w-4 !text-[16px] text-emerald-600">sms</mat-icon>
+                    <span>Hệ thống sẽ tự động gửi SMS thông báo lịch mới tới số điện thoại bệnh nhân.</span>
+                  </div>
+
+                  <button
+                    type="submit"
+                    class="erp-btn-primary !px-6 !py-2.5 text-xs font-bold shadow-xs cursor-pointer"
+                    [disabled]="saving() || alternativesLoading() || form.invalid"
+                  >
+                    <mat-icon class="!h-4 !w-4 !text-[18px]">check_circle</mat-icon>
+                    <span>{{ saving() ? 'Đang lưu...' : 'Xác nhận đổi lịch & Thông báo' }}</span>
+                  </button>
+                </div>
+              </form>
+            } @else {
+              <div class="border-t border-slate-100 pt-4 text-xs text-slate-500">
+                Chỉ Điều phối viên mới có thể xác nhận sắp xếp lại lịch khám.
+              </div>
+            }
           </section>
         }
       </div>
