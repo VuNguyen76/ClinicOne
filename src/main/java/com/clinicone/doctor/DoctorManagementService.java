@@ -81,8 +81,12 @@ public class DoctorManagementService {
             throw conflict("ROOM_SPECIALTY_MISMATCH", "Phòng khám không thuộc chuyên khoa đã chọn.");
         }
         DoctorProfile profile = profileRepository.findByStaffAccount_Id(staffId)
-                .orElseGet(() -> DoctorProfile.create(staff, specialty, room));
-        profile.updateAssignment(specialty, room);
+                .orElseGet(() -> DoctorProfile.create(staff, specialty, room, request.avatarUrl()));
+        if (request.avatarUrl() != null) {
+            profile.updateAssignment(specialty, room, request.avatarUrl().trim());
+        } else {
+            profile.updateAssignment(specialty, room);
+        }
         return DoctorProfileResponse.from(profileRepository.save(profile));
     }
 

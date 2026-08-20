@@ -55,6 +55,7 @@ export class DoctorManagement implements OnInit {
   protected readonly assignmentForm = this.fb.nonNullable.group({
     specialty: ['', [Validators.required]],
     roomId: ['', [Validators.required]],
+    avatarUrl: [''],
   });
   protected readonly createDoctorForm = this.fb.nonNullable.group({
     username: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(80)]],
@@ -140,7 +141,11 @@ export class DoctorManagement implements OnInit {
 
   protected preloadDoctor(doctor: DoctorAccountResponse): void {
     this.selectedDoctor.set(doctor);
-    this.assignmentForm.setValue({ specialty: doctor.specialty ?? '', roomId: doctor.roomId ?? '' });
+    this.assignmentForm.setValue({
+      specialty: doctor.specialty ?? '',
+      roomId: doctor.roomId ?? '',
+      avatarUrl: doctor.avatarUrl ?? '',
+    });
     this.isDrawerOpen.set(false);
     this.authApi.getDoctorSchedules(doctor.staffId).subscribe({
       next: (schedules) => this.schedules.set(schedules),
@@ -163,7 +168,11 @@ export class DoctorManagement implements OnInit {
   protected openScheduleDrawer(doctor: DoctorAccountResponse): void {
     this.selectedDoctor.set(doctor);
     this.isDrawerOpen.set(true);
-    this.assignmentForm.setValue({ specialty: doctor.specialty ?? '', roomId: doctor.roomId ?? '' });
+    this.assignmentForm.setValue({
+      specialty: doctor.specialty ?? '',
+      roomId: doctor.roomId ?? '',
+      avatarUrl: doctor.avatarUrl ?? '',
+    });
     this.schedules.set([]);
     this.notice.set('');
     this.error.set('');
@@ -238,6 +247,10 @@ export class DoctorManagement implements OnInit {
     });
   }
 
+  protected setPresetAvatar(url: string): void {
+    this.assignmentForm.patchValue({ avatarUrl: url });
+  }
+
   protected saveAssignment(): void {
     const doctor = this.selectedDoctor();
     if (!doctor || !this.assignmentForm.controls.roomId.value) {
@@ -247,17 +260,26 @@ export class DoctorManagement implements OnInit {
     const roomId = this.assignmentForm.controls.roomId.value;
     const selectedRoom = this.rooms().find((r) => r.id === roomId);
     const specialty = selectedRoom?.specialty ?? this.assignmentForm.controls.specialty.value ?? doctor.specialty ?? 'Khám Tổng Quát';
+    const avatarUrl = this.assignmentForm.controls.avatarUrl.value.trim();
 
     this.saving.set(true);
     this.error.set('');
-    this.authApi.assignDoctor(doctor.staffId, specialty, roomId).subscribe({
+    this.authApi.assignDoctor(doctor.staffId, specialty, roomId, avatarUrl).subscribe({
       next: (assigned) => {
-        const updated = { ...doctor, specialty: assigned.specialty, roomId: assigned.roomId, roomCode: assigned.roomCode,
-          roomName: assigned.roomName, assigned: true, active: assigned.active };
+        const updated = {
+          ...doctor,
+          specialty: assigned.specialty,
+          roomId: assigned.roomId,
+          roomCode: assigned.roomCode,
+          roomName: assigned.roomName,
+          assigned: true,
+          active: assigned.active,
+          avatarUrl: assigned.avatarUrl || avatarUrl,
+        };
         this.doctors.update((items) => items.map((item) => item.staffId === doctor.staffId ? updated : item));
         this.selectedDoctor.set(updated);
         this.saving.set(false);
-        this.showNotice('Đã lưu phân công bác sĩ thành công.');
+        this.showNotice('Đã lưu phân công và cập nhật ảnh bác sĩ thành công.');
       },
       error: (response) => { this.saving.set(false); this.error.set(apiErrorMessage(response)); },
     });
