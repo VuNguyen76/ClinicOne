@@ -45,5 +45,13 @@ export class AccessAuditManagement implements OnInit {
     });
   }
 
+  protected formatActor(actor: string): string {
+    if (!actor) return '—';
+    if (/^[0-9a-fA-F-]{36}$/.test(actor)) {
+      return `Phiên thao tác (${actor.slice(0, 8)})`;
+    }
+    return actor;
+  }
+
   protected formatDate(value: string): string { return new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value)); }
 }

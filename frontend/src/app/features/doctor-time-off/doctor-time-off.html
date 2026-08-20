@@ -128,8 +128,17 @@
                 <tr data-testid="time-off-row" class="transition hover:bg-slate-50/70">
                   <!-- Doctor -->
                   <td class="px-4 py-3">
-                    <strong class="block text-xs font-semibold text-slate-900">{{ record.doctorName }}</strong>
-                    <span class="block font-mono text-[10px] text-slate-400">Mã BS: {{ record.doctorId }}</span>
+                    <div class="flex items-center gap-2.5">
+                      <img
+                        [src]="getDoctorAvatar(record.doctorName)"
+                        (error)="handleAvatarError($event, record.doctorName)"
+                        [alt]="record.doctorName"
+                        class="h-8 w-8 shrink-0 rounded-full object-cover border border-slate-200 shadow-2xs"
+                      />
+                      <div>
+                        <strong class="block text-xs font-semibold text-slate-900">{{ record.doctorName }}</strong>
+                      </div>
+                    </div>
                   </td>
 
                   <!-- Dates -->
