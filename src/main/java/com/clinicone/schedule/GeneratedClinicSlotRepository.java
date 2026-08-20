@@ -30,6 +30,7 @@ public interface GeneratedClinicSlotRepository extends JpaRepository<GeneratedCl
             UUID clinicServiceId, UUID doctorStaffId, LocalDate appointmentDate, LocalTime startTime,
             GeneratedSlotStatus status);
 
+
     List<GeneratedClinicSlot> findByClinicServiceIdAndDoctorStaffIdAndAppointmentDateAndStartTime(
             UUID clinicServiceId, UUID doctorStaffId, LocalDate appointmentDate, LocalTime startTime);
 
@@ -39,4 +40,14 @@ public interface GeneratedClinicSlotRepository extends JpaRepository<GeneratedCl
     Optional<GeneratedClinicSlot> findFirstByClinicServiceIdAndDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
             UUID clinicServiceId, UUID doctorStaffId, LocalDate appointmentDate, LocalTime startTime,
             GeneratedSlotStatus status);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.data.jpa.repository.Query("DELETE FROM GeneratedClinicSlot s WHERE s.id IN :slotIds")
+    void deleteAllByIdIn(@org.springframework.data.repository.query.Param("slotIds") java.util.Collection<UUID> slotIds);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.data.jpa.repository.Query("DELETE FROM GeneratedClinicSlot s WHERE s.template.id = :templateId AND s.status = :status")
+    void deleteByTemplateIdAndStatus(
+            @org.springframework.data.repository.query.Param("templateId") UUID templateId,
+            @org.springframework.data.repository.query.Param("status") GeneratedSlotStatus status);
 }

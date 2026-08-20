@@ -43,8 +43,10 @@ public class ScheduleTemplateController {
 
     @org.springframework.web.bind.annotation.DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
-    public ResponseEntity<Void> delete(@PathVariable UUID id) {
-        service.delete(id);
+    public ResponseEntity<Void> delete(
+            @PathVariable UUID id,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) String weekday) {
+        service.delete(id, weekday);
         return ResponseEntity.noContent().build();
     }
 }
