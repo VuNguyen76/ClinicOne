@@ -442,6 +442,7 @@ export interface DoctorAssignmentResponse {
   roomCode: string;
   roomName: string;
   active: boolean;
+  avatarUrl?: string;
 }
 
 export interface DoctorScheduleResponse {
@@ -1325,8 +1326,8 @@ export class AuthApiService {
     return this.http.post<DoctorAccountResponse>('/api/v1/admin/doctors', request);
   }
 
-  assignDoctor(staffId: string, specialty: string, roomId: string): Observable<DoctorAssignmentResponse> {
-    return this.http.put<DoctorAssignmentResponse>(`/api/v1/admin/doctors/${staffId}/assignment`, { specialty, roomId });
+  assignDoctor(staffId: string, specialty: string, roomId: string, avatarUrl?: string): Observable<DoctorAssignmentResponse> {
+    return this.http.put<DoctorAssignmentResponse>(`/api/v1/admin/doctors/${staffId}/assignment`, { specialty, roomId, avatarUrl });
   }
 
   getDoctorSchedules(staffId: string): Observable<DoctorScheduleResponse[]> {
