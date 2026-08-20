@@ -60,7 +60,7 @@
           <div class="text-right">
             <p class="font-bold uppercase">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</p>
             <p class="italic text-slate-700">Độc lập - Tự do - Hạnh phúc</p>
-            <p class="mt-1 font-mono text-[11px] text-slate-500">Mã BA: {{ item.appointmentCode || item.id.slice(0,8) }}</p>
+            <p class="mt-1 font-mono text-[11px] text-slate-500">Mã BA: {{ item.appointmentCode || 'Hồ sơ đã ký' }}</p>
           </div>
         </div>
         <div class="mt-4 text-center">
@@ -169,7 +169,7 @@
           <div class="flex items-start justify-between text-xs">
             <div class="space-y-1">
               <p class="font-bold text-slate-800">Xác nhận ký số điện tử y tế</p>
-              <p class="text-[11px] text-slate-500">Mã băm SHA-256: {{ item.id }}</p>
+              <p class="text-[11px] text-slate-500">Mã hồ sơ: {{ item.appointmentCode || 'Hồ sơ điện tử hợp lệ' }}</p>
               <p class="text-[11px] text-slate-500">Lưu trữ hồ sơ điện tử 10 năm theo Thông tư 33/2025/TT-BYT</p>
             </div>
             <div class="text-center space-y-1">

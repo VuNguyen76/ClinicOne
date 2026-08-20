@@ -22,10 +22,12 @@ describe('ReconciliationManagement', () => {
 
   afterEach(() => { http.verify(); sessionStorage.clear(); });
 
-  it('shows open incidents without editable status controls', () => {
+  it('shows open incidents with clean business code and without editable status controls', () => {
     http.expectOne('/api/v1/admin/reconciliations?status=OPEN').flush([incident()]);
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('INC-TEST');
+    expect(fixture.nativeElement.textContent).toContain('SC-202608-001');
+    expect(fixture.nativeElement.textContent).toContain('LH-20260820-001');
+    expect(fixture.nativeElement.textContent).toContain('Nguyễn Văn A');
     expect(fixture.nativeElement.querySelector('[data-testid="status-input"]')).toBeNull();
   });
 
@@ -33,15 +35,15 @@ describe('ReconciliationManagement', () => {
     http.expectOne('/api/v1/admin/reconciliations?status=OPEN').flush([incident()]);
     fixture.detectChanges();
     const component = fixture.componentInstance as any;
-    component.referenceValue.set('INC-TEST');
+    component.referenceValue.set('SC-202608-001');
     component.resultNote.set('Đã kiểm tra lại và xử lý xong dữ liệu.');
     fixture.detectChanges();
     (fixture.nativeElement.querySelector('[data-testid="close-reconciliation"]') as HTMLButtonElement).click();
     const request = http.expectOne('/api/v1/admin/reconciliations/incident-1/close');
-    expect(request.request.body).toEqual({ action: 'RETRY_BUSINESS_ACTION', referenceType: 'INCIDENT', referenceValue: 'INC-TEST', resultNote: 'Đã kiểm tra lại và xử lý xong dữ liệu.' });
+    expect(request.request.body).toEqual({ action: 'RETRY_BUSINESS_ACTION', referenceType: 'INCIDENT', referenceValue: 'SC-202608-001', resultNote: 'Đã kiểm tra lại và xử lý xong dữ liệu.' });
     request.flush({ ...incident(), status: 'CLOSED' });
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('Đã đóng đối soát INC-TEST.');
+    expect(fixture.nativeElement.textContent).toContain('Đã đóng đối soát SC-202608-001.');
   });
 
   it('does not show closing controls to an administrator', () => {
@@ -66,5 +68,21 @@ describe('ReconciliationManagement', () => {
 });
 
 function incident() {
-  return { id: 'incident-1', incidentCode: 'INC-TEST', entityType: 'APPOINTMENT', entityId: 'appointment-1', eventId: null, reason: 'Thiếu nhật ký nghiệp vụ', assignee: 'coordinator', status: 'OPEN', resolutionAction: null, referenceType: null, referenceValue: null, resultNote: null, closedBy: null, closedAt: null, createdAt: '2026-08-10T01:00:00Z' };
+  return {
+    id: 'incident-1',
+    incidentCode: 'SC-202608-001',
+    entityType: 'APPOINTMENT',
+    entityId: 'appointment-1',
+    eventId: null,
+    reason: 'Không tìm thấy hồ sơ lịch hẹn LH-20260820-001 (Bệnh nhân: Nguyễn Văn A) tương ứng với nhật ký nghiệp vụ',
+    assignee: 'coordinator',
+    status: 'OPEN',
+    resolutionAction: null,
+    referenceType: null,
+    referenceValue: null,
+    resultNote: null,
+    closedBy: null,
+    closedAt: null,
+    createdAt: '2026-08-10T01:00:00Z',
+  };
 }

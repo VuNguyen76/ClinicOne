@@ -48,7 +48,7 @@ export class AccessAuditManagement implements OnInit {
   protected formatActor(actor: string): string {
     if (!actor) return '—';
     if (/^[0-9a-fA-F-]{36}$/.test(actor)) {
-      return `Phiên thao tác (${actor.slice(0, 8)})`;
+      return 'Người dùng hệ thống';
     }
     return actor;
   }

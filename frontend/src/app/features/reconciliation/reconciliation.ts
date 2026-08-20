@@ -27,6 +27,32 @@ export class ReconciliationManagement implements OnInit {
   protected readonly notice = signal('');
   protected readonly searchTerm = signal('');
 
+  protected formatEntityType(type: string): string {
+    if (!type) return 'Nghiệp vụ';
+    const map: Record<string, string> = {
+      APPOINTMENT: 'Lịch hẹn',
+      QUEUE_TICKET: 'Hàng đợi',
+      EXAMINATION: 'Khám bệnh',
+      BUSINESS_LOG: 'Nhật ký nghiệp vụ',
+      INCIDENT: 'Sự cố đối soát',
+    };
+    return map[type] ?? type;
+  }
+
+  protected cleanReason(reason: string): string {
+    if (!reason) return '—';
+    return reason.replace(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/g, 'tham chiếu hệ thống');
+  }
+
+  protected formatIncidentCode(code: string): string {
+    if (!code) return 'SC-000';
+    if (code.startsWith('INC-INTEGRITY-')) {
+      const shortHex = code.replace('INC-INTEGRITY-', '').slice(0, 6).toUpperCase();
+      return `SC-TOÀNVẸN-${shortHex}`;
+    }
+    return code.replace('INC-', 'SC-');
+  }
+
   protected filteredIncidents(): ReconciliationResponse[] {
     const q = this.searchTerm().trim().toLowerCase();
     if (!q) return this.incidents();
@@ -34,6 +60,7 @@ export class ReconciliationManagement implements OnInit {
       i.incidentCode.toLowerCase().includes(q) ||
       i.reason.toLowerCase().includes(q) ||
       i.entityType.toLowerCase().includes(q) ||
+      this.formatEntityType(i.entityType).toLowerCase().includes(q) ||
       (i.assignee && i.assignee.toLowerCase().includes(q))
     );
   }
