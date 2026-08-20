@@ -103,13 +103,12 @@
                   <!-- Doctor Name & Avatar -->
                   <td class="px-4 py-3">
                     <div class="flex items-center gap-3">
-                      @if (doctor.avatarUrl) {
-                        <img [src]="doctor.avatarUrl" [alt]="doctor.fullName" class="h-8 w-8 shrink-0 rounded-full object-cover border border-slate-200" />
-                      } @else {
-                        <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-slate-100 font-mono text-xs font-bold text-slate-700">
-                          {{ doctor.fullName.slice(0, 1) }}
-                        </span>
-                      }
+                      <img
+                        [src]="getDoctorAvatar(doctor)"
+                        (error)="handleAvatarError($event, doctor.fullName)"
+                        [alt]="doctor.fullName"
+                        class="h-8 w-8 shrink-0 rounded-full object-cover border border-slate-200 shadow-2xs"
+                      />
                       <div>
                         <strong class="block text-xs font-semibold text-slate-900">{{ doctor.fullName }}</strong>
                         <span class="block font-mono text-[10px] text-slate-400">{{ doctor.username }}</span>
@@ -143,32 +142,15 @@
 
                   <!-- Actions (Standardized ERP Icon Buttons) -->
                   <td class="px-4 py-3 text-right" (click)="$event.stopPropagation()">
-                    <div class="flex items-center justify-end gap-1.5">
-                      <button
-                        type="button"
-                        class="erp-btn-icon-accent"
-                        title="Phân công & Lịch làm việc"
-                        (click)="openScheduleDrawer(doctor)"
-                      >
-                        <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">edit</mat-icon>
-                      </button>
-                      <button
-                        type="button"
-                        class="erp-btn-icon"
-                        title="Xem lịch làm việc"
-                        (click)="openScheduleDrawer(doctor)"
-                      >
-                        <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">calendar_month</mat-icon>
-                      </button>
-                      <button
-                        type="button"
-                        class="erp-btn-icon"
-                        title="Khóa / Mở khóa tài khoản"
-                        (click)="openScheduleDrawer(doctor)"
-                      >
-                        <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">lock_outline</mat-icon>
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      class="erp-btn-secondary !py-1 !px-2.5 !text-xs !font-semibold text-[#0e3d48] hover:bg-slate-100"
+                      title="Phân công chuyên môn & phòng khám"
+                      (click)="openScheduleDrawer(doctor)"
+                    >
+                      <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">settings</mat-icon>
+                      <span>Phân công</span>
+                    </button>
                   </td>
                 </tr>
               } @empty {
@@ -215,11 +197,19 @@
       >
         <!-- Drawer Header -->
         <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4 bg-slate-50/70">
-          <div>
-            <h3 class="text-base font-bold text-slate-900">{{ doctor.fullName }}</h3>
-            <p class="text-xs text-slate-500 font-medium mt-0.5">
-              Bác sĩ · {{ doctor.specialty || 'Chưa phân chuyên khoa' }} · {{ doctor.roomCode || 'Chưa gán phòng' }}
-            </p>
+          <div class="flex items-center gap-3">
+            <img
+              [src]="getDoctorAvatar(doctor)"
+              (error)="handleAvatarError($event, doctor.fullName)"
+              [alt]="doctor.fullName"
+              class="h-10 w-10 shrink-0 rounded-full object-cover border border-slate-200 shadow-2xs"
+            />
+            <div>
+              <h3 class="text-sm font-bold text-slate-900 leading-tight">{{ doctor.fullName }}</h3>
+              <p class="text-[11px] text-slate-500 font-medium mt-0.5">
+                {{ doctor.specialty || 'Chưa phân chuyên khoa' }} · {{ doctor.roomCode || 'Chưa gán phòng' }}
+              </p>
+            </div>
           </div>
           <button
             type="button"
