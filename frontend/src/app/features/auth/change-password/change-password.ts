@@ -28,6 +28,9 @@ export class ChangePassword {
   protected readonly error = signal('');
   protected readonly notice = signal('');
   protected readonly required = signal(this.route.snapshot.queryParamMap.get('required') === '1');
+  protected readonly showCurrentPassword = signal(false);
+  protected readonly showNewPassword = signal(false);
+  protected readonly showConfirmPassword = signal(false);
 
   readonly passwordForm = this.formBuilder.nonNullable.group({
     currentPassword: ['', [Validators.required]],

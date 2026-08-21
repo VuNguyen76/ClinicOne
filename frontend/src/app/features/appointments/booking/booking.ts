@@ -87,6 +87,14 @@ export class Booking implements OnInit {
   private createRequestKey: string | null = null;
   private availabilityRequestId = 0;
 
+  protected readonly patientProfiles = signal<PatientProfileItem[]>([]);
+  protected readonly primaryProfile = computed(() => this.patientProfiles().find((p) => p.primaryProfile) ?? this.patientProfiles()[0]);
+  protected readonly subProfiles = computed(() => this.patientProfiles().filter((p) => !p.primaryProfile));
+  protected readonly selectedProfile = computed(() => {
+    const id = this.form.controls.profileId.value;
+    return this.patientProfiles().find((p) => p.id === id) ?? this.primaryProfile();
+  });
+
   protected readonly form = this.formBuilder.nonNullable.group({
     specialty: ['', [Validators.required, Validators.maxLength(120)]],
     doctorName: ['Bác sĩ chuyên khoa', [Validators.required, Validators.maxLength(120)]],
@@ -110,6 +118,7 @@ export class Booking implements OnInit {
     this.authApi.getPatientProfiles().subscribe({
       next: (profiles) => {
         this.profiles = profiles;
+        this.patientProfiles.set(profiles);
         const primary = profiles.find((profile) => profile.primaryProfile) ?? profiles[0];
         if (primary) this.form.controls.profileId.setValue(primary.id);
         this.profilesLoading = false;

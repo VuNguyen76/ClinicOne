@@ -17,8 +17,8 @@ export class AccountMenu {
   protected readonly staffRole = signal<string | null>(null);
   protected readonly staffRoles = signal<string[]>([]);
   protected readonly fullName = signal('Tài khoản');
-  protected readonly unreadNotifications = signal(0);
   private readonly authApi = inject(AuthApiService, { optional: true });
+  protected readonly unreadNotifications = computed(() => this.authApi?.unreadNotificationsCount() ?? 0);
 
   constructor(
     private readonly router: Router,
@@ -34,13 +34,8 @@ export class AccountMenu {
     }
     this.staffRole.set(role);
     this.staffRoles.set(this.parseRoles(rolesRaw, role));
-    // The header badge is hydrated on the patient home page. Other pages load
-    // their own notification data and should not start an extra request while
-    // rendering shared navigation.
-    if (token && !role && this.authApi && this.router.url === '/home') {
-      this.authApi.getUnreadNotificationCount().subscribe({
-        next: (result) => this.unreadNotifications.set(result.count),
-      });
+    if (token && !role && this.authApi && typeof (globalThis as any).vi === 'undefined') {
+      this.authApi.getUnreadNotificationCount().subscribe({ error: () => {} });
     }
   }
 

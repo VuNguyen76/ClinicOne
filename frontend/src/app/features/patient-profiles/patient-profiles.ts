@@ -4,12 +4,13 @@ import { Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { ApiErrorResponse, AuthApiService, apiErrorMessage, PatientProfileItem, PatientProfileRequest } from '../../core/auth/auth-api.service';
 import { AccountMenu } from '../../shared/account-menu/account-menu';
+import { AccountNav } from '../../shared/account-nav/account-nav';
 import { VietnamAddressService, VietnamAddressUnit } from '../../core/address/vietnam-address.service';
 
 @Component({
   selector: 'app-patient-profiles',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, MatIconModule, AccountMenu],
+  imports: [ReactiveFormsModule, RouterLink, MatIconModule, AccountMenu, AccountNav],
   templateUrl: './patient-profiles.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -114,9 +115,17 @@ export class PatientProfiles implements OnInit {
       address: this.composeAddress(values.streetAddress, values.wardName, values.districtName,
         values.provinceName, values.address),
     };
+    const isEdit = Boolean(this.editingId());
     const operation = this.editingId() ? this.authApi.updatePatientProfile(this.editingId()!, request) : this.authApi.createPatientProfile(request);
     operation.subscribe({
-      next: () => { this.busy.set(false); this.formOpen.set(false); this.notice.set(this.editingId() ? 'Đã cập nhật hồ sơ.' : 'Đã thêm hồ sơ.'); this.editingId.set(null); this.load(); },
+      next: () => {
+        this.busy.set(false);
+        this.formOpen.set(false);
+        this.editingId.set(null);
+        this.notice.set(isEdit ? 'Đã cập nhật hồ sơ người thân thành công.' : 'Đã thêm hồ sơ người thân mới thành công.');
+        this.load();
+        setTimeout(() => this.notice.set(''), 4000);
+      },
       error: (response) => { this.busy.set(false); this.handleError(response); },
     });
   }

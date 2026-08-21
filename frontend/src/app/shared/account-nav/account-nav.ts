@@ -19,6 +19,7 @@ export class AccountNav {
   protected readonly items: readonly AccountNavItem[] = [
     { label: 'Lịch hẹn của tôi', route: '/appointments', icon: 'event_available' },
     { label: 'Hồ sơ bệnh nhân', route: '/account', icon: 'badge' },
+    { label: 'Hồ sơ người thân', route: '/patient-profiles', icon: 'groups' },
     { label: 'Đổi mật khẩu', route: '/change-password', icon: 'lock' },
     { label: 'Phiếu khám bệnh', route: '/medical-records', icon: 'receipt_long' },
     { label: 'Thông báo', route: '/notifications', icon: 'notifications_none' },
