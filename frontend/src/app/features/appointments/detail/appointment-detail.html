@@ -122,7 +122,7 @@
     <div class="fixed inset-0 z-50 grid place-items-center bg-slate-950/45 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Đổi lịch hẹn">
       <section class="max-h-[88vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
         <header class="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white px-6 py-5">
-          <div><h2 class="text-xl font-bold text-slate-950">Chọn khung giờ mới</h2><p class="mt-1 text-sm text-slate-500">Các khung giờ còn trống của bác sĩ hiện tại.</p></div>
+          <h2 class="text-xl font-bold text-slate-950">Chọn khung giờ mới</h2>
           <button type="button" class="grid h-10 w-10 place-items-center rounded-full text-slate-500 hover:bg-slate-100" aria-label="Đóng" (click)="closeReschedule()"><mat-icon>close</mat-icon></button>
         </header>
         <div class="p-6">
@@ -158,7 +158,7 @@
   @if (cancelOpen()) {
     <div class="fixed inset-0 z-50 grid place-items-center bg-slate-950/45 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Hủy lịch hẹn">
       <section class="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
-        <div class="flex items-start gap-4"><span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-rose-50 text-rose-600"><mat-icon>event_busy</mat-icon></span><div><h2 class="text-lg font-bold text-slate-950">Hủy lịch hẹn?</h2><p class="mt-1 text-sm leading-6 text-slate-500">Khung giờ sẽ được trả lại để người khác có thể đặt.</p></div></div>
+        <div class="flex items-center gap-3.5"><span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-rose-50 text-rose-600"><mat-icon>event_busy</mat-icon></span><h2 class="text-lg font-bold text-slate-950">Hủy lịch hẹn?</h2></div>
         <label class="mt-5 grid gap-2 text-sm font-semibold text-slate-700">Lý do hủy<select class="min-h-11 rounded-lg border border-slate-300 bg-white px-3 font-normal" [value]="selectedCancellationReason()" (change)="selectedCancellationReason.set($any($event.target).value)"><option value="">Không chọn</option>@for (reason of cancellationReasons(); track reason.code) {<option [value]="reason.code">{{ reason.label }}</option>}</select></label>
         @if (error()) { <p class="mt-4 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700" role="alert">{{ error() }}</p> }
         <div class="mt-6 flex justify-end gap-3"><button type="button" class="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold" (click)="closeCancel()">Giữ lịch</button><button type="button" class="rounded-lg bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50" [disabled]="busy()" (click)="cancel()">{{ busy() ? 'Đang hủy...' : 'Xác nhận hủy' }}</button></div>

@@ -154,12 +154,9 @@
     <div class="erp-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="diagnosis-dialog-title" (click)="closeModal()">
       <section class="erp-modal-container max-w-lg" (click)="$event.stopPropagation()">
         <div class="erp-modal-header">
-          <div>
-            <p class="text-[10px] font-bold uppercase tracking-wider text-[#0284c7]">Danh mục Y khoa</p>
-            <h2 id="diagnosis-dialog-title" class="text-sm font-bold text-slate-900">
-              {{ editingId() ? 'Chỉnh sửa thông tin chẩn đoán' : 'Thêm chẩn đoán mới vào danh mục' }}
-            </h2>
-          </div>
+          <h2 id="diagnosis-dialog-title" class="text-sm font-bold text-slate-900">
+            {{ editingId() ? 'Chỉnh sửa thông tin chẩn đoán' : 'Thêm chẩn đoán mới vào danh mục' }}
+          </h2>
           <button type="button" class="erp-btn-icon" aria-label="Đóng" (click)="closeModal()">
             <mat-icon class="!h-4 !w-4 !text-[18px]">close</mat-icon>
           </button>

@@ -5,7 +5,6 @@
         <div>
           <span class="erp-badge erp-badge-info">{{ rebookMode() === 'LATE' ? 'Chuyển lịch đến muộn' : 'Đặt lịch thay thế' }}</span>
           <h2 id="rebook-title" class="mt-1 text-base font-bold text-slate-900 sm:text-lg">{{ rebook.patientName }}</h2>
-          <p class="mt-0.5 text-xs text-slate-500">{{ rebookMode() === 'LATE' ? 'Lịch vẫn được giữ nguyên; chọn khung giờ mới cho người bệnh.' : 'Lịch cũ đã vắng mặt; lịch cũ được giữ nguyên trong lịch sử.' }}</p>
         </div>
         <button type="button" aria-label="Đóng" class="erp-btn-icon" (click)="closeRebook()">
           <mat-icon class="!h-4 !w-4 !text-[18px]">close</mat-icon>
@@ -90,7 +89,6 @@
         <div>
           <span class="erp-badge erp-badge-info">Điều chỉnh trước khi gọi</span>
           <h2 id="adjustment-title" class="mt-1 text-base font-bold text-slate-900 sm:text-lg">Số {{ adjustment.queueNumber }}</h2>
-          <p class="mt-0.5 text-xs text-slate-500">Giữ nguyên lịch đặt và giờ đến; chỉ thay đổi hướng xử lý hàng đợi.</p>
         </div>
         <button type="button" aria-label="Đóng" class="erp-btn-icon" (click)="closeAdjustment()">
           <mat-icon class="!h-4 !w-4 !text-[18px]">close</mat-icon>
