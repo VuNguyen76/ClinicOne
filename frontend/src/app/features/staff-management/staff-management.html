@@ -195,10 +195,7 @@
     <div class="erp-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="lock-staff-title">
       <section class="erp-modal-container max-w-md">
         <div class="erp-modal-header">
-          <div>
-            <p class="text-[10px] font-bold uppercase tracking-wider text-rose-600">Cảnh báo bảo mật</p>
-            <h2 id="lock-staff-title" class="text-sm font-bold text-slate-900">Xác nhận khóa tài khoản?</h2>
-          </div>
+          <h2 id="lock-staff-title" class="text-sm font-bold text-slate-900">Xác nhận khóa tài khoản?</h2>
         </div>
         <div class="erp-modal-body space-y-3">
           @if (error()) {
@@ -238,10 +235,7 @@
     <div class="erp-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="create-staff-title">
       <section class="erp-modal-container max-w-lg">
         <div class="erp-modal-header">
-          <div>
-            <p class="text-[10px] font-bold uppercase tracking-wider text-[#0284c7]">Nhân sự nội bộ</p>
-            <h2 id="create-staff-title" class="text-sm font-bold text-slate-900">Tạo tài khoản nhân viên</h2>
-          </div>
+          <h2 id="create-staff-title" class="text-sm font-bold text-slate-900">Tạo tài khoản nhân viên</h2>
           <button type="button" class="erp-btn-icon" (click)="closeCreate()" aria-label="Đóng">
             <mat-icon class="!h-4 !w-4 !text-[18px]">close</mat-icon>
           </button>
@@ -328,10 +322,7 @@
     <div class="erp-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="edit-staff-roles-title">
       <section class="erp-modal-container max-w-md">
         <div class="erp-modal-header">
-          <div>
-            <p class="text-[10px] font-bold uppercase tracking-wider text-[#0284c7]">Phân quyền nhân sự</p>
-            <h2 id="edit-staff-roles-title" class="text-sm font-bold text-slate-900">Sửa vai trò: {{ account.fullName }}</h2>
-          </div>
+          <h2 id="edit-staff-roles-title" class="text-sm font-bold text-slate-900">Sửa vai trò: {{ account.fullName }}</h2>
           <button type="button" class="erp-btn-icon" (click)="closeRoleEditor()" aria-label="Đóng">
             <mat-icon class="!h-4 !w-4 !text-[18px]">close</mat-icon>
           </button>

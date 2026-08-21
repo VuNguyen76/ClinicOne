@@ -182,13 +182,10 @@
         aria-labelledby="room-dialog-title"
         (click)="$event.stopPropagation()"
       >
-        <div class="flex items-start justify-between border-b border-slate-200 bg-slate-50/80 px-6 py-4">
-          <div>
-            <p class="text-[10px] font-bold uppercase tracking-wider text-[#0284c7]">Cấu hình vận hành</p>
-            <h2 id="room-dialog-title" data-testid="room-form-title" class="mt-0.5 text-base font-bold text-slate-900">
-              {{ editingId() ? 'Sửa thông tin phòng' : 'Tạo phòng mới' }}
-            </h2>
-          </div>
+        <div class="flex items-center justify-between border-b border-slate-200 bg-slate-50/80 px-6 py-4">
+          <h2 id="room-dialog-title" data-testid="room-form-title" class="text-base font-bold text-slate-900">
+            {{ editingId() ? 'Sửa thông tin phòng' : 'Tạo phòng mới' }}
+          </h2>
           <button
             type="button"
             class="erp-btn-icon"
