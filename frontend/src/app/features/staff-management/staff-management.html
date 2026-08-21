@@ -1,7 +1,7 @@
 <app-staff-workspace-shell moduleTitle="Hệ thống" pageTitle="Tài khoản nhân viên">
   <div class="grid gap-6">
     <!-- Alerts -->
-    @if (error()) {
+    @if (error() && !confirming() && !createOpen() && !editingAccount()) {
       <div class="flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-medium text-rose-800 shadow-xs" role="alert">
         <div class="flex items-center gap-2">
           <mat-icon class="!h-4 !w-4 !text-[18px] text-rose-600">error_outline</mat-icon>
@@ -200,7 +200,18 @@
             <h2 id="lock-staff-title" class="text-sm font-bold text-slate-900">Xác nhận khóa tài khoản?</h2>
           </div>
         </div>
-        <div class="erp-modal-body">
+        <div class="erp-modal-body space-y-3">
+          @if (error()) {
+            <div class="flex items-center justify-between gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700" role="alert">
+              <div class="flex items-center gap-2">
+                <mat-icon class="!h-4 !w-4 !text-[16px] text-rose-600">error_outline</mat-icon>
+                <span>{{ error() }}</span>
+              </div>
+              <button type="button" class="text-rose-400 hover:text-rose-700" aria-label="Đóng" (click)="error.set('')">
+                <mat-icon class="!h-4 !w-4 !text-[14px]">close</mat-icon>
+              </button>
+            </div>
+          }
           <p class="text-xs leading-5 text-slate-600">
             Tài khoản <strong class="text-slate-900">{{ account.fullName }}</strong> (<code class="font-mono">{{ account.username }}</code>) sẽ không thể đăng nhập. Mọi phiên làm việc đang mở sẽ bị chấm dứt ngay lập tức.
           </p>
@@ -255,6 +266,17 @@
         } @else {
           <form (ngSubmit)="$event.preventDefault(); createAccount()">
             <div class="erp-modal-body grid gap-3.5">
+              @if (error()) {
+                <div class="flex items-center justify-between gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700" role="alert">
+                  <div class="flex items-center gap-2">
+                    <mat-icon class="!h-4 !w-4 !text-[16px] text-rose-600">error_outline</mat-icon>
+                    <span>{{ error() }}</span>
+                  </div>
+                  <button type="button" class="text-rose-400 hover:text-rose-700" aria-label="Đóng" (click)="error.set('')">
+                    <mat-icon class="!h-4 !w-4 !text-[14px]">close</mat-icon>
+                  </button>
+                </div>
+              }
               <div class="grid gap-3 sm:grid-cols-2">
                 <label class="grid gap-1">
                   <span class="erp-label">Họ và tên <span class="erp-label-required">*</span></span>
@@ -291,7 +313,7 @@
               <button type="button" class="erp-btn-secondary" (click)="closeCreate()">
                 Hủy
               </button>
-              <button data-testid="create-staff-submit" type="submit" class="erp-btn-primary" [disabled]="updatingId() === 'creating'">
+              <button data-testid="submit-create-staff" type="submit" class="erp-btn-primary" [disabled]="updatingId() === 'creating'">
                 {{ updatingId() === 'creating' ? 'Đang tạo...' : 'Tạo tài khoản' }}
               </button>
             </div>
@@ -316,6 +338,17 @@
         </div>
 
         <div class="erp-modal-body grid gap-3">
+          @if (error()) {
+            <div class="flex items-center justify-between gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700" role="alert">
+              <div class="flex items-center gap-2">
+                <mat-icon class="!h-4 !w-4 !text-[16px] text-rose-600">error_outline</mat-icon>
+                <span>{{ error() }}</span>
+              </div>
+              <button type="button" class="text-rose-400 hover:text-rose-700" aria-label="Đóng" (click)="error.set('')">
+                <mat-icon class="!h-4 !w-4 !text-[14px]">close</mat-icon>
+              </button>
+            </div>
+          }
           <div class="grid gap-2">
             @for (role of roleOptions; track role) {
               <label class="flex cursor-pointer items-center gap-2 rounded border border-slate-200 p-2 text-xs hover:bg-slate-50">
