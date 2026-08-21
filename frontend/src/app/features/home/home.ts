@@ -1,9 +1,9 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { interval } from 'rxjs';
-import { AccountMenu } from '../../shared/account-menu/account-menu';
+import { PatientHeader } from '../../shared/patient-header/patient-header';
 
 type Service = {
   icon: string;
@@ -43,7 +43,7 @@ type NewsItem = {
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, MatIconModule, AccountMenu],
+  imports: [RouterLink, MatIconModule, PatientHeader],
   templateUrl: './home.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

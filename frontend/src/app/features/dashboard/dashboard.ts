@@ -3,13 +3,13 @@ import { Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { finalize } from 'rxjs';
 import { apiErrorMessage, AppointmentResponse, AuthApiService, PatientProfileResponse, QueueTicketResponse } from '../../core/auth/auth-api.service';
-import { AccountMenu } from '../../shared/account-menu/account-menu';
+import { PatientHeader } from '../../shared/patient-header/patient-header';
 import { clinicTodayIso } from '../../core/time/clinic-time';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [RouterLink, MatIconModule, AccountMenu],
+  imports: [RouterLink, MatIconModule, PatientHeader],
   templateUrl: './dashboard.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

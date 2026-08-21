@@ -4,7 +4,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
 import { apiErrorMessage, AuthApiService } from '../../../core/auth/auth-api.service';
-import { AccountMenu } from '../../../shared/account-menu/account-menu';
+import { PatientHeader } from '../../../shared/patient-header/patient-header';
 import { AccountNav } from '../../../shared/account-nav/account-nav';
 
 function passwordsMatch(control: AbstractControl): ValidationErrors | null {
@@ -14,7 +14,7 @@ function passwordsMatch(control: AbstractControl): ValidationErrors | null {
 
 @Component({
   selector: 'app-change-password',
-  imports: [ReactiveFormsModule, RouterLink, MatIconModule, AccountMenu, AccountNav],
+  imports: [ReactiveFormsModule, RouterLink, MatIconModule, PatientHeader, AccountNav],
   templateUrl: './change-password.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

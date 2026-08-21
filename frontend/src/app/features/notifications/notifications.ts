@@ -1,13 +1,13 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
-import { AccountMenu } from '../../shared/account-menu/account-menu';
+import { PatientHeader } from '../../shared/patient-header/patient-header';
 import { AccountNav } from '../../shared/account-nav/account-nav';
 import { apiErrorMessage, AuthApiService, PatientNotificationResponse } from '../../core/auth/auth-api.service';
 
 @Component({
   selector: 'app-notifications',
-  imports: [RouterLink, MatIconModule, AccountMenu, AccountNav],
+  imports: [RouterLink, MatIconModule, PatientHeader, AccountNav],
   templateUrl: './notifications.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

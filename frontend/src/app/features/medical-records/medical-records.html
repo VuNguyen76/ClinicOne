@@ -1,27 +1,5 @@
 <main class="min-h-screen bg-slate-50 text-slate-800 antialiased">
-  <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur-md shadow-xs">
-    <div class="mx-auto flex h-[72px] max-w-[1200px] items-center justify-between gap-8 px-5 lg:px-0">
-      <a routerLink="/home" class="flex items-center gap-3" aria-label="ClinicOne, trang chủ">
-        <img class="h-10 w-10 object-contain transition-transform duration-500 hover:scale-105" src="clinicone-mark-small.png" alt="" aria-hidden="true" />
-        <span class="text-xl font-bold tracking-tight text-slate-900">Clinic<span class="text-[#0284c7]">One</span></span>
-      </a>
-      <nav class="hidden items-center gap-7 text-sm font-medium text-slate-600 lg:flex" aria-label="Điều hướng chính">
-        <a routerLink="/home" class="transition-colors hover:text-[#0284c7]">Trang chủ</a>
-        <a routerLink="/about" class="transition-colors hover:text-[#0284c7]">Giới thiệu</a>
-        <a routerLink="/process" class="transition-colors hover:text-[#0284c7]">Quy trình</a>
-        <a routerLink="/common-issues" class="transition-colors hover:text-[#0284c7]">Hướng dẫn</a>
-        <a routerLink="/support" class="transition-colors hover:text-[#0284c7]">Thắc mắc</a>
-        <a routerLink="/contact" class="transition-colors hover:text-[#0284c7]">Liên hệ</a>
-      </nav>
-      <div class="flex items-center gap-3.5">
-        <a href="tel:1900000" class="hidden items-center gap-2.5 rounded-full border border-slate-200 bg-slate-50/80 px-3 py-1.5 transition hover:border-slate-300 sm:flex">
-          <mat-icon class="!h-4 !w-4 !text-[18px] text-rose-500">phone_in_talk</mat-icon>
-          <span class="text-xs text-slate-500 font-medium"><strong class="font-bold text-slate-800">1900000</strong></span>
-        </a>
-        <app-account-menu />
-      </div>
-    </div>
-  </header>
+  <app-patient-header />
 
   <div class="mx-auto max-w-[1200px] px-5 py-8 lg:px-0 lg:py-10">
     <div class="flex items-center gap-3 text-sm"><a routerLink="/home" class="font-semibold text-slate-700 hover:text-[#0284c7]">Trang chủ</a><mat-icon class="!h-4 !w-4 !text-[16px] text-slate-400">chevron_right</mat-icon><span class="font-semibold text-[#0284c7]">Phiếu khám bệnh</span></div>

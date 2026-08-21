@@ -3,14 +3,14 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { ApiErrorResponse, AuthApiService, apiErrorMessage, PatientProfileItem, PatientProfileRequest } from '../../core/auth/auth-api.service';
-import { AccountMenu } from '../../shared/account-menu/account-menu';
+import { PatientHeader } from '../../shared/patient-header/patient-header';
 import { AccountNav } from '../../shared/account-nav/account-nav';
 import { VietnamAddressService, VietnamAddressUnit } from '../../core/address/vietnam-address.service';
 
 @Component({
   selector: 'app-patient-profiles',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, MatIconModule, AccountMenu, AccountNav],
+  imports: [ReactiveFormsModule, RouterLink, MatIconModule, PatientHeader, AccountNav],
   templateUrl: './patient-profiles.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

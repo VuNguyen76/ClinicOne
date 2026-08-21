@@ -12,13 +12,13 @@ import {
   ReasonCatalogResponse,
   RescheduleCaseResponse,
 } from '../../../core/auth/auth-api.service';
-import { AccountMenu } from '../../../shared/account-menu/account-menu';
+import { PatientHeader } from '../../../shared/patient-header/patient-header';
 import { clinicTodayDate, clinicTodayIso } from '../../../core/time/clinic-time';
 
 @Component({
   selector: 'app-appointment-detail',
   standalone: true,
-  imports: [RouterLink, MatIconModule, AccountMenu],
+  imports: [RouterLink, MatIconModule, PatientHeader],
   templateUrl: './appointment-detail.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
