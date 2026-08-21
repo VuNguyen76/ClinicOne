@@ -1,19 +1,5 @@
 <main class="min-h-screen bg-slate-50 text-slate-800">
-  <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
-    <div class="mx-auto flex h-14 max-w-5xl items-center justify-between gap-6 px-4 sm:px-6">
-      <a routerLink="/home" class="flex items-center gap-2.5" aria-label="ClinicOne, trang chủ">
-        <img class="h-8 w-8 object-contain" src="clinicone-mark-small.png" alt="" aria-hidden="true" />
-        <span class="text-lg font-bold tracking-tight text-[#0284c7]">Clinic<span class="text-sky-500">One</span></span>
-      </a>
-      <div class="flex items-center gap-4">
-        <a href="tel:1900000" class="hidden text-right sm:block">
-          <strong class="block text-[10px] uppercase tracking-wider text-slate-400">Tổng đài hỗ trợ</strong>
-          <span class="text-xs font-bold text-rose-600">1900 0000</span>
-        </a>
-        <app-account-menu />
-      </div>
-    </div>
-  </header>
+  <app-patient-header />
 
   <div class="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
     <div class="flex items-center gap-2 text-xs">
@@ -66,7 +52,7 @@
               {{ currentTicket.queueNumber | number:'2.0-0' }}
             </p>
             <div class="mt-3">
-              <span data-testid="queue-status" class="erp-badge-warning !text-xs !py-1 !px-3">
+              <span data-testid="queue-status" class="erp-badge !text-xs !py-1 !px-3" [class]="statusClass(currentTicket.status)">
                 {{ currentTicket.statusLabel }}
               </span>
             </div>

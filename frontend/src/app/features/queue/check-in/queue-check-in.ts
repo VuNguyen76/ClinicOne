@@ -3,13 +3,13 @@ import { DecimalPipe } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { ApiErrorResponse, AppointmentResponse, AuthApiService, ClinicRoomCheckInResponse, QueueTicketResponse, apiErrorMessage } from '../../../core/auth/auth-api.service';
-import { AccountMenu } from '../../../shared/account-menu/account-menu';
+import { PatientHeader } from '../../../shared/patient-header/patient-header';
 import { clinicTodayIso } from '../../../core/time/clinic-time';
 
 @Component({
   selector: 'app-queue-check-in',
   standalone: true,
-  imports: [RouterLink, MatIconModule, AccountMenu, DecimalPipe],
+  imports: [RouterLink, MatIconModule, PatientHeader, DecimalPipe],
   templateUrl: './queue-check-in.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -84,6 +84,12 @@ export class QueueCheckIn implements OnInit {
     const [year, month, day] = value.split('-').map(Number);
     return new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
       .format(new Date(year, month - 1, day));
+  }
+
+  protected statusClass(status: string): string {
+    if (status === 'COMPLETED') return 'erp-badge-success';
+    if (status === 'SKIPPED' || status === 'LEFT_BEFORE_EXAM' || status === 'CANCELLED') return 'erp-badge-warning';
+    return 'erp-badge-info';
   }
 
   protected retry(): void {
