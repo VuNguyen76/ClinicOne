@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, RouterLink, RouterLinkActive } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { MatIconModule } from '@angular/material/icon';
 import { PatientHeader } from '../../shared/patient-header/patient-header';
 
 export type PublicPageKey = 'about' | 'process' | 'common-issues' | 'support' | 'contact';
@@ -8,7 +9,7 @@ export type PublicPageKey = 'about' | 'process' | 'common-issues' | 'support' | 
 @Component({
   selector: 'app-public-page',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, MatIconModule, PatientHeader],
+  imports: [RouterLink, MatIconModule, PatientHeader],
   templateUrl: './public-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
