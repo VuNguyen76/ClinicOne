@@ -6,14 +6,14 @@ import { finalize } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
 import { apiErrorMessage, AuthApiService, PatientProfileResponse } from '../../core/auth/auth-api.service';
 import { VietnamAddressService, VietnamAddressUnit } from '../../core/address/vietnam-address.service';
-import { AccountMenu } from '../../shared/account-menu/account-menu';
+import { PatientHeader } from '../../shared/patient-header/patient-header';
 import { AccountNav } from '../../shared/account-nav/account-nav';
 import { clinicTodayIso } from '../../core/time/clinic-time';
 
 @Component({
   selector: 'app-account',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, MatIconModule, AccountMenu, AccountNav],
+  imports: [ReactiveFormsModule, RouterLink, MatIconModule, PatientHeader, AccountNav],
   templateUrl: './account.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

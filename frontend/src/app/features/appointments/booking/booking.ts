@@ -4,7 +4,7 @@ import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { ApiErrorResponse, AppointmentSlotResponse, AuthApiService, apiErrorMessage, ClinicServiceResponse, PatientProfileItem, SpecialtyOption } from '../../../core/auth/auth-api.service';
-import { AccountMenu } from '../../../shared/account-menu/account-menu';
+import { PatientHeader } from '../../../shared/patient-header/patient-header';
 import { clinicTodayDate, clinicTodayIso } from '../../../core/time/clinic-time';
 import { interval } from 'rxjs';
 
@@ -26,6 +26,8 @@ interface TimeSlot {
   doctorName: string;
   doctorId: string | null;
   roomCode: string | null;
+  available?: boolean;
+  remainingCapacity?: number;
 }
 
 interface DoctorChoice {
@@ -37,7 +39,7 @@ interface DoctorChoice {
 @Component({
   selector: 'app-booking',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, MatIconModule, AccountMenu],
+  imports: [RouterLink, ReactiveFormsModule, MatIconModule, PatientHeader],
   templateUrl: './booking.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
