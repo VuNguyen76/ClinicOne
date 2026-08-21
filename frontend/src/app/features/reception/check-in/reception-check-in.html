@@ -12,6 +12,17 @@
         </button>
       </div>
       <div class="erp-modal-body space-y-4">
+        @if (error()) {
+          <div class="flex items-center justify-between gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700" role="alert">
+            <div class="flex items-center gap-2">
+              <mat-icon class="!h-4 !w-4 !text-[16px] text-rose-600">error_outline</mat-icon>
+              <span>{{ error() }}</span>
+            </div>
+            <button type="button" class="text-rose-400 hover:text-rose-700" aria-label="Đóng" (click)="error.set('')">
+              <mat-icon class="!h-4 !w-4 !text-[14px]">close</mat-icon>
+            </button>
+          </div>
+        }
         <div>
           <label class="erp-label">Ngày khám</label>
           <input
@@ -86,6 +97,17 @@
         </button>
       </div>
       <div class="erp-modal-body space-y-4">
+        @if (error()) {
+          <div class="flex items-center justify-between gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700" role="alert">
+            <div class="flex items-center gap-2">
+              <mat-icon class="!h-4 !w-4 !text-[16px] text-rose-600">error_outline</mat-icon>
+              <span>{{ error() }}</span>
+            </div>
+            <button type="button" class="text-rose-400 hover:text-rose-700" aria-label="Đóng" (click)="error.set('')">
+              <mat-icon class="!h-4 !w-4 !text-[14px]">close</mat-icon>
+            </button>
+          </div>
+        }
         <div>
           <label class="erp-label">Bác sĩ/phòng đích</label>
           <select
@@ -158,6 +180,17 @@
 
       @if (walkInRegistration()) {
         <form data-testid="walk-in-scroll-body" class="erp-modal-body min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain" (ngSubmit)="$event.preventDefault(); submitRegistration()">
+          @if (error()) {
+            <div class="flex items-center justify-between gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700" role="alert">
+              <div class="flex items-center gap-2">
+                <mat-icon class="!h-4 !w-4 !text-[16px] text-rose-600">error_outline</mat-icon>
+                <span>{{ error() }}</span>
+              </div>
+              <button type="button" class="text-rose-400 hover:text-rose-700" aria-label="Đóng" (click)="error.set('')">
+                <mat-icon class="!h-4 !w-4 !text-[14px]">close</mat-icon>
+              </button>
+            </div>
+          }
           <div class="rounded-md border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs font-medium text-amber-800">
             @if (walkInTemporaryProfile()) { Tạo hồ sơ tạm để tiếp nhận ngay; hồ sơ chưa hiển thị trên ứng dụng. }
             @else { Chưa có tài khoản. Tạo hồ sơ bằng OTP gửi tới số điện thoại này. }
@@ -294,6 +327,17 @@
         </form>
       } @else if (walkInProfileNeedsCompletion()) {
         <form data-testid="walk-in-scroll-body" class="erp-modal-body min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain" (ngSubmit)="$event.preventDefault(); submitProfileCompletion()">
+          @if (error()) {
+            <div class="flex items-center justify-between gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700" role="alert">
+              <div class="flex items-center gap-2">
+                <mat-icon class="!h-4 !w-4 !text-[16px] text-rose-600">error_outline</mat-icon>
+                <span>{{ error() }}</span>
+              </div>
+              <button type="button" class="text-rose-400 hover:text-rose-700" aria-label="Đóng" (click)="error.set('')">
+                <mat-icon class="!h-4 !w-4 !text-[14px]">close</mat-icon>
+              </button>
+            </div>
+          }
           <div class="rounded-md border border-sky-200 bg-sky-50 px-3.5 py-2.5 text-xs font-medium text-sky-900">
             Chỉ bổ sung thông tin còn thiếu để xác định đúng người đi khám.
           </div>
@@ -331,6 +375,17 @@
         </form>
       } @else if (walkInNeedsPasswordChange()) {
         <form data-testid="walk-in-scroll-body" class="erp-modal-body min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain" (ngSubmit)="$event.preventDefault(); activatePendingAccount()">
+          @if (error()) {
+            <div class="flex items-center justify-between gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700" role="alert">
+              <div class="flex items-center gap-2">
+                <mat-icon class="!h-4 !w-4 !text-[16px] text-rose-600">error_outline</mat-icon>
+                <span>{{ error() }}</span>
+              </div>
+              <button type="button" class="text-rose-400 hover:text-rose-700" aria-label="Đóng" (click)="error.set('')">
+                <mat-icon class="!h-4 !w-4 !text-[14px]">close</mat-icon>
+              </button>
+            </div>
+          }
           <div class="rounded-md border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs font-medium text-amber-900">
             Số điện thoại đã được xác thực. Đặt mật khẩu mới để tiếp tục tiếp nhận.
           </div>
@@ -349,6 +404,17 @@
         </form>
       } @else {
         <form data-testid="walk-in-scroll-body" class="erp-modal-body min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain" (ngSubmit)="$event.preventDefault(); submitWalkIn()">
+          @if (error()) {
+            <div class="flex items-center justify-between gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700" role="alert">
+              <div class="flex items-center gap-2">
+                <mat-icon class="!h-4 !w-4 !text-[16px] text-rose-600">error_outline</mat-icon>
+                <span>{{ error() }}</span>
+              </div>
+              <button type="button" class="text-rose-400 hover:text-rose-700" aria-label="Đóng" (click)="error.set('')">
+                <mat-icon class="!h-4 !w-4 !text-[14px]">close</mat-icon>
+              </button>
+            </div>
+          }
           <div class="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
             <div>
               <label class="erp-label">Số điện thoại</label>
@@ -425,7 +491,7 @@
 
   <div class="mx-auto max-w-[1440px] space-y-4">
     <!-- Alerts & Notices -->
-    @if (error()) {
+    @if (error() && !rebookTicket() && !adjustmentTicket() && !walkInOpen()) {
       <div class="flex items-center justify-between gap-3 rounded-md border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs font-medium text-rose-800 shadow-xs" role="alert">
         <div class="flex items-center gap-2">
           <mat-icon class="!h-4 !w-4 !text-[18px] text-rose-600">error_outline</mat-icon>
