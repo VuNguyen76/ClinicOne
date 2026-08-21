@@ -99,6 +99,8 @@ export class ReceptionCheckIn implements OnInit {
   protected readonly rebookReason = signal('');
   protected readonly rebookSlotsLoading = signal(false);
   protected readonly rebookLoading = signal(false);
+  protected readonly rebookAvailableDates = signal<{ date: string; label: string; weekday: string; count: number }[]>([]);
+  protected readonly walkInAvailableDates = signal<{ date: string; label: string; weekday: string; count: number }[]>([]);
   protected readonly printingSlip = signal<ReceptionAppointmentResponse | null>(null);
   protected readonly visibleAppointments = computed(() => {
     if (this.activeTab() !== 'exceptions') return this.appointments();
@@ -373,13 +375,37 @@ export class ReceptionCheckIn implements OnInit {
     if (!appointment || !date) {
       this.rebookSlots.set([]);
       this.rebookStartTime.set('');
+      this.rebookAvailableDates.set([]);
       return;
     }
     this.rebookSlotsLoading.set(true);
-    this.authApi.getAppointmentSlots(appointment.specialty, date, date).subscribe({
+    const fromDate = date < clinicTodayIso() ? date : clinicTodayIso();
+    const toDate = this.addDays(fromDate, 30);
+    this.authApi.getAppointmentSlots(appointment.specialty, fromDate, toDate).subscribe({
       next: (slots) => {
-        const allowOverflow = date === clinicTodayIso();
-        const available = slots.filter((slot) => !!slot.doctorId && (allowOverflow || slot.remainingCapacity > 0));
+        const today = clinicTodayIso();
+        const dateMap = new Map<string, number>();
+        for (const slot of slots) {
+          if (!slot.doctorId) continue;
+          const isTodaySlot = slot.appointmentDate === today;
+          if (isTodaySlot || slot.remainingCapacity > 0) {
+            dateMap.set(slot.appointmentDate, (dateMap.get(slot.appointmentDate) || 0) + 1);
+          }
+        }
+        const dates: { date: string; label: string; weekday: string; count: number }[] = [];
+        for (const [dateStr, count] of dateMap.entries()) {
+          dates.push({
+            date: dateStr,
+            label: this.formatDate(dateStr),
+            weekday: this.formatWeekday(dateStr),
+            count,
+          });
+        }
+        dates.sort((a, b) => a.date.localeCompare(b.date));
+        this.rebookAvailableDates.set(dates);
+
+        const allowOverflow = date === today;
+        const available = slots.filter((slot) => slot.appointmentDate === date && !!slot.doctorId && (allowOverflow || slot.remainingCapacity > 0));
         this.rebookSlots.set(available);
         this.rebookStartTime.set(available[0]?.startTime ?? '');
         this.rebookSlotsLoading.set(false);
@@ -710,16 +736,41 @@ export class ReceptionCheckIn implements OnInit {
 
   protected loadWalkInSlots(): void {
     const specialty = this.walkInSpecialty();
-    if (!specialty || !this.walkInDate()) {
+    const date = this.walkInDate();
+    if (!specialty || !date) {
       this.walkInSlots.set([]);
       this.walkInStartTime.set('');
+      this.walkInAvailableDates.set([]);
       return;
     }
     this.walkInSlotsLoading.set(true);
-    this.authApi.getAppointmentSlots(specialty, this.walkInDate(), this.walkInDate()).subscribe({
+    const fromDate = date < clinicTodayIso() ? date : clinicTodayIso();
+    const toDate = this.addDays(fromDate, 30);
+    this.authApi.getAppointmentSlots(specialty, fromDate, toDate).subscribe({
       next: (slots) => {
-        const appointmentIsToday = this.walkInDate() === clinicTodayIso();
-        const available = slots.filter((slot) => !!slot.doctorId
+        const today = clinicTodayIso();
+        const dateMap = new Map<string, number>();
+        for (const slot of slots) {
+          if (!slot.doctorId) continue;
+          const isTodaySlot = slot.appointmentDate === today;
+          if (isTodaySlot || slot.remainingCapacity > 0) {
+            dateMap.set(slot.appointmentDate, (dateMap.get(slot.appointmentDate) || 0) + 1);
+          }
+        }
+        const dates: { date: string; label: string; weekday: string; count: number }[] = [];
+        for (const [dateStr, count] of dateMap.entries()) {
+          dates.push({
+            date: dateStr,
+            label: this.formatDate(dateStr),
+            weekday: this.formatWeekday(dateStr),
+            count,
+          });
+        }
+        dates.sort((a, b) => a.date.localeCompare(b.date));
+        this.walkInAvailableDates.set(dates);
+
+        const appointmentIsToday = date === today;
+        const available = slots.filter((slot) => slot.appointmentDate === date && !!slot.doctorId
           && (appointmentIsToday || slot.remainingCapacity > 0));
         this.walkInSlots.set(available);
         this.walkInStartTime.set(available[0]?.startTime ?? '');
@@ -976,6 +1027,26 @@ export class ReceptionCheckIn implements OnInit {
 
   protected walkInIsToday(): boolean {
     return this.walkInDate() === clinicTodayIso();
+  }
+
+  protected formatDate(value?: string | null): string {
+    if (!value) return '—';
+    const [year, month, day] = value.split('-');
+    return `${day}/${month}/${year}`;
+  }
+
+  protected formatWeekday(value: string): string {
+    const [year, month, day] = value.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    const weekdays = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+    return weekdays[date.getDay()] ?? '';
+  }
+
+  protected addDays(isoDate: string, days: number): string {
+    const [year, month, day] = isoDate.split('-').map(Number);
+    const d = new Date(year, month - 1, day);
+    d.setDate(d.getDate() + days);
+    return this.toIsoDate(d);
   }
 
   private completedAddress(): string {
