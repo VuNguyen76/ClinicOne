@@ -909,19 +909,46 @@ export class ReceptionCheckIn implements OnInit {
   }
 
   protected queueClass(appointment: ReceptionAppointmentResponse): string {
-    if (!appointment.queueStatus) return 'erp-badge-warning';
-    if (appointment.queueStatus === 'LEFT_BEFORE_EXAM' || appointment.queueStatus === 'SKIPPED') {
+    if (appointment.status === 'CANCELLED') {
+      return 'erp-badge-danger';
+    }
+    if (appointment.status === 'ABSENT' || appointment.status === 'NOT_PERFORMED' || appointment.queueStatus === 'LEFT_BEFORE_EXAM' || appointment.queueStatus === 'SKIPPED') {
       return 'erp-badge-warning';
     }
-    return 'erp-badge-success';
+    if (appointment.queueStatus === 'COMPLETED' || appointment.status === 'COMPLETED') {
+      return 'erp-badge-success';
+    }
+    if (appointment.queueStatus === 'CALLED' || appointment.queueStatus === 'IN_SERVICE' || appointment.queueStatus === 'WAITING' || appointment.status === 'CHECKED_IN') {
+      return 'erp-badge-info';
+    }
+    return 'erp-badge-info';
   }
 
   protected queueDotClass(appointment: ReceptionAppointmentResponse): string {
-    if (!appointment.queueStatus) return 'erp-dot-warning';
-    if (appointment.queueStatus === 'LEFT_BEFORE_EXAM' || appointment.queueStatus === 'SKIPPED') {
+    if (appointment.status === 'CANCELLED') {
+      return 'erp-dot-danger';
+    }
+    if (appointment.status === 'ABSENT' || appointment.status === 'NOT_PERFORMED' || appointment.queueStatus === 'LEFT_BEFORE_EXAM' || appointment.queueStatus === 'SKIPPED') {
       return 'erp-dot-warning';
     }
-    return 'erp-dot-success';
+    if (appointment.queueStatus === 'COMPLETED' || appointment.status === 'COMPLETED') {
+      return 'erp-dot-success';
+    }
+    if (appointment.queueStatus === 'CALLED' || appointment.queueStatus === 'IN_SERVICE' || appointment.queueStatus === 'WAITING' || appointment.status === 'CHECKED_IN') {
+      return 'erp-dot-info';
+    }
+    return 'erp-dot-info';
+  }
+
+  private noticeTimer: ReturnType<typeof setTimeout> | null = null;
+  private setNotice(msg: string): void {
+    this.notice.set(msg);
+    if (this.noticeTimer) clearTimeout(this.noticeTimer);
+    if (msg) {
+      this.noticeTimer = setTimeout(() => {
+        if (this.notice() === msg) this.notice.set('');
+      }, 4000);
+    }
   }
 
   protected canAdjustQueue(): boolean { return hasStaffRole('RECEPTIONIST'); }
