@@ -56,13 +56,22 @@
           </label>
           <label class="grid gap-1">
             <span class="erp-label">Mật khẩu <span class="erp-label-required">*</span></span>
-            <input
-              formControlName="password"
-              type="password"
-              autocomplete="current-password"
-              class="erp-input font-mono"
-              placeholder="Nhập mật khẩu công vụ"
-            />
+            <div class="relative">
+              <input
+                formControlName="password"
+                [type]="showPassword() ? 'text' : 'password'"
+                autocomplete="current-password"
+                class="erp-input font-mono w-full pr-10"
+                placeholder="Nhập mật khẩu công vụ"
+              />
+              <button
+                type="button"
+                class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                (click)="showPassword.set(!showPassword())"
+                [attr.aria-label]="showPassword() ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'">
+                <mat-icon class="!h-4 !w-4 !text-[18px]">{{ showPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+              </button>
+            </div>
           </label>
 
           @if (error()) {

@@ -43,10 +43,19 @@
           } @else {
           <form class="mt-6 grid gap-3" [formGroup]="passwordForm" (ngSubmit)="submitPassword()" novalidate>
             <label for="password" class="text-xs font-semibold text-slate-700">Mật khẩu</label>
-            <input
-              class="min-h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none transition focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15"
-              type="password" id="password" formControlName="password" autocomplete="current-password"
-              placeholder="Nhập mật khẩu" />
+            <div class="relative">
+              <input
+                class="min-h-11 w-full rounded-lg border border-slate-300 bg-white pl-3 pr-10 text-sm outline-none transition focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15"
+                [type]="showPassword() ? 'text' : 'password'" id="password" formControlName="password" autocomplete="current-password"
+                placeholder="Nhập mật khẩu" />
+              <button
+                type="button"
+                class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                (click)="showPassword.set(!showPassword())"
+                [attr.aria-label]="showPassword() ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'">
+                <mat-icon class="!h-5 !w-5 !text-[20px]">{{ showPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+              </button>
+            </div>
             @if (passwordForm.controls.password.hasError('required') && passwordForm.controls.password.touched) {
             <p class="text-xs text-rose-600" role="alert">Mật khẩu là thông tin bắt buộc.</p>
             } @else if (passwordForm.controls.password.invalid && passwordForm.controls.password.touched) {

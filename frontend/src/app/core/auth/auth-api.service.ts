@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { inject, Injectable } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 
 export type OtpPurpose = 'LOGIN' | 'REGISTRATION' | 'RECOVERY';
@@ -820,6 +820,7 @@ export class AuthApiService {
   private readonly appointmentHoldsRoot = '/api/v1/appointment-holds';
   private readonly queueRoot = '/api/v1/queue';
   private readonly notificationsRoot = '/api/v1/notifications';
+  readonly unreadNotificationsCount = signal(0);
 
   requestSmsOtp(phone: string, purpose: OtpPurpose): Observable<OtpResponse> {
     return this.http.post<OtpResponse>(`${this.apiRoot}/request-sms-otp`, { phone, purpose });
@@ -1040,11 +1041,15 @@ export class AuthApiService {
   }
 
   getUnreadNotificationCount(): Observable<{ count: number }> {
-    return this.http.get<{ count: number }>(`${this.notificationsRoot}/unread-count`);
+    return this.http.get<{ count: number }>(`${this.notificationsRoot}/unread-count`).pipe(
+      tap((result) => this.unreadNotificationsCount.set(result.count))
+    );
   }
 
   markNotificationRead(id: string): Observable<void> {
-    return this.http.post<void>(`${this.notificationsRoot}/${id}/read`, {});
+    return this.http.post<void>(`${this.notificationsRoot}/${id}/read`, {}).pipe(
+      tap(() => this.unreadNotificationsCount.update((c) => Math.max(0, c - 1)))
+    );
   }
 
   checkInToRoom(roomCode: string, appointmentId: string, requestKey?: string): Observable<QueueTicketResponse> {

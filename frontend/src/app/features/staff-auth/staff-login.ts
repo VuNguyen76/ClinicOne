@@ -18,6 +18,7 @@ export class StaffLogin {
 
   protected readonly busy = signal(false);
   protected readonly error = signal('');
+  protected readonly showPassword = signal(false);
   protected readonly form = this.formBuilder.nonNullable.group({
     username: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(80)]],
     password: ['', [Validators.required, Validators.minLength(6), Validators.maxLength(72)]],

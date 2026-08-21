@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
+import { MatIconModule } from '@angular/material/icon';
 import { apiErrorMessage, AuthApiService } from '../../../core/auth/auth-api.service';
 
 type RecoveryStep = 'phone' | 'otp' | 'password' | 'done';
@@ -13,7 +14,7 @@ function passwordsMatch(control: { value: { newPassword: string; confirmPassword
 @Component({
   selector: 'app-recover-password',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, MatIconModule],
   templateUrl: './recover-password.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -26,6 +27,8 @@ export class RecoverPassword {
   protected readonly busy = signal(false);
   protected readonly notice = signal('');
   protected readonly error = signal('');
+  protected readonly showNewPassword = signal(false);
+  protected readonly showConfirmPassword = signal(false);
 
   readonly phoneForm = this.formBuilder.nonNullable.group({
     phone: ['', [Validators.required, Validators.pattern(/^0\d{9}$/)]],
