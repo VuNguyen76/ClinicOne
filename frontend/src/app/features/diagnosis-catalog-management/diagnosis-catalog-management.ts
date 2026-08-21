@@ -61,6 +61,7 @@ export class DiagnosisCatalogManagement implements OnInit {
         });
         this.saving.set(false); this.modalOpen.set(false);
         this.notice.set(editingId ? 'Đã cập nhật chẩn đoán.' : 'Đã thêm chẩn đoán.');
+        setTimeout(() => this.notice.set(''), 4000);
       },
       error: (response: ApiErrorResponse) => { this.saving.set(false); this.error.set(apiErrorMessage(response)); },
     });
@@ -76,6 +77,7 @@ export class DiagnosisCatalogManagement implements OnInit {
       next: (saved) => {
         this.diagnoses.update((items) => items.map((current) => current.id === saved.id ? saved : current));
         this.notice.set(saved.active ? 'Đã cho phép dùng lại chẩn đoán.' : 'Đã tạm ngưng chẩn đoán.');
+        setTimeout(() => this.notice.set(''), 4000);
       },
       error: (response: ApiErrorResponse) => this.error.set(apiErrorMessage(response)),
     });

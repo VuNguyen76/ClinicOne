@@ -59,6 +59,7 @@ export class RecoverPassword {
       next: () => {
         this.step.set('otp');
         this.notice.set('Mã OTP đã được gửi.');
+        setTimeout(() => this.notice.set(''), 4000);
       },
       error: (response) => this.showError(response),
     });
@@ -80,6 +81,7 @@ export class RecoverPassword {
         next: () => {
           this.step.set('password');
           this.notice.set('Số điện thoại đã được xác thực.');
+          setTimeout(() => this.notice.set(''), 4000);
         },
         error: (response) => this.showError(response),
       });
@@ -101,7 +103,8 @@ export class RecoverPassword {
       .subscribe({
         next: () => {
           this.step.set('done');
-          this.notice.set('Mật khẩu đã được đổi.');
+          this.notice.set('Mật khẩu đã được đổi thành công.');
+          setTimeout(() => this.notice.set(''), 4000);
         },
         error: (response) => this.showError(response),
       });

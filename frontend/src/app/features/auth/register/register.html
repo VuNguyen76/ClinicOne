@@ -122,10 +122,26 @@
           }
 
           @if (error()) {
-            <p class="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs leading-5 text-rose-700" role="alert">{{ error() }}</p>
+            <div class="mt-4 flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-medium text-rose-800 shadow-xs" role="alert">
+              <div class="flex items-center gap-2">
+                <mat-icon class="!h-4 !w-4 !text-[18px] text-rose-600">error_outline</mat-icon>
+                <span>{{ error() }}</span>
+              </div>
+              <button type="button" class="text-rose-500 hover:text-rose-700" (click)="error.set('')" title="Đóng">
+                <mat-icon class="!h-4 !w-4 !text-[16px]">close</mat-icon>
+              </button>
+            </div>
           }
           @if (notice() && step() !== 'done') {
-            <p class="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-xs leading-5 text-emerald-700" role="status">{{ notice() }}</p>
+            <div class="mt-4 flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-medium text-emerald-800 shadow-xs" role="status">
+              <div class="flex items-center gap-2">
+                <mat-icon class="!h-4 !w-4 !text-[18px] text-emerald-600">check_circle</mat-icon>
+                <span>{{ notice() }}</span>
+              </div>
+              <button type="button" class="text-emerald-500 hover:text-emerald-700" (click)="notice.set('')" title="Đóng">
+                <mat-icon class="!h-4 !w-4 !text-[16px]">close</mat-icon>
+              </button>
+            </div>
           }
         </div>
       </div>

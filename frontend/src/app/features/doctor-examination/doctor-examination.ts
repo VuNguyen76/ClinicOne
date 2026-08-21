@@ -223,6 +223,7 @@ export class DoctorExamination implements OnInit {
         this.autosaveRetryCount = 0;
         this.clearAutosaveRetry();
         this.notice.set(manual ? 'Đã lưu bản nháp' : 'Đã tự lưu bản nháp');
+        setTimeout(() => this.notice.set(''), 3000);
       },
       error: (response) => {
         this.saving.set(false);
@@ -291,6 +292,7 @@ export class DoctorExamination implements OnInit {
         this.confirmingStop.set(false);
         this.stopping.set(false);
         this.notice.set('Đã dừng lượt khám.');
+        setTimeout(() => this.notice.set(''), 4000);
       },
       error: (response) => {
         this.stopping.set(false);
@@ -348,7 +350,8 @@ export class DoctorExamination implements OnInit {
         this.form.disable();
         this.signing.set(false);
         this.signRequestKey = null;
-        this.notice.set(value.requiresMedicalRecord !== false ? 'Đã ký phiếu khám' : 'Đã kết thúc lượt khám');
+        this.notice.set(value.requiresMedicalRecord !== false ? 'Đã ký phiếu khám thành công.' : 'Đã kết thúc lượt khám thành công.');
+        setTimeout(() => this.notice.set(''), 4000);
       },
       error: (response) => {
         this.signing.set(false);

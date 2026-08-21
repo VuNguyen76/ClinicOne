@@ -24,10 +24,35 @@
   </header>
 
   <div class="mx-auto max-w-[1200px] px-5 py-8 lg:px-0 lg:py-10">
-    <div class="flex items-center gap-3 text-sm"><a routerLink="/home"
-        class="font-semibold text-slate-700 hover:text-[#0284c7]">Trang chủ</a><mat-icon
-        class="!h-4 !w-4 !text-[16px] text-slate-400">chevron_right</mat-icon><span
-        class="font-semibold text-[#0284c7]">Hồ sơ bệnh nhân</span></div>
+    <div class="flex items-center gap-3 text-sm">
+      <a routerLink="/home" class="font-semibold text-slate-700 hover:text-[#0284c7]">Trang chủ</a>
+      <mat-icon class="!h-4 !w-4 !text-[16px] text-slate-400">chevron_right</mat-icon>
+      <span class="font-semibold text-[#0284c7]">Hồ sơ bệnh nhân</span>
+    </div>
+
+    <!-- Alert / Notice Notification Banners -->
+    @if (error()) {
+      <div class="mt-4 flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-medium text-rose-800 shadow-xs" role="alert">
+        <div class="flex items-center gap-2">
+          <mat-icon class="!h-4 !w-4 !text-[18px] text-rose-600">error_outline</mat-icon>
+          <span>{{ error() }}</span>
+        </div>
+        <button type="button" class="text-rose-500 hover:text-rose-700" (click)="error.set('')" title="Đóng">
+          <mat-icon class="!h-4 !w-4 !text-[16px]">close</mat-icon>
+        </button>
+      </div>
+    }
+    @if (notice()) {
+      <div class="mt-4 flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-medium text-emerald-800 shadow-xs" role="status">
+        <div class="flex items-center gap-2">
+          <mat-icon class="!h-4 !w-4 !text-[18px] text-emerald-600">check_circle</mat-icon>
+          <span>{{ notice() }}</span>
+        </div>
+        <button type="button" class="text-emerald-500 hover:text-emerald-700" (click)="notice.set('')" title="Đóng">
+          <mat-icon class="!h-4 !w-4 !text-[16px]">close</mat-icon>
+        </button>
+      </div>
+    }
 
     <div class="mt-8 grid gap-8 lg:grid-cols-[230px_1fr] lg:gap-10">
       <aside class="border-b border-slate-200 pb-5 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-6"><app-account-nav />
@@ -202,11 +227,4 @@
       </section>
     </div>
   </div>
-
-  @if (error()) { <p
-    class="fixed bottom-5 left-1/2 z-40 -translate-x-1/2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-lg"
-    role="alert">{{ error() }}</p> }
-  @if (notice()) { <p
-    class="fixed bottom-5 left-1/2 z-40 -translate-x-1/2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 shadow-lg"
-    role="status">{{ notice() }}</p> }
 </main>
