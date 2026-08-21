@@ -164,4 +164,19 @@ describe('AppointmentDetail', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="open-reschedule"]')).toBeNull();
     expect(fixture.nativeElement.querySelector('[data-testid="qr-scan-action"]')).toBeNull();
   });
+
+  it('renders correct color classes for cancelled (red), absent (yellow), completed (green), and booked (blue) statuses', () => {
+    flushAppointment(null);
+    expect(component['statusBadgeClass']('CANCELLED')).toContain('text-rose-700');
+    expect(component['statusDotClass']('CANCELLED')).toBe('bg-rose-500');
+
+    expect(component['statusBadgeClass']('ABSENT')).toContain('text-amber-700');
+    expect(component['statusDotClass']('ABSENT')).toBe('bg-amber-500');
+
+    expect(component['statusBadgeClass']('COMPLETED')).toContain('text-emerald-700');
+    expect(component['statusDotClass']('COMPLETED')).toBe('bg-emerald-500');
+
+    expect(component['statusBadgeClass']('BOOKED')).toContain('text-[#0284c7]');
+    expect(component['statusDotClass']('BOOKED')).toBe('bg-[#0284c7]');
+  });
 });

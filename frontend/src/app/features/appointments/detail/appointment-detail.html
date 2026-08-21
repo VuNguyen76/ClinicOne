@@ -43,8 +43,8 @@
             <h1 class="mt-2 text-2xl font-bold tracking-tight text-slate-950">{{ current.specialty }}</h1>
             <p class="mt-1 text-sm text-slate-500">{{ current.profileName || 'Người đi khám' }}</p>
           </div>
-          <span class="inline-flex w-fit items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3.5 py-1.5 text-sm font-semibold text-emerald-700">
-            <span class="h-2 w-2 rounded-full bg-emerald-500"></span>{{ current.statusLabel }}
+          <span class="inline-flex w-fit items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm font-semibold" [class]="statusBadgeClass(current.status)">
+            <span class="h-2 w-2 rounded-full" [class]="statusDotClass(current.status)"></span>{{ current.statusLabel }}
           </span>
         </div>
 

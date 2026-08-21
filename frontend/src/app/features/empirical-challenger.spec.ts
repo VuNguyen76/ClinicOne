@@ -333,7 +333,7 @@ describe('Empirical Adversarial Stress Suite - Challenger 1', () => {
       // Check status class mapping
       expect(component['statusClass']('COMPLETED')).toBe('erp-badge-success');
       expect(component['statusClass']('CHECKED_IN')).toBe('erp-badge-info');
-      expect(component['statusClass']('CANCELLED')).toBe('erp-badge-neutral');
+      expect(component['statusClass']('CANCELLED')).toBe('erp-badge-danger');
     });
   });
 });
