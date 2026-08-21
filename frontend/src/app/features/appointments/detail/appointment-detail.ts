@@ -292,6 +292,38 @@ export class AppointmentDetail implements OnInit {
     this.error.set(apiErrorMessage(response));
   }
 
+  protected statusBadgeClass(status: string): string {
+    if (status === 'CANCELLED') {
+      return 'border-rose-200 bg-rose-50 text-rose-700';
+    }
+    if (status === 'ABSENT' || status === 'NOT_PERFORMED') {
+      return 'border-amber-200 bg-amber-50 text-amber-700';
+    }
+    if (status === 'COMPLETED') {
+      return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+    }
+    if (status === 'CHECKED_IN') {
+      return 'border-sky-200 bg-sky-50 text-[#0284c7]';
+    }
+    return 'border-sky-200 bg-sky-50 text-[#0284c7]';
+  }
+
+  protected statusDotClass(status: string): string {
+    if (status === 'CANCELLED') {
+      return 'bg-rose-500';
+    }
+    if (status === 'ABSENT' || status === 'NOT_PERFORMED') {
+      return 'bg-amber-500';
+    }
+    if (status === 'COMPLETED') {
+      return 'bg-emerald-500';
+    }
+    if (status === 'CHECKED_IN') {
+      return 'bg-[#0284c7]';
+    }
+    return 'bg-[#0284c7]';
+  }
+
   private toIsoDate(date: Date): string {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   }

@@ -71,7 +71,7 @@ export class QueueBoard implements OnInit {
     if (status === 'CALLED') return 'erp-badge-warning';
     if (status === 'IN_SERVICE') return 'erp-badge-info';
     if (status === 'COMPLETED') return 'erp-badge-success';
-    if (status === 'SKIPPED') return 'erp-badge-neutral';
+    if (status === 'SKIPPED') return 'erp-badge-warning';
     return 'erp-badge-info';
   }
 

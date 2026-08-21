@@ -91,11 +91,17 @@ export class Dashboard implements OnInit {
 
   protected queueStatusClass(status: string): string {
     switch (status) {
-      case 'CALLED': return 'erp-badge-info';
-      case 'IN_SERVICE': return 'erp-badge-info';
-      case 'COMPLETED': return 'erp-badge-success';
+      case 'CANCELLED': return 'erp-badge-danger';
+      case 'ABSENT':
+      case 'NOT_PERFORMED':
       case 'SKIPPED':
       case 'LEFT_BEFORE_EXAM': return 'erp-badge-warning';
+      case 'COMPLETED': return 'erp-badge-success';
+      case 'CALLED':
+      case 'IN_SERVICE':
+      case 'CHECKED_IN':
+      case 'WAITING':
+      case 'BOOKED': return 'erp-badge-info';
       default: return 'erp-badge-neutral';
     }
   }

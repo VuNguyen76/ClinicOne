@@ -282,7 +282,7 @@ export class StaffDashboard implements OnInit, OnDestroy {
     if (status === 'CALLED') return 'erp-badge-warning';
     if (status === 'IN_SERVICE') return 'erp-badge-info';
     if (status === 'COMPLETED') return 'erp-badge-success';
-    if (status === 'SKIPPED') return 'erp-badge-neutral';
+    if (status === 'SKIPPED') return 'erp-badge-warning';
     return 'erp-badge-info';
   }
 
@@ -290,7 +290,7 @@ export class StaffDashboard implements OnInit, OnDestroy {
     if (status === 'CALLED') return 'erp-dot-warning';
     if (status === 'IN_SERVICE') return 'erp-dot-info';
     if (status === 'COMPLETED') return 'erp-dot-success';
-    if (status === 'SKIPPED') return 'erp-dot-neutral';
+    if (status === 'SKIPPED') return 'erp-dot-warning';
     return 'erp-dot-info';
   }
 

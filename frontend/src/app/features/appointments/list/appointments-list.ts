@@ -67,7 +67,7 @@ export class AppointmentsList implements OnInit {
 
   protected statusClass(status: string): string {
     if (status === 'CANCELLED') {
-      return 'erp-badge-neutral';
+      return 'erp-badge-danger';
     }
     if (status === 'COMPLETED') {
       return 'erp-badge-success';
