@@ -31,21 +31,63 @@
             (ngModelChange)="rebookDate.set($event); loadRebookSlots()"
             name="rebookDate"
           />
+
+          @if (rebookAvailableDates().length > 0) {
+            <div class="mt-2 rounded-lg border border-slate-200 bg-slate-50/80 p-2 text-xs">
+              <div class="mb-1.5 flex items-center justify-between">
+                <span class="text-[11px] font-semibold text-slate-600">Gợi ý ngày gần nhất có bác sĩ:</span>
+                <span class="text-[10px] text-slate-400">Bấm chọn nhanh</span>
+              </div>
+              <div class="flex flex-wrap gap-1.5">
+                @for (item of rebookAvailableDates().slice(0, 6); track item.date) {
+                  <button
+                    type="button"
+                    class="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium transition cursor-pointer"
+                    [class.border-[#0284c7]]="rebookDate() === item.date"
+                    [class.bg-[#0284c7]]="rebookDate() === item.date"
+                    [class.text-white]="rebookDate() === item.date"
+                    [class.shadow-xs]="rebookDate() === item.date"
+                    [class.border-slate-200]="rebookDate() !== item.date"
+                    [class.bg-white]="rebookDate() !== item.date"
+                    [class.text-slate-700]="rebookDate() !== item.date"
+                    [class.hover:border-[#0284c7]]="rebookDate() !== item.date"
+                    (click)="rebookDate.set(item.date); loadRebookSlots()"
+                  >
+                    <span>{{ item.weekday }}, {{ item.label.slice(0, 5) }}</span>
+                    <span
+                      class="rounded px-1 py-0.2 text-[10px] font-bold"
+                      [class.bg-white/20]="rebookDate() === item.date"
+                      [class.text-white]="rebookDate() === item.date"
+                      [class.bg-sky-50]="rebookDate() !== item.date"
+                      [class.text-[#0284c7]]="rebookDate() !== item.date"
+                    >{{ item.count }} chỗ</span>
+                  </button>
+                }
+              </div>
+            </div>
+          }
         </div>
         <div>
           <label class="erp-label">Khung giờ còn trống</label>
-          <select
-            class="erp-select"
-            [ngModel]="rebookStartTime()"
-            (ngModelChange)="rebookStartTime.set($event)"
-            name="rebookStartTime"
-            [disabled]="rebookSlotsLoading() || rebookSlots().length === 0"
-          >
-            <option value="">{{ rebookSlotsLoading() ? 'Đang tải...' : 'Chọn khung giờ' }}</option>
-            @for (slot of rebookSlots(); track slot.doctorId + slot.startTime) {
-              <option [value]="slot.startTime">{{ formatTime(slot.startTime) }} · {{ slot.doctorName }} · {{ slot.roomCode }}</option>
-            }
-          </select>
+          @if (rebookSlotsLoading()) {
+            <div class="rounded-md border border-slate-200 bg-slate-50 p-2.5 text-xs text-slate-500">Đang tải danh sách khung giờ...</div>
+          } @else if (rebookSlots().length === 0) {
+            <div class="rounded-md border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-800">
+              Ngày {{ formatDate(rebookDate()) }} hiện không có khung giờ nào trống. Vui lòng bấm chọn một ngày có sẵn ở danh sách phía trên.
+            </div>
+          } @else {
+            <select
+              class="erp-select"
+              [ngModel]="rebookStartTime()"
+              (ngModelChange)="rebookStartTime.set($event)"
+              name="rebookStartTime"
+            >
+              <option value="">Chọn khung giờ</option>
+              @for (slot of rebookSlots(); track slot.doctorId + slot.startTime) {
+                <option [value]="slot.startTime">{{ formatTime(slot.startTime) }} · {{ slot.doctorName }} · {{ slot.roomCode }}</option>
+              }
+            </select>
+          }
         </div>
         <div>
           <label class="erp-label">Lý do đến muộn/quay lại</label>
@@ -448,14 +490,56 @@
               <input type="date" class="erp-input font-mono" [ngModel]="walkInDate()" (ngModelChange)="walkInDate.set($event); loadWalkInSlots()" name="walkInDate" />
             </div>
           </div>
+          @if (walkInAvailableDates().length > 0) {
+            <div class="mt-2 rounded-lg border border-slate-200 bg-slate-50/80 p-2 text-xs">
+              <div class="mb-1.5 flex items-center justify-between">
+                <span class="text-[11px] font-semibold text-slate-600">Gợi ý ngày gần nhất có bác sĩ:</span>
+                <span class="text-[10px] text-slate-400">Bấm chọn nhanh</span>
+              </div>
+              <div class="flex flex-wrap gap-1.5">
+                @for (item of walkInAvailableDates().slice(0, 6); track item.date) {
+                  <button
+                    type="button"
+                    class="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium transition cursor-pointer"
+                    [class.border-[#0284c7]]="walkInDate() === item.date"
+                    [class.bg-[#0284c7]]="walkInDate() === item.date"
+                    [class.text-white]="walkInDate() === item.date"
+                    [class.shadow-xs]="walkInDate() === item.date"
+                    [class.border-slate-200]="walkInDate() !== item.date"
+                    [class.bg-white]="walkInDate() !== item.date"
+                    [class.text-slate-700]="walkInDate() !== item.date"
+                    [class.hover:border-[#0284c7]]="walkInDate() !== item.date"
+                    (click)="walkInDate.set(item.date); loadWalkInSlots()"
+                  >
+                    <span>{{ item.weekday }}, {{ item.label.slice(0, 5) }}</span>
+                    <span
+                      class="rounded px-1 py-0.2 text-[10px] font-bold"
+                      [class.bg-white/20]="walkInDate() === item.date"
+                      [class.text-white]="walkInDate() === item.date"
+                      [class.bg-sky-50]="walkInDate() !== item.date"
+                      [class.text-[#0284c7]]="walkInDate() !== item.date"
+                    >{{ item.count }} chỗ</span>
+                  </button>
+                }
+              </div>
+            </div>
+          }
           <div>
             <label class="erp-label">Khung giờ còn trống</label>
-            <select class="erp-select" [ngModel]="walkInStartTime()" (ngModelChange)="walkInStartTime.set($event)" name="walkInStartTime" [disabled]="walkInSlotsLoading() || walkInSlots().length === 0">
-              <option value="">{{ walkInSlotsLoading() ? 'Đang tải khung giờ...' : 'Chọn khung giờ' }}</option>
-              @for (slot of walkInSlots(); track slot.doctorId + slot.startTime) {
-                <option [value]="slot.startTime">{{ formatTime(slot.startTime) }} · {{ slot.doctorName }} · {{ slot.roomCode }}{{ slot.remainingCapacity <= 0 ? ' · Ngoài công suất' : '' }}</option>
-              }
-            </select>
+            @if (walkInSlotsLoading()) {
+              <div class="rounded-md border border-slate-200 bg-slate-50 p-2.5 text-xs text-slate-500">Đang tải khung giờ...</div>
+            } @else if (walkInSlots().length === 0) {
+              <div class="rounded-md border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-800">
+                Ngày {{ formatDate(walkInDate()) }} hiện không có khung giờ trống nào. Vui lòng chọn một ngày có sẵn ở danh sách phía trên.
+              </div>
+            } @else {
+              <select class="erp-select" [ngModel]="walkInStartTime()" (ngModelChange)="walkInStartTime.set($event)" name="walkInStartTime">
+                <option value="">Chọn khung giờ</option>
+                @for (slot of walkInSlots(); track slot.doctorId + slot.startTime) {
+                  <option [value]="slot.startTime">{{ formatTime(slot.startTime) }} · {{ slot.doctorName }} · {{ slot.roomCode }}{{ slot.remainingCapacity <= 0 ? ' · Ngoài công suất' : '' }}</option>
+                }
+              </select>
+            }
           </div>
           <div>
             <label class="erp-label">Lý do khám</label>
