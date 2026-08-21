@@ -127,6 +127,7 @@ export class DoctorTimeOffManagement implements OnInit {
       next: (item) => {
         this.records.update((items) => [item, ...items]);
         this.notice.set(`Đã khóa ${item.lockedSlotCount} khung giờ và mở ${item.affectedAppointmentCount} lịch cần sắp xếp lại.`);
+        setTimeout(() => this.notice.set(''), 5000);
         this.reason.set('');
         this.saving.set(false);
         this.modalOpen.set(false);

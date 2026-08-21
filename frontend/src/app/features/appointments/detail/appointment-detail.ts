@@ -162,7 +162,8 @@ export class AppointmentDetail implements OnInit {
           this.rescheduleOpen.set(false);
           this.selectedSlot.set(null);
           this.availableSlots.set([]);
-          this.notice.set('Đã đổi lịch hẹn sang khung giờ mới.');
+          this.notice.set('Đã đổi lịch hẹn sang khung giờ mới thành công.');
+          setTimeout(() => this.notice.set(''), 4000);
         },
         error: (response) => this.handleError(response),
       });
@@ -197,7 +198,8 @@ export class AppointmentDetail implements OnInit {
           this.rescheduleCase.set(null);
           this.replacementSlots.set([]);
           this.selectedReplacement.set(null);
-          this.notice.set('Đã xác nhận khung giờ thay thế.');
+          this.notice.set('Đã xác nhận khung giờ thay thế thành công.');
+          setTimeout(() => this.notice.set(''), 4000);
         },
         error: (response) => this.handleError(response),
       });

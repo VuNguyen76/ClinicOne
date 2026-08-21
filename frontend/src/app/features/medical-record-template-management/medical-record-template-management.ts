@@ -107,6 +107,7 @@ export class MedicalRecordTemplateManagement implements OnInit {
     operation.subscribe({
       next: () => {
         this.notice.set(this.editingId() ? 'Đã cập nhật mẫu phiếu.' : 'Đã thêm mẫu phiếu.');
+        setTimeout(() => this.notice.set(''), 4000);
         this.saving.set(false);
         this.resetForm();
         this.activeTab.set('list');
@@ -171,6 +172,7 @@ export class MedicalRecordTemplateManagement implements OnInit {
     this.api.deactivateMedicalRecordTemplate(item.id).subscribe({
       next: () => {
         this.notice.set('Đã ngưng sử dụng mẫu phiếu.');
+        setTimeout(() => this.notice.set(''), 4000);
         if (this.editingId() === item.id) this.resetForm();
         this.loadTemplates();
       },

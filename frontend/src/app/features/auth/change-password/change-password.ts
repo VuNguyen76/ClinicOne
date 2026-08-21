@@ -57,7 +57,8 @@ export class ChangePassword {
             void this.router.navigateByUrl(this.safeReturnUrl() || '/dashboard');
             return;
           }
-          this.notice.set('Mật khẩu đã được đổi.');
+          this.notice.set('Mật khẩu đã được đổi thành công.');
+          setTimeout(() => this.notice.set(''), 4000);
         },
         error: (response) => this.showError(response),
       });

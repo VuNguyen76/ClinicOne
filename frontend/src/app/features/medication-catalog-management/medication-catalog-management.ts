@@ -75,6 +75,7 @@ export class MedicationCatalogManagement implements OnInit {
         this.saving.set(false);
         this.modalOpen.set(false);
         this.notice.set(editingId ? 'Đã cập nhật thuốc.' : 'Đã thêm thuốc.');
+        setTimeout(() => this.notice.set(''), 4000);
       },
       error: (response: ApiErrorResponse) => { this.saving.set(false); this.error.set(apiErrorMessage(response)); },
     });
@@ -91,6 +92,7 @@ export class MedicationCatalogManagement implements OnInit {
       next: (saved) => {
         this.medications.update((items) => items.map((current) => current.id === saved.id ? saved : current));
         this.notice.set(saved.active ? 'Đã cho phép dùng lại thuốc.' : 'Đã tạm ngưng thuốc.');
+        setTimeout(() => this.notice.set(''), 4000);
       },
       error: (response: ApiErrorResponse) => this.error.set(apiErrorMessage(response)),
     });

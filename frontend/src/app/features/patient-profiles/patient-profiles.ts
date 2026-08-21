@@ -134,7 +134,12 @@ export class PatientProfiles implements OnInit {
     if (profile.primaryProfile || this.busy()) return;
     this.busy.set(true);
     this.authApi.deletePatientProfile(profile.id).subscribe({
-      next: () => { this.busy.set(false); this.notice.set('Đã xóa hồ sơ.'); this.load(); },
+      next: () => {
+        this.busy.set(false);
+        this.notice.set('Đã xóa hồ sơ người thân thành công.');
+        this.load();
+        setTimeout(() => this.notice.set(''), 4000);
+      },
       error: (response) => { this.busy.set(false); this.handleError(response); },
     });
   }

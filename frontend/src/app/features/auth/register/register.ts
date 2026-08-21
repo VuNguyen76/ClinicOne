@@ -95,6 +95,7 @@ export class Register implements OnInit {
       .subscribe({
         next: () => {
           this.notice.set('Mã OTP đã được gửi đến số điện thoại của bạn.');
+          setTimeout(() => this.notice.set(''), 4000);
         },
         error: (response) => this.showError(response),
       });
@@ -115,6 +116,7 @@ export class Register implements OnInit {
         next: () => {
           this.step.set('profile');
           this.notice.set('Số điện thoại đã được xác thực.');
+          setTimeout(() => this.notice.set(''), 4000);
         },
         error: (response) => this.showError(response),
       });
@@ -139,6 +141,7 @@ export class Register implements OnInit {
         next: () => {
           this.step.set('done');
           this.notice.set('Tạo tài khoản thành công.');
+          setTimeout(() => this.notice.set(''), 4000);
         },
         error: (response) => this.showError(response),
       });

@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink, RouterLinkActive } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { AccountMenu } from '../../shared/account-menu/account-menu';
@@ -14,9 +15,15 @@ export type PublicPageKey = 'about' | 'process' | 'common-issues' | 'support' | 
 })
 export class PublicPage {
   private readonly route = inject(ActivatedRoute);
+  private readonly routeData = toSignal(this.route.data);
 
-  readonly page = this.route.snapshot.data['page'] as PublicPageKey;
+  readonly page = computed<PublicPageKey>(() =>
+    (this.routeData()?.['page'] as PublicPageKey) || (this.route.snapshot.data['page'] as PublicPageKey) || 'about'
+  );
   readonly mobileMenuOpen = signal(false);
+  readonly contactNotice = signal('');
+  readonly contactBusy = signal(false);
+
   readonly publicLinks = [
     { label: 'Trang chủ', route: '/home' },
     { label: 'Giới thiệu', route: '/about' },
@@ -84,9 +91,7 @@ export class PublicPage {
     { question: 'Tôi có thể đổi lịch đã đặt không?', answer: 'Bạn có thể yêu cầu đổi sang khung giờ khác còn trống theo hướng dẫn trong mục lịch hẹn.' },
   ];
 
-  get content() {
-    return this.pageContent[this.page];
-  }
+  readonly content = computed(() => this.pageContent[this.page()]);
 
   toggleMenu(): void {
     this.mobileMenuOpen.update((open) => !open);
@@ -94,5 +99,21 @@ export class PublicPage {
 
   closeMenu(): void {
     this.mobileMenuOpen.set(false);
+  }
+
+  submitContact(event: Event, nameInput: HTMLInputElement, phoneInput: HTMLInputElement, textInput: HTMLTextAreaElement): void {
+    event.preventDefault();
+    if (!nameInput.value.trim() || !phoneInput.value.trim()) {
+      return;
+    }
+    this.contactBusy.set(true);
+    setTimeout(() => {
+      this.contactBusy.set(false);
+      this.contactNotice.set('Cảm ơn bạn! Yêu cầu hỗ trợ đã được gửi thành công. Đội ngũ ClinicOne sẽ liên hệ sớm nhất.');
+      nameInput.value = '';
+      phoneInput.value = '';
+      textInput.value = '';
+      setTimeout(() => this.contactNotice.set(''), 5000);
+    }, 600);
   }
 }

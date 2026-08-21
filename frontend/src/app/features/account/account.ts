@@ -79,7 +79,8 @@ export class Account implements OnInit {
           const normalizedProfile = this.withComposedAddress(profile);
           this.profile.set(normalizedProfile);
           this.setProfileForm(normalizedProfile);
-          this.notice.set('Thông tin cá nhân đã được cập nhật.');
+          this.notice.set('Thông tin cá nhân đã được cập nhật thành công.');
+          setTimeout(() => this.notice.set(''), 4000);
         },
         error: (response) => this.showError(response),
       });
