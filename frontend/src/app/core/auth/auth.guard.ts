@@ -36,7 +36,7 @@ export const receptionGuard: CanActivateFn = (_route, state) => {
   if (!token || !isStaffSession() || !roles.length) {
     return router.createUrlTree(['/staff/login'], { queryParams: { returnUrl: state.url } });
   }
-  return roles.some((role) => ['COORDINATOR', 'RECEPTIONIST'].includes(role))
+  return roles.includes('RECEPTIONIST')
     ? true
     : router.createUrlTree(['/doctor']);
 };
@@ -84,7 +84,7 @@ export const homeGuard: CanActivateFn = () => {
     return router.createUrlTree(['/admin/rooms']);
   }
   if (roles.includes('RECEPTIONIST')) {
-    return router.createUrlTree(['/reception/check-in']);
+    return router.createUrlTree(['/reception']);
   }
   return router.createUrlTree(['/staff/login']);
 };
@@ -94,7 +94,7 @@ export const staffLandingRedirect: RedirectFunction = () => {
   if (!sessionToken() || !isStaffSession() || !roles.length) return '/staff/login';
   if (roles.includes('DOCTOR')) return '/doctor';
   if (roles.includes('ADMIN') || roles.includes('COORDINATOR')) return '/admin/rooms';
-  if (roles.includes('RECEPTIONIST')) return '/reception/check-in';
+  if (roles.includes('RECEPTIONIST')) return '/reception';
   return '/staff/login';
 };
 

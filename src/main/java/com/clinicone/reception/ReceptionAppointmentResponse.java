@@ -26,7 +26,10 @@ public record ReceptionAppointmentResponse(
         String queuePresenceStatus,
         String queuePresenceLabel,
         UUID queueTicketId,
-        boolean queuePriority
+        boolean queuePriority,
+        String queueClosureOutcome,
+        String queueClosureOutcomeLabel,
+        boolean lateArrival
 ) {
     public ReceptionAppointmentResponse(UUID id, String appointmentCode, LocalDate appointmentDate,
                                         LocalTime startTime, String specialty, String doctorName,
@@ -35,11 +38,28 @@ public record ReceptionAppointmentResponse(
                                         Integer queueNumber, String queueStatus, String queueStatusLabel) {
         this(id, appointmentCode, appointmentDate, startTime, specialty, doctorName, roomCode, roomName,
                 patientProfileId, patientName, patientPhone, status, queueNumber, queueStatus, queueStatusLabel,
-                null, null, null, false);
+                null, null, null, false, null, null, false);
+    }
+
+    public ReceptionAppointmentResponse(UUID id, String appointmentCode, LocalDate appointmentDate,
+                                        LocalTime startTime, String specialty, String doctorName,
+                                        String roomCode, String roomName, UUID patientProfileId,
+                                        String patientName, String patientPhone, String status,
+                                        Integer queueNumber, String queueStatus, String queueStatusLabel,
+                                        String queuePresenceStatus, String queuePresenceLabel, UUID queueTicketId,
+                                        boolean queuePriority) {
+        this(id, appointmentCode, appointmentDate, startTime, specialty, doctorName, roomCode, roomName,
+                patientProfileId, patientName, patientPhone, status, queueNumber, queueStatus, queueStatusLabel,
+                queuePresenceStatus, queuePresenceLabel, queueTicketId, queuePriority, null, null, false);
     }
 
     public static ReceptionAppointmentResponse from(Appointment appointment, String roomCode, String roomName,
                                                      QueueTicketResponse ticket) {
+        return from(appointment, roomCode, roomName, ticket, false);
+    }
+
+    public static ReceptionAppointmentResponse from(Appointment appointment, String roomCode, String roomName,
+                                                     QueueTicketResponse ticket, boolean lateArrival) {
         var profile = appointment.getPatientProfile();
         var patient = appointment.getPatient();
         return new ReceptionAppointmentResponse(appointment.getId(), appointment.getAppointmentCode(),
@@ -52,7 +72,8 @@ public record ReceptionAppointmentResponse(
                 ticket == null ? null : ticket.queueNumber(), ticket == null ? null : ticket.status(),
                 ticket == null ? null : ticket.statusLabel(), ticket == null ? null : ticket.presenceStatus(),
                 ticket == null ? null : ticket.presenceLabel(), ticket == null ? null : ticket.id(),
-                ticket != null && ticket.priority());
+                ticket != null && ticket.priority(), ticket == null ? null : ticket.closureOutcome(),
+                ticket == null ? null : ticket.closureOutcomeLabel(), lateArrival);
     }
 
 }

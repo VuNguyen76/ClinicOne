@@ -1,5 +1,7 @@
 package com.clinicone.rescheduling;
 
+import lombok.RequiredArgsConstructor;
+
 import com.clinicone.appointment.AppointmentRepository;
 import com.clinicone.appointment.AppointmentStatus;
 import com.clinicone.auth.AuthException;
@@ -22,6 +24,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class DoctorTimeOffService {
     private static final ZoneId CLINIC_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     private static final int MAX_DAYS = 30;
@@ -33,22 +36,6 @@ public class DoctorTimeOffService {
     private final AppointmentHoldRepository holdRepository;
     private final ReschedulingService reschedulingService;
     private final Clock clock;
-
-    public DoctorTimeOffService(DoctorProfileRepository doctorRepository,
-                                DoctorTimeOffRepository timeOffRepository,
-                                GeneratedClinicSlotRepository slotRepository,
-                                AppointmentRepository appointmentRepository,
-                                AppointmentHoldRepository holdRepository,
-                                ReschedulingService reschedulingService,
-                                Clock clock) {
-        this.doctorRepository = doctorRepository;
-        this.timeOffRepository = timeOffRepository;
-        this.slotRepository = slotRepository;
-        this.appointmentRepository = appointmentRepository;
-        this.holdRepository = holdRepository;
-        this.reschedulingService = reschedulingService;
-        this.clock = clock;
-    }
 
     @Transactional
     public DoctorTimeOffResponse create(CreateDoctorTimeOffRequest request) {

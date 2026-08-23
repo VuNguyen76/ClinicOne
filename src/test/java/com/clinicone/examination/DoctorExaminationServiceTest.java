@@ -46,6 +46,7 @@ class DoctorExaminationServiceTest {
     private static final UUID TICKET_ID = UUID.fromString("bd9e3fb4-1045-4ca4-86d2-7d1fca4c1a13");
     private static final UUID SESSION_ID = UUID.fromString("cd9e3fb4-1045-4ca4-86d2-7d1fca4c1a13");
     private static final UUID RECORD_ID = UUID.fromString("dd9e3fb4-1045-4ca4-86d2-7d1fca4c1a13");
+    private static final UUID SERVICE_ID = UUID.fromString("ed9e3fb4-1045-4ca4-86d2-7d1fca4c1a13");
 
     private QueueTicketRepository ticketRepository;
     private ExaminationSessionRepository sessionRepository;
@@ -148,6 +149,28 @@ class DoctorExaminationServiceTest {
         DoctorExaminationResponse response = service.open(TICKET_ID, DOCTOR_ID.toString());
 
         assertThat(response.draftSavedAt()).isNotNull();
+    }
+
+    @Test
+    void openingAnExaminationReturnsTheBookedServiceForTemplateFiltering() {
+        setField(appointment, "serviceId", SERVICE_ID);
+
+        DoctorExaminationResponse response = service.open(TICKET_ID, DOCTOR_ID.toString());
+
+        assertThat(response.clinicServiceId()).isEqualTo(SERVICE_ID);
+    }
+
+    @Test
+    void openingAnExaminationUsesTheSelectedPatientProfileInsteadOfTheAccountOwner() {
+        setField(appointment.getPatientProfile(), "fullName", "Nguyễn Minh An");
+        setField(appointment.getPatientProfile(), "dateOfBirth", LocalDate.of(2018, 4, 12));
+        setField(appointment.getPatientProfile(), "gender", "Nữ");
+
+        DoctorExaminationResponse response = service.open(TICKET_ID, DOCTOR_ID.toString());
+
+        assertThat(response.patientName()).isEqualTo("Nguyễn Minh An");
+        assertThat(response.patientDateOfBirth()).isEqualTo(LocalDate.of(2018, 4, 12));
+        assertThat(response.patientGender()).isEqualTo("Nữ");
     }
 
     @Test

@@ -1,5 +1,7 @@
 package com.clinicone.schedule;
 
+import lombok.Getter;
+
 import com.clinicone.auth.PatientAccount;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -23,6 +25,7 @@ import java.util.UUID;
  * An active, short-lived claim on a slot. Consumed holds are removed in the
  * same transaction as appointment creation; only active holds are persisted.
  */
+@Getter
 @Entity
 @Table(name = "appointment_holds", indexes = {
         @Index(name = "idx_appointment_holds_expiry", columnList = "expires_at"),
@@ -60,6 +63,9 @@ public class AppointmentHold {
     @Column(name = "hold_key", nullable = false, length = 180)
     private String holdKey;
 
+    @Column(name = "session_key", nullable = false, length = 120)
+    private String sessionKey;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -70,13 +76,8 @@ public class AppointmentHold {
     }
 
     private AppointmentHold(PatientAccount patient, String specialty, String doctorName, UUID doctorStaffId,
-                             LocalDate appointmentDate, LocalTime startTime, String holdKey, Instant expiresAt) {
-        this(patient, specialty, doctorName, doctorStaffId, appointmentDate, startTime, holdKey, expiresAt, null);
-    }
-
-    private AppointmentHold(PatientAccount patient, String specialty, String doctorName, UUID doctorStaffId,
                              LocalDate appointmentDate, LocalTime startTime, String holdKey, Instant expiresAt,
-                             UUID serviceId) {
+                             UUID serviceId, String sessionKey) {
         this.patient = patient;
         this.specialty = specialty;
         this.doctorName = doctorName;
@@ -85,21 +86,29 @@ public class AppointmentHold {
         this.appointmentDate = appointmentDate;
         this.startTime = startTime;
         this.holdKey = holdKey;
+        this.sessionKey = sessionKey;
         this.expiresAt = expiresAt;
     }
 
     public static AppointmentHold create(PatientAccount patient, String specialty, String doctorName,
                                           UUID doctorStaffId, LocalDate appointmentDate, LocalTime startTime,
                                           String holdKey, Instant expiresAt) {
-        return new AppointmentHold(patient, specialty, doctorName, doctorStaffId, appointmentDate, startTime,
-                holdKey, expiresAt);
+        return create(patient, specialty, doctorName, doctorStaffId, appointmentDate, startTime, holdKey, expiresAt,
+                null, "LEGACY");
     }
 
     public static AppointmentHold create(PatientAccount patient, String specialty, String doctorName,
                                           UUID doctorStaffId, LocalDate appointmentDate, LocalTime startTime,
                                           String holdKey, Instant expiresAt, UUID serviceId) {
+        return create(patient, specialty, doctorName, doctorStaffId, appointmentDate, startTime, holdKey, expiresAt,
+                serviceId, "LEGACY");
+    }
+
+    public static AppointmentHold create(PatientAccount patient, String specialty, String doctorName,
+                                          UUID doctorStaffId, LocalDate appointmentDate, LocalTime startTime,
+                                          String holdKey, Instant expiresAt, UUID serviceId, String sessionKey) {
         return new AppointmentHold(patient, specialty, doctorName, doctorStaffId, appointmentDate, startTime,
-                holdKey, expiresAt, serviceId);
+                holdKey, expiresAt, serviceId, sessionKey);
     }
 
     @PrePersist
@@ -109,15 +118,4 @@ public class AppointmentHold {
         }
     }
 
-    public UUID getId() { return id; }
-    public PatientAccount getPatient() { return patient; }
-    public String getSpecialty() { return specialty; }
-    public String getDoctorName() { return doctorName; }
-    public UUID getDoctorStaffId() { return doctorStaffId; }
-    public UUID getServiceId() { return serviceId; }
-    public LocalDate getAppointmentDate() { return appointmentDate; }
-    public LocalTime getStartTime() { return startTime; }
-    public String getHoldKey() { return holdKey; }
-    public Instant getCreatedAt() { return createdAt; }
-    public Instant getExpiresAt() { return expiresAt; }
 }

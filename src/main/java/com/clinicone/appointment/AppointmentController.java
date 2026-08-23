@@ -1,5 +1,8 @@
 package com.clinicone.appointment;
 
+import lombok.RequiredArgsConstructor;
+
+import com.clinicone.validation.IdempotencyKey;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -16,14 +19,11 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/appointments")
 @PreAuthorize("hasRole('PATIENT')")
 public class AppointmentController {
     private final AppointmentService appointmentService;
-
-    public AppointmentController(AppointmentService appointmentService) {
-        this.appointmentService = appointmentService;
-    }
 
     @GetMapping
     public ResponseEntity<List<AppointmentResponse>> list(Authentication authentication) {
@@ -39,6 +39,7 @@ public class AppointmentController {
     @PostMapping
     public ResponseEntity<AppointmentResponse> create(Authentication authentication,
                                                        @Valid @RequestBody CreateAppointmentRequest request,
+                                                       @IdempotencyKey
                                                        @RequestHeader(value = "Idempotency-Key", required = false) String requestKey) {
         AppointmentResponse response = requestKey == null || requestKey.isBlank()
                 ? appointmentService.create(authentication.getName(), request)
@@ -50,6 +51,7 @@ public class AppointmentController {
     public ResponseEntity<Void> cancel(Authentication authentication,
                                        @PathVariable UUID appointmentId,
                                        @Valid @RequestBody(required = false) CancelAppointmentRequest request,
+                                       @IdempotencyKey
                                        @RequestHeader(value = "Idempotency-Key", required = false) String requestKey) {
         appointmentService.cancel(authentication.getName(), appointmentId.toString(), request, requestKey);
         return ResponseEntity.noContent().build();

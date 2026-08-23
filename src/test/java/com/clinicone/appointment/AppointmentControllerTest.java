@@ -86,6 +86,17 @@ class AppointmentControllerTest {
     }
 
     @Test
+    void rejectsOversizedIdempotencyKeyBeforeCallingTheService() throws Exception {
+        mockMvc.perform(post("/api/v1/appointments")
+                        .with(authentication(UsernamePasswordAuthenticationToken.authenticated(
+                                ACCOUNT_ID.toString(), null, List.of(new SimpleGrantedAuthority("ROLE_PATIENT")))))
+                        .header("Idempotency-Key", "a".repeat(81))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"specialty\":\"Nội khoa\",\"doctorName\":\"BS. Nguyễn An\",\"appointmentDate\":\"2099-01-01\",\"startTime\":\"08:30\",\"reason\":\"Đau đầu\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void returnsAppointmentDetail() throws Exception {
         UUID appointmentId = UUID.randomUUID();
         when(appointmentService.get(eq(ACCOUNT_ID.toString()), eq(appointmentId.toString()))).thenReturn(new AppointmentResponse(

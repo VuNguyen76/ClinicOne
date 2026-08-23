@@ -41,4 +41,12 @@ describe('DiagnosisCatalogManagement', () => {
     expect(request.request.method).toBe('POST');
     expect(request.request.body).toEqual({ code: 'HEADACHE_TENSION', name: 'Đau đầu căng thẳng' });
   });
+
+  it('renders inside the staff ERP workspace', () => {
+    http.expectOne('/api/v1/admin/diagnoses').flush([]);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-testid="staff-workspace-shell"]')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('[data-testid="staff-window-title"]')?.textContent)
+      .toContain('Chẩn đoán');
+  });
 });

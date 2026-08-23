@@ -3,12 +3,12 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { finalize } from 'rxjs';
 import { apiErrorMessage, AuthApiService, MedicalRecordResponse } from '../../core/auth/auth-api.service';
-import { AccountMenu } from '../../shared/account-menu/account-menu';
+import { PatientHeader } from '../../shared/patient-header/patient-header';
 
 @Component({
   selector: 'app-medical-record-detail',
   standalone: true,
-  imports: [RouterLink, MatIconModule, AccountMenu],
+  imports: [RouterLink, MatIconModule, PatientHeader],
   templateUrl: './medical-record-detail.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -55,5 +55,9 @@ export class MedicalRecordDetail implements OnInit {
     if (!value) return 'Không có';
     const date = new Date(value);
     return Number.isNaN(date.valueOf()) ? value : new Intl.DateTimeFormat('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
+  }
+
+  protected printRecord(): void {
+    window.print();
   }
 }

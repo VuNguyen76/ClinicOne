@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import {
@@ -8,12 +7,12 @@ import {
   StaffAccountResponse,
   apiErrorMessage,
 } from '../../core/auth/auth-api.service';
-import { AccountMenu } from '../../shared/account-menu/account-menu';
+import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
 
 @Component({
   selector: 'app-staff-management',
   standalone: true,
-  imports: [FormsModule, RouterLink, MatIconModule, AccountMenu],
+  imports: [FormsModule, MatIconModule, StaffWorkspaceShell],
   templateUrl: './staff-management.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -34,8 +33,33 @@ export class StaffManagement implements OnInit {
   protected readonly newDepartmentName = signal('');
   protected readonly newRoles = signal<string[]>([]);
   protected readonly roleOptions = ['DOCTOR', 'RECEPTIONIST', 'COORDINATOR'];
+  protected readonly searchTerm = signal('');
   protected readonly editingAccount = signal<StaffAccountResponse | null>(null);
   protected readonly editingRoles = signal<string[]>([]);
+
+  protected filteredAccounts(): StaffAccountResponse[] {
+    const q = this.searchTerm().trim().toLowerCase();
+    if (!q) return this.accounts();
+    return this.accounts().filter((acc) =>
+      acc.fullName.toLowerCase().includes(q) ||
+      acc.username.toLowerCase().includes(q) ||
+      (acc.employeeCode && acc.employeeCode.toLowerCase().includes(q)) ||
+      (acc.departmentName && acc.departmentName.toLowerCase().includes(q)) ||
+      (acc.roles || [acc.role]).some((r) => r.toLowerCase().includes(q))
+    );
+  }
+
+  protected totalAccountsCount(): number {
+    return this.accounts().length;
+  }
+
+  protected activeAccountsCount(): number {
+    return this.accounts().filter((acc) => acc.status === 'ACTIVE').length;
+  }
+
+  protected lockedAccountsCount(): number {
+    return this.accounts().filter((acc) => acc.status === 'LOCKED').length;
+  }
 
   ngOnInit(): void {
     this.load();

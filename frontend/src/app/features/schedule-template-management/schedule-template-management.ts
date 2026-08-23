@@ -1,6 +1,5 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { forkJoin } from 'rxjs';
 import {
@@ -13,14 +12,14 @@ import {
   ScheduleTemplateResponse,
   apiErrorMessage,
 } from '../../core/auth/auth-api.service';
-import { AccountMenu } from '../../shared/account-menu/account-menu';
+import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
 import { clinicTodayIso } from '../../core/time/clinic-time';
 import { hasStaffRole } from '../../core/auth/auth.guard';
 
 @Component({
   selector: 'app-schedule-template-management',
   standalone: true,
-  imports: [FormsModule, RouterLink, MatIconModule, AccountMenu],
+  imports: [FormsModule, MatIconModule, StaffWorkspaceShell],
   templateUrl: './schedule-template-management.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -36,6 +35,8 @@ export class ScheduleTemplateManagement implements OnInit {
   protected readonly saving = signal(false);
   protected readonly error = signal('');
   protected readonly notice = signal('');
+  protected readonly modalOpen = signal(false);
+  protected readonly activeTab = signal<'grid' | 'list' | 'form'>('grid');
 
   protected readonly selectedServiceId = signal('');
   protected readonly selectedDoctorId = signal('');
@@ -49,6 +50,12 @@ export class ScheduleTemplateManagement implements OnInit {
   protected readonly breakStart = signal('');
   protected readonly breakEnd = signal('');
   protected readonly exceptionDatesText = signal('');
+  protected readonly searchTerm = signal('');
+  protected readonly hasBreak = signal(false);
+  protected readonly filterSpecialty = signal('');
+  protected readonly selectedDateRange = signal('Tất cả thời gian');
+  protected readonly selectedTemplateForDetail = signal<ScheduleTemplateResponse | null>(null);
+  protected readonly selectedWeekdayForDetail = signal<string>('');
 
   protected canManageSchedule(): boolean {
     return hasStaffRole('COORDINATOR');
@@ -61,7 +68,271 @@ export class ScheduleTemplateManagement implements OnInit {
     { value: 'SUNDAY', label: 'Chủ nhật' },
   ];
 
+  protected readonly displayWeekdays = [
+    { value: 'MONDAY', label: 'Thứ 2' },
+    { value: 'TUESDAY', label: 'Thứ 3' },
+    { value: 'WEDNESDAY', label: 'Thứ 4' },
+    { value: 'THURSDAY', label: 'Thứ 5' },
+    { value: 'FRIDAY', label: 'Thứ 6' },
+    { value: 'SATURDAY', label: 'Thứ 7' },
+  ];
+
+  protected readonly filteredTemplates = computed<ScheduleTemplateResponse[]>(() => {
+    const q = this.searchTerm().trim().toLowerCase();
+    const spec = this.filterSpecialty().trim().toLowerCase();
+    return this.templates().filter((t) => {
+      if (spec && !t.serviceName.toLowerCase().includes(spec) && !t.specialty.toLowerCase().includes(spec)) return false;
+      if (q && !t.serviceName.toLowerCase().includes(q) && !t.doctorName.toLowerCase().includes(q) && !t.roomCode.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  });
+
+  protected readonly filteredRooms = computed<ClinicRoomResponse[]>(() => {
+    const spec = this.filterSpecialty().trim().toLowerCase();
+    const q = this.searchTerm().trim().toLowerCase();
+    return this.rooms().filter((r) => {
+      if (!r.active) return false;
+      if (spec && !r.specialty.toLowerCase().includes(spec)) return false;
+      if (q && !r.name.toLowerCase().includes(q) && !r.code.toLowerCase().includes(q) && !r.specialty.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  });
+
+  protected readonly templateMatrix = computed<Map<string, ScheduleTemplateResponse[]>>(() => {
+    const map = new Map<string, ScheduleTemplateResponse[]>();
+    for (const t of this.filteredTemplates()) {
+      for (const w of t.weekdays) {
+        const key = `${t.roomId}_${w}`;
+        let list = map.get(key);
+        if (!list) {
+          list = [];
+          map.set(key, list);
+        }
+        list.push(t);
+      }
+    }
+    return map;
+  });
+
+  protected getTemplatesForRoomAndDay(roomId: string, day: string): ScheduleTemplateResponse[] {
+    return this.templateMatrix().get(`${roomId}_${day}`) ?? [];
+  }
+
+  protected readonly availableDoctors = computed<DoctorAccountResponse[]>(() => {
+    const service = this.services().find((item) => item.id === this.selectedServiceId());
+    const eligible = new Set(service?.eligibleDoctors.map((item) => item.staffId) ?? []);
+    return this.doctors().filter((doctor) => doctor.assigned && doctor.active && eligible.has(doctor.staffId));
+  });
+
+  protected readonly availableRooms = computed<ClinicRoomResponse[]>(() => {
+    const doctor = this.doctors().find((item) => item.staffId === this.selectedDoctorId());
+    return this.rooms().filter((room) => room.active && (!doctor?.roomId || room.id === doctor.roomId));
+  });
+
+  protected readonly selectedDoctor = computed<DoctorAccountResponse | undefined>(() => {
+    return this.doctors().find((doc) => doc.staffId === this.selectedDoctorId());
+  });
+
+  protected readonly previewSlots = computed<{ time: string; isBreak?: boolean; label?: string }[]>(() => {
+    const start = this.dayStart() || '08:00';
+    const end = this.dayEnd() || '17:00';
+    const step = Number(this.durationMinutes()) || 30;
+    const hasBrk = this.hasBreak();
+    const brkStart = this.breakStart() || '12:00';
+    const brkEnd = this.breakEnd() || '13:00';
+
+    const parseMinutes = (t: string) => {
+      const parts = t.split(':');
+      return (Number(parts[0]) || 0) * 60 + (Number(parts[1]) || 0);
+    };
+
+    const formatMinutes = (mins: number) => {
+      const h = Math.floor(mins / 60).toString().padStart(2, '0');
+      const m = (mins % 60).toString().padStart(2, '0');
+      return `${h}:${m}`;
+    };
+
+    const startMins = parseMinutes(start);
+    const endMins = parseMinutes(end);
+    const brkStartMins = parseMinutes(brkStart);
+    const brkEndMins = parseMinutes(brkEnd);
+
+    const result: { time: string; isBreak?: boolean; label?: string }[] = [];
+    let insertedBreak = false;
+
+    for (let cur = startMins; cur <= endMins; cur += step) {
+      if (hasBrk && cur >= brkStartMins && cur < brkEndMins) {
+        if (!insertedBreak) {
+          result.push({ time: `${brkStart} - ${brkEnd}`, isBreak: true, label: `Nghỉ trưa (${brkStart} - ${brkEnd})` });
+          insertedBreak = true;
+        }
+        continue;
+      }
+      result.push({ time: formatMinutes(cur) });
+    }
+
+    return result;
+  });
+
+  protected getWeekdayLabel(day: string): string {
+    return this.weekdays.find((w) => w.value === day)?.label ?? day;
+  }
+
+  protected applyWeekdayPreset(preset: 'WEEKDAYS' | 'ALL_EXCEPT_SUNDAY' | 'ALL'): void {
+    if (preset === 'WEEKDAYS') {
+      this.selectedWeekdays.set(['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY']);
+    } else if (preset === 'ALL_EXCEPT_SUNDAY') {
+      this.selectedWeekdays.set(['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY']);
+    } else {
+      this.selectedWeekdays.set(['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']);
+    }
+  }
+
+  protected applyPeriodPreset(days: number): void {
+    this.startDate.set(this.today);
+    this.endDate.set(this.addDays(this.today, days));
+  }
+
+  protected applyTimePreset(start: string, end: string): void {
+    this.dayStart.set(start);
+    this.dayEnd.set(end);
+  }
+
+  protected toggleBreakOption(enabled: boolean): void {
+    this.hasBreak.set(enabled);
+    if (enabled) {
+      this.breakStart.set('12:00');
+      this.breakEnd.set('13:00');
+    } else {
+      this.breakStart.set('');
+      this.breakEnd.set('');
+    }
+  }
+
+  protected openTemplateDetail(template: ScheduleTemplateResponse, weekday?: string): void {
+    this.selectedTemplateForDetail.set(template);
+    this.selectedWeekdayForDetail.set(weekday || '');
+  }
+
+  protected closeTemplateDetail(): void {
+    this.selectedTemplateForDetail.set(null);
+    this.selectedWeekdayForDetail.set('');
+  }
+
+  protected scheduleForRoomAndDay(room: ClinicRoomResponse, day: string): void {
+    if (!this.canManageSchedule()) return;
+    this.selectedRoomId.set(room.id);
+    const matchService = this.services().find((s) => s.specialty.toLowerCase() === room.specialty.toLowerCase()) || this.services()[0];
+    if (matchService) {
+      this.selectService(matchService.id);
+    }
+    this.selectedWeekdays.set([day]);
+    this.startCreate();
+  }
+
+  protected applyShiftPreset(preset: 'FULL_DAY' | 'MORNING' | 'AFTERNOON'): void {
+    if (preset === 'FULL_DAY') {
+      this.dayStart.set('08:00');
+      this.dayEnd.set('17:00');
+      this.hasBreak.set(true);
+      this.breakStart.set('12:00');
+      this.breakEnd.set('13:00');
+    } else if (preset === 'MORNING') {
+      this.dayStart.set('08:00');
+      this.dayEnd.set('12:00');
+      this.hasBreak.set(false);
+      this.breakStart.set('');
+      this.breakEnd.set('');
+    } else if (preset === 'AFTERNOON') {
+      this.dayStart.set('13:00');
+      this.dayEnd.set('17:00');
+      this.hasBreak.set(false);
+      this.breakStart.set('');
+      this.breakEnd.set('');
+    }
+  }
+
+  protected getShiftBadge(template: ScheduleTemplateResponse): { label: string; class: string } {
+    const startHour = Number(template.dayStart.split(':')[0]) || 0;
+    const endHour = Number(template.dayEnd.split(':')[0]) || 0;
+    if (startHour < 12 && endHour >= 16) {
+      return { label: 'Cả ngày (08:00-17:00)', class: 'border-teal-200 bg-teal-50 text-teal-800' };
+    }
+    if (startHour < 12) {
+      return { label: 'Ca sáng (08:00-12:00)', class: 'border-sky-200 bg-sky-50 text-sky-800' };
+    }
+    return { label: 'Ca chiều (13:00-17:00)', class: 'border-purple-200 bg-purple-50 text-purple-800' };
+  }
+
+  private readonly doctorAvatarMap: Record<string, string> = {
+    'nguyễn an': 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=150&auto=format&fit=crop&q=80',
+    'trần minh': 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?w=150&auto=format&fit=crop&q=80',
+    'lê thu hà': 'https://images.unsplash.com/photo-1594824813589-32212356c382?w=150&auto=format&fit=crop&q=80',
+    'phạm quốc dũng': 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=150&auto=format&fit=crop&q=80',
+    'hoàng thanh nga': 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=150&auto=format&fit=crop&q=80',
+    'vũ đình toàn': 'https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=150&auto=format&fit=crop&q=80',
+    'đặng mai lan': 'https://images.unsplash.com/photo-1651008376811-b90baee60c1f?w=150&auto=format&fit=crop&q=80',
+  };
+
+  protected isFemaleDoctor(doctorName: string): boolean {
+    const lower = (doctorName || '').toLowerCase();
+    return lower.includes('hà') || lower.includes('nga') || lower.includes('lan') || lower.includes('thảo') || lower.includes('mai');
+  }
+
+  protected getDoctorSvgAvatar(doctorName: string): string {
+    if (this.isFemaleDoctor(doctorName)) {
+      return 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><circle cx="60" cy="60" r="60" fill="%23e0f2fe"/><circle cx="60" cy="46" r="22" fill="%23fed7aa"/><path d="M38 42c0-12 10-20 22-20s22 8 22 20c0 4-2 10-4 12-2-8-8-12-18-12s-16 4-18 12c-2-2-4-8-4-12z" fill="%23334155"/><path d="M60 72c-20 0-36 14-36 34v14h72v-14c0-20-16-34-36-34z" fill="%23ffffff"/><path d="M48 72l12 24 12-24" fill="%230284c7"/><path d="M42 86c0 10 8 18 18 18s18-8 18-18" fill="none" stroke="%23334155" stroke-width="3" stroke-linecap="round"/><circle cx="60" cy="104" r="3" fill="%230284c7"/><path d="M50 46c2 1 6 1 8 0m4 0c2 1 6 1 8 0" fill="none" stroke="%23334155" stroke-width="1.5" stroke-linecap="round"/><path d="M56 56c2 2 6 2 8 0" fill="none" stroke="%23f43f5e" stroke-width="2" stroke-linecap="round"/></svg>';
+    }
+    return 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><circle cx="60" cy="60" r="60" fill="%23ccfbf1"/><circle cx="60" cy="46" r="22" fill="%23fde047" fill-opacity="0.6"/><path d="M38 40c0-14 10-22 22-22s22 8 22 22v4c-6-4-12-6-22-6s-16 2-22 6v-4z" fill="%231e293b"/><path d="M60 72c-20 0-36 14-36 34v14h72v-14c0-20-16-34-36-34z" fill="%23ffffff"/><path d="M48 72l12 24 12-24" fill="%230f766e"/><path d="M42 86c0 10 8 18 18 18s18-8 18-18" fill="none" stroke="%23334155" stroke-width="3" stroke-linecap="round"/><circle cx="60" cy="104" r="3" fill="%230f766e"/><path d="M50 46c2 1 6 1 8 0m4 0c2 1 6 1 8 0" fill="none" stroke="%23334155" stroke-width="1.5" stroke-linecap="round"/><path d="M56 56c2 2 6 2 8 0" fill="none" stroke="%23e11d48" stroke-width="1.5" stroke-linecap="round"/></svg>';
+  }
+
+  protected handleAvatarError(event: Event, doctorName: string): void {
+    const target = event.target as HTMLImageElement;
+    if (target) {
+      target.src = this.getDoctorSvgAvatar(doctorName);
+    }
+  }
+
+  protected getDoctorAvatar(doctorName: string, directAvatar?: string | null): string {
+    if (directAvatar) return directAvatar;
+    if (!doctorName) return this.getDoctorSvgAvatar('Dr');
+    const cleanName = doctorName.replace(/^(bs\.|ths\.|ckii|cki|bác sĩ|tiến sĩ|ts\.)\s*/i, '').trim().toLowerCase();
+    const doc = this.doctors().find((d) => {
+      const dClean = d.fullName.replace(/^(bs\.|ths\.|ckii|cki|bác sĩ|tiến sĩ|ts\.)\s*/i, '').trim().toLowerCase();
+      return d.fullName.toLowerCase() === doctorName.toLowerCase()
+        || (cleanName.length >= 3 && dClean.includes(cleanName))
+        || (dClean.length >= 3 && cleanName.includes(dClean));
+    });
+    if (doc?.avatarUrl) return doc.avatarUrl;
+    for (const [name, url] of Object.entries(this.doctorAvatarMap)) {
+      if (cleanName.includes(name) || name.includes(cleanName)) return url;
+    }
+    return this.getDoctorSvgAvatar(doctorName);
+  }
+
+  protected getDoctorSpecialty(doctorName: string): string {
+    const doc = this.doctors().find((d) => d.fullName.toLowerCase() === doctorName.toLowerCase());
+    return doc?.specialty ?? 'Đa khoa';
+  }
+
+  protected totalTemplatesCount(): number {
+    return this.templates().length;
+  }
+
+  protected activeServicesCount(): number {
+    return new Set(this.templates().map((t) => t.clinicServiceId)).size;
+  }
+
+  protected assignedRoomsCount(): number {
+    return new Set(this.templates().map((t) => t.roomId)).size;
+  }
+
   ngOnInit(): void {
+    this.loadData();
+  }
+
+  protected loadData(): void {
+    this.loading.set(true);
     forkJoin({
       services: this.authApi.getClinicServices(true),
       doctors: this.authApi.getDoctors(),
@@ -74,10 +345,13 @@ export class ScheduleTemplateManagement implements OnInit {
         this.rooms.set(data.rooms);
         this.templates.set(data.templates);
         const first = data.services[0];
-        if (first) this.selectService(first.id);
+        if (first && !this.selectedServiceId()) this.selectService(first.id);
         this.loading.set(false);
       },
-      error: (response) => { this.loading.set(false); this.error.set(apiErrorMessage(response)); },
+      error: (response) => {
+        this.loading.set(false);
+        this.error.set(apiErrorMessage(response));
+      },
     });
   }
 
@@ -95,18 +369,9 @@ export class ScheduleTemplateManagement implements OnInit {
     this.selectedRoomId.set(this.doctors().find((item) => item.staffId === doctorId)?.roomId ?? '');
   }
 
-  protected availableDoctors(): DoctorAccountResponse[] {
-    const service = this.services().find((item) => item.id === this.selectedServiceId());
-    const eligible = new Set(service?.eligibleDoctors.map((item) => item.staffId) ?? []);
-    return this.doctors().filter((doctor) => doctor.assigned && doctor.active && eligible.has(doctor.staffId));
+  protected isWeekdaySelected(day: string): boolean {
+    return this.selectedWeekdays().includes(day);
   }
-
-  protected availableRooms(): ClinicRoomResponse[] {
-    const doctor = this.doctors().find((item) => item.staffId === this.selectedDoctorId());
-    return this.rooms().filter((room) => room.active && (!doctor?.roomId || room.id === doctor.roomId));
-  }
-
-  protected isWeekdaySelected(day: string): boolean { return this.selectedWeekdays().includes(day); }
 
   protected toggleWeekday(day: string, checked: boolean): void {
     this.selectedWeekdays.update((days) => checked
@@ -119,12 +384,19 @@ export class ScheduleTemplateManagement implements OnInit {
       this.error.set('Chỉ điều phối viên được thay đổi lịch làm việc.');
       return;
     }
-    const breaks: ScheduleBreakRequest[] = this.breakStart() && this.breakEnd()
+    const breaks: ScheduleBreakRequest[] = this.hasBreak() && this.breakStart() && this.breakEnd()
       ? [{ startTime: this.breakStart(), endTime: this.breakEnd() }] : [];
     const request: ScheduleTemplateRequest = {
-      clinicServiceId: this.selectedServiceId(), doctorId: this.selectedDoctorId(), roomId: this.selectedRoomId(),
-      startDate: this.startDate(), endDate: this.endDate(), weekdays: this.selectedWeekdays(),
-      dayStart: this.dayStart(), dayEnd: this.dayEnd(), durationMinutes: Number(this.durationMinutes()), breaks,
+      clinicServiceId: this.selectedServiceId(),
+      doctorId: this.selectedDoctorId(),
+      roomId: this.selectedRoomId(),
+      startDate: this.startDate(),
+      endDate: this.endDate(),
+      weekdays: this.selectedWeekdays(),
+      dayStart: this.dayStart(),
+      dayEnd: this.dayEnd(),
+      durationMinutes: Number(this.durationMinutes()),
+      breaks,
       exceptionDates: this.exceptionDatesText().split(',').map((value) => value.trim()).filter(Boolean),
     };
     if (!request.clinicServiceId || !request.doctorId || !request.roomId || !request.startDate || !request.endDate
@@ -137,22 +409,72 @@ export class ScheduleTemplateManagement implements OnInit {
     this.authApi.createScheduleTemplate(request).subscribe({
       next: (template) => {
         this.templates.update((items) => [template, ...items]);
-        this.notice.set(`Đã sinh ${template.generatedSlotCount} khung giờ.`);
+        this.notice.set(`Đã thiết lập lịch trực và sinh ${template.generatedSlotCount} lượt khám.`);
         this.saving.set(false);
+        this.modalOpen.set(false);
+        this.activeTab.set('grid');
       },
-      error: (response) => { this.saving.set(false); this.error.set(apiErrorMessage(response)); },
+      error: (response) => {
+        this.saving.set(false);
+        this.error.set(apiErrorMessage(response));
+      },
     });
+  }
+
+  protected startCreate(): void {
+    if (!this.canManageSchedule()) return;
+    this.error.set('');
+    this.notice.set('');
+    this.modalOpen.set(true);
+    this.activeTab.set('form');
+  }
+
+  protected cancelEdit(): void {
+    if (this.saving()) return;
+    this.modalOpen.set(false);
+    this.activeTab.set('grid');
+  }
+
+  protected openCreate(): void {
+    this.startCreate();
+  }
+
+  protected closeModal(): void {
+    this.cancelEdit();
   }
 
   protected regenerate(template: ScheduleTemplateResponse): void {
     if (!this.canManageSchedule()) {
-      this.error.set('Chỉ điều phối viên được sinh bổ sung khung giờ.');
+      this.error.set('Chỉ điều phối viên được đồng bộ khung giờ.');
       return;
     }
     this.authApi.regenerateScheduleTemplate(template.id).subscribe({
       next: (updated) => {
         this.templates.update((items) => items.map((item) => item.id === updated.id ? updated : item));
-        this.notice.set(`Đã kiểm tra và bổ sung khung giờ cho ${updated.serviceName}.`);
+        this.notice.set(`Đã đồng bộ đầy đủ lượt khám cho ${updated.doctorName} (${updated.serviceName}).`);
+      },
+      error: (response) => this.error.set(apiErrorMessage(response)),
+    });
+  }
+
+  protected deleteTemplate(template: ScheduleTemplateResponse, weekday?: string): void {
+    if (!this.canManageSchedule()) return;
+    this.closeTemplateDetail();
+    this.authApi.deleteScheduleTemplate(template.id, weekday).subscribe({
+      next: () => {
+        if (weekday && template.weekdays.length > 1) {
+          this.templates.update((items) =>
+            items.map((item) =>
+              item.id === template.id
+                ? { ...item, weekdays: item.weekdays.filter((w) => w !== weekday) }
+                : item
+            )
+          );
+          this.notice.set(`Đã xóa ca trực ${this.getWeekdayLabel(weekday)} của ${template.doctorName}.`);
+        } else {
+          this.templates.update((items) => items.filter((item) => item.id !== template.id));
+          this.notice.set(`Đã xóa lịch trực của ${template.doctorName}.`);
+        }
       },
       error: (response) => this.error.set(apiErrorMessage(response)),
     });

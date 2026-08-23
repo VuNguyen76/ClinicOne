@@ -3,13 +3,14 @@ package com.clinicone.reception;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
+import com.clinicone.validation.VietnamesePhone;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
 
 public record ReceptionPatientRegistrationRequest(
-        @NotBlank @Pattern(regexp = "0\\d{9}") String phone,
+        @NotBlank @VietnamesePhone String phone,
         @NotBlank @Pattern(regexp = "\\d{6}") String otpCode,
         @NotBlank @Size(min = 2, max = 100) String fullName,
         @NotNull @PastOrPresent LocalDate dateOfBirth,

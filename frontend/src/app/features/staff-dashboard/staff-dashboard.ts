@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
-import { RouterLink, Router } from '@angular/router';
+import { Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
-import { AccountMenu } from '../../shared/account-menu/account-menu';
+import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
 import { clinicTodayIso } from '../../core/time/clinic-time';
 import {
   ApiErrorResponse,
@@ -16,7 +16,7 @@ type QueueAction = 'skip' | 'start';
 @Component({
   selector: 'app-staff-dashboard',
   standalone: true,
-  imports: [RouterLink, MatIconModule, AccountMenu],
+  imports: [MatIconModule, StaffWorkspaceShell],
   templateUrl: './staff-dashboard.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -36,6 +36,7 @@ export class StaffDashboard implements OnInit, OnDestroy {
   protected readonly loadingRooms = signal(true);
   protected readonly loadingQueue = signal(false);
   protected readonly doctorRoomName = signal('');
+  protected readonly doctorShiftStatus = signal<'ACTIVE' | 'NONE' | 'CONFLICT'>('ACTIVE');
   protected readonly busyTicketId = signal('');
   protected readonly error = signal('');
   protected readonly queueSyncWarning = signal(false);
@@ -45,8 +46,13 @@ export class StaffDashboard implements OnInit, OnDestroy {
   protected readonly calledCount = computed(() => this.queue().filter((ticket) => ticket.status === 'CALLED').length);
   protected readonly inServiceCount = computed(() => this.queue().filter((ticket) => ticket.status === 'IN_SERVICE').length);
   protected readonly completedCount = computed(() => this.queue().filter((ticket) => ticket.status === 'COMPLETED').length);
-  protected readonly nextWaitingTicket = computed(() => this.queue().find((ticket) =>
-    (ticket.status === 'WAITING' && ticket.presenceStatus !== 'RETURN_REQUIRED') || ticket.status === 'SKIPPED'));
+  protected readonly currentDoctorTicket = computed(() =>
+    this.queue().find((ticket) => ticket.status === 'IN_SERVICE')
+      ?? this.queue().find((ticket) => ticket.status === 'CALLED'));
+  protected readonly nextWaitingTicket = computed(() => this.doctorShiftStatus() === 'ACTIVE'
+    ? this.queue().find((ticket) =>
+        (ticket.status === 'WAITING' && ticket.presenceStatus !== 'RETURN_REQUIRED') || ticket.status === 'SKIPPED')
+    : undefined);
 
   protected readonly isOwnDoctor = computed(() => this.role() === 'DOCTOR');
   protected readonly canManageRooms = computed(() => ['ADMIN', 'COORDINATOR'].includes(this.role()));
@@ -121,6 +127,7 @@ export class StaffDashboard implements OnInit, OnDestroy {
         this.doctorQueueRequestInFlight = false;
         this.selectedRoomCode.set(workspace.roomCode);
         this.doctorRoomName.set(workspace.roomName);
+        this.doctorShiftStatus.set(workspace.shiftStatus ?? 'ACTIVE');
         this.queue.set(workspace.tickets);
         this.lastSuccessfulDoctorQueueAt = Date.now();
         this.queueSyncWarning.set(false);
@@ -165,6 +172,29 @@ export class StaffDashboard implements OnInit, OnDestroy {
   protected selectDate(event: Event): void {
     this.selectedDate.set((event.target as HTMLInputElement).value);
     this.loadQueue();
+  }
+
+  protected goToToday(): void {
+    this.selectedDate.set(clinicTodayIso());
+    this.loadQueue();
+  }
+
+  protected goToPreviousDay(): void {
+    const current = new Date(this.selectedDate());
+    current.setDate(current.getDate() - 1);
+    this.selectedDate.set(this.toIsoDate(current));
+    this.loadQueue();
+  }
+
+  protected goToNextDay(): void {
+    const current = new Date(this.selectedDate());
+    current.setDate(current.getDate() + 1);
+    this.selectedDate.set(this.toIsoDate(current));
+    this.loadQueue();
+  }
+
+  protected isToday(): boolean {
+    return this.selectedDate() === clinicTodayIso();
   }
 
   protected act(ticket: QueueTicketResponse, action: QueueAction): void {
@@ -238,12 +268,30 @@ export class StaffDashboard implements OnInit, OnDestroy {
     return value?.slice(0, 5) ?? '';
   }
 
+  protected formatDate(value?: string | null): string {
+    if (!value) return 'Chưa cập nhật';
+    const [year, month, day] = value.split('-');
+    return day && month && year ? `${day}/${month}/${year}` : value;
+  }
+
+  protected openExamination(ticket: QueueTicketResponse): void {
+    void this.router.navigate(['/doctor/examinations', ticket.id]);
+  }
+
   protected statusClass(status: string): string {
-    if (status === 'CALLED') return 'bg-amber-50 text-amber-700';
-    if (status === 'IN_SERVICE') return 'bg-violet-50 text-violet-700';
-    if (status === 'COMPLETED') return 'bg-emerald-50 text-emerald-700';
-    if (status === 'SKIPPED') return 'bg-slate-100 text-slate-600';
-    return 'bg-sky-50 text-sky-700';
+    if (status === 'CALLED') return 'erp-badge-warning';
+    if (status === 'IN_SERVICE') return 'erp-badge-info';
+    if (status === 'COMPLETED') return 'erp-badge-success';
+    if (status === 'SKIPPED') return 'erp-badge-warning';
+    return 'erp-badge-info';
+  }
+
+  protected statusDotClass(status: string): string {
+    if (status === 'CALLED') return 'erp-dot-warning';
+    if (status === 'IN_SERVICE') return 'erp-dot-info';
+    if (status === 'COMPLETED') return 'erp-dot-success';
+    if (status === 'SKIPPED') return 'erp-dot-warning';
+    return 'erp-dot-info';
   }
 
   private handleError(response: { status?: number } & ApiErrorResponse): void {

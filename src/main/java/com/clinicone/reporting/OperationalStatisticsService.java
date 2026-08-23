@@ -1,5 +1,7 @@
 package com.clinicone.reporting;
 
+import lombok.RequiredArgsConstructor;
+
 import com.clinicone.appointment.Appointment;
 import com.clinicone.appointment.AppointmentRepository;
 import com.clinicone.appointment.AppointmentStatus;
@@ -30,6 +32,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class OperationalStatisticsService {
     private static final int MAX_RANGE_DAYS = 366;
     private static final Set<String> GROUPINGS = Set.of("DAY", "WEEK", "MONTH");
@@ -37,14 +40,6 @@ public class OperationalStatisticsService {
     private final AppointmentRepository appointmentRepository;
     private final QueueTicketRepository queueTicketRepository;
     private final ExaminationSessionRepository examinationSessionRepository;
-
-    public OperationalStatisticsService(AppointmentRepository appointmentRepository,
-                                        QueueTicketRepository queueTicketRepository,
-                                        ExaminationSessionRepository examinationSessionRepository) {
-        this.appointmentRepository = appointmentRepository;
-        this.queueTicketRepository = queueTicketRepository;
-        this.examinationSessionRepository = examinationSessionRepository;
-    }
 
     @Transactional(readOnly = true)
     public OperationalStatisticsResponse summarize(LocalDate from, LocalDate to, String specialty, UUID doctorId) {

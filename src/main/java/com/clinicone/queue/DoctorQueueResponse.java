@@ -6,6 +6,11 @@ public record DoctorQueueResponse(
         String roomCode,
         String roomName,
         String specialty,
+        String shiftStatus,
         List<QueueTicketResponse> tickets
 ) {
+    public DoctorQueueResponse(String roomCode, String roomName, String specialty,
+                               List<QueueTicketResponse> tickets) {
+        this(roomCode, roomName, specialty, "ACTIVE", tickets);
+    }
 }

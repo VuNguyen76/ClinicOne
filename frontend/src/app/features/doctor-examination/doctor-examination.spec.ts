@@ -44,6 +44,85 @@ describe('DoctorExamination', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="draft-saved-at"]')).toBeTruthy();
   });
 
+  it('shows the clinical content of a signed previous examination', () => {
+    const previousRecord = {
+      id: 'record-old', examinationId: 'exam-old', appointmentCode: 'CLN-OLD',
+      doctorName: 'BS. Trần Bình', reason: 'Đau đầu', examinationNotes: 'Đau hai ngày',
+      diagnosis: 'Đau đầu căng thẳng', conclusion: 'Theo dõi tại nhà',
+      treatmentPlan: 'Nghỉ ngơi và uống đủ nước', prescription: null,
+      followUpDate: null, signedAt: '2026-07-01T09:00:00Z',
+    };
+    http.expectOne('/api/v1/doctor/examinations/ticket-1')
+      .flush({ ...examination(), history: [previousRecord] });
+    fixture.detectChanges();
+
+    const history = fixture.nativeElement.querySelector('[data-testid="medical-history-record-old"]');
+    expect(history?.textContent).toContain('Đau đầu căng thẳng');
+    expect(history?.textContent).toContain('Theo dõi tại nhà');
+    expect(history?.textContent).toContain('Nghỉ ngơi và uống đủ nước');
+  });
+
+  it('loads active templates for the current specialty only when the doctor opens the template panel', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('[data-testid="open-medical-templates"]') as HTMLButtonElement).click();
+    const request = http.expectOne((candidate) => candidate.url === '/api/v1/medical-record-templates'
+      && candidate.params.get('specialty') === 'Nội tổng quát'
+      && candidate.params.get('clinicServiceId') === 'service-1'
+      && candidate.params.get('activeOnly') === 'true');
+    expect(request.request.method).toBe('GET');
+    request.flush([medicalTemplate()]);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[data-testid="medical-template-option-0"]')?.textContent)
+      .toContain('Khám nội tổng quát');
+  });
+
+  it('previews and applies template content to an empty draft', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('[data-testid="open-medical-templates"]') as HTMLButtonElement).click();
+    http.expectOne((candidate) => candidate.url === '/api/v1/medical-record-templates').flush([medicalTemplate()]);
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('[data-testid="medical-template-option-0"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-testid="medical-template-preview"]')?.textContent)
+      .toContain('Khám theo trình tự nội tổng quát.');
+
+    (fixture.nativeElement.querySelector('[data-testid="apply-medical-template"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect((fixture.nativeElement.querySelector('textarea[formControlName="examinationNotes"]') as HTMLTextAreaElement).value)
+      .toBe('Khám theo trình tự nội tổng quát.');
+    expect((fixture.nativeElement.querySelector('textarea[formControlName="treatmentPlan"]') as HTMLTextAreaElement).value)
+      .toBe('Tư vấn chăm sóc và tái khám khi cần.');
+    expect(fixture.nativeElement.querySelector('[data-testid="confirm-template-overwrite"]')).toBeNull();
+  });
+
+  it('does not overwrite entered content until the doctor explicitly confirms', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+    const notes = fixture.nativeElement.querySelector('textarea[formControlName="examinationNotes"]') as HTMLTextAreaElement;
+    notes.value = 'Nội dung bác sĩ đang nhập';
+    notes.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('[data-testid="open-medical-templates"]') as HTMLButtonElement).click();
+    http.expectOne((candidate) => candidate.url === '/api/v1/medical-record-templates').flush([medicalTemplate()]);
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('[data-testid="medical-template-option-0"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('[data-testid="apply-medical-template"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(notes.value).toBe('Nội dung bác sĩ đang nhập');
+    expect(fixture.nativeElement.querySelector('[data-testid="confirm-template-overwrite"]')).toBeTruthy();
+    (fixture.nativeElement.querySelector('[data-testid="confirm-template-overwrite"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(notes.value).toBe('Khám theo trình tự nội tổng quát.');
+  });
+
   it('saves a draft without leaving the workspace', () => {
     http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
     fixture.detectChanges();
@@ -324,6 +403,7 @@ function examination() {
     roomName: 'Phòng Nội tổng quát 01',
     appointmentCode: 'CLN-0001',
     specialty: 'Nội tổng quát',
+    clinicServiceId: 'service-1',
     doctorName: 'BS. Nguyễn An',
     appointmentDate: '2026-08-06',
     startTime: '09:00:00',
@@ -342,5 +422,23 @@ function examination() {
     status: 'IN_PROGRESS',
     signedAt: null,
     recordVersion: 0,
+  };
+}
+
+function medicalTemplate() {
+  return {
+    id: 'template-1',
+    code: 'NOI-TQ',
+    name: 'Khám nội tổng quát',
+    specialty: 'Nội tổng quát',
+    clinicServiceId: 'service-1',
+    description: 'Mẫu ghi nhận thường dùng cho khám nội tổng quát.',
+    fieldDefinition: JSON.stringify({
+      examinationNotes: 'Khám theo trình tự nội tổng quát.',
+      treatmentPlan: 'Tư vấn chăm sóc và tái khám khi cần.',
+    }),
+    active: true,
+    createdBy: 'coordinator',
+    updatedAt: '2026-08-14T08:00:00Z',
   };
 }

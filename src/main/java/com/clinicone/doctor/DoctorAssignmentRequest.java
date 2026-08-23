@@ -8,6 +8,10 @@ import java.util.UUID;
 
 public record DoctorAssignmentRequest(
         @NotBlank @Size(max = 120) String specialty,
-        @NotNull UUID roomId
+        @NotNull UUID roomId,
+        @Size(max = 500) String avatarUrl
 ) {
+    public DoctorAssignmentRequest(String specialty, UUID roomId) {
+        this(specialty, roomId, null);
+    }
 }

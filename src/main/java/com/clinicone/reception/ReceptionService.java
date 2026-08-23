@@ -19,14 +19,19 @@ import com.clinicone.patientprofile.PatientProfileResponse;
 import com.clinicone.queue.QueueService;
 import com.clinicone.queue.QueueTicketRepository;
 import com.clinicone.queue.QueueTicketResponse;
+import com.clinicone.validation.IdempotencyKeys;
+import com.clinicone.validation.VietnamesePhoneNumbers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -34,6 +39,7 @@ import java.util.UUID;
 @Service
 public class ReceptionService {
     private static final ZoneId CLINIC_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
+    private static final int DEFAULT_SLOT_DURATION_MINUTES = 60;
     private static final Set<String> ALLOWED_GENDERS = Set.of("Nam", "Nữ", "Khác");
 
     private final AppointmentRepository appointmentRepository;
@@ -96,6 +102,15 @@ public class ReceptionService {
                 .stream().map(this::toResponse).toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<ReceptionAppointmentResponse> worklist(LocalDate date) {
+        LocalDate workDate = date == null ? today() : date;
+        return appointmentRepository.findByAppointmentDateAndStatusInOrderByStartTimeAsc(workDate,
+                        List.of(AppointmentStatus.BOOKED, AppointmentStatus.CHECKED_IN,
+                                AppointmentStatus.ABSENT, AppointmentStatus.NOT_PERFORMED))
+                .stream().map(this::toResponse).toList();
+    }
+
     @Transactional
 public ReceptionAppointmentResponse checkIn(UUID appointmentId, ReceptionCheckInRequest request) {
     return checkIn(appointmentId, request, null);
@@ -143,6 +158,33 @@ public ReceptionAppointmentResponse checkIn(UUID appointmentId, ReceptionCheckIn
 
     return toResponse(appointment, ticket);
 }
+    /** Moves a same-day late appointment while preserving its appointment code. */
+    @Transactional
+    public ReceptionAppointmentResponse rescheduleLate(UUID appointmentId, ReceptionRebookRequest request,
+                                                       String actor) {
+        if (appointmentService == null) {
+            throw new AuthException(HttpStatus.SERVICE_UNAVAILABLE, "RECEPTION_RESCHEDULE_UNAVAILABLE",
+                    "Chưa bật luồng chuyển lịch đến muộn tại quầy.");
+        }
+        Appointment previous = appointmentRepository.findByIdForUpdate(appointmentId)
+                .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "APPOINTMENT_NOT_FOUND",
+                        "Không tìm thấy lịch hẹn."));
+        DoctorProfile doctor = doctorProfileRepository.findById(request.doctorId())
+                .filter(DoctorProfile::isActive)
+                .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "DOCTOR_ASSIGNMENT_NOT_FOUND",
+                        "Không tìm thấy bác sĩ đang được phân công."));
+        if (!doctor.getSpecialty().equalsIgnoreCase(previous.getSpecialty())) {
+            throw new AuthException(HttpStatus.CONFLICT, "DOCTOR_SPECIALTY_MISMATCH",
+                    "Bác sĩ mới phải thuộc cùng chuyên khoa với lịch cũ.");
+        }
+        appointmentService.rescheduleForReception(appointmentId, request.doctorId(),
+                doctor.getStaffAccount().getFullName(), request.appointmentDate(), request.startTime(),
+                request.lateReason(), actor);
+        Appointment saved = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "APPOINTMENT_NOT_FOUND",
+                        "Không tìm thấy lịch hẹn vừa chuyển."));
+        return toResponse(saved, null);
+    }
     
     @Transactional
     public ReceptionAppointmentResponse rebookAbsent(UUID appointmentId, ReceptionRebookRequest request, String actor) {
@@ -223,7 +265,7 @@ public ReceptionAppointmentResponse checkIn(UUID appointmentId, ReceptionCheckIn
             throw new AuthException(HttpStatus.SERVICE_UNAVAILABLE, "RECEPTION_PROFILES_UNAVAILABLE",
                     "Chưa bật tra cứu hồ sơ tại quầy.");
         }
-        PatientAccount patient = patientAccountRepository.findByPhone(normalizePhone(phone))
+        PatientAccount patient = patientAccountRepository.findByPhone(VietnamesePhoneNumbers.local(phone))
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "PATIENT_ACCOUNT_REQUIRED",
                         "Chưa tìm thấy tài khoản theo số điện thoại."));
         return patientProfileRepository.findByOwnerIdAndActiveTrueOrderByPrimaryProfileDescCreatedAtAsc(patient.getId())
@@ -236,7 +278,7 @@ public ReceptionAppointmentResponse checkIn(UUID appointmentId, ReceptionCheckIn
             throw new AuthException(HttpStatus.SERVICE_UNAVAILABLE, "RECEPTION_PROFILES_UNAVAILABLE",
                     "Chưa bật tạo hồ sơ tại quầy.");
         }
-        String phone = normalizePhone(request.phone());
+        String phone = VietnamesePhoneNumbers.local(request.phone());
         if (!ALLOWED_GENDERS.contains(request.gender().trim())) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "GENDER_INVALID",
                     "Vui lòng chọn giới tính hợp lệ.");
@@ -263,16 +305,22 @@ public ReceptionAppointmentResponse checkIn(UUID appointmentId, ReceptionCheckIn
     /** Tiếp nhận người bệnh đến quầy mà chưa có lịch trong ngày. */
     @Transactional
     public ReceptionAppointmentResponse createWalkIn(ReceptionWalkInRequest request) {
-        return createWalkIn(request, null);
+        return createWalkIn(request, null, null);
     }
 
     @Transactional
     public ReceptionAppointmentResponse createWalkIn(ReceptionWalkInRequest request, String actor) {
+        return createWalkIn(request, actor, null);
+    }
+
+    @Transactional
+    public ReceptionAppointmentResponse createWalkIn(ReceptionWalkInRequest request, String actor,
+                                                     String requestKey) {
         if (patientAccountRepository == null || appointmentService == null) {
             throw new AuthException(HttpStatus.SERVICE_UNAVAILABLE, "RECEPTION_WALK_IN_UNAVAILABLE",
                     "Chưa bật luồng tiếp nhận tại quầy.");
         }
-        String phone = normalizePhone(request.phone());
+        String phone = VietnamesePhoneNumbers.local(request.phone());
         PatientAccount patient = patientAccountRepository.findByPhone(phone).orElse(null);
         PatientProfile temporaryProfile = null;
         if (patient != null) {
@@ -301,28 +349,66 @@ public ReceptionAppointmentResponse checkIn(UUID appointmentId, ReceptionCheckIn
         }
 
         LocalDate appointmentDate = request.appointmentDate();
-        if (!today().equals(appointmentDate)) {
-            throw new AuthException(HttpStatus.CONFLICT, "WALK_IN_TODAY_ONLY",
-                    "Tiếp nhận không có lịch chỉ áp dụng cho ngày hôm nay.");
-        }
+        boolean appointmentIsToday = today().equals(appointmentDate);
 
         DoctorProfile doctor = doctorProfileRepository.findById(request.doctorId())
                 .filter(DoctorProfile::isActive)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "DOCTOR_ASSIGNMENT_NOT_FOUND",
                         "Không tìm thấy bác sĩ đang được phân công."));
 
+        if (Boolean.TRUE.equals(request.overCapacity()) && !appointmentIsToday) {
+            throw new AuthException(HttpStatus.CONFLICT, "FUTURE_OVER_CAPACITY_NOT_ALLOWED",
+                    "Chỉ được tiếp nhận ngoài công suất cho ngày hiện tại.");
+        }
+        if (Boolean.TRUE.equals(request.overCapacity())) {
+            // Serialize exception admissions per doctor so the check-and-insert
+            // cannot allow a fourth admission under concurrent reception users.
+            doctorProfileRepository.findByStaffAccount_IdForUpdate(request.doctorId())
+                    .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "DOCTOR_ASSIGNMENT_NOT_FOUND",
+                            "Không tìm thấy bác sĩ đang được phân công."));
+            validateOverCapacityReason(request.exceptionReason());
+            long existingOverCapacity = appointmentRepository
+                    .countByDoctorStaffIdAndAppointmentDateAndOverCapacityTrueAndStatusNot(
+                            request.doctorId(), appointmentDate, AppointmentStatus.CANCELLED);
+            if (existingOverCapacity >= 3) {
+                throw new AuthException(HttpStatus.CONFLICT, "WALK_IN_OVER_CAPACITY_LIMIT",
+                        "Bác sĩ đã đủ 3 lượt tiếp nhận ngoài công suất trong ngày.");
+            }
+        }
+        String normalizedRequestKey = IdempotencyKeys.optional(requestKey);
+
         CreateAppointmentRequest appointmentRequest = new CreateAppointmentRequest(
                 doctor.getSpecialty(), doctor.getStaffAccount().getFullName(), appointmentDate,
                 request.startTime(), request.reason(), request.profileId(), request.doctorId());
-        AppointmentResponse created = patient == null
-                ? appointmentService.createTemporary(temporaryProfile, appointmentRequest)
-                : appointmentService.create(patient.getId().toString(), appointmentRequest);
-        QueueTicketResponse ticket = actor == null
-                ? queueService.checkInByStaff(doctor.getRoom().getCode(), created.id(), request.exceptionReason())
-                : queueService.checkInByStaff(doctor.getRoom().getCode(), created.id(), request.exceptionReason(), actor);
+        AppointmentResponse created;
+        if (patient == null) {
+            if (Boolean.TRUE.equals(request.overCapacity())) {
+                created = normalizedRequestKey == null
+                        ? appointmentService.createTemporaryReception(temporaryProfile, appointmentRequest)
+                        : appointmentService.createTemporaryReception(temporaryProfile, appointmentRequest, normalizedRequestKey);
+            } else {
+                created = normalizedRequestKey == null
+                        ? appointmentService.createTemporary(temporaryProfile, appointmentRequest)
+                        : appointmentService.createTemporary(temporaryProfile, appointmentRequest, normalizedRequestKey);
+            }
+        } else if (Boolean.TRUE.equals(request.overCapacity())) {
+            created = normalizedRequestKey == null
+                    ? appointmentService.createReception(patient.getId().toString(), appointmentRequest)
+                    : appointmentService.createReception(patient.getId().toString(), appointmentRequest, normalizedRequestKey);
+        } else {
+            created = normalizedRequestKey == null
+                    ? appointmentService.create(patient.getId().toString(), appointmentRequest)
+                    : appointmentService.create(patient.getId().toString(), appointmentRequest, normalizedRequestKey);
+        }
         Appointment appointment = appointmentRepository.findById(created.id())
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "APPOINTMENT_NOT_FOUND",
                         "Không tìm thấy lịch hẹn vừa tạo."));
+        if (!appointmentIsToday) {
+            return toResponse(appointment, null);
+        }
+        QueueTicketResponse ticket = actor == null
+                ? queueService.checkInByStaff(doctor.getRoom().getCode(), created.id(), request.exceptionReason())
+                : queueService.checkInByStaff(doctor.getRoom().getCode(), created.id(), request.exceptionReason(), actor);
         return toResponse(appointment, ticket);
     }
 
@@ -337,7 +423,21 @@ public ReceptionAppointmentResponse checkIn(UUID appointmentId, ReceptionCheckIn
                 .filter(DoctorProfile::isActive).orElse(null);
         return ReceptionAppointmentResponse.from(appointment,
                 profile == null ? null : profile.getRoom().getCode(),
-                profile == null ? null : profile.getRoom().getName(), ticket);
+                profile == null ? null : profile.getRoom().getName(), ticket, isLateArrival(appointment));
+    }
+
+    private boolean isLateArrival(Appointment appointment) {
+        if (appointment.getStatus() != AppointmentStatus.BOOKED || !appointment.getAppointmentDate().equals(today())) {
+            return false;
+        }
+        int durationMinutes = appointment.getServiceDurationMinutes() == null
+                || appointment.getServiceDurationMinutes() <= 0
+                ? DEFAULT_SLOT_DURATION_MINUTES : appointment.getServiceDurationMinutes();
+        Instant scheduledEnd = ZonedDateTime.of(appointment.getAppointmentDate(), appointment.getStartTime(), CLINIC_ZONE)
+                .toInstant().plus(Duration.ofMinutes(durationMinutes));
+        Instant now = Instant.now(clock);
+        return !now.isBefore(scheduledEnd.plus(Duration.ofMinutes(15)))
+                && now.isBefore(scheduledEnd.plus(Duration.ofHours(24)));
     }
 
     private String normalizeQuery(String query) {
@@ -349,13 +449,11 @@ public ReceptionAppointmentResponse checkIn(UUID appointmentId, ReceptionCheckIn
         return normalized;
     }
 
-    private String normalizePhone(String phone) {
-        String normalized = phone == null ? "" : phone.trim();
-        if (!normalized.matches("0\\d{9}")) {
-            throw new AuthException(HttpStatus.BAD_REQUEST, "PHONE_INVALID",
-                    "Số điện thoại phải gồm 10 chữ số và bắt đầu bằng 0.");
+    private void validateOverCapacityReason(String reason) {
+        if (reason == null || reason.trim().length() < 10 || reason.trim().length() > 500) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "OVER_CAPACITY_REASON_INVALID",
+                    "Lý do nhận ngoài công suất phải từ 10 đến 500 ký tự.");
         }
-        return normalized;
     }
 
     private String phoneValue(String value) {

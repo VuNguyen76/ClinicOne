@@ -1,5 +1,7 @@
 package com.clinicone.schedule;
 
+import lombok.RequiredArgsConstructor;
+
 import com.clinicone.auth.AuthException;
 import com.clinicone.doctor.DoctorProfile;
 import com.clinicone.doctor.DoctorProfileRepository;
@@ -23,24 +25,13 @@ import java.util.UUID;
 import java.util.Objects;
 
 @Service
+@RequiredArgsConstructor
 public class ScheduleTemplateService {
     private final WorkScheduleTemplateRepository templateRepository;
     private final GeneratedClinicSlotRepository slotRepository;
     private final ClinicServiceRepository clinicServiceRepository;
     private final DoctorProfileRepository doctorProfileRepository;
     private final ClinicRoomRepository roomRepository;
-
-    public ScheduleTemplateService(WorkScheduleTemplateRepository templateRepository,
-                                   GeneratedClinicSlotRepository slotRepository,
-                                   ClinicServiceRepository clinicServiceRepository,
-                                   DoctorProfileRepository doctorProfileRepository,
-                                   ClinicRoomRepository roomRepository) {
-        this.templateRepository = templateRepository;
-        this.slotRepository = slotRepository;
-        this.clinicServiceRepository = clinicServiceRepository;
-        this.doctorProfileRepository = doctorProfileRepository;
-        this.roomRepository = roomRepository;
-    }
 
     @Transactional(readOnly = true)
     public List<ScheduleTemplateResponse> list() {
@@ -64,9 +55,52 @@ public class ScheduleTemplateService {
     public ScheduleTemplateResponse regenerate(UUID templateId) {
         WorkScheduleTemplate template = templateRepository.findById(templateId)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "SCHEDULE_TEMPLATE_NOT_FOUND",
-                        "Không tìm thấy mẫu lịch làm việc."));
+                        "Không tìm thấy lịch làm việc."));
         List<GeneratedClinicSlot> generated = generate(template, true);
         return toResponse(template, generated.size());
+    }
+
+    @Transactional
+    public void delete(UUID templateId) {
+        delete(templateId, null);
+    }
+
+    @Transactional
+    public void delete(UUID templateId, String weekday) {
+        WorkScheduleTemplate template = templateRepository.findById(templateId)
+                .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "SCHEDULE_TEMPLATE_NOT_FOUND",
+                        "Không tìm thấy lịch làm việc."));
+
+        if (weekday != null && !weekday.isBlank()) {
+            DayOfWeek dow = null;
+            try {
+                dow = DayOfWeek.valueOf(weekday.trim().toUpperCase());
+            } catch (IllegalArgumentException ignored) {
+            }
+            if (dow != null && template.getWeekdays().contains(dow)) {
+                if (template.getWeekdays().size() > 1) {
+                    Set<DayOfWeek> updatedWeekdays = new HashSet<>(template.getWeekdays());
+                    updatedWeekdays.remove(dow);
+                    template.setWeekdays(updatedWeekdays);
+                    templateRepository.save(template);
+
+                    List<GeneratedClinicSlot> slots = slotRepository.findByTemplateIdOrderByAppointmentDateAscStartTimeAsc(templateId);
+                    final DayOfWeek targetDow = dow;
+                    List<UUID> slotIdsToDelete = slots.stream()
+                            .filter(s -> s.getStatus() == GeneratedSlotStatus.OPEN && s.getAppointmentDate().getDayOfWeek() == targetDow)
+                            .map(GeneratedClinicSlot::getId)
+                            .toList();
+                    if (!slotIdsToDelete.isEmpty()) {
+                        slotRepository.deleteAllByIdIn(slotIdsToDelete);
+                    }
+                    return;
+                }
+            }
+        }
+
+        template.setActive(false);
+        templateRepository.save(template);
+        slotRepository.deleteByTemplateIdAndStatus(templateId, GeneratedSlotStatus.OPEN);
     }
 
     private List<GeneratedClinicSlot> generate(WorkScheduleTemplate template, boolean idempotent) {
@@ -247,7 +281,9 @@ public class ScheduleTemplateService {
         return new ScheduleTemplateResponse(template.getId(), template.getClinicService().getId(),
                 template.getClinicService().getName(), template.getSpecialty(), template.getVisitType(),
                 template.getDurationMinutes(), template.getDoctorProfile().getStaffAccount().getId(),
-                template.getDoctorProfile().getStaffAccount().getFullName(), template.getRoom().getId(),
+                template.getDoctorProfile().getStaffAccount().getFullName(),
+                template.getDoctorProfile().getAvatarUrl(),
+                template.getRoom().getId(),
                 template.getRoom().getCode(), template.getStartDate(), template.getEndDate(), template.getWeekdays(),
                 template.getDayStart(), template.getDayEnd(), template.getBreaks().stream()
                 .map(ScheduleBreakResponse::from).toList(), template.getExceptionDates(), generatedCount,

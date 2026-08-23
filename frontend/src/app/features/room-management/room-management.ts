@@ -1,9 +1,9 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { forkJoin } from 'rxjs';
-import { AccountMenu } from '../../shared/account-menu/account-menu';
+import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
 import { hasStaffRole } from '../../core/auth/auth.guard';
 import { ApiErrorResponse, AuthApiService, ClinicRoomResponse, SpecialtyOption, apiErrorMessage } from '../../core/auth/auth-api.service';
 import * as QRCode from 'qrcode';
@@ -13,7 +13,7 @@ type RoomStatusFilter = 'ALL' | 'ACTIVE' | 'INACTIVE';
 @Component({
   selector: 'app-room-management',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, MatIconModule, AccountMenu],
+  imports: [ReactiveFormsModule, MatIconModule, StaffWorkspaceShell],
   templateUrl: './room-management.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -180,7 +180,7 @@ export class RoomManagement implements OnInit {
     qr.alt = `Mã QR check-in phòng ${room.name}`;
     qr.width = 420;
     const style = printWindow.document.createElement('style');
-    style.textContent = 'body{font-family:Arial,sans-serif;text-align:center;padding:32px;color:#082b35}h1{font-size:28px;margin:0 0 12px}p{font-size:16px;color:#536b73;margin:0 0 24px}img{max-width:100%;height:auto}';
+    style.textContent = 'body{font-family:"Be Vietnam Pro",Roboto,"Helvetica Neue",Arial,sans-serif;text-align:center;padding:32px;color:#082b35}h1{font-size:28px;margin:0 0 12px}p{font-size:16px;color:#536b73;margin:0 0 24px}img{max-width:100%;height:auto}';
     printWindow.document.head.appendChild(style);
     printWindow.document.body.append(title, subtitle, qr);
     printWindow.focus();

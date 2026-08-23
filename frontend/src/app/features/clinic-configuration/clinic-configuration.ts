@@ -1,15 +1,14 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
-import { AccountMenu } from '../../shared/account-menu/account-menu';
+import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
 import { ApiErrorResponse, AuthApiService, ClinicConfigurationResponse, apiErrorMessage } from '../../core/auth/auth-api.service';
 
 @Component({
   selector: 'app-clinic-configuration',
   standalone: true,
-  imports: [FormsModule, RouterLink, MatIconModule, AccountMenu, DatePipe],
+  imports: [FormsModule, MatIconModule, DatePipe, StaffWorkspaceShell],
   templateUrl: './clinic-configuration.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

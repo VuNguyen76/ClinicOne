@@ -1,59 +1,46 @@
-<main class="min-h-screen bg-[#f7fafb] text-[#103f4c]">
-  <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
-    <div class="mx-auto flex h-[72px] max-w-[1200px] items-center justify-between gap-8 px-5 lg:px-0">
-      <a routerLink="/home" class="flex items-center gap-3" aria-label="ClinicOne, trang chủ">
-        <img class="h-11 w-11 object-contain" src="clinicone-mark.png" alt="" aria-hidden="true" />
-        <span class="text-[21px] font-bold tracking-[-0.04em]">Clinic<span class="text-[#0ea5e9]">One</span></span>
-      </a>
-      <nav class="hidden items-center gap-7 text-sm font-medium text-slate-600 lg:flex" aria-label="Điều hướng chính">
-        <a routerLink="/home" class="hover:text-[#0ea5e9]">Trang chủ</a>
-        <a routerLink="/about" class="hover:text-[#0ea5e9]">Giới thiệu</a>
-        <a routerLink="/process" class="hover:text-[#0ea5e9]">Quy trình</a>
-        <a routerLink="/common-issues" class="hover:text-[#0ea5e9]">Hướng dẫn</a>
-        <a routerLink="/support" class="hover:text-[#0ea5e9]">Thắc mắc</a>
-        <a routerLink="/contact" class="hover:text-[#0ea5e9]">Liên hệ</a>
-      </nav>
-      <div class="flex items-center gap-4">
-        <a href="tel:1900000" class="hidden items-center gap-2 text-right sm:flex">
-          <mat-icon class="!h-5 !w-5 !text-[19px] text-rose-500">phone_in_talk</mat-icon>
-          <span class="hidden text-xs text-slate-500 xl:block"><strong class="block text-[#103f4c]">Tổng đài</strong><span class="font-semibold tracking-[0.08em] text-rose-500">1900000</span></span>
-        </a>
-        <app-account-menu />
-      </div>
-    </div>
-  </header>
+<main class="min-h-screen bg-slate-50 text-slate-800 antialiased">
+  <app-patient-header />
 
   <div class="mx-auto max-w-[1200px] px-5 py-8 lg:px-0 lg:py-10">
-    <div class="flex items-center gap-3 text-sm"><a routerLink="/home" class="font-semibold text-[#103f4c] hover:text-[#0ea5e9]">Trang chủ</a><mat-icon class="!h-4 !w-4 !text-[16px] text-slate-400">chevron_right</mat-icon><span class="font-semibold text-[#0ea5e9]">Tổng quan</span></div>
+    <div class="flex items-center gap-3 text-sm"><a routerLink="/home" class="font-semibold text-slate-700 hover:text-[#0284c7]">Trang chủ</a><mat-icon class="!h-4 !w-4 !text-[16px] text-slate-400">chevron_right</mat-icon><span class="font-semibold text-[#0284c7]">Tổng quan</span></div>
 
-    <section class="mt-8 flex flex-col justify-between gap-5 rounded-[18px] bg-[#e8f8fc] px-6 py-7 sm:flex-row sm:items-center sm:px-8">
-      <div>
-        <p class="text-xs font-bold uppercase tracking-[0.16em] text-[#0ea5e9]">Cổng người bệnh</p>
-        <h1 class="mt-2 text-2xl font-bold tracking-[-0.035em] text-slate-900 sm:text-3xl">Xin chào, {{ profile()?.fullName || 'bạn' }}</h1>
-        <p class="mt-2 text-sm text-slate-600">Theo dõi lịch hẹn và chuẩn bị cho buổi khám tiếp theo.</p>
+    <section class="relative isolate mt-8 overflow-hidden rounded-2xl p-6 text-white sm:p-8 shadow-md">
+      <img src="booking-banner.webp" alt="Không gian phòng khám ClinicOne" class="absolute inset-0 -z-20 h-full w-full object-cover object-center" />
+      <div class="absolute inset-0 -z-10 bg-gradient-to-r from-[#071f29]/95 via-[#0e3d48]/85 to-[#0284c7]/50"></div>
+      <div class="flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
+        <div>
+          <div class="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-sky-200 backdrop-blur-xs">
+            <span class="h-1.5 w-1.5 rounded-full bg-sky-400 animate-pulse"></span>
+            Cổng thông tin người bệnh
+          </div>
+          <h1 class="mt-2 text-2xl font-bold tracking-tight text-white sm:text-3xl">Xin chào, {{ profile()?.fullName || 'bạn' }}</h1>
+        </div>
+        <a routerLink="/appointments/new" class="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-[#0284c7] px-5 text-sm font-semibold text-white shadow-xs transition hover:bg-[#0369a1] hover:shadow-md">
+          <mat-icon class="!text-[20px]">add</mat-icon>
+          <span>Đặt lịch khám ngay</span>
+        </a>
       </div>
-      <a routerLink="/appointments/new" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#0ea5e9] px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0284c7]"><mat-icon class="!text-[20px]">add</mat-icon>Đặt lịch khám</a>
     </section>
 
     @if (loading()) {
-      <div class="mt-8 grid min-h-48 place-items-center rounded-[16px] border border-slate-200 bg-white text-sm text-slate-500">Đang tải thông tin...</div>
+      <div class="mt-8 grid min-h-48 place-items-center rounded-xl border border-slate-200 bg-white text-sm text-slate-500">Đang tải thông tin tổng quan...</div>
     } @else {
       <div class="mt-8 grid gap-6 lg:grid-cols-[1fr_330px]">
-        <section class="rounded-[16px] border border-slate-200 bg-white shadow-sm" aria-labelledby="appointments-heading">
-            <div data-testid="appointments-header" class="flex items-center justify-between gap-4 border-b border-slate-100 px-6 py-5">
-            <div class="min-w-0"><h2 id="appointments-heading" class="text-lg font-bold text-slate-900">Lịch hẹn sắp tới</h2><p class="mt-1 text-sm text-slate-500">Các lịch đã đặt và đang chờ bạn đến khám.</p></div>
-            <div data-testid="appointments-actions" class="flex shrink-0 items-center gap-4"><a routerLink="/appointments" class="hidden items-center gap-1 text-sm font-semibold text-[#0284c7] hover:underline sm:inline-flex">Xem tất cả<mat-icon class="!text-[18px]">arrow_forward</mat-icon></a><mat-icon class="text-[#0ea5e9]">event_available</mat-icon></div>
+        <section class="rounded-xl border border-slate-200 bg-white shadow-xs" aria-labelledby="appointments-heading">
+          <div data-testid="appointments-header" class="flex items-center justify-between gap-4 border-b border-slate-100 px-6 py-4">
+            <div class="min-w-0"><h2 id="appointments-heading" class="text-base font-bold text-slate-900">Lịch hẹn sắp tới</h2></div>
+            <div data-testid="appointments-actions" class="flex shrink-0 items-center gap-4"><a routerLink="/appointments" class="hidden items-center gap-1.5 text-xs font-semibold text-[#0284c7] hover:underline sm:inline-flex"><span>Xem tất cả</span><mat-icon class="!h-3.5 !w-3.5 !text-[15px] !leading-none">arrow_forward</mat-icon></a><mat-icon class="!h-5 !w-5 !text-[20px] text-[#0284c7]">event_available</mat-icon></div>
           </div>
           @if (appointmentsLoading()) {
             <div class="grid min-h-56 place-items-center px-6 py-10 text-sm text-slate-500">Đang tải lịch hẹn...</div>
           } @else if (appointments().length === 0) {
-            <div class="grid min-h-56 place-items-center px-6 py-10 text-center"><div class="max-w-sm"><span class="mx-auto grid h-12 w-12 place-items-center rounded-full bg-[#e8f8fc] text-[#0ea5e9]"><mat-icon>calendar_month</mat-icon></span><h3 class="mt-4 font-semibold text-slate-800">Bạn chưa có lịch hẹn</h3><p class="mt-2 text-sm leading-6 text-slate-500">Đặt lịch trước để chủ động chọn chuyên khoa, bác sĩ và thời gian phù hợp.</p><a routerLink="/appointments/new" class="mt-5 inline-flex min-h-10 items-center justify-center rounded-lg border border-[#0ea5e9] px-4 text-sm font-semibold text-[#0284c7] transition hover:bg-[#e0f2fe]">Tìm lịch khám</a></div></div>
+            <div class="grid min-h-56 place-items-center px-6 py-10 text-center"><div class="max-w-sm"><span class="mx-auto grid h-12 w-12 place-items-center rounded-full bg-sky-50 text-[#0284c7]"><mat-icon>calendar_month</mat-icon></span><h3 class="mt-4 font-semibold text-slate-800">Bạn chưa có lịch hẹn</h3><a routerLink="/appointments/new" class="mt-5 inline-flex min-h-9 items-center justify-center rounded-lg bg-[#0284c7] px-4 text-xs font-semibold text-white transition hover:bg-[#0369a1]">Tìm lịch khám</a></div></div>
           } @else {
             <div class="divide-y divide-slate-100">
               @for (appointment of appointments(); track appointment.id) {
-                <article class="flex flex-col gap-4 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-                  <a [routerLink]="['/appointments', appointment.id]" class="flex items-start gap-4 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-[#0ea5e9]"><span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#e8f8fc] text-[#0ea5e9]"><mat-icon>event</mat-icon></span><div><p class="font-semibold text-slate-900">{{ appointment.specialty }}</p><p class="mt-1 text-sm text-slate-500">{{ appointment.doctorName }}</p><p class="mt-2 text-sm text-slate-700">{{ formatDate(appointment.appointmentDate) }} · {{ formatTime(appointment.startTime) }}</p></div></a>
-                  <div class="text-left sm:text-right"><span class="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">{{ appointment.statusLabel }}</span><p class="mt-2 text-xs text-slate-500">Mã: {{ appointment.appointmentCode }}</p></div>
+                <article class="flex flex-col gap-4 px-6 py-4 sm:flex-row sm:items-center sm:justify-between transition hover:bg-slate-50/80">
+                  <a [routerLink]="['/appointments', appointment.id]" class="flex items-start gap-4 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-[#0284c7]"><span class="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-sky-50 text-[#0284c7]"><mat-icon class="!text-[20px]">event</mat-icon></span><div><p class="font-semibold text-slate-900 hover:text-[#0284c7]">{{ appointment.specialty }}</p><p class="mt-0.5 text-xs text-slate-500">{{ appointment.doctorName }}</p><p class="mt-1.5 text-xs font-medium text-slate-700">{{ formatDate(appointment.appointmentDate) }} · {{ formatTime(appointment.startTime) }}</p></div></a>
+                  <div class="text-left sm:text-right"><span class="erp-badge" [class]="queueStatusClass(appointment.status)">{{ appointment.statusLabel }}</span><p class="mt-1.5 font-mono text-xs text-slate-500">Mã: <span class="font-semibold text-slate-700">{{ appointment.appointmentCode }}</span></p></div>
                 </article>
               }
             </div>
@@ -62,30 +49,30 @@
 
         <div class="grid content-start gap-6">
         @if (queueTickets().length > 0) {
-          <section data-testid="my-queue-card" class="rounded-[16px] border border-[#b9dce7] bg-white shadow-sm" aria-labelledby="my-queue-heading">
-            <div class="flex items-center justify-between gap-3 border-b border-slate-100 px-6 py-5">
-              <div><h2 id="my-queue-heading" class="text-lg font-bold text-slate-900">Lượt khám hôm nay</h2><p class="mt-1 text-sm text-slate-500">Số thứ tự nhận tại phòng bác sĩ.</p></div>
-              <mat-icon class="text-[#0ea5e9]">confirmation_number</mat-icon>
+          <section data-testid="my-queue-card" class="rounded-xl border border-sky-200 bg-white shadow-xs" aria-labelledby="my-queue-heading">
+            <div class="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4 bg-sky-50/40">
+              <div><h2 id="my-queue-heading" class="text-sm font-bold text-slate-900">Lượt khám hôm nay</h2></div>
+              <mat-icon class="text-[#0284c7]">confirmation_number</mat-icon>
             </div>
             <div class="divide-y divide-slate-100">
               @for (ticket of queueTickets(); track ticket.id) {
-                <a routerLink="/appointments" class="flex items-center gap-4 px-6 py-5 transition hover:bg-[#f8fdff]">
-                  <span class="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-[#e8f8fc] text-2xl font-bold tracking-[-0.05em] text-[#0b84bd]">{{ formatQueueNumber(ticket.queueNumber) }}</span>
-                  <span class="min-w-0 flex-1"><strong class="block truncate text-sm text-slate-900">{{ ticket.specialty }}</strong><span class="mt-1 block truncate text-xs text-slate-500">{{ ticket.roomName }} · {{ ticket.doctorName }}</span></span>
-                  <span class="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold" [class]="queueStatusClass(ticket.status)">{{ ticket.statusLabel }}</span>
+                <a routerLink="/appointments" class="flex items-center gap-4 px-5 py-4 transition hover:bg-slate-50">
+                  <span class="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-sky-50 text-xl font-bold font-mono text-[#0284c7] border border-sky-200">{{ formatQueueNumber(ticket.queueNumber) }}</span>
+                  <span class="min-w-0 flex-1"><strong class="block truncate text-xs font-bold text-slate-900">{{ ticket.specialty }}</strong><span class="mt-0.5 block truncate text-xs text-slate-500">{{ ticket.roomName }} · {{ ticket.doctorName }}</span></span>
+                  <span class="erp-badge shrink-0" [class]="queueStatusClass(ticket.status)">{{ ticket.statusLabel }}</span>
                 </a>
               }
             </div>
           </section>
         }
 
-        <aside class="rounded-[16px] border border-slate-200 bg-white shadow-sm" aria-labelledby="profile-summary-heading">
-          <div class="border-b border-slate-100 px-6 py-5"><h2 id="profile-summary-heading" class="text-lg font-bold text-slate-900">Thông tin của bạn</h2><p class="mt-1 text-sm text-slate-500">Thông tin dùng khi đặt lịch.</p></div>
-          <div class="space-y-4 px-6 py-6 text-sm">
-            <div><p class="text-xs text-slate-500">Họ và tên</p><p class="mt-1 font-semibold text-slate-900">{{ profile()?.fullName }}</p></div>
-            <div><p class="text-xs text-slate-500">Số điện thoại</p><p class="mt-1 font-semibold text-slate-900">{{ profile()?.phone }}</p></div>
-            <div><p class="text-xs text-slate-500">Ngày sinh</p><p class="mt-1 font-semibold text-slate-900">{{ formatDate(profile()?.dateOfBirth) }}</p></div>
-            <a routerLink="/account" class="inline-flex items-center gap-2 pt-2 font-semibold text-[#0284c7] hover:underline">Cập nhật hồ sơ <mat-icon class="!text-[18px]">arrow_forward</mat-icon></a>
+        <aside class="rounded-xl border border-slate-200 bg-white shadow-xs" aria-labelledby="profile-summary-heading">
+          <div class="border-b border-slate-100 px-5 py-4"><h2 id="profile-summary-heading" class="text-sm font-bold text-slate-900">Thông tin tài khoản</h2></div>
+          <div class="space-y-3.5 px-5 py-4 text-xs">
+            <div><p class="text-slate-500">Họ và tên</p><p class="mt-0.5 font-bold text-slate-900 text-sm">{{ profile()?.fullName }}</p></div>
+            <div><p class="text-slate-500">Số điện thoại</p><p class="mt-0.5 font-semibold text-slate-800">{{ profile()?.phone }}</p></div>
+            <div><p class="text-slate-500">Ngày sinh</p><p class="mt-0.5 font-semibold text-slate-800">{{ formatDate(profile()?.dateOfBirth) }}</p></div>
+            <a routerLink="/account" class="inline-flex items-center gap-1.5 pt-2 text-xs font-semibold text-[#0284c7] hover:underline"><span>Cập nhật hồ sơ</span><mat-icon class="!h-3.5 !w-3.5 !text-[15px] !leading-none">arrow_forward</mat-icon></a>
           </div>
         </aside>
         </div>

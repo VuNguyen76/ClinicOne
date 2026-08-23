@@ -1,5 +1,6 @@
 package com.clinicone.queue;
 
+import com.clinicone.auth.AuthenticatedIds;
 import com.clinicone.appointment.Appointment;
 import com.clinicone.appointment.AppointmentRepository;
 import com.clinicone.appointment.AppointmentStatus;
@@ -14,6 +15,7 @@ import com.clinicone.audit.BusinessLogService;
 import com.clinicone.schedule.GeneratedClinicSlot;
 import com.clinicone.schedule.GeneratedClinicSlotRepository;
 import com.clinicone.schedule.GeneratedSlotStatus;
+import com.clinicone.validation.IdempotencyKeys;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -116,8 +118,8 @@ public class QueueService {
 
     @Transactional
     public QueueTicketResponse checkIn(String accountId, String roomCode, UUID appointmentId, String requestKey) {
-        UUID patientId = parseAccountId(accountId);
-        String normalizedRequestKey = normalizeRequestKey(requestKey);
+        UUID patientId = AuthenticatedIds.patient(accountId);
+        String normalizedRequestKey = IdempotencyKeys.optional(requestKey);
         if (normalizedRequestKey != null) {
             appointmentRepository.findByPatientIdAndCheckInRequestKey(patientId, normalizedRequestKey)
                     .filter(existing -> !existing.getId().equals(appointmentId))
@@ -141,11 +143,21 @@ public class QueueService {
     @Transactional
     public QueueTicketResponse checkInByStaff(String roomCode, UUID appointmentId, String exceptionReason,
                                               String actor) {
+        return checkInByStaff(roomCode, appointmentId, exceptionReason, actor, null);
+    }
+
+    @Transactional
+    public QueueTicketResponse checkInByStaff(String roomCode, UUID appointmentId, String exceptionReason,
+                                              String actor, String requestKey) {
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "APPOINTMENT_NOT_FOUND",
                         "Không tìm thấy lịch hẹn."));
+        // Reception must move a late appointment to another suitable slot first.
+        // Staff check-in is deliberately subject to the same guard as patient QR check-in.
+        ensureQrCheckInNotLate(appointment);
         String normalizedActor = actor == null || actor.isBlank() ? "STAFF" : actor.trim();
-        return checkInAppointment(roomCode, appointment, normalizeExceptionReason(exceptionReason), normalizedActor);
+        return checkInAppointment(roomCode, appointment, normalizeExceptionReason(exceptionReason), normalizedActor,
+                requestKey);
     }
 
     private QueueTicketResponse checkInAppointment(String roomCode, Appointment appointment) {
@@ -272,7 +284,7 @@ public class QueueService {
 
     @Transactional(readOnly = true)
     public List<QueueTicketResponse> listForPatient(String accountId, LocalDate date) {
-        UUID patientId = parseAccountId(accountId);
+        UUID patientId = AuthenticatedIds.patient(accountId);
         LocalDate queueDate = date == null ? today() : date;
         return ticketRepository.findByAppointment_Patient_IdAndQueueDateOrderByQueueNumberAsc(patientId, queueDate)
                 .stream()
@@ -283,7 +295,7 @@ public class QueueService {
     @Transactional(readOnly = true)
     public List<QueueTicketResponse> listForStaff(String roomCode, LocalDate date, String staffId, StaffRole role) {
         if (role == StaffRole.DOCTOR) {
-            UUID doctorId = parseStaffId(staffId);
+            UUID doctorId = AuthenticatedIds.staff(staffId);
             DoctorProfile profile = doctorProfile(doctorId);
             if (!profile.getRoom().getCode().equalsIgnoreCase(roomCode)) {
                 throw new AuthException(HttpStatus.FORBIDDEN, "DOCTOR_ROOM_SCOPE",
@@ -299,14 +311,17 @@ public class QueueService {
 
     @Transactional(readOnly = true)
     public DoctorQueueResponse doctorQueue(LocalDate date, String staffId) {
-        UUID doctorId = parseStaffId(staffId);
+        UUID doctorId = AuthenticatedIds.staff(staffId);
         DoctorProfile profile = doctorProfile(doctorId);
         LocalDate queueDate = date == null ? today() : date;
-        List<QueueTicketResponse> tickets = doctorTickets(profile.getRoom().getCode(), queueDate, doctorId).stream()
-                .map(QueueTicketResponse::from)
-                .toList();
+        String shiftStatus = doctorShiftStatus(profile, queueDate);
+        List<QueueTicketResponse> tickets = "ACTIVE".equals(shiftStatus)
+                ? doctorTickets(profile.getRoom().getCode(), queueDate, doctorId).stream()
+                        .map(QueueTicketResponse::from)
+                        .toList()
+                : List.of();
         return new DoctorQueueResponse(profile.getRoom().getCode(), profile.getRoom().getName(),
-                profile.getSpecialty(), tickets);
+                profile.getSpecialty(), shiftStatus, tickets);
     }
 
     @Transactional
@@ -328,7 +343,7 @@ public class QueueService {
 
     @Transactional
     public QueueTicketResponse callNext(String staffId, LocalDate date) {
-        UUID doctorId = parseStaffId(staffId);
+        UUID doctorId = AuthenticatedIds.staff(staffId);
         DoctorProfile profile = doctorProfile(doctorId);
         LocalDate queueDate = date == null ? today() : date;
         if (!hasActiveShift(profile, queueDate)) {
@@ -482,7 +497,7 @@ public class QueueService {
         }
         if (currentMax >= QueueTicket.MAX_QUEUE_NUMBER) {
             throw new AuthException(HttpStatus.CONFLICT, "QUEUE_NUMBER_LIMIT_REACHED",
-                    "Hàng đợi đã đủ 9999 số trong ngày; vui lòng liên hệ quầy để được hỗ trợ.");
+                    "Hàng đợi đã đủ 999 số trong ngày; vui lòng liên hệ quầy để được hỗ trợ.");
         }
         return currentMax + 1;
     }
@@ -616,11 +631,15 @@ public class QueueService {
     }
 
     private boolean hasActiveShift(DoctorProfile profile, LocalDate date) {
+        return "ACTIVE".equals(doctorShiftStatus(profile, date));
+    }
+
+    private String doctorShiftStatus(DoctorProfile profile, LocalDate date) {
         if (doctorScheduleRepository == null) {
-            return true;
+            return "ACTIVE";
         }
         if (!date.equals(today())) {
-            return false;
+            return "NONE";
         }
         var now = LocalTime.now(clock.withZone(CLINIC_ZONE));
         long activeSchedules = doctorScheduleRepository.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(
@@ -628,7 +647,10 @@ public class QueueService {
                 .filter(schedule -> !now.isBefore(schedule.getStartTime())
                         && now.isBefore(schedule.getEndTime()))
                 .count();
-        return activeSchedules == 1;
+        if (activeSchedules == 0) {
+            return "NONE";
+        }
+        return activeSchedules == 1 ? "ACTIVE" : "CONFLICT";
     }
 
     private void recordTransition(UUID eventId, String entityType, UUID entityId, String previousStatus,
@@ -652,16 +674,6 @@ public class QueueService {
         if (normalized.length() < 10 || normalized.length() > 250) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "RECEPTION_REASON_INVALID",
                     "Lý do hỗ trợ tại quầy phải từ 10 đến 250 ký tự.");
-        }
-        return normalized;
-    }
-
-    private String normalizeRequestKey(String requestKey) {
-        if (requestKey == null || requestKey.isBlank()) return null;
-        String normalized = requestKey.trim();
-        if (normalized.length() > 80) {
-            throw new AuthException(HttpStatus.BAD_REQUEST, "IDEMPOTENCY_KEY_INVALID",
-                    "Khóa chống trùng không được dài quá 80 ký tự.");
         }
         return normalized;
     }
@@ -723,15 +735,6 @@ public class QueueService {
                         "Bác sĩ chưa được gán chuyên khoa và phòng khám."));
     }
 
-    private UUID parseStaffId(String staffId) {
-        try {
-            return UUID.fromString(staffId);
-        } catch (IllegalArgumentException exception) {
-            throw new AuthException(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_REQUIRED",
-                    "Phiên đăng nhập nhân viên không hợp lệ.");
-        }
-    }
-
     private QueueTicket findTicket(UUID ticketId) {
         return ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "QUEUE_TICKET_NOT_FOUND",
@@ -774,7 +777,7 @@ public class QueueService {
 
     private void ensureDoctorOwnsTicket(QueueTicket ticket, String staffId) {
         if (staffId == null) return;
-        UUID doctorId = parseStaffId(staffId);
+        UUID doctorId = AuthenticatedIds.staff(staffId);
         // A reception reassignment changes the active queue owner while keeping
         // the original appointment snapshot intact.
         if (!doctorId.equals(ticket.getEffectiveDoctorStaffId())) {
@@ -797,15 +800,6 @@ public class QueueService {
 
     private LocalDate today() {
         return LocalDate.now(clock.withZone(CLINIC_ZONE));
-    }
-
-    private UUID parseAccountId(String accountId) {
-        try {
-            return UUID.fromString(accountId);
-        } catch (IllegalArgumentException exception) {
-            throw new AuthException(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_REQUIRED",
-                    "Phiên đăng nhập không hợp lệ.");
-        }
     }
 
     private AuthException queueStateConflict(String message) {

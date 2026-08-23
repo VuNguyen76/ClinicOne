@@ -42,7 +42,7 @@ class DoctorManagementControllerTest {
     @Test
     void adminCanCreateDoctorAccount() throws Exception {
         when(service.createDoctor(any())).thenReturn(new DoctorAccountResponse(DOCTOR_ID, "bs.an",
-                "Bác sĩ Nguyễn An", null, null, null, null, false, false));
+                "Bác sĩ Nguyễn An", null, null, null, null, false, false, null));
 
         mockMvc.perform(post("/api/v1/admin/doctors")
                         .with(authentication(authenticated("ROLE_ADMIN")))
@@ -87,7 +87,7 @@ class DoctorManagementControllerTest {
 
     private static DoctorProfileResponse profile() {
         return new DoctorProfileResponse(DOCTOR_ID, "doctor", "Bác sĩ Nguyễn An", "Khám Tổng Quát",
-                ROOM_ID, "NOI-01", "Phòng Nội 01", true);
+                ROOM_ID, "NOI-01", "Phòng Nội 01", true, null);
     }
 
     private static DoctorScheduleResponse schedule() {

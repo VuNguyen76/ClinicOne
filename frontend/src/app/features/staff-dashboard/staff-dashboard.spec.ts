@@ -57,6 +57,52 @@ describe('StaffDashboard', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="call-next"]')).not.toBeNull();
   });
 
+  it('uses the current assigned shift without asking a doctor to choose a date', () => {
+    createDashboard('DOCTOR');
+    http.expectOne((candidate) => candidate.url === '/api/v1/doctor/queue')
+      .flush(doctorQueue([ticket('ticket-1', 'WAITING')]));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[data-testid="date-selector"]')).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Ca khám hiện tại');
+    expect(fixture.nativeElement.querySelector('[data-testid="doctor-shift-bar"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="doctor-main-grid"]')).not.toBeNull();
+  });
+
+  it('locks doctor actions and explains when there is no current shift', () => {
+    createDashboard('DOCTOR');
+    http.expectOne((candidate) => candidate.url === '/api/v1/doctor/queue').flush({
+      ...doctorQueue([]), shiftStatus: 'NONE',
+    });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Không có ca làm việc');
+    expect(fixture.nativeElement.querySelector('[data-testid="call-next"]')).toBeNull();
+  });
+
+  it('shows patient identity before a doctor starts the called examination', () => {
+    createDashboard('DOCTOR');
+    http.expectOne((candidate) => candidate.url === '/api/v1/doctor/queue')
+      .flush(doctorQueue([ticket('ticket-1', 'CALLED')]));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Nguyễn Thanh Vũ');
+    expect(fixture.nativeElement.textContent).toContain('07/06/2005');
+  });
+
+  it('renders a complete doctor operations dashboard instead of only a queue table', () => {
+    createDashboard('DOCTOR');
+    http.expectOne((candidate) => candidate.url === '/api/v1/doctor/queue')
+      .flush(doctorQueue([ticket('ticket-1', 'CALLED')]));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[data-testid="doctor-metrics"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="doctor-current-patient"]')?.textContent)
+      .toContain('Nguyễn Thanh Vũ');
+    expect(fixture.nativeElement.querySelector('[data-testid="doctor-current-patient"]')?.textContent)
+      .toContain('Đang được gọi');
+  });
+
   it('starts an examination with one retry-safe request key', () => {
     createDashboard('DOCTOR');
     http.expectOne((candidate) => candidate.url === '/api/v1/doctor/queue')
@@ -162,7 +208,7 @@ describe('StaffDashboard', () => {
 });
 
 function doctorQueue(tickets: ReturnType<typeof ticket>[]) {
-  return { roomCode: 'NOI-01', roomName: 'Phòng NOI-01', specialty: 'Nội tổng quát', tickets };
+  return { roomCode: 'NOI-01', roomName: 'Phòng NOI-01', specialty: 'Nội tổng quát', shiftStatus: 'ACTIVE', tickets };
 }
 
 function room(code: string) {
@@ -183,6 +229,8 @@ function ticket(id: string, status: string, queueNumber = 1, priority = false) {
     appointmentCode: 'CLN-0001',
     specialty: 'Nội tổng quát',
     doctorName: 'BS. Nguyễn An',
+    patientName: 'Nguyễn Thanh Vũ',
+    patientDateOfBirth: '2005-06-07',
     priority,
   };
 }

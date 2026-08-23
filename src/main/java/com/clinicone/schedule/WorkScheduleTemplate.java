@@ -1,5 +1,7 @@
 package com.clinicone.schedule;
 
+import lombok.Getter;
+
 import com.clinicone.doctor.DoctorProfile;
 import com.clinicone.queue.ClinicRoom;
 import jakarta.persistence.CollectionTable;
@@ -30,6 +32,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+@Getter
 @Entity
 @Table(name = "work_schedule_templates")
 public class WorkScheduleTemplate {
@@ -132,6 +135,13 @@ public class WorkScheduleTemplate {
 
     public void setActive(boolean active) { this.active = active; }
 
+    public void setWeekdays(Collection<DayOfWeek> weekdays) {
+        this.weekdays.clear();
+        if (weekdays != null) {
+            this.weekdays.addAll(weekdays);
+        }
+    }
+
     @PrePersist
     void onCreate() {
         Instant now = Instant.now();
@@ -142,19 +152,4 @@ public class WorkScheduleTemplate {
     @PreUpdate
     void onUpdate() { updatedAt = Instant.now(); }
 
-    public UUID getId() { return id; }
-    public ClinicService getClinicService() { return clinicService; }
-    public DoctorProfile getDoctorProfile() { return doctorProfile; }
-    public ClinicRoom getRoom() { return room; }
-    public String getSpecialty() { return specialty; }
-    public String getVisitType() { return visitType; }
-    public int getDurationMinutes() { return durationMinutes; }
-    public LocalDate getStartDate() { return startDate; }
-    public LocalDate getEndDate() { return endDate; }
-    public LocalTime getDayStart() { return dayStart; }
-    public LocalTime getDayEnd() { return dayEnd; }
-    public Set<DayOfWeek> getWeekdays() { return weekdays; }
-    public List<ScheduleBreak> getBreaks() { return breaks; }
-    public Set<LocalDate> getExceptionDates() { return exceptionDates; }
-    public boolean isActive() { return active; }
 }

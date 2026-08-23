@@ -1,7 +1,7 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ReactiveFormsModule, FormArray, FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import {
   ApiErrorResponse,
@@ -9,11 +9,16 @@ import {
   DoctorExaminationRequest,
   DoctorExaminationResponse,
   DiagnosisSuggestionResponse,
+  MedicalRecordTemplate,
   MedicationSuggestionResponse,
   apiErrorMessage,
 } from '../../core/auth/auth-api.service';
-import { AccountMenu } from '../../shared/account-menu/account-menu';
+import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
 import { auditTime } from 'rxjs';
+import {
+  MedicalRecordTemplateContent,
+  parseMedicalRecordTemplateContent,
+} from '../../core/examination/medical-record-template-content';
 
 type PrescriptionLineForm = FormGroup<{
   medicationId: FormControl<string | null>;
@@ -26,10 +31,19 @@ type PrescriptionLineForm = FormGroup<{
 type ClinicalTextField = 'reason' | 'examinationNotes' | 'diagnosis' | 'conclusion' | 'treatmentPlan';
 type PrescriptionTextField = 'medicationName' | 'dosage' | 'instructions';
 
+const TEMPLATE_TEXT_FIELDS: Array<{ key: ClinicalTextField | 'followUpNote'; label: string }> = [
+  { key: 'reason', label: 'Lý do khám' },
+  { key: 'examinationNotes', label: 'Ghi nhận khám' },
+  { key: 'diagnosis', label: 'Chẩn đoán' },
+  { key: 'conclusion', label: 'Kết luận' },
+  { key: 'treatmentPlan', label: 'Hướng xử trí' },
+  { key: 'followUpNote', label: 'Dặn dò tái khám' },
+];
+
 @Component({
   selector: 'app-doctor-examination',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, MatIconModule, AccountMenu],
+  imports: [ReactiveFormsModule, MatIconModule, StaffWorkspaceShell],
   templateUrl: './doctor-examination.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -59,6 +73,12 @@ export class DoctorExamination implements OnInit {
   protected readonly returningWrongProfile = signal(false);
   protected readonly medicationSuggestions = signal<Record<number, MedicationSuggestionResponse[]>>({});
   protected readonly diagnosisSuggestions = signal<DiagnosisSuggestionResponse[]>([]);
+  protected readonly medicalTemplates = signal<MedicalRecordTemplate[]>([]);
+  protected readonly templatesOpen = signal(false);
+  protected readonly templatesLoading = signal(false);
+  protected readonly templatesLoaded = signal(false);
+  protected readonly selectedTemplate = signal<MedicalRecordTemplate | null>(null);
+  protected readonly confirmingTemplateOverwrite = signal(false);
   protected readonly error = signal('');
   protected readonly notice = signal('');
   protected readonly form = this.fb.group({
@@ -71,6 +91,19 @@ export class DoctorExamination implements OnInit {
     followUpDate: [''],
     followUpDays: [null as number | null, [Validators.min(1), Validators.max(365)]],
     followUpNote: ['', [Validators.maxLength(500)]],
+  });
+  protected readonly selectedTemplateContent = computed(() => {
+    const template = this.selectedTemplate();
+    return template ? parseMedicalRecordTemplateContent(template.fieldDefinition) : {};
+  });
+  protected readonly templatePreviewItems = computed(() => {
+    const content = this.selectedTemplateContent();
+    const items = TEMPLATE_TEXT_FIELDS.flatMap(({ key, label }) => {
+      const value = content[key];
+      return typeof value === 'string' && value ? [{ label, value }] : [];
+    });
+    if (content.followUpDays) items.push({ label: 'Hẹn tái khám', value: `Sau ${content.followUpDays} ngày` });
+    return items;
   });
 
   protected get prescriptionLines(): FormArray<PrescriptionLineForm> {
@@ -117,6 +150,60 @@ export class DoctorExamination implements OnInit {
     this.persistDraft(true);
   }
 
+  protected openMedicalTemplates(): void {
+    if (this.examination()?.signedAt) return;
+    this.templatesOpen.set(true);
+    if (this.templatesLoaded() || this.templatesLoading()) return;
+    this.templatesLoading.set(true);
+    this.error.set('');
+    this.authApi.getMedicalRecordTemplates(
+      this.examination()?.specialty,
+      this.examination()?.clinicServiceId ?? undefined,
+    ).subscribe({
+      next: (templates) => {
+        this.medicalTemplates.set(templates);
+        this.templatesLoaded.set(true);
+        this.templatesLoading.set(false);
+      },
+      error: (response) => {
+        this.templatesLoading.set(false);
+        this.handleError(response);
+      },
+    });
+  }
+
+  protected closeMedicalTemplates(): void {
+    this.templatesOpen.set(false);
+    this.selectedTemplate.set(null);
+    this.confirmingTemplateOverwrite.set(false);
+  }
+
+  protected previewMedicalTemplate(template: MedicalRecordTemplate): void {
+    this.selectedTemplate.set(template);
+    this.confirmingTemplateOverwrite.set(false);
+  }
+
+  protected requestApplyMedicalTemplate(): void {
+    const content = this.selectedTemplateContent();
+    if (!this.selectedTemplate() || this.templatePreviewItems().length === 0) {
+      this.error.set('Mẫu phiếu chưa có nội dung điền sẵn.');
+      return;
+    }
+    if (this.templateWouldOverwrite(content)) {
+      this.confirmingTemplateOverwrite.set(true);
+      return;
+    }
+    this.applyMedicalTemplate(content);
+  }
+
+  protected confirmApplyMedicalTemplate(): void {
+    this.applyMedicalTemplate(this.selectedTemplateContent());
+  }
+
+  protected cancelTemplateOverwrite(): void {
+    this.confirmingTemplateOverwrite.set(false);
+  }
+
   protected saveDraftOnBlur(): void {
     if (this.draftDirty) this.persistDraft(false);
   }
@@ -136,6 +223,7 @@ export class DoctorExamination implements OnInit {
         this.autosaveRetryCount = 0;
         this.clearAutosaveRetry();
         this.notice.set(manual ? 'Đã lưu bản nháp' : 'Đã tự lưu bản nháp');
+        setTimeout(() => this.notice.set(''), 3000);
       },
       error: (response) => {
         this.saving.set(false);
@@ -204,6 +292,7 @@ export class DoctorExamination implements OnInit {
         this.confirmingStop.set(false);
         this.stopping.set(false);
         this.notice.set('Đã dừng lượt khám.');
+        setTimeout(() => this.notice.set(''), 4000);
       },
       error: (response) => {
         this.stopping.set(false);
@@ -261,7 +350,8 @@ export class DoctorExamination implements OnInit {
         this.form.disable();
         this.signing.set(false);
         this.signRequestKey = null;
-        this.notice.set(value.requiresMedicalRecord !== false ? 'Đã ký phiếu khám' : 'Đã kết thúc lượt khám');
+        this.notice.set(value.requiresMedicalRecord !== false ? 'Đã ký phiếu khám thành công.' : 'Đã kết thúc lượt khám thành công.');
+        setTimeout(() => this.notice.set(''), 4000);
       },
       error: (response) => {
         this.signing.set(false);
@@ -405,6 +495,34 @@ export class DoctorExamination implements OnInit {
     };
   }
 
+  private templateWouldOverwrite(content: MedicalRecordTemplateContent): boolean {
+    return TEMPLATE_TEXT_FIELDS.some(({ key }) => {
+      const incoming = content[key];
+      if (typeof incoming !== 'string' || !incoming) return false;
+      const current = this.form.controls[key].value?.trim() ?? '';
+      return Boolean(current && current !== incoming);
+    }) || Boolean(content.followUpDays && this.form.controls.followUpDays.value
+      && this.form.controls.followUpDays.value !== content.followUpDays);
+  }
+
+  private applyMedicalTemplate(content: MedicalRecordTemplateContent): void {
+    const patch: Partial<Record<ClinicalTextField | 'followUpNote', string>> & { followUpDays?: number } = {};
+    TEMPLATE_TEXT_FIELDS.forEach(({ key }) => {
+      const value = content[key];
+      if (typeof value === 'string' && value) patch[key] = value;
+    });
+    if (content.followUpDays) {
+      patch.followUpDays = content.followUpDays;
+      this.followUpEnabled.set(true);
+    }
+    this.form.patchValue(patch);
+    this.confirmingTemplateOverwrite.set(false);
+    this.templatesOpen.set(false);
+    const templateName = this.selectedTemplate()?.name;
+    this.selectedTemplate.set(null);
+    this.notice.set(templateName ? `Đã áp dụng mẫu ${templateName}.` : 'Đã áp dụng mẫu phiếu.');
+  }
+
   private createPrescriptionLine(line?: DoctorExaminationResponse['prescriptionLines'][number]): PrescriptionLineForm {
     return this.fb.group({
       medicationId: [line?.medicationId ?? null],
@@ -479,5 +597,9 @@ export class DoctorExamination implements OnInit {
       return;
     }
     this.error.set(apiErrorMessage(response));
+  }
+
+  protected printRecord(): void {
+    window.print();
   }
 }

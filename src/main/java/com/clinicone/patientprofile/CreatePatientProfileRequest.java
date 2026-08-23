@@ -1,5 +1,6 @@
 package com.clinicone.patientprofile;
 
+import com.clinicone.validation.VietnamesePhone;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
@@ -13,7 +14,7 @@ public record CreatePatientProfileRequest(
         @NotBlank @Size(max = 50) String relationship,
         @NotNull @PastOrPresent LocalDate dateOfBirth,
         @NotBlank @Size(max = 20) String gender,
-        @Pattern(regexp = "^$|0\\d{9}$", message = "Số điện thoại phải có 10 chữ số và bắt đầu bằng 0") String phone,
+        @VietnamesePhone String phone,
         @Pattern(regexp = "^$|\\d{9}|\\d{12}", message = "CMND/CCCD phải gồm 9 hoặc 12 chữ số") String identityNumber,
         @Size(max = 100) String nationality,
         @Size(max = 100) String ethnicity,

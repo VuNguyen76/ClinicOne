@@ -36,11 +36,11 @@ describe('ReasonCatalogManagement', () => {
     vi.mocked(api.createCancellationReason).mockReturnValue(of({
       id: 'reason-4', type: 'APPOINTMENT_CANCELLATION', code: 'TRAVEL', label: 'Đi công tác', active: true,
     }));
-    const inputs = fixture.nativeElement.querySelectorAll('input');
-    (inputs[0] as HTMLInputElement).value = 'TRAVEL';
-    inputs[0].dispatchEvent(new Event('input'));
-    (inputs[1] as HTMLInputElement).value = 'Đi công tác';
-    inputs[1].dispatchEvent(new Event('input'));
+    (fixture.nativeElement.querySelector('button.erp-btn-primary') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const component = fixture.componentInstance as any;
+    component.code.set('TRAVEL');
+    component.label.set('Đi công tác');
     (fixture.nativeElement.querySelector('button[type="submit"]') as HTMLButtonElement).click();
     expect(api.createCancellationReason).toHaveBeenCalledWith('TRAVEL', 'Đi công tác');
   });

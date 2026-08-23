@@ -1,5 +1,7 @@
 package com.clinicone.examination;
 
+import lombok.Getter;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -21,6 +23,7 @@ import java.util.UUID;
 import java.util.ArrayList;
 import java.util.List;
 
+@Getter
 @Entity
 @Table(name = "medical_records", uniqueConstraints = {
         @UniqueConstraint(name = "uk_medical_records_session", columnNames = "examination_session_id")
@@ -190,20 +193,5 @@ public class MedicalRecord {
         }
     }
 
-    public UUID getId() { return id; }
-    public ExaminationSession getSession() { return session; }
-    public String getDoctorName() { return doctorName; }
-    public String getReason() { return reason; }
-    public String getExaminationNotes() { return examinationNotes; }
-    public String getDiagnosis() { return diagnosis; }
-    public String getConclusion() { return conclusion; }
-    public String getTreatmentPlan() { return treatmentPlan; }
-    public String getPrescription() { return prescription; }
     public List<PrescriptionLine> getPrescriptionLines() { return List.copyOf(prescriptionLines); }
-    public LocalDate getFollowUpDate() { return followUpDate; }
-    public Integer getFollowUpDays() { return followUpDays; }
-    public String getFollowUpNote() { return followUpNote; }
-    public Instant getSignedAt() { return signedAt; }
-    public Instant getDraftSavedAt() { return draftSavedAt; }
-    public long getVersion() { return version; }
 }

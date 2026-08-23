@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
+import { vi } from 'vitest';
 import { AccountMenu } from './account-menu';
 
 describe('AccountMenu', () => {
@@ -57,7 +58,7 @@ describe('AccountMenu', () => {
     expect(trigger.getAttribute('aria-expanded')).toBe('false');
   });
 
-  it('shows the medication catalog only to an administrator', async () => {
+  it('shows the medication catalog to an administrator and coordinator', async () => {
     sessionStorage.setItem('clinicOneStaffRole', 'ADMIN');
     sessionStorage.setItem('clinicOneStaffRoles', '["ADMIN"]');
     await TestBed.resetTestingModule().configureTestingModule({
@@ -70,5 +71,56 @@ describe('AccountMenu', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('a[href="/admin/medications"]')?.textContent).toContain('Danh mục thuốc');
+    expect(fixture.nativeElement.querySelector('a[href="/admin/diagnoses"]')?.textContent).toContain('Danh mục chẩn đoán');
+  });
+
+  it('shows catalog links to a coordinator as well', async () => {
+    sessionStorage.setItem('clinicOneStaffRole', 'COORDINATOR');
+    sessionStorage.setItem('clinicOneStaffRoles', '["COORDINATOR"]');
+    await TestBed.resetTestingModule().configureTestingModule({
+      imports: [AccountMenu], providers: [provideRouter([])],
+    }).compileComponents();
+    fixture = TestBed.createComponent(AccountMenu);
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('[data-testid="account-menu-trigger"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('a[href="/admin/medications"]')?.textContent).toContain('Danh mục thuốc');
+    expect(fixture.nativeElement.querySelector('a[href="/admin/diagnoses"]')?.textContent).toContain('Danh mục chẩn đoán');
+  });
+
+  it('keeps the compact staff menu focused on account actions', async () => {
+    sessionStorage.setItem('clinicOneStaffRole', 'DOCTOR');
+    sessionStorage.setItem('clinicOneStaffRoles', '["DOCTOR"]');
+    await TestBed.resetTestingModule().configureTestingModule({
+      imports: [AccountMenu], providers: [provideRouter([])],
+    }).compileComponents();
+    fixture = TestBed.createComponent(AccountMenu);
+    fixture.componentRef.setInput('compact', true);
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('[data-testid="account-menu-trigger"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelectorAll('[role="menuitem"]').length).toBe(1);
+    expect(fixture.nativeElement.querySelector('[role="menuitem"]')?.textContent).toContain('Đăng xuất');
+  });
+
+  it('returns staff to the staff login page after logout', async () => {
+    sessionStorage.setItem('clinicOneStaffRole', 'DOCTOR');
+    sessionStorage.setItem('clinicOneStaffRoles', '["DOCTOR"]');
+    await TestBed.resetTestingModule().configureTestingModule({
+      imports: [AccountMenu], providers: [provideRouter([])],
+    }).compileComponents();
+    fixture = TestBed.createComponent(AccountMenu);
+    fixture.componentRef.setInput('compact', true);
+    fixture.detectChanges();
+
+    const router = TestBed.inject(Router);
+    const navigateSpy = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+    (fixture.componentInstance as unknown as { finishLogout: () => void }).finishLogout();
+
+    expect(navigateSpy).toHaveBeenCalledWith('/staff/login');
   });
 });

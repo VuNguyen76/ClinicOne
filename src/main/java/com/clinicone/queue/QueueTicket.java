@@ -1,5 +1,7 @@
 package com.clinicone.queue;
 
+import lombok.Getter;
+
 import com.clinicone.appointment.Appointment;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -22,6 +24,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
+@Getter
 @Entity
 @Table(name = "queue_tickets", indexes = {
         @Index(name = "idx_queue_tickets_room_date_status", columnList = "room_id,queue_date,status")
@@ -30,7 +33,7 @@ import java.util.UUID;
         @UniqueConstraint(name = "uk_queue_tickets_room_date_number", columnNames = {"room_id", "queue_date", "queue_number"})
 })
 public class QueueTicket {
-    public static final int MAX_QUEUE_NUMBER = 9999;
+    public static final int MAX_QUEUE_NUMBER = 999;
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -133,8 +136,6 @@ public class QueueTicket {
     public void recordExceptionReason(String reason) {
         this.exceptionReason = reason == null || reason.isBlank() ? null : reason.trim();
     }
-
-    public long getVersion() { return version; }
 
     public void moveTo(ClinicRoom targetRoom, UUID doctorStaffId, String doctorName, String specialty,
                        int targetQueueNumber) {
@@ -270,29 +271,12 @@ public class QueueTicket {
         }
     }
 
-    public UUID getId() { return id; }
-    public Appointment getAppointment() { return appointment; }
-    public ClinicRoom getRoom() { return room; }
-    public LocalDate getQueueDate() { return queueDate; }
-    public int getQueueNumber() { return queueNumber; }
-    public QueueTicketStatus getStatus() { return status; }
-    public QueueClosureOutcome getClosureOutcome() { return closureOutcome; }
     public String getClosureOutcomeLabel() { return closureOutcome == null ? null : closureOutcome.label(); }
     public QueuePresenceStatus getPresenceStatus() {
         return presenceStatus == null ? QueuePresenceStatus.READY : presenceStatus;
     }
     public String getPresenceLabel() { return getPresenceStatus().label(); }
-    public Instant getCheckedInAt() { return checkedInAt; }
-    public Instant getCalledAt() { return calledAt; }
-    public Instant getReturnedAt() { return returnedAt; }
     public int getCallCount() { return callCount == null ? 0 : callCount; }
-    public Instant getCompletedAt() { return completedAt; }
-    public String getSkipReason() { return skipReason; }
-    public String getExceptionReason() { return exceptionReason; }
-    public UUID getRoutingDoctorStaffId() { return routingDoctorStaffId; }
-    public String getRoutingDoctorName() { return routingDoctorName; }
-    public String getRoutingSpecialty() { return routingSpecialty; }
-    public boolean isPriority() { return priority; }
     public UUID getEffectiveDoctorStaffId() {
         return routingDoctorStaffId == null ? appointment.getDoctorStaffId() : routingDoctorStaffId;
     }

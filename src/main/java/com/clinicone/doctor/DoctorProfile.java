@@ -1,5 +1,7 @@
 package com.clinicone.doctor;
 
+import lombok.Getter;
+
 import com.clinicone.auth.StaffAccount;
 import com.clinicone.queue.ClinicRoom;
 import jakarta.persistence.Column;
@@ -18,6 +20,7 @@ import jakarta.persistence.UniqueConstraint;
 import java.time.Instant;
 import java.util.UUID;
 
+@Getter
 @Entity
 @Table(name = "doctor_profiles", uniqueConstraints = {
         @UniqueConstraint(name = "uk_doctor_profiles_staff", columnNames = "staff_account_id")
@@ -38,16 +41,20 @@ public class DoctorProfile {
     @JoinColumn(name = "room_id", nullable = false)
     private ClinicRoom room;
 
+    @Column(name = "avatar_url", length = 500)
+    private String avatarUrl;
+
     @Column(nullable = false)
     private boolean active;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
-    private DoctorProfile(StaffAccount staffAccount, String specialty, ClinicRoom room) {
+    private DoctorProfile(StaffAccount staffAccount, String specialty, ClinicRoom room, String avatarUrl) {
         this.staffAccount = staffAccount;
         this.specialty = specialty.trim();
         this.room = room;
+        this.avatarUrl = avatarUrl;
         this.active = true;
     }
 
@@ -55,12 +62,23 @@ public class DoctorProfile {
     }
 
     public static DoctorProfile create(StaffAccount staffAccount, String specialty, ClinicRoom room) {
-        return new DoctorProfile(staffAccount, specialty, room);
+        return new DoctorProfile(staffAccount, specialty, room, null);
+    }
+
+    public static DoctorProfile create(StaffAccount staffAccount, String specialty, ClinicRoom room, String avatarUrl) {
+        return new DoctorProfile(staffAccount, specialty, room, avatarUrl);
     }
 
     public void updateAssignment(String specialty, ClinicRoom room) {
         this.specialty = specialty.trim();
         this.room = room;
+        this.active = true;
+    }
+
+    public void updateAssignment(String specialty, ClinicRoom room, String avatarUrl) {
+        this.specialty = specialty.trim();
+        this.room = room;
+        this.avatarUrl = avatarUrl;
         this.active = true;
     }
 
@@ -73,9 +91,4 @@ public class DoctorProfile {
         if (createdAt == null) createdAt = Instant.now();
     }
 
-    public UUID getId() { return id; }
-    public StaffAccount getStaffAccount() { return staffAccount; }
-    public String getSpecialty() { return specialty; }
-    public ClinicRoom getRoom() { return room; }
-    public boolean isActive() { return active; }
 }

@@ -4,13 +4,13 @@ import { Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { finalize } from 'rxjs';
 import { apiErrorMessage, AuthApiService, MedicalRecordResponse, PatientProfileItem } from '../../core/auth/auth-api.service';
-import { AccountMenu } from '../../shared/account-menu/account-menu';
+import { PatientHeader } from '../../shared/patient-header/patient-header';
 import { AccountNav } from '../../shared/account-nav/account-nav';
 
 @Component({
   selector: 'app-medical-records',
   standalone: true,
-  imports: [FormsModule, RouterLink, MatIconModule, AccountMenu, AccountNav],
+  imports: [FormsModule, RouterLink, MatIconModule, PatientHeader, AccountNav],
   templateUrl: './medical-records.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

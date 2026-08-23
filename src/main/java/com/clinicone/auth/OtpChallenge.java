@@ -1,5 +1,7 @@
 package com.clinicone.auth;
 
+import lombok.Getter;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -15,6 +17,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.time.Instant;
 import java.util.UUID;
 
+@Getter
 @Entity
 @Table(name = "otp_challenges", indexes = {
         @Index(name = "idx_otp_destination_purpose_created", columnList = "destination,purpose,created_at")
@@ -82,12 +85,4 @@ public class OtpChallenge {
         verifiedAt = now;
     }
 
-    public UUID getId() { return id; }
-    public String getDestination() { return destination; }
-    public OtpPurpose getPurpose() { return purpose; }
-    public String getCodeHash() { return codeHash; }
-    public Instant getCreatedAt() { return createdAt; }
-    public Instant getExpiresAt() { return expiresAt; }
-    public int getFailedAttempts() { return failedAttempts; }
-    public Instant getVerifiedAt() { return verifiedAt; }
 }

@@ -2,13 +2,14 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
+import { MatIconModule } from '@angular/material/icon';
 import { apiErrorMessage, AuthApiService } from '../../../core/auth/auth-api.service';
 
 type LoginStep = 'phone' | 'password';
 
 @Component({
   selector: 'app-login',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, MatIconModule],
   templateUrl: './login.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -23,6 +24,7 @@ export class Login {
   protected readonly busy = signal(false);
   protected readonly phone = signal('');
   protected readonly password = signal('');
+  protected readonly showPassword = signal(false);
 
   readonly phoneForm = this.formBuilder.nonNullable.group({
     phone: ['', [Validators.required, Validators.pattern(/^0\d{9}$/)]],

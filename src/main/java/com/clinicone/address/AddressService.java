@@ -2,6 +2,7 @@ package com.clinicone.address;
 
 import com.clinicone.auth.AuthException;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
@@ -18,14 +19,17 @@ public class AddressService {
         this.client = builder.baseUrl(apiRoot).build();
     }
 
+    @Cacheable(cacheNames = "addresses", key = "'provinces:' + #page + ':' + #limit")
     public List<AddressUnitResponse> provinces(int page, int limit) {
         return fetch("/provinces?page=" + page + "&limit=" + limit);
     }
 
+    @Cacheable(cacheNames = "addresses", key = "'districts:' + #provinceCode + ':' + #page + ':' + #limit")
     public List<AddressUnitResponse> districts(String provinceCode, int page, int limit) {
         return fetch("/provinces/" + normalizeCode(provinceCode) + "/districts?page=" + page + "&limit=" + limit);
     }
 
+    @Cacheable(cacheNames = "addresses", key = "'wards:' + #districtCode + ':' + #page + ':' + #limit")
     public List<AddressUnitResponse> wards(String districtCode, int page, int limit) {
         return fetch("/districts/" + normalizeCode(districtCode) + "/wards?page=" + page + "&limit=" + limit);
     }

@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { forkJoin } from 'rxjs';
 import {
@@ -12,13 +11,13 @@ import {
   SpecialtyOption,
   apiErrorMessage,
 } from '../../core/auth/auth-api.service';
-import { AccountMenu } from '../../shared/account-menu/account-menu';
+import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
 import { hasStaffRole } from '../../core/auth/auth.guard';
 
 @Component({
   selector: 'app-service-management',
   standalone: true,
-  imports: [FormsModule, RouterLink, MatIconModule, AccountMenu],
+  imports: [FormsModule, MatIconModule, StaffWorkspaceShell],
   templateUrl: './service-management.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -33,12 +32,36 @@ export class ServiceManagement implements OnInit {
   protected readonly error = signal('');
   protected readonly notice = signal('');
   protected readonly editingId = signal<string | null>(null);
+  protected readonly modalOpen = signal(false);
   protected readonly name = signal('');
   protected readonly specialty = signal('');
   protected readonly visitType = signal('Khám thường');
   protected readonly durationMinutes = signal(30);
+  protected readonly searchTerm = signal('');
   protected readonly selectedDoctorIds = signal<string[]>([]);
   protected readonly requiresMedicalRecord = signal(true);
+
+  protected filteredServices(): ClinicServiceResponse[] {
+    const q = this.searchTerm().trim().toLowerCase();
+    if (!q) return this.services();
+    return this.services().filter((s) =>
+      s.name.toLowerCase().includes(q) ||
+      s.specialty.toLowerCase().includes(q) ||
+      s.visitType.toLowerCase().includes(q)
+    );
+  }
+
+  protected totalServicesCount(): number {
+    return this.services().length;
+  }
+
+  protected activeServicesCount(): number {
+    return this.services().filter((s) => s.active).length;
+  }
+
+  protected specialtiesCount(): number {
+    return new Set(this.services().map((s) => s.specialty)).size;
+  }
 
   protected canManageServices(): boolean {
     return hasStaffRole('COORDINATOR');
@@ -101,6 +124,7 @@ export class ServiceManagement implements OnInit {
     this.requiresMedicalRecord.set(true);
     this.error.set('');
     this.notice.set('');
+    this.modalOpen.set(true);
   }
 
   protected edit(service: ClinicServiceResponse): void {
@@ -117,6 +141,13 @@ export class ServiceManagement implements OnInit {
     this.requiresMedicalRecord.set(service.requiresMedicalRecord !== false);
     this.error.set('');
     this.notice.set('');
+    this.modalOpen.set(true);
+  }
+
+  protected closeModal(): void {
+    if (this.saving()) return;
+    this.modalOpen.set(false);
+    this.editingId.set(null);
   }
 
   protected submit(): void {
@@ -149,7 +180,8 @@ export class ServiceManagement implements OnInit {
           : [...items, service].sort((a, b) => a.name.localeCompare(b.name)));
         this.saving.set(false);
         this.notice.set(this.editingId() ? 'Đã cập nhật dịch vụ khám.' : 'Đã tạo dịch vụ khám.');
-        this.openCreate();
+        this.modalOpen.set(false);
+        this.editingId.set(null);
       },
       error: (response) => {
         this.saving.set(false);

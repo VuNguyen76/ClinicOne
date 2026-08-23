@@ -8,9 +8,12 @@ import com.clinicone.appointment.AppointmentRepository;
 import com.clinicone.doctor.DoctorProfileRepository;
 import com.clinicone.doctor.DoctorScheduleRepository;
 import com.clinicone.queue.ClinicRoomRepository;
+import com.clinicone.schedule.ClinicService;
+import com.clinicone.schedule.ClinicServiceRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -22,6 +25,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @ExtendWith(MockitoExtension.class)
 class LocalDataInitializerTest {
@@ -33,6 +37,7 @@ class LocalDataInitializerTest {
     @Mock PatientAccountRepository patientRepository;
     @Mock com.clinicone.patientprofile.PatientProfileRepository patientProfileRepository;
     @Mock AppointmentRepository appointmentRepository;
+    @Mock ClinicServiceRepository clinicServiceRepository;
     @Mock JdbcTemplate jdbcTemplate;
 
     @Test
@@ -52,16 +57,26 @@ class LocalDataInitializerTest {
         when(patientProfileRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(appointmentRepository.findByAppointmentCode(any())).thenReturn(Optional.empty());
         when(appointmentRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(clinicServiceRepository.findAllByOrderByNameAsc()).thenReturn(List.of());
+        when(clinicServiceRepository.save(any(ClinicService.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         new LocalDataInitializer(staffRepository, roomRepository, profileRepository, scheduleRepository,
-                passwordEncoder, patientRepository, patientProfileRepository, appointmentRepository, jdbcTemplate).run();
+                passwordEncoder, patientRepository, patientProfileRepository, appointmentRepository,
+                clinicServiceRepository, jdbcTemplate,
+                "test-admin-password", "test-reception-password", "test-doctor-password", "test-patient-password").run();
 
-        verify(staffRepository, org.mockito.Mockito.times(3)).save(any(StaffAccount.class));
-        verify(roomRepository).save(any());
-        verify(profileRepository).save(any());
-        verify(scheduleRepository, org.mockito.Mockito.times(5)).save(any());
-        verify(passwordEncoder, org.mockito.Mockito.times(4)).encode(any());
-        verify(jdbcTemplate).execute(org.mockito.ArgumentMatchers.anyString());
+        verify(staffRepository, org.mockito.Mockito.times(10)).save(any(StaffAccount.class));
+        verify(roomRepository, org.mockito.Mockito.times(10)).save(any());
+        verify(profileRepository, org.mockito.Mockito.times(7)).save(any());
+        verify(scheduleRepository, org.mockito.Mockito.times(35)).save(any());
+        ArgumentCaptor<ClinicService> serviceCaptor = ArgumentCaptor.forClass(ClinicService.class);
+        verify(clinicServiceRepository, org.mockito.Mockito.times(7)).save(serviceCaptor.capture());
+        assertThat(serviceCaptor.getAllValues()).hasSize(7);
+        ArgumentCaptor<String> passwordCaptor = ArgumentCaptor.forClass(String.class);
+        verify(passwordEncoder, org.mockito.Mockito.times(14)).encode(passwordCaptor.capture());
+        assertThat(passwordCaptor.getAllValues()).contains(
+                "test-admin-password", "test-reception-password", "test-doctor-password", "test-patient-password");
+        verify(jdbcTemplate, org.mockito.Mockito.atLeastOnce()).execute(org.mockito.ArgumentMatchers.anyString());
         verifyNoMoreInteractions(passwordEncoder);
     }
 }

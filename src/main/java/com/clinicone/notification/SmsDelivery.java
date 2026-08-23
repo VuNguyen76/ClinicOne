@@ -1,5 +1,7 @@
 package com.clinicone.notification;
 
+import lombok.Getter;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -16,6 +18,7 @@ import jakarta.persistence.Version;
 import java.time.Instant;
 import java.util.UUID;
 
+@Getter
 @Entity
 @Table(name = "sms_deliveries", indexes = {
         @Index(name = "idx_sms_deliveries_due", columnList = "status,available_at"),
@@ -57,6 +60,9 @@ public class SmsDelivery {
 
     @Column(name = "last_error", length = 500)
     private String lastError;
+
+    @Column(name = "last_retry_request_key", length = 120)
+    private String lastRetryRequestKey;
 
     @Column(name = "sent_at")
     private Instant sentAt;
@@ -116,6 +122,28 @@ public class SmsDelivery {
         }
     }
 
+    public boolean manualRetry(Instant now, String requestKey) {
+        String normalizedKey = requestKey == null ? "" : requestKey.trim();
+        if (normalizedKey.isEmpty() || normalizedKey.length() > 120) {
+            throw new IllegalArgumentException("Retry request key is invalid");
+        }
+        if (normalizedKey.equals(lastRetryRequestKey)) return false;
+        if (status == SmsDeliveryStatus.SENT) {
+            throw new IllegalStateException("SMS delivery has already been sent");
+        }
+        if (status == SmsDeliveryStatus.PROCESSING) {
+            throw new IllegalStateException("SMS delivery is being processed");
+        }
+        lastRetryRequestKey = normalizedKey;
+        status = SmsDeliveryStatus.PENDING;
+        attempts = 0;
+        availableAt = now;
+        lockedUntil = null;
+        sentAt = null;
+        lastError = null;
+        return true;
+    }
+
     private String normalizeError(String error) {
         if (error == null || error.isBlank()) return "SMS provider rejected the request";
         return error.length() > 500 ? error.substring(0, 500) : error;
@@ -126,17 +154,4 @@ public class SmsDelivery {
         if (createdAt == null) createdAt = Instant.now();
     }
 
-    public UUID getId() { return id; }
-    public UUID getPatientAccountId() { return patientAccountId; }
-    public String getEventKey() { return eventKey; }
-    public String getPhone() { return phone; }
-    public String getMessage() { return message; }
-    public SmsDeliveryStatus getStatus() { return status; }
-    public int getAttempts() { return attempts; }
-    public Instant getAvailableAt() { return availableAt; }
-    public Instant getLockedUntil() { return lockedUntil; }
-    public String getLastError() { return lastError; }
-    public Instant getSentAt() { return sentAt; }
-    public Instant getCreatedAt() { return createdAt; }
-    public long getVersion() { return version; }
 }

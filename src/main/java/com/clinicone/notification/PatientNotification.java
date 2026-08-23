@@ -1,5 +1,7 @@
 package com.clinicone.notification;
 
+import lombok.Getter;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -14,6 +16,7 @@ import jakarta.persistence.UniqueConstraint;
 import java.time.Instant;
 import java.util.UUID;
 
+@Getter
 @Entity
 @Table(name = "patient_notifications", uniqueConstraints = {
         @UniqueConstraint(name = "uk_patient_notifications_event", columnNames = "event_key")
@@ -164,13 +167,4 @@ public class PatientNotification {
         }
     }
 
-    public UUID getId() { return id; }
-    public UUID getPatientAccountId() { return patientAccountId; }
-    public PatientNotificationType getType() { return type; }
-    public String getTitle() { return title; }
-    public String getMessage() { return message; }
-    public String getTargetUrl() { return targetUrl; }
-    public String getEventKey() { return eventKey; }
-    public Instant getCreatedAt() { return createdAt; }
-    public Instant getReadAt() { return readAt; }
 }

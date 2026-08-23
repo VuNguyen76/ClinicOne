@@ -1,5 +1,7 @@
 package com.clinicone.reconciliation;
 
+import lombok.Getter;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -16,6 +18,7 @@ import jakarta.persistence.Version;
 import java.time.Instant;
 import java.util.UUID;
 
+@Getter
 @Entity
 @Table(name = "reconciliation_incidents", indexes = {
         @Index(name = "idx_reconciliation_entity", columnList = "entity_type,entity_id,status"),
@@ -115,20 +118,4 @@ public class ReconciliationIncident {
         if (createdAt == null) createdAt = Instant.now();
     }
 
-    public UUID getId() { return id; }
-    public String getIncidentCode() { return incidentCode; }
-    public String getEntityType() { return entityType; }
-    public UUID getEntityId() { return entityId; }
-    public UUID getEventId() { return eventId; }
-    public String getReason() { return reason; }
-    public String getAssignee() { return assignee; }
-    public ReconciliationStatus getStatus() { return status; }
-    public ReconciliationAction getResolutionAction() { return resolutionAction; }
-    public ReconciliationReferenceType getReferenceType() { return referenceType; }
-    public String getReferenceValue() { return referenceValue; }
-    public String getResultNote() { return resultNote; }
-    public String getClosedBy() { return closedBy; }
-    public Instant getClosedAt() { return closedAt; }
-    public Instant getCreatedAt() { return createdAt; }
-    public long getVersion() { return version; }
 }

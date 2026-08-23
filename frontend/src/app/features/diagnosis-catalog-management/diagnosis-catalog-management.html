@@ -1,10 +1,220 @@
-<main class="min-h-screen bg-[#f5f8f9] text-[#173f4b]">
-  <header class="sticky top-0 z-30 h-16 border-b border-[#dce7ea] bg-white/95 backdrop-blur"><div class="mx-auto flex h-full max-w-[1440px] items-center justify-between gap-4 px-4 lg:px-8"><a routerLink="/admin/rooms" class="flex items-center gap-2.5" aria-label="ClinicOne"><img class="h-8 w-8 object-contain" src="clinicone-mark.png" alt="" /><span class="text-lg font-bold tracking-[-0.05em] text-[#0a303b]">Clinic<span class="text-[#0ea5e9]">One</span></span><span class="hidden border-l border-[#dce7ea] pl-3 text-sm font-medium text-slate-500 sm:inline">Danh mục y tế</span></a><app-account-menu /></div></header>
-  <div class="mx-auto max-w-[1280px] px-4 py-7 lg:px-8 lg:py-10">
-    <section class="flex flex-wrap items-end justify-between gap-5 border-b border-[#dce7ea] pb-6"><div><p class="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0b91c9]">Quản trị · Danh mục</p><h1 class="mt-2 text-3xl font-bold tracking-[-0.04em] text-[#0a303b]">Danh mục chẩn đoán</h1><p class="mt-1 text-sm text-slate-500">Mục đang dùng sẽ xuất hiện trong gợi ý của bác sĩ.</p></div><button data-testid="open-create-diagnosis" type="button" class="inline-flex min-h-11 items-center gap-2 rounded-md bg-[#0b3846] px-4 text-sm font-semibold text-white transition hover:bg-[#082d39]" (click)="openCreate()"><mat-icon class="!h-5 !w-5 !text-[19px]">add</mat-icon>Thêm chẩn đoán</button></section>
-    @if (error()) {<p class="mt-5 rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700" role="alert">{{ error() }}</p>}
-    @if (notice()) {<p class="mt-5 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm text-emerald-700" role="status">{{ notice() }}</p>}
-    @if (loading()) {<div class="mt-6 grid min-h-64 place-items-center border border-[#dce7ea] bg-white text-sm text-slate-500">Đang tải danh mục...</div>} @else {<section class="mt-6 border border-[#dce7ea] bg-white shadow-[0_8px_24px_rgba(15,55,65,0.04)]"><div class="flex flex-col gap-4 border-b border-[#edf2f3] px-5 py-4 sm:flex-row sm:items-center sm:justify-between"><div class="flex items-center gap-6"><div><p class="text-[11px] font-bold uppercase tracking-wide text-slate-500">Tổng mục</p><p class="mt-1 text-xl font-bold text-[#0a303b]">{{ diagnoses().length }}</p></div><div class="border-l border-[#e1ebee] pl-6"><p class="text-[11px] font-bold uppercase tracking-wide text-slate-500">Đang dùng</p><p class="mt-1 text-xl font-bold text-emerald-700">{{ activeCount() }}</p></div></div><label class="relative block"><mat-icon class="pointer-events-none absolute left-3 top-1/2 !h-5 !w-5 -translate-y-1/2 !text-[19px] text-slate-400">search</mat-icon><input name="diagnosisSearch" [ngModel]="query()" (ngModelChange)="query.set($event)" placeholder="Tìm tên hoặc mã chẩn đoán" class="min-h-10 w-full rounded-md border border-[#cbdde2] pl-10 pr-3 text-sm outline-none focus:border-[#0ea5e9] sm:w-72" /></label></div><div class="overflow-x-auto"><table class="w-full min-w-[680px] text-left"><thead class="border-b border-[#e6eef0] bg-[#f8fbfc] text-[11px] font-bold uppercase tracking-wide text-slate-500"><tr><th class="px-5 py-3">Mã</th><th class="px-5 py-3">Tên chẩn đoán</th><th class="px-5 py-3">Trạng thái</th><th class="px-5 py-3 text-right">Thao tác</th></tr></thead><tbody class="divide-y divide-[#edf2f3]">@for (item of filteredDiagnoses(); track item.id) {<tr class="transition hover:bg-[#fbfdfe]"><td class="px-5 py-4"><code class="rounded bg-[#f1f7f9] px-2 py-1 text-xs font-bold text-[#087cad]">{{ item.code }}</code></td><td class="px-5 py-4 text-sm font-semibold" [class.text-slate-400]="!item.active">{{ item.name }}</td><td class="px-5 py-4"><span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold" [class.bg-emerald-50]="item.active" [class.text-emerald-700]="item.active" [class.bg-slate-100]="!item.active" [class.text-slate-500]="!item.active">{{ item.active ? 'Đang dùng' : 'Tạm ngưng' }}</span></td><td class="px-5 py-4 text-right"><button type="button" class="mr-2 min-h-9 rounded-md px-3 text-xs font-semibold text-[#087cad] hover:bg-[#effaff]" (click)="openEdit(item)">Sửa</button><button type="button" class="min-h-9 rounded-md border px-3 text-xs font-semibold" [class.border-amber-200]="item.active" [class.text-amber-700]="item.active" [class.border-emerald-200]="!item.active" [class.text-emerald-700]="!item.active" (click)="toggle(item)">{{ item.active ? 'Tạm ngưng' : 'Bật lại' }}</button></td></tr>} @empty {<tr><td colspan="4" class="px-5 py-16 text-center text-sm text-slate-500">Không có chẩn đoán phù hợp.</td></tr>}</tbody></table></div></section>}
+<app-staff-workspace-shell moduleTitle="Danh mục" pageTitle="Chẩn đoán">
+  <div class="grid gap-6">
+    <!-- Alerts & Notices -->
+    @if (error() && !modalOpen()) {
+      <div class="flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-medium text-rose-800 shadow-xs" role="alert">
+        <div class="flex items-center gap-2">
+          <mat-icon class="!h-4 !w-4 !text-[18px] text-rose-600">error_outline</mat-icon>
+          <span>{{ error() }}</span>
+        </div>
+        <button type="button" class="erp-btn-icon !h-6 !w-6" (click)="error.set('')" title="Đóng thông báo">
+          <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">close</mat-icon>
+        </button>
+      </div>
+    }
+    @if (notice()) {
+      <div class="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-medium text-emerald-800 shadow-xs" role="status">
+        <div class="flex items-center gap-2">
+          <mat-icon class="!h-4 !w-4 !text-[18px] text-emerald-600">check_circle</mat-icon>
+          <span>{{ notice() }}</span>
+        </div>
+        <button type="button" class="erp-btn-icon !h-6 !w-6" (click)="notice.set('')" title="Đóng thông báo">
+          <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">close</mat-icon>
+        </button>
+      </div>
+    }
+
+    <!-- Search Bar + Add Button Header -->
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div class="relative w-full max-w-sm">
+        <mat-icon class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 !h-4 !w-4 !text-[18px] text-slate-400">search</mat-icon>
+        <input
+          type="text"
+          class="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-8 text-xs text-slate-800 placeholder-slate-400 outline-none transition focus:border-[#0e3d48] focus:ring-1 focus:ring-[#0e3d48] shadow-2xs"
+          placeholder="Tìm kiếm theo mã hoặc tên chẩn đoán ICD-10..."
+          [ngModel]="query()"
+          (ngModelChange)="query.set($event)"
+          name="diagnosisSearch"
+        />
+        @if (query()) {
+          <button
+            type="button"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            (click)="query.set('')"
+          >
+            <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">close</mat-icon>
+          </button>
+        }
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button
+          data-testid="open-create-diagnosis"
+          type="button"
+          class="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0e3d48] px-5 py-2.5 text-xs font-semibold text-white shadow-xs transition hover:bg-[#082830] cursor-pointer"
+          (click)="openCreate()"
+        >
+          <mat-icon class="!h-4 !w-4 !text-[18px]">add</mat-icon>
+          <span>Thêm chẩn đoán</span>
+        </button>
+        <button
+          type="button"
+          class="erp-btn-icon !h-10 !w-10 rounded-xl border border-slate-200 bg-white shadow-2xs"
+          (click)="load()"
+          [disabled]="loading()"
+          title="Làm mới dữ liệu"
+        >
+          <mat-icon class="!h-4 !w-4 !text-[18px]">refresh</mat-icon>
+        </button>
+      </div>
+    </div>
+
+    <!-- 3. Main DataGrid Table -->
+    @if (loading()) {
+      <div class="grid min-h-64 place-items-center rounded-2xl border border-slate-100 bg-white text-xs text-slate-500 shadow-xs">
+        Đang tải danh mục chẩn đoán...
+      </div>
+    } @else {
+      <section class="rounded-2xl border border-slate-100 bg-white shadow-xs overflow-hidden w-full">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs whitespace-nowrap">
+            <thead>
+              <tr class="border-b border-slate-100 text-[11px] font-semibold text-slate-500 uppercase tracking-wider bg-slate-50/50">
+                <th class="px-4 py-3.5 w-44">Mã chẩn đoán</th>
+                <th class="px-4 py-3.5">Tên bệnh / Chẩn đoán lâm sàng</th>
+                <th class="px-4 py-3.5 w-32 text-center">Trạng thái</th>
+                <th class="px-4 py-3.5 w-24 text-right">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-50">
+              @for (item of filteredDiagnoses(); track item.id) {
+                <tr data-testid="diagnosis-row" class="transition hover:bg-slate-50/70">
+                  <td class="px-4 py-3 font-mono font-bold text-slate-800">{{ item.code }}</td>
+                  <td class="px-4 py-3">
+                    <span class="font-semibold text-slate-900 text-xs">{{ item.name }}</span>
+                  </td>
+                  <td class="px-4 py-3 text-center">
+                    @if (item.active) {
+                      <span class="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[11px] font-medium text-emerald-800">
+                        Đang dùng
+                      </span>
+                    } @else {
+                      <span class="inline-flex items-center rounded-full bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-[11px] font-medium text-slate-600">
+                        Tạm dừng
+                      </span>
+                    }
+                  </td>
+                  <td class="px-4 py-3 text-right">
+                    <div class="flex items-center justify-end gap-1.5">
+                      <button
+                        type="button"
+                        class="erp-btn-icon-accent"
+                        (click)="openEdit(item)"
+                        title="Sửa thông tin chẩn đoán"
+                      >
+                        <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">edit</mat-icon>
+                      </button>
+                      <button
+                        type="button"
+                        class="erp-btn-icon"
+                        [title]="item.active ? 'Tạm ngưng dùng' : 'Kích hoạt lại'"
+                        (click)="toggleActive(item)"
+                      >
+                        <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">{{ item.active ? 'pause' : 'play_arrow' }}</mat-icon>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="4" class="px-4 py-12 text-center text-xs text-slate-500">
+                    <div>
+                      <p class="font-medium text-slate-700">Không tìm thấy chẩn đoán nào phù hợp.</p>
+                      <button
+                        type="button"
+                        class="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-[#0e3d48] px-4 py-2 text-xs font-semibold text-white"
+                        (click)="openCreate()"
+                      >
+                        <mat-icon class="!h-4 !w-4 !text-[18px]">add</mat-icon>
+                        <span>Thêm chẩn đoán</span>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    }
   </div>
-  @if (modalOpen()) {<div class="fixed inset-0 z-50 grid place-items-center bg-[#082833]/35 p-4" (click)="closeModal()"><section class="w-full max-w-lg rounded-xl bg-white shadow-2xl" role="dialog" aria-modal="true" (click)="$event.stopPropagation()"><div class="flex items-center justify-between border-b border-[#edf2f3] px-5 py-4"><div><h2 class="font-bold text-[#0a303b]">{{ editingId() ? 'Sửa chẩn đoán' : 'Thêm chẩn đoán' }}</h2><p class="mt-0.5 text-xs text-slate-500">Tạm ngưng thay vì xóa để giữ nguyên phiếu đã ký.</p></div><button type="button" class="grid h-9 w-9 place-items-center rounded-md text-slate-500 hover:bg-slate-100" aria-label="Đóng" (click)="closeModal()"><mat-icon>close</mat-icon></button></div><form class="grid gap-4 p-5" (ngSubmit)="$event.preventDefault(); save()"><label class="grid gap-1.5 text-sm font-semibold">Mã chẩn đoán<input name="diagnosisCode" [ngModel]="code()" (ngModelChange)="code.set($event)" maxlength="50" placeholder="VD: HEADACHE_TENSION" class="min-h-11 rounded-md border border-[#cbdde2] px-3 font-normal uppercase outline-none focus:border-[#0ea5e9]" /></label><label class="grid gap-1.5 text-sm font-semibold">Tên chẩn đoán<input name="diagnosisName" [ngModel]="name()" (ngModelChange)="name.set($event)" maxlength="200" placeholder="Tên hiển thị khi bác sĩ tìm kiếm" class="min-h-11 rounded-md border border-[#cbdde2] px-3 font-normal outline-none focus:border-[#0ea5e9]" /></label><div class="mt-2 flex justify-end gap-2"><button type="button" class="min-h-10 rounded-md px-4 text-sm font-semibold text-slate-600 hover:bg-slate-100" (click)="closeModal()">Hủy</button><button data-testid="submit-diagnosis" type="submit" [disabled]="saving()" class="min-h-10 rounded-md bg-[#0b3846] px-4 text-sm font-semibold text-white hover:bg-[#082d39] disabled:opacity-60">{{ saving() ? 'Đang lưu...' : 'Lưu chẩn đoán' }}</button></div></form></section></div>}
-</main>
+
+  <!-- Modal: Create / Edit Diagnosis -->
+  @if (modalOpen()) {
+    <div class="erp-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="diagnosis-dialog-title" (click)="closeModal()">
+      <section class="erp-modal-container max-w-lg" (click)="$event.stopPropagation()">
+        <div class="erp-modal-header">
+          <h2 id="diagnosis-dialog-title" class="text-sm font-bold text-slate-900">
+            {{ editingId() ? 'Chỉnh sửa thông tin chẩn đoán' : 'Thêm chẩn đoán mới vào danh mục' }}
+          </h2>
+          <button type="button" class="erp-btn-icon" aria-label="Đóng" (click)="closeModal()">
+            <mat-icon class="!h-4 !w-4 !text-[18px]">close</mat-icon>
+          </button>
+        </div>
+
+        <form (ngSubmit)="$event.preventDefault(); save()">
+          <div class="erp-modal-body grid gap-3.5">
+            @if (error()) {
+              <div class="flex items-center justify-between gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700" role="alert">
+                <div class="flex items-center gap-2">
+                  <mat-icon class="!h-4 !w-4 !text-[16px] text-rose-600">error_outline</mat-icon>
+                  <span>{{ error() }}</span>
+                </div>
+                <button type="button" class="text-rose-400 hover:text-rose-700" aria-label="Đóng" (click)="error.set('')">
+                  <mat-icon class="!h-4 !w-4 !text-[14px]">close</mat-icon>
+                </button>
+              </div>
+            }
+            <label class="grid gap-1">
+              <span class="erp-label">Mã chẩn đoán / ICD-10 (2-50 ký tự) <span class="erp-label-required">*</span></span>
+              <input
+                data-testid="diagnosis-code-input"
+                class="erp-input font-mono uppercase"
+                [ngModel]="code()"
+                (ngModelChange)="code.set($event)"
+                name="code"
+                placeholder="vd: I10 hoặc J00"
+              />
+            </label>
+
+            <label class="grid gap-1">
+              <span class="erp-label">Tên bệnh / Chẩn đoán lâm sàng <span class="erp-label-required">*</span></span>
+              <input
+                data-testid="diagnosis-name-input"
+                class="erp-input"
+                [ngModel]="name()"
+                (ngModelChange)="name.set($event)"
+                name="name"
+                placeholder="vd: Tăng huyết áp vô căn (nguyên phát)"
+              />
+            </label>
+          </div>
+
+          <div class="erp-modal-footer">
+            <button type="button" class="erp-btn-secondary" (click)="closeModal()">
+              Hủy
+            </button>
+            <button
+              data-testid="save-diagnosis-btn"
+              type="submit"
+              class="erp-btn-primary"
+              [disabled]="saving()"
+            >
+              {{ saving() ? 'Đang lưu...' : editingId() ? 'Lưu cập nhật' : 'Thêm chẩn đoán' }}
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
+  }
+</app-staff-workspace-shell>

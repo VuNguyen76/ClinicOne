@@ -1,5 +1,6 @@
 package com.clinicone.schedule;
 
+import com.clinicone.auth.AuthenticatedIds;
 import com.clinicone.appointment.CreateAppointmentRequest;
 import com.clinicone.auth.AuthException;
 import com.clinicone.auth.PatientAccount;
@@ -61,7 +62,12 @@ public class AppointmentHoldService {
 
     @Transactional
     public AppointmentHoldResponse create(String accountId, CreateAppointmentHoldRequest request) {
-        UUID patientId = parseAccountId(accountId);
+        return create(accountId, request, null);
+    }
+
+    @Transactional
+    public AppointmentHoldResponse create(String accountId, CreateAppointmentHoldRequest request, String sessionKey) {
+        UUID patientId = AuthenticatedIds.patient(accountId);
         PatientAccount patient = accountRepository.findById(patientId)
                 .orElseThrow(() -> authRequired());
         validateService(request);
@@ -80,6 +86,18 @@ public class AppointmentHoldService {
             holdRepository.flush();
         }
 
+        // Một tài khoản chỉ giữ một khung giờ tại một thời điểm. Khi người bệnh
+        // chọn khung mới, giải phóng khung cũ ngay trong cùng giao dịch để không
+        // khóa lịch của người khác quá lâu.
+        boolean legacySession = sessionKey == null || sessionKey.isBlank();
+        String normalizedSessionKey = normalizeSessionKey(sessionKey);
+        var activeHolds = legacySession
+                ? holdRepository.findByPatientIdAndExpiresAtAfter(patientId, now)
+                : holdRepository.findByPatientIdAndSessionKeyAndExpiresAtAfter(patientId, normalizedSessionKey, now);
+        activeHolds.stream()
+                .filter(hold -> !hold.getHoldKey().equals(holdKey))
+                .forEach(holdRepository::delete);
+
         if (request.serviceId() == null) {
             availabilityService.ensureBookable(request.specialty(), request.doctorName(), request.doctorId(),
                     request.appointmentDate(), request.startTime());
@@ -90,7 +108,7 @@ public class AppointmentHoldService {
 
         AppointmentHold hold = AppointmentHold.create(patient, request.specialty().trim(), request.doctorName().trim(),
                 request.doctorId(), request.appointmentDate(), request.startTime(), holdKey,
-                now.plus(holdDuration()), request.serviceId());
+                now.plus(holdDuration()), request.serviceId(), normalizedSessionKey);
         try {
             return AppointmentHoldResponse.from(holdRepository.saveAndFlush(hold));
         } catch (DataIntegrityViolationException exception) {
@@ -100,7 +118,7 @@ public class AppointmentHoldService {
 
     @Transactional
     public AppointmentHold requireForBooking(String accountId, UUID holdId, CreateAppointmentRequest request) {
-        UUID patientId = parseAccountId(accountId);
+        UUID patientId = AuthenticatedIds.patient(accountId);
         AppointmentHold hold = holdRepository.findByIdAndPatientId(holdId, patientId)
                 .orElseThrow(() -> holdMissing());
         Instant now = Instant.now(clock);
@@ -187,14 +205,6 @@ public class AppointmentHoldService {
                 "Thời gian giữ chỗ đã hết. Vui lòng chọn lại khung giờ.");
     }
 
-    private UUID parseAccountId(String accountId) {
-        try {
-            return UUID.fromString(accountId);
-        } catch (IllegalArgumentException exception) {
-            throw authRequired();
-        }
-    }
-
     private AuthException authRequired() {
         return new AuthException(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_REQUIRED",
                 "Phiên đăng nhập không hợp lệ.");
@@ -208,5 +218,15 @@ public class AppointmentHoldService {
     private AuthException slotHeld() {
         return new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_SLOT_HELD",
                 "Khung giờ vừa được người khác giữ. Vui lòng chọn khung giờ khác.");
+    }
+
+    private String normalizeSessionKey(String sessionKey) {
+        String normalized = sessionKey == null ? "" : sessionKey.trim();
+        if (normalized.isEmpty()) return "LEGACY";
+        if (normalized.length() > 120) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "SESSION_KEY_INVALID",
+                    "Mã phiên đăng nhập không hợp lệ.");
+        }
+        return normalized;
     }
 }

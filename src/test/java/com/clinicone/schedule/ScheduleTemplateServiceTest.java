@@ -162,6 +162,35 @@ class ScheduleTemplateServiceTest {
         verify(slotRepository, never()).saveAll(any());
     }
 
+    @Test
+    void deletingSpecificWeekdayRemovesOnlyThatWeekdayFromMultiDayTemplate() {
+        ClinicService clinicService = mock(ClinicService.class);
+        DoctorProfile doctor = mock(DoctorProfile.class);
+        ClinicRoom room = mock(ClinicRoom.class);
+        UUID templateId = UUID.randomUUID();
+        WorkScheduleTemplate storedTemplate = WorkScheduleTemplate.create(
+                clinicService, doctor, room,
+                LocalDate.of(2026, 8, 10), LocalDate.of(2026, 8, 16),
+                LocalTime.of(8, 0), LocalTime.of(17, 0), 30,
+                Set.of(DayOfWeek.MONDAY, DayOfWeek.TUESDAY), List.of(), Set.of());
+        when(templateRepository.findById(templateId)).thenReturn(Optional.of(storedTemplate));
+
+        UUID slotMondayId = UUID.randomUUID();
+        GeneratedClinicSlot slotMonday = mock(GeneratedClinicSlot.class);
+        when(slotMonday.getId()).thenReturn(slotMondayId);
+        when(slotMonday.getStatus()).thenReturn(GeneratedSlotStatus.OPEN);
+        when(slotMonday.getAppointmentDate()).thenReturn(LocalDate.of(2026, 8, 10)); // Monday
+
+        when(slotRepository.findByTemplateIdOrderByAppointmentDateAscStartTimeAsc(templateId))
+                .thenReturn(List.of(slotMonday));
+
+        service.delete(templateId, "MONDAY");
+
+        assertEquals(Set.of(DayOfWeek.TUESDAY), storedTemplate.getWeekdays());
+        verify(templateRepository).save(storedTemplate);
+        verify(slotRepository).deleteAllByIdIn(List.of(slotMondayId));
+    }
+
     private WorkScheduleTemplate template(ClinicService clinicService, DoctorProfile doctor, ClinicRoom room,
                                            StaffAccount staff, UUID templateId) throws Exception {
         when(clinicService.getId()).thenReturn(SERVICE_ID);

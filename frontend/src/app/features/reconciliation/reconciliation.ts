@@ -1,22 +1,21 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { AuthApiService, ReconciliationResponse, apiErrorMessage } from '../../core/auth/auth-api.service';
-import { AccountMenu } from '../../shared/account-menu/account-menu';
+import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
 import { hasStaffRole } from '../../core/auth/auth.guard';
 
 @Component({
   selector: 'app-reconciliation-management',
   standalone: true,
-  imports: [FormsModule, RouterLink, MatIconModule, AccountMenu],
+  imports: [FormsModule, MatIconModule, StaffWorkspaceShell],
   templateUrl: './reconciliation.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ReconciliationManagement implements OnInit {
   private readonly authApi = inject(AuthApiService);
   protected readonly incidents = signal<ReconciliationResponse[]>([]);
-  protected canClose = hasStaffRole('COORDINATOR');
+  protected readonly canClose = computed(() => hasStaffRole('COORDINATOR'));
   protected readonly selected = signal<ReconciliationResponse | null>(null);
   protected readonly action = signal('RETRY_BUSINESS_ACTION');
   protected readonly referenceType = signal('INCIDENT');
@@ -26,6 +25,57 @@ export class ReconciliationManagement implements OnInit {
   protected readonly saving = signal(false);
   protected readonly error = signal('');
   protected readonly notice = signal('');
+  protected readonly searchTerm = signal('');
+
+  protected formatEntityType(type: string): string {
+    if (!type) return 'Nghiệp vụ';
+    const map: Record<string, string> = {
+      APPOINTMENT: 'Lịch hẹn',
+      QUEUE_TICKET: 'Hàng đợi',
+      EXAMINATION: 'Khám bệnh',
+      BUSINESS_LOG: 'Nhật ký nghiệp vụ',
+      INCIDENT: 'Sự cố đối soát',
+    };
+    return map[type] ?? type;
+  }
+
+  protected cleanReason(reason: string): string {
+    if (!reason) return '—';
+    return reason.replace(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/g, 'tham chiếu hệ thống');
+  }
+
+  protected formatIncidentCode(code: string): string {
+    if (!code) return 'SC-000';
+    if (code.startsWith('INC-INTEGRITY-')) {
+      const shortHex = code.replace('INC-INTEGRITY-', '').slice(0, 6).toUpperCase();
+      return `SC-TOÀNVẸN-${shortHex}`;
+    }
+    return code.replace('INC-', 'SC-');
+  }
+
+  protected filteredIncidents(): ReconciliationResponse[] {
+    const q = this.searchTerm().trim().toLowerCase();
+    if (!q) return this.incidents();
+    return this.incidents().filter((i) =>
+      i.incidentCode.toLowerCase().includes(q) ||
+      i.reason.toLowerCase().includes(q) ||
+      i.entityType.toLowerCase().includes(q) ||
+      this.formatEntityType(i.entityType).toLowerCase().includes(q) ||
+      (i.assignee && i.assignee.toLowerCase().includes(q))
+    );
+  }
+
+  protected totalIncidentsCount(): number {
+    return this.incidents().length;
+  }
+
+  protected openIncidentsCount(): number {
+    return this.incidents().filter((i) => i.status === 'OPEN' || !i.status).length;
+  }
+
+  protected syncErrorCount(): number {
+    return this.incidents().filter((i) => (i.resolutionAction && i.resolutionAction.includes('SYNC')) || (i.reason && i.reason.includes('đồng bộ'))).length;
+  }
 
   ngOnInit(): void { this.load(); }
 
@@ -37,8 +87,15 @@ export class ReconciliationManagement implements OnInit {
     this.error.set('');
   }
 
+  protected updateAction(val: string): void {
+    this.action.set(val);
+    if (val === 'REPLAY_LOG' && (!this.referenceType() || this.referenceType() === 'INCIDENT')) {
+      this.referenceType.set('BUSINESS_LOG');
+    }
+  }
+
   protected close(): void {
-    if (!this.canClose) {
+    if (!this.canClose()) {
       this.error.set('Chỉ điều phối viên được đóng đối soát.');
       return;
     }
@@ -61,7 +118,7 @@ export class ReconciliationManagement implements OnInit {
     return ({ RETRY_BUSINESS_ACTION: 'Thực hiện lại công việc', REPLAY_LOG: 'Đối chiếu lại nhật ký', TECHNICAL_REPAIR: 'Sửa lỗi kỹ thuật', NO_ACTION_REQUIRED: 'Không cần xử lý thêm' } as Record<string, string>)[value] ?? value;
   }
 
-  private load(): void {
+  protected load(): void {
     this.authApi.getReconciliations().subscribe({
       next: (items) => { this.incidents.set(items); this.loading.set(false); if (items[0]) this.select(items[0]); },
       error: (response) => { this.loading.set(false); this.error.set(apiErrorMessage(response)); },

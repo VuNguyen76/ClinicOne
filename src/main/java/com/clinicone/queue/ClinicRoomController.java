@@ -1,5 +1,7 @@
 package com.clinicone.queue;
 
+import lombok.RequiredArgsConstructor;
+
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -15,13 +17,10 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/rooms")
 public class ClinicRoomController {
     private final ClinicRoomService service;
-
-    public ClinicRoomController(ClinicRoomService service) {
-        this.service = service;
-    }
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR', 'DOCTOR', 'RECEPTIONIST')")
