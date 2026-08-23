@@ -79,6 +79,7 @@ class ReceptionServiceTest {
         when(patient.isMustChangePassword()).thenReturn(true);
         Appointment appointment = mock(Appointment.class);
         when(appointment.getId()).thenReturn(APPOINTMENT_ID);
+        when(appointment.getAppointmentDate()).thenReturn(TODAY);
         when(appointment.getPatient()).thenReturn(patient);
         when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
 
@@ -94,6 +95,7 @@ class ReceptionServiceTest {
         when(patient.getStatus()).thenReturn(AccountStatus.LOCKED);
         Appointment appointment = mock(Appointment.class);
         when(appointment.getPatient()).thenReturn(patient);
+        when(appointment.getAppointmentDate()).thenReturn(TODAY);
         when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
 
         assertThatThrownBy(() -> service.checkIn(APPOINTMENT_ID,
@@ -171,6 +173,17 @@ class ReceptionServiceTest {
         when(appointment.getStatus()).thenReturn(AppointmentStatus.BOOKED);
         when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
 
+        // Mock doctor profile
+        StaffAccount staff = mock(StaffAccount.class);
+        when(staff.getFullName()).thenReturn("BS. Nguyễn An");
+        DoctorProfile doctor = mock(DoctorProfile.class);
+        when(doctor.isActive()).thenReturn(true);
+        when(doctor.getSpecialty()).thenReturn("Nội tổng quát");
+        when(doctor.getStaffAccount()).thenReturn(staff);
+        ClinicRoom room = ClinicRoom.create("NOI-01", "Phòng Nội 01", "Nội tổng quát");
+        when(doctor.getRoom()).thenReturn(room);
+        when(doctorProfileRepository.findByStaffAccount_Id(DOCTOR_ID)).thenReturn(Optional.of(doctor));
+
         QueueTicketResponse ticket = new QueueTicketResponse(UUID.randomUUID(), 7, "NOI-01", "Phòng Nội 01",
                 TODAY, LocalTime.of(9, 0), "WAITING", "Đang chờ", "CL-20260807-1234", "Nội tổng quát", "BS. Nguyễn An");
         when(queueService.checkInByStaff("NOI-01", APPOINTMENT_ID, "QR phòng bị mờ", "reception-staff-01"))
@@ -187,6 +200,7 @@ class ReceptionServiceTest {
     void rejectsCheckInWhenAppointmentIsAlreadyCancelled() {
         Appointment appointment = mock(Appointment.class);
         when(appointment.getId()).thenReturn(APPOINTMENT_ID);
+        when(appointment.getAppointmentDate()).thenReturn(TODAY);
         when(appointment.getStatus()).thenReturn(AppointmentStatus.CANCELLED);
         when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
 
