@@ -68,7 +68,6 @@ public class ReceptionController {
     }
 
     @PostMapping("/appointments/{appointmentId}/leave")
-    @PreAuthorize("hasRole('RECEPTIONIST')")
     public ResponseEntity<ReceptionAppointmentResponse> leaveBeforeExam(@PathVariable UUID appointmentId,
                                                                           @Valid @RequestBody QueueLeaveRequest request,
                                                                           Authentication authentication) {
@@ -102,6 +101,7 @@ public class ReceptionController {
     }
 
     @GetMapping("/doctors")
+    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'COORDINATOR')")
     public ResponseEntity<List<ReceptionDoctorOptionResponse>> doctors() {
         return ResponseEntity.ok(service.doctors());
     }

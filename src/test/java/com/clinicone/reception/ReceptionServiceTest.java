@@ -7,6 +7,7 @@ import com.clinicone.appointment.AppointmentService;
 import com.clinicone.appointment.AppointmentStatus;
 import com.clinicone.appointment.CreateAppointmentRequest;
 import com.clinicone.auth.AccountStatus;
+import com.clinicone.auth.AuthException;
 import com.clinicone.auth.PatientAccount;
 import com.clinicone.auth.PatientAccountRepository;
 import com.clinicone.auth.StaffAccount;
@@ -21,6 +22,7 @@ import com.clinicone.queue.QueueTicketRepository;
 import com.clinicone.queue.QueueTicketResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -35,6 +37,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -69,6 +72,222 @@ class ReceptionServiceTest {
                 queueService, clock, patientAccountRepository, appointmentService, patientProfileRepository);
     }
 
+    // 1. NHÓM TIẾP NHẬN BẰNG MÃ LỊCH HẸN / NGOẠI LỆ (FR-REC-01)
+    @Test
+    void rejectsCheckInBeforePatientCompletesPasswordActivation() {
+        PatientAccount patient = mock(PatientAccount.class);
+        when(patient.isMustChangePassword()).thenReturn(true);
+        Appointment appointment = mock(Appointment.class);
+        when(appointment.getId()).thenReturn(APPOINTMENT_ID);
+        when(appointment.getPatient()).thenReturn(patient);
+        when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
+
+        assertThatThrownBy(() -> service.checkIn(APPOINTMENT_ID,
+                new ReceptionCheckInRequest("NOI-01", "Người bệnh chưa kích hoạt tài khoản")))
+                .hasMessageContaining("đổi mật khẩu");
+        verifyNoInteractions(queueService);
+    }
+
+    @Test
+    void rejectsCheckInForLockedPatientAccount() {
+        PatientAccount patient = mock(PatientAccount.class);
+        when(patient.getStatus()).thenReturn(AccountStatus.LOCKED);
+        Appointment appointment = mock(Appointment.class);
+        when(appointment.getPatient()).thenReturn(patient);
+        when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
+
+        assertThatThrownBy(() -> service.checkIn(APPOINTMENT_ID,
+                new ReceptionCheckInRequest("NOI-01", "locked account")))
+                .isInstanceOf(com.clinicone.auth.AuthException.class);
+        verifyNoInteractions(queueService);
+    }
+
+    @Test
+    void checkInSuccessfullyForValidPatient() {
+        PatientAccount patient = mock(PatientAccount.class);
+        when(patient.getStatus()).thenReturn(AccountStatus.ACTIVE);
+        when(patient.isMustChangePassword()).thenReturn(false);
+        when(patient.getFullName()).thenReturn("Nguyễn Thanh Vũ");
+
+        Appointment appointment = mock(Appointment.class);
+        when(appointment.getId()).thenReturn(APPOINTMENT_ID);
+        when(appointment.getAppointmentCode()).thenReturn("CL-20260807-1234");
+        when(appointment.getAppointmentDate()).thenReturn(TODAY);
+        when(appointment.getStartTime()).thenReturn(LocalTime.of(9, 0));
+        when(appointment.getSpecialty()).thenReturn("Nội tổng quát");
+        when(appointment.getDoctorName()).thenReturn("BS. Nguyễn An");
+        when(appointment.getDoctorStaffId()).thenReturn(DOCTOR_ID);
+        when(appointment.getPatient()).thenReturn(patient);
+        when(appointment.getStatus()).thenReturn(AppointmentStatus.BOOKED);
+        when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
+
+        ClinicRoom room = ClinicRoom.create("NOI-01", "Phòng Nội 01", "Nội tổng quát");
+        DoctorProfile doctor = mock(DoctorProfile.class);
+        when(doctor.isActive()).thenReturn(true);
+        when(doctor.getRoom()).thenReturn(room);
+        when(doctorProfileRepository.findByStaffAccount_Id(DOCTOR_ID)).thenReturn(Optional.of(doctor));
+
+        QueueTicketResponse ticket = new QueueTicketResponse(UUID.randomUUID(), 5, "NOI-01", "Phòng Nội 01",
+                TODAY, LocalTime.of(9, 0), "WAITING", "Đang chờ", "CL-20260807-1234", "Nội tổng quát", "BS. Nguyễn An");
+        when(queueService.checkInByStaff("NOI-01", APPOINTMENT_ID, "QR phòng bị mờ")).thenReturn(ticket);
+
+        ReceptionAppointmentResponse response = service.checkIn(APPOINTMENT_ID,
+                new ReceptionCheckInRequest("NOI-01", "QR phòng bị mờ"));
+
+        assertThat(response.queueNumber()).isEqualTo(5);
+        assertThat(response.queueStatus()).isEqualTo("WAITING");
+        assertThat(response.roomCode()).isEqualTo("NOI-01");
+        verify(queueService).checkInByStaff("NOI-01", APPOINTMENT_ID, "QR phòng bị mờ");
+    }// tiếp nhận tại quầy thành công
+
+    @Test
+    void rejectsCheckInWhenAppointmentNotFound() {
+        when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.checkIn(APPOINTMENT_ID,
+                new ReceptionCheckInRequest("NOI-01", "QR phòng bị mờ")))
+                .isInstanceOf(AuthException.class)
+                .extracting("code").isEqualTo("APPOINTMENT_NOT_FOUND");
+
+        verifyNoInteractions(queueService);
+    }// Chặn check-in khi không tìm thấy lịch hẹn
+
+    @Test
+    void recordsStaffIdentityWhenPerformingCheckIn() {
+        PatientAccount patient = mock(PatientAccount.class);
+        when(patient.getStatus()).thenReturn(AccountStatus.ACTIVE);
+        when(patient.isMustChangePassword()).thenReturn(false);
+        when(patient.getFullName()).thenReturn("Nguyễn Thanh Vũ");
+
+        Appointment appointment = mock(Appointment.class);
+        when(appointment.getId()).thenReturn(APPOINTMENT_ID);
+        when(appointment.getAppointmentCode()).thenReturn("CL-20260807-1234");
+        when(appointment.getAppointmentDate()).thenReturn(TODAY);
+        when(appointment.getStartTime()).thenReturn(LocalTime.of(9, 0));
+        when(appointment.getSpecialty()).thenReturn("Nội tổng quát");
+        when(appointment.getDoctorName()).thenReturn("BS. Nguyễn An");
+        when(appointment.getDoctorStaffId()).thenReturn(DOCTOR_ID);
+        when(appointment.getPatient()).thenReturn(patient);
+        when(appointment.getStatus()).thenReturn(AppointmentStatus.BOOKED);
+        when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
+
+        QueueTicketResponse ticket = new QueueTicketResponse(UUID.randomUUID(), 7, "NOI-01", "Phòng Nội 01",
+                TODAY, LocalTime.of(9, 0), "WAITING", "Đang chờ", "CL-20260807-1234", "Nội tổng quát", "BS. Nguyễn An");
+        when(queueService.checkInByStaff("NOI-01", APPOINTMENT_ID, "QR phòng bị mờ", "reception-staff-01"))
+                .thenReturn(ticket);
+
+        ReceptionAppointmentResponse response = service.checkIn(APPOINTMENT_ID,
+                new ReceptionCheckInRequest("NOI-01", "QR phòng bị mờ"), "reception-staff-01");
+
+        assertThat(response.queueNumber()).isEqualTo(7);
+        verify(queueService).checkInByStaff("NOI-01", APPOINTMENT_ID, "QR phòng bị mờ", "reception-staff-01");
+    }// Định danh nhân viên khi thực hiện checkin
+
+    @Test
+    void rejectsCheckInWhenAppointmentIsAlreadyCancelled() {
+        Appointment appointment = mock(Appointment.class);
+        when(appointment.getId()).thenReturn(APPOINTMENT_ID);
+        when(appointment.getStatus()).thenReturn(AppointmentStatus.CANCELLED);
+        when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
+
+        // Giả lập queueService phát hiện lịch đã hủy và ném lỗi nghiệp vụ
+        when(queueService.checkInByStaff(eq("NOI-01"), eq(APPOINTMENT_ID), anyString()))
+                .thenThrow(new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_STATUS_INVALID", 
+                        "Lịch hẹn đã bị hủy, không thể tiếp nhận."));
+
+        assertThatThrownBy(() -> service.checkIn(APPOINTMENT_ID,
+                new ReceptionCheckInRequest("NOI-01", "Bệnh nhân đến quầy")))
+                .isInstanceOf(AuthException.class)
+                .extracting("code").isEqualTo("APPOINTMENT_STATUS_INVALID");
+    }// Chặn check-in khi lịch hẹn đã bị Hủy
+
+    @Test
+    void rejectsCheckInWhenAppointmentAlreadyCompleted() {
+        Appointment appointment = mock(Appointment.class);
+        when(appointment.getId()).thenReturn(APPOINTMENT_ID);
+        when(appointment.getAppointmentDate()).thenReturn(TODAY);
+        when(appointment.getStatus()).thenReturn(AppointmentStatus.COMPLETED);
+        when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
+
+        when(queueService.checkInByStaff(eq("NOI-01"), eq(APPOINTMENT_ID), anyString()))
+                .thenThrow(new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_STATUS_INVALID", 
+                        "Lịch hẹn đã hoàn thành."));
+
+        assertThatThrownBy(() -> service.checkIn(APPOINTMENT_ID,
+                new ReceptionCheckInRequest("NOI-01", "Check-in lại lịch đã hoàn tất")))
+                .isInstanceOf(AuthException.class)
+                .extracting("code").isEqualTo("APPOINTMENT_STATUS_INVALID");
+    }// Chặn checkin khi lịch hẹn hoàn thành
+
+    @Test
+    void rejectsCheckInWhenDoctorIsInactive() {
+        PatientAccount patient = mock(PatientAccount.class);
+        when(patient.getStatus()).thenReturn(AccountStatus.ACTIVE);
+
+        Appointment appointment = mock(Appointment.class);
+        when(appointment.getId()).thenReturn(APPOINTMENT_ID);
+        when(appointment.getAppointmentDate()).thenReturn(TODAY);
+        when(appointment.getDoctorStaffId()).thenReturn(DOCTOR_ID);
+        when(appointment.getPatient()).thenReturn(patient);
+        when(appointment.getStatus()).thenReturn(AppointmentStatus.BOOKED);
+        when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
+
+        DoctorProfile doctor = mock(DoctorProfile.class);
+        when(doctor.isActive()).thenReturn(false);
+        when(doctorProfileRepository.findByStaffAccount_Id(DOCTOR_ID)).thenReturn(Optional.of(doctor));
+
+        assertThatThrownBy(() -> service.checkIn(APPOINTMENT_ID,
+                new ReceptionCheckInRequest("NOI-01", "Bác sĩ nghỉ")))
+                .isInstanceOf(AuthException.class)
+                .extracting("code").isEqualTo("DOCTOR_INACTIVE");
+
+        verifyNoInteractions(queueService);
+    }// Chặn tiếp nhận khi bác sĩ ngưng hoạt động
+
+    @Test
+    void rejectsCheckInWhenAppointmentDateIsNotToday() {
+        LocalDate tomorrow = TODAY.plusDays(1);
+        Appointment appointment = mock(Appointment.class);
+        when(appointment.getId()).thenReturn(APPOINTMENT_ID);
+        when(appointment.getAppointmentDate()).thenReturn(tomorrow);
+        when(appointment.getStatus()).thenReturn(AppointmentStatus.BOOKED);
+        when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
+
+        assertThatThrownBy(() -> service.checkIn(APPOINTMENT_ID,
+                new ReceptionCheckInRequest("NOI-01", "Bệnh nhân đến nhầm ngày")))
+                .isInstanceOf(AuthException.class)
+                .extracting("code").isEqualTo("APPOINTMENT_DATE_INVALID");
+
+        verifyNoInteractions(queueService);
+    }// Chặn tiếp nhận sai ngày hẹn
+
+    @Test
+    void returnsExistingTicketWhenAppointmentAlreadyCheckedIn() {
+        PatientAccount patient = mock(PatientAccount.class);
+        when(patient.getStatus()).thenReturn(AccountStatus.ACTIVE);
+        when(patient.getFullName()).thenReturn("Nguyễn Thanh Vũ");
+
+        Appointment appointment = mock(Appointment.class);
+        when(appointment.getId()).thenReturn(APPOINTMENT_ID);
+        when(appointment.getAppointmentCode()).thenReturn("CL-20260807-1234");
+        when(appointment.getAppointmentDate()).thenReturn(TODAY);
+        when(appointment.getPatient()).thenReturn(patient);
+        when(appointment.getStatus()).thenReturn(AppointmentStatus.CHECKED_IN);
+        when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
+
+        QueueTicketResponse existingTicket = new QueueTicketResponse(UUID.randomUUID(), 5, "NOI-01", "Phòng Nội 01",
+                TODAY, LocalTime.of(9, 0), "WAITING", "Đang chờ", "CL-20260807-1234", "Nội tổng quát", "BS. Nguyễn An");
+        when(queueService.checkInByStaff("NOI-01", APPOINTMENT_ID, "Thao tác lại")).thenReturn(existingTicket);
+
+        ReceptionAppointmentResponse response = service.checkIn(APPOINTMENT_ID,
+                new ReceptionCheckInRequest("NOI-01", "Thao tác lại"));
+
+        assertThat(response.queueNumber()).isEqualTo(5);
+        assertThat(response.queueStatus()).isEqualTo("WAITING");
+    }// Trả về kết quả cũ khi tiếp nhận lặp
+    
+
+    // 3. NHÓM TIẾP NHẬN VÃNG LAI & HỒ SƠ TẠI QUẦY
     @Test
     void createsAppointmentAndQueueTicketForExistingPatient() {
         PatientAccount patient = mock(PatientAccount.class);
@@ -301,6 +520,43 @@ class ReceptionServiceTest {
     }
 
     @Test
+    void checkInSuccessfullyForTemporaryProfilePatient() {
+        PatientProfile temporaryProfile = PatientProfile.createTemporary(
+                "Nguyễn Văn Tạm", LocalDate.of(1990, 1, 1), "Nam", "0912345678", null, null, null, null);
+
+        Appointment appointment = mock(Appointment.class);
+        when(appointment.getId()).thenReturn(APPOINTMENT_ID);
+        when(appointment.getAppointmentCode()).thenReturn("CL-20260807-9999");
+        when(appointment.getAppointmentDate()).thenReturn(TODAY);
+        when(appointment.getStartTime()).thenReturn(LocalTime.of(9, 0));
+        when(appointment.getSpecialty()).thenReturn("Nội tổng quát");
+        when(appointment.getDoctorName()).thenReturn("BS. Nguyễn An");
+        when(appointment.getDoctorStaffId()).thenReturn(DOCTOR_ID);
+        when(appointment.getPatient()).thenReturn(null);
+        when(appointment.getPatientProfile()).thenReturn(temporaryProfile);
+        when(appointment.getStatus()).thenReturn(AppointmentStatus.BOOKED);
+        when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
+
+        ClinicRoom room = ClinicRoom.create("NOI-01", "Phòng Nội 01", "Nội tổng quát");
+        DoctorProfile doctor = mock(DoctorProfile.class);
+        when(doctor.isActive()).thenReturn(true);
+        when(doctor.getRoom()).thenReturn(room);
+        when(doctorProfileRepository.findByStaffAccount_Id(DOCTOR_ID)).thenReturn(Optional.of(doctor));
+
+        QueueTicketResponse ticket = new QueueTicketResponse(UUID.randomUUID(), 6, "NOI-01", "Phòng Nội 01",
+                TODAY, LocalTime.of(9, 0), "WAITING", "Đang chờ", "CL-20260807-9999", "Nội tổng quát", "BS. Nguyễn An");
+        when(queueService.checkInByStaff("NOI-01", APPOINTMENT_ID, "Bệnh nhân không có app")).thenReturn(ticket);
+
+        ReceptionAppointmentResponse response = service.checkIn(APPOINTMENT_ID,
+                new ReceptionCheckInRequest("NOI-01", "Bệnh nhân không có app"));
+
+        assertThat(response.patientName()).isEqualTo("Nguyễn Văn Tạm");
+        assertThat(response.queueNumber()).isEqualTo(6);
+        verify(queueService).checkInByStaff("NOI-01", APPOINTMENT_ID, "Bệnh nhân không có app");
+    }// Check-in thành công cho bệnh nhân dùng hồ sơ tạm
+
+    // 4.1 NHÓM RỜI TRƯỚC KHÁM (FR-REC-04)
+    @Test
     void receptionistCanRecordCheckedInPatientLeftBeforeExam() {
         UUID ticketId = UUID.randomUUID();
         PatientAccount patient = mock(PatientAccount.class);
@@ -357,35 +613,7 @@ class ReceptionServiceTest {
         verify(queueService).leaveBeforeExam(ticketId, "Người bệnh bận việc đột xuất", "staff-1");
     }
 
-    @Test
-    void rejectsCheckInBeforePatientCompletesPasswordActivation() {
-        PatientAccount patient = mock(PatientAccount.class);
-        when(patient.isMustChangePassword()).thenReturn(true);
-        Appointment appointment = mock(Appointment.class);
-        when(appointment.getId()).thenReturn(APPOINTMENT_ID);
-        when(appointment.getPatient()).thenReturn(patient);
-        when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
-
-        assertThatThrownBy(() -> service.checkIn(APPOINTMENT_ID,
-                new ReceptionCheckInRequest("NOI-01", "Người bệnh chưa kích hoạt tài khoản")))
-                .hasMessageContaining("đổi mật khẩu");
-        verifyNoInteractions(queueService);
-    }
-
-    @Test
-    void rejectsCheckInForLockedPatientAccount() {
-        PatientAccount patient = mock(PatientAccount.class);
-        when(patient.getStatus()).thenReturn(AccountStatus.LOCKED);
-        Appointment appointment = mock(Appointment.class);
-        when(appointment.getPatient()).thenReturn(patient);
-        when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
-
-        assertThatThrownBy(() -> service.checkIn(APPOINTMENT_ID,
-                new ReceptionCheckInRequest("NOI-01", "locked account")))
-                .isInstanceOf(com.clinicone.auth.AuthException.class);
-        verifyNoInteractions(queueService);
-    }
-
+    //4.2. NHÓM ĐẶT LẠI LỊCH CHO BỆNH NHÂN VẮNG MẶT (FR-REC-04)
     @Test
     void rebooksAbsentAppointmentWithoutRestoringOldAppointment() {
         PatientAccount patient = mock(PatientAccount.class);
@@ -454,4 +682,5 @@ class ReceptionServiceTest {
                 .extracting("code").isEqualTo("REBOOK_STATUS_INVALID");
         verifyNoInteractions(doctorProfileRepository, appointmentService);
     }
+
 }

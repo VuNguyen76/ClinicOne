@@ -112,30 +112,52 @@ public class ReceptionService {
     }
 
     @Transactional
-    public ReceptionAppointmentResponse checkIn(UUID appointmentId, ReceptionCheckInRequest request) {
-        return checkIn(appointmentId, request, null);
+public ReceptionAppointmentResponse checkIn(UUID appointmentId, ReceptionCheckInRequest request) {
+    return checkIn(appointmentId, request, null);
+}
+
+@Transactional
+public ReceptionAppointmentResponse checkIn(UUID appointmentId, ReceptionCheckInRequest request, String actor) {
+    Appointment appointment = appointmentRepository.findById(appointmentId)
+            .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "APPOINTMENT_NOT_FOUND",
+                    "Không tìm thấy lịch hẹn."));
+
+    // 1. Kiểm tra ngày hẹn: Chỉ cho phép check-in lịch trong ngày hôm nay (FR-REC-01)
+    LocalDate today = LocalDate.now(clock);
+    if (!appointment.getAppointmentDate().equals(today)) {
+        throw new AuthException(HttpStatus.BAD_REQUEST, "APPOINTMENT_DATE_INVALID",
+                "Lịch hẹn không thuộc ngày hôm nay.");
     }
 
-    @Transactional
-    public ReceptionAppointmentResponse checkIn(UUID appointmentId, ReceptionCheckInRequest request, String actor) {
-        Appointment appointment = appointmentRepository.findById(appointmentId)
-                .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "APPOINTMENT_NOT_FOUND",
-                        "Không tìm thấy lịch hẹn."));
-        PatientAccount patient = appointment.getPatient();
-        if (patient != null && patient.getStatus() == AccountStatus.LOCKED) {
-            throw new AuthException(HttpStatus.CONFLICT, "PATIENT_ACCOUNT_LOCKED",
-                    "Tài khoản người bệnh đang bị khóa.");
-        }
-        if (patient != null && patient.isMustChangePassword()) {
-            throw new AuthException(HttpStatus.CONFLICT, "PASSWORD_CHANGE_REQUIRED",
-                    "Người bệnh cần đổi mật khẩu tạm trước khi check-in.");
-        }
-        QueueTicketResponse ticket = actor == null
-                ? queueService.checkInByStaff(request.roomCode().trim(), appointmentId, request.reason().trim())
-                : queueService.checkInByStaff(request.roomCode().trim(), appointmentId, request.reason().trim(), actor);
-        return toResponse(appointment, ticket);
+    // 2. Kiểm tra trạng thái tài khoản bệnh nhân
+    PatientAccount patient = appointment.getPatient();
+    if (patient != null && patient.getStatus() == AccountStatus.LOCKED) {
+        throw new AuthException(HttpStatus.CONFLICT, "PATIENT_ACCOUNT_LOCKED",
+                "Tài khoản người bệnh đang bị khóa.");
+    }
+    if (patient != null && patient.isMustChangePassword()) {
+        throw new AuthException(HttpStatus.CONFLICT, "PASSWORD_CHANGE_REQUIRED",
+                "Người bệnh cần đổi mật khẩu tạm trước khi check-in.");
     }
 
+    // 3. Kiểm tra bác sĩ phụ trách còn hoạt động không
+    if (appointment.getDoctorStaffId() != null) {
+        DoctorProfile doctor = doctorProfileRepository.findByStaffAccount_Id(appointment.getDoctorStaffId())
+                .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "DOCTOR_NOT_FOUND",
+                        "Không tìm thấy thông tin bác sĩ phụ trách."));
+        if (!doctor.isActive()) {
+            throw new AuthException(HttpStatus.CONFLICT, "DOCTOR_INACTIVE",
+                    "Bác sĩ phụ trách hiện không hoạt động.");
+        }
+    }
+
+    // 4. Ủy quyền sang QueueService để cấp số thứ tự vào hàng đợi
+    QueueTicketResponse ticket = actor == null
+            ? queueService.checkInByStaff(request.roomCode().trim(), appointmentId, request.reason().trim())
+            : queueService.checkInByStaff(request.roomCode().trim(), appointmentId, request.reason().trim(), actor);
+
+    return toResponse(appointment, ticket);
+}
     /** Moves a same-day late appointment while preserving its appointment code. */
     @Transactional
     public ReceptionAppointmentResponse rescheduleLate(UUID appointmentId, ReceptionRebookRequest request,
