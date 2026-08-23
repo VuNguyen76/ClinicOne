@@ -3,7 +3,7 @@ import { Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { finalize } from 'rxjs';
 import { apiErrorMessage, AppointmentResponse, AuthApiService } from '../../../core/auth/auth-api.service';
-import { AccountMenu } from '../../../shared/account-menu/account-menu';
+import { PatientHeader } from '../../../shared/patient-header/patient-header';
 import { AccountNav } from '../../../shared/account-nav/account-nav';
 
 type AppointmentFilter = 'ALL' | 'BOOKED' | 'CHECKED_IN' | 'COMPLETED' | 'CANCELLED' | 'ABSENT' | 'NOT_PERFORMED';
@@ -11,7 +11,7 @@ type AppointmentFilter = 'ALL' | 'BOOKED' | 'CHECKED_IN' | 'COMPLETED' | 'CANCEL
 @Component({
   selector: 'app-appointments-list',
   standalone: true,
-  imports: [RouterLink, MatIconModule, AccountMenu, AccountNav],
+  imports: [RouterLink, MatIconModule, PatientHeader, AccountNav],
   templateUrl: './appointments-list.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -67,17 +67,17 @@ export class AppointmentsList implements OnInit {
 
   protected statusClass(status: string): string {
     if (status === 'CANCELLED') {
-      return 'bg-slate-100 text-slate-600';
+      return 'erp-badge-danger';
     }
     if (status === 'COMPLETED') {
-      return 'bg-emerald-50 text-emerald-700';
+      return 'erp-badge-success';
     }
     if (status === 'CHECKED_IN') {
-      return 'bg-sky-50 text-sky-700';
+      return 'erp-badge-info';
     }
     if (status === 'ABSENT' || status === 'NOT_PERFORMED') {
-      return 'bg-slate-100 text-slate-600';
+      return 'erp-badge-warning';
     }
-    return 'bg-sky-50 text-sky-700';
+    return 'erp-badge-info';
   }
 }

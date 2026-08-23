@@ -1,6 +1,7 @@
 package com.clinicone.notification;
 
 import org.springframework.stereotype.Service;
+import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
@@ -13,16 +14,12 @@ import java.util.UUID;
  * through the transaction proxy instead of becoming self-invocations.
  */
 @Service
+@RequiredArgsConstructor
 public class SmsDeliveryStateService {
     private static final long CLAIM_SECONDS = 5 * 60L;
 
     private final SmsDeliveryRepository repository;
     private final Clock clock;
-
-    public SmsDeliveryStateService(SmsDeliveryRepository repository, Clock clock) {
-        this.repository = repository;
-        this.clock = clock;
-    }
 
     @Transactional
     public boolean claim(UUID deliveryId, Instant current) {

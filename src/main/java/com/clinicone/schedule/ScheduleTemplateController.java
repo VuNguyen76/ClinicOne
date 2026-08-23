@@ -1,5 +1,7 @@
 package com.clinicone.schedule;
 
+import lombok.RequiredArgsConstructor;
+
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,14 +17,11 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/schedule-templates")
 @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
 public class ScheduleTemplateController {
     private final ScheduleTemplateService service;
-
-    public ScheduleTemplateController(ScheduleTemplateService service) {
-        this.service = service;
-    }
 
     @GetMapping
     public ResponseEntity<List<ScheduleTemplateResponse>> list() {
@@ -30,15 +29,24 @@ public class ScheduleTemplateController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('COORDINATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
     public ResponseEntity<ScheduleTemplateResponse> create(
             @Valid @RequestBody CreateScheduleTemplateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.create(request));
     }
 
     @PostMapping("/{id}/regenerate")
-    @PreAuthorize("hasRole('COORDINATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
     public ResponseEntity<ScheduleTemplateResponse> regenerate(@PathVariable UUID id) {
         return ResponseEntity.ok(service.regenerate(id));
+    }
+
+    @org.springframework.web.bind.annotation.DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
+    public ResponseEntity<Void> delete(
+            @PathVariable UUID id,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) String weekday) {
+        service.delete(id, weekday);
+        return ResponseEntity.noContent().build();
     }
 }

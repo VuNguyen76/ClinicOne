@@ -31,12 +31,12 @@ class ReconciliationControllerTest {
     private ReconciliationService service;
 
     @Test
-    void adminCannotCloseReconciliation() throws Exception {
+    void adminCanCloseReconciliation() throws Exception {
         mockMvc.perform(post("/api/v1/admin/reconciliations/{id}/close", UUID.randomUUID())
                         .with(authentication(authenticated("ROLE_ADMIN")))
                         .contentType("application/json")
                         .content("{\"action\":\"RETRY_BUSINESS_ACTION\",\"referenceType\":\"INCIDENT\",\"referenceValue\":\"INC-TEST\",\"resultNote\":\"Đã kiểm tra lại dữ liệu.\"}"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk());
     }
 
     @Test

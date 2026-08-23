@@ -1,5 +1,7 @@
 package com.clinicone.diagnosis;
 
+import lombok.RequiredArgsConstructor;
+
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,14 +20,11 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/diagnoses")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
 public class DiagnosisCatalogAdminController {
     private final DiagnosisCatalogService service;
-
-    public DiagnosisCatalogAdminController(DiagnosisCatalogService service) {
-        this.service = service;
-    }
 
     @GetMapping
     public List<DiagnosisCatalogResponse> list(@RequestParam(defaultValue = "false") boolean activeOnly) {

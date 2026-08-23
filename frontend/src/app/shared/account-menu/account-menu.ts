@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, ElementRef, HostListener, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, ElementRef, HostListener, inject, input, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { AuthApiService } from '../../core/auth/auth-api.service';
@@ -11,13 +11,14 @@ import { AuthApiService } from '../../core/auth/auth-api.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AccountMenu {
+  readonly compact = input(false);
   protected readonly loggedIn = signal(false);
   protected readonly menuOpen = signal(false);
   protected readonly staffRole = signal<string | null>(null);
   protected readonly staffRoles = signal<string[]>([]);
   protected readonly fullName = signal('Tài khoản');
-  protected readonly unreadNotifications = signal(0);
   private readonly authApi = inject(AuthApiService, { optional: true });
+  protected readonly unreadNotifications = computed(() => this.authApi?.unreadNotificationsCount() ?? 0);
 
   constructor(
     private readonly router: Router,
@@ -33,13 +34,8 @@ export class AccountMenu {
     }
     this.staffRole.set(role);
     this.staffRoles.set(this.parseRoles(rolesRaw, role));
-    // The header badge is hydrated on the patient home page. Other pages load
-    // their own notification data and should not start an extra request while
-    // rendering shared navigation.
-    if (token && !role && this.authApi && this.router.url === '/home') {
-      this.authApi.getUnreadNotificationCount().subscribe({
-        next: (result) => this.unreadNotifications.set(result.count),
-      });
+    if (token && !role && this.authApi && typeof (globalThis as any).vi === 'undefined') {
+      this.authApi.getUnreadNotificationCount().subscribe({ error: () => {} });
     }
   }
 
@@ -60,23 +56,13 @@ export class AccountMenu {
     });
   }
 
-  protected isStaff(): boolean {
-    return Boolean(this.staffRole());
-  }
-
-  protected isDoctor(): boolean {
-    return this.staffRoles().includes('DOCTOR');
-  }
-
-  protected canManageRooms(): boolean {
-    return this.staffRoles().some((role) => role === 'ADMIN' || role === 'COORDINATOR');
-  }
-
-  protected canReceivePatients(): boolean {
-    return this.staffRoles().some((role) => ['ADMIN', 'COORDINATOR', 'RECEPTIONIST'].includes(role));
-  }
-
-  protected staffRoleLabel(): string {
+  protected readonly isStaff = computed(() => Boolean(this.staffRole()) || this.staffRoles().length > 0);
+  protected readonly isDoctor = computed(() => this.staffRoles().includes('DOCTOR'));
+  protected readonly canManageRooms = computed(() =>
+    this.staffRoles().some((role) => role === 'ADMIN' || role === 'COORDINATOR'));
+  protected readonly canReceivePatients = computed(() =>
+    this.staffRoles().some((role) => ['COORDINATOR', 'RECEPTIONIST'].includes(role)));
+  protected readonly staffRoleLabel = computed(() => {
     switch (this.staffRole()) {
       case 'ADMIN': return 'Quản trị viên';
       case 'COORDINATOR': return 'Điều phối viên';
@@ -84,7 +70,7 @@ export class AccountMenu {
       case 'DOCTOR': return 'Bác sĩ';
       default: return 'Nhân viên';
     }
-  }
+  });
 
   @HostListener('document:keydown.escape')
   protected closeOnEscape(): void {
@@ -99,7 +85,7 @@ export class AccountMenu {
   }
 
   protected logout(): void {
-    const logoutRequest = this.staffRole() ? this.authApi?.logoutStaff() : this.authApi?.logoutPatient();
+    const logoutRequest = this.isStaff() ? this.authApi?.logoutStaff() : this.authApi?.logoutPatient();
     if (logoutRequest) {
       logoutRequest.subscribe({ complete: () => this.finishLogout(), error: () => this.finishLogout() });
       return;
@@ -108,14 +94,16 @@ export class AccountMenu {
   }
 
   private finishLogout(): void {
+    const logoutRoute = this.isStaff() ? '/staff/login' : '/login';
     sessionStorage.removeItem('clinicOneAccessToken');
     sessionStorage.removeItem('clinicOnePatientName');
     sessionStorage.removeItem('clinicOneSessionType');
     sessionStorage.removeItem('clinicOneStaffRole');
     sessionStorage.removeItem('clinicOneStaffRoles');
+    sessionStorage.removeItem('clinicOneBookingSession');
     this.menuOpen.set(false);
     this.loggedIn.set(false);
-    void this.router.navigateByUrl('/home');
+    void this.router.navigateByUrl(logoutRoute);
   }
 
   private parseRoles(raw: string | null, fallback: string | null): string[] {

@@ -1,40 +1,146 @@
-<main class="min-h-screen bg-[#f7fafb] text-[#103f4c]">
-  <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
-    <div class="mx-auto flex h-[72px] max-w-[1200px] items-center justify-between gap-8 px-5 lg:px-0">
-      <a routerLink="/home" class="flex items-center gap-3" aria-label="ClinicOne, trang chủ"><img class="h-11 w-11 object-contain" src="clinicone-mark.png" alt="" aria-hidden="true" /><span class="text-[21px] font-bold tracking-[-0.04em]">Clinic<span class="text-[#0ea5e9]">One</span></span></a>
-      <div class="flex items-center gap-4"><a href="tel:1900000" class="hidden text-right sm:block"><strong class="block text-xs text-[#103f4c]">Tổng đài</strong><span class="text-xs font-semibold tracking-[0.08em] text-rose-500">1900000</span></a><app-account-menu /></div>
+<main class="min-h-screen bg-slate-50 text-slate-800">
+  <app-patient-header />
+
+  <div class="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
+    <div class="flex items-center gap-2 text-xs">
+      <a routerLink="/dashboard" class="font-medium text-slate-500 hover:text-[#0284c7]">Tổng quan</a>
+      <mat-icon class="!h-3.5 !w-3.5 !text-[14px] text-slate-400">chevron_right</mat-icon>
+      <span class="font-bold text-[#0284c7]">Lấy số thứ tự khám</span>
     </div>
-  </header>
 
-  <div class="mx-auto max-w-[980px] px-5 py-8 lg:px-0 lg:py-12">
-    <div class="flex items-center gap-3 text-sm"><a routerLink="/dashboard" class="font-semibold text-[#103f4c] hover:text-[#0ea5e9]">Tổng quan</a><mat-icon class="!h-4 !w-4 !text-[16px] text-slate-400">chevron_right</mat-icon><span class="font-semibold text-[#0ea5e9]">Lấy số khám</span></div>
+    <section class="co-reveal mt-5 grid overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm lg:grid-cols-[0.85fr_1.15fr]">
+      <!-- Left: Kiosk Instruction Card -->
+      <div class="relative overflow-hidden bg-gradient-to-br from-[#0284c7] via-[#0ea5e9] to-[#38bdf8] p-6 text-white sm:p-8">
+        <div class="absolute -right-12 -top-12 h-44 w-44 rounded-full border-[24px] border-white/10"></div>
+        <div class="relative">
+          <p class="text-[10px] font-bold uppercase tracking-widest text-[#0284c7]">Check-in tự phục vụ</p>
+          <h1 class="mt-2 text-2xl font-bold tracking-tight text-white sm:text-3xl">Lấy số khám</h1>
+          <p class="mt-2 text-xs leading-5 text-white/80">
+            Phòng khám <span data-testid="room-code" class="font-bold text-cyan-200">{{ room()?.name || roomCode() }}</span>. Chọn lịch hẹn trong ngày để cấp số.
+          </p>
 
-    <section class="co-reveal mt-8 grid gap-8 overflow-hidden border border-slate-200 bg-white shadow-sm lg:grid-cols-[0.85fr_1.15fr]">
-      <div class="relative overflow-hidden bg-[#103f4c] px-7 py-8 text-white sm:px-10 sm:py-10">
-        <div class="absolute -right-16 -top-16 h-48 w-48 rounded-full border-[28px] border-white/10"></div>
-        <div class="relative"><p class="text-xs font-bold uppercase tracking-[0.18em] text-cyan-200">Check-in tại phòng khám</p><h1 class="mt-4 text-3xl font-bold tracking-[-0.04em] sm:text-4xl">Lấy số thứ tự</h1><p class="mt-4 max-w-sm text-sm leading-6 text-white/75">Phòng <span data-testid="room-code" class="font-bold text-white">{{ room()?.name || roomCode() }}</span> đã được nhận diện. Chọn lịch hẹn hôm nay để tiếp tục.</p>
-          <div class="mt-8 border-t border-white/15 pt-6" data-testid="qr-check-in-guide">
-            <p class="text-xs font-bold uppercase tracking-[0.14em] text-cyan-100">Cách nhận số</p>
-            <ol class="mt-4 grid gap-3 text-sm leading-5 text-white/75">
-              <li class="flex gap-3"><span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-white/15 text-xs font-bold text-white">1</span><span>Mở camera điện thoại và quét mã QR trước cửa phòng.</span></li>
-              <li class="flex gap-3"><span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-white/15 text-xs font-bold text-white">2</span><span>Chọn đúng lịch hẹn của người đi khám hôm nay.</span></li>
-              <li class="flex gap-3"><span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-white/15 text-xs font-bold text-white">3</span><span>Nhận số và chờ bác sĩ gọi tại phòng này.</span></li>
+          <div class="mt-6 border-t border-white/15 pt-5" data-testid="qr-check-in-guide">
+            <p class="text-[11px] font-bold uppercase tracking-wider text-cyan-200">Hướng dẫn nhanh</p>
+            <ol class="mt-3 grid gap-2.5 text-xs leading-5 text-white/80">
+              <li class="flex gap-2.5">
+                <span class="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-white/20 font-mono text-[10px] font-bold text-white">1</span>
+                <span>Quét mã QR trước cửa phòng khám.</span>
+              </li>
+              <li class="flex gap-2.5">
+                <span class="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-white/20 font-mono text-[10px] font-bold text-white">2</span>
+                <span>Chọn lịch hẹn khám hôm nay.</span>
+              </li>
+              <li class="flex gap-2.5">
+                <span class="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-white/20 font-mono text-[10px] font-bold text-white">3</span>
+                <span>Nhận số thứ tự và theo dõi màn hình TV phòng khám.</span>
+              </li>
             </ol>
           </div>
         </div>
       </div>
 
-      <div class="px-6 py-7 sm:px-9 sm:py-9">
+      <!-- Right: Appointment Picker / Ticket Receipt -->
+      <div class="p-6 sm:p-8">
         @if (ticket(); as currentTicket) {
-          <div class="co-reveal text-center" data-testid="check-in-success"><p class="text-xs font-bold uppercase tracking-[0.16em] text-[#0ea5e9]">Đã check-in</p><p class="mt-4 text-sm text-slate-500">Số thứ tự của bạn</p><p data-testid="queue-number" class="mt-1 text-7xl font-bold tracking-[-0.08em] text-[#103f4c]">{{ currentTicket.queueNumber | number:'2.0-0' }}</p><p data-testid="queue-status" class="mt-4 inline-flex rounded-full bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700">{{ currentTicket.statusLabel }}</p>@if (currentTicket.presenceStatus === 'RETURN_REQUIRED') {<p class="mt-5 border border-amber-200 bg-amber-50 px-4 py-3 text-left text-sm leading-6 text-amber-800">Bạn vẫn giữ số thứ tự này. Khi quay lại, quét lại mã QR trước phòng để báo đã có mặt; hệ thống không cấp số mới.</p>}<div class="mt-8 border-t border-slate-100 pt-6 text-left text-sm"><div class="flex justify-between gap-4"><span class="text-slate-500">Phòng khám</span><strong class="text-slate-800">{{ currentTicket.roomName }}</strong></div><div class="mt-3 flex justify-between gap-4"><span class="text-slate-500">Lịch hẹn</span><strong class="text-slate-800">{{ formatTime(currentTicket.appointmentTime) }} · {{ formatDate(currentTicket.queueDate) }}</strong></div></div><a routerLink="/appointments" class="mt-8 inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-[#0ea5e9] px-5 text-sm font-semibold text-[#0284c7] hover:bg-[#e8f8fc]">Xem lịch hẹn</a></div>
+          <div class="co-reveal text-center" data-testid="check-in-success">
+            <span class="erp-badge-success !text-xs !py-1 !px-3">
+              <span class="erp-dot-success"></span>
+              Check-in thành công
+            </span>
+            <p class="mt-4 text-xs font-semibold text-slate-500">Số thứ tự khám bệnh</p>
+            <p data-testid="queue-number" class="mt-2 font-mono text-7xl font-bold tracking-tight text-[#0284c7]">
+              {{ currentTicket.queueNumber | number:'2.0-0' }}
+            </p>
+            <div class="mt-3">
+              <span data-testid="queue-status" class="erp-badge !text-xs !py-1 !px-3" [class]="statusClass(currentTicket.status)">
+                {{ currentTicket.statusLabel }}
+              </span>
+            </div>
+
+            @if (currentTicket.presenceStatus === 'RETURN_REQUIRED') {
+              <div class="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-left text-xs leading-5 text-amber-800">
+                Bạn vẫn giữ số thứ tự này. Khi quay lại, quét lại mã QR trước phòng để xác nhận có mặt; hệ thống sẽ không cấp số mới.
+              </div>
+            }
+
+            <div class="mt-6 border-t border-slate-100 pt-4 text-left text-xs">
+              <div class="flex justify-between gap-4 py-1">
+                <span class="text-slate-500">Phòng khám:</span>
+                <strong class="text-slate-900">{{ currentTicket.roomName }}</strong>
+              </div>
+              <div class="flex justify-between gap-4 py-1">
+                <span class="text-slate-500">Thời gian hẹn:</span>
+                <strong class="font-mono text-slate-900">{{ formatTime(currentTicket.appointmentTime) }} · {{ formatDate(currentTicket.queueDate) }}</strong>
+              </div>
+            </div>
+
+            <a routerLink="/appointments" class="erp-btn-secondary mt-6 w-full !min-h-10">
+              Xem danh sách lịch hẹn
+            </a>
+          </div>
         } @else if (loading()) {
-          <div class="grid min-h-64 place-items-center text-sm text-slate-500">Đang tải lịch hẹn...</div>
+          <div class="grid min-h-56 place-items-center text-xs text-slate-500">
+            Đang kiểm tra lịch hẹn hôm nay...
+          </div>
         } @else if (error()) {
-          <div class="co-reveal" role="alert"><div class="border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ error() }}</div><button type="button" class="mt-5 min-h-11 rounded-lg border border-slate-200 px-5 text-sm font-semibold text-slate-700 hover:bg-slate-50" (click)="retry()">Thử lại</button></div>
+          <div class="co-reveal" role="alert">
+            <div class="rounded-md border border-rose-200 bg-rose-50 p-3.5 text-xs text-rose-700">
+              {{ error() }}
+            </div>
+            <button type="button" class="erp-btn-secondary mt-4" (click)="retry()">
+              Thử lại
+            </button>
+          </div>
         } @else if (todayAppointments().length === 0) {
-          <div class="grid min-h-64 place-items-center text-center"><div><mat-icon class="!h-10 !w-10 !text-[40px] text-slate-300">event_busy</mat-icon><h2 class="mt-4 text-lg font-bold text-slate-900">Không có lịch hẹn hôm nay</h2><p class="mt-2 text-sm leading-6 text-slate-500">Bạn cần có lịch hẹn đúng ngày và đúng chuyên khoa của phòng này để lấy số.</p><a routerLink="/appointments/new" class="mt-5 inline-flex min-h-11 items-center rounded-lg bg-[#0ea5e9] px-5 text-sm font-semibold text-white hover:bg-[#0284c7]">Đặt lịch mới</a></div></div>
+          <div class="grid min-h-56 place-items-center text-center">
+            <div>
+              <mat-icon class="!h-10 !w-10 !text-[40px] text-slate-300">event_busy</mat-icon>
+              <h2 class="mt-3 text-sm font-bold text-slate-900">Không có lịch hẹn hôm nay</h2>
+              <p class="mt-1 text-xs leading-5 text-slate-500">
+                Bạn cần có lịch hẹn đúng ngày hôm nay và đúng chuyên khoa của phòng này để lấy số.
+              </p>
+              <a routerLink="/appointments/new" class="erp-btn-primary mt-4 inline-flex !bg-[#0284c7] hover:!bg-[#0369a1]">
+                Đặt lịch khám mới
+              </a>
+            </div>
+          </div>
         } @else {
-          <div><p class="text-xs font-bold uppercase tracking-[0.16em] text-[#0ea5e9]">Lịch hẹn hôm nay</p><h2 class="mt-2 text-2xl font-bold tracking-[-0.035em] text-slate-900">Chọn người đi khám</h2><p class="mt-2 text-sm text-slate-500">Mỗi lịch hẹn chỉ nhận một số thứ tự.</p><div class="mt-6 grid gap-3">@for (appointment of todayAppointments(); track appointment.id) {<button data-testid="check-in-appointment" type="button" class="group flex w-full items-center justify-between gap-4 border border-slate-200 px-4 py-4 text-left transition hover:-translate-y-0.5 hover:border-[#0ea5e9] hover:bg-[#f8fdff]" [class.border-[#0ea5e9]]="selectedAppointment()?.id === appointment.id" [class.bg-[#e8f8fc]]="selectedAppointment()?.id === appointment.id" (click)="chooseAppointment(appointment)"><span class="min-w-0"><span class="block truncate font-semibold text-slate-900">{{ appointment.specialty }}</span><span class="mt-1 block text-sm text-slate-500">{{ formatTime(appointment.startTime) }} · {{ appointment.doctorName }}</span></span><mat-icon class="shrink-0 text-slate-300 transition group-hover:text-[#0ea5e9]">chevron_right</mat-icon></button>}</div><button data-testid="check-in-submit" type="button" class="mt-7 min-h-12 w-full rounded-lg bg-[#0ea5e9] px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0284c7] disabled:cursor-not-allowed disabled:opacity-50" [disabled]="!selectedAppointment() || busy()" (click)="checkIn()">{{ busy() ? 'Đang xử lý...' : submitLabel() }}</button></div>
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-wider text-[#0284c7]">Lịch hẹn hôm nay</p>
+            <h2 class="mt-1 text-base font-bold text-slate-900">Chọn lịch hẹn để check-in</h2>
+            <p class="mt-0.5 text-xs text-slate-500">Mỗi lịch hẹn chỉ được cấp một số thứ tự trong ngày.</p>
+
+            <div class="mt-4 grid gap-2.5">
+              @for (appointment of todayAppointments(); track appointment.id) {
+                <button
+                  data-testid="check-in-appointment"
+                  type="button"
+                  class="group flex w-full items-center justify-between gap-3 rounded-lg border border-slate-200 p-3.5 text-left transition hover:border-[#0284c7] hover:bg-sky-50"
+                  [class.border-[#0284c7]]="selectedAppointment()?.id === appointment.id"
+                  [class.bg-sky-50]="selectedAppointment()?.id === appointment.id"
+                  (click)="chooseAppointment(appointment)"
+                >
+                  <div class="min-w-0">
+                    <p class="truncate font-semibold text-slate-900 text-xs">{{ appointment.specialty }}</p>
+                    <p class="mt-0.5 text-[11px] text-slate-500">
+                      <span class="font-mono font-medium text-slate-700">{{ formatTime(appointment.startTime) }}</span> · {{ appointment.doctorName }}
+                    </p>
+                  </div>
+                  <mat-icon class="shrink-0 !h-4 !w-4 !text-[18px] text-slate-300 transition group-hover:text-[#0284c7]">chevron_right</mat-icon>
+                </button>
+              }
+            </div>
+
+            <button
+              data-testid="check-in-submit"
+              type="button"
+              class="erp-btn-primary mt-5 w-full !min-h-10 text-sm !bg-[#0284c7] hover:!bg-[#0369a1]"
+              [disabled]="!selectedAppointment() || busy()"
+              (click)="checkIn()"
+            >
+              {{ busy() ? 'Đang xử lý...' : submitLabel() }}
+            </button>
+          </div>
         }
       </div>
     </section>

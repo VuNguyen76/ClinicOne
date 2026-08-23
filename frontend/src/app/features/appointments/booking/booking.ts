@@ -1,10 +1,12 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { ApiErrorResponse, AppointmentSlotResponse, AuthApiService, apiErrorMessage, ClinicServiceResponse, PatientProfileItem, SpecialtyOption } from '../../../core/auth/auth-api.service';
-import { AccountMenu } from '../../../shared/account-menu/account-menu';
+import { PatientHeader } from '../../../shared/patient-header/patient-header';
 import { clinicTodayDate, clinicTodayIso } from '../../../core/time/clinic-time';
+import { interval } from 'rxjs';
 
 type BookingStep = 1 | 2 | 3;
 
@@ -24,12 +26,20 @@ interface TimeSlot {
   doctorName: string;
   doctorId: string | null;
   roomCode: string | null;
+  available?: boolean;
+  remainingCapacity?: number;
+}
+
+interface DoctorChoice {
+  id: string;
+  name: string;
+  roomCode: string | null;
 }
 
 @Component({
   selector: 'app-booking',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, MatIconModule, AccountMenu],
+  imports: [RouterLink, ReactiveFormsModule, MatIconModule, PatientHeader],
   templateUrl: './booking.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -37,6 +47,7 @@ export class Booking implements OnInit {
   private readonly formBuilder = inject(FormBuilder);
   private readonly authApi = inject(AuthApiService);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly today = clinicTodayIso();
   protected readonly step = signal<BookingStep>(1);
@@ -44,8 +55,11 @@ export class Booking implements OnInit {
   protected readonly selectedSpecialty = signal('');
   protected readonly selectedClinicService = signal<ClinicServiceResponse | null>(null);
   protected readonly selectedDate = signal('');
+  protected readonly selectedDoctorId = signal('');
   protected readonly selectedSlot = signal('');
   protected readonly holdId = signal<string | null>(null);
+  protected readonly holdExpiresAt = signal<string | null>(null);
+  protected readonly holdRemainingSeconds = signal(0);
   protected readonly holdBusy = signal(false);
   protected readonly calendarMonth = signal(this.startOfMonth(clinicTodayDate()));
   protected readonly dates = signal(this.buildMonthDates(this.calendarMonth()));
@@ -53,14 +67,35 @@ export class Booking implements OnInit {
   protected readonly specialtiesLoading = signal(true);
   protected readonly clinicServices = signal<ClinicServiceResponse[]>([]);
   protected readonly clinicServicesLoading = signal(true);
+  protected readonly monthSlots = signal<AppointmentSlotResponse[]>([]);
   protected readonly availableSlots = signal<TimeSlot[]>([]);
   protected readonly slotsLoading = signal(false);
+  protected readonly availableDoctors = computed<DoctorChoice[]>(() => {
+    const doctors = new Map<string, DoctorChoice>();
+    for (const slot of this.monthSlots()) {
+      if (!slot.doctorId) continue;
+      doctors.set(slot.doctorId, {
+        id: slot.doctorId,
+        name: slot.doctorName,
+        roomCode: slot.roomCode ?? null,
+      });
+    }
+    return [...doctors.values()].sort((left, right) => left.name.localeCompare(right.name, 'vi-VN'));
+  });
   protected profiles: PatientProfileItem[] = [];
   protected profilesLoading = true;
   protected busy = false;
   protected error = '';
   private createRequestKey: string | null = null;
   private availabilityRequestId = 0;
+
+  protected readonly patientProfiles = signal<PatientProfileItem[]>([]);
+  protected readonly primaryProfile = computed(() => this.patientProfiles().find((p) => p.primaryProfile) ?? this.patientProfiles()[0]);
+  protected readonly subProfiles = computed(() => this.patientProfiles().filter((p) => !p.primaryProfile));
+  protected readonly selectedProfile = computed(() => {
+    const id = this.form.controls.profileId.value;
+    return this.patientProfiles().find((p) => p.id === id) ?? this.primaryProfile();
+  });
 
   protected readonly form = this.formBuilder.nonNullable.group({
     specialty: ['', [Validators.required, Validators.maxLength(120)]],
@@ -73,6 +108,7 @@ export class Booking implements OnInit {
   });
 
   ngOnInit(): void {
+    interval(1000).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.updateHoldCountdown());
     this.authApi.getSpecialties().subscribe({
       next: (specialties) => { this.specialties.set(specialties); this.specialtiesLoading.set(false); },
       error: (response) => { this.specialtiesLoading.set(false); this.handleAuthError(response); },
@@ -84,6 +120,7 @@ export class Booking implements OnInit {
     this.authApi.getPatientProfiles().subscribe({
       next: (profiles) => {
         this.profiles = profiles;
+        this.patientProfiles.set(profiles);
         const primary = profiles.find((profile) => profile.primaryProfile) ?? profiles[0];
         if (primary) this.form.controls.profileId.setValue(primary.id);
         this.profilesLoading = false;
@@ -115,8 +152,9 @@ export class Booking implements OnInit {
     this.form.controls.appointmentDate.reset('');
     this.form.controls.startTime.reset('');
     this.selectedDate.set('');
+    this.selectedDoctorId.set('');
     this.selectedSlot.set('');
-    this.holdId.set(null);
+    this.clearHold();
     this.monthSlots.set([]);
     this.step.set(2);
     this.loadMonthAvailability();
@@ -130,14 +168,13 @@ export class Booking implements OnInit {
     this.form.controls.appointmentDate.reset('');
     this.form.controls.startTime.reset('');
     this.selectedDate.set('');
+    this.selectedDoctorId.set('');
     this.selectedSlot.set('');
-    this.holdId.set(null);
+    this.clearHold();
     this.monthSlots.set([]);
     this.step.set(2);
     this.loadMonthAvailability();
   }
-
-  protected readonly monthSlots = signal<AppointmentSlotResponse[]>([]);
 
   protected monthLabel(): string {
     return new Intl.DateTimeFormat('vi-VN', { month: 'long', year: 'numeric' }).format(this.calendarMonth());
@@ -164,7 +201,20 @@ export class Booking implements OnInit {
   }
 
   protected hasAvailability(date: DateOption): boolean {
-    return this.monthSlots().some((slot) => slot.appointmentDate === date.iso);
+    return this.monthSlots().some((slot) => slot.appointmentDate === date.iso && this.matchesSelectedDoctor(slot));
+  }
+
+  protected chooseDoctor(doctorId: string): void {
+    if (this.selectedDoctorId() === doctorId) return;
+    this.clearError();
+    this.clearHold();
+    this.selectedDoctorId.set(doctorId);
+    this.selectedDate.set('');
+    this.selectedSlot.set('');
+    this.availableSlots.set([]);
+    this.form.controls.appointmentDate.reset('');
+    this.form.controls.startTime.reset('');
+    this.form.controls.doctorId.reset('');
   }
 
   protected chooseDate(date: DateOption): void {
@@ -175,14 +225,15 @@ export class Booking implements OnInit {
     this.availableSlots.set([]);
     this.form.controls.appointmentDate.setValue(date.iso);
     this.form.controls.startTime.reset('');
-    const slotsForDate = this.monthSlots().filter((slot) => slot.appointmentDate === date.iso);
+    const slotsForDate = this.monthSlots().filter((slot) =>
+      slot.appointmentDate === date.iso && this.matchesSelectedDoctor(slot));
     this.availableSlots.set(slotsForDate.map((slot) => this.toTimeSlot(slot)));
   }
 
   protected chooseSlot(slot: TimeSlot): void {
     this.clearError();
     if (this.selectedSlot() !== slot.key) {
-      this.holdId.set(null);
+      this.clearHold();
     }
     this.selectedSlot.set(slot.key);
     this.form.controls.startTime.setValue(slot.startTime);
@@ -201,6 +252,10 @@ export class Booking implements OnInit {
 
   protected slotsFor(period: TimeSlot['period']): TimeSlot[] {
     return this.availableSlots().filter((slot) => slot.period === period);
+  }
+
+  private matchesSelectedDoctor(slot: AppointmentSlotResponse): boolean {
+    return !this.selectedDoctorId() || slot.doctorId === this.selectedDoctorId();
   }
 
   protected continueToDetails(): void {
@@ -226,6 +281,10 @@ export class Booking implements OnInit {
       next: (hold) => {
         this.holdBusy.set(false);
         this.holdId.set(hold.id);
+        this.holdExpiresAt.set(hold.expiresAt);
+        this.holdRemainingSeconds.set(hold.expiresAt
+          ? Math.max(0, Math.ceil((Date.parse(hold.expiresAt) - Date.now()) / 1000))
+          : 0);
         this.step.set(3);
       },
       error: (response) => {
@@ -305,12 +364,34 @@ export class Booking implements OnInit {
     this.dates.set(this.buildMonthDates(this.calendarMonth()));
     this.selectedDate.set('');
     this.selectedSlot.set('');
-    this.holdId.set(null);
+    this.clearHold();
     this.availableSlots.set([]);
     this.form.controls.appointmentDate.reset('');
     this.form.controls.startTime.reset('');
     this.monthSlots.set([]);
     this.loadMonthAvailability();
+  }
+
+  protected holdCountdownLabel(): string {
+    const seconds = this.holdRemainingSeconds();
+    return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+  }
+
+  private clearHold(): void {
+    this.holdId.set(null);
+    this.holdExpiresAt.set(null);
+    this.holdRemainingSeconds.set(0);
+  }
+
+  private updateHoldCountdown(): void {
+    const expiresAt = this.holdExpiresAt();
+    if (!expiresAt) return;
+    const seconds = Math.max(0, Math.ceil((Date.parse(expiresAt) - Date.now()) / 1000));
+    this.holdRemainingSeconds.set(seconds);
+    if (seconds === 0 && this.holdId()) {
+      this.clearHold();
+      this.error = 'Thời gian giữ chỗ đã hết. Vui lòng chọn lại khung giờ.';
+    }
   }
 
   private loadMonthAvailability(): void {

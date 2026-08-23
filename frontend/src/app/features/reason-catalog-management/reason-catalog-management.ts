@@ -1,14 +1,13 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
-import { AccountMenu } from '../../shared/account-menu/account-menu';
+import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
 import { ApiErrorResponse, AuthApiService, ReasonCatalogResponse, apiErrorMessage } from '../../core/auth/auth-api.service';
 
 @Component({
   selector: 'app-reason-catalog-management',
   standalone: true,
-  imports: [FormsModule, RouterLink, MatIconModule, AccountMenu],
+  imports: [FormsModule, MatIconModule, StaffWorkspaceShell],
   templateUrl: './reason-catalog-management.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -21,6 +20,41 @@ export class ReasonCatalogManagement implements OnInit {
   protected readonly saving = signal(false);
   protected readonly error = signal('');
   protected readonly notice = signal('');
+  protected readonly modalOpen = signal(false);
+  protected readonly searchTerm = signal('');
+
+  protected filteredReasons(): ReasonCatalogResponse[] {
+    const q = this.searchTerm().trim().toLowerCase();
+    if (!q) return this.reasons();
+    return this.reasons().filter((r) =>
+      r.code.toLowerCase().includes(q) ||
+      r.label.toLowerCase().includes(q)
+    );
+  }
+
+  protected totalReasonsCount(): number {
+    return this.reasons().length;
+  }
+
+  protected activeCount(): number {
+    return this.reasons().filter((r) => r.active).length;
+  }
+
+  protected activeReasonsCount(): number {
+    return this.activeCount();
+  }
+
+  protected inactiveCount(): number {
+    return this.reasons().filter((r) => !r.active).length;
+  }
+
+  protected inactiveReasonsCount(): number {
+    return this.inactiveCount();
+  }
+
+  protected toggleActive(item: ReasonCatalogResponse): void {
+    this.toggle(item);
+  }
 
   ngOnInit(): void {
     this.load();
@@ -37,9 +71,20 @@ export class ReasonCatalogManagement implements OnInit {
     this.notice.set('');
     this.saving.set(true);
     this.authApi.createCancellationReason(code, label).subscribe({
-      next: (item) => { this.reasons.update((items) => [...items, item].sort((a, b) => a.label.localeCompare(b.label))); this.code.set(''); this.label.set(''); this.notice.set('Đã thêm lý do.'); this.saving.set(false); },
+      next: (item) => { this.reasons.update((items) => [...items, item].sort((a, b) => a.label.localeCompare(b.label))); this.code.set(''); this.label.set(''); this.notice.set('Đã thêm lý do.'); this.saving.set(false); this.modalOpen.set(false); },
       error: (response: ApiErrorResponse) => { this.error.set(apiErrorMessage(response)); this.saving.set(false); },
     });
+  }
+
+  protected openCreate(): void {
+    this.error.set('');
+    this.notice.set('');
+    this.modalOpen.set(true);
+  }
+
+  protected closeModal(): void {
+    if (this.saving()) return;
+    this.modalOpen.set(false);
   }
 
   protected toggle(item: ReasonCatalogResponse): void {
@@ -51,7 +96,7 @@ export class ReasonCatalogManagement implements OnInit {
     });
   }
 
-  private load(): void {
+  protected load(): void {
     this.authApi.getAdminCancellationReasons().subscribe({
       next: (items) => { this.reasons.set(items); this.loading.set(false); },
       error: (response: ApiErrorResponse) => { this.error.set(apiErrorMessage(response)); this.loading.set(false); },

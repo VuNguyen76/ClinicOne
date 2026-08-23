@@ -23,6 +23,11 @@ describe('Home', () => {
     expect(fixture.nativeElement.querySelector('h1')?.textContent).toContain('Chăm sóc sức khỏe');
   });
 
+  it('sends every supported booking call-to-action through the guarded booking route', () => {
+    expect(fixture.nativeElement.querySelector('a[routerlink="/appointments/new"]')).not.toBeNull();
+    expect(component.services.slice(0, 3).every((service) => service.route === '/appointments/new')).toBe(true);
+  });
+
   it('toggles the mobile navigation state', () => {
     expect(component.mobileMenuOpen()).toBe(false);
 

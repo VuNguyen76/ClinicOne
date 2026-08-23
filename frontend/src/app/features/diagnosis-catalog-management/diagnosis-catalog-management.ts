@@ -1,14 +1,13 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
-import { AccountMenu } from '../../shared/account-menu/account-menu';
+import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
 import { ApiErrorResponse, AuthApiService, DiagnosisSuggestionResponse, apiErrorMessage } from '../../core/auth/auth-api.service';
 
 @Component({
   selector: 'app-diagnosis-catalog-management',
   standalone: true,
-  imports: [FormsModule, RouterLink, MatIconModule, AccountMenu],
+  imports: [FormsModule, MatIconModule, StaffWorkspaceShell],
   templateUrl: './diagnosis-catalog-management.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -30,6 +29,7 @@ export class DiagnosisCatalogManagement implements OnInit {
     return this.diagnoses().filter((item) => `${item.code} ${item.name}`.toLocaleLowerCase().includes(query));
   });
   protected readonly activeCount = computed(() => this.diagnoses().filter((item) => item.active).length);
+  protected readonly inactiveCount = computed(() => this.diagnoses().filter((item) => !item.active).length);
 
   ngOnInit(): void { this.load(); }
 
@@ -61,9 +61,14 @@ export class DiagnosisCatalogManagement implements OnInit {
         });
         this.saving.set(false); this.modalOpen.set(false);
         this.notice.set(editingId ? 'Đã cập nhật chẩn đoán.' : 'Đã thêm chẩn đoán.');
+        setTimeout(() => this.notice.set(''), 4000);
       },
       error: (response: ApiErrorResponse) => { this.saving.set(false); this.error.set(apiErrorMessage(response)); },
     });
+  }
+
+  protected toggleActive(item: DiagnosisSuggestionResponse): void {
+    this.toggle(item);
   }
 
   protected toggle(item: DiagnosisSuggestionResponse): void {
@@ -72,12 +77,13 @@ export class DiagnosisCatalogManagement implements OnInit {
       next: (saved) => {
         this.diagnoses.update((items) => items.map((current) => current.id === saved.id ? saved : current));
         this.notice.set(saved.active ? 'Đã cho phép dùng lại chẩn đoán.' : 'Đã tạm ngưng chẩn đoán.');
+        setTimeout(() => this.notice.set(''), 4000);
       },
       error: (response: ApiErrorResponse) => this.error.set(apiErrorMessage(response)),
     });
   }
 
-  private load(): void {
+  protected load(): void {
     this.authApi.getAdminDiagnoses().subscribe({
       next: (items) => { this.diagnoses.set(items); this.loading.set(false); },
       error: (response: ApiErrorResponse) => { this.error.set(apiErrorMessage(response)); this.loading.set(false); },

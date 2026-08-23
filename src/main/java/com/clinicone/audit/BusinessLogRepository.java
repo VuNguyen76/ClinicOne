@@ -13,6 +13,15 @@ public interface BusinessLogRepository extends JpaRepository<BusinessLog, UUID> 
     Page<BusinessLog> findByEntityTypeAndEntityIdOrderByOccurredAtAscIdAsc(String entityType, UUID entityId,
                                                                             Pageable pageable);
 
+    Page<BusinessLog> findByEntityTypeAndEntityIdOrderByOccurredAtDescIdDesc(String entityType, UUID entityId,
+                                                                            Pageable pageable);
+
+    Page<BusinessLog> findByEntityIdOrderByOccurredAtDescIdDesc(UUID entityId, Pageable pageable);
+
+    Page<BusinessLog> findByEntityTypeOrderByOccurredAtDescIdDesc(String entityType, Pageable pageable);
+
+    Page<BusinessLog> findAllByOrderByOccurredAtDescIdDesc(Pageable pageable);
+
     boolean existsByEventIdAndEntityTypeAndEntityId(UUID eventId, String entityType, UUID entityId);
 
     List<BusinessLog> findAllByOrderByOccurredAtAscIdAsc();

@@ -1,6 +1,7 @@
 package com.clinicone.queue;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -11,8 +12,10 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface QueueTicketRepository extends JpaRepository<QueueTicket, UUID> {
+    @EntityGraph(attributePaths = {"appointment", "appointment.patient", "appointment.patientProfile", "room"})
     Optional<QueueTicket> findByAppointmentId(UUID appointmentId);
 
+    @EntityGraph(attributePaths = {"appointment", "appointment.patient", "appointment.patientProfile", "room"})
     List<QueueTicket> findByAppointmentIdIn(Collection<UUID> appointmentIds);
 
     @Query("select max(ticket.queueNumber) from QueueTicket ticket "
@@ -20,14 +23,18 @@ public interface QueueTicketRepository extends JpaRepository<QueueTicket, UUID> 
     Integer findMaxQueueNumberByRoomCodeAndQueueDate(@Param("roomCode") String roomCode,
                                                       @Param("queueDate") LocalDate queueDate);
 
+    @EntityGraph(attributePaths = {"appointment", "appointment.patient", "appointment.patientProfile", "room"})
     List<QueueTicket> findByRoomCodeAndQueueDateOrderByQueueNumberAsc(String roomCode, LocalDate queueDate);
 
+    @EntityGraph(attributePaths = {"appointment", "appointment.patient", "appointment.patientProfile", "room"})
     List<QueueTicket> findByAppointment_Patient_IdAndQueueDateOrderByQueueNumberAsc(UUID patientId,
                                                                                        LocalDate queueDate);
 
+    @EntityGraph(attributePaths = {"appointment", "appointment.patient", "appointment.patientProfile", "room"})
     List<QueueTicket> findByRoomCodeAndQueueDateAndAppointment_DoctorStaffIdOrderByQueueNumberAsc(
             String roomCode, LocalDate queueDate, UUID doctorStaffId);
 
+    @EntityGraph(attributePaths = {"appointment", "appointment.patient", "appointment.patientProfile", "room"})
     List<QueueTicket> findByRoomCodeAndQueueDateAndRoutingDoctorStaffIdOrderByQueueNumberAsc(
             String roomCode, LocalDate queueDate, UUID doctorStaffId);
 

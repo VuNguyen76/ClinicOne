@@ -36,6 +36,6 @@ describe('ChangePassword', () => {
 
     http.expectOne('/api/v1/auth/me/password').flush({});
 
-    expect((component as any).notice()).toBe('Mật khẩu đã được đổi.');
+    expect((component as any).notice()).toBe('Mật khẩu đã được đổi thành công.');
   });
 });

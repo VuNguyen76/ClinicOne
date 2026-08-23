@@ -133,6 +133,18 @@ class ReceptionControllerTest {
 
     // Nhóm Bảo mật API cho nhóm tiếp nhận
     @Test
+    void receptionistCanLoadTheDailyWorklistWithoutEnteringAQuery() throws Exception {
+        LocalDate date = LocalDate.of(2026, 8, 7);
+        when(service.worklist(date)).thenReturn(List.of(responseWithTicket()));
+
+        mockMvc.perform(get("/api/v1/reception/worklist?date=2026-08-07")
+                        .with(authentication(authenticated("ROLE_RECEPTIONIST"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].appointmentCode").value("CL-20260807-1234"))
+                .andExpect(jsonPath("$[0].queueStatus").value("WAITING"));
+    }
+
+    @Test
     void doctorCannotUseReceptionSearch() throws Exception {
         mockMvc.perform(get("/api/v1/reception/appointments?query=0912345678")
                         .with(authentication(authenticated("ROLE_DOCTOR"))))
@@ -244,11 +256,12 @@ class ReceptionControllerTest {
 
     @Test
     void receptionistCanCreateWalkInFromExistingPatientAccount() throws Exception {
-        when(service.createWalkIn(any(), eq(STAFF_ID.toString()))).thenReturn(responseWithTicket());
+        when(service.createWalkIn(any(), eq(STAFF_ID.toString()), eq("walk-in-test"))).thenReturn(responseWithTicket());
         String today = LocalDate.now().toString();
 
         mockMvc.perform(post("/api/v1/reception/walk-in")
                         .with(authentication(authenticated("ROLE_RECEPTIONIST")))
+                        .header("Idempotency-Key", "walk-in-test")
                         .contentType("application/json")
                         .content("{\"phone\":\"0912345678\",\"doctorId\":\"7d9e3fb4-1045-4ca4-86d2-7d1fca4c1a13\","
                                 + "\"appointmentDate\":\"" + today + "\",\"startTime\":\"09:00\","
@@ -266,6 +279,7 @@ class ReceptionControllerTest {
 
         mockMvc.perform(post("/api/v1/reception/temporary-profiles")
                         .with(authentication(authenticated("ROLE_RECEPTIONIST")))
+                        .header("Idempotency-Key", "walk-in-invalid")
                         .contentType("application/json")
                         .content("{\"phone\":\"0912345678\",\"fullName\":\"Nguyễn Văn Tạm\","
                                 + "\"dateOfBirth\":\"1990-01-01\",\"gender\":\"Nam\"}"))

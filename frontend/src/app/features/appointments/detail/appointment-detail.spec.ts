@@ -12,8 +12,8 @@ describe('AppointmentDetail', () => {
 
   const appointment = {
     id: 'appointment-1', appointmentCode: 'CL-001', specialty: 'Nội tổng quát', doctorName: 'BS. An',
-    appointmentDate: '2026-08-10', startTime: '08:30:00', reason: 'Đau đầu',
-    status: 'BOOKED', statusLabel: 'Đã đặt',
+    appointmentDate: '2099-08-10', startTime: '08:30:00', reason: 'Đau đầu',
+    status: 'BOOKED', statusLabel: 'Đã đặt', doctorId: 'doctor-1', serviceId: 'service-1',
   };
 
   beforeEach(async () => {
@@ -119,10 +119,64 @@ describe('AppointmentDetail', () => {
     expect(fixture.nativeElement.textContent).not.toContain('Lịch vẫn nằm trong danh sách chờ');
   });
 
-  it('keeps the normal reschedule form when no replacement case exists', () => {
+  it('offers QR scanning and does not allow free-form date or time rescheduling', () => {
     flushAppointment(null);
 
-    expect(fixture.nativeElement.textContent).toContain('Đổi lịch hẹn');
+    const scanLink = fixture.nativeElement.querySelector('[data-testid="qr-scan-action"]') as HTMLAnchorElement;
+    expect(scanLink.getAttribute('href')).toBe('/queue/scan');
+    expect(fixture.nativeElement.querySelector('input[type="date"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('input[type="time"]')).toBeNull();
     expect((component as any).rescheduleCase()).toBeNull();
+  });
+
+  it('shows only available slots of the appointment doctor when rescheduling', () => {
+    flushAppointment(null);
+
+    (fixture.nativeElement.querySelector('[data-testid="open-reschedule"]') as HTMLButtonElement).click();
+    const request = http.expectOne((item) => item.url === '/api/v1/appointment-slots'
+      && item.params.get('specialty') === 'Nội tổng quát'
+      && item.params.get('serviceId') === 'service-1');
+    request.flush([
+      { specialty: 'Nội tổng quát', appointmentDate: '2026-08-19', startTime: '09:00:00', endTime: '09:30:00', doctorName: 'BS. An', doctorId: 'doctor-1', roomCode: 'NOI-01', remainingCapacity: 1 },
+      { specialty: 'Nội tổng quát', appointmentDate: '2026-08-19', startTime: '10:00:00', endTime: '10:30:00', doctorName: 'BS. Bình', doctorId: 'doctor-2', roomCode: 'NOI-02', remainingCapacity: 1 },
+    ]);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('09:00');
+    expect(fixture.nativeElement.textContent).not.toContain('10:00');
+    expect(fixture.nativeElement.textContent).toContain('BS. An');
+  });
+
+  it('locks cancel and reschedule actions and displays warning when appointment is late', () => {
+    http.expectOne('/api/v1/appointments/appointment-1').flush({
+      ...appointment,
+      appointmentDate: '2020-01-01',
+      startTime: '08:00:00',
+    });
+    http.expectOne((request) => request.url === '/api/v1/reasons'
+      && request.params.get('type') === 'APPOINTMENT_CANCELLATION').flush([]);
+    http.expectOne('/api/v1/patient/rescheduling/appointment-1').flush(
+      { message: 'Không tìm thấy lịch cần sắp xếp lại.' },
+      { status: 404, statusText: 'Not Found' });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Lịch hẹn đã quá giờ (Đi muộn)');
+    expect(fixture.nativeElement.querySelector('[data-testid="open-reschedule"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="qr-scan-action"]')).toBeNull();
+  });
+
+  it('renders correct color classes for cancelled (red), absent (yellow), completed (green), and booked (blue) statuses', () => {
+    flushAppointment(null);
+    expect(component['statusBadgeClass']('CANCELLED')).toContain('text-rose-700');
+    expect(component['statusDotClass']('CANCELLED')).toBe('bg-rose-500');
+
+    expect(component['statusBadgeClass']('ABSENT')).toContain('text-amber-700');
+    expect(component['statusDotClass']('ABSENT')).toBe('bg-amber-500');
+
+    expect(component['statusBadgeClass']('COMPLETED')).toContain('text-emerald-700');
+    expect(component['statusDotClass']('COMPLETED')).toBe('bg-emerald-500');
+
+    expect(component['statusBadgeClass']('BOOKED')).toContain('text-[#0284c7]');
+    expect(component['statusDotClass']('BOOKED')).toBe('bg-[#0284c7]');
   });
 });

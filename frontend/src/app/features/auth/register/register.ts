@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@ang
 import { FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
+import { MatIconModule } from '@angular/material/icon';
 import { apiErrorMessage, AuthApiService } from '../../../core/auth/auth-api.service';
 import { VietnamAddressService, VietnamAddressUnit } from '../../../core/address/vietnam-address.service';
 import { clinicTodayIso } from '../../../core/time/clinic-time';
@@ -14,7 +15,7 @@ function passwordsMatch(control: { value: { password: string; confirmPassword: s
 
 @Component({
   selector: 'app-register',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, MatIconModule],
   templateUrl: './register.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -30,6 +31,8 @@ export class Register implements OnInit {
   protected readonly notice = signal('');
   protected readonly error = signal('');
   protected readonly busy = signal(false);
+  protected readonly showPassword = signal(false);
+  protected readonly showConfirmPassword = signal(false);
   protected readonly provinces = signal<VietnamAddressUnit[]>([]);
   protected readonly districts = signal<VietnamAddressUnit[]>([]);
   protected readonly wards = signal<VietnamAddressUnit[]>([]);
@@ -92,6 +95,7 @@ export class Register implements OnInit {
       .subscribe({
         next: () => {
           this.notice.set('Mã OTP đã được gửi đến số điện thoại của bạn.');
+          setTimeout(() => this.notice.set(''), 4000);
         },
         error: (response) => this.showError(response),
       });
@@ -112,6 +116,7 @@ export class Register implements OnInit {
         next: () => {
           this.step.set('profile');
           this.notice.set('Số điện thoại đã được xác thực.');
+          setTimeout(() => this.notice.set(''), 4000);
         },
         error: (response) => this.showError(response),
       });
@@ -136,6 +141,7 @@ export class Register implements OnInit {
         next: () => {
           this.step.set('done');
           this.notice.set('Tạo tài khoản thành công.');
+          setTimeout(() => this.notice.set(''), 4000);
         },
         error: (response) => this.showError(response),
       });

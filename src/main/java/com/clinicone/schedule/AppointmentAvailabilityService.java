@@ -155,6 +155,33 @@ public class AppointmentAvailabilityService {
         ensureBookable(specialty, null, null, appointmentDate, startTime, null, null);
     }
 
+    /** Kiểm tra bác sĩ có ca làm hợp lệ nhưng không kiểm tra số chỗ đã dùng. */
+    @Transactional(readOnly = true)
+    public void ensureDoctorScheduled(String specialty, String doctorName, UUID doctorId,
+                                      LocalDate appointmentDate, LocalTime startTime) {
+        specialtyCatalog.require(specialty);
+        validateDate(appointmentDate);
+        if (doctorProfileRepository == null || doctorScheduleRepository == null || doctorId == null) {
+            return;
+        }
+        DoctorProfile profile = doctorProfileRepository.findByStaffAccount_Id(doctorId)
+                .filter(DoctorProfile::isActive)
+                .orElseThrow(() -> new AuthException(HttpStatus.CONFLICT, "DOCTOR_NOT_AVAILABLE",
+                        "Bác sĩ không còn lịch làm phù hợp."));
+        if (!profile.getSpecialty().equalsIgnoreCase(specialty)
+                || (doctorName != null && !profile.getStaffAccount().getFullName().equalsIgnoreCase(doctorName))) {
+            throw new AuthException(HttpStatus.CONFLICT, "DOCTOR_SLOT_INVALID",
+                    "Bác sĩ không thuộc chuyên khoa hoặc khung giờ đã chọn.");
+        }
+        boolean scheduled = doctorScheduleRepository.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(
+                        profile.getId(), appointmentDate.getDayOfWeek()).stream()
+                .anyMatch(schedule -> contains(schedule, startTime, null));
+        if (!scheduled) {
+            throw new AuthException(HttpStatus.CONFLICT, "DOCTOR_SLOT_INVALID",
+                    "Khung giờ này không nằm trong giờ làm của bác sĩ.");
+        }
+    }
+
     @Transactional(readOnly = true)
     public void ensureBookable(String specialty, String doctorName, UUID doctorId, LocalDate appointmentDate,
                                 LocalTime startTime) {

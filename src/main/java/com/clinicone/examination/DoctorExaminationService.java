@@ -1,5 +1,6 @@
 package com.clinicone.examination;
 
+import com.clinicone.auth.AuthenticatedIds;
 import com.clinicone.auth.AuthException;
 import com.clinicone.auth.AccountStatus;
 import com.clinicone.auth.StaffAccount;
@@ -19,6 +20,7 @@ import com.clinicone.medication.MedicationCatalogService;
 import com.clinicone.schedule.GeneratedClinicSlot;
 import com.clinicone.schedule.GeneratedClinicSlotRepository;
 import com.clinicone.schedule.GeneratedSlotStatus;
+import com.clinicone.validation.IdempotencyKeys;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -137,7 +139,8 @@ public class DoctorExaminationService {
 
     @Transactional
     public DoctorExaminationResponse start(UUID ticketId, String staffId, String requestKey) {
-        String normalizedRequestKey = normalizeRequiredRequestKey(requestKey);
+        String normalizedRequestKey = IdempotencyKeys.required(requestKey,
+                "Cần mã chống gửi lặp để bắt đầu khám.");
         QueueTicket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "QUEUE_TICKET_NOT_FOUND",
                         "Không tìm thấy lượt trong hàng đợi."));
@@ -219,7 +222,8 @@ public class DoctorExaminationService {
     @Transactional
     public DoctorExaminationResponse sign(UUID ticketId, String staffId, DoctorExaminationRequest request,
                                           String requestKey) {
-        String normalizedRequestKey = normalizeSigningRequestKey(requestKey);
+        String normalizedRequestKey = IdempotencyKeys.required(requestKey,
+                "Cần mã chống gửi lặp để ký phiếu khám.");
         Workspace workspace = workspace(ticketId, staffId, true);
         MedicalRecord existingRecord = workspace.appointment().requiresMedicalRecord()
                 ? recordRepository.findBySession_Id(workspace.session().getId()).orElse(null)
@@ -326,7 +330,7 @@ public class DoctorExaminationService {
     @Transactional
     public DoctorExaminationResponse wrongProfile(UUID ticketId, String staffId, WrongProfileRequest request) {
         Workspace workspace = workspace(ticketId, staffId);
-        UUID doctorId = parseStaffId(staffId);
+        UUID doctorId = AuthenticatedIds.doctor(staffId);
         String reason = normalizeWrongProfileReason(request == null ? null : request.reason());
         MedicalRecord record = workspace.appointment().requiresMedicalRecord()
                 ? recordRepository.findBySession_Id(workspace.session().getId()).orElse(null)
@@ -386,21 +390,12 @@ public class DoctorExaminationService {
         throw conflict("QUEUE_INVALID_STATE", "Lượt khám chưa ở trạng thái đang khám.");
     }
 
-    private UUID parseStaffId(String staffId) {
-        try {
-            return UUID.fromString(staffId);
-        } catch (IllegalArgumentException exception) {
-            throw new AuthException(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_REQUIRED",
-                    "Phiên đăng nhập bác sĩ không hợp lệ.");
-        }
-    }
-
     private UUID ensureDoctorAssignment(QueueTicket ticket, String staffId) {
-        return validateDoctorAssignment(ticket, parseStaffId(staffId), false);
+        return validateDoctorAssignment(ticket, AuthenticatedIds.doctor(staffId), false);
     }
 
     private UUID lockDoctorAssignment(QueueTicket ticket, String staffId) {
-        return validateDoctorAssignment(ticket, parseStaffId(staffId), true);
+        return validateDoctorAssignment(ticket, AuthenticatedIds.doctor(staffId), true);
     }
 
     private UUID validateDoctorAssignment(QueueTicket ticket, UUID doctorId, boolean lockDoctor) {
@@ -446,32 +441,6 @@ public class DoctorExaminationService {
         if (activeSchedules != 1) {
             throw conflict("DOCTOR_SHIFT_INACTIVE", "Bác sĩ không có đúng một ca làm việc đang hiệu lực.");
         }
-    }
-
-    private String normalizeRequiredRequestKey(String requestKey) {
-        if (requestKey == null || requestKey.isBlank()) {
-            throw new AuthException(HttpStatus.BAD_REQUEST, "IDEMPOTENCY_KEY_REQUIRED",
-                    "Cần mã chống gửi lặp để bắt đầu khám.");
-        }
-        String normalized = requestKey.trim();
-        if (normalized.length() > 80) {
-            throw new AuthException(HttpStatus.BAD_REQUEST, "IDEMPOTENCY_KEY_INVALID",
-                    "Mã chống gửi lặp không được dài quá 80 ký tự.");
-        }
-        return normalized;
-    }
-
-    private String normalizeSigningRequestKey(String requestKey) {
-        if (requestKey == null || requestKey.isBlank()) {
-            throw new AuthException(HttpStatus.BAD_REQUEST, "IDEMPOTENCY_KEY_REQUIRED",
-                    "Cần mã chống gửi lặp để ký phiếu khám.");
-        }
-        String normalized = requestKey.trim();
-        if (normalized.length() > 80) {
-            throw new AuthException(HttpStatus.BAD_REQUEST, "IDEMPOTENCY_KEY_INVALID",
-                    "Mã chống gửi lặp không được dài quá 80 ký tự.");
-        }
-        return normalized;
     }
 
     private String normalizeStopReason(String reason) {
@@ -629,16 +598,16 @@ public class DoctorExaminationService {
         List<MedicalRecordResponse> history = profile == null ? List.of() : recordRepository
                 .findTop10BySession_Appointment_PatientProfile_IdAndSignedAtIsNotNullOrderBySignedAtDesc(profile.getId())
                 .stream().map(MedicalRecordResponse::from).toList();
-        String patientName = patient == null && profile == null ? null
-                : patient == null ? profile.getFullName() : patient.getFullName();
-        LocalDate patientDateOfBirth = patient == null && profile == null ? null
-                : patient == null ? profile.getDateOfBirth() : patient.getDateOfBirth();
-        String patientGender = patient == null && profile == null ? null
-                : patient == null ? profile.getGender() : patient.getGender();
-        String patientPhone = patient == null && profile == null ? null
-                : patient == null ? profile.getPhone() : patient.getPhone();
+        String patientName = profile != null ? profile.getFullName()
+                : patient == null ? null : patient.getFullName();
+        LocalDate patientDateOfBirth = profile != null ? profile.getDateOfBirth()
+                : patient == null ? null : patient.getDateOfBirth();
+        String patientGender = profile != null ? profile.getGender()
+                : patient == null ? null : patient.getGender();
+        String patientPhone = profile != null && profile.getPhone() != null && !profile.getPhone().isBlank()
+                ? profile.getPhone() : patient == null ? null : patient.getPhone();
         return new DoctorExaminationResponse(ticket.getId(), appointment.getId(), session.getId(), ticket.getQueueNumber(),
-                ticket.getRoom().getName(), appointment.getAppointmentCode(), appointment.getSpecialty(),
+                ticket.getRoom().getName(), appointment.getAppointmentCode(), appointment.getSpecialty(), appointment.getServiceId(),
                 recordDoctorName == null ? ticket.getEffectiveDoctorName() : recordDoctorName,
                 appointment.getAppointmentDate(), appointment.getStartTime(), patientName,
                 patientDateOfBirth, patientGender, patientPhone, record == null ? null : record.getReason(),

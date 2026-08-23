@@ -1,5 +1,8 @@
 package com.clinicone.reception;
 
+import lombok.RequiredArgsConstructor;
+
+import com.clinicone.validation.IdempotencyKey;
 import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -9,6 +12,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -20,16 +24,12 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/reception")
-@PreAuthorize("hasAnyRole('RECEPTIONIST')")
+@PreAuthorize("hasRole('RECEPTIONIST')")
 public class ReceptionController {
     private final ReceptionService service;
     private final ReceptionPatientService patientService;
-
-    public ReceptionController(ReceptionService service, ReceptionPatientService patientService) {
-        this.service = service;
-        this.patientService = patientService;
-    }
 
     @GetMapping("/appointments")
     public ResponseEntity<List<ReceptionAppointmentResponse>> search(
@@ -38,11 +38,25 @@ public class ReceptionController {
         return ResponseEntity.ok(service.search(query, date));
     }
 
+    @GetMapping("/worklist")
+    public ResponseEntity<List<ReceptionAppointmentResponse>> worklist(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return ResponseEntity.ok(service.worklist(date));
+    }
+
     @PostMapping("/appointments/{appointmentId}/check-in")
     public ResponseEntity<ReceptionAppointmentResponse> checkIn(@PathVariable UUID appointmentId,
                                                                   @Valid @RequestBody ReceptionCheckInRequest request,
                                                                   Authentication authentication) {
         return ResponseEntity.ok(service.checkIn(appointmentId, request, authentication.getName()));
+    }
+
+    @PostMapping("/appointments/{appointmentId}/reschedule-late")
+    public ResponseEntity<ReceptionAppointmentResponse> rescheduleLate(
+            @PathVariable UUID appointmentId,
+            @Valid @RequestBody ReceptionRebookRequest request,
+            Authentication authentication) {
+        return ResponseEntity.ok(service.rescheduleLate(appointmentId, request, authentication.getName()));
     }
 
     @PostMapping("/appointments/{appointmentId}/rebook")
@@ -61,7 +75,7 @@ public class ReceptionController {
     }
 
     @PostMapping("/appointments/{appointmentId}/facility-unavailable")
-    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'COORDINATOR')")
+    @PreAuthorize("hasRole('RECEPTIONIST')")
     public ResponseEntity<ReceptionAppointmentResponse> markFacilityUnavailable(
             @PathVariable UUID appointmentId, @Valid @RequestBody QueueLeaveRequest request,
             Authentication authentication) {
@@ -70,8 +84,9 @@ public class ReceptionController {
 
     @PostMapping("/walk-in")
     public ResponseEntity<ReceptionAppointmentResponse> createWalkIn(
-            @Valid @RequestBody ReceptionWalkInRequest request, Authentication authentication) {
-        return ResponseEntity.ok(service.createWalkIn(request, authentication.getName()));
+            @Valid @RequestBody ReceptionWalkInRequest request, Authentication authentication,
+            @IdempotencyKey @RequestHeader("Idempotency-Key") String requestKey) {
+        return ResponseEntity.ok(service.createWalkIn(request, authentication.getName(), requestKey));
     }
 
     @PostMapping("/temporary-profiles")

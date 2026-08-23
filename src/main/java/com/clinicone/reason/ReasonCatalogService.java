@@ -2,7 +2,10 @@ package com.clinicone.reason;
 
 import com.clinicone.auth.AuthException;
 import org.springframework.http.HttpStatus;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
+import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -10,15 +13,13 @@ import java.util.Locale;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class ReasonCatalogService {
     private static final long MINIMUM_CANCELLATION_REASONS = 3;
     private final ReasonCatalogRepository repository;
 
-    public ReasonCatalogService(ReasonCatalogRepository repository) {
-        this.repository = repository;
-    }
-
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = "reasons", key = "(#type == null ? 'null' : #type.name()) + ':' + #activeOnly")
     public List<ReasonCatalogResponse> list(ReasonCatalogType type, boolean activeOnly) {
         if (type == null) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "REASON_TYPE_REQUIRED", "Cần chọn loại danh mục lý do.");
@@ -38,6 +39,7 @@ public class ReasonCatalogService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = "reasons", allEntries = true)
     public ReasonCatalogResponse create(CreateReasonCatalogRequest request) {
         if (request == null || request.type() == null) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "REASON_TYPE_REQUIRED", "Cần chọn loại danh mục lý do.");
@@ -51,6 +53,7 @@ public class ReasonCatalogService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = "reasons", allEntries = true)
     public ReasonCatalogResponse update(UUID id, UpdateReasonCatalogRequest request) {
         ReasonCatalog reason = find(id);
         String code = normalizeCode(request == null ? null : request.code());
@@ -63,6 +66,7 @@ public class ReasonCatalogService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = "reasons", allEntries = true)
     public ReasonCatalogResponse setActive(UUID id, boolean active) {
         ReasonCatalog reason = find(id);
         if (!active && reason.isActive() && reason.getType() == ReasonCatalogType.APPOINTMENT_CANCELLATION

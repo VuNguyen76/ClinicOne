@@ -1,5 +1,7 @@
 package com.clinicone.doctor;
 
+import lombok.RequiredArgsConstructor;
+
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
@@ -17,14 +19,11 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/doctors")
 @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
 public class DoctorManagementController {
     private final DoctorManagementService service;
-
-    public DoctorManagementController(DoctorManagementService service) {
-        this.service = service;
-    }
 
     @GetMapping
     public ResponseEntity<List<DoctorAccountResponse>> list() {

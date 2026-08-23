@@ -1,91 +1,208 @@
-<main class="min-h-screen bg-[#f7fafb] text-[#103f4c]">
-  <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
-    <div class="mx-auto flex h-[72px] max-w-[1200px] items-center justify-between gap-8 px-5 lg:px-0">
-      <a routerLink="/home" class="flex items-center gap-3" aria-label="ClinicOne, trang chủ">
-        <img class="h-11 w-11 object-contain" src="clinicone-mark.png" alt="" aria-hidden="true" />
-        <span class="text-[21px] font-bold tracking-[-0.04em]">Clinic<span class="text-[#0ea5e9]">One</span></span>
-      </a>
-      <nav class="hidden items-center gap-7 text-sm font-medium text-slate-600 lg:flex" aria-label="Điều hướng chính">
-        <a routerLink="/home" class="hover:text-[#0ea5e9]">Trang chủ</a>
-        <a routerLink="/about" class="hover:text-[#0ea5e9]">Giới thiệu</a>
-        <a routerLink="/process" class="hover:text-[#0ea5e9]">Quy trình</a>
-        <a routerLink="/common-issues" class="hover:text-[#0ea5e9]">Hướng dẫn</a>
-        <a routerLink="/support" class="hover:text-[#0ea5e9]">Thắc mắc</a>
-        <a routerLink="/contact" class="hover:text-[#0ea5e9]">Liên hệ</a>
-      </nav>
-      <div class="flex items-center gap-4">
-        <a href="tel:1900000" class="hidden items-center gap-2 text-right sm:flex">
-          <mat-icon class="!h-5 !w-5 !text-[19px] text-rose-500">phone_in_talk</mat-icon>
-          <span class="hidden text-xs text-slate-500 xl:block"><strong class="block text-[#103f4c]">Tổng đài</strong><span class="font-semibold tracking-[0.08em] text-rose-500">1900000</span></span>
-        </a>
-        <app-account-menu />
-      </div>
-    </div>
-  </header>
+<main class="min-h-screen bg-slate-50 text-slate-800 antialiased">
+  <app-patient-header />
 
   <div class="mx-auto max-w-[1200px] px-5 py-8 lg:px-0 lg:py-10">
-    <div class="flex items-center gap-3 text-sm"><a routerLink="/home" class="font-semibold text-[#103f4c] hover:text-[#0ea5e9]">Trang chủ</a><mat-icon class="!h-4 !w-4 !text-[16px] text-slate-400">chevron_right</mat-icon><span class="font-semibold text-[#0ea5e9]">Hồ sơ bệnh nhân</span></div>
+    <div class="flex items-center gap-3 text-sm">
+      <a routerLink="/home" class="font-semibold text-slate-700 hover:text-[#0284c7]">Trang chủ</a>
+      <mat-icon class="!h-4 !w-4 !text-[16px] text-slate-400">chevron_right</mat-icon>
+      <span class="font-semibold text-[#0284c7]">Hồ sơ bệnh nhân</span>
+    </div>
+
+    <!-- Alert / Notice Notification Banners -->
+    @if (error()) {
+      <div class="mt-4 flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-medium text-rose-800 shadow-xs" role="alert">
+        <div class="flex items-center gap-2">
+          <mat-icon class="!h-4 !w-4 !text-[18px] text-rose-600">error_outline</mat-icon>
+          <span>{{ error() }}</span>
+        </div>
+        <button type="button" class="text-rose-500 hover:text-rose-700" (click)="error.set('')" title="Đóng">
+          <mat-icon class="!h-4 !w-4 !text-[16px]">close</mat-icon>
+        </button>
+      </div>
+    }
+    @if (notice()) {
+      <div class="mt-4 flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-medium text-emerald-800 shadow-xs" role="status">
+        <div class="flex items-center gap-2">
+          <mat-icon class="!h-4 !w-4 !text-[18px] text-emerald-600">check_circle</mat-icon>
+          <span>{{ notice() }}</span>
+        </div>
+        <button type="button" class="text-emerald-500 hover:text-emerald-700" (click)="notice.set('')" title="Đóng">
+          <mat-icon class="!h-4 !w-4 !text-[16px]">close</mat-icon>
+        </button>
+      </div>
+    }
 
     <div class="mt-8 grid gap-8 lg:grid-cols-[230px_1fr] lg:gap-10">
-      <aside class="border-b border-slate-200 pb-5 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-6"><app-account-nav /></aside>
+      <aside class="border-b border-slate-200 pb-5 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-6"><app-account-nav />
+      </aside>
 
       <section class="min-w-0" id="profile">
-        <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center"><h1 class="text-2xl font-bold tracking-[-0.03em] text-slate-900">Danh sách hồ sơ bệnh nhân</h1><a data-testid="add-profile-action" routerLink="/patient-profiles" class="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-[#0ea5e9] bg-white px-4 text-sm font-semibold text-[#0284c7] transition hover:bg-[#e8f8fc]"><mat-icon class="!text-[19px]">add</mat-icon>Thêm hồ sơ</a></div>
-
-    @if (loading()) {
-      <div class="mt-6 grid min-h-48 place-items-center rounded-xl border border-slate-200 text-sm text-slate-500">Đang tải thông tin tài khoản...</div>
-    } @else {
-      @if (profile()?.mustChangePassword) {
-        <div class="mt-5 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          <mat-icon class="text-amber-600">lock_reset</mat-icon>
-          <div><p class="font-semibold">Bạn cần đổi mật khẩu tạm thời.</p><a routerLink="/change-password" [queryParams]="{ required: 1 }" class="mt-1 inline-flex font-semibold text-[#b45309] underline underline-offset-2">Đổi mật khẩu</a></div>
-        </div>
-      }
-
-      <article class="mt-6 overflow-hidden rounded-[16px] border border-slate-200 bg-white shadow-[0_12px_35px_rgba(15,23,42,0.07)]">
-        <div class="space-y-6 px-6 py-7 sm:px-8">
-          <div class="grid gap-4 sm:grid-cols-2">
-            <div class="flex items-center gap-3 text-[16px]"><mat-icon class="text-slate-300">person</mat-icon><span>Họ và tên:</span><strong class="text-orange-500">{{ profile()?.fullName }}</strong></div>
-            <div class="flex items-center gap-3 text-[16px]"><mat-icon class="text-slate-300">phone</mat-icon><span>Số điện thoại:</span><strong>{{ maskedPhone() }}</strong></div>
-            <div class="flex items-center gap-3 text-[16px]"><mat-icon class="text-slate-300">cake</mat-icon><span>Ngày sinh:</span><strong>{{ formatDateOfBirth(profile()?.dateOfBirth) }}</strong></div>
-            <div class="flex items-center gap-3 text-[16px]"><mat-icon class="text-slate-300">wc</mat-icon><span>Giới tính:</span><strong>{{ profile()?.gender || 'Chưa cập nhật' }}</strong></div>
-            <div class="flex items-center gap-3 text-[16px]"><mat-icon class="text-slate-300">badge</mat-icon><span>CCCD/CMND:</span><strong>{{ profile()?.identityNumber || 'Chưa cập nhật' }}</strong></div>
-            <div class="flex items-center gap-3 text-[16px]"><mat-icon class="text-slate-300">public</mat-icon><span>Quốc tịch:</span><strong>{{ profile()?.nationality || 'Chưa cập nhật' }}</strong></div>
-            <div class="flex items-center gap-3 text-[16px]"><mat-icon class="text-slate-300">groups</mat-icon><span>Dân tộc:</span><strong>{{ profile()?.ethnicity || 'Chưa cập nhật' }}</strong></div>
-            <div class="flex items-start gap-3 text-[16px] sm:col-span-2"><mat-icon class="text-slate-300">location_on</mat-icon><span>Địa chỉ:</span><strong>{{ profile()?.address || 'Chưa cập nhật' }}</strong></div>
+        <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+          <div>
+            <p class="text-xs font-bold uppercase tracking-[0.16em] text-[#0284c7]">Tài khoản chính</p>
+            <h1 class="mt-1.5 text-2xl font-bold tracking-[-0.03em] text-slate-900 sm:text-3xl">Hồ sơ bệnh nhân</h1>
           </div>
-
-          <form class="grid gap-5 border-t border-slate-100 pt-6" [formGroup]="profileForm" (ngSubmit)="saveProfile()" novalidate>
-            <div><p class="text-sm font-semibold text-slate-700">Cập nhật thông tin cá nhân</p><p class="mt-1 text-xs text-slate-500">Các trường có dấu * giúp phòng khám xác định đúng hồ sơ.</p></div>
-            <div class="grid gap-4 sm:grid-cols-2">
-              <label class="text-sm font-semibold text-slate-700">Họ và tên *<input class="mt-2 min-h-11 w-full rounded-lg border border-slate-200 px-3 text-base font-normal outline-none focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/15" formControlName="fullName" autocomplete="name" /></label>
-              <label class="text-sm font-semibold text-slate-700">Ngày sinh *<input class="mt-2 min-h-11 w-full rounded-lg border border-slate-200 px-3 text-base font-normal outline-none focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/15" type="date" min="1900-01-01" [max]="today" formControlName="dateOfBirth" autocomplete="bday" /></label>
-              <label class="text-sm font-semibold text-slate-700">Giới tính *<select class="mt-2 min-h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-base font-normal outline-none focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/15" formControlName="gender"><option value="">Chọn giới tính</option><option value="Nam">Nam</option><option value="Nữ">Nữ</option><option value="Khác">Khác</option></select></label>
-              <label class="text-sm font-semibold text-slate-700">CCCD/CMND<input class="mt-2 min-h-11 w-full rounded-lg border border-slate-200 px-3 text-base font-normal outline-none focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/15" inputmode="numeric" maxlength="12" formControlName="identityNumber" placeholder="9 hoặc 12 chữ số" autocomplete="off" /></label>
-              <label class="text-sm font-semibold text-slate-700">Quốc tịch<select class="mt-2 min-h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-base font-normal outline-none focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/15" formControlName="nationality"><option value="Việt Nam">Việt Nam</option><option value="Khác">Khác</option></select></label>
-              <label class="text-sm font-semibold text-slate-700">Dân tộc<input class="mt-2 min-h-11 w-full rounded-lg border border-slate-200 px-3 text-base font-normal outline-none focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/15" formControlName="ethnicity" placeholder="Kinh" autocomplete="off" /></label>
-            </div>
-
-            <div class="border-t border-slate-100 pt-5"><h2 class="text-lg font-semibold text-slate-900">Địa chỉ theo CCCD (cũ)</h2><p class="mt-1 text-xs text-slate-500">Danh sách địa giới dùng bộ dữ liệu 63 tỉnh/thành trước ngày 01/07/2025.</p></div>
-            <div class="grid gap-4 sm:grid-cols-2">
-              <label class="text-sm font-semibold text-slate-700">Tỉnh/Thành phố<select class="mt-2 min-h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-base font-normal outline-none focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/15" formControlName="provinceCode" (change)="provinceChanged()"><option value="">Chọn tỉnh/thành phố</option>@for (province of provinces(); track province.code) {<option [value]="province.code">{{ province.name }}</option>}</select></label>
-              <label class="text-sm font-semibold text-slate-700">Quận/Huyện<select class="mt-2 min-h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-base font-normal outline-none focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/15" formControlName="districtCode" (change)="districtChanged()"><option value="">Chọn quận/huyện</option>@for (district of districts(); track district.code) {<option [value]="district.code">{{ district.name }}</option>}</select></label>
-              <label class="text-sm font-semibold text-slate-700">Xã/Phường<select class="mt-2 min-h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-base font-normal outline-none focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/15" formControlName="wardCode" (change)="wardChanged()"><option value="">Chọn xã/phường</option>@for (ward of wards(); track ward.code) {<option [value]="ward.code">{{ ward.name }}</option>}</select></label>
-              <label class="text-sm font-semibold text-slate-700">Số nhà/Tên đường/Ấp thôn xóm <span class="font-normal text-slate-400">(không bắt buộc)</span><input class="mt-2 min-h-11 w-full rounded-lg border border-slate-200 px-3 text-base font-normal outline-none focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/15" formControlName="streetAddress" autocomplete="street-address" /></label>
-            </div>
-            @if (addressLoading()) { <p class="text-xs text-slate-500">Đang tải danh sách địa chỉ...</p> }
-            @if (profileForm.controls.identityNumber.invalid && profileForm.controls.identityNumber.touched) { <p class="text-sm text-red-600">CMND/CCCD phải gồm 9 hoặc 12 chữ số.</p> }
-            @if (profileForm.invalid && profileForm.touched) { <p class="text-sm text-red-600">Vui lòng kiểm tra lại các thông tin bắt buộc.</p> }
-            <button class="min-h-11 rounded-lg bg-[#0ea5e9] px-5 text-sm font-semibold text-white transition hover:bg-[#0284c7] disabled:cursor-not-allowed disabled:opacity-60 sm:w-fit" type="submit" [disabled]="busy()">{{ busy() ? 'Đang lưu...' : 'Lưu thông tin' }}</button>
-          </form>
+          <a data-testid="add-profile-action" routerLink="/patient-profiles"
+            class="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-[#0ea5e9] bg-white px-4 text-sm font-semibold text-[#0284c7] transition hover:bg-sky-50"><mat-icon
+              class="!text-[19px]">groups</mat-icon>Danh sách hồ sơ phụ</a>
         </div>
 
-      </article>
-    }
+        @if (loading()) {
+        <div
+          class="mt-6 grid min-h-48 place-items-center rounded-xl border border-slate-200 bg-white text-sm text-slate-500">
+          Đang tải thông tin tài khoản...</div>
+        } @else {
+        @if (profile()?.mustChangePassword) {
+        <div
+          class="mt-5 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          <mat-icon class="text-amber-600">lock_reset</mat-icon>
+          <div>
+            <p class="font-semibold">Bạn cần đổi mật khẩu tạm thời.</p><a routerLink="/change-password"
+              [queryParams]="{ required: 1 }"
+              class="mt-1 inline-flex font-semibold text-[#b45309] underline underline-offset-2">Đổi mật khẩu</a>
+          </div>
+        </div>
+        }
+
+        <article class="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
+          <div class="space-y-6 px-6 py-7 sm:px-8">
+            <div class="grid gap-4 sm:grid-cols-2">
+              <div class="flex items-center gap-3 text-sm"><mat-icon class="text-[#0284c7]">person</mat-icon><span
+                  class="text-slate-500">Họ và tên:</span><strong class="text-slate-900">{{ profile()?.fullName
+                  }}</strong></div>
+              <div class="flex items-center gap-3 text-sm"><mat-icon class="text-[#0284c7]">phone</mat-icon><span
+                  class="text-slate-500">Số điện thoại:</span><strong class="text-slate-900">{{ maskedPhone()
+                  }}</strong></div>
+              <div class="flex items-center gap-3 text-sm"><mat-icon class="text-[#0284c7]">cake</mat-icon><span
+                  class="text-slate-500">Ngày sinh:</span><strong class="text-slate-900">{{
+                  formatDateOfBirth(profile()?.dateOfBirth) }}</strong></div>
+              <div class="flex items-center gap-3 text-sm"><mat-icon class="text-[#0284c7]">wc</mat-icon><span
+                  class="text-slate-500">Giới tính:</span><strong class="text-slate-900">{{ profile()?.gender || 'Chưa
+                  cập nhật' }}</strong></div>
+              <div class="flex items-center gap-3 text-sm"><mat-icon class="text-[#0284c7]">badge</mat-icon><span
+                  class="text-slate-500">CCCD/CMND:</span><strong class="text-slate-900">{{ profile()?.identityNumber ||
+                  'Chưa cập nhật' }}</strong></div>
+              <div class="flex items-center gap-3 text-sm"><mat-icon class="text-[#0284c7]">public</mat-icon><span
+                  class="text-slate-500">Quốc tịch:</span><strong class="text-slate-900">{{ profile()?.nationality ||
+                  'Chưa cập nhật' }}</strong></div>
+              <div class="flex items-center gap-3 text-sm"><mat-icon class="text-[#0284c7]">groups</mat-icon><span
+                  class="text-slate-500">Dân tộc:</span><strong class="text-slate-900">{{ profile()?.ethnicity || 'Chưa
+                  cập nhật' }}</strong></div>
+              <div class="flex items-start gap-3 text-sm sm:col-span-2"><mat-icon
+                  class="text-[#0284c7]">location_on</mat-icon><span class="text-slate-500">Địa chỉ:</span><strong
+                  class="text-slate-900">{{ profile()?.address || 'Chưa cập nhật' }}</strong></div>
+            </div>
+
+            <form class="grid gap-6 border-t border-slate-100 pt-6" [formGroup]="profileForm" (ngSubmit)="saveProfile()"
+              novalidate>
+              <div>
+                <h2 class="text-base font-bold text-slate-900">Cập nhật thông tin cá nhân</h2>
+              </div>
+              <div class="grid gap-4 sm:grid-cols-2">
+                <label class="grid gap-1.5 text-xs font-semibold text-slate-700">
+                  Họ và tên *
+                  <input
+                    class="h-10 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm font-normal outline-none transition focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15"
+                    formControlName="fullName" autocomplete="name" />
+                </label>
+                <label class="grid gap-1.5 text-xs font-semibold text-slate-700">
+                  Ngày sinh *
+                  <input
+                    class="h-10 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm font-normal outline-none transition focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15"
+                    type="date" min="1900-01-01" [max]="today" formControlName="dateOfBirth" autocomplete="bday" />
+                </label>
+                <label class="grid gap-1.5 text-xs font-semibold text-slate-700">
+                  Giới tính *
+                  <select
+                    class="h-10 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm font-normal outline-none transition focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15"
+                    formControlName="gender">
+                    <option value="">Chọn giới tính</option>
+                    <option value="Nam">Nam</option>
+                    <option value="Nữ">Nữ</option>
+                    <option value="Khác">Khác</option>
+                  </select>
+                </label>
+                <label class="grid gap-1.5 text-xs font-semibold text-slate-700">
+                  CCCD/CMND
+                  <input
+                    class="h-10 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm font-normal outline-none transition focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15"
+                    inputmode="numeric" maxlength="12" formControlName="identityNumber" placeholder="9 hoặc 12 chữ số"
+                    autocomplete="off" />
+                </label>
+                <label class="grid gap-1.5 text-xs font-semibold text-slate-700">
+                  Quốc tịch
+                  <select
+                    class="h-10 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm font-normal outline-none transition focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15"
+                    formControlName="nationality">
+                    <option value="Việt Nam">Việt Nam</option>
+                    <option value="Khác">Khác</option>
+                  </select>
+                </label>
+                <label class="grid gap-1.5 text-xs font-semibold text-slate-700">
+                  Dân tộc
+                  <input
+                    class="h-10 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm font-normal outline-none transition focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15"
+                    formControlName="ethnicity" placeholder="Kinh" autocomplete="off" />
+                </label>
+              </div>
+
+              <div class="border-t border-slate-100 pt-5">
+                <h3 class="text-sm font-bold text-slate-900">Địa chỉ liên hệ</h3>
+              </div>
+              <div class="grid gap-4 sm:grid-cols-2">
+                <label class="grid gap-1.5 text-xs font-semibold text-slate-700">
+                  Tỉnh/Thành phố
+                  <select
+                    class="h-10 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm font-normal outline-none transition focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15"
+                    formControlName="provinceCode" (change)="provinceChanged()">
+                    <option value="">Chọn tỉnh/thành phố</option>
+                    @for (province of provinces(); track province.code) {
+                    <option [value]="province.code">{{ province.name }}</option>
+                    }
+                  </select>
+                </label>
+                <label class="grid gap-1.5 text-xs font-semibold text-slate-700">
+                  Quận/Huyện
+                  <select
+                    class="h-10 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm font-normal outline-none transition focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15"
+                    formControlName="districtCode" (change)="districtChanged()">
+                    <option value="">Chọn quận/huyện</option>
+                    @for (district of districts(); track district.code) {
+                    <option [value]="district.code">{{ district.name }}</option>
+                    }
+                  </select>
+                </label>
+                <label class="grid gap-1.5 text-xs font-semibold text-slate-700">
+                  Xã/Phường
+                  <select
+                    class="h-10 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm font-normal outline-none transition focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15"
+                    formControlName="wardCode" (change)="wardChanged()">
+                    <option value="">Chọn xã/phường</option>
+                    @for (ward of wards(); track ward.code) {
+                    <option [value]="ward.code">{{ ward.name }}</option>
+                    }
+                  </select>
+                </label>
+                <label class="grid gap-1.5 text-xs font-semibold text-slate-700">
+                  Số nhà/Tên đường
+                  <input
+                    class="h-10 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm font-normal outline-none transition focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15"
+                    formControlName="streetAddress" autocomplete="street-address" />
+                </label>
+              </div>
+              @if (addressLoading()) { <p class="text-xs text-slate-500">Đang tải danh sách địa chỉ...</p> }
+              @if (profileForm.controls.identityNumber.invalid && profileForm.controls.identityNumber.touched) { <p
+                class="text-sm text-red-600">CMND/CCCD phải gồm 9 hoặc 12 chữ số.</p> }
+              @if (profileForm.invalid && profileForm.touched) { <p class="text-sm text-red-600">Vui lòng kiểm tra lại
+                các thông tin bắt buộc.</p> }
+              <button
+                class="min-h-10 rounded-lg bg-[#0284c7] px-6 text-sm font-semibold text-white shadow-xs transition hover:bg-[#0369a1] disabled:cursor-not-allowed disabled:opacity-60 sm:w-fit"
+                type="submit" [disabled]="busy()">{{ busy() ? 'Đang lưu...' : 'Lưu thông tin' }}</button>
+            </form>
+          </div>
+        </article>
+        }
       </section>
     </div>
   </div>
-
-  @if (error()) { <p class="fixed bottom-5 left-1/2 z-40 -translate-x-1/2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-lg" role="alert">{{ error() }}</p> }
-  @if (notice()) { <p class="fixed bottom-5 left-1/2 z-40 -translate-x-1/2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 shadow-lg" role="status">{{ notice() }}</p> }
 </main>

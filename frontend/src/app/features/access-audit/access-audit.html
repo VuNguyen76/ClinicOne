@@ -1,1 +1,107 @@
-<main class="min-h-screen bg-[#f6f8f9] text-[#173f4b]"><header class="sticky top-0 z-30 h-16 border-b border-[#dce7ea] bg-white/95 backdrop-blur"><div class="mx-auto flex h-full max-w-[1440px] items-center justify-between gap-4 px-4 lg:px-8"><a routerLink="/admin/rooms" class="flex items-center gap-2.5" aria-label="ClinicOne"><img class="h-8 w-8 object-contain" src="clinicone-mark.png" alt="" aria-hidden="true" /><span class="text-lg font-bold tracking-[-0.05em] text-[#0a303b]">Clinic<span class="text-[#0ea5e9]">One</span></span><span class="hidden border-l border-[#dce7ea] pl-3 text-sm font-medium text-slate-500 sm:inline">Nhật ký truy cập</span></a><app-account-menu /></div></header><div class="mx-auto max-w-[1440px] px-4 py-6 lg:px-8 lg:py-8"><section class="flex flex-wrap items-end justify-between gap-4 border-b border-[#dce7ea] pb-5"><div><p class="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0b91c9]">Bảo mật và kiểm toán</p><h1 class="mt-2 text-2xl font-bold tracking-[-0.04em] text-[#0a303b]">Nhật ký truy cập</h1><p class="mt-1 text-sm text-slate-500">Chỉ xem, không sửa hoặc xóa dữ liệu lịch sử.</p></div><mat-icon class="!h-9 !w-9 !text-[36px] text-[#0b91c9]">manage_search</mat-icon></section>@if (error()) {<p class="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700" role="alert">{{ error() }}</p>}<section class="mt-5 border border-[#dce7ea] bg-white p-4"><div class="grid gap-3 md:grid-cols-5"><label class="grid gap-1 text-xs font-semibold">Từ ngày<input type="date" [ngModel]="from()" (ngModelChange)="from.set($event)" name="from" class="min-h-9 rounded-md border border-[#d5e3e7] px-2 text-sm font-normal" /></label><label class="grid gap-1 text-xs font-semibold">Đến ngày<input type="date" [ngModel]="to()" (ngModelChange)="to.set($event)" name="to" class="min-h-9 rounded-md border border-[#d5e3e7] px-2 text-sm font-normal" /></label><label class="grid gap-1 text-xs font-semibold">Tài khoản<input [ngModel]="actor()" (ngModelChange)="actor.set($event)" name="actor" placeholder="Tên tài khoản" class="min-h-9 rounded-md border border-[#d5e3e7] px-2 text-sm font-normal" /></label><label class="grid gap-1 text-xs font-semibold">Kết quả<select [ngModel]="outcome()" (ngModelChange)="outcome.set($event)" name="outcome" class="min-h-9 rounded-md border border-[#d5e3e7] px-2 text-sm font-normal"><option value="">Tất cả</option><option value="SUCCESS">Thành công</option><option value="FAILED">Bị từ chối</option></select></label><label class="grid gap-1 text-xs font-semibold">Loại sự kiện<select [ngModel]="eventType()" (ngModelChange)="eventType.set($event)" name="eventType" class="min-h-9 rounded-md border border-[#d5e3e7] px-2 text-sm font-normal"><option value="">Tất cả</option><option value="STAFF_LOGIN">Đăng nhập nhân viên</option><option value="STAFF_LOCK">Khóa tài khoản</option><option value="STAFF_UNLOCK">Mở khóa tài khoản</option></select></label></div><div class="mt-3 flex justify-end"><button type="button" class="min-h-9 rounded-md bg-[#0b3846] px-4 text-sm font-semibold text-white hover:bg-[#082d39]" (click)="refresh()">Lọc nhật ký</button></div></section><section class="mt-5 overflow-hidden border border-[#dce7ea] bg-white"><div class="flex items-center justify-between border-b border-[#e7eff1] px-5 py-4"><div><h2 class="text-sm font-bold">Các lần truy cập</h2><p class="mt-0.5 text-xs text-slate-500">{{ events().length }} bản ghi đang hiển thị</p></div><mat-icon class="text-[#0b91c9]">history</mat-icon></div>@if (loading()) {<div class="grid min-h-48 place-items-center text-sm text-slate-500">Đang tải nhật ký...</div>} @else {<div class="overflow-x-auto"><table class="w-full min-w-[760px] text-left text-sm"><thead class="bg-[#f7fafb] text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-5 py-3">Thời điểm</th><th class="px-5 py-3">Loại</th><th class="px-5 py-3">Tài khoản</th><th class="px-5 py-3">Kết quả</th><th class="px-5 py-3">Chức năng</th><th class="px-5 py-3">Địa chỉ truy cập</th></tr></thead><tbody class="divide-y divide-[#edf2f3]">@for (item of events(); track item.id) {<tr><td class="whitespace-nowrap px-5 py-3 text-slate-500">{{ formatDate(item.occurredAt) }}</td><td class="px-5 py-3 font-semibold">{{ item.eventType }}</td><td class="px-5 py-3">{{ item.actor }}</td><td class="px-5 py-3"><span class="rounded-full px-2 py-1 text-xs font-semibold" [class.bg-emerald-50]="item.outcome === 'SUCCESS'" [class.text-emerald-700]="item.outcome === 'SUCCESS'" [class.bg-rose-50]="item.outcome !== 'SUCCESS'" [class.text-rose-700]="item.outcome !== 'SUCCESS'">{{ item.outcome }}</span></td><td class="px-5 py-3 text-slate-500">{{ item.function }}</td><td class="px-5 py-3 text-slate-500">{{ item.ipAddress || '—' }}</td></tr>} @empty {<tr><td colspan="6" class="px-5 py-12 text-center text-sm text-slate-500">Chưa có bản ghi phù hợp.</td></tr>}</tbody></table></div>}</section></div></main>
+<app-staff-workspace-shell moduleTitle="Kiểm soát" pageTitle="Nhật ký truy cập">
+  <div class="grid gap-6">
+    <!-- Alerts -->
+    @if (error()) {
+      <div class="flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-medium text-rose-800 shadow-xs" role="alert">
+        <div class="flex items-center gap-2">
+          <mat-icon class="!h-4 !w-4 !text-[18px] text-rose-600">error_outline</mat-icon>
+          <span>{{ error() }}</span>
+        </div>
+        <button type="button" class="erp-btn-icon !h-6 !w-6" (click)="error.set('')" title="Đóng thông báo">
+          <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">close</mat-icon>
+        </button>
+      </div>
+    }
+
+    <!-- Filter Bar & Action Header -->
+    <div class="rounded-2xl border border-slate-100 bg-white p-4 shadow-xs">
+      <div class="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 lg:items-end">
+        <label class="grid gap-1">
+          <span class="erp-label">Từ ngày</span>
+          <input type="date" [ngModel]="from()" (ngModelChange)="from.set($event)" name="from" class="erp-input font-mono" />
+        </label>
+        <label class="grid gap-1">
+          <span class="erp-label">Đến ngày</span>
+          <input type="date" [ngModel]="to()" (ngModelChange)="to.set($event)" name="to" class="erp-input font-mono" />
+        </label>
+        <label class="grid gap-1">
+          <span class="erp-label">Tài khoản</span>
+          <input [ngModel]="actor()" (ngModelChange)="actor.set($event)" name="actor" placeholder="Tên tài khoản..." class="erp-input" />
+        </label>
+        <label class="grid gap-1">
+          <span class="erp-label">Kết quả</span>
+          <select [ngModel]="outcome()" (ngModelChange)="outcome.set($event)" name="outcome" class="erp-select">
+            <option value="">Tất cả kết quả</option>
+            <option value="SUCCESS">Thành công</option>
+            <option value="FAILED">Bị từ chối</option>
+          </select>
+        </label>
+        <label class="grid gap-1">
+          <span class="erp-label">Loại sự kiện</span>
+          <select [ngModel]="eventType()" (ngModelChange)="eventType.set($event)" name="eventType" class="erp-select">
+            <option value="">Tất cả sự kiện</option>
+            <option value="STAFF_LOGIN">Đăng nhập nhân viên</option>
+            <option value="STAFF_LOCK">Khóa tài khoản</option>
+            <option value="STAFF_UNLOCK">Mở khóa tài khoản</option>
+          </select>
+        </label>
+        <button type="button" class="erp-btn-primary w-full" (click)="refresh()" [disabled]="loading()">
+          <mat-icon class="!h-4 !w-4 !text-[18px]">filter_list</mat-icon>
+          <span>Lọc nhật ký</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 3. Main DataGrid Table -->
+    @if (loading()) {
+      <div class="grid min-h-64 place-items-center rounded-2xl border border-slate-100 bg-white text-xs text-slate-500 shadow-xs">
+        Đang tải nhật ký bảo mật...
+      </div>
+    } @else {
+      <section class="rounded-2xl border border-slate-100 bg-white shadow-xs overflow-hidden w-full">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs whitespace-nowrap">
+            <thead>
+              <tr class="border-b border-slate-100 text-[11px] font-semibold text-slate-500 uppercase tracking-wider bg-slate-50/50">
+                <th class="px-4 py-3.5">Thời gian</th>
+                <th class="px-4 py-3.5">Tài khoản thao tác</th>
+                <th class="px-4 py-3.5">Sự kiện</th>
+                <th class="px-4 py-3.5">Chi tiết</th>
+                <th class="px-4 py-3.5">Địa chỉ IP</th>
+                <th class="px-4 py-3.5 text-center">Kết quả</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-50">
+              @for (item of events(); track item.id) {
+                <tr class="transition hover:bg-slate-50/70">
+                  <td class="px-4 py-3 font-mono text-slate-600 text-[11px]">{{ formatDate(item.occurredAt) }}</td>
+                  <td class="px-4 py-3 font-bold text-slate-900">{{ formatActor(item.actor) }}</td>
+                  <td class="px-4 py-3 font-medium text-slate-800">{{ item.eventType }}</td>
+                  <td class="px-4 py-3 text-slate-600 max-w-xs truncate">{{ item.function }}</td>
+                  <td class="px-4 py-3 font-mono text-slate-500 text-[11px]">{{ item.ipAddress || '—' }}</td>
+                  <td class="px-4 py-3 text-center">
+                    @if (item.outcome === 'SUCCESS') {
+                      <span class="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[11px] font-medium text-emerald-800">
+                        Thành công
+                      </span>
+                    } @else {
+                      <span class="inline-flex items-center rounded-full bg-rose-50 border border-rose-200 px-2.5 py-0.5 text-[11px] font-medium text-rose-800">
+                        Từ chối
+                      </span>
+                    }
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="6" class="px-4 py-12 text-center text-xs text-slate-500">
+                    Không có sự kiện truy cập nào phù hợp với bộ lọc.
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    }
+  </div>
+</app-staff-workspace-shell>

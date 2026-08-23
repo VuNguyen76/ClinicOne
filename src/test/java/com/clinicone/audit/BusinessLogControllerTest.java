@@ -56,7 +56,7 @@ class BusinessLogControllerTest {
     @Test
     void coordinatorCanReadPagedBusinessHistory() throws Exception {
         UUID entityId = UUID.randomUUID();
-        when(service.page("APPOINTMENT", entityId, 0, 50))
+        when(service.search("APPOINTMENT", entityId.toString(), 0, 50))
                 .thenReturn(new BusinessLogPageResponse(List.of(), 0, 50, 0, 0, true));
 
         mockMvc.perform(get("/api/v1/admin/audit/search")
@@ -66,6 +66,31 @@ class BusinessLogControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.page").value(0))
                 .andExpect(jsonPath("$.size").value(50))
+                .andExpect(jsonPath("$.items").isArray());
+    }
+
+    @Test
+    void coordinatorCanSearchWithoutParamsForRecentLogs() throws Exception {
+        when(service.search(null, null, 0, 50))
+                .thenReturn(new BusinessLogPageResponse(List.of(), 0, 50, 0, 0, true));
+
+        mockMvc.perform(get("/api/v1/admin/audit/search")
+                        .with(authentication(authenticated("ROLE_COORDINATOR"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.items").isArray());
+    }
+
+    @Test
+    void coordinatorCanSearchByAppointmentCodeIdentifier() throws Exception {
+        when(service.search(null, "CL-20260820-TQ01", 0, 50))
+                .thenReturn(new BusinessLogPageResponse(List.of(), 0, 50, 0, 0, true));
+
+        mockMvc.perform(get("/api/v1/admin/audit/search")
+                        .param("identifier", "CL-20260820-TQ01")
+                        .with(authentication(authenticated("ROLE_COORDINATOR"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.page").value(0))
                 .andExpect(jsonPath("$.items").isArray());
     }
 

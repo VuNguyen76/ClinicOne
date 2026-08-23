@@ -1,9 +1,235 @@
-<main class="min-h-screen bg-[#f6f8f9] text-[#173f4b]">
-  <header class="sticky top-0 z-30 h-16 border-b border-[#dce7ea] bg-white/95 backdrop-blur"><div class="mx-auto flex h-full max-w-[1440px] items-center justify-between gap-4 px-4 lg:px-8"><a routerLink="/admin/rooms" class="flex items-center gap-2.5" aria-label="ClinicOne"><img class="h-8 w-8 object-contain" src="clinicone-mark.png" alt="" aria-hidden="true" /><span class="text-lg font-bold tracking-[-0.05em] text-[#0a303b]">Clinic<span class="text-[#0ea5e9]">One</span></span><span class="hidden border-l border-[#dce7ea] pl-3 text-sm font-medium text-slate-500 sm:inline">Lịch sử công việc</span></a><app-account-menu /></div></header>
-  <div class="mx-auto max-w-[1440px] px-4 py-6 lg:px-8 lg:py-8">
-    <section class="flex flex-wrap items-end justify-between gap-4 border-b border-[#dce7ea] pb-5"><div><p class="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0b91c9]">Vận hành / Kiểm tra</p><h1 class="mt-2 text-2xl font-bold tracking-[-0.04em] text-[#0a303b]">Lịch sử công việc</h1><p class="mt-1 text-sm text-slate-500">Chỉ xem; nhật ký được lưu thêm và không thể sửa hoặc xóa.</p></div><mat-icon class="!h-9 !w-9 !text-[36px] text-[#0b91c9]">history</mat-icon></section>
-    <section class="mt-5 border border-[#dce7ea] bg-white p-4"><div class="grid gap-3 sm:grid-cols-[180px_1fr_auto] sm:items-end"><label class="grid gap-1 text-xs font-semibold">Loại đối tượng<select [ngModel]="entityType()" (ngModelChange)="entityType.set($event)" class="min-h-10 rounded-md border border-[#d5e3e7] bg-white px-2 text-sm font-normal"><option value="APPOINTMENT">Lịch hẹn</option><option value="QUEUE_TICKET">Hàng đợi</option><option value="EXAMINATION">Lượt khám</option></select></label><label class="grid gap-1 text-xs font-semibold">Mã đối tượng<input [ngModel]="entityId()" (ngModelChange)="entityId.set($event)" (keyup.enter)="search()" placeholder="UUID của đối tượng" class="min-h-10 rounded-md border border-[#d5e3e7] px-3 text-sm font-normal" /></label><button type="button" (click)="search()" class="min-h-10 rounded-md bg-[#0b3846] px-4 text-sm font-semibold text-white hover:bg-[#082d39]" [disabled]="loading()">{{ loading() ? 'Đang tải...' : 'Tra cứu' }}</button></div></section>
-    @if (error()) {<p class="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700" role="alert">{{ error() }}</p>}
-    @if (searched()) {<section class="mt-5 overflow-hidden border border-[#dce7ea] bg-white"><div class="flex flex-wrap items-center justify-between gap-3 border-b border-[#e7eff1] px-5 py-4"><div><h2 class="text-sm font-bold">Các lần xử lý</h2><p class="mt-0.5 text-xs text-slate-500">{{ totalElements() }} bản ghi · trang {{ page() + 1 }} / {{ totalPages() || 1 }}</p></div><mat-icon class="text-[#0b91c9]">fact_check</mat-icon></div><div class="overflow-x-auto"><table class="w-full min-w-[960px] text-left text-sm"><thead class="bg-[#f7fafb] text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-5 py-3">Thời điểm</th><th class="px-5 py-3">Công việc</th><th class="px-5 py-3">Trạng thái</th><th class="px-5 py-3">Người thực hiện</th><th class="px-5 py-3">Lý do</th><th class="px-5 py-3">Mã lần xử lý</th></tr></thead><tbody class="divide-y divide-[#edf2f3]">@for (item of items(); track item.id) {<tr><td class="whitespace-nowrap px-5 py-3 text-slate-500">{{ formatDate(item.occurredAt) }}</td><td class="px-5 py-3 font-semibold">{{ item.eventType }}</td><td class="px-5 py-3"><span class="text-slate-500">{{ item.previousStatus || '—' }}</span><span class="px-2 text-slate-300">→</span><span class="font-semibold text-[#0b91c9]">{{ item.nextStatus }}</span></td><td class="px-5 py-3">{{ item.actor }}</td><td class="max-w-[260px] px-5 py-3 text-slate-500">{{ item.reason || '—' }}</td><td class="px-5 py-3 font-mono text-xs text-slate-500">{{ item.eventId }}</td></tr>} @empty {<tr><td colspan="6" class="px-5 py-12 text-center text-sm text-slate-500">Chưa có lịch sử cho đối tượng này.</td></tr>}</tbody></table></div><div class="flex justify-end gap-2 border-t border-[#e7eff1] px-5 py-3"><button type="button" (click)="previous()" [disabled]="loading() || page() === 0" class="min-h-9 rounded-md border border-[#d5e3e7] px-3 text-sm font-semibold disabled:opacity-40">Trước</button><button type="button" (click)="next()" [disabled]="loading() || page() + 1 >= totalPages()" class="min-h-9 rounded-md border border-[#d5e3e7] px-3 text-sm font-semibold disabled:opacity-40">Sau</button></div></section>}
+<app-staff-workspace-shell moduleTitle="Kiểm soát" pageTitle="Lịch sử nghiệp vụ">
+  <div class="grid gap-6">
+    <!-- Alerts -->
+    @if (error()) {
+      <div class="flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-medium text-rose-800 shadow-xs" role="alert">
+        <div class="flex items-center gap-2">
+          <mat-icon class="!h-4 !w-4 !text-[18px] text-rose-600">error_outline</mat-icon>
+          <span>{{ error() }}</span>
+        </div>
+        <button type="button" class="erp-btn-icon !h-6 !w-6" (click)="error.set('')" title="Đóng thông báo">
+          <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">close</mat-icon>
+        </button>
+      </div>
+    }
+
+    <!-- Search & Filter Panel -->
+    <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs flex flex-col gap-4">
+      <!-- Quick Filter Chips -->
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-xs font-medium text-slate-500 mr-1">Bộ lọc nhanh:</span>
+        <button
+          type="button"
+          data-testid="chip-all"
+          class="rounded-full px-3 py-1 text-xs font-semibold transition cursor-pointer"
+          [class.bg-[#0e3d48]]="entityType() === ''"
+          [class.text-white]="entityType() === ''"
+          [class.bg-slate-100]="entityType() !== ''"
+          [class.text-slate-600]="entityType() !== ''"
+          [class.hover:bg-slate-200]="entityType() !== ''"
+          (click)="setEntityType('')"
+        >
+          Tất cả
+        </button>
+        <button
+          type="button"
+          data-testid="chip-appointment"
+          class="rounded-full px-3 py-1 text-xs font-semibold transition cursor-pointer"
+          [class.bg-[#0e3d48]]="entityType() === 'APPOINTMENT'"
+          [class.text-white]="entityType() === 'APPOINTMENT'"
+          [class.bg-slate-100]="entityType() !== 'APPOINTMENT'"
+          [class.text-slate-600]="entityType() !== 'APPOINTMENT'"
+          [class.hover:bg-slate-200]="entityType() !== 'APPOINTMENT'"
+          (click)="setEntityType('APPOINTMENT')"
+        >
+          Lịch hẹn (APPOINTMENT)
+        </button>
+        <button
+          type="button"
+          data-testid="chip-queue"
+          class="rounded-full px-3 py-1 text-xs font-semibold transition cursor-pointer"
+          [class.bg-[#0e3d48]]="entityType() === 'QUEUE_TICKET'"
+          [class.text-white]="entityType() === 'QUEUE_TICKET'"
+          [class.bg-slate-100]="entityType() !== 'QUEUE_TICKET'"
+          [class.text-slate-600]="entityType() !== 'QUEUE_TICKET'"
+          [class.hover:bg-slate-200]="entityType() !== 'QUEUE_TICKET'"
+          (click)="setEntityType('QUEUE_TICKET')"
+        >
+          Hàng đợi (QUEUE_TICKET)
+        </button>
+        <button
+          type="button"
+          data-testid="chip-examination"
+          class="rounded-full px-3 py-1 text-xs font-semibold transition cursor-pointer"
+          [class.bg-[#0e3d48]]="entityType() === 'EXAMINATION'"
+          [class.text-white]="entityType() === 'EXAMINATION'"
+          [class.bg-slate-100]="entityType() !== 'EXAMINATION'"
+          [class.text-slate-600]="entityType() !== 'EXAMINATION'"
+          [class.hover:bg-slate-200]="entityType() !== 'EXAMINATION'"
+          (click)="setEntityType('EXAMINATION')"
+        >
+          Khám bệnh (EXAMINATION)
+        </button>
+      </div>
+
+      <!-- Search Input & Button -->
+      <div class="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+        <label class="grid gap-1">
+          <span class="erp-label">Tìm kiếm theo Mã đối tượng hoặc UUID</span>
+          <div class="relative">
+            <mat-icon class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 !h-4 !w-4 !text-[18px] text-slate-400">search</mat-icon>
+            <input
+              [ngModel]="entityId()"
+              (ngModelChange)="entityId.set($event)"
+              (keyup.enter)="search()"
+              placeholder="Nhập mã lịch hẹn (vd: LH-20260820-001), mã phiếu khám, số hàng đợi hoặc UUID..."
+              class="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-8 text-xs text-slate-800 placeholder-slate-400 outline-none transition focus:border-[#0e3d48] focus:ring-1 focus:ring-[#0e3d48] shadow-2xs font-mono"
+            />
+            @if (entityId()) {
+              <button
+                type="button"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                (click)="entityId.set(''); search()"
+              >
+                <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">close</mat-icon>
+              </button>
+            }
+          </div>
+        </label>
+        <button
+          type="button"
+          data-testid="search-audit-btn"
+          (click)="search()"
+          class="erp-btn-primary w-full sm:w-auto"
+          [disabled]="loading()"
+        >
+          <mat-icon class="!h-4 !w-4 !text-[18px]">search</mat-icon>
+          <span>{{ loading() ? 'Đang tra cứu...' : 'Tra cứu lịch sử' }}</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Main DataGrid Table -->
+    @if (loading()) {
+      <div class="grid min-h-64 place-items-center rounded-2xl border border-slate-100 bg-white text-xs text-slate-500 shadow-xs">
+        Đang tải lịch sử thao tác nghiệp vụ...
+      </div>
+    } @else if (searched()) {
+      <section class="rounded-2xl border border-slate-100 bg-white shadow-xs overflow-hidden w-full">
+        <div class="border-b border-slate-100 px-5 py-3.5 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-800">
+            Dòng thời gian sự kiện: <span class="font-mono text-[#0e3d48]">{{ entityId() || (entityType() ? formatEntityType(entityType()) : 'Tất cả nghiệp vụ gần nhất') }}</span>
+          </h3>
+          <span class="font-mono text-xs text-slate-500">
+            Trang {{ page() + 1 }} / {{ totalPages() || 1 }} ({{ totalElements() }} bản ghi)
+          </span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs whitespace-nowrap">
+            <thead>
+              <tr class="border-b border-slate-100 text-[11px] font-semibold text-slate-500 uppercase tracking-wider bg-slate-50/50">
+                <th class="px-4 py-3.5">Thời điểm</th>
+                <th class="px-4 py-3.5">Đối tượng</th>
+                <th class="px-4 py-3.5">Hành động nghiệp vụ</th>
+                <th class="px-4 py-3.5">Chuyển trạng thái</th>
+                <th class="px-4 py-3.5">Người thao tác</th>
+                <th class="px-4 py-3.5">Lý do ghi nhận</th>
+                <th class="px-4 py-3.5 text-center">Toàn vẹn SHA-256</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-50">
+              @for (item of items(); track item.id) {
+                <tr class="transition hover:bg-slate-50/70">
+                  <td class="px-4 py-3 font-mono text-slate-600 text-[11px]">{{ formatDate(item.occurredAt) }}</td>
+                  <td class="px-4 py-3">
+                    <span class="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700">
+                      {{ formatEntityType(item.entityType) }}
+                    </span>
+                  </td>
+                  <td class="px-4 py-3 font-bold text-slate-900">{{ item.eventType }}</td>
+                  <td class="px-4 py-3">
+                    <span class="font-mono text-[11px] text-slate-500">{{ item.previousStatus || '—' }}</span>
+                    <span class="px-1 text-slate-300">→</span>
+                    <span class="font-mono text-[11px] font-bold text-[#0e3d48]">{{ item.nextStatus }}</span>
+                  </td>
+                  <td class="px-4 py-3 text-slate-800 font-medium">{{ formatActor(item.actor) }}</td>
+                  <td class="px-4 py-3 max-w-xs truncate text-slate-600">{{ item.reason || '—' }}</td>
+                  <td class="px-4 py-3 text-center">
+                    <div class="relative inline-block">
+                      @if (item.hash) {
+                        <button
+                          type="button"
+                          data-testid="sha256-badge"
+                          class="inline-flex items-center gap-1 rounded-full bg-slate-100 hover:bg-slate-200 border border-slate-200 px-2 py-0.5 text-[10px] font-mono text-slate-700 transition cursor-pointer"
+                          (click)="toggleHashPopover(item.id)"
+                          [title]="'Xem mã băm SHA-256: ' + item.hash"
+                        >
+                          <mat-icon class="!h-3 !w-3 !text-[12px] text-emerald-600">verified</mat-icon>
+                          <span>SHA-256</span>
+                        </button>
+
+                        @if (activeHashId() === item.id) {
+                          <div
+                            data-testid="sha256-popover"
+                            class="absolute right-0 bottom-full mb-1.5 z-20 w-80 rounded-xl border border-slate-200 bg-white p-3 shadow-lg text-left"
+                            (click)="$event.stopPropagation()"
+                          >
+                            <div class="flex items-center justify-between pb-1 border-b border-slate-100">
+                              <span class="text-[11px] font-bold text-slate-800 flex items-center gap-1">
+                                <mat-icon class="!h-3.5 !w-3.5 !text-[14px] text-emerald-600">security</mat-icon>
+                                Toàn vẹn dữ liệu
+                              </span>
+                              <button type="button" class="text-slate-400 hover:text-slate-600 text-xs" (click)="toggleHashPopover('')">✕</button>
+                            </div>
+                            <p class="mt-2 text-[10px] font-mono break-all text-slate-600 bg-slate-50 p-1.5 rounded border border-slate-100">
+                              {{ item.hash }}
+                            </p>
+                            <p class="mt-1 text-[10px] text-emerald-600 font-medium flex items-center gap-1">
+                              <mat-icon class="!h-3 !w-3 !text-[12px]">check_circle</mat-icon>
+                              Niêm phong bảo đảm toàn vẹn
+                            </p>
+                          </div>
+                        }
+                      } @else {
+                        <span class="text-[10px] font-mono text-slate-400">—</span>
+                      }
+                    </div>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="7" class="px-4 py-12 text-center text-xs text-slate-500">
+                    Không tìm thấy lịch sử thao tác nào phù hợp.
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        @if (totalPages() > 1) {
+          <div class="flex items-center justify-between border-t border-slate-100 px-5 py-3 bg-slate-50/30">
+            <button
+              type="button"
+              class="erp-btn-secondary"
+              [disabled]="page() === 0 || loading()"
+              (click)="previous()"
+            >
+              Trang trước
+            </button>
+            <span class="font-mono text-xs text-slate-500">Trang {{ page() + 1 }} / {{ totalPages() }}</span>
+            <button
+              type="button"
+              class="erp-btn-secondary"
+              [disabled]="page() + 1 >= totalPages() || loading()"
+              (click)="next()"
+            >
+              Trang sau
+            </button>
+          </div>
+        }
+      </section>
+    }
   </div>
-</main>
+</app-staff-workspace-shell>

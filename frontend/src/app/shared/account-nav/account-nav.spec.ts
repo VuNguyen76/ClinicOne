@@ -21,6 +21,7 @@ describe('AccountNav', () => {
     expect(links.map((link) => link.querySelector('span')?.textContent?.trim())).toEqual([
       'Lịch hẹn của tôi',
       'Hồ sơ bệnh nhân',
+      'Hồ sơ người thân',
       'Đổi mật khẩu',
       'Phiếu khám bệnh',
       'Thông báo',
@@ -28,6 +29,7 @@ describe('AccountNav', () => {
     expect(links.map((link) => link.getAttribute('href'))).toEqual([
       '/appointments',
       '/account',
+      '/patient-profiles',
       '/change-password',
       '/medical-records',
       '/notifications',

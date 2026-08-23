@@ -1,5 +1,7 @@
 package com.clinicone.doctor;
 
+import lombok.Getter;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -18,6 +20,7 @@ import java.time.Instant;
 import java.time.LocalTime;
 import java.util.UUID;
 
+@Getter
 @Entity
 @Table(name = "doctor_schedules")
 public class DoctorSchedule {
@@ -73,11 +76,4 @@ public class DoctorSchedule {
         if (createdAt == null) createdAt = Instant.now();
     }
 
-    public UUID getId() { return id; }
-    public DoctorProfile getDoctorProfile() { return doctorProfile; }
-    public DayOfWeek getDayOfWeek() { return dayOfWeek; }
-    public LocalTime getStartTime() { return startTime; }
-    public LocalTime getEndTime() { return endTime; }
-    public int getSlotDurationMinutes() { return slotDurationMinutes; }
-    public boolean isActive() { return active; }
 }

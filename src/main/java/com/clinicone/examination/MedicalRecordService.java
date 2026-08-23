@@ -1,5 +1,8 @@
 package com.clinicone.examination;
 
+import com.clinicone.auth.AuthenticatedIds;
+import lombok.RequiredArgsConstructor;
+
 import com.clinicone.auth.AuthException;
 import org.springframework.http.HttpStatus;
 import org.springframework.data.domain.Page;
@@ -14,6 +17,7 @@ import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 
 @Service
+@RequiredArgsConstructor
 public class MedicalRecordService {
     private static final int MAX_PAGE_SIZE = 20;
     private static final ZoneId CLINIC_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
@@ -21,13 +25,9 @@ public class MedicalRecordService {
     private static final Instant HISTORY_END = Instant.parse("9999-12-31T23:59:59.999999Z");
     private final MedicalRecordRepository repository;
 
-    public MedicalRecordService(MedicalRecordRepository repository) {
-        this.repository = repository;
-    }
-
     @Transactional(readOnly = true)
     public MedicalRecordHistoryPage listHistory(String accountId, MedicalRecordHistoryQuery query) {
-        UUID patientId = parseAccountId(accountId);
+        UUID patientId = AuthenticatedIds.patient(accountId);
         MedicalRecordHistoryQuery normalized = normalize(query);
         Instant fromAt = normalized.from() == null ? HISTORY_START
                 : normalized.from().atStartOfDay(CLINIC_ZONE).toInstant();
@@ -38,13 +38,13 @@ public class MedicalRecordService {
                 ? repository.findSignedHistory(patientId, fromAt, toExclusive, pageRequest)
                 : repository.findSignedHistoryForProfile(patientId, normalized.profileId(), fromAt, toExclusive,
                         pageRequest);
-        return new MedicalRecordHistoryPage(records.getContent().stream().map(MedicalRecordResponse::from).toList(),
+        return new MedicalRecordHistoryPage(records.getContent().stream().map(MedicalRecordResponse::fromSummary).toList(),
                 records.getNumber(), records.getSize(), records.getTotalElements(), records.getTotalPages());
     }
 
     @Transactional(readOnly = true)
     public MedicalRecordResponse get(String accountId, String recordId) {
-        UUID patientId = parseAccountId(accountId);
+        UUID patientId = AuthenticatedIds.patient(accountId);
         UUID id;
         try {
             id = UUID.fromString(recordId);
@@ -54,15 +54,6 @@ public class MedicalRecordService {
         return repository.findByIdAndSession_Appointment_Patient_IdAndSignedAtIsNotNull(id, patientId)
                 .map(MedicalRecordResponse::from)
                 .orElseThrow(this::notFound);
-    }
-
-    private UUID parseAccountId(String accountId) {
-        try {
-            return UUID.fromString(accountId);
-        } catch (IllegalArgumentException exception) {
-            throw new AuthException(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_REQUIRED",
-                    "Phiên đăng nhập không hợp lệ.");
-        }
     }
 
     private MedicalRecordHistoryQuery normalize(MedicalRecordHistoryQuery query) {

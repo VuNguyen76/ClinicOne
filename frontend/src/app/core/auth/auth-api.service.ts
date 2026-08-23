@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { inject, Injectable } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 
 export type OtpPurpose = 'LOGIN' | 'REGISTRATION' | 'RECOVERY';
@@ -82,6 +82,11 @@ export interface AppointmentResponse {
   statusLabel: string;
   profileId?: string | null;
   profileName?: string | null;
+  doctorId?: string | null;
+  serviceId?: string | null;
+  serviceName?: string | null;
+  visitType?: string | null;
+  serviceDurationMinutes?: number | null;
   requiresMedicalRecord?: boolean;
 }
 
@@ -113,6 +118,12 @@ export interface MedicalRecordResponse {
   followUpDays?: number | null;
   followUpNote?: string | null;
   signedAt: string;
+  patientName?: string | null;
+  patientDateOfBirth?: string | null;
+  patientGender?: string | null;
+  patientPhone?: string | null;
+  specialty?: string | null;
+  appointmentDate?: string | null;
 }
 
 export interface PrescriptionLineResponse {
@@ -265,6 +276,19 @@ export interface SpecialtyOption {
   description: string;
 }
 
+export interface MedicalRecordTemplate {
+  id: string;
+  code: string;
+  name: string;
+  specialty: string;
+  clinicServiceId?: string | null;
+  description?: string | null;
+  fieldDefinition: string;
+  active: boolean;
+  createdBy: string;
+  updatedAt: string;
+}
+
 export interface AppointmentSlotResponse {
   specialty: string;
   appointmentDate: string;
@@ -291,13 +315,18 @@ export interface QueueTicketResponse {
   appointmentCode: string;
   specialty: string;
   doctorName: string;
+  patientName?: string | null;
+  patientDateOfBirth?: string | null;
   priority?: boolean;
+  closureOutcome?: string | null;
+  closureOutcomeLabel?: string | null;
 }
 
 export interface DoctorQueueResponse {
   roomCode: string;
   roomName: string;
   specialty: string;
+  shiftStatus: 'ACTIVE' | 'NONE' | 'CONFLICT';
   tickets: QueueTicketResponse[];
 }
 
@@ -326,12 +355,14 @@ export interface DoctorAccountResponse {
   roomName: string | null;
   assigned: boolean;
   active: boolean;
+  avatarUrl?: string | null;
 }
 
 export interface EligibleDoctorResponse {
   doctorProfileId: string;
   staffId: string;
   fullName: string;
+  avatarUrl?: string | null;
 }
 
 export interface ClinicServiceResponse {
@@ -382,6 +413,7 @@ export interface ScheduleTemplateResponse {
   durationMinutes: number;
   doctorId: string;
   doctorName: string;
+  doctorAvatarUrl?: string | null;
   roomId: string;
   roomCode: string;
   startDate: string;
@@ -410,6 +442,7 @@ export interface DoctorAssignmentResponse {
   roomCode: string;
   roomName: string;
   active: boolean;
+  avatarUrl?: string;
 }
 
 export interface DoctorScheduleResponse {
@@ -499,6 +532,24 @@ export interface AccessAuditResponse {
   occurredAt: string;
 }
 
+export interface SmsDeliveryResponse {
+  id: string;
+  eventKey: string;
+  phone: string;
+  status: string;
+  attempts: number;
+  availableAt: string;
+  sentAt: string | null;
+  lastError: string | null;
+  createdAt: string;
+  message?: string;
+}
+
+export interface BusinessLogIntegrityResult {
+  inspected: number;
+  incidentsOpened: number;
+}
+
 export interface BusinessLogResponse {
   id: string;
   eventId: string;
@@ -510,6 +561,7 @@ export interface BusinessLogResponse {
   actor: string;
   reason: string | null;
   occurredAt: string;
+  hash?: string;
 }
 
 export interface BusinessLogPageResponse {
@@ -540,6 +592,7 @@ export interface DoctorExaminationResponse {
   roomName: string;
   appointmentCode: string;
   specialty: string;
+  clinicServiceId?: string | null;
   doctorName: string;
   appointmentDate: string;
   startTime: string;
@@ -605,6 +658,9 @@ export interface ReceptionAppointmentResponse {
   queuePresenceLabel?: string | null;
   queueTicketId?: string | null;
   queuePriority?: boolean;
+  queueClosureOutcome?: string | null;
+  queueClosureOutcomeLabel?: string | null;
+  lateArrival?: boolean;
 }
 
 export interface ReceptionDoctorOption {
@@ -623,6 +679,7 @@ export interface ReceptionWalkInRequest {
   startTime: string;
   reason: string;
   exceptionReason: string;
+  overCapacity?: boolean;
 }
 
 export interface ReceptionRebookRequest {
@@ -640,6 +697,37 @@ export interface ReceptionPatientProfile {
   primaryProfile: boolean;
   accountStatus?: string;
   mustChangePassword?: boolean;
+  gender?: string | null;
+  phone?: string | null;
+  identityNumber?: string | null;
+  nationality?: string | null;
+  ethnicity?: string | null;
+  address?: string | null;
+  provinceCode?: string | null;
+  provinceName?: string | null;
+  districtCode?: string | null;
+  districtName?: string | null;
+  wardCode?: string | null;
+  wardName?: string | null;
+  streetAddress?: string | null;
+}
+
+export interface ReceptionUpdatePatientProfileRequest {
+  fullName?: string;
+  dateOfBirth?: string | null;
+  gender?: string;
+  phone?: string;
+  identityNumber?: string;
+  nationality?: string;
+  ethnicity?: string;
+  address?: string;
+  provinceCode?: string;
+  provinceName?: string;
+  districtCode?: string;
+  districtName?: string;
+  wardCode?: string;
+  wardName?: string;
+  streetAddress?: string;
 }
 
 export interface ReceptionPatientRegistrationRequest {
@@ -652,6 +740,13 @@ export interface ReceptionPatientRegistrationRequest {
   nationality?: string;
   ethnicity?: string;
   address?: string;
+  provinceCode?: string;
+  provinceName?: string;
+  districtCode?: string;
+  districtName?: string;
+  wardCode?: string;
+  wardName?: string;
+  streetAddress?: string;
 }
 
 export interface ReceptionPatientRegistrationResponse {
@@ -684,18 +779,25 @@ export interface StaffLoginResponse {
 
 export type ApiErrorResponse = {
   error?: {
+    code?: string;
     message?: string;
     detail?: string;
     title?: string;
     error?: { message?: string; detail?: string };
+    errors?: Array<{ field?: string; message?: string; defaultMessage?: string }>;
   } | string;
   message?: string;
   detail?: string;
+  errors?: Array<{ field?: string; message?: string; defaultMessage?: string }>;
 };
 
 export function apiErrorMessage(response: ApiErrorResponse): string {
   const payload = typeof response.error === 'object' && response.error !== null ? response.error : undefined;
-  return payload?.message
+  const validation = (payload?.errors ?? response.errors)?.map((item) => item.field && (item.message ?? item.defaultMessage)
+    ? `${item.field}: ${item.message ?? item.defaultMessage}` : (item.message ?? item.defaultMessage))
+    .filter((message): message is string => Boolean(message));
+  return (validation?.length ? validation.join(' · ') : undefined)
+    ?? payload?.message
     ?? payload?.detail
     ?? payload?.error?.message
     ?? payload?.error?.detail
@@ -718,6 +820,7 @@ export class AuthApiService {
   private readonly appointmentHoldsRoot = '/api/v1/appointment-holds';
   private readonly queueRoot = '/api/v1/queue';
   private readonly notificationsRoot = '/api/v1/notifications';
+  readonly unreadNotificationsCount = signal(0);
 
   requestSmsOtp(phone: string, purpose: OtpPurpose): Observable<OtpResponse> {
     return this.http.post<OtpResponse>(`${this.apiRoot}/request-sms-otp`, { phone, purpose });
@@ -882,7 +985,55 @@ export class AuthApiService {
   }
 
   holdAppointmentSlot(request: CreateAppointmentHoldRequest): Observable<AppointmentHoldResponse> {
-    return this.http.post<AppointmentHoldResponse>(this.appointmentHoldsRoot, request);
+    let sessionKey = sessionStorage.getItem('clinicOneBookingSession');
+    if (!sessionKey) {
+      sessionKey = globalThis.crypto?.randomUUID?.() ?? `session-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      sessionStorage.setItem('clinicOneBookingSession', sessionKey);
+    }
+    return this.http.post<AppointmentHoldResponse>(this.appointmentHoldsRoot, request, {
+      headers: { 'X-ClinicOne-Session': sessionKey },
+    });
+  }
+
+  getMedicalRecordTemplates(specialty?: string, clinicServiceId?: string): Observable<MedicalRecordTemplate[]> {
+    let params: Record<string, string> = { activeOnly: 'true' };
+    if (specialty) params['specialty'] = specialty;
+    if (clinicServiceId) params['clinicServiceId'] = clinicServiceId;
+    return this.http.get<MedicalRecordTemplate[]>('/api/v1/medical-record-templates', { params });
+  }
+
+  createMedicalRecordTemplate(request: Omit<MedicalRecordTemplate, 'id' | 'active' | 'createdBy' | 'updatedAt'>): Observable<MedicalRecordTemplate> {
+    return this.http.post<MedicalRecordTemplate>('/api/v1/medical-record-templates', request);
+  }
+
+  updateMedicalRecordTemplate(id: string, request: Omit<MedicalRecordTemplate, 'id' | 'active' | 'createdBy' | 'updatedAt'>): Observable<MedicalRecordTemplate> {
+    return this.http.put<MedicalRecordTemplate>(`/api/v1/medical-record-templates/${encodeURIComponent(id)}`, request);
+  }
+
+  deactivateMedicalRecordTemplate(id: string): Observable<void> {
+    return this.http.delete<void>(`/api/v1/medical-record-templates/${encodeURIComponent(id)}`);
+  }
+
+  createSpecialty(request: { code: string; name: string; description?: string }): Observable<SpecialtyOption> {
+    return this.http.post<SpecialtyOption>(this.specialtiesRoot, request);
+  }
+
+  updateSpecialty(code: string, request: { code: string; name: string; description?: string }): Observable<SpecialtyOption> {
+    return this.http.put<SpecialtyOption>(`${this.specialtiesRoot}/${encodeURIComponent(code)}`, request);
+  }
+
+  deactivateSpecialty(code: string): Observable<void> {
+    return this.http.delete<void>(`${this.specialtiesRoot}/${encodeURIComponent(code)}`);
+  }
+
+  getSmsDeliveries(): Observable<SmsDeliveryResponse[]> {
+    return this.http.get<SmsDeliveryResponse[]>('/api/v1/admin/notifications/sms');
+  }
+
+  retrySmsDelivery(id: string, requestKey: string): Observable<SmsDeliveryResponse> {
+    return this.http.post<SmsDeliveryResponse>(`/api/v1/admin/notifications/sms/${encodeURIComponent(id)}/retry`, {}, {
+      headers: { 'Idempotency-Key': requestKey },
+    });
   }
 
   getNotifications(): Observable<PatientNotificationResponse[]> {
@@ -890,11 +1041,15 @@ export class AuthApiService {
   }
 
   getUnreadNotificationCount(): Observable<{ count: number }> {
-    return this.http.get<{ count: number }>(`${this.notificationsRoot}/unread-count`);
+    return this.http.get<{ count: number }>(`${this.notificationsRoot}/unread-count`).pipe(
+      tap((result) => this.unreadNotificationsCount.set(result.count))
+    );
   }
 
   markNotificationRead(id: string): Observable<void> {
-    return this.http.post<void>(`${this.notificationsRoot}/${id}/read`, {});
+    return this.http.post<void>(`${this.notificationsRoot}/${id}/read`, {}).pipe(
+      tap(() => this.unreadNotificationsCount.update((c) => Math.max(0, c - 1)))
+    );
   }
 
   checkInToRoom(roomCode: string, appointmentId: string, requestKey?: string): Observable<QueueTicketResponse> {
@@ -921,6 +1076,18 @@ export class AuthApiService {
 
   skipQueueTicket(ticketId: string, reason = ''): Observable<QueueTicketResponse> {
     return this.http.post<QueueTicketResponse>(`${this.queueRoot}/${ticketId}/skip`, { reason });
+  }
+
+  callQueueTicket(ticketId: string): Observable<QueueTicketResponse> {
+    return this.http.post<QueueTicketResponse>(`${this.queueRoot}/${ticketId}/call`, {});
+  }
+
+  leaveQueueTicket(ticketId: string, reason: string): Observable<QueueTicketResponse> {
+    return this.http.post<QueueTicketResponse>(`${this.queueRoot}/${ticketId}/leave`, { reason });
+  }
+
+  markQueueFacilityUnavailable(ticketId: string, reason: string): Observable<QueueTicketResponse> {
+    return this.http.post<QueueTicketResponse>(`${this.queueRoot}/${ticketId}/facility-unavailable`, { reason });
   }
 
   adjustQueueTicket(ticketId: string, request: {
@@ -963,16 +1130,38 @@ export class AuthApiService {
     return this.http.post<ReceptionAppointmentResponse>(`/api/v1/reception/appointments/${appointmentId}/check-in`, { roomCode, reason });
   }
 
+  getReceptionWorklist(date: string): Observable<ReceptionAppointmentResponse[]> {
+    return this.http.get<ReceptionAppointmentResponse[]>('/api/v1/reception/worklist', { params: { date } });
+  }
+
+  markReceptionFacilityUnavailable(appointmentId: string, reason: string): Observable<ReceptionAppointmentResponse> {
+    return this.http.post<ReceptionAppointmentResponse>(`/api/v1/reception/appointments/${appointmentId}/facility-unavailable`, { reason });
+  }
+
   rebookReceptionAppointment(appointmentId: string, request: ReceptionRebookRequest): Observable<ReceptionAppointmentResponse> {
     return this.http.post<ReceptionAppointmentResponse>(`/api/v1/reception/appointments/${appointmentId}/rebook`, request);
+  }
+
+  recoverPassword(phone: string, newPassword: string, confirmPassword: string): Observable<void> {
+    return this.http.post<void>(`${this.apiRoot}/recover-password`, {
+      phone,
+      newPassword,
+      confirmPassword,
+    });
+  }
+
+  rescheduleLateReceptionAppointment(appointmentId: string, request: ReceptionRebookRequest): Observable<ReceptionAppointmentResponse> {
+    return this.http.post<ReceptionAppointmentResponse>(`/api/v1/reception/appointments/${appointmentId}/reschedule-late`, request);
   }
 
   leaveReceptionAppointment(appointmentId: string, reason: string): Observable<ReceptionAppointmentResponse> {
     return this.http.post<ReceptionAppointmentResponse>(`/api/v1/reception/appointments/${appointmentId}/leave`, { reason });
   }
 
-  createReceptionWalkIn(request: ReceptionWalkInRequest): Observable<ReceptionAppointmentResponse> {
-    return this.http.post<ReceptionAppointmentResponse>('/api/v1/reception/walk-in', request);
+  createReceptionWalkIn(request: ReceptionWalkInRequest, requestKey: string): Observable<ReceptionAppointmentResponse> {
+    return this.http.post<ReceptionAppointmentResponse>('/api/v1/reception/walk-in', request, {
+      headers: { 'Idempotency-Key': requestKey },
+    });
   }
 
   getReceptionProfiles(phone: string): Observable<ReceptionPatientProfile[]> {
@@ -992,7 +1181,7 @@ export class AuthApiService {
   }
 
   activateReceptionPatientAccount(phone: string, newPassword: string, confirmPassword: string): Observable<void> {
-    return this.http.post<void>('/api/v1/auth/activate', { phone, newPassword, confirmPassword });
+    return this.http.post<void>('/api/v1/auth/activate', { phone, otpCode: null, newPassword, confirmPassword });
   }
 
   saveDoctorExaminationDraft(ticketId: string, request: DoctorExaminationRequest): Observable<DoctorExaminationResponse> {
@@ -1135,12 +1324,17 @@ export class AuthApiService {
     return this.http.post<ScheduleTemplateResponse>(`/api/v1/admin/schedule-templates/${id}/regenerate`, {});
   }
 
+  deleteScheduleTemplate(id: string, weekday?: string): Observable<void> {
+    const params = weekday ? `?weekday=${encodeURIComponent(weekday)}` : '';
+    return this.http.delete<void>(`/api/v1/admin/schedule-templates/${id}${params}`);
+  }
+
   createDoctor(request: CreateDoctorRequest): Observable<DoctorAccountResponse> {
     return this.http.post<DoctorAccountResponse>('/api/v1/admin/doctors', request);
   }
 
-  assignDoctor(staffId: string, specialty: string, roomId: string): Observable<DoctorAssignmentResponse> {
-    return this.http.put<DoctorAssignmentResponse>(`/api/v1/admin/doctors/${staffId}/assignment`, { specialty, roomId });
+  assignDoctor(staffId: string, specialty: string, roomId: string, avatarUrl?: string): Observable<DoctorAssignmentResponse> {
+    return this.http.put<DoctorAssignmentResponse>(`/api/v1/admin/doctors/${staffId}/assignment`, { specialty, roomId, avatarUrl });
   }
 
   getDoctorSchedules(staffId: string): Observable<DoctorScheduleResponse[]> {
@@ -1200,10 +1394,44 @@ export class AuthApiService {
     return this.http.get<AccessAuditResponse[]>('/api/v1/admin/access-audit', { params });
   }
 
-  getBusinessLogPage(entityType: string, entityId: string, page = 0, size = 50): Observable<BusinessLogPageResponse> {
+  searchBusinessLogs(params: { entityType?: string; identifier?: string; page?: number; size?: number } = {}): Observable<BusinessLogPageResponse> {
+    const queryParams: Record<string, string | number> = {
+      page: params.page ?? 0,
+      size: params.size ?? 50,
+    };
+    if (params.entityType) queryParams['entityType'] = params.entityType;
+    if (params.identifier) queryParams['identifier'] = params.identifier;
     return this.http.get<BusinessLogPageResponse>('/api/v1/admin/audit/search', {
-      params: { entityType, entityId, page, size },
+      params: queryParams,
     });
+  }
+
+  getBusinessLogPage(entityType?: string, entityId?: string, page = 0, size = 50): Observable<BusinessLogPageResponse> {
+    return this.searchBusinessLogs({ entityType, identifier: entityId, page, size });
+  }
+
+  updateReceptionPatientProfile(id: string, request: ReceptionUpdatePatientProfileRequest): Observable<ReceptionPatientProfile> {
+    return this.http.patch<ReceptionPatientProfile>(`${this.patientProfilesRoot}/${id}/reception-update`, request);
+  }
+
+  getAppointmentBusinessHistory(appointmentId: string): Observable<BusinessLogResponse[]> {
+    return this.http.get<BusinessLogResponse[]>(`/api/v1/admin/audit/appointments/${appointmentId}`);
+  }
+
+  getQueueBusinessHistory(ticketId: string): Observable<BusinessLogResponse[]> {
+    return this.http.get<BusinessLogResponse[]>(`/api/v1/admin/audit/queue-tickets/${ticketId}`);
+  }
+
+  getExaminationBusinessHistory(sessionId: string): Observable<BusinessLogResponse[]> {
+    return this.http.get<BusinessLogResponse[]>(`/api/v1/admin/audit/examinations/${sessionId}`);
+  }
+
+  runBusinessLogIntegrityCheck(): Observable<BusinessLogIntegrityResult> {
+    return this.http.post<BusinessLogIntegrityResult>('/api/v1/admin/audit/integrity-check', {});
+  }
+
+  getRecentSmsDeliveries(): Observable<SmsDeliveryResponse[]> {
+    return this.http.get<SmsDeliveryResponse[]>('/api/v1/admin/notifications/sms');
   }
 
   getReplacementSlots(caseId: string, from?: string, to?: string): Observable<AvailableReplacementSlot[]> {

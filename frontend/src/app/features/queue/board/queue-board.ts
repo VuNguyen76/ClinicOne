@@ -1,10 +1,13 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DecimalPipe } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { ApiErrorResponse, AuthApiService, QueueTicketResponse, apiErrorMessage } from '../../../core/auth/auth-api.service';
 import { AccountMenu } from '../../../shared/account-menu/account-menu';
 import { clinicTodayIso } from '../../../core/time/clinic-time';
+import { EMPTY, timer } from 'rxjs';
+import { catchError, switchMap } from 'rxjs/operators';
 
 @Component({
   selector: 'app-queue-board',
@@ -17,6 +20,7 @@ export class QueueBoard implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly authApi = inject(AuthApiService);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly roomCode = signal('');
   protected readonly queue = signal<QueueTicketResponse[]>([]);
@@ -26,16 +30,37 @@ export class QueueBoard implements OnInit {
 
   ngOnInit(): void {
     this.roomCode.set(this.route.snapshot.paramMap.get('roomCode') ?? '');
-    this.refresh();
+    this.loadQueue();
+    timer(3000, 3000).pipe(
+      takeUntilDestroyed(this.destroyRef),
+      switchMap(() => this.loadQueue$()),
+    ).subscribe((tickets) => this.applyQueue(tickets));
   }
 
   protected refresh(): void {
-    this.loading.set(true);
+    this.loadQueue();
+  }
+
+  private loadQueue(): void {
+    this.loadQueue$().subscribe((tickets) => this.applyQueue(tickets));
+  }
+
+  private loadQueue$() {
+    if (!this.roomCode()) return EMPTY;
+    if (!this.queue().length) this.loading.set(true);
     this.error.set('');
-    this.authApi.getRoomQueue(this.roomCode(), this.today).subscribe({
-      next: (tickets) => { this.queue.set(tickets); this.loading.set(false); },
-      error: (response) => { this.loading.set(false); this.handleError(response); },
-    });
+    return this.authApi.getRoomQueue(this.roomCode(), this.today).pipe(
+      catchError((response) => {
+        this.loading.set(false);
+        this.handleError(response);
+        return EMPTY;
+      }),
+    );
+  }
+
+  private applyQueue(tickets: QueueTicketResponse[]): void {
+    this.queue.set(tickets);
+    this.loading.set(false);
   }
 
   protected formatTime(value: string): string {
@@ -43,11 +68,11 @@ export class QueueBoard implements OnInit {
   }
 
   protected statusClass(status: string): string {
-    if (status === 'CALLED') return 'bg-amber-50 text-amber-700';
-    if (status === 'IN_SERVICE') return 'bg-violet-50 text-violet-700';
-    if (status === 'COMPLETED') return 'bg-emerald-50 text-emerald-700';
-    if (status === 'SKIPPED') return 'bg-slate-100 text-slate-600';
-    return 'bg-sky-50 text-sky-700';
+    if (status === 'CALLED') return 'erp-badge-warning';
+    if (status === 'IN_SERVICE') return 'erp-badge-info';
+    if (status === 'COMPLETED') return 'erp-badge-success';
+    if (status === 'SKIPPED') return 'erp-badge-warning';
+    return 'erp-badge-info';
   }
 
   protected waitingCount(): number {

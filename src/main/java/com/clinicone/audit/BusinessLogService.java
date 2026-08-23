@@ -1,32 +1,34 @@
 package com.clinicone.audit;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.Builder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import com.clinicone.appointment.Appointment;
+import com.clinicone.appointment.AppointmentRepository;
 import com.clinicone.reconciliation.ReconciliationIncidentRepository;
 import com.clinicone.reconciliation.ReconciliationStatus;
 import com.clinicone.auth.AuthException;
 import org.springframework.http.HttpStatus;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
 public class BusinessLogService {
     private final BusinessLogRepository repository;
     private final ReconciliationIncidentRepository reconciliationRepository;
+    private final AppointmentRepository appointmentRepository;
 
-    public BusinessLogService(BusinessLogRepository repository) {
-        this(repository, null);
-    }
-
-    @Autowired
+    @Builder
     public BusinessLogService(BusinessLogRepository repository,
-                              ReconciliationIncidentRepository reconciliationRepository) {
+                              ReconciliationIncidentRepository reconciliationRepository,
+                              AppointmentRepository appointmentRepository) {
         this.repository = repository;
         this.reconciliationRepository = reconciliationRepository;
+        this.appointmentRepository = appointmentRepository;
     }
 
     /**
@@ -89,8 +91,66 @@ public class BusinessLogService {
         }
         Page<BusinessLog> result = repository.findByEntityTypeAndEntityIdOrderByOccurredAtAscIdAsc(
                 normalize(entityType, 40), entityId, PageRequest.of(page, size));
-        return new BusinessLogPageResponse(result.getContent().stream().map(BusinessLogResponse::from).toList(),
-                result.getNumber(), result.getSize(), result.getTotalElements(), result.getTotalPages(), result.isLast());
+        return toPageResponse(result);
+    }
+
+    @Transactional(readOnly = true)
+    public BusinessLogPageResponse search(String entityType, String identifier, int page, int size) {
+        if (page < 0 || size < 1 || size > 100) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "AUDIT_PAGE_INVALID",
+                    "Cần chọn đối tượng hợp lệ; trang từ 0 và kích thước mỗi trang từ 1 đến 100 bản ghi.");
+        }
+        String cleanType = (entityType == null || entityType.isBlank()) ? null : entityType.trim();
+        String cleanIdentifier = (identifier == null || identifier.isBlank()) ? null : identifier.trim();
+        PageRequest pageable = PageRequest.of(page, size);
+
+        if (cleanIdentifier == null) {
+            Page<BusinessLog> result = cleanType != null
+                    ? repository.findByEntityTypeOrderByOccurredAtDescIdDesc(normalize(cleanType, 40), pageable)
+                    : repository.findAllByOrderByOccurredAtDescIdDesc(pageable);
+            return toPageResponse(result);
+        }
+
+        UUID entityId = null;
+        String resolvedEntityType = cleanType;
+
+        try {
+            entityId = UUID.fromString(cleanIdentifier);
+        } catch (IllegalArgumentException ignored) {
+            if (appointmentRepository != null) {
+                Optional<Appointment> appointment = appointmentRepository.findByAppointmentCode(cleanIdentifier);
+                if (appointment.isPresent()) {
+                    entityId = appointment.get().getId();
+                    if (resolvedEntityType == null) {
+                        resolvedEntityType = "APPOINTMENT";
+                    }
+                }
+            }
+        }
+
+        if (entityId == null) {
+            return new BusinessLogPageResponse(List.of(), page, size, 0, 0, true);
+        }
+
+        Page<BusinessLog> result;
+        if (resolvedEntityType != null) {
+            result = repository.findByEntityTypeAndEntityIdOrderByOccurredAtDescIdDesc(
+                    normalize(resolvedEntityType, 40), entityId, pageable);
+        } else {
+            result = repository.findByEntityIdOrderByOccurredAtDescIdDesc(entityId, pageable);
+        }
+        return toPageResponse(result);
+    }
+
+    private BusinessLogPageResponse toPageResponse(Page<BusinessLog> result) {
+        return new BusinessLogPageResponse(
+                result.getContent().stream().map(BusinessLogResponse::from).toList(),
+                result.getNumber(),
+                result.getSize(),
+                result.getTotalElements(),
+                result.getTotalPages(),
+                result.isLast()
+        );
     }
 
     private boolean sameState(String previousStatus, String nextStatus) {

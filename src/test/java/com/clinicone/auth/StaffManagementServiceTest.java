@@ -30,8 +30,12 @@ class StaffManagementServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new StaffManagementService(accountRepository, sessionRepository,
-                Clock.fixed(Instant.parse("2026-08-10T05:00:00Z"), ZoneOffset.UTC), passwordEncoder);
+        service = StaffManagementService.builder()
+                .accountRepository(accountRepository)
+                .sessionRepository(sessionRepository)
+                .clock(Clock.fixed(Instant.parse("2026-08-10T05:00:00Z"), ZoneOffset.UTC))
+                .passwordEncoder(passwordEncoder)
+                .build();
         when(accountRepository.save(any(StaffAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
     }
 

@@ -15,6 +15,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -74,7 +76,7 @@ public class BusinessLogIntegrityJob {
                     && !incidentRepository.existsByEntityTypeAndEntityIdAndStatus(
                     "BUSINESS_LOG", entry.getId(), ReconciliationStatus.OPEN)) {
                 ReconciliationIncident incident = ReconciliationIncident.open(
-                        "INC-INTEGRITY-HASH-" + UUID.randomUUID().toString().replace("-", "").substring(0, 20),
+                        generateIncidentCode(),
                         "BUSINESS_LOG", entry.getId(), entry.getEventId(),
                         "Chuỗi hash nhật ký nghiệp vụ không hợp lệ.", "admin");
                 incidentRepository.save(incident);
@@ -99,17 +101,71 @@ public class BusinessLogIntegrityJob {
                     ReconciliationStatus.OPEN)) {
                 continue;
             }
-            String reason = actual == null
-                    ? "Không tìm thấy đối tượng tương ứng với nhật ký nghiệp vụ " + latest.getEventId()
-                    : "Trạng thái hiện tại " + actual + " không khớp nhật ký " + latest.getNextStatus();
+            String reason = buildDiscrepancyReason(key, latest, actual);
             ReconciliationIncident incident = ReconciliationIncident.open(
-                    "INC-INTEGRITY-" + UUID.randomUUID().toString().replace("-", "").substring(0, 20),
+                    generateIncidentCode(),
                     key.entityType(), key.entityId(), latest.getEventId(), reason, "admin");
             incidentRepository.save(incident);
             log.warn("Opened integrity reconciliation for {} {}", key.entityType(), key.entityId());
             opened++;
         }
         return new IntegrityCheckResult(inspected, opened);
+    }
+
+    private String generateIncidentCode() {
+        String yearMonth = DateTimeFormatter.ofPattern("uuuuMM").format(LocalDate.now(clock));
+        String shortCode = UUID.randomUUID().toString().replace("-", "").substring(0, 6).toUpperCase();
+        return "SC-" + yearMonth + "-" + shortCode;
+    }
+
+    private String buildDiscrepancyReason(EntityKey key, BusinessLog latest, String actual) {
+        String entityType = key.entityType().toUpperCase();
+        if ("APPOINTMENT".equals(entityType)) {
+            if (actual == null) {
+                return "Không tìm thấy hồ sơ lịch hẹn tương ứng với thao tác " + latest.getEventType();
+            }
+            var apptOpt = appointmentRepository.findById(key.entityId());
+            if (apptOpt.isPresent()) {
+                var appt = apptOpt.get();
+                String apptCode = appt.getAppointmentCode();
+                String patientName = appt.getPatientProfile() != null ? appt.getPatientProfile().getFullName()
+                        : (appt.getPatient() != null ? appt.getPatient().getFullName() : null);
+                if (patientName != null && !patientName.isBlank()) {
+                    return "Lệch trạng thái lịch hẹn " + apptCode + " (Bệnh nhân: " + patientName + "): Thực tế là "
+                            + actual + ", nhật ký ghi nhận " + latest.getNextStatus();
+                }
+                return "Lệch trạng thái lịch hẹn " + apptCode + ": Thực tế là " + actual + ", nhật ký ghi nhận "
+                        + latest.getNextStatus();
+            }
+            return "Lệch trạng thái lịch hẹn: Thực tế là " + actual + ", nhật ký ghi nhận " + latest.getNextStatus();
+        } else if ("QUEUE_TICKET".equals(entityType)) {
+            if (actual == null) {
+                return "Không tìm thấy phiếu hàng đợi tương ứng với thao tác " + latest.getEventType();
+            }
+            var ticketOpt = queueTicketRepository.findById(key.entityId());
+            if (ticketOpt.isPresent()) {
+                var ticket = ticketOpt.get();
+                int queueNum = ticket.getQueueNumber();
+                String apptCode = ticket.getAppointment() != null ? ticket.getAppointment().getAppointmentCode() : null;
+                if (apptCode != null && !apptCode.isBlank()) {
+                    return "Lệch trạng thái phiếu khám STT " + queueNum + " (Lịch hẹn: " + apptCode + "): Thực tế là "
+                            + actual + ", nhật ký ghi nhận " + latest.getNextStatus();
+                }
+                return "Lệch trạng thái phiếu khám STT " + queueNum + ": Thực tế là " + actual + ", nhật ký ghi nhận "
+                        + latest.getNextStatus();
+            }
+            return "Lệch trạng thái phiếu khám: Thực tế là " + actual + ", nhật ký ghi nhận " + latest.getNextStatus();
+        } else if ("EXAMINATION".equals(entityType)) {
+            if (actual == null) {
+                return "Không tìm thấy phiên khám tương ứng với thao tác " + latest.getEventType();
+            }
+            return "Lệch trạng thái phiên khám: Thực tế là " + actual + ", nhật ký ghi nhận " + latest.getNextStatus();
+        } else {
+            if (actual == null) {
+                return "Không tìm thấy dữ liệu " + key.entityType() + " cho thao tác nghiệp vụ " + latest.getEventType();
+            }
+            return "Trạng thái hiện tại " + actual + " không khớp nhật ký " + latest.getNextStatus();
+        }
     }
 
     private String currentStatus(EntityKey key) {

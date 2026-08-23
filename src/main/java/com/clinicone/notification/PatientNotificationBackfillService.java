@@ -3,6 +3,7 @@ package com.clinicone.notification;
 import com.clinicone.appointment.Appointment;
 import com.clinicone.examination.MedicalRecord;
 import com.clinicone.examination.MedicalRecordRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,20 +18,13 @@ import java.util.UUID;
  * idempotent if activation is retried.
  */
 @Service
+@RequiredArgsConstructor
 public class PatientNotificationBackfillService {
     private static final Duration HISTORY_WINDOW = Duration.ofDays(30);
 
     private final MedicalRecordRepository recordRepository;
     private final PatientNotificationService notificationService;
     private final Clock clock;
-
-    public PatientNotificationBackfillService(MedicalRecordRepository recordRepository,
-                                              PatientNotificationService notificationService,
-                                              Clock clock) {
-        this.recordRepository = recordRepository;
-        this.notificationService = notificationService;
-        this.clock = clock;
-    }
 
     @Transactional
     public void notifyRecentSignedRecords(UUID patientId, UUID profileId) {

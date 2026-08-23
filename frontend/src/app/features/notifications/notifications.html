@@ -1,30 +1,8 @@
-<main class="min-h-screen bg-[#f7fafb] text-[#103f4c]">
-  <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
-    <div class="mx-auto flex h-[72px] max-w-[1200px] items-center justify-between gap-8 px-5 lg:px-0">
-      <a routerLink="/home" class="flex items-center gap-3" aria-label="ClinicOne, trang chủ">
-        <img class="h-11 w-11 object-contain" src="clinicone-mark.png" alt="" aria-hidden="true" />
-        <span class="text-[21px] font-bold tracking-[-0.04em]">Clinic<span class="text-[#0ea5e9]">One</span></span>
-      </a>
-      <nav class="hidden items-center gap-7 text-sm font-medium text-slate-600 lg:flex" aria-label="Điều hướng chính">
-        <a routerLink="/home" class="hover:text-[#0ea5e9]">Trang chủ</a>
-        <a routerLink="/about" class="hover:text-[#0ea5e9]">Giới thiệu</a>
-        <a routerLink="/process" class="hover:text-[#0ea5e9]">Quy trình</a>
-        <a routerLink="/common-issues" class="hover:text-[#0ea5e9]">Hướng dẫn</a>
-        <a routerLink="/support" class="hover:text-[#0ea5e9]">Thắc mắc</a>
-        <a routerLink="/contact" class="hover:text-[#0ea5e9]">Liên hệ</a>
-      </nav>
-      <div class="flex items-center gap-4">
-        <a href="tel:1900000" class="hidden items-center gap-2 text-right sm:flex">
-          <mat-icon class="!h-5 !w-5 !text-[19px] text-rose-500">phone_in_talk</mat-icon>
-          <span class="hidden text-xs text-slate-500 xl:block"><strong class="block text-[#103f4c]">Tổng đài</strong><span class="font-semibold tracking-[0.08em] text-rose-500">1900000</span></span>
-        </a>
-        <app-account-menu />
-      </div>
-    </div>
-  </header>
+<main class="min-h-screen bg-slate-50 text-slate-800 antialiased">
+  <app-patient-header />
 
   <div class="mx-auto max-w-[1200px] px-5 py-8 lg:px-0 lg:py-10">
-    <div class="flex items-center gap-3 text-sm"><a routerLink="/home" class="font-semibold text-[#103f4c] hover:text-[#0ea5e9]">Trang chủ</a><mat-icon class="!h-4 !w-4 !text-[16px] text-slate-400">chevron_right</mat-icon><span class="font-semibold text-[#0ea5e9]">Thông báo</span></div>
+    <div class="flex items-center gap-3 text-sm"><a routerLink="/home" class="font-semibold text-slate-700 hover:text-[#0284c7]">Trang chủ</a><mat-icon class="!h-4 !w-4 !text-[16px] text-slate-400">chevron_right</mat-icon><span class="font-semibold text-[#0284c7]">Thông báo</span></div>
 
     <div class="mt-8 grid gap-8 lg:grid-cols-[230px_1fr] lg:gap-10">
       <aside class="border-b border-slate-200 pb-5 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-6"><app-account-nav /></aside>
@@ -32,33 +10,35 @@
       <section class="min-w-0" aria-labelledby="notifications-title">
         <div class="flex items-end justify-between gap-4">
           <div>
-            <h1 id="notifications-title" class="text-2xl font-bold tracking-[-0.03em] text-slate-900">Thông báo</h1>
-            <p class="mt-1 text-sm text-slate-500">Cập nhật mới nhất về lịch khám và kết quả khám.</p>
+            <p class="text-xs font-bold uppercase tracking-[0.16em] text-[#0284c7]">Hộp thư</p>
+            <h1 id="notifications-title" class="mt-1.5 text-2xl font-bold tracking-[-0.03em] text-slate-900 sm:text-3xl">Thông báo</h1>
           </div>
-          <span class="rounded-full bg-[#e8f8fc] px-3 py-1 text-xs font-semibold text-[#0284c7]">{{ notifications().length }} thông báo</span>
+          <span class="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-[#0284c7] border border-sky-200">{{ notifications().length }} thông báo</span>
         </div>
 
         @if (loading()) {
-          <div class="mt-6 rounded-[16px] border border-slate-200 bg-white px-6 py-12 text-center text-sm text-slate-500">Đang tải thông báo…</div>
+          <div class="mt-6 rounded-xl border border-slate-200 bg-white px-6 py-12 text-center text-sm text-slate-500">Đang tải danh sách thông báo…</div>
         } @else if (error()) {
-          <div class="mt-6 rounded-[16px] border border-rose-200 bg-rose-50 px-6 py-8 text-sm text-rose-700" role="alert">{{ error() }}</div>
+          <div class="mt-6 rounded-xl border border-rose-200 bg-rose-50 px-6 py-6 text-sm text-rose-700" role="alert">{{ error() }}</div>
         } @else if (notifications().length === 0) {
-          <div class="mt-6 grid min-h-[330px] place-items-center rounded-[16px] border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center">
+          <div class="mt-6 grid min-h-[300px] place-items-center rounded-xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center">
             <div>
-              <span class="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[#e8f8fc] text-[#0ea5e9]"><mat-icon>notifications_none</mat-icon></span>
-              <h2 class="mt-4 text-lg font-semibold text-slate-800">Chưa có thông báo</h2>
-              <p class="mt-1 text-sm text-slate-500">Thông báo về lịch khám sẽ hiển thị tại đây.</p>
+              <span class="mx-auto grid h-14 w-14 place-items-center rounded-full bg-sky-50 text-[#0284c7]"><mat-icon>notifications_none</mat-icon></span>
+              <h2 class="mt-4 text-base font-bold text-slate-800">Chưa có thông báo</h2>
             </div>
           </div>
         } @else {
-          <div class="mt-6 overflow-hidden rounded-[16px] border border-slate-200 bg-white shadow-sm">
+          <div class="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs divide-y divide-slate-100">
             @for (notification of notifications(); track notification.id) {
-              <button type="button" data-testid="notification-item" (click)="open(notification)" class="flex w-full items-start gap-4 border-b border-slate-100 px-5 py-5 text-left transition last:border-b-0 hover:bg-[#f8fcfd]" [class.bg-[#f4fbfe]]="!notification.read">
-                <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#e8f8fc] text-[#0ea5e9]"><mat-icon>{{ notification.type === 'MEDICAL_RECORD_SIGNED' ? 'description' : 'notifications_none' }}</mat-icon></span>
+              <button type="button" data-testid="notification-item" (click)="open(notification)" class="flex w-full items-start gap-4 px-5 py-4 text-left transition hover:bg-slate-50/80" [class.bg-sky-50/30]="!notification.read">
+                <span class="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-sky-50 text-[#0284c7]"><mat-icon class="!text-[20px]">{{ notification.type === 'MEDICAL_RECORD_SIGNED' ? 'description' : 'notifications_none' }}</mat-icon></span>
                 <span class="min-w-0 flex-1">
-                  <span class="flex items-start justify-between gap-4"><strong class="text-sm text-slate-900">{{ notification.title }}</strong>@if (!notification.read) {<span data-testid="notification-unread" class="mt-1 h-2 w-2 shrink-0 rounded-full bg-[#0ea5e9]" aria-label="Chưa đọc"></span>}</span>
-                  <span class="mt-1 block text-sm leading-6 text-slate-600">{{ notification.message }}</span>
-                  <span class="mt-2 block text-xs text-slate-400">{{ formatDate(notification.createdAt) }}</span>
+                  <span class="flex items-start justify-between gap-4">
+                    <strong class="text-sm font-bold text-slate-900">{{ notification.title }}</strong>
+                    @if (!notification.read) {<span data-testid="notification-unread" class="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-[#0284c7]" aria-label="Chưa đọc"></span>}
+                  </span>
+                  <span class="mt-1 block text-xs leading-5 text-slate-600">{{ notification.message }}</span>
+                  <span class="mt-1.5 block text-[11px] font-medium text-slate-400">{{ formatDate(notification.createdAt) }}</span>
                 </span>
               </button>
             }

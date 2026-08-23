@@ -55,10 +55,19 @@ class AccountAuthServiceTest {
         tokenGenerator = mock(SessionTokenGenerator.class);
         patientProfileRepository = mock(PatientProfileRepository.class);
         appointmentRepository = mock(AppointmentRepository.class);
-        service = new AccountAuthService(accountRepository, sessionRepository, otpService, passwordEncoder,
-                tokenGenerator, Clock.fixed(NOW, ZoneOffset.UTC), patientProfileRepository);
+        service = serviceBuilder().patientProfileRepository(patientProfileRepository).build();
         when(accountRepository.save(any(PatientAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(sessionRepository.save(any(LoginSession.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    }
+
+    private AccountAuthService.AccountAuthServiceBuilder serviceBuilder() {
+        return AccountAuthService.builder()
+                .accountRepository(accountRepository)
+                .sessionRepository(sessionRepository)
+                .otpService(otpService)
+                .passwordEncoder(passwordEncoder)
+                .tokenGenerator(tokenGenerator)
+                .clock(Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     @Test
@@ -167,8 +176,8 @@ class AccountAuthServiceTest {
         account.recordPasswordFailure(NOW.plusSeconds(3));
         account.recordPasswordFailure(NOW.plusSeconds(4));
         Clock afterLock = Clock.fixed(NOW.plusSeconds(15 * 60 + 5), ZoneOffset.UTC);
-        AccountAuthService afterLockService = new AccountAuthService(accountRepository, sessionRepository, otpService,
-                passwordEncoder, tokenGenerator, afterLock, patientProfileRepository);
+        AccountAuthService afterLockService = serviceBuilder().clock(afterLock)
+                .patientProfileRepository(patientProfileRepository).build();
         when(accountRepository.findByPhone("0912345678")).thenReturn(Optional.of(account));
         when(passwordEncoder.matches("password123", "password-hash")).thenReturn(true);
         when(tokenGenerator.generate()).thenReturn("raw-session-token");
@@ -215,9 +224,11 @@ class AccountAuthServiceTest {
     @Test
     void locksAlsoCreateOneSecurityNotificationRequest() {
         PatientNotificationService notifications = mock(PatientNotificationService.class);
-        AccountAuthService notifyingService = new AccountAuthService(accountRepository, sessionRepository, otpService,
-                passwordEncoder, tokenGenerator, Clock.fixed(NOW, ZoneOffset.UTC), patientProfileRepository,
-                appointmentRepository, notifications);
+        AccountAuthService notifyingService = serviceBuilder()
+                .patientProfileRepository(patientProfileRepository)
+                .appointmentRepository(appointmentRepository)
+                .patientNotificationService(notifications)
+                .build();
         PatientAccount account = new PatientAccount("0912345678", "password-hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
         setId(account, ACCOUNT_ID);
         when(accountRepository.findByPhone("0912345678")).thenReturn(Optional.of(account));
@@ -302,9 +313,11 @@ class AccountAuthServiceTest {
                 .thenReturn(List.of(temporary));
         when(appointmentRepository.findByPatientProfileId(profileId)).thenReturn(List.of(appointment));
         PatientNotificationBackfillService backfillService = mock(PatientNotificationBackfillService.class);
-        AccountAuthService linkingService = new AccountAuthService(accountRepository, sessionRepository, otpService,
-                passwordEncoder, tokenGenerator, Clock.fixed(NOW, ZoneOffset.UTC), patientProfileRepository,
-                appointmentRepository, null, backfillService);
+        AccountAuthService linkingService = serviceBuilder()
+                .patientProfileRepository(patientProfileRepository)
+                .appointmentRepository(appointmentRepository)
+                .patientNotificationBackfillService(backfillService)
+                .build();
 
         linkingService.activatePendingAccount(new ActivateAccountRequest("0912345678", "new-password", "new-password"));
 

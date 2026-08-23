@@ -1,5 +1,7 @@
 package com.clinicone.audit;
 
+import lombok.Getter;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -22,6 +24,7 @@ import java.util.UUID;
  * Append-only business journal entry. State changes and their journal entry
  * are persisted in the same transaction by the owning service.
  */
+@Getter
 @Entity
 @Table(name = "business_logs", indexes = {
         @Index(name = "idx_business_logs_entity", columnList = "entity_type,entity_id,occurred_at"),
@@ -125,16 +128,4 @@ public class BusinessLog {
         return value == null ? "" : value.toString();
     }
 
-    public UUID getId() { return id; }
-    public UUID getEventId() { return eventId; }
-    public String getEntityType() { return entityType; }
-    public UUID getEntityId() { return entityId; }
-    public String getPreviousStatus() { return previousStatus; }
-    public String getNextStatus() { return nextStatus; }
-    public String getEventType() { return eventType; }
-    public String getActor() { return actor; }
-    public String getReason() { return reason; }
-    public Instant getOccurredAt() { return occurredAt; }
-    public String getPreviousHash() { return previousHash; }
-    public String getHash() { return hash; }
 }

@@ -30,13 +30,13 @@ class ReconciliationServiceTest {
         when(repository.save(any(ReconciliationIncident.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         ReconciliationResponse response = service.close(id,
-                new CloseReconciliationRequest(ReconciliationAction.RETRY_BUSINESS_ACTION,
+                new CloseReconciliationRequest(ReconciliationAction.NO_ACTION_REQUIRED,
                         ReconciliationReferenceType.INCIDENT, "INC-TEST",
                         "Đã chạy lại luồng và kiểm tra dữ liệu."), "coordinator-1");
 
         assertThat(response.status()).isEqualTo(ReconciliationStatus.CLOSED);
         assertThat(response.closedBy()).isEqualTo("coordinator-1");
-        assertThat(response.resolutionAction()).isEqualTo(ReconciliationAction.RETRY_BUSINESS_ACTION);
+        assertThat(response.resolutionAction()).isEqualTo(ReconciliationAction.NO_ACTION_REQUIRED);
     }
 
     @Test

@@ -1,5 +1,7 @@
 package com.clinicone.schedule;
 
+import lombok.Getter;
+
 import com.clinicone.doctor.DoctorProfile;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -21,6 +23,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.UUID;
 
+@Getter
 @Entity
 @Table(name = "clinic_services", uniqueConstraints = @UniqueConstraint(
         name = "uk_clinic_service_key", columnNames = {"name", "specialty", "visit_type"}))
@@ -119,12 +122,5 @@ public class ClinicService {
         updatedAt = Instant.now();
     }
 
-    public UUID getId() { return id; }
-    public String getName() { return name; }
-    public String getSpecialty() { return specialty; }
-    public String getVisitType() { return visitType; }
-    public int getDurationMinutes() { return durationMinutes; }
     public boolean requiresMedicalRecord() { return requiresMedicalRecord == null || requiresMedicalRecord; }
-    public boolean isActive() { return active; }
-    public Set<DoctorProfile> getEligibleDoctors() { return eligibleDoctors; }
 }

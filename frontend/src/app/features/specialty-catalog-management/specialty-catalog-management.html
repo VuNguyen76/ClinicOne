@@ -1,0 +1,229 @@
+<app-staff-workspace-shell moduleTitle="Danh mục" pageTitle="Chuyên khoa">
+  <div class="grid gap-6">
+    <!-- Alerts & Notices -->
+    @if (error() && !modalOpen()) {
+      <div class="flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-medium text-rose-800 shadow-xs" role="alert">
+        <div class="flex items-center gap-2">
+          <mat-icon class="!h-4 !w-4 !text-[18px] text-rose-600">error_outline</mat-icon>
+          <span>{{ error() }}</span>
+        </div>
+        <button type="button" class="erp-btn-icon !h-6 !w-6" (click)="error.set('')" title="Đóng thông báo">
+          <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">close</mat-icon>
+        </button>
+      </div>
+    }
+    @if (notice()) {
+      <div class="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-medium text-emerald-800 shadow-xs" role="status">
+        <div class="flex items-center gap-2">
+          <mat-icon class="!h-4 !w-4 !text-[18px] text-emerald-600">check_circle</mat-icon>
+          <span>{{ notice() }}</span>
+        </div>
+        <button type="button" class="erp-btn-icon !h-6 !w-6" (click)="notice.set('')" title="Đóng thông báo">
+          <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">close</mat-icon>
+        </button>
+      </div>
+    }
+
+    <!-- Search Bar + Primary Action Header -->
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div class="relative w-full max-w-sm">
+        <mat-icon class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 !h-4 !w-4 !text-[18px] text-slate-400">search</mat-icon>
+        <input
+          type="text"
+          class="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-8 text-xs text-slate-800 placeholder-slate-400 outline-none transition focus:border-[#0e3d48] focus:ring-1 focus:ring-[#0e3d48] shadow-2xs"
+          placeholder="Tìm kiếm theo mã, tên chuyên khoa..."
+          [value]="searchTerm()"
+          (input)="searchTerm.set($any($event.target).value)"
+        />
+        @if (searchTerm()) {
+          <button
+            type="button"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            (click)="searchTerm.set('')"
+          >
+            <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">close</mat-icon>
+          </button>
+        }
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          class="erp-btn-primary inline-flex items-center justify-center gap-2 rounded-xl bg-[#0e3d48] px-5 py-2.5 text-xs font-semibold text-white shadow-xs transition hover:bg-[#082830] cursor-pointer"
+          (click)="openCreate()"
+        >
+          <mat-icon class="!h-4 !w-4 !text-[18px]">add</mat-icon>
+          <span>Thêm chuyên khoa</span>
+        </button>
+        <button
+          type="button"
+          class="erp-btn-icon !h-10 !w-10 rounded-xl border border-slate-200 bg-white shadow-2xs"
+          (click)="load()"
+          [disabled]="loading()"
+          title="Làm mới dữ liệu"
+        >
+          <mat-icon class="!h-4 !w-4 !text-[18px]">refresh</mat-icon>
+        </button>
+      </div>
+    </div>
+
+    <!-- 3. Main DataGrid Table -->
+    @if (loading()) {
+      <div class="grid min-h-64 place-items-center rounded-2xl border border-slate-100 bg-white text-xs text-slate-500 shadow-xs">
+        Đang tải danh sách chuyên khoa...
+      </div>
+    } @else {
+      <section class="rounded-2xl border border-slate-100 bg-white shadow-xs overflow-hidden w-full">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs whitespace-nowrap">
+            <thead>
+              <tr class="border-b border-slate-100 text-[11px] font-semibold text-slate-500 uppercase tracking-wider bg-slate-50/50">
+                <th class="px-4 py-3.5 w-36">Mã chuyên khoa</th>
+                <th class="px-4 py-3.5 w-64">Tên chuyên khoa</th>
+                <th class="px-4 py-3.5">Mô tả phạm vi khám</th>
+                <th class="px-4 py-3.5 w-28 text-right">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-50">
+              @for (item of filteredItems(); track item.code) {
+                <tr class="transition hover:bg-slate-50/70">
+                  <td class="px-4 py-3">
+                    <span class="font-mono font-bold text-[#0e3d48] bg-sky-50 border border-sky-200 px-2.5 py-0.5 rounded-full text-[11px]">
+                      {{ item.code }}
+                    </span>
+                  </td>
+                  <td class="px-4 py-3">
+                    <span class="font-semibold text-slate-900 text-xs">{{ item.name }}</span>
+                  </td>
+                  <td class="px-4 py-3 max-w-md truncate text-slate-600">
+                    {{ item.description || 'Chưa có mô tả chi tiết' }}
+                  </td>
+                  <td class="px-4 py-3 text-right">
+                    <div class="flex items-center justify-end gap-1.5">
+                      <button
+                        type="button"
+                        class="erp-btn-icon-accent"
+                        (click)="openEdit(item)"
+                        [title]="'Chỉnh sửa chuyên khoa ' + item.name"
+                        [attr.aria-label]="'Sửa chuyên khoa ' + item.name"
+                      >
+                        <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">edit</mat-icon>
+                      </button>
+                      <button
+                        type="button"
+                        class="erp-btn-icon"
+                        (click)="deactivate(item)"
+                        [title]="'Tạm dừng chuyên khoa ' + item.name"
+                        [attr.aria-label]="'Tạm dừng chuyên khoa ' + item.name"
+                      >
+                        <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">pause</mat-icon>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="4" class="px-4 py-12 text-center text-xs text-slate-500">
+                    <div>
+                      <p class="font-medium text-slate-700">Chưa có chuyên khoa nào phù hợp.</p>
+                      <button
+                        type="button"
+                        class="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-[#0e3d48] px-4 py-2 text-xs font-semibold text-white"
+                        (click)="openCreate()"
+                      >
+                        <mat-icon class="!h-4 !w-4 !text-[18px]">add</mat-icon>
+                        <span>Thêm chuyên khoa</span>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    }
+  </div>
+
+  <!-- Modal: Create / Edit Specialty -->
+  @if (modalOpen()) {
+    <div class="erp-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="specialty-dialog-title" (click)="closeModal()">
+      <section class="erp-modal-container max-w-lg" (click)="$event.stopPropagation()">
+        <div class="erp-modal-header">
+          <h2 id="specialty-dialog-title" class="text-sm font-bold text-slate-900">
+            {{ editingCode() ? 'Cập nhật thông tin chuyên khoa' : 'Thêm chuyên khoa khám mới' }}
+          </h2>
+          <button type="button" class="erp-btn-icon" aria-label="Đóng" (click)="closeModal()">
+            <mat-icon class="!h-4 !w-4 !text-[18px]">close</mat-icon>
+          </button>
+        </div>
+
+        <form (ngSubmit)="$event.preventDefault(); save()">
+          <div class="erp-modal-body grid gap-3.5">
+            @if (error()) {
+              <div class="flex items-center justify-between gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700" role="alert">
+                <div class="flex items-center gap-2">
+                  <mat-icon class="!h-4 !w-4 !text-[16px] text-rose-600">error_outline</mat-icon>
+                  <span>{{ error() }}</span>
+                </div>
+                <button type="button" class="text-rose-400 hover:text-rose-700" aria-label="Đóng" (click)="error.set('')">
+                  <mat-icon class="!h-4 !w-4 !text-[14px]">close</mat-icon>
+                </button>
+              </div>
+            }
+            <label class="grid gap-1">
+              <span class="erp-label">Mã chuyên khoa (A-Z, 0-9, _) <span class="erp-label-required">*</span></span>
+              <input
+                class="erp-input font-mono uppercase"
+                [ngModel]="code()"
+                (ngModelChange)="code.set($event)"
+                name="specialtyCode"
+                maxlength="20"
+                placeholder="vd: NOI_TONG_QUAT"
+                [disabled]="!!editingCode()"
+              />
+            </label>
+
+            <label class="grid gap-1">
+              <span class="erp-label">Tên chuyên khoa <span class="erp-label-required">*</span></span>
+              <input
+                class="erp-input"
+                [ngModel]="name()"
+                (ngModelChange)="name.set($event)"
+                name="specialtyName"
+                maxlength="120"
+                placeholder="vd: Nội tổng quát"
+              />
+            </label>
+
+            <label class="grid gap-1">
+              <span class="erp-label">Mô tả phạm vi khám</span>
+              <textarea
+                rows="3"
+                class="erp-textarea"
+                [ngModel]="description()"
+                (ngModelChange)="description.set($event)"
+                name="specialtyDescription"
+                maxlength="500"
+                placeholder="Mô tả các mặt bệnh, kỹ thuật tiếp nhận tại chuyên khoa..."
+              ></textarea>
+            </label>
+          </div>
+
+          <div class="erp-modal-footer">
+            <button type="button" class="erp-btn-secondary" (click)="closeModal()">
+              Hủy
+            </button>
+            <button
+              type="submit"
+              class="erp-btn-primary"
+              [disabled]="saving()"
+            >
+              {{ saving() ? 'Đang lưu...' : editingCode() ? 'Lưu cập nhật' : 'Thêm chuyên khoa' }}
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
+  }
+</app-staff-workspace-shell>

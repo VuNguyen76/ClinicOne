@@ -2,7 +2,10 @@ package com.clinicone.medication;
 
 import com.clinicone.auth.AuthException;
 import org.springframework.http.HttpStatus;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
+import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -10,14 +13,12 @@ import java.util.Locale;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class MedicationCatalogService {
     private final MedicationRepository repository;
 
-    public MedicationCatalogService(MedicationRepository repository) {
-        this.repository = repository;
-    }
-
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = "medications", key = "'suggestions:' + (#query == null ? '' : #query.trim().toLowerCase())")
     public List<MedicationResponse> suggestions(String query) {
         String normalized = query == null ? "" : query.trim();
         if (normalized.length() < 2) return List.of();
@@ -26,6 +27,7 @@ public class MedicationCatalogService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = "medications", key = "'list:' + #activeOnly")
     public List<MedicationResponse> list(boolean activeOnly) {
         List<Medication> medications = activeOnly ? repository.findByActiveTrueOrderByNameAsc()
                 : repository.findAllByOrderByNameAsc();
@@ -33,6 +35,7 @@ public class MedicationCatalogService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = "medications", allEntries = true)
     public MedicationResponse create(CreateMedicationRequest request) {
         String code = code(request.code());
         if (repository.existsByCodeIgnoreCase(code)) {
@@ -42,6 +45,7 @@ public class MedicationCatalogService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = "medications", allEntries = true)
     public MedicationResponse update(UUID id, UpdateMedicationRequest request) {
         Medication medication = medication(id);
         String code = code(request.code());
@@ -53,6 +57,7 @@ public class MedicationCatalogService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = "medications", allEntries = true)
     public MedicationResponse setActive(UUID id, boolean active) {
         Medication medication = medication(id);
         medication.setActive(active);

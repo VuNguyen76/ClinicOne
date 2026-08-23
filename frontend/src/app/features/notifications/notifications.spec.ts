@@ -41,7 +41,7 @@ describe('Notifications', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Phiếu khám đã có kết quả');
-    (fixture.nativeElement.querySelector('button') as HTMLButtonElement).click();
+    (fixture.nativeElement.querySelector('button[data-testid="notification-item"]') as HTMLButtonElement).click();
     const request = http.expectOne('/api/v1/notifications/notification-1/read');
     expect(request.request.method).toBe('POST');
     request.flush(null);
@@ -55,7 +55,7 @@ describe('Notifications', () => {
     }]);
     fixture.detectChanges();
 
-    expect(() => (fixture.nativeElement.querySelector('button') as HTMLButtonElement).click()).not.toThrow();
+    expect(() => (fixture.nativeElement.querySelector('button[data-testid="notification-item"]') as HTMLButtonElement).click()).not.toThrow();
     const request = http.expectOne('/api/v1/notifications/notification-2/read');
     expect(request.request.method).toBe('POST');
     request.flush(null);

@@ -4,7 +4,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
 import { apiErrorMessage, AuthApiService } from '../../../core/auth/auth-api.service';
-import { AccountMenu } from '../../../shared/account-menu/account-menu';
+import { PatientHeader } from '../../../shared/patient-header/patient-header';
 import { AccountNav } from '../../../shared/account-nav/account-nav';
 
 function passwordsMatch(control: AbstractControl): ValidationErrors | null {
@@ -14,7 +14,7 @@ function passwordsMatch(control: AbstractControl): ValidationErrors | null {
 
 @Component({
   selector: 'app-change-password',
-  imports: [ReactiveFormsModule, RouterLink, MatIconModule, AccountMenu, AccountNav],
+  imports: [ReactiveFormsModule, RouterLink, MatIconModule, PatientHeader, AccountNav],
   templateUrl: './change-password.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -28,6 +28,9 @@ export class ChangePassword {
   protected readonly error = signal('');
   protected readonly notice = signal('');
   protected readonly required = signal(this.route.snapshot.queryParamMap.get('required') === '1');
+  protected readonly showCurrentPassword = signal(false);
+  protected readonly showNewPassword = signal(false);
+  protected readonly showConfirmPassword = signal(false);
 
   readonly passwordForm = this.formBuilder.nonNullable.group({
     currentPassword: ['', [Validators.required]],
@@ -54,7 +57,8 @@ export class ChangePassword {
             void this.router.navigateByUrl(this.safeReturnUrl() || '/dashboard');
             return;
           }
-          this.notice.set('Mật khẩu đã được đổi.');
+          this.notice.set('Mật khẩu đã được đổi thành công.');
+          setTimeout(() => this.notice.set(''), 4000);
         },
         error: (response) => this.showError(response),
       });

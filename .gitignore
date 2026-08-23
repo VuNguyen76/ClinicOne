@@ -15,6 +15,7 @@ frontend/.angular/
 frontend/.env
 frontend/.env.*
 !frontend/.env.example
+frontend/UI-STAFF-ERP-RULES.md
 
 # File cần để build/chạy project
 !pom.xml
