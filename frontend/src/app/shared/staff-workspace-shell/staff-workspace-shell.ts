@@ -54,7 +54,6 @@ const NAVIGATION: StaffNavigationGroup[] = [
       { label: 'Mẫu phiếu khám', route: '/admin/medical-record-templates', icon: 'description', roles: ['ADMIN', 'COORDINATOR'] },
       { label: 'Thuốc', route: '/admin/medications', icon: 'medication', roles: ['ADMIN', 'COORDINATOR'] },
       { label: 'Chẩn đoán', route: '/admin/diagnoses', icon: 'clinical_notes', roles: ['ADMIN', 'COORDINATOR'] },
-      { label: 'Danh mục lý do', route: '/admin/reason-catalog', icon: 'list_alt', roles: ['ADMIN'] },
     ],
   },
   {
