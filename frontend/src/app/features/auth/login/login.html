@@ -39,6 +39,10 @@
               type="submit" [disabled]="busy()">
               {{ busy() ? 'Đang đăng nhập...' : 'Đăng nhập' }}
             </button>
+            <div class="mt-2 text-center text-xs text-slate-500">
+              Chưa có tài khoản?
+              <a routerLink="/register" [queryParams]="returnUrl ? { returnUrl: returnUrl } : null" class="font-semibold text-[#0284c7] hover:underline">Đăng ký ngay</a>
+            </div>
           </form>
           } @else {
           <form class="mt-6 grid gap-3" [formGroup]="passwordForm" (ngSubmit)="submitPassword()" novalidate>

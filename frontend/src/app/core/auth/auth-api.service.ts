@@ -778,6 +778,7 @@ export interface StaffLoginResponse {
 }
 
 export type ApiErrorResponse = {
+  status?: number;
   error?: {
     code?: string;
     message?: string;
@@ -796,15 +797,26 @@ export function apiErrorMessage(response: ApiErrorResponse): string {
   const validation = (payload?.errors ?? response.errors)?.map((item) => item.field && (item.message ?? item.defaultMessage)
     ? `${item.field}: ${item.message ?? item.defaultMessage}` : (item.message ?? item.defaultMessage))
     .filter((message): message is string => Boolean(message));
-  return (validation?.length ? validation.join(' · ') : undefined)
-    ?? payload?.message
+  if (validation?.length) return validation.join(' · ');
+
+  const specificMessage = payload?.message
     ?? payload?.detail
     ?? payload?.error?.message
     ?? payload?.error?.detail
-    ?? response.message
-    ?? response.detail
-    ?? (typeof response.error === 'string' ? response.error : undefined)
-    ?? 'Không thể xử lý yêu cầu. Vui lòng thử lại.';
+    ?? (typeof response.error === 'string' && !response.error.startsWith('Http failure') ? response.error : undefined)
+    ?? (response.message && !response.message.startsWith('Http failure') ? response.message : undefined)
+    ?? (response.detail && !response.detail.startsWith('Http failure') ? response.detail : undefined);
+
+  if (specificMessage) return specificMessage;
+
+  const status = response.status;
+  if (status === 401) return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+  if (status === 403) return 'Bạn không có quyền thực hiện thao tác này hoặc phiên làm việc đã hết hạn.';
+  if (status === 404) return 'Không tìm thấy dữ liệu yêu cầu.';
+  if (status && status >= 500) return 'Máy chủ đang bận hoặc gặp sự cố tạm thời. Vui lòng thử lại sau.';
+  if (status === 0) return 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.';
+
+  return 'Không thể xử lý yêu cầu. Vui lòng thử lại.';
 }
 
 @Injectable({ providedIn: 'root' })
