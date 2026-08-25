@@ -25,6 +25,9 @@ export class Login {
   protected readonly phone = signal('');
   protected readonly password = signal('');
   protected readonly showPassword = signal(false);
+  protected get returnUrl(): string | null {
+    return this.safeReturnUrl();
+  }
 
   readonly phoneForm = this.formBuilder.nonNullable.group({
     phone: ['', [Validators.required, Validators.pattern(/^0\d{9}$/)]],
