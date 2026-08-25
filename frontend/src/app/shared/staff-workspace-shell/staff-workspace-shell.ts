@@ -60,7 +60,7 @@ const NAVIGATION: StaffNavigationGroup[] = [
     label: 'Kiểm soát',
     items: [
       { label: 'Thống kê', route: '/admin/statistics', icon: 'analytics', roles: ['ADMIN', 'COORDINATOR'] },
-      { label: 'Đối soát sai sót', route: '/admin/reconciliations', icon: 'fact_check', roles: ['ADMIN', 'COORDINATOR'] },
+      { label: 'Xử lý sai lệch dữ liệu', route: '/admin/reconciliations', icon: 'fact_check', roles: ['ADMIN', 'COORDINATOR'] },
       { label: 'Lịch sử công việc', route: '/admin/business-audit', icon: 'history', roles: ['ADMIN', 'COORDINATOR'] },
       { label: 'Nhật ký truy cập', route: '/admin/access-audit', icon: 'manage_search', roles: ['ADMIN'] },
     ],
