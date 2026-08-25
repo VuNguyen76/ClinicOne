@@ -43,7 +43,7 @@ export const routes: Routes = [
   { path: 'admin/doctor-time-off', loadComponent: () => import('./features/doctor-time-off/doctor-time-off').then((m) => m.DoctorTimeOffManagement), canActivate: [roomManagerGuard] },
   { path: 'admin/reconciliations', loadComponent: () => import('./features/reconciliation/reconciliation').then((m) => m.ReconciliationManagement), canActivate: [roomManagerGuard] },
   { path: 'admin/access-audit', loadComponent: () => import('./features/access-audit/access-audit').then((m) => m.AccessAuditManagement), canActivate: [adminGuard] },
-  { path: 'admin/configuration', loadComponent: () => import('./features/clinic-configuration/clinic-configuration').then((m) => m.ClinicConfiguration), canActivate: [adminGuard] },
+  { path: 'admin/configuration', pathMatch: 'full', redirectTo: 'admin/rooms' },
   { path: 'admin/reason-catalog', loadComponent: () => import('./features/reason-catalog-management/reason-catalog-management').then((m) => m.ReasonCatalogManagement), canActivate: [adminGuard] },
   { path: 'admin/medications', loadComponent: () => import('./features/medication-catalog-management/medication-catalog-management').then((m) => m.MedicationCatalogManagement), canActivate: [roomManagerGuard] },
   { path: 'admin/diagnoses', loadComponent: () => import('./features/diagnosis-catalog-management/diagnosis-catalog-management').then((m) => m.DiagnosisCatalogManagement), canActivate: [roomManagerGuard] },

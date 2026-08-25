@@ -70,7 +70,6 @@ const NAVIGATION: StaffNavigationGroup[] = [
     label: 'Hệ thống',
     items: [
       { label: 'Tài khoản nhân viên', route: '/admin/staff', icon: 'manage_accounts', roles: ['ADMIN'] },
-      { label: 'Cấu hình phòng khám', route: '/admin/configuration', icon: 'tune', roles: ['ADMIN'] },
       { label: 'Tin nhắn SMS', route: '/admin/sms-deliveries', icon: 'sms', roles: ['ADMIN'] },
     ],
   },

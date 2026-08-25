@@ -46,8 +46,8 @@ public class ClinicConfiguration {
     protected ClinicConfiguration() {
     }
 
-    private ClinicConfiguration(String unitName, String departmentName, int holdMinutes,
-                                int cancellationThresholdHours, String actor) {
+    ClinicConfiguration(String unitName, String departmentName, int holdMinutes,
+                        int cancellationThresholdHours, String actor) {
         this.unitName = unitName;
         this.departmentName = departmentName;
         this.holdMinutes = holdMinutes;

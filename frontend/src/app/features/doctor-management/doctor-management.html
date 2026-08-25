@@ -229,9 +229,9 @@
             <h4 class="text-xs font-bold uppercase tracking-wider text-[#0e3d48]">1. Phân công chuyên môn</h4>
             <div class="space-y-2">
               <label class="grid gap-1">
-                <span class="text-[11px] font-semibold text-slate-600">Chuyên khoa</span>
+                <span class="text-[11px] font-semibold text-slate-600">Chuyên khoa <span class="text-rose-500">*</span></span>
                 <select formControlName="specialty" class="erp-select">
-                  <option value="">Chọn chuyên khoa</option>
+                  <option value="">-- Chọn chuyên khoa --</option>
                   @for (specialty of specialties(); track specialty.code) {
                     <option [value]="specialty.name">{{ specialty.name }}</option>
                   }
@@ -239,13 +239,20 @@
               </label>
 
               <label class="grid gap-1">
-                <span class="text-[11px] font-semibold text-slate-600">Phòng khám</span>
-                <select formControlName="roomId" class="erp-select">
-                  <option value="">Chọn phòng khám</option>
-                  @for (room of availableRooms(); track room.id) {
-                    <option [value]="room.id">{{ room.code }} · {{ room.name }}</option>
+                <span class="text-[11px] font-semibold text-slate-600">Phòng khám <span class="text-rose-500">*</span></span>
+                <select formControlName="roomId" class="erp-select" [attr.disabled]="!selectedSpecialtyForAssignment() ? true : null">
+                  @if (!selectedSpecialtyForAssignment()) {
+                    <option value="" disabled selected>-- Vui lòng chọn chuyên khoa trước --</option>
+                  } @else {
+                    <option value="">-- Chọn phòng khám ({{ availableRooms().length }} phòng) --</option>
+                    @for (room of availableRooms(); track room.id) {
+                      <option [value]="room.id">{{ room.code }} · {{ room.name }}</option>
+                    }
                   }
                 </select>
+                @if (selectedSpecialtyForAssignment() && availableRooms().length === 0) {
+                  <p class="text-[11px] text-amber-600 font-medium mt-0.5">Chưa có phòng khám nào thuộc chuyên khoa "{{ selectedSpecialtyForAssignment() }}".</p>
+                }
               </label>
 
               <label class="grid gap-1">

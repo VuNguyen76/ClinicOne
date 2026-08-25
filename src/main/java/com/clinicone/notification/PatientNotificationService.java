@@ -79,6 +79,14 @@ public class PatientNotificationService {
     }
 
     @Transactional
+    public void markAllRead(String accountId) {
+        UUID patientId = AuthenticatedIds.patient(accountId);
+        List<PatientNotification> unreadList = repository.findByPatientAccountIdAndReadAtIsNull(patientId);
+        unreadList.forEach(PatientNotification::markRead);
+        repository.saveAll(unreadList);
+    }
+
+    @Transactional
     public void notifyMedicalRecordSigned(UUID patientId, UUID recordId, String appointmentCode,
                                           String doctorName, String specialty) {
         if (patientId == null || recordId == null) {

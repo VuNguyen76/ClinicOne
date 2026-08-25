@@ -63,6 +63,29 @@ describe('DoctorManagement', () => {
     expect(fixture.nativeElement.querySelectorAll('[data-testid="doctor-row"]').length).toBe(1);
     expect(fixture.nativeElement.textContent).toContain('Bác sĩ Nguyễn An');
   });
+
+  it('filters available rooms reactively based on the selected specialty in assignment drawer', () => {
+    http.expectOne('/api/v1/admin/doctors').flush([doctor('doctor-1', true)]);
+    http.expectOne('/api/v1/rooms').flush([
+      { id: 'room-1', code: 'NOI-01', name: 'Phòng Nội 01', specialty: 'Khám Tổng Quát', active: true },
+      { id: 'room-2', code: 'NHI-01', name: 'Phòng Nhi 01', specialty: 'Nhi Khoa', active: true },
+    ]);
+    http.expectOne('/api/v1/specialties').flush([
+      { code: 'TQ', name: 'Khám Tổng Quát', description: '' },
+      { code: 'NK', name: 'Nhi Khoa', description: '' },
+    ]);
+    http.expectOne('/api/v1/admin/doctors/doctor-1/schedules').flush([]);
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance;
+    expect(component['availableRooms']().length).toBe(1);
+    expect(component['availableRooms']()[0].code).toBe('NOI-01');
+
+    component['assignmentForm'].controls.specialty.setValue('Nhi Khoa');
+    fixture.detectChanges();
+    expect(component['availableRooms']().length).toBe(1);
+    expect(component['availableRooms']()[0].code).toBe('NHI-01');
+  });
 });
 
 function doctor(staffId: string, assigned: boolean) {

@@ -63,6 +63,14 @@ class PatientNotificationControllerTest {
     }
 
     @Test
+    void patientCanMarkAllNotificationsRead() throws Exception {
+        mockMvc.perform(post("/api/v1/notifications/read-all")
+                        .with(authentication(authenticated("ROLE_PATIENT"))))
+                .andExpect(status().isNoContent());
+        verify(service).markAllRead(PATIENT_ID.toString());
+    }
+
+    @Test
     void staffCannotReadPatientNotifications() throws Exception {
         mockMvc.perform(get("/api/v1/notifications")
                         .with(authentication(authenticated("ROLE_DOCTOR"))))
