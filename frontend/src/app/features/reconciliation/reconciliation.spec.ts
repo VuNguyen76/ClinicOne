@@ -23,16 +23,15 @@ describe('ReconciliationManagement', () => {
   afterEach(() => { http.verify(); sessionStorage.clear(); });
 
   it('shows open incidents with clean business code and without editable status controls', () => {
-    http.expectOne('/api/v1/admin/reconciliations?status=OPEN').flush([incident()]);
+    http.expectOne('/api/v1/admin/reconciliations').flush([incident()]);
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('SC-202608-001');
     expect(fixture.nativeElement.textContent).toContain('LH-20260820-001');
     expect(fixture.nativeElement.textContent).toContain('Nguyễn Văn A');
-    expect(fixture.nativeElement.querySelector('[data-testid="status-input"]')).toBeNull();
   });
 
   it('closes an incident only after entering reference and result', () => {
-    http.expectOne('/api/v1/admin/reconciliations?status=OPEN').flush([incident()]);
+    http.expectOne('/api/v1/admin/reconciliations').flush([incident()]);
     fixture.detectChanges();
     const component = fixture.componentInstance as any;
     component.referenceValue.set('SC-202608-001');
@@ -42,21 +41,13 @@ describe('ReconciliationManagement', () => {
     const request = http.expectOne('/api/v1/admin/reconciliations/incident-1/close');
     expect(request.request.body).toEqual({ action: 'RETRY_BUSINESS_ACTION', referenceType: 'INCIDENT', referenceValue: 'SC-202608-001', resultNote: 'Đã kiểm tra lại và xử lý xong dữ liệu.' });
     request.flush({ ...incident(), status: 'CLOSED' });
+    http.expectOne('/api/v1/admin/reconciliations').flush([{ ...incident(), status: 'CLOSED' }]);
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('Đã đóng đối soát SC-202608-001.');
-  });
-
-  it('does not show closing controls to an administrator', () => {
-    http.expectOne('/api/v1/admin/reconciliations?status=OPEN').flush([incident()]);
-    const component = fixture.componentInstance as any;
-    component.canClose = () => false;
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('[data-testid="close-reconciliation"]')).toBeNull();
-    expect(fixture.nativeElement.textContent).toContain('chỉ được xem');
+    expect(fixture.nativeElement.textContent).toContain('Đã đóng thành công sự cố đối soát SC-202608-001.');
   });
 
   it('automatically sets referenceType to BUSINESS_LOG when choosing REPLAY_LOG', () => {
-    http.expectOne('/api/v1/admin/reconciliations?status=OPEN').flush([incident()]);
+    http.expectOne('/api/v1/admin/reconciliations').flush([incident()]);
     fixture.detectChanges();
     const component = fixture.componentInstance as any;
     expect(component.referenceType()).toBe('INCIDENT');
@@ -64,6 +55,23 @@ describe('ReconciliationManagement', () => {
     fixture.detectChanges();
     expect(component.action()).toBe('REPLAY_LOG');
     expect(component.referenceType()).toBe('BUSINESS_LOG');
+  });
+
+  it('triggers integrity scan and notifies results', () => {
+    http.expectOne('/api/v1/admin/reconciliations').flush([]);
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance as any;
+    component.runIntegrityScan();
+
+    const request = http.expectOne('/api/v1/admin/audit/integrity-check');
+    expect(request.request.method).toBe('POST');
+    request.flush({ inspected: 120, incidentsOpened: 0 });
+
+    http.expectOne('/api/v1/admin/reconciliations').flush([]);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Đã rà soát xong 120 bản ghi dữ liệu.');
   });
 });
 

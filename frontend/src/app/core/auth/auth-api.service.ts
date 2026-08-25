@@ -1399,8 +1399,20 @@ export class AuthApiService {
     return this.http.post<DoctorTimeOffResponse>('/api/v1/admin/doctor-time-off', request);
   }
 
-  getReconciliations(status = 'OPEN'): Observable<ReconciliationResponse[]> {
-    return this.http.get<ReconciliationResponse[]>('/api/v1/admin/reconciliations', { params: { status } });
+  getReconciliations(status?: string): Observable<ReconciliationResponse[]> {
+    const params: Record<string, string> = {};
+    if (status && status !== 'ALL') {
+      params['status'] = status;
+    }
+    return this.http.get<ReconciliationResponse[]>('/api/v1/admin/reconciliations', { params });
+  }
+
+  openReconciliation(request: { entityType: string; entityId?: string; reason: string; assignee: string }): Observable<ReconciliationResponse> {
+    return this.http.post<ReconciliationResponse>('/api/v1/admin/reconciliations', request);
+  }
+
+  triggerIntegrityCheck(): Observable<{ inspected: number; incidentsOpened: number }> {
+    return this.http.post<{ inspected: number; incidentsOpened: number }>('/api/v1/admin/audit/integrity-check', {});
   }
 
   closeReconciliation(id: string, request: { action: string; referenceType: string; referenceValue: string; resultNote: string }): Observable<ReconciliationResponse> {
