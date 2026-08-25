@@ -88,9 +88,12 @@ export class DoctorManagement implements OnInit {
     });
   });
 
+  protected readonly selectedSpecialtyForAssignment = signal('');
+
   protected readonly availableRooms = computed<ClinicRoomResponse[]>(() => {
-    const specialty = this.assignmentForm.controls.specialty.value;
-    return this.rooms().filter((room) => !specialty || room.specialty.toLocaleLowerCase() === specialty.toLocaleLowerCase());
+    const specialty = this.selectedSpecialtyForAssignment().trim().toLowerCase();
+    if (!specialty) return [];
+    return this.rooms().filter((room) => room.active && room.specialty.toLowerCase() === specialty);
   });
 
   protected readonly isAllSelected = computed<boolean>(() => {
@@ -127,6 +130,15 @@ export class DoctorManagement implements OnInit {
   }
 
   ngOnInit(): void {
+    this.assignmentForm.controls.specialty.valueChanges.subscribe((spec) => {
+      this.selectedSpecialtyForAssignment.set(spec || '');
+      const currentRoomId = this.assignmentForm.controls.roomId.value;
+      const valid = this.rooms().some((r) => r.id === currentRoomId && r.active && r.specialty.toLowerCase() === (spec || '').toLowerCase());
+      if (!valid) {
+        this.assignmentForm.controls.roomId.setValue('');
+      }
+    });
+
     forkJoin({ doctors: this.authApi.getDoctors(), rooms: this.authApi.getRooms(), specialties: this.authApi.getSpecialties() }).subscribe({
       next: (data) => {
         this.doctors.set(data.doctors);
@@ -141,6 +153,7 @@ export class DoctorManagement implements OnInit {
 
   protected preloadDoctor(doctor: DoctorAccountResponse): void {
     this.selectedDoctor.set(doctor);
+    this.selectedSpecialtyForAssignment.set(doctor.specialty ?? '');
     this.assignmentForm.setValue({
       specialty: doctor.specialty ?? '',
       roomId: doctor.roomId ?? '',
@@ -168,6 +181,7 @@ export class DoctorManagement implements OnInit {
   protected openScheduleDrawer(doctor: DoctorAccountResponse): void {
     this.selectedDoctor.set(doctor);
     this.isDrawerOpen.set(true);
+    this.selectedSpecialtyForAssignment.set(doctor.specialty ?? '');
     this.assignmentForm.setValue({
       specialty: doctor.specialty ?? '',
       roomId: doctor.roomId ?? '',

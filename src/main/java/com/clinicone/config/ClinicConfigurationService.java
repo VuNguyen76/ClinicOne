@@ -8,15 +8,42 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Value;
+
 @Service
-@RequiredArgsConstructor
 public class ClinicConfigurationService {
     private final ClinicConfigurationRepository repository;
+    private final String defaultUnitName;
+    private final String defaultDepartmentName;
+    private final int defaultHoldMinutes;
+    private final int defaultCancellationThresholdHours;
+
+    public ClinicConfigurationService(ClinicConfigurationRepository repository) {
+        this(repository, "ClinicOne", "Khám bệnh", 10, 12);
+    }
+
+    public ClinicConfigurationService(
+            ClinicConfigurationRepository repository,
+            @Value("${app.clinic.unit-name:ClinicOne}") String defaultUnitName,
+            @Value("${app.clinic.department-name:Khám bệnh}") String defaultDepartmentName,
+            @Value("${app.clinic.hold-minutes:10}") int defaultHoldMinutes,
+            @Value("${app.clinic.cancellation-threshold-hours:12}") int defaultCancellationThresholdHours
+    ) {
+        this.repository = repository;
+        this.defaultUnitName = defaultUnitName;
+        this.defaultDepartmentName = defaultDepartmentName;
+        this.defaultHoldMinutes = defaultHoldMinutes;
+        this.defaultCancellationThresholdHours = defaultCancellationThresholdHours;
+    }
+
+    public ClinicConfiguration defaultConfiguration() {
+        return new ClinicConfiguration(defaultUnitName, defaultDepartmentName, defaultHoldMinutes, defaultCancellationThresholdHours, "SYSTEM");
+    }
 
     @Transactional
     public ClinicConfiguration current() {
         return repository.findById(ClinicConfiguration.DEFAULT_ID)
-                .orElseGet(() -> repository.save(ClinicConfiguration.defaults()));
+                .orElseGet(() -> repository.save(defaultConfiguration()));
     }
 
     @Transactional

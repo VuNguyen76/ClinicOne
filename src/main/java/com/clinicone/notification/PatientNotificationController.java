@@ -37,4 +37,10 @@ public class PatientNotificationController {
         service.markRead(authentication.getName(), notificationId.toString());
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/read-all")
+    public ResponseEntity<Void> markAllRead(Authentication authentication) {
+        service.markAllRead(authentication.getName());
+        return ResponseEntity.noContent().build();
+    }
 }

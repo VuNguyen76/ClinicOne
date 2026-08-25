@@ -1064,6 +1064,12 @@ export class AuthApiService {
     );
   }
 
+  markAllNotificationsRead(): Observable<void> {
+    return this.http.post<void>(`${this.notificationsRoot}/read-all`, {}).pipe(
+      tap(() => this.unreadNotificationsCount.set(0))
+    );
+  }
+
   checkInToRoom(roomCode: string, appointmentId: string, requestKey?: string): Observable<QueueTicketResponse> {
     return this.http.post<QueueTicketResponse>(`/api/v1/rooms/${encodeURIComponent(roomCode)}/queue/check-in`, { appointmentId }, {
       headers: requestKey ? { 'Idempotency-Key': requestKey } : undefined,
