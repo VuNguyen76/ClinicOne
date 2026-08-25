@@ -53,6 +53,9 @@ export class ReconciliationManagement implements OnInit {
 
   protected cleanReason(reason: string): string {
     if (!reason) return '—';
+    if (reason.includes('Chuỗi hash')) {
+      return 'Nhật ký hệ thống ghi nhận sai lệch thứ tự hoặc bị gián đoạn dữ liệu.';
+    }
     return reason.replace(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/g, 'tham chiếu hệ thống');
   }
 

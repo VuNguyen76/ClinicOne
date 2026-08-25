@@ -1,20 +1,5 @@
 <app-staff-workspace-shell moduleTitle="Kiểm soát" pageTitle="Xử lý sai lệch dữ liệu">
   <div class="grid gap-6">
-    <!-- Friendly Help / Context Banner -->
-    <div class="rounded-2xl border border-sky-100 bg-gradient-to-r from-sky-50/80 via-white to-sky-50/40 p-4 shadow-2xs">
-      <div class="flex items-start gap-3">
-        <div class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-sky-100 text-[#0284c7]">
-          <mat-icon class="!h-5 !w-5 !text-[20px]">help_outline</mat-icon>
-        </div>
-        <div class="flex-1 text-xs">
-          <h2 class="text-xs font-bold text-slate-900">Tính năng này dùng để làm gì?</h2>
-          <p class="mt-0.5 text-slate-600 leading-relaxed">
-            Hệ thống tự động rà soát và đối chiếu dữ liệu giữa <strong>Lịch hẹn</strong>, <strong>Hàng đợi tại quầy</strong> và <strong>Phiên khám của bác sĩ</strong>. Nếu có sự cố (ví dụ: bệnh nhân đã đến nhưng chưa hiện trên bảng đợi, hoặc trạng thái phiếu khám chưa cập nhật), bạn có thể kiểm tra và bấm <strong>Đồng bộ lại</strong> tại đây.
-          </p>
-        </div>
-      </div>
-    </div>
-
     <!-- Alerts & Notices -->
     @if (error()) {
       <div class="flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-medium text-rose-800 shadow-xs" role="alert">
@@ -251,7 +236,7 @@
                 [class.text-amber-700]="item.status !== 'CLOSED'"
                 [class.border-amber-200]="item.status !== 'CLOSED'"
               >
-                {{ item.status === 'CLOSED' ? '✓ Đã hoàn tất' : '⏳ Cần giải quyết' }}
+                {{ item.status === 'CLOSED' ? 'Đã hoàn tất' : 'Chưa xử lý' }}
               </span>
             }
           </div>
