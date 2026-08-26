@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 
 @Service
@@ -22,6 +23,7 @@ public class ClinicConfigurationService {
         this(repository, "ClinicOne", "Khám bệnh", 10, 12);
     }
 
+    @Autowired
     public ClinicConfigurationService(
             ClinicConfigurationRepository repository,
             @Value("${app.clinic.unit-name:ClinicOne}") String defaultUnitName,
