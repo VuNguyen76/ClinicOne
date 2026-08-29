@@ -38,6 +38,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -175,12 +176,11 @@ public class AppointmentService {
                 }
             }
         }
-        if (hasActiveAppointment(patientId, appointmentDate, startTime)) {
-            throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_DUPLICATE",
-                    "Bạn đã có lịch hẹn trong khung giờ này.");
-        }
-
         PatientProfile profile = resolveProfile(request.profileId(), patientId);
+        if (profile != null && hasActiveAppointmentForProfile(profile.getId(), appointmentDate, startTime)) {
+            throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_DUPLICATE",
+                    "Hồ sơ này đã có lịch hẹn tại khung giờ này.");
+        }
         Appointment appointment = profile == null
                 ? Appointment.create(patient, request.doctorId(), nextAppointmentCode(), request.specialty().trim(),
                 request.doctorName().trim(), appointmentDate, startTime, request.reason().trim())
@@ -408,9 +408,10 @@ public class AppointmentService {
                         appointment.getServiceId());
             }
         }
-        if (!sameSlot && hasActiveAppointment(patientId, request.appointmentDate(), request.startTime())) {
+        PatientProfile currentProfile = appointment.getPatientProfile();
+        if (!sameSlot && currentProfile != null && hasActiveAppointmentForProfile(currentProfile.getId(), request.appointmentDate(), request.startTime())) {
             throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_DUPLICATE",
-                    "Bạn đã có lịch hẹn trong khung giờ này.");
+                    "Hồ sơ này đã có lịch hẹn tại khung giờ này.");
         }
         if (!sameSlot) {
             markPreviousGeneratedSlotUnavailable(appointment);
@@ -465,10 +466,10 @@ public class AppointmentService {
         }
         availabilityService.ensureBookable(appointment.getSpecialty(), doctorName, doctorStaffId,
                 appointmentDate, startTime, null, appointment.getServiceId());
-        if (appointment.getPatient() != null
-                && hasActiveAppointment(appointment.getPatient().getId(), appointmentDate, startTime)) {
+        if (appointment.getPatientProfile() != null
+                && hasActiveAppointmentForProfile(appointment.getPatientProfile().getId(), appointmentDate, startTime)) {
             throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_DUPLICATE",
-                    "Người bệnh đã có lịch hẹn trong khung giờ này.");
+                    "Hồ sơ này đã có lịch hẹn tại khung giờ này.");
         }
 
         String previousDate = appointment.getAppointmentDate().toString();
@@ -595,11 +596,10 @@ public class AppointmentService {
                 "Phiên đăng nhập không hợp lệ.");
     }
 
-    private boolean hasActiveAppointment(UUID patientId, LocalDate appointmentDate, LocalTime startTime) {
-        return appointmentRepository.findByPatientIdAndAppointmentDateAndStartTimeAndStatus(
-                        patientId, appointmentDate, startTime, AppointmentStatus.BOOKED).isPresent()
-                || appointmentRepository.findByPatientIdAndAppointmentDateAndStartTimeAndStatus(
-                        patientId, appointmentDate, startTime, AppointmentStatus.CHECKED_IN).isPresent();
+    private boolean hasActiveAppointmentForProfile(UUID profileId, LocalDate appointmentDate, LocalTime startTime) {
+        return appointmentRepository.findByPatientProfileIdAndAppointmentDateAndStartTimeAndStatusIn(
+                        profileId, appointmentDate, startTime, 
+                        Set.of(AppointmentStatus.BOOKED, AppointmentStatus.CHECKED_IN)).isPresent();
     }
 
     private void requireLateCancellationReason(Appointment appointment, String reason) {

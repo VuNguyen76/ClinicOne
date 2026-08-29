@@ -31,7 +31,7 @@ import java.util.UUID;
         @Index(name = "idx_appointments_slot_availability", columnList = "specialty,appointment_date,start_time,status"),
         @Index(name = "idx_appointments_doctor_slot", columnList = "doctor_staff_id,appointment_date,start_time,status")
 }, uniqueConstraints = {
-        @UniqueConstraint(name = "uk_appointments_patient_slot", columnNames = {"patient_account_id", "appointment_date", "start_time"}),
+        @UniqueConstraint(name = "uk_appointments_patient_profile_slot", columnNames = {"patient_profile_id", "appointment_date", "start_time"}),
         @UniqueConstraint(name = "uk_appointments_patient_creation_key", columnNames = {"patient_account_id", "creation_request_key"}),
         @UniqueConstraint(name = "uk_appointments_patient_checkin_key", columnNames = {"patient_account_id", "checkin_request_key"})
 })

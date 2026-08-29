@@ -239,7 +239,8 @@
           </div>
           <select
             class="min-h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-800 outline-none transition focus:border-[#0284c7] focus:ring-3 focus:ring-sky-500/15"
-            formControlName="profileId">
+            formControlName="profileId"
+            (change)="onProfileChange($event)">
             @if (primaryProfile(); as primary) {
               <optgroup label="Hồ sơ chính">
                 <option [value]="primary.id">{{ primary.fullName }} · {{ primary.relationship || 'Bản thân' }} (Mặc định)</option>

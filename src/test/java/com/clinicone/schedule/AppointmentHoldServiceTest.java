@@ -21,11 +21,15 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentCaptor.forClass;
+import org.mockito.ArgumentCaptor;
 
 class AppointmentHoldServiceTest {
     private static final UUID ACCOUNT_ID = UUID.fromString("7d9e3fb4-1045-4ca4-86d2-7d1fca4c1a13");
@@ -60,6 +64,74 @@ class AppointmentHoldServiceTest {
         assertEquals(NOW.plusSeconds(600), response.expiresAt());
         verify(availabilityService).ensureBookable("Nội tổng quát", "BS. An", DOCTOR_ID,
                 LocalDate.of(2026, 8, 10), LocalTime.of(8, 30));
+    }
+
+    @Test
+    void createsProfileAwareHoldKey() {
+        PatientAccount account = account();
+        UUID profileId = UUID.randomUUID();
+        when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
+        when(holdRepository.findByHoldKey(any())).thenReturn(Optional.empty());
+        when(holdRepository.saveAndFlush(any(AppointmentHold.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.create(ACCOUNT_ID.toString(),
+                new CreateAppointmentHoldRequest("Nội tổng quát", "BS. An",
+                        LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), DOCTOR_ID, null, profileId));
+
+        // Verify hold key includes profile ID
+        ArgumentCaptor<AppointmentHold> captor = ArgumentCaptor.forClass(AppointmentHold.class);
+        verify(holdRepository).saveAndFlush(captor.capture());
+        AppointmentHold savedHold = captor.getValue();
+        assertTrue(savedHold.getHoldKey().contains(":PROFILE:" + profileId.toString()));
+    }
+
+    @Test
+    void allowsDifferentProfilesSameDoctorSlot() {
+        PatientAccount account = account();
+        UUID profile1Id = UUID.randomUUID();
+        UUID profile2Id = UUID.randomUUID();
+        when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
+        when(holdRepository.findByHoldKey(any())).thenReturn(Optional.empty());
+        when(holdRepository.saveAndFlush(any(AppointmentHold.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // First hold for profile1
+        service.create(ACCOUNT_ID.toString(),
+                new CreateAppointmentHoldRequest("Nội tổng quát", "BS. An",
+                        LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), DOCTOR_ID, null, profile1Id));
+
+        // Second hold for profile2 should succeed because holdKey differs
+        service.create(ACCOUNT_ID.toString(),
+                new CreateAppointmentHoldRequest("Nội tổng quát", "BS. An",
+                        LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), DOCTOR_ID, null, profile2Id));
+
+        verify(holdRepository, times(2)).saveAndFlush(any(AppointmentHold.class));
+    }
+
+    @Test
+    void blocksSameProfileSameDoctorSlot() {
+        PatientAccount account = account();
+        UUID profileId = UUID.randomUUID();
+        when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
+        when(holdRepository.findByHoldKey(any())).thenReturn(Optional.empty());
+        when(holdRepository.saveAndFlush(any(AppointmentHold.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // First hold for profile
+        service.create(ACCOUNT_ID.toString(),
+                new CreateAppointmentHoldRequest("Nội tổng quát", "BS. An",
+                        LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), DOCTOR_ID, null, profileId));
+
+        // Second hold for same profile should fail due to duplicate hold_key
+        AppointmentHold existingHold = mock(AppointmentHold.class);
+        when(existingHold.getExpiresAt()).thenReturn(Instant.now().plusSeconds(300));
+        PatientAccount otherPatient = mock(PatientAccount.class);
+        when(otherPatient.getId()).thenReturn(UUID.randomUUID());
+        when(existingHold.getPatient()).thenReturn(otherPatient);
+        when(holdRepository.findByHoldKey(any())).thenReturn(Optional.of(existingHold));
+        AuthException exception = assertThrows(AuthException.class, () -> service.create(ACCOUNT_ID.toString(),
+                new CreateAppointmentHoldRequest("Nội tổng quát", "BS. An",
+                        LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), DOCTOR_ID, null, profileId)));
+
+        assertEquals("APPOINTMENT_SLOT_HELD", exception.getCode());
     }
 
     @Test
