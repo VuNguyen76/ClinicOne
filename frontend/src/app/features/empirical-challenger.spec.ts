@@ -534,7 +534,7 @@ describe('Empirical Adversarial Stress Suite - Challenger 2: Cross-Role Workflow
       reconComponent = reconFixture.componentInstance;
       reconFixture.detectChanges();
 
-      http.expectOne('/api/v1/admin/reconciliations?status=OPEN').flush([
+      http.expectOne('/api/v1/admin/reconciliations').flush([
         { id: 'inc-1', incidentCode: 'INC-2026-001', entityType: 'APPOINTMENT', entityId: 'a1', eventId: 'ev-1', reason: 'Lỗi đồng bộ', assignee: 'coordinator', status: 'OPEN', resolutionAction: null, referenceType: 'INCIDENT', referenceValue: 'INC-2026-001', resultNote: null, closedBy: null, closedAt: null, createdAt: '2026-08-10T00:00:00Z' },
       ]);
       reconFixture.detectChanges();

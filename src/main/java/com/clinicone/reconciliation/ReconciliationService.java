@@ -47,8 +47,10 @@ public class ReconciliationService {
 
     @Transactional(readOnly = true)
     public List<ReconciliationResponse> list(ReconciliationStatus status) {
-        ReconciliationStatus requested = status == null ? ReconciliationStatus.OPEN : status;
-        return repository.findByStatusOrderByCreatedAtDesc(requested).stream()
+        List<ReconciliationIncident> list = status == null
+                ? repository.findAllByOrderByCreatedAtDesc()
+                : repository.findByStatusOrderByCreatedAtDesc(status);
+        return list.stream()
                 .map(ReconciliationResponse::from)
                 .toList();
     }

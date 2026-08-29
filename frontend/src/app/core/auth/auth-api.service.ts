@@ -779,6 +779,7 @@ export interface StaffLoginResponse {
 }
 
 export type ApiErrorResponse = {
+  status?: number;
   error?: {
     code?: string;
     message?: string;
@@ -797,15 +798,26 @@ export function apiErrorMessage(response: ApiErrorResponse): string {
   const validation = (payload?.errors ?? response.errors)?.map((item) => item.field && (item.message ?? item.defaultMessage)
     ? `${item.field}: ${item.message ?? item.defaultMessage}` : (item.message ?? item.defaultMessage))
     .filter((message): message is string => Boolean(message));
-  return (validation?.length ? validation.join(' · ') : undefined)
-    ?? payload?.message
+  if (validation?.length) return validation.join(' · ');
+
+  const specificMessage = payload?.message
     ?? payload?.detail
     ?? payload?.error?.message
     ?? payload?.error?.detail
-    ?? response.message
-    ?? response.detail
-    ?? (typeof response.error === 'string' ? response.error : undefined)
-    ?? 'Không thể xử lý yêu cầu. Vui lòng thử lại.';
+    ?? (typeof response.error === 'string' && !response.error.startsWith('Http failure') ? response.error : undefined)
+    ?? (response.message && !response.message.startsWith('Http failure') ? response.message : undefined)
+    ?? (response.detail && !response.detail.startsWith('Http failure') ? response.detail : undefined);
+
+  if (specificMessage) return specificMessage;
+
+  const status = response.status;
+  if (status === 401) return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+  if (status === 403) return 'Bạn không có quyền thực hiện thao tác này hoặc phiên làm việc đã hết hạn.';
+  if (status === 404) return 'Không tìm thấy dữ liệu yêu cầu.';
+  if (status && status >= 500) return 'Máy chủ đang bận hoặc gặp sự cố tạm thời. Vui lòng thử lại sau.';
+  if (status === 0) return 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.';
+
+  return 'Không thể xử lý yêu cầu. Vui lòng thử lại.';
 }
 
 @Injectable({ providedIn: 'root' })
@@ -1050,6 +1062,12 @@ export class AuthApiService {
   markNotificationRead(id: string): Observable<void> {
     return this.http.post<void>(`${this.notificationsRoot}/${id}/read`, {}).pipe(
       tap(() => this.unreadNotificationsCount.update((c) => Math.max(0, c - 1)))
+    );
+  }
+
+  markAllNotificationsRead(): Observable<void> {
+    return this.http.post<void>(`${this.notificationsRoot}/read-all`, {}).pipe(
+      tap(() => this.unreadNotificationsCount.set(0))
     );
   }
 
@@ -1382,8 +1400,20 @@ export class AuthApiService {
     return this.http.post<DoctorTimeOffResponse>('/api/v1/admin/doctor-time-off', request);
   }
 
-  getReconciliations(status = 'OPEN'): Observable<ReconciliationResponse[]> {
-    return this.http.get<ReconciliationResponse[]>('/api/v1/admin/reconciliations', { params: { status } });
+  getReconciliations(status?: string): Observable<ReconciliationResponse[]> {
+    const params: Record<string, string> = {};
+    if (status && status !== 'ALL') {
+      params['status'] = status;
+    }
+    return this.http.get<ReconciliationResponse[]>('/api/v1/admin/reconciliations', { params });
+  }
+
+  openReconciliation(request: { entityType: string; entityId?: string; reason: string; assignee: string }): Observable<ReconciliationResponse> {
+    return this.http.post<ReconciliationResponse>('/api/v1/admin/reconciliations', request);
+  }
+
+  triggerIntegrityCheck(): Observable<{ inspected: number; incidentsOpened: number }> {
+    return this.http.post<{ inspected: number; incidentsOpened: number }>('/api/v1/admin/audit/integrity-check', {});
   }
 
   closeReconciliation(id: string, request: { action: string; referenceType: string; referenceValue: string; resultNote: string }): Observable<ReconciliationResponse> {

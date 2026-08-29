@@ -79,10 +79,10 @@
                   [routerLink]="item.route"
                   routerLinkActive="bg-sky-50 text-[#0284c7] font-semibold shadow-[inset_3px_0_0_#0284c7]"
                   [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
-                  class="flex min-h-11 items-center gap-3 rounded-md px-3.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100/80 hover:text-slate-900"
+                  class="group flex min-h-11 items-center gap-3 rounded-md px-3.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100/80 hover:text-slate-900"
                   (click)="handleNavigationClick($event)"
                 >
-                  <mat-icon class="!h-5 !w-5 !text-[20px] text-slate-500">{{ item.icon }}</mat-icon>
+                  <mat-icon class="!h-5 !w-5 !text-[20px] text-slate-400 transition-colors group-hover:text-slate-700 [.bg-sky-50_&]:text-[#0284c7]">{{ item.icon }}</mat-icon>
                   <span class="truncate">{{ item.label }}</span>
                 </a>
               }

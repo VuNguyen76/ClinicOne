@@ -54,14 +54,13 @@ const NAVIGATION: StaffNavigationGroup[] = [
       { label: 'Mẫu phiếu khám', route: '/admin/medical-record-templates', icon: 'description', roles: ['ADMIN', 'COORDINATOR'] },
       { label: 'Thuốc', route: '/admin/medications', icon: 'medication', roles: ['ADMIN', 'COORDINATOR'] },
       { label: 'Chẩn đoán', route: '/admin/diagnoses', icon: 'clinical_notes', roles: ['ADMIN', 'COORDINATOR'] },
-      { label: 'Danh mục lý do', route: '/admin/reason-catalog', icon: 'list_alt', roles: ['ADMIN'] },
     ],
   },
   {
     label: 'Kiểm soát',
     items: [
       { label: 'Thống kê', route: '/admin/statistics', icon: 'analytics', roles: ['ADMIN', 'COORDINATOR'] },
-      { label: 'Đối soát sai sót', route: '/admin/reconciliations', icon: 'fact_check', roles: ['ADMIN', 'COORDINATOR'] },
+      { label: 'Xử lý sai lệch dữ liệu', route: '/admin/reconciliations', icon: 'fact_check', roles: ['ADMIN', 'COORDINATOR'] },
       { label: 'Lịch sử công việc', route: '/admin/business-audit', icon: 'history', roles: ['ADMIN', 'COORDINATOR'] },
       { label: 'Nhật ký truy cập', route: '/admin/access-audit', icon: 'manage_search', roles: ['ADMIN'] },
     ],
@@ -70,7 +69,6 @@ const NAVIGATION: StaffNavigationGroup[] = [
     label: 'Hệ thống',
     items: [
       { label: 'Tài khoản nhân viên', route: '/admin/staff', icon: 'manage_accounts', roles: ['ADMIN'] },
-      { label: 'Cấu hình phòng khám', route: '/admin/configuration', icon: 'tune', roles: ['ADMIN'] },
       { label: 'Tin nhắn SMS', route: '/admin/sms-deliveries', icon: 'sms', roles: ['ADMIN'] },
     ],
   },
