@@ -14,6 +14,7 @@ import com.clinicone.schedule.GeneratedSlotStatus;
 import com.clinicone.doctor.DoctorProfile;
 import com.clinicone.auth.StaffAccount;
 import com.clinicone.patientprofile.PatientProfile;
+import com.clinicone.patientprofile.PatientProfileRepository;
 import com.clinicone.config.ClinicConfigurationService;
 import com.clinicone.audit.BusinessLogService;
 import com.clinicone.reason.ReasonCatalog;
@@ -37,6 +38,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -60,6 +62,7 @@ class AppointmentServiceTest {
     private ReasonCatalogService reasonCatalogService;
     private RescheduleCaseRepository rescheduleCaseRepository;
     private com.clinicone.schedule.GeneratedClinicSlotRepository generatedSlotRepository;
+    private PatientProfileRepository profileRepository;
     private AppointmentService service;
 
     @BeforeEach
@@ -73,6 +76,7 @@ class AppointmentServiceTest {
         reasonCatalogService = mock(ReasonCatalogService.class);
         rescheduleCaseRepository = mock(RescheduleCaseRepository.class);
         generatedSlotRepository = mock(GeneratedClinicSlotRepository.class);
+        profileRepository = mock(PatientProfileRepository.class);
         service = serviceBuilder().build();
         when(appointmentRepository.save(any(Appointment.class))).thenAnswer(invocation -> invocation.getArgument(0));
     }
@@ -81,7 +85,7 @@ class AppointmentServiceTest {
         return AppointmentService.builder()
                 .accountRepository(accountRepository)
                 .appointmentRepository(appointmentRepository)
-                .profileRepository(null)
+                .profileRepository(profileRepository)
                 .availabilityService(availabilityService)
                 .notificationService(notificationService)
                 .businessLogService(null)
@@ -385,14 +389,18 @@ class AppointmentServiceTest {
     void rejectsDuplicateAppointmentForSamePatientAndTime() {
         PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
         setId(account, ACCOUNT_ID);
+        UUID profileId = UUID.randomUUID();
+        PatientProfile profile = mock(PatientProfile.class);
+        when(profile.getId()).thenReturn(profileId);
         when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
-        when(appointmentRepository.findByPatientIdAndAppointmentDateAndStartTimeAndStatus(
-                ACCOUNT_ID, LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), AppointmentStatus.BOOKED))
+        when(profileRepository.findByIdAndOwnerIdAndActiveTrue(profileId, ACCOUNT_ID)).thenReturn(Optional.of(profile));
+        when(appointmentRepository.findByPatientProfileIdAndAppointmentDateAndStartTimeAndStatusIn(
+                eq(profileId), eq(LocalDate.of(2026, 8, 10)), eq(LocalTime.of(8, 30)), any()))
                 .thenReturn(Optional.of(Appointment.existing(account, "CL-20260810-AB12", "Nội khoa", "BS. Nguyễn An",
                         LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), "Đau đầu")));
 
         AuthException exception = assertThrows(AuthException.class, () -> service.create(ACCOUNT_ID.toString(), new CreateAppointmentRequest(
-                "Nội khoa", "BS. Nguyễn An", LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), "Đau đầu")));
+                "Nội khoa", "BS. Nguyễn An", LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), "Đau đầu", profileId)));
 
         assertEquals(409, exception.getStatus().value());
         assertEquals("APPOINTMENT_DUPLICATE", exception.getCode());
@@ -402,20 +410,21 @@ class AppointmentServiceTest {
     void rejectsDuplicateAppointmentWhenExistingAppointmentWasCheckedIn() {
         PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
         setId(account, ACCOUNT_ID);
+        UUID profileId = UUID.randomUUID();
+        PatientProfile profile = mock(PatientProfile.class);
+        when(profile.getId()).thenReturn(profileId);
         Appointment checkedIn = Appointment.existing(account, "CL-20260810-AB12", "Nội khoa", "BS. Nguyễn An",
                 LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), "Đau đầu");
         checkedIn.checkIn();
         when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
-        when(appointmentRepository.findByPatientIdAndAppointmentDateAndStartTimeAndStatus(
-                ACCOUNT_ID, LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), AppointmentStatus.BOOKED))
-                .thenReturn(Optional.empty());
-        when(appointmentRepository.findByPatientIdAndAppointmentDateAndStartTimeAndStatus(
-                ACCOUNT_ID, LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), AppointmentStatus.CHECKED_IN))
+        when(profileRepository.findByIdAndOwnerIdAndActiveTrue(profileId, ACCOUNT_ID)).thenReturn(Optional.of(profile));
+        when(appointmentRepository.findByPatientProfileIdAndAppointmentDateAndStartTimeAndStatusIn(
+                eq(profileId), eq(LocalDate.of(2026, 8, 10)), eq(LocalTime.of(8, 30)), any()))
                 .thenReturn(Optional.of(checkedIn));
 
         AuthException exception = assertThrows(AuthException.class, () -> service.create(ACCOUNT_ID.toString(),
                 new CreateAppointmentRequest("Nội khoa", "BS. Nguyễn An", LocalDate.of(2026, 8, 10),
-                        LocalTime.of(8, 30), "Đau đầu")));
+                        LocalTime.of(8, 30), "Đau đầu", profileId)));
 
         assertEquals("APPOINTMENT_DUPLICATE", exception.getCode());
     }
@@ -651,14 +660,71 @@ class AppointmentServiceTest {
                 LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), "Đau đầu");
         appointment.applyServiceSnapshot(serviceId, "Khám tổng quát", "Khám thường", 30);
         when(appointmentRepository.findByIdAndPatientId(any(), eq(ACCOUNT_ID))).thenReturn(Optional.of(appointment));
-        when(appointmentRepository.findByPatientIdAndAppointmentDateAndStartTimeAndStatus(
-                ACCOUNT_ID, LocalDate.of(2026, 8, 11), LocalTime.of(10, 0), AppointmentStatus.BOOKED)).thenReturn(Optional.empty());
+        when(appointmentRepository.findByPatientProfileIdAndAppointmentDateAndStartTimeAndStatusIn(
+                any(), eq(LocalDate.of(2026, 8, 11)), eq(LocalTime.of(10, 0)), any())).thenReturn(Optional.empty());
 
         service.reschedule(ACCOUNT_ID.toString(), UUID.randomUUID().toString(),
                 new RescheduleAppointmentRequest(LocalDate.of(2026, 8, 11), LocalTime.of(10, 0)));
 
         verify(availabilityService).ensureBookable("Nội khoa", "BS. Nguyễn An", null,
                 LocalDate.of(2026, 8, 11), LocalTime.of(10, 0), null, serviceId);
+    }
+
+    @Test
+    void allowsSameAccountDifferentProfilesAtSameSlot() {
+        PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
+        setId(account, ACCOUNT_ID);
+        UUID profile1Id = UUID.randomUUID();
+        UUID profile2Id = UUID.randomUUID();
+        PatientProfile profile1 = mock(PatientProfile.class);
+        PatientProfile profile2 = mock(PatientProfile.class);
+        when(profile1.getId()).thenReturn(profile1Id);
+        when(profile2.getId()).thenReturn(profile2Id);
+        when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
+        when(profileRepository.findByIdAndOwnerIdAndActiveTrue(profile1Id, ACCOUNT_ID)).thenReturn(Optional.of(profile1));
+        when(profileRepository.findByIdAndOwnerIdAndActiveTrue(profile2Id, ACCOUNT_ID)).thenReturn(Optional.of(profile2));
+
+        when(appointmentRepository.findByPatientProfileIdAndAppointmentDateAndStartTimeAndStatusIn(
+                eq(profile1Id), any(), any(), any())).thenReturn(Optional.empty());
+        when(appointmentRepository.findByPatientProfileIdAndAppointmentDateAndStartTimeAndStatusIn(
+                eq(profile2Id), any(), any(), any())).thenReturn(Optional.empty());
+
+        // Create first appointment for profile1
+        service.create(ACCOUNT_ID.toString(), new CreateAppointmentRequest(
+                "Nội khoa", "BS. Nguyễn An", LocalDate.of(2026, 8, 10), LocalTime.of(8, 30),
+                "Đau đầu", profile1Id));
+
+        // Create second appointment for profile2 at same slot - should succeed
+        AppointmentResponse response = service.create(ACCOUNT_ID.toString(), new CreateAppointmentRequest(
+                "Nội khoa", "BS. Nguyễn An", LocalDate.of(2026, 8, 10), LocalTime.of(8, 30),
+                "Đau đầu", profile2Id));
+
+        assertNotNull(response);
+        verify(appointmentRepository, times(2)).save(any(Appointment.class));
+    }
+
+    @Test
+    void blocksSameProfileAtSameSlot() {
+        PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
+        setId(account, ACCOUNT_ID);
+        UUID profileId = UUID.randomUUID();
+        PatientProfile profile = mock(PatientProfile.class);
+        when(profile.getId()).thenReturn(profileId);
+        when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
+        when(profileRepository.findByIdAndOwnerIdAndActiveTrue(profileId, ACCOUNT_ID)).thenReturn(Optional.of(profile));
+
+        Appointment existing = Appointment.existing(account, "CL-20260810-AB12", "Nội khoa", "BS. Nguyễn An",
+                LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), "Đau đầu");
+        when(appointmentRepository.findByPatientProfileIdAndAppointmentDateAndStartTimeAndStatusIn(
+                eq(profileId), eq(LocalDate.of(2026, 8, 10)), eq(LocalTime.of(8, 30)), any()))
+                .thenReturn(Optional.of(existing));
+
+        AuthException exception = assertThrows(AuthException.class, () -> service.create(
+                ACCOUNT_ID.toString(), new CreateAppointmentRequest(
+                        "Nội khoa", "BS. Nguyễn An", LocalDate.of(2026, 8, 10), LocalTime.of(8, 30),
+                        "Đau đầu", profileId)));
+
+        assertEquals("APPOINTMENT_DUPLICATE", exception.getCode());
     }
 
     private static void setId(PatientAccount account, UUID id) {
