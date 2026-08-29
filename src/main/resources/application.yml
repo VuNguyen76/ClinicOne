@@ -35,3 +35,8 @@ app:
   timezone: Asia/Ho_Chi_Minh
   address:
     api-root: ${ADDRESS_API_ROOT:https://tinhthanhpho.com/api/v1}
+  clinic:
+    unit-name: ${CLINIC_UNIT_NAME:ClinicOne}
+    department-name: ${CLINIC_DEPARTMENT_NAME:Khám bệnh}
+    hold-minutes: ${CLINIC_HOLD_MINUTES:10}
+    cancellation-threshold-hours: ${CLINIC_CANCELLATION_THRESHOLD_HOURS:12}

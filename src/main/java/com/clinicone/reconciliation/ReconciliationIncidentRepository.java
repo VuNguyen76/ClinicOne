@@ -11,6 +11,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface ReconciliationIncidentRepository extends JpaRepository<ReconciliationIncident, UUID> {
+    List<ReconciliationIncident> findAllByOrderByCreatedAtDesc();
+
     List<ReconciliationIncident> findByStatusOrderByCreatedAtDesc(ReconciliationStatus status);
 
     boolean existsByEntityTypeAndEntityIdAndStatus(String entityType, UUID entityId, ReconciliationStatus status);
