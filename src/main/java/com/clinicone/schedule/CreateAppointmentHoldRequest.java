@@ -15,10 +15,16 @@ public record CreateAppointmentHoldRequest(
         @NotNull @FutureOrPresent LocalDate appointmentDate,
         @NotNull LocalTime startTime,
         UUID doctorId,
-        UUID serviceId
+        UUID serviceId,
+        UUID profileId
 ) {
     public CreateAppointmentHoldRequest(String specialty, String doctorName, LocalDate appointmentDate,
                                         LocalTime startTime, UUID doctorId) {
-        this(specialty, doctorName, appointmentDate, startTime, doctorId, null);
+        this(specialty, doctorName, appointmentDate, startTime, doctorId, null, null);
+    }
+
+    public CreateAppointmentHoldRequest(String specialty, String doctorName, LocalDate appointmentDate,
+                                        LocalTime startTime, UUID doctorId, UUID serviceId) {
+        this(specialty, doctorName, appointmentDate, startTime, doctorId, serviceId, null);
     }
 }

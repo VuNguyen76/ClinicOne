@@ -180,4 +180,20 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
     List<Appointment> findReceptionCandidatesByStatuses(@Param("query") String query,
                                                          @Param("appointmentDate") LocalDate appointmentDate,
                                                          @Param("statuses") Collection<AppointmentStatus> statuses);
+
+    Optional<Appointment> findByPatientProfileIdAndAppointmentDateAndStartTimeAndStatus(
+            UUID profileId, LocalDate appointmentDate, LocalTime startTime, AppointmentStatus status);
+
+    @Query("""
+            select a from Appointment a
+            where a.patientProfile.id = :profileId
+              and a.appointmentDate = :appointmentDate
+              and a.startTime = :startTime
+              and a.status in :statuses
+            """)
+    Optional<Appointment> findByPatientProfileIdAndAppointmentDateAndStartTimeAndStatusIn(
+            @Param("profileId") UUID profileId,
+            @Param("appointmentDate") LocalDate appointmentDate,
+            @Param("startTime") LocalTime startTime,
+            @Param("statuses") Collection<AppointmentStatus> statuses);
 }
