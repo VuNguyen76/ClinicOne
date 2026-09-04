@@ -543,7 +543,7 @@ public class QueueService {
     private DoctorProfile findTargetDoctor(QueueAdjustmentRequest request, String specialty, String roomCode) {
         if (doctorProfileRepository == null) return null;
         if (request.targetDoctorId() != null) {
-            return doctorProfileRepository.findById(request.targetDoctorId())
+            return doctorProfileRepository.findByStaffAccount_Id(request.targetDoctorId())
                     .filter(DoctorProfile::isActive)
                     .orElse(null);
         }
