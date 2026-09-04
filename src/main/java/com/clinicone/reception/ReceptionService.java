@@ -169,7 +169,7 @@ public ReceptionAppointmentResponse checkIn(UUID appointmentId, ReceptionCheckIn
         Appointment previous = appointmentRepository.findByIdForUpdate(appointmentId)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "APPOINTMENT_NOT_FOUND",
                         "Không tìm thấy lịch hẹn."));
-        DoctorProfile doctor = doctorProfileRepository.findById(request.doctorId())
+        DoctorProfile doctor = doctorProfileRepository.findByStaffAccount_Id(request.doctorId())
                 .filter(DoctorProfile::isActive)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "DOCTOR_ASSIGNMENT_NOT_FOUND",
                         "Không tìm thấy bác sĩ đang được phân công."));
@@ -200,7 +200,7 @@ public ReceptionAppointmentResponse checkIn(UUID appointmentId, ReceptionCheckIn
                     "Chỉ lịch đã ghi nhận vắng mặt mới được đặt lại tại quầy.");
         }
 
-        DoctorProfile doctor = doctorProfileRepository.findById(request.doctorId())
+        DoctorProfile doctor = doctorProfileRepository.findByStaffAccount_Id(request.doctorId())
                 .filter(DoctorProfile::isActive)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "DOCTOR_ASSIGNMENT_NOT_FOUND",
                         "Không tìm thấy bác sĩ đang được phân công."));
@@ -351,7 +351,7 @@ public ReceptionAppointmentResponse checkIn(UUID appointmentId, ReceptionCheckIn
         LocalDate appointmentDate = request.appointmentDate();
         boolean appointmentIsToday = today().equals(appointmentDate);
 
-        DoctorProfile doctor = doctorProfileRepository.findById(request.doctorId())
+        DoctorProfile doctor = doctorProfileRepository.findByStaffAccount_Id(request.doctorId())
                 .filter(DoctorProfile::isActive)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "DOCTOR_ASSIGNMENT_NOT_FOUND",
                         "Không tìm thấy bác sĩ đang được phân công."));
@@ -421,9 +421,9 @@ public ReceptionAppointmentResponse checkIn(UUID appointmentId, ReceptionCheckIn
         DoctorProfile profile = appointment.getDoctorStaffId() == null ? null
                 : doctorProfileRepository.findByStaffAccount_Id(appointment.getDoctorStaffId())
                 .filter(DoctorProfile::isActive).orElse(null);
-        return ReceptionAppointmentResponse.from(appointment,
-                profile == null ? null : profile.getRoom().getCode(),
-                profile == null ? null : profile.getRoom().getName(), ticket, isLateArrival(appointment));
+        String effectiveRoomCode = ticket != null && ticket.roomCode() != null ? ticket.roomCode() : (profile == null ? null : profile.getRoom().getCode());
+        String effectiveRoomName = ticket != null && ticket.roomName() != null ? ticket.roomName() : (profile == null ? null : profile.getRoom().getName());
+        return ReceptionAppointmentResponse.from(appointment, effectiveRoomCode, effectiveRoomName, ticket, isLateArrival(appointment));
     }
 
     private boolean isLateArrival(Appointment appointment) {
