@@ -40,6 +40,11 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import com.clinicone.queue.QueueTicket;
+import com.clinicone.queue.QueueTicketRepository;
 
 @Service
 public class AppointmentService {
@@ -59,6 +64,7 @@ public class AppointmentService {
     private final AppointmentCodeGenerator appointmentCodeGenerator;
     private final RescheduleCaseRepository rescheduleCaseRepository;
     private final GeneratedClinicSlotRepository generatedSlotRepository;
+    private final QueueTicketRepository queueTicketRepository;
 
     @Autowired
     @Builder
@@ -69,7 +75,8 @@ public class AppointmentService {
                               ClinicConfigurationService configurationService, ReasonCatalogService reasonCatalogService,
                               Clock clock, AppointmentCodeGenerator appointmentCodeGenerator,
                               RescheduleCaseRepository rescheduleCaseRepository,
-                              GeneratedClinicSlotRepository generatedSlotRepository) {
+                              GeneratedClinicSlotRepository generatedSlotRepository,
+                              QueueTicketRepository queueTicketRepository) {
         this.accountRepository = accountRepository;
         this.appointmentRepository = appointmentRepository;
         this.profileRepository = profileRepository;
@@ -85,13 +92,22 @@ public class AppointmentService {
                 ? new AppointmentCodeGenerator() : appointmentCodeGenerator;
         this.rescheduleCaseRepository = rescheduleCaseRepository;
         this.generatedSlotRepository = generatedSlotRepository;
+        this.queueTicketRepository = queueTicketRepository;
     }
 
     @Transactional(readOnly = true)
     public List<AppointmentResponse> list(String accountId) {
         UUID patientId = AuthenticatedIds.patient(accountId);
-        return appointmentRepository.findByPatientIdOrderByAppointmentDateAscStartTimeAsc(patientId).stream()
-                .map(AppointmentResponse::from)
+        List<Appointment> appointments = appointmentRepository.findByPatientIdOrderByAppointmentDateAscStartTimeAsc(patientId);
+        if (appointments.isEmpty()) {
+            return List.of();
+        }
+        List<UUID> appointmentIds = appointments.stream().map(Appointment::getId).toList();
+        List<QueueTicket> tickets = queueTicketRepository.findByAppointmentIdIn(appointmentIds);
+        Map<UUID, QueueTicket> ticketMap = tickets.stream()
+                .collect(Collectors.toMap(t -> t.getAppointment().getId(), Function.identity()));
+        return appointments.stream()
+                .map(a -> AppointmentResponse.from(a, ticketMap.get(a.getId())))
                 .toList();
     }
 
@@ -99,7 +115,9 @@ public class AppointmentService {
     public AppointmentResponse get(String accountId, String appointmentId) {
         UUID patientId = AuthenticatedIds.patient(accountId);
         UUID id = parseAppointmentId(appointmentId);
-        return AppointmentResponse.from(findOwned(id, patientId));
+        Appointment appointment = findOwned(id, patientId);
+        QueueTicket ticket = queueTicketRepository.findByAppointmentId(id).orElse(null);
+        return AppointmentResponse.from(appointment, ticket);
     }
 
     @Transactional
