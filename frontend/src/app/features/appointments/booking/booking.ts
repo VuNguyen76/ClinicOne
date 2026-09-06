@@ -61,6 +61,7 @@ export class Booking implements OnInit {
   protected readonly holdExpiresAt = signal<string | null>(null);
   protected readonly holdRemainingSeconds = signal(0);
   protected readonly holdBusy = signal(false);
+  protected readonly holdProfileId = signal<string | null>(null);
   protected readonly calendarMonth = signal(this.startOfMonth(clinicTodayDate()));
   protected readonly dates = signal(this.buildMonthDates(this.calendarMonth()));
   protected readonly specialties = signal<SpecialtyOption[]>([]);
@@ -92,8 +93,9 @@ export class Booking implements OnInit {
   protected readonly patientProfiles = signal<PatientProfileItem[]>([]);
   protected readonly primaryProfile = computed(() => this.patientProfiles().find((p) => p.primaryProfile) ?? this.patientProfiles()[0]);
   protected readonly subProfiles = computed(() => this.patientProfiles().filter((p) => !p.primaryProfile));
+  protected readonly profileIdValue = signal('');
   protected readonly selectedProfile = computed(() => {
-    const id = this.form.controls.profileId.value;
+    const id = this.profileIdValue();
     return this.patientProfiles().find((p) => p.id === id) ?? this.primaryProfile();
   });
 
@@ -122,7 +124,10 @@ export class Booking implements OnInit {
         this.profiles = profiles;
         this.patientProfiles.set(profiles);
         const primary = profiles.find((profile) => profile.primaryProfile) ?? profiles[0];
-        if (primary) this.form.controls.profileId.setValue(primary.id);
+        if (primary) {
+          this.form.controls.profileId.setValue(primary.id);
+          this.profileIdValue.set(primary.id);
+        }
         this.profilesLoading = false;
       },
       error: (response) => {
@@ -130,6 +135,11 @@ export class Booking implements OnInit {
         this.handleAuthError(response);
       },
     });
+  }
+
+  protected onProfileChange(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value;
+    this.profileIdValue.set(value);
   }
 
   protected filteredSpecialties(): SpecialtyOption[] {
@@ -264,11 +274,15 @@ export class Booking implements OnInit {
       this.error = 'Vui lòng chọn ngày và khung giờ khám.';
       return;
     }
-    if (this.holdId()) {
+    const value = this.form.getRawValue();
+    const currentProfileId = value.profileId || null;
+    if (this.holdId() && this.holdProfileId() === currentProfileId) {
       this.step.set(3);
       return;
     }
-    const value = this.form.getRawValue();
+    if (this.holdId() && this.holdProfileId() !== currentProfileId) {
+      this.clearHold();
+    }
     this.holdBusy.set(true);
     this.authApi.holdAppointmentSlot({
       specialty: value.specialty,
@@ -277,6 +291,7 @@ export class Booking implements OnInit {
       appointmentDate: value.appointmentDate,
       startTime: value.startTime,
       serviceId: this.selectedClinicService()?.id,
+      profileId: value.profileId || null,
     }).subscribe({
       next: (hold) => {
         this.holdBusy.set(false);
@@ -285,6 +300,7 @@ export class Booking implements OnInit {
         this.holdRemainingSeconds.set(hold.expiresAt
           ? Math.max(0, Math.ceil((Date.parse(hold.expiresAt) - Date.now()) / 1000))
           : 0);
+        this.holdProfileId.set(currentProfileId);
         this.step.set(3);
       },
       error: (response) => {
@@ -381,6 +397,7 @@ export class Booking implements OnInit {
     this.holdId.set(null);
     this.holdExpiresAt.set(null);
     this.holdRemainingSeconds.set(0);
+    this.holdProfileId.set(null);
   }
 
   private updateHoldCountdown(): void {

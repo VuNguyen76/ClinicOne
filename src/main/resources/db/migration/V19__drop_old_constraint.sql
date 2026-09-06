@@ -1,0 +1,1 @@
+ALTER TABLE appointments DROP CONSTRAINT IF EXISTS uk_appointments_patient_slot;

@@ -157,16 +157,18 @@ public class AppointmentHoldService {
     private String holdKey(UUID patientId, CreateAppointmentHoldRequest request) {
         String date = request.appointmentDate().toString();
         String time = request.startTime().toString();
+        String profilePart = request.profileId() != null ? ":PROFILE:" + request.profileId() : "";
         if (request.doctorId() != null) {
             if (request.serviceId() == null) {
-                return "DOCTOR:" + request.doctorId() + ":" + date + ":" + time;
+                return "DOCTOR:" + request.doctorId() + ":" + date + ":" + time + profilePart;
             }
-            return "DOCTOR:" + request.doctorId() + ":" + request.serviceId() + ":" + date + ":" + time;
+            return "DOCTOR:" + request.doctorId() + ":" + request.serviceId() + ":" + date + ":" + time + profilePart;
         }
         String base = "PATIENT:" + patientId + ":" + request.specialty().trim().toLowerCase();
-        return request.serviceId() == null
+        String key = request.serviceId() == null
                 ? base + ":" + date + ":" + time
                 : base + ":" + request.serviceId() + ":" + date + ":" + time;
+        return key + profilePart;
     }
 
     private void validateService(CreateAppointmentHoldRequest request) {

@@ -240,6 +240,7 @@ export interface CreateAppointmentHoldRequest {
   startTime: string;
   doctorId?: string;
   serviceId?: string;
+  profileId?: string | null;
 }
 
 export interface AppointmentHoldResponse {
