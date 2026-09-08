@@ -461,11 +461,15 @@ class ReceptionServiceTest {
 
         StaffAccount staff = mock(StaffAccount.class);
         when(staff.getFullName()).thenReturn("BS. Nguyễn An");
+        ClinicRoom room = mock(ClinicRoom.class);
+        when(room.getCode()).thenReturn("NTQ-01");
+        when(room.getName()).thenReturn("Phòng Nội tổng quát 01");
         DoctorProfile doctor = mock(DoctorProfile.class);
         when(doctor.isActive()).thenReturn(true);
         when(doctor.getSpecialty()).thenReturn("Nội tổng quát");
         when(doctor.getStaffAccount()).thenReturn(staff);
-        when(doctorProfileRepository.findById(DOCTOR_ID)).thenReturn(Optional.of(doctor));
+        when(doctor.getRoom()).thenReturn(room);
+        when(doctorProfileRepository.findByStaffAccount_Id(DOCTOR_ID)).thenReturn(Optional.of(doctor));
 
         AppointmentResponse created = new AppointmentResponse(APPOINTMENT_ID, "CL-20260808-1234",
                 "Nội tổng quát", "BS. Nguyễn An", tomorrow, LocalTime.of(9, 0), "Đau đầu từ sáng",
@@ -499,9 +503,11 @@ class ReceptionServiceTest {
         when(patient.getStatus()).thenReturn(AccountStatus.ACTIVE);
         when(patient.getFullName()).thenReturn("Nguyễn Thanh Vũ");
         when(patientAccountRepository.findByPhone("0912345678")).thenReturn(Optional.of(patient));
+        StaffAccount staff = mock(StaffAccount.class);
         DoctorProfile doctor = mock(DoctorProfile.class);
         when(doctor.isActive()).thenReturn(true);
-        when(doctorProfileRepository.findById(DOCTOR_ID)).thenReturn(Optional.of(doctor));
+        when(doctor.getStaffAccount()).thenReturn(staff);
+        when(doctorProfileRepository.findByStaffAccount_Id(DOCTOR_ID)).thenReturn(Optional.of(doctor));
         when(doctorProfileRepository.findByStaffAccount_IdForUpdate(DOCTOR_ID)).thenReturn(Optional.of(doctor));
         when(appointmentRepository.countByDoctorStaffIdAndAppointmentDateAndOverCapacityTrueAndStatusNot(
                 DOCTOR_ID, TODAY, AppointmentStatus.CANCELLED)).thenReturn(3L);
@@ -512,6 +518,7 @@ class ReceptionServiceTest {
                 .isInstanceOf(com.clinicone.auth.AuthException.class)
                 .extracting("code").isEqualTo("WALK_IN_OVER_CAPACITY_LIMIT");
 
+        verify(doctorProfileRepository).findByStaffAccount_Id(DOCTOR_ID);
         verify(doctorProfileRepository).findByStaffAccount_IdForUpdate(DOCTOR_ID);
         verifyNoInteractions(appointmentService, queueService);
     }

@@ -501,7 +501,7 @@ class QueueServiceTest {
         setId(ticket, ticketId);
 
         when(ticketRepository.findById(ticketId)).thenReturn(Optional.of(ticket));
-        when(doctorProfileRepository.findById(targetDoctorId)).thenReturn(Optional.of(targetDoctor));
+        when(doctorProfileRepository.findByStaffAccount_Id(targetDoctorId)).thenReturn(Optional.of(targetDoctor));
         when(roomRepository.findByCodeAndActiveTrueForUpdate("NHI-01")).thenReturn(Optional.of(targetRoom));
         when(ticketRepository.findMaxQueueNumberByRoomCodeAndQueueDate("NHI-01", TODAY)).thenReturn(7);
         when(ticketRepository.save(any(QueueTicket.class))).thenAnswer(invocation -> invocation.getArgument(0));

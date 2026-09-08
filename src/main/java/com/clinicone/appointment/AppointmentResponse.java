@@ -3,6 +3,7 @@ package com.clinicone.appointment;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.UUID;
+import com.clinicone.queue.QueueTicket;
 
 public record AppointmentResponse(
         UUID id,
@@ -39,8 +40,14 @@ public record AppointmentResponse(
     }
 
     public static AppointmentResponse from(Appointment appointment) {
-        return new AppointmentResponse(appointment.getId(), appointment.getAppointmentCode(), appointment.getSpecialty(),
-                appointment.getDoctorName(), appointment.getAppointmentDate(), appointment.getStartTime(),
+        return from(appointment, null);
+    }
+
+    public static AppointmentResponse from(Appointment appointment, QueueTicket ticket) {
+        String effectiveSpecialty = ticket != null && ticket.getEffectiveSpecialty() != null ? ticket.getEffectiveSpecialty() : appointment.getSpecialty();
+        String effectiveDoctorName = ticket != null && ticket.getEffectiveDoctorName() != null ? ticket.getEffectiveDoctorName() : appointment.getDoctorName();
+        return new AppointmentResponse(appointment.getId(), appointment.getAppointmentCode(), effectiveSpecialty,
+                effectiveDoctorName, appointment.getAppointmentDate(), appointment.getStartTime(),
                 appointment.getReason(), appointment.getStatus().name(), appointment.getStatus().label(),
                 appointment.getPatientProfile() == null ? null : appointment.getPatientProfile().getId(),
                 appointment.getPatientProfile() == null ? null : appointment.getPatientProfile().getFullName(),
