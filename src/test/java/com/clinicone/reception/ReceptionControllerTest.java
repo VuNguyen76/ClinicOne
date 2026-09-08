@@ -58,13 +58,33 @@ class ReceptionControllerTest {
     void receptionistCanSeeWhetherTheAccountStillNeedsPasswordChange() throws Exception {
         when(service.profiles("0912345678")).thenReturn(List.of(new ReceptionPatientProfileResponse(
                 UUID.randomUUID(), "Nguyễn Thanh Vũ", "Bản thân", LocalDate.of(2005, 6, 7), true,
-                com.clinicone.auth.AccountStatus.ACTIVE, true)));
+                com.clinicone.auth.AccountStatus.ACTIVE, true, "Nam", "0912345678")));
 
         mockMvc.perform(get("/api/v1/reception/profiles?phone=0912345678")
                         .with(authentication(authenticated("ROLE_RECEPTIONIST"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].mustChangePassword").value(true))
                 .andExpect(jsonPath("$[0].accountStatus").value("ACTIVE"));
+    }
+
+    @Test
+    void profilesResponseDoesNotContainSensitiveFields() throws Exception {
+        when(service.profiles("0912345678")).thenReturn(List.of(new ReceptionPatientProfileResponse(
+                UUID.randomUUID(), "Nguyễn Thanh Vũ", "Bản thân", LocalDate.of(2005, 6, 7), true,
+                com.clinicone.auth.AccountStatus.ACTIVE, false, "Nam", "0912345678")));
+
+        mockMvc.perform(get("/api/v1/reception/profiles?phone=0912345678")
+                        .with(authentication(authenticated("ROLE_RECEPTIONIST"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].identityNumber").doesNotExist())
+                .andExpect(jsonPath("$[0].address").doesNotExist())
+                .andExpect(jsonPath("$[0].streetAddress").doesNotExist())
+                .andExpect(jsonPath("$[0].provinceCode").doesNotExist())
+                .andExpect(jsonPath("$[0].provinceName").doesNotExist())
+                .andExpect(jsonPath("$[0].districtCode").doesNotExist())
+                .andExpect(jsonPath("$[0].districtName").doesNotExist())
+                .andExpect(jsonPath("$[0].wardCode").doesNotExist())
+                .andExpect(jsonPath("$[0].wardName").doesNotExist());
     }
 
     @Test
@@ -275,7 +295,7 @@ class ReceptionControllerTest {
     void receptionistCanCreateTemporaryProfileWithoutAnAccount() throws Exception {
         when(service.createTemporaryProfile(any())).thenReturn(new ReceptionPatientProfileResponse(
                 UUID.randomUUID(), "Nguyễn Văn Tạm", "Tạm tại quầy", LocalDate.of(1990, 1, 1), false,
-                null, false));
+                null, false, "Nam", "0912345678"));
 
         mockMvc.perform(post("/api/v1/reception/temporary-profiles")
                         .with(authentication(authenticated("ROLE_RECEPTIONIST")))

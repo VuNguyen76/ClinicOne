@@ -63,6 +63,7 @@ class AppointmentServiceTest {
     private RescheduleCaseRepository rescheduleCaseRepository;
     private com.clinicone.schedule.GeneratedClinicSlotRepository generatedSlotRepository;
     private PatientProfileRepository profileRepository;
+    private com.clinicone.queue.QueueTicketRepository queueTicketRepository;
     private AppointmentService service;
 
     @BeforeEach
@@ -77,6 +78,7 @@ class AppointmentServiceTest {
         rescheduleCaseRepository = mock(RescheduleCaseRepository.class);
         generatedSlotRepository = mock(GeneratedClinicSlotRepository.class);
         profileRepository = mock(PatientProfileRepository.class);
+        queueTicketRepository = mock(com.clinicone.queue.QueueTicketRepository.class);
         service = serviceBuilder().build();
         when(appointmentRepository.save(any(Appointment.class))).thenAnswer(invocation -> invocation.getArgument(0));
     }
@@ -96,7 +98,8 @@ class AppointmentServiceTest {
                 .clock(Clock.fixed(Instant.parse("2026-08-10T00:00:00Z"), ZoneOffset.UTC))
                 .appointmentCodeGenerator(new AppointmentCodeGenerator())
                 .rescheduleCaseRepository(null)
-                .generatedSlotRepository(null);
+                .generatedSlotRepository(null)
+                .queueTicketRepository(queueTicketRepository);
     }
 
     @Test

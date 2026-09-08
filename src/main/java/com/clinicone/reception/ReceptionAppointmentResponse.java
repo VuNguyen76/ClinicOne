@@ -62,9 +62,11 @@ public record ReceptionAppointmentResponse(
                                                      QueueTicketResponse ticket, boolean lateArrival) {
         var profile = appointment.getPatientProfile();
         var patient = appointment.getPatient();
+        String effectiveSpecialty = ticket != null && ticket.specialty() != null ? ticket.specialty() : appointment.getSpecialty();
+        String effectiveDoctorName = ticket != null && ticket.doctorName() != null ? ticket.doctorName() : appointment.getDoctorName();
         return new ReceptionAppointmentResponse(appointment.getId(), appointment.getAppointmentCode(),
-                appointment.getAppointmentDate(), appointment.getStartTime(), appointment.getSpecialty(),
-                appointment.getDoctorName(), roomCode, roomName,
+                appointment.getAppointmentDate(), appointment.getStartTime(), effectiveSpecialty,
+                effectiveDoctorName, roomCode, roomName,
                 profile == null ? null : profile.getId(), profile == null && patient == null ? null
                         : profile == null ? patient.getFullName() : profile.getFullName(),
                 profile == null && patient == null ? null : profile == null ? patient.getPhone() : profile.getPhone(),
