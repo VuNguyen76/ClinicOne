@@ -13,8 +13,35 @@ import {
   apiErrorMessage,
 } from '../../core/auth/auth-api.service';
 import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
-import { clinicTodayIso } from '../../core/time/clinic-time';
+import { clinicTodayIso, clinicTodayDate } from '../../core/time/clinic-time';
 import { hasStaffRole } from '../../core/auth/auth.guard';
+
+function getMonday(base: Date): Date {
+  const d = new Date(base);
+  const day = d.getDay();
+  const diff = d.getDate() - (day === 0 ? 6 : day - 1);
+  d.setDate(diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function formatShortDate(d: Date): string {
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+}
+
+function createWeekDays(base: Date): Date[] {
+  const monday = getMonday(base);
+  const days: Date[] = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(d.getDate() + i);
+    days.push(d);
+  }
+  return days;
+}
 
 @Component({
   selector: 'app-schedule-template-management',
@@ -30,6 +57,14 @@ export class ScheduleTemplateManagement implements OnInit {
   protected readonly services = signal<ClinicServiceResponse[]>([]);
   protected readonly doctors = signal<DoctorAccountResponse[]>([]);
   protected readonly rooms = signal<ClinicRoomResponse[]>([]);
+  protected readonly selectedDate = signal<Date>(clinicTodayDate());
+  protected weekDays = createWeekDays(clinicTodayDate());
+
+  protected readonly dateInputValue = computed<string>(() => {
+    const d = this.selectedDate();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
+
   protected readonly templates = signal<ScheduleTemplateResponse[]>([]);
   protected readonly loading = signal(true);
   protected readonly saving = signal(false);
@@ -75,16 +110,22 @@ export class ScheduleTemplateManagement implements OnInit {
     { value: 'THURSDAY', label: 'Thứ 5' },
     { value: 'FRIDAY', label: 'Thứ 6' },
     { value: 'SATURDAY', label: 'Thứ 7' },
+    { value: 'SUNDAY', label: 'Chủ nhật' },
   ];
 
-  protected readonly filteredTemplates = computed<ScheduleTemplateResponse[]>(() => {
-    const q = this.searchTerm().trim().toLowerCase();
-    const spec = this.filterSpecialty().trim().toLowerCase();
-    return this.templates().filter((t) => {
-      if (spec && !t.serviceName.toLowerCase().includes(spec) && !t.specialty.toLowerCase().includes(spec)) return false;
-      if (q && !t.serviceName.toLowerCase().includes(q) && !t.doctorName.toLowerCase().includes(q) && !t.roomCode.toLowerCase().includes(q)) return false;
-      return true;
-    });
+  protected readonly weekStartDate = computed<Date>(() => getMonday(this.selectedDate()));
+  protected readonly weekEndDate = computed<Date>(() => {
+    const d = new Date(this.weekStartDate());
+    d.setDate(d.getDate() + 6);
+    return d;
+  });
+
+  protected readonly weekTemplates = computed<ScheduleTemplateResponse[]>(() => {
+    const ws = this.weekStartDate();
+    const we = this.weekEndDate();
+    const wsIso = `${ws.getFullYear()}-${String(ws.getMonth()+1).padStart(2,'0')}-${String(ws.getDate()).padStart(2,'0')}`;
+    const weIso = `${we.getFullYear()}-${String(we.getMonth()+1).padStart(2,'0')}-${String(we.getDate()).padStart(2,'0')}`;
+    return this.templates().filter((t) => t.startDate <= weIso && t.endDate >= wsIso);
   });
 
   protected readonly filteredRooms = computed<ClinicRoomResponse[]>(() => {
@@ -98,9 +139,24 @@ export class ScheduleTemplateManagement implements OnInit {
     });
   });
 
+  protected readonly weekFilteredRooms = computed<ClinicRoomResponse[]>(() => {
+    const roomIds = new Set(this.weekTemplates().map((t) => t.roomId));
+    return this.filteredRooms().filter((r) => roomIds.has(r.id));
+  });
+
+  protected readonly filteredTemplates = computed<ScheduleTemplateResponse[]>(() => {
+    const q = this.searchTerm().trim().toLowerCase();
+    const spec = this.filterSpecialty().trim().toLowerCase();
+    return this.templates().filter((t) => {
+      if (spec && !t.serviceName.toLowerCase().includes(spec) && !t.specialty.toLowerCase().includes(spec)) return false;
+      if (q && !t.serviceName.toLowerCase().includes(q) && !t.doctorName.toLowerCase().includes(q) && !t.roomCode.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  });
+
   protected readonly templateMatrix = computed<Map<string, ScheduleTemplateResponse[]>>(() => {
     const map = new Map<string, ScheduleTemplateResponse[]>();
-    for (const t of this.filteredTemplates()) {
+    for (const t of this.weekTemplates()) {
       for (const w of t.weekdays) {
         const key = `${t.roomId}_${w}`;
         let list = map.get(key);
@@ -116,6 +172,78 @@ export class ScheduleTemplateManagement implements OnInit {
 
   protected getTemplatesForRoomAndDay(roomId: string, day: string): ScheduleTemplateResponse[] {
     return this.templateMatrix().get(`${roomId}_${day}`) ?? [];
+  }
+
+  protected generateWeekDays(baseDate: Date): void {
+    this.weekDays = createWeekDays(baseDate);
+  }
+
+  protected onPreviousWeek(): void {
+    const d = new Date(this.selectedDate());
+    d.setDate(d.getDate() - 7);
+    this.selectedDate.set(d);
+    this.onWeekChanged();
+  }
+
+  protected onNextWeek(): void {
+    const d = new Date(this.selectedDate());
+    d.setDate(d.getDate() + 7);
+    this.selectedDate.set(d);
+    this.onWeekChanged();
+  }
+
+  protected onToday(): void {
+    this.selectedDate.set(clinicTodayDate());
+    this.onWeekChanged();
+  }
+
+  protected onDateChange(value: string): void {
+    if (!value) return;
+    const [y, m, day] = value.split('-').map(Number);
+    this.selectedDate.set(new Date(y, m - 1, day));
+    this.onWeekChanged();
+  }
+
+  protected isToday(date: Date): boolean {
+    return clinicTodayIso(date) === clinicTodayIso();
+  }
+
+  protected weekDayLabel(dateIndex: number): string {
+    const d = this.weekDays[dateIndex];
+    return d ? formatShortDate(d) : '';
+  }
+
+  private onWeekChanged(): void {
+    this.generateWeekDays(this.selectedDate());
+  }
+
+  ngOnInit(): void {
+    this.generateWeekDays(this.selectedDate());
+    this.loadData();
+  }
+
+  protected loadData(): void {
+    this.loading.set(true);
+    forkJoin({
+      services: this.authApi.getClinicServices(true),
+      doctors: this.authApi.getDoctors(),
+      rooms: this.authApi.getRooms(),
+      templates: this.authApi.getScheduleTemplates(),
+    }).subscribe({
+      next: (data) => {
+        this.services.set(data.services);
+        this.doctors.set(data.doctors);
+        this.rooms.set(data.rooms);
+        this.templates.set(data.templates);
+        const first = data.services[0];
+        if (first && !this.selectedServiceId()) this.selectService(first.id);
+        this.loading.set(false);
+      },
+      error: (response) => {
+        this.loading.set(false);
+        this.error.set(apiErrorMessage(response));
+      },
+    });
   }
 
   protected readonly availableDoctors = computed<DoctorAccountResponse[]>(() => {
@@ -325,34 +453,6 @@ export class ScheduleTemplateManagement implements OnInit {
 
   protected assignedRoomsCount(): number {
     return new Set(this.templates().map((t) => t.roomId)).size;
-  }
-
-  ngOnInit(): void {
-    this.loadData();
-  }
-
-  protected loadData(): void {
-    this.loading.set(true);
-    forkJoin({
-      services: this.authApi.getClinicServices(true),
-      doctors: this.authApi.getDoctors(),
-      rooms: this.authApi.getRooms(),
-      templates: this.authApi.getScheduleTemplates(),
-    }).subscribe({
-      next: (data) => {
-        this.services.set(data.services);
-        this.doctors.set(data.doctors);
-        this.rooms.set(data.rooms);
-        this.templates.set(data.templates);
-        const first = data.services[0];
-        if (first && !this.selectedServiceId()) this.selectService(first.id);
-        this.loading.set(false);
-      },
-      error: (response) => {
-        this.loading.set(false);
-        this.error.set(apiErrorMessage(response));
-      },
-    });
   }
 
   protected selectService(serviceId: string): void {
