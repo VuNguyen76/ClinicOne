@@ -117,101 +117,138 @@
       </div>
     </div>
 
-    <!-- TAB 1: Thời Khóa Biểu (Room-by-Day Timetable Matrix Grid) -->
-    <div [class.hidden]="activeTab() !== 'grid'">
-      @if (loading()) {
-        <div class="grid min-h-64 place-items-center rounded-2xl border border-slate-100 bg-white text-xs text-slate-500 shadow-xs">
-          Đang tải thời khóa biểu...
-        </div>
-      } @else {
-        <section class="rounded-xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
-          <table class="table-fixed w-full text-left border-collapse">
-            <!-- Matrix Header: Days of the Week (100% Full-Width) -->
-            <thead>
-              <tr class="border-b border-slate-200 bg-slate-50/90 text-[11px] font-bold text-slate-700">
-                <th class="py-2.5 px-3 w-[16%] border-r border-slate-200 bg-slate-100/70">Phòng khám</th>
-                @for (day of displayWeekdays; track day.value) {
-                  <th class="py-2.5 px-2 text-center w-[14%] border-r border-slate-200 last:border-r-0">
-                    {{ day.label }}
-                  </th>
-                }
-              </tr>
-            </thead>
-            <!-- Matrix Body: Compact High-Density Rows -->
-            <tbody class="divide-y divide-slate-200 text-xs">
-              @for (room of filteredRooms(); track room.id) {
-                <tr class="transition hover:bg-slate-50/40">
-                  <!-- Room Info Column -->
-                  <td class="py-2 px-3 border-r border-slate-200 bg-slate-50/40 align-middle">
-                    <div class="font-bold text-slate-900 text-xs leading-tight">Phòng {{ room.code }}</div>
-                    <div class="text-[10px] text-slate-500 truncate font-medium mt-0.5">{{ room.name || room.specialty }}</div>
-                  </td>
+     <!-- TAB 1: Thời Khóa Biểu -->
+     <div [class.hidden]="activeTab() !== 'grid'">
+       @if (loading()) {
+         <div class="grid min-h-64 place-items-center rounded-2xl border border-slate-100 bg-white text-xs text-slate-500 shadow-xs">
+           Đang tải thời khóa biểu...
+         </div>
+       } @else {
+         <section class="rounded-xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
+           <!-- Week Navigation Toolbar -->
+           <div class="flex items-center justify-between border-b border-slate-200 bg-slate-50/70 px-4 py-3">
+             <div class="flex items-center gap-2">
+               <input
+                 type="date"
+                 [ngModel]="dateInputValue()"
+                 (ngModelChange)="onDateChange($event)"
+                 class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-mono text-slate-700 outline-none focus:border-[#0e3d48] focus:ring-1 focus:ring-[#0e3d48] shadow-2xs"
+               />
+             </div>
+             <div class="flex items-center gap-1.5">
+               <button
+                 type="button"
+                 (click)="onPreviousWeek()"
+                 class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-[#0e3d48] hover:bg-teal-50 transition cursor-pointer"
+                 title="Tuần trước"
+               >
+                 <mat-icon class="!h-4 !w-4 !text-[14px]">chevron_left</mat-icon>
+               </button>
+               <button
+                 type="button"
+                 (click)="onToday()"
+                 class="rounded-lg border border-[#0e3d48] bg-[#0e3d48] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#0a3140] transition cursor-pointer"
+               >
+                 HIỆN TẠI
+               </button>
+               <button
+                 type="button"
+                 (click)="onNextWeek()"
+                 class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-[#0e3d48] hover:bg-teal-50 transition cursor-pointer"
+                 title="Tuần sau"
+               >
+                 <mat-icon class="!h-4 !w-4 !text-[14px]">chevron_right</mat-icon>
+               </button>
+             </div>
+           </div>
 
-                  <!-- Weekday Columns for this Room -->
-                  @for (day of displayWeekdays; track day.value) {
-                    <td class="p-1 border-r border-slate-200 last:border-r-0 align-middle">
-                      @if (getTemplatesForRoomAndDay(room.id, day.value).length > 0) {
-                        <div class="space-y-1">
-                          @for (tmpl of getTemplatesForRoomAndDay(room.id, day.value); track tmpl.id) {
-                            <div
-                              role="button"
-                              tabindex="0"
-                              (click)="openTemplateDetail(tmpl, day.value)"
-                              (keydown.enter)="openTemplateDetail(tmpl, day.value)"
-                              class="rounded-lg border border-slate-200 bg-white p-1.5 text-xs shadow-2xs transition hover:border-[#0e3d48] hover:shadow-xs cursor-pointer group"
-                            >
-                              <div class="flex items-center gap-1.5">
-                                <img
-                                  [src]="getDoctorAvatar(tmpl.doctorName, tmpl.doctorAvatarUrl)"
-                                  (error)="handleAvatarError($event, tmpl.doctorName)"
-                                  [alt]="tmpl.doctorName"
-                                  class="h-6 w-6 rounded-full object-cover border border-slate-200 shrink-0 shadow-2xs"
-                                />
-                                <div class="min-w-0 flex-1">
-                                  <p class="font-bold text-slate-900 text-[11px] leading-tight group-hover:text-[#0e3d48] truncate" [title]="tmpl.doctorName">{{ tmpl.doctorName }}</p>
-                                  <p class="text-[9px] text-slate-500 font-medium truncate" [title]="tmpl.serviceName">{{ tmpl.serviceName }}</p>
-                                </div>
-                              </div>
-                              <div class="mt-1 flex items-center justify-between">
-                                <span class="inline-flex items-center rounded border px-1.5 py-0.2 text-[8.5px] font-semibold truncate" [class]="getShiftBadge(tmpl).class">
-                                  {{ getShiftBadge(tmpl).label }}
-                                </span>
-                              </div>
-                            </div>
-                          }
-                        </div>
-                      } @else {
-                        @if (canManageSchedule()) {
-                          <button
-                            type="button"
-                            (click)="scheduleForRoomAndDay(room, day.value)"
-                            class="w-full h-10 rounded-lg border border-dashed border-slate-200 bg-slate-50/40 hover:bg-white hover:border-[#0e3d48] hover:text-[#0e3d48] text-slate-400 text-[10px] font-medium flex items-center justify-center gap-1 transition cursor-pointer"
-                            title="Xếp lịch trực cho phòng này"
-                          >
-                            <mat-icon class="!h-3 !w-3 !text-[12px]">add</mat-icon>
-                            <span>Trống</span>
-                          </button>
-                        } @else {
-                          <div class="w-full h-10 rounded-lg border border-dashed border-slate-100 bg-slate-50/20 flex items-center justify-center text-slate-300 text-[10px]">
-                            Trống
-                          </div>
-                        }
-                      }
-                    </td>
-                  }
-                </tr>
-              } @empty {
-                <tr>
-                  <td colspan="7" class="py-8 text-center text-xs text-slate-500">
-                    Không tìm thấy phòng khám nào phù hợp bộ lọc.
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </section>
-      }
-    </div>
+           <table class="table-fixed w-full text-left border-collapse">
+             <thead>
+               <tr class="border-b border-slate-200 bg-[#0e3d48] text-[11px] font-bold text-white">
+                 <th class="py-2.5 px-3 w-[16%] border-r border-slate-200/50">Phòng khám</th>
+                 @for (day of displayWeekdays; track day.value; let i = $index) {
+                   <th class="py-2.5 px-2 text-center w-[14%] border-r border-slate-200/50 last:border-r-0"
+                     [class.bg-orange-400]="isToday(weekDays[i])"
+                     [class.text-white]="isToday(weekDays[i])"
+                   >
+                     <div>{{ day.label }}</div>
+                     <div class="text-[10px] font-normal opacity-90">{{ weekDayLabel(i) }}</div>
+                   </th>
+                 }
+               </tr>
+             </thead>
+             <tbody class="divide-y divide-slate-200 text-xs">
+               @for (room of weekFilteredRooms(); track room.id) {
+                 <tr class="transition hover:bg-slate-50/40">
+                   <td class="py-2 px-3 border-r border-slate-200 bg-slate-50/40 align-middle">
+                     <div class="font-bold text-slate-900 text-xs leading-tight">Phòng {{ room.code }}</div>
+                     <div class="text-[10px] text-slate-500 truncate font-medium mt-0.5">{{ room.name || room.specialty }}</div>
+                   </td>
+                   @for (day of displayWeekdays; track day.value; let i = $index) {
+                     <td class="p-1 border-r border-slate-200 last:border-r-0 align-middle"
+                       [class.bg-orange-50]="isToday(weekDays[i])">
+                       @if (getTemplatesForRoomAndDay(room.id, day.value).length > 0) {
+                         <div class="space-y-1">
+                           @for (tmpl of getTemplatesForRoomAndDay(room.id, day.value); track tmpl.id) {
+                             <div
+                               role="button"
+                               tabindex="0"
+                               (click)="openTemplateDetail(tmpl, day.value)"
+                               (keydown.enter)="openTemplateDetail(tmpl, day.value)"
+                               class="rounded-lg border border-slate-200 bg-white p-1.5 text-xs shadow-2xs transition hover:border-[#0e3d48] hover:shadow-xs cursor-pointer group"
+                             >
+                               <div class="flex items-center gap-1.5">
+                                 <img
+                                   [src]="getDoctorAvatar(tmpl.doctorName, tmpl.doctorAvatarUrl)"
+                                   (error)="handleAvatarError($event, tmpl.doctorName)"
+                                   [alt]="tmpl.doctorName"
+                                   class="h-6 w-6 rounded-full object-cover border border-slate-200 shrink-0 shadow-2xs"
+                                 />
+                                 <div class="min-w-0 flex-1">
+                                   <p class="font-bold text-slate-900 text-[11px] leading-tight group-hover:text-[#0e3d48] truncate" [title]="tmpl.doctorName">{{ tmpl.doctorName }}</p>
+                                   <p class="text-[9px] text-slate-500 font-medium truncate" [title]="tmpl.serviceName">{{ tmpl.serviceName }}</p>
+                                 </div>
+                               </div>
+                               <div class="mt-1 flex items-center justify-between">
+                                 <span class="inline-flex items-center rounded border px-1.5 py-0.2 text-[8.5px] font-semibold truncate" [class]="getShiftBadge(tmpl).class">
+                                   {{ getShiftBadge(tmpl).label }}
+                                 </span>
+                               </div>
+                             </div>
+                           }
+                         </div>
+                       } @else {
+                         @if (canManageSchedule()) {
+                           <button
+                             type="button"
+                             (click)="scheduleForRoomAndDay(room, day.value)"
+                             class="w-full h-10 rounded-lg border border-dashed border-slate-200 bg-slate-50/40 hover:bg-white hover:border-[#0e3d48] hover:text-[#0e3d48] text-slate-400 text-[10px] font-medium flex items-center justify-center gap-1 transition cursor-pointer"
+                             title="Xếp lịch trực cho phòng này"
+                           >
+                             <mat-icon class="!h-3 !w-3 !text-[12px]">add</mat-icon>
+                             <span>Trống</span>
+                           </button>
+                         } @else {
+                           <div class="w-full h-10 rounded-lg border border-dashed border-slate-100 bg-slate-50/20 flex items-center justify-center text-slate-300 text-[10px]">
+                             Trống
+                           </div>
+                         }
+                       }
+                     </td>
+                   }
+                 </tr>
+               } @empty {
+                 <tr>
+                   <td colspan="8" class="py-8 text-center text-xs text-slate-500">
+                     Không tìm thấy phòng khám nào phù hợp bộ lọc.
+                   </td>
+                 </tr>
+               }
+             </tbody>
+           </table>
+         </section>
+       }
+     </div>
 
     <!-- TAB 2: Danh Sách Ca Trực (DataGrid Table) -->
     <div [class.hidden]="activeTab() !== 'list'">
