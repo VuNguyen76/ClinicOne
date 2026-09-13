@@ -92,6 +92,6 @@ function room() {
 function template() {
   return { id: 'template-1', clinicServiceId: 'service-1', serviceName: 'Khám tổng quát cơ bản', specialty: 'Khám Tổng Quát',
     visitType: 'Khám thường', durationMinutes: 30, doctorId: 'doctor-1', doctorName: 'Bác sĩ Nguyễn An', roomId: 'room-1',
-    roomCode: 'TQ-01', startDate: '2026-08-10', endDate: '2026-08-31', weekdays: ['MONDAY'], dayStart: '08:00', dayEnd: '17:00',
+    roomCode: 'TQ-01', startDate: '2026-09-07', endDate: '2026-09-13', weekdays: ['MONDAY'], dayStart: '08:00', dayEnd: '17:00',
     breaks: [], exceptionDates: [], generatedSlotCount: 16, active: true };
 }
