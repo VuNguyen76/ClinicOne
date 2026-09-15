@@ -4,6 +4,7 @@ import com.clinicone.auth.AuthException;
 import com.clinicone.auth.StaffAccount;
 import com.clinicone.doctor.DoctorProfile;
 import com.clinicone.doctor.DoctorProfileRepository;
+import com.clinicone.doctor.DoctorScheduleRepository;
 import com.clinicone.queue.ClinicRoom;
 import com.clinicone.queue.ClinicRoomRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,6 +37,7 @@ class ScheduleTemplateServiceTest {
     private ClinicRoomRepository roomRepository;
     private WorkScheduleTemplateRepository templateRepository;
     private GeneratedClinicSlotRepository slotRepository;
+    private DoctorScheduleRepository doctorScheduleRepository;
     private ScheduleTemplateService service;
 
     @BeforeEach
@@ -45,8 +47,9 @@ class ScheduleTemplateServiceTest {
         roomRepository = mock(ClinicRoomRepository.class);
         templateRepository = mock(WorkScheduleTemplateRepository.class);
         slotRepository = mock(GeneratedClinicSlotRepository.class);
+        doctorScheduleRepository = mock(DoctorScheduleRepository.class);
         service = new ScheduleTemplateService(templateRepository, slotRepository, serviceRepository,
-                doctorRepository, roomRepository);
+                doctorRepository, roomRepository, doctorScheduleRepository);
     }
 
     @Test
@@ -92,6 +95,49 @@ class ScheduleTemplateServiceTest {
 
         assertEquals(3, response.generatedSlotCount());
         verify(slotRepository).saveAll(any());
+    }
+
+    @Test
+    void generatedSlotCountIsBoundedWhenDayEndCrossesMidnight() {
+        ClinicService clinicService = mock(ClinicService.class);
+        DoctorProfile doctor = mock(DoctorProfile.class);
+        StaffAccount staff = mock(StaffAccount.class);
+        ClinicRoom room = mock(ClinicRoom.class);
+        when(serviceRepository.findById(SERVICE_ID)).thenReturn(Optional.of(clinicService));
+        when(doctorRepository.findByStaffAccount_Id(DOCTOR_ID)).thenReturn(Optional.of(doctor));
+        when(roomRepository.findById(ROOM_ID)).thenReturn(Optional.of(room));
+        when(clinicService.isActive()).thenReturn(true);
+        when(clinicService.getId()).thenReturn(SERVICE_ID);
+        when(clinicService.getSpecialty()).thenReturn("Khám Tổng Quát");
+        when(clinicService.getName()).thenReturn("Khám tổng quát cơ bản");
+        when(clinicService.getVisitType()).thenReturn("Khám thường");
+        when(clinicService.getDurationMinutes()).thenReturn(30);
+        when(doctor.getId()).thenReturn(UUID.randomUUID());
+        when(doctor.getStaffAccount()).thenReturn(staff);
+        when(staff.getId()).thenReturn(DOCTOR_ID);
+        when(doctor.getSpecialty()).thenReturn("Khám Tổng Quát");
+        when(doctor.isActive()).thenReturn(true);
+        when(doctor.getRoom()).thenReturn(room);
+        when(room.getId()).thenReturn(ROOM_ID);
+        when(room.isActive()).thenReturn(true);
+        when(room.getSpecialty()).thenReturn("Khám Tổng Quát");
+        when(room.getCode()).thenReturn("TQ-01");
+        when(templateRepository.save(any(WorkScheduleTemplate.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(slotRepository.findByDoctorStaffIdAndAppointmentDateBetweenAndStatus(
+                any(), any(), any(), any())).thenReturn(List.of());
+        when(slotRepository.findByRoomIdAndAppointmentDateBetweenAndStatus(
+                any(), any(), any(), any())).thenReturn(List.of());
+        when(slotRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ScheduleTemplateResponse response = service.create(new CreateScheduleTemplateRequest(
+                SERVICE_ID, DOCTOR_ID, ROOM_ID,
+                LocalDate.of(2026, 8, 10), LocalDate.of(2026, 8, 10),
+                Set.of(DayOfWeek.MONDAY),
+                LocalTime.of(21, 0), LocalTime.of(23, 30), 30,
+                List.of(), Set.of()));
+
+        assertEquals(5, response.generatedSlotCount());
     }
 
     @Test
