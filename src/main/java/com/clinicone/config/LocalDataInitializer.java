@@ -653,9 +653,6 @@ public class LocalDataInitializer implements CommandLineRunner {
         ClinicRoom room = ensureRoom(roomCode, roomName, specialty);
         if (docProfile == null) {
             docProfile = profileRepository.save(DoctorProfile.create(staff, specialty, room, avatarUrl));
-        } else {
-            docProfile.updateAssignment(specialty, room, avatarUrl);
-            docProfile = profileRepository.save(docProfile);
         }
         ensureWeekdaySchedules(docProfile);
         return docProfile;
@@ -669,9 +666,7 @@ public class LocalDataInitializer implements CommandLineRunner {
         if (room == null) {
             return roomRepository.save(ClinicRoom.create(code, name, specialty));
         }
-        room.update(code, name, specialty);
-        room.setActive(true);
-        return roomRepository.save(room);
+        return room;
     }
 
     private ClinicService ensureOneService(String serviceName, String specialty, String visitType, int duration, List<DoctorProfile> doctors) {
@@ -683,9 +678,7 @@ public class LocalDataInitializer implements CommandLineRunner {
             return clinicServiceRepository.save(ClinicService.create(
                     serviceName, specialty, visitType, duration, doctors));
         }
-        service.update(serviceName, specialty, visitType, duration, doctors);
-        service.setActive(true);
-        return clinicServiceRepository.save(service);
+        return service;
     }
 
     private void ensureWeekdaySchedules(DoctorProfile profile) {

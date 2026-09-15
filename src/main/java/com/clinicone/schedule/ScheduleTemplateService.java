@@ -5,6 +5,8 @@ import lombok.RequiredArgsConstructor;
 import com.clinicone.auth.AuthException;
 import com.clinicone.doctor.DoctorProfile;
 import com.clinicone.doctor.DoctorProfileRepository;
+import com.clinicone.doctor.DoctorSchedule;
+import com.clinicone.doctor.DoctorScheduleRepository;
 import com.clinicone.queue.ClinicRoom;
 import com.clinicone.queue.ClinicRoomRepository;
 import org.springframework.http.HttpStatus;
@@ -32,6 +34,7 @@ public class ScheduleTemplateService {
     private final ClinicServiceRepository clinicServiceRepository;
     private final DoctorProfileRepository doctorProfileRepository;
     private final ClinicRoomRepository roomRepository;
+    private final DoctorScheduleRepository doctorScheduleRepository;
 
     @Transactional(readOnly = true)
     public List<ScheduleTemplateResponse> list() {
@@ -48,6 +51,7 @@ public class ScheduleTemplateService {
                 request.weekdays(), toBreaks(request.breaks()), safeDates(request.exceptionDates()));
         WorkScheduleTemplate saved = templateRepository.save(template);
         List<GeneratedClinicSlot> generated = generate(saved, false);
+        upsertDoctorSchedules(saved);
         return toResponse(saved, generated.size());
     }
 
@@ -57,6 +61,7 @@ public class ScheduleTemplateService {
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "SCHEDULE_TEMPLATE_NOT_FOUND",
                         "Không tìm thấy lịch làm việc."));
         List<GeneratedClinicSlot> generated = generate(template, true);
+        upsertDoctorSchedules(template);
         return toResponse(template, generated.size());
     }
 
@@ -93,6 +98,7 @@ public class ScheduleTemplateService {
                     if (!slotIdsToDelete.isEmpty()) {
                         slotRepository.deleteAllByIdIn(slotIdsToDelete);
                     }
+                    deactivateDoctorSchedules(template, targetDow);
                     return;
                 }
             }
@@ -101,6 +107,35 @@ public class ScheduleTemplateService {
         template.setActive(false);
         templateRepository.save(template);
         slotRepository.deleteByTemplateIdAndStatus(templateId, GeneratedSlotStatus.OPEN);
+        for (DayOfWeek dow : template.getWeekdays()) {
+            deactivateDoctorSchedules(template, dow);
+        }
+    }
+
+    private void upsertDoctorSchedules(WorkScheduleTemplate template) {
+        for (DayOfWeek dow : template.getWeekdays()) {
+            List<DoctorSchedule> existing = doctorScheduleRepository.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(
+                    template.getDoctorProfile().getId(), dow);
+            boolean present = existing.stream().anyMatch(item ->
+                    item.getStartTime().equals(template.getDayStart())
+                            && item.getEndTime().equals(template.getDayEnd()));
+            if (!present) {
+                doctorScheduleRepository.save(DoctorSchedule.create(template.getDoctorProfile(), dow,
+                        template.getDayStart(), template.getDayEnd(), template.getDurationMinutes()));
+            }
+        }
+    }
+
+    private void deactivateDoctorSchedules(WorkScheduleTemplate template, DayOfWeek dow) {
+        List<DoctorSchedule> matching = doctorScheduleRepository.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(
+                template.getDoctorProfile().getId(), dow).stream()
+                .filter(item -> item.getStartTime().equals(template.getDayStart())
+                        && item.getEndTime().equals(template.getDayEnd()))
+                .toList();
+        for (DoctorSchedule schedule : matching) {
+            schedule.setActive(false);
+            doctorScheduleRepository.save(schedule);
+        }
     }
 
     private List<GeneratedClinicSlot> generate(WorkScheduleTemplate template, boolean idempotent) {
@@ -133,6 +168,7 @@ public class ScheduleTemplateService {
             LocalTime start = template.getDayStart();
             while (!start.plusMinutes(template.getDurationMinutes()).isAfter(template.getDayEnd())) {
                 LocalTime end = start.plusMinutes(template.getDurationMinutes());
+                if (end.isBefore(start)) break;
                 LocalTime slotStart = start;
                 LocalTime slotEnd = end;
                 ScheduleBreak overlappingBreak = template.getBreaks().stream()
