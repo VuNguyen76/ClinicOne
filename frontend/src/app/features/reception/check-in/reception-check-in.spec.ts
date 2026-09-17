@@ -383,7 +383,7 @@ describe('ReceptionCheckIn', () => {
     fixture.detectChanges();
 
     const input = fixture.nativeElement.querySelector('input[name="walkInExceptionReason"]') as HTMLInputElement;
-    expect(input.placeholder).toBe('Ví dụ: Người bệnh đến quầy chưa đặt lịch');
+    expect(input.placeholder).toBe('Người bệnh đến quầy chưa đặt lịch');
   });
 });
 

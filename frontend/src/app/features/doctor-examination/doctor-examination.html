@@ -574,7 +574,7 @@
                     rows="3"
                     [class.border-rose-400]="fieldInvalid('diagnosis')"
                     class="erp-textarea"
-                    placeholder="Nhập tên bệnh hoặc chẩn đoán (hỗ trợ gợi ý tự động)..."
+                    placeholder="Mã bệnh ICD-10 hoặc tên chẩn đoán..."
                     (input)="findDiagnosisSuggestions()"
                   ></textarea>
                   @if (diagnosisSuggestions().length) {
@@ -1133,7 +1133,7 @@
                 class="erp-textarea"
                 [value]="wrongProfileReason()"
                 (input)="wrongProfileReason.set($any($event.target).value)"
-                placeholder="Nhập lý do chi tiết từ 10 đến 500 ký tự (ví dụ: Gọi nhầm người bệnh khác vào phòng)..."
+                placeholder="Nhập lý do chi tiết từ 10 đến 500 ký tự (gọi nhầm người bệnh, đổi phòng khám)..."
               ></textarea>
             </div>
             <div class="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">

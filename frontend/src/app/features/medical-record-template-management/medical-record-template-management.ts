@@ -6,6 +6,7 @@ import { forkJoin } from 'rxjs';
 import {
   AuthApiService,
   ClinicServiceResponse,
+  DiagnosisSuggestionResponse,
   MedicalRecordTemplate,
   SpecialtyOption,
   apiErrorMessage,
@@ -34,6 +35,7 @@ export class MedicalRecordTemplateManagement implements OnInit {
   protected readonly items = signal<MedicalRecordTemplate[]>([]);
   protected readonly specialties = signal<SpecialtyOption[]>([]);
   protected readonly services = signal<ClinicServiceResponse[]>([]);
+  protected readonly diagnoses = signal<DiagnosisSuggestionResponse[]>([]);
   protected readonly editingId = signal<string | null>(null);
   protected readonly code = signal('');
   protected readonly name = signal('');
@@ -169,6 +171,14 @@ export class MedicalRecordTemplateManagement implements OnInit {
     if (!this.filteredServices().some((service) => service.id === this.clinicServiceId())) {
       this.clinicServiceId.set('');
     }
+  }
+
+  protected loadDiagnoses(): void {
+    if (this.diagnoses().length > 0) return;
+    this.api.getDoctorDiagnosisSuggestions('').subscribe({
+      next: (items) => this.diagnoses.set(items),
+      error: () => {},
+    });
   }
 
   protected deactivate(item: MedicalRecordTemplate): void {

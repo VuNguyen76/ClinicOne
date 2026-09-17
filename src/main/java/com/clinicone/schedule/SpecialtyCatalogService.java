@@ -47,14 +47,9 @@ public class SpecialtyCatalogService {
     public List<SpecialtyResponse> list(String query) {
         List<SpecialtyResponse> source;
         if (repository != null) {
-            List<SpecialtyCatalogEntry> dbEntries = repository.findByActiveTrueOrderByNameAsc();
-            if (!dbEntries.isEmpty()) {
-                source = dbEntries.stream()
-                        .map(item -> new SpecialtyResponse(item.getCode(), item.getName(), item.getDescription()))
-                        .toList();
-            } else {
-                source = SPECIALTIES;
-            }
+            source = repository.findByActiveTrueOrderByNameAsc().stream()
+                    .map(item -> new SpecialtyResponse(item.getCode(), item.getName(), item.getDescription()))
+                    .toList();
         } else {
             source = SPECIALTIES;
         }

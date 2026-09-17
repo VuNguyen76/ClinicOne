@@ -171,7 +171,7 @@
             (ngModelChange)="adjustmentReason.set($event)"
             name="adjustmentReason"
             maxlength="500"
-            placeholder="Ví dụ: Điều chuyển theo phân công trong ca"
+            placeholder="Điều chuyển theo phân công trong ca"
           ></textarea>
         </div>
       </div>
@@ -547,7 +547,7 @@
           </div>
           <div>
             <label class="erp-label">{{ temporaryProfileSelected() ? 'Lý do không thể xác thực (10-500 ký tự)' : 'Lý do tiếp nhận ngoại lệ' }}</label>
-            <input class="erp-input" [ngModel]="walkInExceptionReason()" (ngModelChange)="walkInExceptionReason.set($event)" name="walkInExceptionReason" maxlength="500" [placeholder]="temporaryProfileSelected() ? 'Lý do không thể nhận OTP' : 'Ví dụ: Người bệnh đến quầy chưa đặt lịch'" />
+            <input class="erp-input" [ngModel]="walkInExceptionReason()" (ngModelChange)="walkInExceptionReason.set($event)" name="walkInExceptionReason" maxlength="500" [placeholder]="temporaryProfileSelected() ? 'Lý do không thể nhận OTP' : 'Người bệnh đến quầy chưa đặt lịch'" />
           </div>
           <div class="erp-modal-footer !px-0 !pb-0">
             <button type="button" class="erp-btn-secondary" (click)="closeWalkIn()">Hủy</button>
@@ -720,7 +720,7 @@
               [ngModel]="exceptionReason()"
               (ngModelChange)="exceptionReason.set($event)"
               name="exceptionReason"
-              placeholder="Ví dụ: QR phòng bị lỗi"
+              placeholder="QR phòng bị lỗi"
             />
           </div>
           <div>
@@ -731,7 +731,7 @@
               (ngModelChange)="leaveReason.set($event)"
               name="leaveReason"
               maxlength="500"
-              placeholder="Ví dụ: Người bệnh bận việc đột xuất"
+              placeholder="Người bệnh bận việc đột xuất"
             />
           </div>
         </div>
