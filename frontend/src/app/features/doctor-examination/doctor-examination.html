@@ -558,23 +558,23 @@
           <!-- TAB 2: CHẨN ĐOÁN & HƯỚNG XỬ TRÍ                           -->
           <!-- ======================================================== -->
           <div [class.hidden]="activeTab() !== 'diagnosis'" class="space-y-4">
-            <!-- Chẩn đoán bệnh (ICD-10) -->
+            <!-- Chẩn đoán bệnh -->
             <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
               <div class="border-b border-slate-200 bg-slate-50/70 px-5 py-3">
-                <h3 class="text-sm font-bold uppercase tracking-wider text-slate-900">2. Chẩn đoán bệnh chính &amp; Mã ICD-10</h3>
+                <h3 class="text-sm font-bold uppercase tracking-wider text-slate-900">2. Chẩn đoán bệnh chính</h3>
               </div>
 
               <div class="space-y-4 p-5">
                 <div class="relative">
                   <label class="erp-label">
-                    Chẩn đoán (ICD-10) <em class="erp-label-required">*</em>
+                    Chẩn đoán <em class="erp-label-required">*</em>
                   </label>
                   <textarea
                     formControlName="diagnosis"
                     rows="3"
                     [class.border-rose-400]="fieldInvalid('diagnosis')"
                     class="erp-textarea"
-                    placeholder="Nhập tên bệnh hoặc mã ICD-10 (hỗ trợ gợi ý tự động)..."
+                    placeholder="Nhập tên bệnh hoặc chẩn đoán (hỗ trợ gợi ý tự động)..."
                     (input)="findDiagnosisSuggestions()"
                   ></textarea>
                   @if (diagnosisSuggestions().length) {

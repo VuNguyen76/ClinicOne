@@ -41,7 +41,7 @@ describe('StaffWorkspaceShell', () => {
       'Lịch làm việc phòng khám',
       'Lịch nghỉ & Báo vắng',
       'Danh mục thuốc',
-      'Chẩn đoán (ICD-10)',
+      'Chẩn đoán',
       'Mẫu phiếu khám',
       'Thống kê ca khám',
     ]);

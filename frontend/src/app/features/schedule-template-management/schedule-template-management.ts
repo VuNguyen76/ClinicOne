@@ -88,6 +88,7 @@ export class ScheduleTemplateManagement implements OnInit {
   protected readonly searchTerm = signal('');
   protected readonly hasBreak = signal(false);
   protected readonly filterSpecialty = signal('');
+  protected readonly filterDoctor = signal('');
   protected readonly selectedDateRange = signal('Tất cả thời gian');
   protected readonly selectedTemplateForDetail = signal<ScheduleTemplateResponse | null>(null);
   protected readonly selectedWeekdayForDetail = signal<string>('');
@@ -131,7 +132,9 @@ export class ScheduleTemplateManagement implements OnInit {
     const we = this.weekEndDate();
     const wsIso = `${ws.getFullYear()}-${String(ws.getMonth()+1).padStart(2,'0')}-${String(ws.getDate()).padStart(2,'0')}`;
     const weIso = `${we.getFullYear()}-${String(we.getMonth()+1).padStart(2,'0')}-${String(we.getDate()).padStart(2,'0')}`;
-    const onlyMine = this.filterOnlyMine();
+    const isDoc = this.isDoctorRole();
+    const onlyMine = isDoc || this.filterOnlyMine();
+    const docFilter = this.filterDoctor().trim().toLowerCase();
     const myStaffId = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('clinicOneStaffId') : null;
     const myName = (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('clinicOnePatientName') || '' : '').toLowerCase().replace(/^(bs\.|ths\.|ckii|cki|bác sĩ|tiến sĩ|ts\.)\s*/i, '').trim();
 
@@ -141,6 +144,7 @@ export class ScheduleTemplateManagement implements OnInit {
         const matchesDoctor = (myStaffId && t.doctorId === myStaffId) || (myName && t.doctorName.toLowerCase().includes(myName));
         if (!matchesDoctor) return false;
       }
+      if (docFilter && !t.doctorName.toLowerCase().includes(docFilter)) return false;
       return true;
     });
   });
@@ -164,7 +168,9 @@ export class ScheduleTemplateManagement implements OnInit {
   protected readonly filteredTemplates = computed<ScheduleTemplateResponse[]>(() => {
     const q = this.searchTerm().trim().toLowerCase();
     const spec = this.filterSpecialty().trim().toLowerCase();
-    const onlyMine = this.filterOnlyMine();
+    const docFilter = this.filterDoctor().trim().toLowerCase();
+    const isDoc = this.isDoctorRole();
+    const onlyMine = isDoc || this.filterOnlyMine();
     const myStaffId = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('clinicOneStaffId') : null;
     const myName = (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('clinicOnePatientName') || '' : '').toLowerCase().replace(/^(bs\.|ths\.|ckii|cki|bác sĩ|tiến sĩ|ts\.)\s*/i, '').trim();
 
@@ -173,6 +179,7 @@ export class ScheduleTemplateManagement implements OnInit {
         const matchesDoctor = (myStaffId && t.doctorId === myStaffId) || (myName && t.doctorName.toLowerCase().includes(myName));
         if (!matchesDoctor) return false;
       }
+      if (docFilter && !t.doctorName.toLowerCase().includes(docFilter)) return false;
       if (spec && !t.serviceName.toLowerCase().includes(spec) && !t.specialty.toLowerCase().includes(spec)) return false;
       if (q && !t.serviceName.toLowerCase().includes(q) && !t.doctorName.toLowerCase().includes(q) && !t.roomCode.toLowerCase().includes(q)) return false;
       return true;
@@ -235,7 +242,8 @@ export class ScheduleTemplateManagement implements OnInit {
 
   protected weekDayLabel(dateIndex: number): string {
     const d = this.weekDays[dateIndex];
-    return d ? formatShortDate(d) : '';
+    if (!d) return '';
+    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
   }
 
   private onWeekChanged(): void {
@@ -406,15 +414,17 @@ export class ScheduleTemplateManagement implements OnInit {
   }
 
   protected getShiftBadge(template: ScheduleTemplateResponse): { label: string; class: string } {
-    const startHour = Number(template.dayStart.split(':')[0]) || 0;
-    const endHour = Number(template.dayEnd.split(':')[0]) || 0;
+    const s = template.dayStart ? template.dayStart.slice(0, 5) : '';
+    const e = template.dayEnd ? template.dayEnd.slice(0, 5) : '';
+    const startHour = Number(s.split(':')[0]) || 0;
+    const endHour = Number(e.split(':')[0]) || 0;
     if (startHour < 12 && endHour >= 16) {
-      return { label: `Cả ngày (${template.dayStart} - ${template.dayEnd})`, class: 'border-teal-200 bg-teal-50 text-teal-800' };
+      return { label: `Cả ngày (${s} - ${e})`, class: 'border-teal-200 bg-teal-50 text-teal-800' };
     }
     if (startHour < 12) {
-      return { label: `Ca sáng (${template.dayStart} - ${template.dayEnd})`, class: 'border-sky-200 bg-sky-50 text-sky-800' };
+      return { label: `Ca sáng (${s} - ${e})`, class: 'border-sky-200 bg-sky-50 text-sky-800' };
     }
-    return { label: `Ca chiều (${template.dayStart} - ${template.dayEnd})`, class: 'border-purple-200 bg-purple-50 text-purple-800' };
+    return { label: `Ca chiều (${s} - ${e})`, class: 'border-purple-200 bg-purple-50 text-purple-800' };
   }
 
   private readonly doctorAvatarMap: Record<string, string> = {
