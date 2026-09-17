@@ -1,4 +1,4 @@
-<app-staff-workspace-shell [moduleTitle]="isDoctorRole() ? 'Tra cứu chuyên môn' : 'Danh mục'" [pageTitle]="isDoctorRole() ? 'Danh mục chẩn đoán (ICD-10)' : 'Chẩn đoán'">
+<app-staff-workspace-shell [moduleTitle]="isDoctorRole() ? 'Tra cứu chuyên môn' : 'Danh mục'" pageTitle="Chẩn đoán">
   <div class="grid gap-6">
     <!-- Alerts & Notices -->
     @if (error() && !modalOpen()) {
@@ -31,7 +31,7 @@
         <input
           type="text"
           class="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-8 text-xs text-slate-800 placeholder-slate-400 outline-none transition focus:border-[#0284c7] focus:ring-1 focus:ring-[#0284c7] shadow-2xs"
-          placeholder="Tìm kiếm theo mã hoặc tên chẩn đoán ICD-10..."
+          placeholder="Tìm kiếm theo mã hoặc tên chẩn đoán..."
           [ngModel]="query()"
           (ngModelChange)="query.set($event)"
           name="diagnosisSearch"
@@ -170,7 +170,7 @@
       <section class="erp-modal-container max-w-lg" (click)="$event.stopPropagation()">
         <div class="erp-modal-header">
           <h2 id="diagnosis-dialog-title" class="text-sm font-bold text-slate-900">
-            {{ canManage() ? (editingId() ? 'Chỉnh sửa thông tin chẩn đoán' : 'Thêm chẩn đoán mới vào danh mục') : 'Chi tiết mã chẩn đoán ICD-10' }}
+            {{ canManage() ? (editingId() ? 'Chỉnh sửa thông tin chẩn đoán' : 'Thêm chẩn đoán mới vào danh mục') : 'Chi tiết thông tin chẩn đoán' }}
           </h2>
           <button type="button" class="erp-btn-icon" aria-label="Đóng" (click)="closeModal()">
             <mat-icon class="!h-4 !w-4 !text-[18px]">close</mat-icon>
@@ -191,7 +191,7 @@
               </div>
             }
             <label class="grid gap-1">
-              <span class="erp-label">Mã chẩn đoán / ICD-10 (2-50 ký tự) <span class="erp-label-required">*</span></span>
+              <span class="erp-label">Mã chẩn đoán (2-50 ký tự) <span class="erp-label-required">*</span></span>
               <input
                 data-testid="diagnosis-code-input"
                 class="erp-input font-mono uppercase"
@@ -199,7 +199,7 @@
                 (ngModelChange)="code.set($event)"
                 [disabled]="!canManage()"
                 name="code"
-                placeholder="vd: I10 hoặc J00"
+                placeholder="Mã bệnh (I10, J00...)"
               />
             </label>
 
