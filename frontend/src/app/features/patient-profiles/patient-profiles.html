@@ -69,7 +69,7 @@
                   <input
                     class="h-10 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm font-normal outline-none transition focus:border-[#0284c7] focus:ring-2 focus:ring-sky-500/15"
                     [class.border-rose-400]="form.controls.fullName.invalid && form.controls.fullName.touched"
-                    formControlName="fullName" placeholder="Ví dụ: Nguyễn Văn B" />
+                    formControlName="fullName" placeholder="Nguyễn Văn B" />
                   @if (form.controls.fullName.invalid && form.controls.fullName.touched) {
                     <p class="text-xs text-rose-600" role="alert">Họ và tên là bắt buộc (từ 2 đến 100 ký tự).</p>
                   }

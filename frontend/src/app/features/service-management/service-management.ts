@@ -35,7 +35,8 @@ export class ServiceManagement implements OnInit {
   protected readonly modalOpen = signal(false);
   protected readonly name = signal('');
   protected readonly specialty = signal('');
-  protected readonly visitType = signal('Khám thường');
+  protected readonly visitTypes = ['Khám thường', 'Khám chuyên khoa', 'Khám theo yêu cầu', 'Khám cấp cứu', 'Tái khám'] as const;
+  protected readonly visitType = signal<string>('Khám thường');
   protected readonly durationMinutes = signal(30);
   protected readonly searchTerm = signal('');
   protected readonly selectedDoctorIds = signal<string[]>([]);

@@ -182,7 +182,7 @@
             }
             <label class="grid gap-1">
               <span class="erp-label">Tên dịch vụ <span class="erp-label-required">*</span></span>
-              <input data-testid="service-name" class="erp-input" placeholder="Ví dụ: Khám Nhi Tổng Quát" [ngModel]="name()" (ngModelChange)="name.set($event)" name="name" maxlength="120" />
+              <input data-testid="service-name" class="erp-input" placeholder="Khám Nhi Tổng Quát" [ngModel]="name()" (ngModelChange)="name.set($event)" name="name" maxlength="120" />
             </label>
 
             <div class="grid grid-cols-2 gap-3">
@@ -198,7 +198,11 @@
 
               <label class="grid gap-1">
                 <span class="erp-label">Hình thức khám <span class="erp-label-required">*</span></span>
-                <input data-testid="service-visit-type" class="erp-input" [ngModel]="visitType()" (ngModelChange)="visitType.set($event)" name="visitType" maxlength="60" placeholder="Khám thường" />
+                <select data-testid="service-visit-type" class="erp-select" [ngModel]="visitType()" (ngModelChange)="visitType.set($event)" name="visitType">
+                  @for (vt of visitTypes; track vt) {
+                    <option [value]="vt">{{ vt }}</option>
+                  }
+                </select>
               </label>
             </div>
 

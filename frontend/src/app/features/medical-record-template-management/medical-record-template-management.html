@@ -195,11 +195,11 @@
               <div class="grid gap-4 sm:grid-cols-2">
                 <label class="grid gap-1">
                   <span class="erp-label">Mã mẫu phiếu <span class="erp-label-required">*</span></span>
-                  <input data-testid="template-code" class="erp-input font-mono uppercase" placeholder="vd. MAU-NOI-01" [ngModel]="code()" (ngModelChange)="code.set($event)" name="code" />
+                  <input data-testid="template-code" class="erp-input font-mono uppercase" placeholder="MAU-NOI-01" [ngModel]="code()" (ngModelChange)="code.set($event)" name="code" />
                 </label>
                 <label class="grid gap-1">
                   <span class="erp-label">Tên mẫu phiếu <span class="erp-label-required">*</span></span>
-                  <input data-testid="template-name" class="erp-input" placeholder="vd. Phiếu khám Nội tổng quát" [ngModel]="name()" (ngModelChange)="name.set($event)" name="name" />
+                  <input data-testid="template-name" class="erp-input" placeholder="Phiếu khám Nội tổng quát" [ngModel]="name()" (ngModelChange)="name.set($event)" name="name" />
                 </label>
               </div>
 
@@ -239,7 +239,7 @@
 
               <label class="grid gap-1">
                 <span class="erp-label">Lý do khám mặc định</span>
-                <input class="erp-input" placeholder="vd. Khám sức khỏe định kỳ / Tái khám theo hẹn" [ngModel]="reason()" (ngModelChange)="reason.set($event)" name="reason" />
+                <input class="erp-input" placeholder="Khám sức khỏe định kỳ / Tái khám theo hẹn" [ngModel]="reason()" (ngModelChange)="reason.set($event)" name="reason" />
               </label>
 
               <label class="grid gap-1">
@@ -249,12 +249,25 @@
 
               <div class="grid gap-4 sm:grid-cols-2">
                 <label class="grid gap-1">
-                  <span class="erp-label">Chẩn đoán gợi ý</span>
-                  <input class="erp-input" placeholder="vd. Viêm họng cấp / Tăng huyết áp độ 1" [ngModel]="diagnosis()" (ngModelChange)="diagnosis.set($event)" name="diagnosis" />
+                  <span class="erp-label">Chẩn đoán mẫu (ICD-10)</span>
+                  <input
+                    class="erp-input"
+                    placeholder="Mã hoặc tên chẩn đoán ICD-10"
+                    [ngModel]="diagnosis()"
+                    (ngModelChange)="diagnosis.set($event)"
+                    (focus)="loadDiagnoses()"
+                    name="diagnosis"
+                    list="diagnosis-template-catalog"
+                  />
+                  <datalist id="diagnosis-template-catalog">
+                    @for (d of diagnoses(); track d.id) {
+                      <option [value]="d.name">{{ d.code }} - {{ d.name }}</option>
+                    }
+                  </datalist>
                 </label>
                 <label class="grid gap-1">
                   <span class="erp-label">Kết luận</span>
-                  <input class="erp-input" placeholder="vd. Bệnh ổn định / Đang điều trị ngoại trú" [ngModel]="conclusion()" (ngModelChange)="conclusion.set($event)" name="conclusion" />
+                  <input class="erp-input" placeholder="Bệnh ổn định / Đang điều trị ngoại trú" [ngModel]="conclusion()" (ngModelChange)="conclusion.set($event)" name="conclusion" />
                 </label>
               </div>
 
@@ -266,11 +279,11 @@
               <div class="grid gap-4 sm:grid-cols-2">
                 <label class="grid gap-1">
                   <span class="erp-label">Tái khám sau (ngày)</span>
-                  <input type="number" min="0" class="erp-input font-mono" placeholder="vd. 7, 14, 30" [ngModel]="followUpDays()" (ngModelChange)="followUpDays.set($event)" name="followUpDays" />
+                  <input type="number" min="0" class="erp-input font-mono" placeholder="7, 14, 30" [ngModel]="followUpDays()" (ngModelChange)="followUpDays.set($event)" name="followUpDays" />
                 </label>
                 <label class="grid gap-1">
                   <span class="erp-label">Lời dặn tái khám</span>
-                  <input class="erp-input" placeholder="vd. Mang theo đơn thuốc cũ và kết quả xét nghiệm" [ngModel]="followUpNote()" (ngModelChange)="followUpNote.set($event)" name="followUpNote" />
+                  <input class="erp-input" placeholder="Mang theo đơn thuốc cũ và kết quả xét nghiệm" [ngModel]="followUpNote()" (ngModelChange)="followUpNote.set($event)" name="followUpNote" />
                 </label>
               </div>
             </div>
