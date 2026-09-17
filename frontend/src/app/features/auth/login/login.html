@@ -54,10 +54,10 @@
                 placeholder="Nhập mật khẩu" />
               <button
                 type="button"
-                class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                class="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-slate-400 hover:text-slate-600 focus:outline-none"
                 (click)="showPassword.set(!showPassword())"
                 [attr.aria-label]="showPassword() ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'">
-                <mat-icon class="!h-5 !w-5 !text-[20px]">{{ showPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+                <mat-icon class="!h-5 !w-5 !text-[20px] flex items-center justify-center leading-none">{{ showPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
               </button>
             </div>
             @if (passwordForm.controls.password.hasError('required') && passwordForm.controls.password.touched) {
