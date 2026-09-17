@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
-import { adminGuard, authGuard, doctorGuard, homeGuard, patientGuard, queueBoardGuard, receptionGuard, roomManagerGuard, staffGuard, staffLandingRedirect } from './auth.guard';
+import { adminGuard, authGuard, doctorGuard, homeGuard, operationalStaffGuard, patientGuard, queueBoardGuard, queueSupervisorGuard, receptionGuard, roomManagerGuard, staffGuard, staffLandingRedirect } from './auth.guard';
 
 describe('ClinicOne route guards', () => {
   let router: { createUrlTree: ReturnType<typeof vi.fn> };
@@ -122,5 +122,24 @@ describe('ClinicOne route guards', () => {
     sessionStorage.setItem('clinicOneStaffRole', 'RECEPTIONIST');
 
     expect(staffLandingRedirect(null as never)).toBe('/reception');
+  });
+
+  it('allows receptionists and clinical staff into operational workspaces', () => {
+    sessionStorage.setItem('clinicOneAccessToken', 'staff-token');
+    sessionStorage.setItem('clinicOneSessionType', 'STAFF');
+    sessionStorage.setItem('clinicOneStaffRole', 'RECEPTIONIST');
+    expect(TestBed.runInInjectionContext(() => operationalStaffGuard(null as never, { url: '/admin/schedule-templates' } as never))).toBe(true);
+
+    sessionStorage.setItem('clinicOneStaffRole', 'DOCTOR');
+    expect(TestBed.runInInjectionContext(() => operationalStaffGuard(null as never, { url: '/admin/schedule-templates' } as never))).toBe(true);
+  });
+
+  it('allows coordinators to supervise room queues and lands them on queue monitoring', () => {
+    sessionStorage.setItem('clinicOneAccessToken', 'staff-token');
+    sessionStorage.setItem('clinicOneSessionType', 'STAFF');
+    sessionStorage.setItem('clinicOneStaffRole', 'COORDINATOR');
+
+    expect(TestBed.runInInjectionContext(() => queueSupervisorGuard(null as never, { url: '/admin/queues' } as never))).toBe(true);
+    expect(staffLandingRedirect(null as never)).toBe('/admin/queues');
   });
 });

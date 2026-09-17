@@ -204,7 +204,7 @@ class QueueServiceTest {
         QueueTicket existing = QueueTicket.create(appointment, room, TODAY, 5);
         setId(existing, UUID.randomUUID());
         appointment.checkIn();
-        existing.leaveBeforeExam("Bệnh nhân rời cơ sở trước khi khám");
+        existing.leaveBeforeExam("Bệnh nhân rời phòng khám trước khi khám");
         appointment.markNotPerformed();
         when(ticketRepository.findByAppointmentId(APPOINTMENT_ID)).thenReturn(Optional.of(existing));
 

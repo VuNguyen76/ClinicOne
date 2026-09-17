@@ -88,9 +88,16 @@ export class ScheduleTemplateManagement implements OnInit {
   protected readonly searchTerm = signal('');
   protected readonly hasBreak = signal(false);
   protected readonly filterSpecialty = signal('');
+  protected readonly filterDoctor = signal('');
   protected readonly selectedDateRange = signal('Tất cả thời gian');
   protected readonly selectedTemplateForDetail = signal<ScheduleTemplateResponse | null>(null);
   protected readonly selectedWeekdayForDetail = signal<string>('');
+
+  protected isDoctorRole(): boolean {
+    return hasStaffRole('DOCTOR') && !hasStaffRole('COORDINATOR') && !hasStaffRole('ADMIN');
+  }
+
+  protected readonly filterOnlyMine = signal(this.isDoctorRole());
 
   protected canManageSchedule(): boolean {
     return hasStaffRole('COORDINATOR');
@@ -125,7 +132,21 @@ export class ScheduleTemplateManagement implements OnInit {
     const we = this.weekEndDate();
     const wsIso = `${ws.getFullYear()}-${String(ws.getMonth()+1).padStart(2,'0')}-${String(ws.getDate()).padStart(2,'0')}`;
     const weIso = `${we.getFullYear()}-${String(we.getMonth()+1).padStart(2,'0')}-${String(we.getDate()).padStart(2,'0')}`;
-    return this.templates().filter((t) => t.startDate <= weIso && t.endDate >= wsIso);
+    const isDoc = this.isDoctorRole();
+    const onlyMine = isDoc || this.filterOnlyMine();
+    const docFilter = this.filterDoctor().trim().toLowerCase();
+    const myStaffId = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('clinicOneStaffId') : null;
+    const myName = (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('clinicOnePatientName') || '' : '').toLowerCase().replace(/^(bs\.|ths\.|ckii|cki|bác sĩ|tiến sĩ|ts\.)\s*/i, '').trim();
+
+    return this.templates().filter((t) => {
+      if (t.startDate > weIso || t.endDate < wsIso) return false;
+      if (onlyMine) {
+        const matchesDoctor = (myStaffId && t.doctorId === myStaffId) || (myName && t.doctorName.toLowerCase().includes(myName));
+        if (!matchesDoctor) return false;
+      }
+      if (docFilter && !t.doctorName.toLowerCase().includes(docFilter)) return false;
+      return true;
+    });
   });
 
   protected readonly filteredRooms = computed<ClinicRoomResponse[]>(() => {
@@ -147,7 +168,18 @@ export class ScheduleTemplateManagement implements OnInit {
   protected readonly filteredTemplates = computed<ScheduleTemplateResponse[]>(() => {
     const q = this.searchTerm().trim().toLowerCase();
     const spec = this.filterSpecialty().trim().toLowerCase();
+    const docFilter = this.filterDoctor().trim().toLowerCase();
+    const isDoc = this.isDoctorRole();
+    const onlyMine = isDoc || this.filterOnlyMine();
+    const myStaffId = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('clinicOneStaffId') : null;
+    const myName = (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('clinicOnePatientName') || '' : '').toLowerCase().replace(/^(bs\.|ths\.|ckii|cki|bác sĩ|tiến sĩ|ts\.)\s*/i, '').trim();
+
     return this.templates().filter((t) => {
+      if (onlyMine) {
+        const matchesDoctor = (myStaffId && t.doctorId === myStaffId) || (myName && t.doctorName.toLowerCase().includes(myName));
+        if (!matchesDoctor) return false;
+      }
+      if (docFilter && !t.doctorName.toLowerCase().includes(docFilter)) return false;
       if (spec && !t.serviceName.toLowerCase().includes(spec) && !t.specialty.toLowerCase().includes(spec)) return false;
       if (q && !t.serviceName.toLowerCase().includes(q) && !t.doctorName.toLowerCase().includes(q) && !t.roomCode.toLowerCase().includes(q)) return false;
       return true;
@@ -169,6 +201,19 @@ export class ScheduleTemplateManagement implements OnInit {
     }
     return map;
   });
+
+  protected getTemplatesForRoomAndDate(roomId: string, date: Date, weekday: string): ScheduleTemplateResponse[] {
+    if (!date) return [];
+    const dateIso = clinicTodayIso(date);
+    return this.weekTemplates().filter((t) => {
+      if (t.roomId !== roomId) return false;
+      if (!t.weekdays.includes(weekday)) return false;
+      if (t.startDate && dateIso < t.startDate) return false;
+      if (t.endDate && dateIso > t.endDate) return false;
+      if (t.exceptionDates && t.exceptionDates.includes(dateIso)) return false;
+      return true;
+    });
+  }
 
   protected getTemplatesForRoomAndDay(roomId: string, day: string): ScheduleTemplateResponse[] {
     return this.templateMatrix().get(`${roomId}_${day}`) ?? [];
@@ -210,7 +255,8 @@ export class ScheduleTemplateManagement implements OnInit {
 
   protected weekDayLabel(dateIndex: number): string {
     const d = this.weekDays[dateIndex];
-    return d ? formatShortDate(d) : '';
+    if (!d) return '';
+    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
   }
 
   private onWeekChanged(): void {
@@ -350,9 +396,24 @@ export class ScheduleTemplateManagement implements OnInit {
   protected scheduleForRoomAndDay(room: ClinicRoomResponse, day: string): void {
     if (!this.canManageSchedule()) return;
     this.selectedRoomId.set(room.id);
-    const matchService = this.services().find((s) => s.specialty.toLowerCase() === room.specialty.toLowerCase()) || this.services()[0];
-    if (matchService) {
-      this.selectService(matchService.id);
+    const docInRoom = this.doctors().find((d) => d.roomId === room.id);
+    if (docInRoom) {
+      this.selectedDoctorId.set(docInRoom.staffId);
+      const matchService = this.services().find((s) => s.specialty?.toLowerCase() === docInRoom.specialty?.toLowerCase()) || this.services()[0];
+      if (matchService) {
+        this.selectedServiceId.set(matchService.id);
+        this.durationMinutes.set(matchService.durationMinutes ?? 30);
+      }
+    } else {
+      const matchDoc = this.doctors().find((d) => d.specialty?.toLowerCase() === room.specialty?.toLowerCase()) || this.doctors()[0];
+      if (matchDoc) {
+        this.selectedDoctorId.set(matchDoc.staffId);
+      }
+      const matchService = this.services().find((s) => s.specialty?.toLowerCase() === room.specialty?.toLowerCase()) || this.services()[0];
+      if (matchService) {
+        this.selectedServiceId.set(matchService.id);
+        this.durationMinutes.set(matchService.durationMinutes ?? 30);
+      }
     }
     this.selectedWeekdays.set([day]);
     this.startCreate();
@@ -381,15 +442,17 @@ export class ScheduleTemplateManagement implements OnInit {
   }
 
   protected getShiftBadge(template: ScheduleTemplateResponse): { label: string; class: string } {
-    const startHour = Number(template.dayStart.split(':')[0]) || 0;
-    const endHour = Number(template.dayEnd.split(':')[0]) || 0;
+    const s = template.dayStart ? template.dayStart.slice(0, 5) : '';
+    const e = template.dayEnd ? template.dayEnd.slice(0, 5) : '';
+    const startHour = Number(s.split(':')[0]) || 0;
+    const endHour = Number(e.split(':')[0]) || 0;
     if (startHour < 12 && endHour >= 16) {
-      return { label: `Cả ngày (${template.dayStart} - ${template.dayEnd})`, class: 'border-teal-200 bg-teal-50 text-teal-800' };
+      return { label: `Cả ngày (${s} - ${e})`, class: 'border-teal-200 bg-teal-50 text-teal-800' };
     }
     if (startHour < 12) {
-      return { label: `Ca sáng (${template.dayStart} - ${template.dayEnd})`, class: 'border-sky-200 bg-sky-50 text-sky-800' };
+      return { label: `Ca sáng (${s} - ${e})`, class: 'border-sky-200 bg-sky-50 text-sky-800' };
     }
-    return { label: `Ca chiều (${template.dayStart} - ${template.dayEnd})`, class: 'border-purple-200 bg-purple-50 text-purple-800' };
+    return { label: `Ca chiều (${s} - ${e})`, class: 'border-purple-200 bg-purple-50 text-purple-800' };
   }
 
   private readonly doctorAvatarMap: Record<string, string> = {
@@ -466,7 +529,15 @@ export class ScheduleTemplateManagement implements OnInit {
 
   protected selectDoctor(doctorId: string): void {
     this.selectedDoctorId.set(doctorId);
-    this.selectedRoomId.set(this.doctors().find((item) => item.staffId === doctorId)?.roomId ?? '');
+    const doc = this.doctors().find((item) => item.staffId === doctorId);
+    if (doc) {
+      if (doc.roomId) this.selectedRoomId.set(doc.roomId);
+      const matchSvc = this.services().find((s) => s.specialty?.toLowerCase() === doc.specialty?.toLowerCase());
+      if (matchSvc) {
+        this.selectedServiceId.set(matchSvc.id);
+        this.durationMinutes.set(matchSvc.durationMinutes ?? 30);
+      }
+    }
   }
 
   protected isWeekdaySelected(day: string): boolean {
@@ -509,7 +580,7 @@ export class ScheduleTemplateManagement implements OnInit {
     this.authApi.createScheduleTemplate(request).subscribe({
       next: (template) => {
         this.templates.update((items) => [template, ...items]);
-        this.notice.set(`Đã thiết lập lịch trực và sinh ${template.generatedSlotCount} lượt khám.`);
+        this.notice.set(`Đã kích hoạt lịch trực cho ${template.doctorName} (${template.generatedSlotCount} khung giờ khám).`);
         this.saving.set(false);
         this.modalOpen.set(false);
         this.activeTab.set('grid');

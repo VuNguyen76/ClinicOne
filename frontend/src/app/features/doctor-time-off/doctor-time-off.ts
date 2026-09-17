@@ -39,20 +39,33 @@ export class DoctorTimeOffManagement implements OnInit {
     'đặng mai lan': 'https://images.unsplash.com/photo-1651008376811-b90baee60c1f?w=150&auto=format&fit=crop&q=80',
   };
 
+  protected isDoctorRole(): boolean {
+    return hasStaffRole('DOCTOR') && !hasStaffRole('COORDINATOR') && !hasStaffRole('ADMIN');
+  }
+
+  protected readonly filterOnlyMine = signal(this.isDoctorRole());
+
   protected readonly filteredRecords = computed<DoctorTimeOffResponse[]>(() => {
     const q = this.searchTerm().trim().toLowerCase();
-    if (!q) return this.records();
-    return this.records().filter((r) =>
-      r.doctorName.toLowerCase().includes(q) ||
-      r.reason.toLowerCase().includes(q)
-    );
+    const onlyMine = this.filterOnlyMine();
+    const myStaffId = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('clinicOneStaffId') : null;
+    const myName = (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('clinicOnePatientName') || '' : '').toLowerCase().replace(/^(bs\.|ths\.|ckii|cki|bác sĩ|tiến sĩ|ts\.)\s*/i, '').trim();
+
+    return this.records().filter((r) => {
+      if (onlyMine) {
+        const matchesDoctor = (myStaffId && r.doctorId === myStaffId) || (myName && r.doctorName.toLowerCase().includes(myName));
+        if (!matchesDoctor) return false;
+      }
+      if (q && !r.doctorName.toLowerCase().includes(q) && !r.reason.toLowerCase().includes(q)) return false;
+      return true;
+    });
   });
 
-  protected readonly totalRecordsCount = computed(() => this.records().length);
+  protected readonly totalRecordsCount = computed(() => this.filteredRecords().length);
 
-  protected readonly affectedDoctorsCount = computed(() => new Set(this.records().map((r) => r.doctorId)).size);
+  protected readonly affectedDoctorsCount = computed(() => new Set(this.filteredRecords().map((r) => r.doctorId)).size);
 
-  protected readonly cancelledSlotsTotal = computed(() => this.records().reduce((sum, r) => sum + (r.affectedAppointmentCount || 0), 0));
+  protected readonly cancelledSlotsTotal = computed(() => this.filteredRecords().reduce((sum, r) => sum + (r.affectedAppointmentCount || 0), 0));
 
   protected isFemaleDoctor(doctorName: string): boolean {
     const lower = (doctorName || '').toLowerCase();
@@ -91,7 +104,14 @@ export class DoctorTimeOffManagement implements OnInit {
       next: (doctors) => {
         const activeAssigned = doctors.filter((item) => item.active && item.assigned);
         this.doctors.set(activeAssigned);
-        if (activeAssigned[0] && !this.selectedDoctorId()) {
+        if (this.isDoctorRole()) {
+          const myStaffId = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('clinicOneStaffId') : null;
+          const myName = (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('clinicOnePatientName') || '' : '').toLowerCase().replace(/^(bs\.|ths\.|ckii|cki|bác sĩ|tiến sĩ|ts\.)\s*/i, '').trim();
+          const me = activeAssigned.find((d) => (myStaffId && d.staffId === myStaffId) || (myName && d.fullName.toLowerCase().includes(myName)));
+          if (me) {
+            this.selectedDoctorId.set(me.staffId);
+          }
+        } else if (activeAssigned[0] && !this.selectedDoctorId()) {
           this.selectedDoctorId.set(activeAssigned[0].staffId);
         }
         this.loading.set(false);
@@ -109,7 +129,7 @@ export class DoctorTimeOffManagement implements OnInit {
 
   protected submit(): void {
     if (!this.canManageTimeOff()) {
-      this.error.set('Chỉ điều phối viên được ghi nhận lịch nghỉ của bác sĩ.');
+      this.error.set('Bạn không có quyền ghi nhận lịch nghỉ.');
       return;
     }
     if (!this.selectedDoctorId() || !this.startDate() || !this.endDate() || this.startDate() > this.endDate() || this.reason().trim().length < 10) {
@@ -126,7 +146,9 @@ export class DoctorTimeOffManagement implements OnInit {
     }).subscribe({
       next: (item) => {
         this.records.update((items) => [item, ...items]);
-        this.notice.set(`Đã khóa ${item.lockedSlotCount} khung giờ và mở ${item.affectedAppointmentCount} lịch cần sắp xếp lại.`);
+        this.notice.set(this.isDoctorRole()
+          ? `Đã đăng ký nghỉ phép thành công. Đã khóa ${item.lockedSlotCount} khung giờ chờ điều phối.`
+          : `Đã khóa ${item.lockedSlotCount} khung giờ và mở ${item.affectedAppointmentCount} lịch cần sắp xếp lại.`);
         setTimeout(() => this.notice.set(''), 5000);
         this.reason.set('');
         this.saving.set(false);
@@ -143,6 +165,14 @@ export class DoctorTimeOffManagement implements OnInit {
     if (!this.canManageTimeOff()) return;
     this.error.set('');
     this.notice.set('');
+    if (this.isDoctorRole()) {
+      const myStaffId = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('clinicOneStaffId') : null;
+      const myName = (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('clinicOnePatientName') || '' : '').toLowerCase().replace(/^(bs\.|ths\.|ckii|cki|bác sĩ|tiến sĩ|ts\.)\s*/i, '').trim();
+      const me = this.doctors().find((d) => (myStaffId && d.staffId === myStaffId) || (myName && d.fullName.toLowerCase().includes(myName)));
+      if (me) {
+        this.selectedDoctorId.set(me.staffId);
+      }
+    }
     this.modalOpen.set(true);
   }
 
@@ -161,6 +191,6 @@ export class DoctorTimeOffManagement implements OnInit {
   }
 
   protected canManageTimeOff(): boolean {
-    return hasStaffRole('COORDINATOR');
+    return hasStaffRole('COORDINATOR') || hasStaffRole('DOCTOR') || hasStaffRole('ADMIN');
   }
 }

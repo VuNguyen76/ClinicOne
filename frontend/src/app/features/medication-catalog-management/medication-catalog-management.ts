@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
 import { ApiErrorResponse, AuthApiService, MedicationSuggestionResponse, apiErrorMessage } from '../../core/auth/auth-api.service';
+import { hasStaffRole } from '../../core/auth/auth.guard';
 
 @Component({
   selector: 'app-medication-catalog-management',
@@ -13,6 +14,14 @@ import { ApiErrorResponse, AuthApiService, MedicationSuggestionResponse, apiErro
 })
 export class MedicationCatalogManagement implements OnInit {
   private readonly authApi = inject(AuthApiService);
+
+  protected canManage(): boolean {
+    return hasStaffRole('ADMIN') || hasStaffRole('COORDINATOR');
+  }
+
+  protected isDoctorRole(): boolean {
+    return hasStaffRole('DOCTOR') && !hasStaffRole('COORDINATOR') && !hasStaffRole('ADMIN');
+  }
   protected readonly medications = signal<MedicationSuggestionResponse[]>([]);
   protected readonly query = signal('');
   protected readonly loading = signal(true);
@@ -23,10 +32,18 @@ export class MedicationCatalogManagement implements OnInit {
   protected readonly editingId = signal<string | null>(null);
   protected readonly code = signal('');
   protected readonly name = signal('');
+  protected readonly category = signal('');
+  protected readonly specialties = signal('');
+  protected readonly defaultDosage = signal('');
+  protected readonly defaultInstructions = signal('');
+  protected readonly unit = signal('');
+
   protected readonly filteredMedications = computed(() => {
     const query = this.query().trim().toLocaleLowerCase();
     if (!query) return this.medications();
-    return this.medications().filter((item) => `${item.code} ${item.name}`.toLocaleLowerCase().includes(query));
+    return this.medications().filter((item) =>
+      `${item.code} ${item.name} ${item.category || ''} ${item.specialties || ''}`.toLocaleLowerCase().includes(query)
+    );
   });
   protected readonly activeCount = computed(() => this.medications().filter((item) => item.active).length);
   protected readonly inactiveCount = computed(() => this.medications().filter((item) => !item.active).length);
@@ -39,6 +56,11 @@ export class MedicationCatalogManagement implements OnInit {
     this.editingId.set(null);
     this.code.set('');
     this.name.set('');
+    this.category.set('');
+    this.specialties.set('');
+    this.defaultDosage.set('');
+    this.defaultInstructions.set('');
+    this.unit.set('');
     this.error.set('');
     this.modalOpen.set(true);
   }
@@ -47,6 +69,11 @@ export class MedicationCatalogManagement implements OnInit {
     this.editingId.set(item.id);
     this.code.set(item.code);
     this.name.set(item.name);
+    this.category.set(item.category || '');
+    this.specialties.set(item.specialties || '');
+    this.defaultDosage.set(item.defaultDosage || '');
+    this.defaultInstructions.set(item.defaultInstructions || '');
+    this.unit.set(item.unit || 'Viên');
     this.error.set('');
     this.modalOpen.set(true);
   }
@@ -65,7 +92,23 @@ export class MedicationCatalogManagement implements OnInit {
     this.saving.set(true);
     this.error.set('');
     const editingId = this.editingId();
-    const request = editingId ? this.authApi.updateMedication(editingId, code, name) : this.authApi.createMedication(code, name);
+    const hasMetadata = Boolean(
+      this.category().trim() ||
+      this.specialties().trim() ||
+      this.defaultDosage().trim() ||
+      this.defaultInstructions().trim() ||
+      this.unit().trim()
+    );
+    const metadata = hasMetadata ? {
+      category: this.category().trim() || undefined,
+      specialties: this.specialties().trim() || undefined,
+      defaultDosage: this.defaultDosage().trim() || undefined,
+      defaultInstructions: this.defaultInstructions().trim() || undefined,
+      unit: this.unit().trim() || undefined,
+    } : undefined;
+    const request = editingId
+      ? (metadata ? this.authApi.updateMedication(editingId, code, name, metadata) : this.authApi.updateMedication(editingId, code, name))
+      : (metadata ? this.authApi.createMedication(code, name, metadata) : this.authApi.createMedication(code, name));
     request.subscribe({
       next: (saved) => {
         this.medications.update((items) => {

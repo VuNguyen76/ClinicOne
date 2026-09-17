@@ -178,7 +178,7 @@ describe('ReceptionCheckIn', () => {
     request.flush({ ...checkedIn, status: 'NOT_PERFORMED', queueStatus: 'COMPLETED', queueStatusLabel: 'Đã hoàn tất' });
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('cơ sở tạm dừng phục vụ');
+    expect(fixture.nativeElement.textContent).toContain('phòng khám tạm dừng phục vụ');
   });
 
   it('adjusts a waiting queue ticket without editing its appointment status', () => {

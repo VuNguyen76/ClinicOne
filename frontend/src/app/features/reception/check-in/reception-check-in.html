@@ -603,7 +603,6 @@
             <p class="text-xs font-bold uppercase tracking-[0.16em] text-[#0284c7]">Ca làm việc</p>
             <h2 class="mt-1 text-xl font-bold tracking-tight text-slate-900">Tổng quan tiếp nhận</h2>
           </div>
-          <a routerLink="/reception/appointments" class="erp-btn-secondary"><mat-icon class="!h-4 !w-4 !text-[16px]">search</mat-icon>Tra lịch hôm nay</a>
         </div>
         <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <div class="erp-card border-l-4 border-l-[#0284c7] p-4"><p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Lịch đã nạp</p><p class="mt-2 text-3xl font-bold text-slate-900">{{ dashboardCounts().total }}</p></div>
@@ -833,7 +832,7 @@
                     [disabled]="busyId() === appointment.id"
                     (click)="markFacilityUnavailable(appointment)"
                   >
-                    Cơ sở dừng phục vụ
+                    Phòng khám dừng phục vụ
                   </button>
                 }
               </div>
