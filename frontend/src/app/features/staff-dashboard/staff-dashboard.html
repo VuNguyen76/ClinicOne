@@ -1,4 +1,4 @@
-<app-staff-workspace-shell [moduleTitle]="isOwnDoctor() ? 'Khám bệnh' : 'Vận hành'" [pageTitle]="isOwnDoctor() ? 'Hàng đợi khám bệnh' : 'Giám sát hàng đợi phòng khám'">
+<app-staff-workspace-shell [moduleTitle]="isOwnDoctor() ? 'Khám bệnh' : 'Vận hành'" [pageTitle]="isOwnDoctor() ? 'Phòng khám của tôi' : 'Điều phối hàng đợi'">
   <!-- Window Action Toolbar Slot -->
   <div workspace-actions class="flex items-center gap-2">
     <button
