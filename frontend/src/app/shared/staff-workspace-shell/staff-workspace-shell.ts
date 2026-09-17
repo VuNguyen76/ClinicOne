@@ -22,18 +22,18 @@ const NAVIGATION: StaffNavigationGroup[] = [
   {
     label: 'Tiếp nhận',
     items: [
-      { label: 'Tổng quan', route: '/reception', icon: 'dashboard', roles: ['RECEPTIONIST'], exact: true },
-      { label: 'Lịch hẹn', route: '/reception/appointments', icon: 'event_search', roles: ['RECEPTIONIST'] },
-      { label: 'Đón tiếp tại quầy', route: '/reception/walk-in', icon: 'person_add', roles: ['RECEPTIONIST'] },
-      { label: 'Hàng đợi quầy', route: '/reception/queue', icon: 'format_list_numbered', roles: ['RECEPTIONIST'] },
-      { label: 'Xử lý ngoại lệ', route: '/reception/exceptions', icon: 'rule', roles: ['RECEPTIONIST'] },
-      { label: 'Hồ sơ bệnh nhân', route: '/reception/profiles', icon: 'badge', roles: ['RECEPTIONIST'] },
+      { label: 'Tổng quan', route: '/reception', icon: 'space_dashboard', roles: ['RECEPTIONIST'], exact: true },
+      { label: 'Lịch hẹn', route: '/reception/appointments', icon: 'event_available', roles: ['RECEPTIONIST'] },
+      { label: 'Đón tiếp tại quầy', route: '/reception/walk-in', icon: 'how_to_reg', roles: ['RECEPTIONIST'] },
+      { label: 'Hàng đợi quầy', route: '/reception/queue', icon: 'confirmation_number', roles: ['RECEPTIONIST'] },
+      { label: 'Xử lý ngoại lệ', route: '/reception/exceptions', icon: 'warning_amber', roles: ['RECEPTIONIST'] },
+      { label: 'Hồ sơ bệnh nhân', route: '/reception/profiles', icon: 'folder_shared', roles: ['RECEPTIONIST'] },
     ],
   },
   {
     label: 'Khám bệnh',
     items: [
-      { label: 'Phòng khám của tôi', route: '/doctor', icon: 'monitor_heart', roles: ['DOCTOR'] },
+      { label: 'Phòng khám của tôi', route: '/doctor', icon: 'stethoscope', roles: ['DOCTOR'] },
     ],
   },
   {
@@ -46,10 +46,10 @@ const NAVIGATION: StaffNavigationGroup[] = [
   {
     label: 'Vận hành',
     items: [
-      { label: 'Điều phối hàng đợi', route: '/admin/queues', icon: 'monitor_heart', roles: ['COORDINATOR'] },
-      { label: 'Phòng khám', route: '/admin/rooms', icon: 'meeting_room', roles: ['ADMIN', 'COORDINATOR'] },
+      { label: 'Điều phối hàng đợi', route: '/admin/queues', icon: 'alt_route', roles: ['COORDINATOR'] },
+      { label: 'Phòng khám', route: '/admin/rooms', icon: 'door_sliding', roles: ['ADMIN', 'COORDINATOR'] },
       { label: 'Bác sĩ', route: '/admin/doctors', icon: 'medical_services', roles: ['ADMIN', 'COORDINATOR'] },
-      { label: 'Điều chuyển lịch hẹn', route: '/admin/rescheduling', icon: 'event_repeat', roles: ['ADMIN', 'COORDINATOR'] },
+      { label: 'Điều chuyển lịch hẹn', route: '/admin/rescheduling', icon: 'edit_calendar', roles: ['ADMIN', 'COORDINATOR'] },
     ],
   },
   {
@@ -57,14 +57,14 @@ const NAVIGATION: StaffNavigationGroup[] = [
     items: [
       { label: 'Dược phẩm & Thuốc', route: '/admin/medications', icon: 'medication', roles: ['ADMIN', 'COORDINATOR', 'DOCTOR'] },
       { label: 'Chẩn đoán', route: '/admin/diagnoses', icon: 'clinical_notes', roles: ['ADMIN', 'COORDINATOR', 'DOCTOR'] },
-      { label: 'Mẫu bệnh án', route: '/admin/medical-record-templates', icon: 'description', roles: ['ADMIN', 'DOCTOR'] },
+      { label: 'Mẫu bệnh án', route: '/admin/medical-record-templates', icon: 'assignment', roles: ['ADMIN', 'DOCTOR'] },
     ],
   },
   {
     label: 'Dịch vụ & Khoa',
     items: [
-      { label: 'Dịch vụ', route: '/admin/services', icon: 'category', roles: ['ADMIN'] },
-      { label: 'Chuyên khoa', route: '/admin/specialties', icon: 'domain', roles: ['ADMIN'] },
+      { label: 'Dịch vụ', route: '/admin/services', icon: 'medical_information', roles: ['ADMIN'] },
+      { label: 'Chuyên khoa', route: '/admin/specialties', icon: 'local_hospital', roles: ['ADMIN'] },
     ],
   },
   {
@@ -73,7 +73,7 @@ const NAVIGATION: StaffNavigationGroup[] = [
       { label: 'Báo cáo thống kê', route: '/admin/statistics', icon: 'analytics', roles: ['ADMIN', 'COORDINATOR', 'DOCTOR'] },
       { label: 'Đối soát dữ liệu', route: '/admin/reconciliations', icon: 'fact_check', roles: ['ADMIN', 'COORDINATOR'] },
       { label: 'Nhật ký thao tác', route: '/admin/business-audit', icon: 'history', roles: ['ADMIN'] },
-      { label: 'Nhật ký bảo mật', route: '/admin/access-audit', icon: 'manage_search', roles: ['ADMIN'] },
+      { label: 'Nhật ký bảo mật', route: '/admin/access-audit', icon: 'security', roles: ['ADMIN'] },
     ],
   },
   {
