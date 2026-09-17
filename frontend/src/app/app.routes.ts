@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { adminGuard, clinicalStaffGuard, doctorGuard, homeGuard, patientGuard, queueBoardGuard, receptionGuard, roomManagerGuard, staffLandingRedirect } from './core/auth/auth.guard';
+import { adminGuard, clinicalStaffGuard, doctorGuard, homeGuard, operationalStaffGuard, patientGuard, queueBoardGuard, queueSupervisorGuard, receptionGuard, roomManagerGuard, staffLandingRedirect } from './core/auth/auth.guard';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'home' },
@@ -30,17 +30,18 @@ export const routes: Routes = [
   { path: 'medical-records/:id', loadComponent: () => import('./features/medical-records/medical-record-detail').then((m) => m.MedicalRecordDetail), canActivate: [patientGuard] },
   { path: 'patient-profiles', loadComponent: () => import('./features/patient-profiles/patient-profiles').then((m) => m.PatientProfiles), canActivate: [patientGuard] },
   { path: 'notifications', loadComponent: () => import('./features/notifications/notifications').then((m) => m.Notifications), canActivate: [patientGuard] },
+  { path: 'admin/queues', loadComponent: () => import('./features/staff-dashboard/staff-dashboard').then((m) => m.StaffDashboard), canActivate: [queueSupervisorGuard] },
   { path: 'admin/rooms', loadComponent: () => import('./features/room-management/room-management').then((m) => m.RoomManagement), canActivate: [roomManagerGuard] },
   { path: 'admin/doctors', loadComponent: () => import('./features/doctor-management/doctor-management').then((m) => m.DoctorManagement), canActivate: [roomManagerGuard] },
   { path: 'admin/services', loadComponent: () => import('./features/service-management/service-management').then((m) => m.ServiceManagement), canActivate: [roomManagerGuard] },
   { path: 'admin/specialties', loadComponent: () => import('./features/specialty-catalog-management/specialty-catalog-management').then((m) => m.SpecialtyCatalogManagement), canActivate: [roomManagerGuard] },
   { path: 'admin/medical-record-templates', loadComponent: () => import('./features/medical-record-template-management/medical-record-template-management').then((m) => m.MedicalRecordTemplateManagement), canActivate: [clinicalStaffGuard] },
   { path: 'admin/sms-deliveries', loadComponent: () => import('./features/sms-delivery-management/sms-delivery-management').then((m) => m.SmsDeliveryManagement), canActivate: [adminGuard] },
-  { path: 'admin/schedule-templates', loadComponent: () => import('./features/schedule-template-management/schedule-template-management').then((m) => m.ScheduleTemplateManagement), canActivate: [clinicalStaffGuard] },
+  { path: 'admin/schedule-templates', loadComponent: () => import('./features/schedule-template-management/schedule-template-management').then((m) => m.ScheduleTemplateManagement), canActivate: [operationalStaffGuard] },
   { path: 'admin/staff', loadComponent: () => import('./features/staff-management/staff-management').then((m) => m.StaffManagement), canActivate: [adminGuard] },
   { path: 'admin/statistics', loadComponent: () => import('./features/admin-statistics/admin-statistics').then((m) => m.AdminStatistics), canActivate: [clinicalStaffGuard] },
   { path: 'admin/rescheduling', loadComponent: () => import('./features/rescheduling/rescheduling').then((m) => m.Rescheduling), canActivate: [roomManagerGuard] },
-  { path: 'admin/doctor-time-off', loadComponent: () => import('./features/doctor-time-off/doctor-time-off').then((m) => m.DoctorTimeOffManagement), canActivate: [clinicalStaffGuard] },
+  { path: 'admin/doctor-time-off', loadComponent: () => import('./features/doctor-time-off/doctor-time-off').then((m) => m.DoctorTimeOffManagement), canActivate: [operationalStaffGuard] },
   { path: 'admin/reconciliations', loadComponent: () => import('./features/reconciliation/reconciliation').then((m) => m.ReconciliationManagement), canActivate: [roomManagerGuard] },
   { path: 'admin/access-audit', loadComponent: () => import('./features/access-audit/access-audit').then((m) => m.AccessAuditManagement), canActivate: [adminGuard] },
   { path: 'admin/configuration', pathMatch: 'full', redirectTo: 'admin/rooms' },
