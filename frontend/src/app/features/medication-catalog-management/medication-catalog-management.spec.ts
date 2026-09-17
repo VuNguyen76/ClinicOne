@@ -12,6 +12,7 @@ describe('MedicationCatalogManagement', () => {
     createMedication: vi.fn(),
     updateMedication: vi.fn(),
     setMedicationActive: vi.fn(),
+    getSpecialties: vi.fn().mockReturnValue(of([])),
   };
 
   beforeEach(async () => {
@@ -33,6 +34,7 @@ describe('MedicationCatalogManagement', () => {
   });
 
   afterEach(() => {
+    TestBed.resetTestingModule();
     sessionStorage.clear();
   });
 
@@ -61,5 +63,42 @@ describe('MedicationCatalogManagement', () => {
     (fixture.nativeElement.querySelector('[data-testid="toggle-medication-med-1"]') as HTMLButtonElement).click();
 
     expect(api.setMedicationActive).toHaveBeenCalledWith('med-1', false);
+  });
+
+  it('creates a medicine with clinical presets (unit, specialty select, and standard dosage)', () => {
+    (fixture.nativeElement.querySelector('[data-testid="open-create-medication"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const component = fixture.componentInstance;
+
+    // 1. Select unit preset
+    component['selectUnit']('Gói');
+    fixture.detectChanges();
+    expect(component['unit']()).toBe('Gói');
+
+    // 2. Formats adapt dynamically to "Gói"
+    const dosageFormats = component['standardDosageFormats']();
+    expect(dosageFormats.some((fmt) => fmt.includes('gói/lần'))).toBe(true);
+
+    // 3. Select standard dosage preset
+    component['selectDosage'](dosageFormats[0]);
+    expect(component['defaultDosage']()).toBe(dosageFormats[0]);
+
+    // 4. Select specialty from dropdown
+    component['specialties'].set('Khám Tổng Quát');
+
+    // 5. Select category preset
+    component['selectCategory']('Hạ sốt & Giảm đau');
+
+    component['code'].set('eff-para-250');
+    component['name'].set('Efferalgan 250mg');
+    component['save']();
+
+    expect(api.createMedication).toHaveBeenCalledWith('EFF-PARA-250', 'Efferalgan 250mg', {
+      unit: 'Gói',
+      specialties: 'Khám Tổng Quát',
+      defaultDosage: dosageFormats[0],
+      category: 'Hạ sốt & Giảm đau',
+      defaultInstructions: undefined,
+    });
   });
 });
