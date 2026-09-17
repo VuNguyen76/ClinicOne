@@ -54,7 +54,7 @@
         <div class="divide-y divide-slate-100">
           @for (ticket of queue(); track ticket.id) {
             <article data-testid="queue-row" class="grid gap-4 px-6 py-4 md:grid-cols-[80px_1fr_150px] md:items-center transition hover:bg-slate-50/50">
-              <div class="font-mono text-3xl font-bold tracking-tight text-[#0e3d48]">{{ ticket.queueNumber | number:'2.0-0' }}</div>
+              <div class="font-mono text-3xl font-bold tracking-tight text-[#0284c7]">{{ ticket.queueNumber | number:'2.0-0' }}</div>
               <div>
                 <p class="font-semibold text-slate-900 text-sm">{{ ticket.specialty }}</p>
                 <p class="mt-0.5 text-xs text-slate-500 font-mono">{{ ticket.appointmentCode }} · <span class="font-sans text-slate-600">{{ formatTime(ticket.appointmentTime) }} · {{ ticket.doctorName }}</span></p>

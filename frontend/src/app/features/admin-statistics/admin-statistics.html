@@ -109,7 +109,7 @@
         <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs flex items-center justify-between">
           <div>
             <p class="text-xs font-semibold text-slate-500">Thời gian chờ trung bình</p>
-            <p class="mt-1 font-mono text-2xl font-bold text-[#0e3d48]">{{ formatAverage(data.averageWaitMinutes) }}</p>
+            <p class="mt-1 font-mono text-2xl font-bold text-[#0284c7]">{{ formatAverage(data.averageWaitMinutes) }}</p>
             <p class="mt-0.5 text-[11px] text-slate-400">Chỉ tính lượt có đủ mốc đến và bắt đầu khám</p>
           </div>
           <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#eff6ff] text-[#2563eb]">
@@ -120,7 +120,7 @@
         <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs flex items-center justify-between">
           <div>
             <p class="text-xs font-semibold text-slate-500">Thời lượng khám trung bình</p>
-            <p class="mt-1 font-mono text-2xl font-bold text-[#0e3d48]">{{ formatAverage(data.averageExaminationMinutes) }}</p>
+            <p class="mt-1 font-mono text-2xl font-bold text-[#0284c7]">{{ formatAverage(data.averageExaminationMinutes) }}</p>
             <p class="mt-0.5 text-[11px] text-slate-400">Chỉ tính lượt có đủ mốc bắt đầu và kết thúc</p>
           </div>
           <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#ecfdf5] text-[#059669]">
@@ -133,7 +133,7 @@
       <section class="rounded-2xl border border-slate-100 bg-white shadow-xs overflow-hidden w-full" aria-label="Thống kê theo kỳ">
         <div class="border-b border-slate-100 px-5 py-3.5 bg-slate-50/50 flex items-center justify-between">
           <div>
-            <h3 class="text-xs font-bold uppercase tracking-wider text-[#0e3d48]">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-900">
               Chi tiết theo {{ data.groupBy === 'WEEK' ? 'tuần' : data.groupBy === 'MONTH' ? 'tháng' : 'ngày' }}
             </h3>
             <p class="mt-0.5 text-[11px] text-slate-500">Dữ liệu tổng hợp · {{ data.buckets.length }} kỳ</p>
