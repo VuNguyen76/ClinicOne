@@ -16,6 +16,10 @@ export class MedicationCatalogManagement implements OnInit {
   private readonly authApi = inject(AuthApiService);
 
   protected canManage(): boolean {
+    return hasStaffRole('ADMIN') || hasStaffRole('COORDINATOR') || hasStaffRole('DOCTOR');
+  }
+
+  protected canToggleActive(): boolean {
     return hasStaffRole('ADMIN') || hasStaffRole('COORDINATOR');
   }
 

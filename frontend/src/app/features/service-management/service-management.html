@@ -77,7 +77,7 @@
                 <th class="px-4 py-3.5">Bác sĩ phụ trách</th>
                 <th class="px-4 py-3.5">Trạng thái</th>
                 @if (canManageServices()) {
-                  <th class="px-4 py-3.5 text-right">Thao tác</th>
+                  <th class="px-4 py-3.5 w-28 text-center font-semibold">Thao tác</th>
                 }
               </tr>
             </thead>
@@ -106,8 +106,8 @@
                     </span>
                   </td>
                   @if (canManageServices()) {
-                    <td class="px-4 py-3 text-right">
-                      <div class="flex items-center justify-end gap-1.5">
+                    <td class="px-4 py-3 text-center">
+                      <div class="flex items-center justify-center gap-2">
                         <button
                           type="button"
                           class="erp-btn-icon-accent"

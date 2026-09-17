@@ -81,7 +81,7 @@
                 <th class="px-4 py-3.5 w-36">Mã chuyên khoa</th>
                 <th class="px-4 py-3.5 w-64">Tên chuyên khoa</th>
                 <th class="px-4 py-3.5">Mô tả phạm vi khám</th>
-                <th class="px-4 py-3.5 w-28 text-right">Thao tác</th>
+                <th class="px-4 py-3.5 w-28 text-center font-semibold">Thao tác</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-50">
@@ -98,8 +98,8 @@
                   <td class="px-4 py-3 max-w-md truncate text-slate-600">
                     {{ item.description || 'Chưa có mô tả chi tiết' }}
                   </td>
-                  <td class="px-4 py-3 text-right">
-                    <div class="flex items-center justify-end gap-1.5">
+                  <td class="px-4 py-3 text-center">
+                    <div class="flex items-center justify-center gap-2">
                       <button
                         type="button"
                         class="erp-btn-icon-accent"
@@ -172,14 +172,14 @@
               </div>
             }
             <label class="grid gap-1">
-              <span class="erp-label">Mã chuyên khoa (A-Z, 0-9, _) <span class="erp-label-required">*</span></span>
+              <span class="erp-label">Mã chuyên khoa <span class="erp-label-required">*</span></span>
               <input
                 class="erp-input font-mono uppercase"
                 [ngModel]="code()"
                 (ngModelChange)="code.set($event)"
                 name="specialtyCode"
                 maxlength="20"
-                placeholder="vd: NOI_TONG_QUAT"
+                placeholder="NOI_TONG_QUAT"
                 [disabled]="!!editingCode()"
               />
             </label>
@@ -192,7 +192,7 @@
                 (ngModelChange)="name.set($event)"
                 name="specialtyName"
                 maxlength="120"
-                placeholder="vd: Nội tổng quát"
+                placeholder="Nội tổng quát"
               />
             </label>
 
