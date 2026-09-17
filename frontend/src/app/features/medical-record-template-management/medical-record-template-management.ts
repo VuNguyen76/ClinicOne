@@ -16,6 +16,7 @@ import {
   serializeMedicalRecordTemplateContent,
 } from '../../core/examination/medical-record-template-content';
 import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
+import { hasStaffRole } from '../../core/auth/auth.guard';
 
 @Component({
   selector: 'app-medical-record-template-management',
@@ -25,6 +26,10 @@ import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-wo
 })
 export class MedicalRecordTemplateManagement implements OnInit {
   private readonly api = inject(AuthApiService);
+
+  protected isDoctorRole(): boolean {
+    return hasStaffRole('DOCTOR') && !hasStaffRole('COORDINATOR') && !hasStaffRole('ADMIN');
+  }
 
   protected readonly items = signal<MedicalRecordTemplate[]>([]);
   protected readonly specialties = signal<SpecialtyOption[]>([]);

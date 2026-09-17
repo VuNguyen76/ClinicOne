@@ -139,6 +139,11 @@ export interface MedicationSuggestionResponse {
   code: string;
   name: string;
   active: boolean;
+  category?: string;
+  specialties?: string;
+  defaultDosage?: string;
+  defaultInstructions?: string;
+  unit?: string;
 }
 
 export interface DiagnosisSuggestionResponse {
@@ -617,6 +622,13 @@ export interface DoctorExaminationResponse {
   recordVersion: number | null;
   requiresMedicalRecord?: boolean;
   history?: MedicalRecordResponse[];
+  bloodPressure?: string | null;
+  heartRate?: number | null;
+  temperature?: number | null;
+  spO2?: number | null;
+  weight?: number | null;
+  height?: number | null;
+  allergySummary?: string | null;
 }
 
 export interface DoctorExaminationRequest {
@@ -637,6 +649,13 @@ export interface DoctorExaminationRequest {
   followUpDays?: number | null;
   followUpNote?: string | null;
   recordVersion?: number | null;
+  bloodPressure?: string | null;
+  heartRate?: number | null;
+  temperature?: number | null;
+  spO2?: number | null;
+  weight?: number | null;
+  height?: number | null;
+  allergySummary?: string | null;
 }
 
 export interface ReceptionAppointmentResponse {
@@ -1221,6 +1240,10 @@ export class AuthApiService {
     return this.http.post<DoctorExaminationResponse>(`/api/v1/doctor/examinations/${ticketId}/wrong-profile`, { reason });
   }
 
+  getDoctorMedications(): Observable<MedicationSuggestionResponse[]> {
+    return this.http.get<MedicationSuggestionResponse[]>('/api/v1/doctor/medications');
+  }
+
   getDoctorMedicationSuggestions(query: string): Observable<MedicationSuggestionResponse[]> {
     return this.http.get<MedicationSuggestionResponse[]>('/api/v1/doctor/medications/suggestions', { params: { query } });
   }
@@ -1233,12 +1256,37 @@ export class AuthApiService {
     return this.http.get<MedicationSuggestionResponse[]>('/api/v1/admin/medications');
   }
 
-  createMedication(code: string, name: string): Observable<MedicationSuggestionResponse> {
-    return this.http.post<MedicationSuggestionResponse>('/api/v1/admin/medications', { code, name });
+  createMedication(
+    code: string,
+    name: string,
+    metadata?: { category?: string; specialties?: string; defaultDosage?: string; defaultInstructions?: string; unit?: string }
+  ): Observable<MedicationSuggestionResponse> {
+    return this.http.post<MedicationSuggestionResponse>('/api/v1/admin/medications', {
+      code,
+      name,
+      category: metadata?.category ?? null,
+      specialties: metadata?.specialties ?? null,
+      defaultDosage: metadata?.defaultDosage ?? null,
+      defaultInstructions: metadata?.defaultInstructions ?? null,
+      unit: metadata?.unit ?? null,
+    });
   }
 
-  updateMedication(id: string, code: string, name: string): Observable<MedicationSuggestionResponse> {
-    return this.http.put<MedicationSuggestionResponse>(`/api/v1/admin/medications/${id}`, { code, name });
+  updateMedication(
+    id: string,
+    code: string,
+    name: string,
+    metadata?: { category?: string; specialties?: string; defaultDosage?: string; defaultInstructions?: string; unit?: string }
+  ): Observable<MedicationSuggestionResponse> {
+    return this.http.put<MedicationSuggestionResponse>(`/api/v1/admin/medications/${id}`, {
+      code,
+      name,
+      category: metadata?.category ?? null,
+      specialties: metadata?.specialties ?? null,
+      defaultDosage: metadata?.defaultDosage ?? null,
+      defaultInstructions: metadata?.defaultInstructions ?? null,
+      unit: metadata?.unit ?? null,
+    });
   }
 
   setMedicationActive(id: string, active: boolean): Observable<MedicationSuggestionResponse> {
@@ -1272,10 +1320,12 @@ export class AuthApiService {
       sessionStorage.setItem('clinicOneSessionType', 'STAFF');
       sessionStorage.setItem('clinicOneStaffRole', session.role);
       sessionStorage.setItem('clinicOneStaffRoles', JSON.stringify(session.roles?.length ? session.roles : [session.role]));
+      sessionStorage.setItem('clinicOneStaffId', session.staffId);
     }));
   }
 
   logoutStaff(): Observable<void> {
+    sessionStorage.removeItem('clinicOneStaffId');
     return this.http.post<void>('/api/v1/staff/auth/logout', {});
   }
 

@@ -142,6 +142,50 @@ describe('DoctorExamination', () => {
     expect(fixture.nativeElement.textContent).toContain('Đã lưu bản nháp');
   });
 
+  it('binds, computes BMI dynamically, and saves clinical vitals in draft', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+
+    const bp = fixture.nativeElement.querySelector('[data-testid="vital-blood-pressure"]') as HTMLInputElement;
+    const hr = fixture.nativeElement.querySelector('[data-testid="vital-heart-rate"]') as HTMLInputElement;
+    const temp = fixture.nativeElement.querySelector('[data-testid="vital-temperature"]') as HTMLInputElement;
+    const spo2 = fixture.nativeElement.querySelector('[data-testid="vital-spo2"]') as HTMLInputElement;
+    const weight = fixture.nativeElement.querySelector('[data-testid="vital-weight"]') as HTMLInputElement;
+    const height = fixture.nativeElement.querySelector('[data-testid="vital-height"]') as HTMLInputElement;
+    const allergy = fixture.nativeElement.querySelector('[data-testid="vital-allergy"]') as HTMLInputElement;
+
+    bp.value = '120/80';
+    bp.dispatchEvent(new Event('input'));
+    hr.value = '75';
+    hr.dispatchEvent(new Event('input'));
+    temp.value = '36.8';
+    temp.dispatchEvent(new Event('input'));
+    spo2.value = '98';
+    spo2.dispatchEvent(new Event('input'));
+    weight.value = '65';
+    weight.dispatchEvent(new Event('input'));
+    height.value = '170';
+    height.dispatchEvent(new Event('input'));
+    allergy.value = 'Dị ứng phấn hoa';
+    allergy.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance['bmi']()).toBe(22.5);
+    expect(fixture.nativeElement.textContent).toContain('22.5 kg/m²');
+    expect(fixture.nativeElement.textContent).toContain('Bình thường');
+
+    (fixture.nativeElement.querySelector('[data-testid="save-draft"]') as HTMLButtonElement).click();
+    const request = http.expectOne('/api/v1/doctor/examinations/ticket-1/draft');
+    expect(request.request.body.bloodPressure).toBe('120/80');
+    expect(request.request.body.heartRate).toBe(75);
+    expect(request.request.body.temperature).toBe(36.8);
+    expect(request.request.body.spO2).toBe(98);
+    expect(request.request.body.weight).toBe(65);
+    expect(request.request.body.height).toBe(170);
+    expect(request.request.body.allergySummary).toBe('Dị ứng phấn hoa');
+    request.flush({ ...examination(), bloodPressure: '120/80', weight: 65, height: 170 });
+  });
+
   it('saves each prescribed medicine as a complete line', () => {
     http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
     fixture.detectChanges();
@@ -391,6 +435,67 @@ describe('DoctorExamination', () => {
     expect(request.request.method).toBe('POST');
     expect(request.request.body).toEqual({ reason: 'Bác sĩ phát hiện đang mở nhầm hồ sơ người bệnh.' });
     request.flush({ ...examination(), status: 'SCHEDULED' });
+  });
+
+  it('opens specialty medication catalog, loads medications from /api/v1/doctor/medications, and prescribes with 1 click', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+
+    const openBtn = fixture.nativeElement.querySelector('[data-testid="open-medication-catalog"]') as HTMLButtonElement;
+    expect(openBtn).toBeTruthy();
+    openBtn.click();
+    fixture.detectChanges();
+
+    const req = http.expectOne('/api/v1/doctor/medications');
+    expect(req.request.method).toBe('GET');
+    req.flush([
+      { id: 'med-1', code: 'MED-PARA-500', name: 'Paracetamol 500mg (Hạ sốt, giảm đau nhanh)', active: true, category: 'Hạ sốt & Giảm đau', defaultDosage: '1 viên / lần', defaultInstructions: 'Uống sau ăn', unit: 'Viên' },
+      { id: 'med-2', code: 'MED-AMOX-500', name: 'Amoxicillin 500mg (Kháng sinh)', active: true, category: 'Kháng sinh', defaultDosage: '1 viên / lần', defaultInstructions: 'Uống sau ăn', unit: 'Viên' },
+    ]);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Paracetamol 500mg');
+
+    const prescribeButtons = fixture.nativeElement.querySelectorAll('section[role="dialog"] button');
+    const prescribePara = Array.from(prescribeButtons).find((b: any) => b.textContent?.includes('+ Kê thuốc')) as HTMLButtonElement;
+    expect(prescribePara).toBeTruthy();
+    prescribePara.click();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance['prescriptionLines'].length).toBe(1);
+    expect(fixture.componentInstance['prescriptionLines'].at(0).value.medicationName).toContain('Paracetamol 500mg');
+  });
+
+  it('filters medications by category tabs and search query', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('[data-testid="open-medication-catalog"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const req = http.expectOne('/api/v1/doctor/medications');
+    req.flush([
+      { id: 'med-1', code: 'MED-PARA-500', name: 'Paracetamol 500mg', active: true, category: 'Hạ sốt & Giảm đau', defaultDosage: '1 viên / lần', defaultInstructions: 'Uống sau ăn', unit: 'Viên' },
+      { id: 'med-2', code: 'MED-AMLO-5', name: 'Amlodipine 5mg', active: true, category: 'Tim mạch', defaultDosage: '1 viên / ngày', defaultInstructions: 'Uống sáng', unit: 'Viên' },
+      { id: 'med-3', code: 'MED-AUGM-1000', name: 'Augmentin 1g', active: true, category: 'Kháng sinh', defaultDosage: '1 viên / lần', defaultInstructions: 'Uống sau ăn', unit: 'Viên' },
+    ]);
+    fixture.detectChanges();
+
+    // Select category 'Kháng sinh'
+    fixture.componentInstance['selectMedicationCategory']('Kháng sinh');
+    fixture.detectChanges();
+
+    const antibioticItems = fixture.componentInstance['filteredCatalogMedications']();
+    expect(antibioticItems.every((item) => item.category === 'Kháng sinh')).toBe(true);
+
+    // Search for 'Amlo'
+    fixture.componentInstance['selectMedicationCategory']('Tất cả');
+    fixture.componentInstance['medicationSearchQuery'].set('Amlo');
+    fixture.detectChanges();
+
+    const searchResults = fixture.componentInstance['filteredCatalogMedications']();
+    expect(searchResults.length).toBe(1);
+    expect(searchResults[0].name).toBe('Amlodipine 5mg');
   });
 });
 

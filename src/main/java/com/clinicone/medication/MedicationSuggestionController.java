@@ -17,6 +17,11 @@ import java.util.List;
 public class MedicationSuggestionController {
     private final MedicationCatalogService service;
 
+    @GetMapping
+    public List<MedicationResponse> list() {
+        return service.list(true);
+    }
+
     @GetMapping("/suggestions")
     public List<MedicationResponse> suggestions(@RequestParam String query) {
         return service.suggestions(query);

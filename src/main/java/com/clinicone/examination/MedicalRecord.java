@@ -17,6 +17,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import jakarta.persistence.Version;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -76,6 +77,27 @@ public class MedicalRecord {
 
     @Column(name = "draft_saved_at")
     private Instant draftSavedAt;
+
+    @Column(name = "blood_pressure", length = 30)
+    private String bloodPressure;
+
+    @Column(name = "heart_rate")
+    private Integer heartRate;
+
+    @Column(name = "temperature", precision = 4, scale = 1)
+    private BigDecimal temperature;
+
+    @Column(name = "sp_o2")
+    private Integer spO2;
+
+    @Column(name = "weight", precision = 5, scale = 1)
+    private BigDecimal weight;
+
+    @Column(name = "height", precision = 5, scale = 1)
+    private BigDecimal height;
+
+    @Column(name = "allergy_summary", length = 500)
+    private String allergySummary;
 
     @Version
     @Column(name = "version")
@@ -173,6 +195,36 @@ public class MedicalRecord {
         saveDraft(doctorName, reason, examinationNotes, diagnosis, conclusion, treatmentPlan, prescription,
                 followUpDate, followUpDays, followUpNote);
         replacePrescriptionLines(lines);
+    }
+
+    public void saveDraft(String doctorName, String reason, String examinationNotes, String diagnosis,
+                          String conclusion, String treatmentPlan, String prescription, LocalDate followUpDate,
+                          List<PrescriptionLine> lines, Integer followUpDays, String followUpNote,
+                          String bloodPressure, Integer heartRate, BigDecimal temperature, Integer spO2,
+                          BigDecimal weight, BigDecimal height, String allergySummary) {
+        saveDraft(doctorName, reason, examinationNotes, diagnosis, conclusion, treatmentPlan, prescription,
+                followUpDate, lines, followUpDays, followUpNote);
+        this.bloodPressure = bloodPressure;
+        this.heartRate = heartRate;
+        this.temperature = temperature;
+        this.spO2 = spO2;
+        this.weight = weight;
+        this.height = height;
+        this.allergySummary = allergySummary;
+    }
+
+    public void sign(String doctorName, String reason, String examinationNotes, String diagnosis,
+                     String conclusion, String treatmentPlan, String prescription, LocalDate followUpDate,
+                     List<PrescriptionLine> lines, Integer followUpDays, String followUpNote,
+                     String bloodPressure, Integer heartRate, BigDecimal temperature, Integer spO2,
+                     BigDecimal weight, BigDecimal height, String allergySummary) {
+        saveDraft(doctorName, reason, examinationNotes, diagnosis, conclusion, treatmentPlan, prescription,
+                followUpDate, lines, followUpDays, followUpNote, bloodPressure, heartRate, temperature, spO2,
+                weight, height, allergySummary);
+        if (signedAt != null) {
+            throw new IllegalStateException("Phiếu khám đã ký, không thể ký lại.");
+        }
+        signedAt = Instant.now();
     }
 
     public void replacePrescriptionLines(List<PrescriptionLine> lines) {

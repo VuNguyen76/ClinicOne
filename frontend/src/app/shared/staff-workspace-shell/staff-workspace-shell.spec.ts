@@ -36,7 +36,15 @@ describe('StaffWorkspaceShell', () => {
 
   it('keeps staff inside role-specific ERP navigation without a customer home link', () => {
     const links = Array.from(fixture.nativeElement.querySelectorAll('[data-testid="staff-module-nav"] a')) as HTMLAnchorElement[];
-    expect(links.map((link) => link.querySelector('span')?.textContent?.trim())).toEqual(['Hàng đợi khám bệnh']);
+    expect(links.map((link) => link.querySelector('span')?.textContent?.trim())).toEqual([
+      'Hàng đợi khám bệnh',
+      'Lịch làm việc phòng khám',
+      'Lịch nghỉ & Báo vắng',
+      'Danh mục thuốc',
+      'Chẩn đoán',
+      'Mẫu phiếu khám',
+      'Thống kê ca khám',
+    ]);
     expect(links.some((link) => link.getAttribute('href') === '/home')).toBe(false);
   });
 
@@ -88,6 +96,8 @@ describe('StaffWorkspaceShell', () => {
       '/reception/queue',
       '/reception/exceptions',
       '/reception/profiles',
+      '/admin/schedule-templates',
+      '/admin/doctor-time-off',
     ]);
   });
 
@@ -102,5 +112,20 @@ describe('StaffWorkspaceShell', () => {
     const hrefs = links.map((link) => link.getAttribute('href'));
     expect(hrefs).toContain('/admin/diagnoses');
     expect(hrefs).not.toContain('/admin/reason-catalog');
+  });
+
+  it('shows operational queue supervision and management links for coordinator', () => {
+    fixture.destroy();
+    sessionStorage.setItem('clinicOneStaffRole', 'COORDINATOR');
+    sessionStorage.setItem('clinicOneStaffRoles', JSON.stringify(['COORDINATOR']));
+    fixture = TestBed.createComponent(HostComponent);
+    fixture.detectChanges();
+
+    const links = Array.from(fixture.nativeElement.querySelectorAll('[data-testid="staff-module-nav"] a')) as HTMLAnchorElement[];
+    const hrefs = links.map((link) => link.getAttribute('href'));
+    expect(hrefs).toContain('/admin/queues');
+    expect(hrefs).toContain('/admin/schedule-templates');
+    expect(hrefs).toContain('/admin/doctor-time-off');
+    expect(hrefs).toContain('/admin/rescheduling');
   });
 });
