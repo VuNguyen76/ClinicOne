@@ -206,10 +206,16 @@ public class DoctorExaminationService {
         MedicalRecord record = record(workspace.session());
         requireCurrentRecordVersion(record, request);
         try {
+            if (!record.getPrescriptionLines().isEmpty()) {
+                record.replacePrescriptionLines(List.of());
+                recordRepository.saveAndFlush(record);
+            }
             List<PrescriptionLine> prescriptionLines = prescriptionLines(record, request);
             record.saveDraft(doctorName(staffId, workspace.appointment()), request.reason(), request.examinationNotes(),
                     request.diagnosis(), request.conclusion(), request.treatmentPlan(), request.prescription(),
-                    request.followUpDate(), prescriptionLines, request.followUpDays(), normalizeFollowUpNote(request.followUpNote()));
+                    request.followUpDate(), prescriptionLines, request.followUpDays(), normalizeFollowUpNote(request.followUpNote()),
+                    request.bloodPressure(), request.heartRate(), request.temperature(), request.spO2(),
+                    request.weight(), request.height(), request.allergySummary());
             recordRepository.saveAndFlush(record);
         } catch (IllegalStateException exception) {
             throw conflict("MEDICAL_RECORD_LOCKED", exception.getMessage());
@@ -263,10 +269,16 @@ public class DoctorExaminationService {
         MedicalRecord record = existingRecord == null ? record(workspace.session()) : existingRecord;
         requireCurrentRecordVersion(record, request);
         try {
+            if (!record.getPrescriptionLines().isEmpty()) {
+                record.replacePrescriptionLines(List.of());
+                recordRepository.saveAndFlush(record);
+            }
             List<PrescriptionLine> prescriptionLines = prescriptionLines(record, request);
             record.sign(doctorName(staffId, workspace.appointment()), request.reason(), request.examinationNotes(),
                     request.diagnosis(), request.conclusion(), request.treatmentPlan(), request.prescription(),
-                    request.followUpDate(), prescriptionLines, request.followUpDays(), normalizeFollowUpNote(request.followUpNote()));
+                    request.followUpDate(), prescriptionLines, request.followUpDays(), normalizeFollowUpNote(request.followUpNote()),
+                    request.bloodPressure(), request.heartRate(), request.temperature(), request.spO2(),
+                    request.weight(), request.height(), request.allergySummary());
             markAppointmentSlotUnavailable(workspace.appointment());
             workspace.session().assignSignRequestKey(normalizedRequestKey);
             workspace.session().complete();
@@ -617,7 +629,14 @@ public class DoctorExaminationService {
                 record == null ? null : record.getFollowUpDays(), record == null ? null : record.getFollowUpNote(),
                 session.getStatus().name(), record == null ? null : record.getSignedAt(),
                 record == null ? null : record.getDraftSavedAt(), record == null ? null : record.getVersion(), requiresRecord, history,
-                record == null ? List.of() : record.getPrescriptionLines().stream().map(PrescriptionLineResponse::from).toList());
+                record == null ? List.of() : record.getPrescriptionLines().stream().map(PrescriptionLineResponse::from).toList(),
+                record == null ? null : record.getBloodPressure(),
+                record == null ? null : record.getHeartRate(),
+                record == null ? null : record.getTemperature(),
+                record == null ? null : record.getSpO2(),
+                record == null ? null : record.getWeight(),
+                record == null ? null : record.getHeight(),
+                record == null ? null : record.getAllergySummary());
     }
 
     private record Workspace(QueueTicket ticket, Appointment appointment, ExaminationSession session) {
