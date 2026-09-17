@@ -340,7 +340,7 @@
                   <textarea
                     rows="4"
                     class="erp-textarea"
-                    placeholder="Mô tả cách bạn đã giải quyết (vd: Đã kiểm tra lại thông tin với bệnh nhân và xác nhận đúng...)"
+                    placeholder="Mô tả cách xử lý (Đã kiểm tra lại thông tin với bệnh nhân và xác nhận đúng...)"
                     [value]="resultNote()"
                     (input)="resultNote.set($any($event.target).value)"
                   ></textarea>
@@ -419,7 +419,7 @@
               <textarea
                 rows="4"
                 class="erp-textarea"
-                placeholder="Mô tả hiện tượng (vd: Người bệnh báo đã đến quầy nhưng không thấy số trên màn hình gọi số...)"
+                placeholder="Mô tả hiện tượng (Người bệnh báo đã đến quầy nhưng không thấy số trên màn hình gọi số...)"
                 [ngModel]="newReason()"
                 (ngModelChange)="newReason.set($event)"
                 name="newReason"

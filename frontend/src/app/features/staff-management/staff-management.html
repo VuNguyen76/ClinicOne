@@ -84,7 +84,7 @@
                 <th class="px-4 py-3.5">Đơn vị & Phòng ban</th>
                 <th class="px-4 py-3.5">Vai trò nghiệp vụ</th>
                 <th class="px-4 py-3.5">Trạng thái</th>
-                <th class="px-4 py-3.5 text-right">Thao tác</th>
+                <th class="px-4 py-3.5 w-28 text-center font-semibold">Thao tác</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-50">
@@ -123,8 +123,8 @@
                       <span>{{ statusLabel(account.status) }}</span>
                     </span>
                   </td>
-                  <td class="px-4 py-3 text-right">
-                    <div class="flex items-center justify-end gap-1.5">
+                  <td class="px-4 py-3 text-center">
+                    <div class="flex items-center justify-center gap-2">
                       @if (!account.roles?.includes('ADMIN') && account.role !== 'ADMIN') {
                         <button
                           type="button"

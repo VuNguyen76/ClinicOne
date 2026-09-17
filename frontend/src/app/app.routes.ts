@@ -39,7 +39,7 @@ export const routes: Routes = [
   { path: 'admin/sms-deliveries', loadComponent: () => import('./features/sms-delivery-management/sms-delivery-management').then((m) => m.SmsDeliveryManagement), canActivate: [adminGuard] },
   { path: 'admin/schedule-templates', loadComponent: () => import('./features/schedule-template-management/schedule-template-management').then((m) => m.ScheduleTemplateManagement), canActivate: [operationalStaffGuard] },
   { path: 'admin/staff', loadComponent: () => import('./features/staff-management/staff-management').then((m) => m.StaffManagement), canActivate: [adminGuard] },
-  { path: 'admin/statistics', loadComponent: () => import('./features/admin-statistics/admin-statistics').then((m) => m.AdminStatistics), canActivate: [clinicalStaffGuard] },
+  { path: 'admin/statistics', loadComponent: () => import('./features/admin-statistics/admin-statistics').then((m) => m.AdminStatistics), canActivate: [roomManagerGuard] },
   { path: 'admin/rescheduling', loadComponent: () => import('./features/rescheduling/rescheduling').then((m) => m.Rescheduling), canActivate: [roomManagerGuard] },
   { path: 'admin/doctor-time-off', loadComponent: () => import('./features/doctor-time-off/doctor-time-off').then((m) => m.DoctorTimeOffManagement), canActivate: [operationalStaffGuard] },
   { path: 'admin/reconciliations', loadComponent: () => import('./features/reconciliation/reconciliation').then((m) => m.ReconciliationManagement), canActivate: [roomManagerGuard] },

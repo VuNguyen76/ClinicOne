@@ -21,7 +21,7 @@ import java.util.UUID;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/doctors")
-@PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR', 'DOCTOR')")
+@PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
 public class DoctorManagementController {
     private final DoctorManagementService service;
 
@@ -31,32 +31,29 @@ public class DoctorManagementController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
     public ResponseEntity<DoctorAccountResponse> create(@Valid @RequestBody DoctorCreateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.createDoctor(request));
     }
 
     @PutMapping("/{staffId}/assignment")
-    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
     public ResponseEntity<DoctorProfileResponse> assign(@PathVariable UUID staffId,
                                                         @Valid @RequestBody DoctorAssignmentRequest request) {
         return ResponseEntity.ok(service.assign(staffId, request));
     }
 
     @GetMapping("/{staffId}/schedules")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR', 'DOCTOR')")
     public ResponseEntity<List<DoctorScheduleResponse>> schedules(@PathVariable UUID staffId) {
         return ResponseEntity.ok(service.schedules(staffId));
     }
 
     @PostMapping("/{staffId}/schedules")
-    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
     public ResponseEntity<DoctorScheduleResponse> addSchedule(@PathVariable UUID staffId,
                                                               @Valid @RequestBody DoctorScheduleRequest request) {
         return ResponseEntity.ok(service.addSchedule(staffId, request));
     }
 
     @DeleteMapping("/{staffId}/schedules/{scheduleId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
     public ResponseEntity<Void> removeSchedule(@PathVariable UUID staffId, @PathVariable UUID scheduleId) {
         service.removeSchedule(staffId, scheduleId);
         return ResponseEntity.noContent().build();

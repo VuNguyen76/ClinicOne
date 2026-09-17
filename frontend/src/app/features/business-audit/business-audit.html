@@ -82,7 +82,7 @@
               [ngModel]="entityId()"
               (ngModelChange)="entityId.set($event)"
               (keyup.enter)="search()"
-              placeholder="Nhập mã lịch hẹn (vd: LH-20260820-001), mã phiếu khám, số hàng đợi hoặc UUID..."
+              placeholder="Nhập mã lịch hẹn (LH-20260820-001), mã phiếu khám, số hàng đợi hoặc UUID..."
               class="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-8 text-xs text-slate-800 placeholder-slate-400 outline-none transition focus:border-[#0284c7] focus:ring-1 focus:ring-[#0284c7] shadow-2xs font-mono"
             />
             @if (entityId()) {

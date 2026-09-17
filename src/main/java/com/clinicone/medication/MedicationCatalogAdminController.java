@@ -33,13 +33,13 @@ public class MedicationCatalogAdminController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR', 'DOCTOR')")
     public MedicationResponse create(@Valid @RequestBody CreateMedicationRequest request) {
         return service.create(request);
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR', 'DOCTOR')")
     public MedicationResponse update(@PathVariable UUID id, @Valid @RequestBody UpdateMedicationRequest request) {
         return service.update(id, request);
     }

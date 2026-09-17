@@ -65,7 +65,7 @@
                 <th class="px-4 py-3.5 w-36">Trạng thái</th>
                 <th class="px-4 py-3.5 w-24 text-center">Lần thử</th>
                 <th class="px-4 py-3.5">Chi tiết phản hồi / Lỗi</th>
-                <th class="px-4 py-3.5 w-24 text-right">Thao tác</th>
+                <th class="px-4 py-3.5 w-28 text-center font-semibold">Thao tác</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-50">
@@ -91,8 +91,8 @@
                   </td>
                   <td class="px-4 py-3 text-center font-mono font-bold text-slate-700">{{ item.attempts }}</td>
                   <td class="px-4 py-3 max-w-xs truncate text-slate-500 font-mono text-[11px]">{{ item.lastError || '—' }}</td>
-                  <td class="px-4 py-3 text-right">
-                    <div class="flex items-center justify-end gap-1.5">
+                  <td class="px-4 py-3 text-center">
+                    <div class="flex items-center justify-center gap-2">
                       <button
                         type="button"
                         class="erp-btn-icon"

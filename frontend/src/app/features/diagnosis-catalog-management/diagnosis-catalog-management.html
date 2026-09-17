@@ -85,7 +85,7 @@
                 <th class="px-4 py-3.5 w-44">Mã chẩn đoán</th>
                 <th class="px-4 py-3.5">Tên bệnh / Chẩn đoán lâm sàng</th>
                 <th class="px-4 py-3.5 w-32 text-center">Trạng thái</th>
-                <th class="px-4 py-3.5 w-24 text-right">Thao tác</th>
+                <th class="px-4 py-3.5 w-28 text-center font-semibold">Thao tác</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-50">
@@ -106,8 +106,8 @@
                       </span>
                     }
                   </td>
-                  <td class="px-4 py-3 text-right">
-                    <div class="flex items-center justify-end gap-1.5">
+                  <td class="px-4 py-3 text-center">
+                    <div class="flex items-center justify-center gap-2">
                       @if (canManage()) {
                         <button
                           type="button"
@@ -191,7 +191,7 @@
               </div>
             }
             <label class="grid gap-1">
-              <span class="erp-label">Mã chẩn đoán (2-50 ký tự) <span class="erp-label-required">*</span></span>
+              <span class="erp-label">Mã chẩn đoán <span class="erp-label-required">*</span></span>
               <input
                 data-testid="diagnosis-code-input"
                 class="erp-input font-mono uppercase"
@@ -204,7 +204,7 @@
             </label>
 
             <label class="grid gap-1">
-              <span class="erp-label">Tên bệnh / Chẩn đoán lâm sàng <span class="erp-label-required">*</span></span>
+              <span class="erp-label">Tên chẩn đoán <span class="erp-label-required">*</span></span>
               <input
                 data-testid="diagnosis-name-input"
                 class="erp-input"
@@ -212,7 +212,7 @@
                 (ngModelChange)="name.set($event)"
                 [disabled]="!canManage()"
                 name="name"
-                placeholder="vd: Tăng huyết áp vô căn (nguyên phát)"
+                placeholder="Tăng huyết áp vô căn (nguyên phát)"
               />
             </label>
           </div>

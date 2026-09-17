@@ -270,7 +270,7 @@
                   <th>Người bệnh</th>
                   <th class="w-28 text-center">Giờ hẹn</th>
                   <th class="w-32 text-center">Trạng thái</th>
-                  <th class="w-56 text-right">Thao tác</th>
+                  <th class="w-56 text-center font-semibold">Thao tác</th>
                 </tr>
               </thead>
               <tbody>
@@ -303,8 +303,8 @@
                         <span>{{ ticket.statusLabel }}</span>
                       </span>
                     </td>
-                    <td class="text-right">
-                      <div class="flex items-center justify-end gap-1.5">
+                    <td class="text-center">
+                      <div class="flex items-center justify-center gap-2">
                         @if (isOwnDoctor() && ticket.status === 'CALLED') {
                           <button
                             type="button"

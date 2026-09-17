@@ -719,7 +719,7 @@
                             [attr.data-testid]="'prescription-dosage-' + index"
                             formControlName="dosage"
                             class="erp-input !text-xs"
-                            placeholder="VD: 500 mg"
+                            placeholder="500 mg"
                             (input)="limitPrescriptionText(index, 'dosage', 'Liều dùng', 100)"
                           />
                         </div>
@@ -741,7 +741,7 @@
                             [attr.data-testid]="'prescription-instructions-' + index"
                             formControlName="instructions"
                             class="erp-input !text-xs"
-                            placeholder="VD: Uống sau ăn sáng/tối"
+                            placeholder="Uống sau ăn sáng/tối"
                             (input)="limitPrescriptionText(index, 'instructions', 'Hướng dẫn', 500)"
                           />
                         </div>
@@ -820,7 +820,7 @@
                       max="365"
                       formControlName="followUpDays"
                       class="erp-input font-mono !text-xs"
-                      placeholder="VD: 14"
+                      placeholder="14"
                       (input)="limitFollowUpDays()"
                     />
                   </div>

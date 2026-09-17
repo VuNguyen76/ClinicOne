@@ -79,28 +79,28 @@
     } @else {
       <section class="rounded-2xl border border-slate-100 bg-white shadow-xs overflow-hidden w-full">
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs whitespace-nowrap">
+          <table class="w-full table-fixed text-left text-xs">
             <thead>
               <tr class="border-b border-slate-100 text-[11px] font-semibold text-slate-500 uppercase tracking-wider bg-slate-50/50">
-                <th class="px-4 py-3.5 w-36">Mã thuốc</th>
-                <th class="px-4 py-3.5">Tên thuốc biệt dược / Hoạt chất</th>
-                <th class="px-4 py-3.5 w-48">Nhóm & Đơn vị</th>
-                <th class="px-4 py-3.5 w-60">Liều dùng mặc định</th>
-                <th class="px-4 py-3.5 w-28 text-center">Trạng thái</th>
-                <th class="px-4 py-3.5 w-24 text-right">Thao tác</th>
+                <th class="px-4 py-3.5 w-44 whitespace-nowrap">Mã thuốc</th>
+                <th class="px-4 py-3.5">Tên thuốc</th>
+                <th class="px-4 py-3.5 w-36 whitespace-nowrap">Nhóm & Đơn vị</th>
+                <th class="px-4 py-3.5 w-48">Liều dùng</th>
+                <th class="px-4 py-3.5 w-28 text-center whitespace-nowrap">Trạng thái</th>
+                <th class="px-4 py-3.5 w-28 text-center font-semibold whitespace-nowrap">Thao tác</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-50">
               @for (item of filteredMedications(); track item.id) {
                 <tr data-testid="medication-row" class="transition hover:bg-slate-50/70">
-                  <td class="px-4 py-3 font-mono font-bold text-slate-800">{{ item.code }}</td>
+                  <td class="px-4 py-3 font-mono font-bold text-slate-800 whitespace-nowrap">{{ item.code }}</td>
                   <td class="px-4 py-3">
-                    <span class="font-semibold text-slate-900 text-xs">{{ item.name }}</span>
+                    <span class="font-semibold text-slate-900 text-xs block truncate">{{ item.name }}</span>
                     @if (item.specialties) {
-                      <p class="text-[11px] text-slate-400 mt-0.5 truncate max-w-md">{{ item.specialties }}</p>
+                      <p class="text-[11px] text-slate-400 mt-0.5 truncate">{{ item.specialties }}</p>
                     }
                   </td>
-                  <td class="px-4 py-3">
+                  <td class="px-4 py-3 whitespace-nowrap">
                     <div class="flex items-center gap-1.5 flex-wrap">
                       @if (item.category) {
                         <span class="inline-flex items-center rounded-md bg-sky-50 px-2 py-0.5 text-[11px] font-medium text-sky-700 border border-sky-200/60">
@@ -114,10 +114,10 @@
                       }
                     </div>
                   </td>
-                  <td class="px-4 py-3 text-slate-600 text-xs truncate max-w-xs" [title]="item.defaultDosage || ''">
+                  <td class="px-4 py-3 text-slate-600 text-xs truncate" [title]="item.defaultDosage || ''">
                     {{ item.defaultDosage || '—' }}
                   </td>
-                  <td class="px-4 py-3 text-center">
+                  <td class="px-4 py-3 text-center whitespace-nowrap">
                     @if (item.active) {
                       <span class="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[11px] font-medium text-emerald-800">
                         Đang dùng
@@ -128,8 +128,8 @@
                       </span>
                     }
                   </td>
-                  <td class="px-4 py-3 text-right">
-                    <div class="flex items-center justify-end gap-1.5">
+                  <td class="px-4 py-3 text-center whitespace-nowrap">
+                    <div class="flex items-center justify-center gap-2">
                       @if (canManage()) {
                         <button
                           type="button"
@@ -139,15 +139,6 @@
                         >
                           <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">edit</mat-icon>
                         </button>
-                        <button
-                          type="button"
-                          class="erp-btn-icon"
-                          [attr.data-testid]="'toggle-medication-' + item.id"
-                          [title]="item.active ? 'Tạm ngưng dùng' : 'Kích hoạt lại'"
-                          (click)="toggleActive(item)"
-                        >
-                          <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">{{ item.active ? 'pause' : 'play_arrow' }}</mat-icon>
-                        </button>
                       } @else {
                         <button
                           type="button"
@@ -156,6 +147,17 @@
                           title="Xem chi tiết thuốc"
                         >
                           <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">visibility</mat-icon>
+                        </button>
+                      }
+                      @if (canToggleActive()) {
+                        <button
+                          type="button"
+                          class="erp-btn-icon"
+                          [attr.data-testid]="'toggle-medication-' + item.id"
+                          [title]="item.active ? 'Tạm ngưng dùng' : 'Kích hoạt lại'"
+                          (click)="toggleActive(item)"
+                        >
+                          <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">{{ item.active ? 'pause' : 'play_arrow' }}</mat-icon>
                         </button>
                       }
                     </div>
@@ -193,7 +195,7 @@
       <section class="erp-modal-container max-w-xl" (click)="$event.stopPropagation()">
         <div class="erp-modal-header">
           <h2 id="medication-dialog-title" class="text-sm font-bold text-slate-900">
-            {{ canManage() ? (editingId() ? 'Chỉnh sửa thông tin thuốc' : 'Thêm thuốc mới vào danh mục') : 'Chi tiết thông tin thuốc' }}
+            {{ canManage() ? (editingId() ? 'Sửa thông tin thuốc' : 'Thêm thuốc mới') : 'Chi tiết thuốc' }}
           </h2>
           <button type="button" class="erp-btn-icon" aria-label="Đóng" (click)="closeModal()">
             <mat-icon class="!h-4 !w-4 !text-[18px]">close</mat-icon>
@@ -216,7 +218,7 @@
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <label class="grid gap-1">
-                <span class="erp-label">Mã thuốc (2-50 ký tự A-Z, 0-9, _, -) <span class="erp-label-required">*</span></span>
+                <span class="erp-label">Mã thuốc <span class="erp-label-required">*</span></span>
                 <input
                   data-testid="medication-code-input"
                   class="erp-input font-mono uppercase"
@@ -224,7 +226,7 @@
                   (ngModelChange)="code.set($event)"
                   [disabled]="!canManage()"
                   name="code"
-                  placeholder="vd: MED-PARA-500"
+                  placeholder="MED-PARA-500"
                 />
               </label>
 
@@ -236,13 +238,13 @@
                   (ngModelChange)="unit.set($event)"
                   [disabled]="!canManage()"
                   name="unit"
-                  placeholder="vd: Viên, Gói, Chai..."
+                  placeholder="Viên, gói, chai..."
                 />
               </label>
             </div>
 
             <label class="grid gap-1">
-              <span class="erp-label">Tên thuốc biệt dược / thương mại <span class="erp-label-required">*</span></span>
+              <span class="erp-label">Tên thuốc <span class="erp-label-required">*</span></span>
               <input
                 data-testid="medication-name-input"
                 class="erp-input"
@@ -250,50 +252,50 @@
                 (ngModelChange)="name.set($event)"
                 [disabled]="!canManage()"
                 name="name"
-                placeholder="vd: Paracetamol 500mg"
+                placeholder="Paracetamol 500mg"
               />
             </label>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <label class="grid gap-1">
-                <span class="erp-label">Nhóm tác dụng / phân loại</span>
+                <span class="erp-label">Nhóm thuốc</span>
                 <input
                   class="erp-input"
                   [ngModel]="category()"
                   (ngModelChange)="category.set($event)"
                   [disabled]="!canManage()"
                   name="category"
-                  placeholder="vd: Hạ sốt & Giảm đau"
+                  placeholder="Hạ sốt, giảm đau..."
                 />
               </label>
 
               <label class="grid gap-1">
-                <span class="erp-label">Chuyên khoa áp dụng</span>
+                <span class="erp-label">Chuyên khoa</span>
                 <input
                   class="erp-input"
                   [ngModel]="specialties()"
                   (ngModelChange)="specialties.set($event)"
                   [disabled]="!canManage()"
                   name="specialties"
-                  placeholder="vd: Khám Tổng Quát, Tai Mũi Họng"
+                  placeholder="Khám tổng quát, Tai mũi họng..."
                 />
               </label>
             </div>
 
             <label class="grid gap-1">
-              <span class="erp-label">Liều dùng tiêu chuẩn tham khảo</span>
+              <span class="erp-label">Liều dùng chuẩn</span>
               <input
                 class="erp-input"
                 [ngModel]="defaultDosage()"
                 (ngModelChange)="defaultDosage.set($event)"
                 [disabled]="!canManage()"
                 name="defaultDosage"
-                placeholder="vd: 1 viên / lần x 2-3 lần/ngày khi đau hoặc sốt"
+                placeholder="1 viên / lần x 2-3 lần/ngày"
               />
             </label>
 
             <label class="grid gap-1">
-              <span class="erp-label">Hướng dẫn sử dụng</span>
+              <span class="erp-label">Hướng dẫn dùng</span>
               <textarea
                 rows="2"
                 class="erp-input resize-none py-2"
@@ -301,7 +303,7 @@
                 (ngModelChange)="defaultInstructions.set($event)"
                 [disabled]="!canManage()"
                 name="defaultInstructions"
-                placeholder="vd: Uống sau bữa ăn no với nước ấm, cách nhau tối thiểu 4-6 giờ"
+                placeholder="Uống sau ăn no với nước ấm, cách nhau tối thiểu 4-6 giờ"
               ></textarea>
             </label>
           </div>

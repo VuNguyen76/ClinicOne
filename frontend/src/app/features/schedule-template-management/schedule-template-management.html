@@ -286,7 +286,7 @@
                   <th class="px-4 py-3.5">Thời gian & Lịch lặp</th>
                   <th class="px-4 py-3.5 text-center">Khung giờ khám</th>
                   @if (canManageSchedule()) {
-                    <th class="px-4 py-3.5 text-right">Thao tác</th>
+                    <th class="px-4 py-3.5 w-28 text-center font-semibold">Thao tác</th>
                   }
                 </tr>
               </thead>
@@ -325,16 +325,18 @@
                     </td>
 
                     @if (canManageSchedule()) {
-                      <td class="px-4 py-3 text-right">
-                        <button
-                          type="button"
-                          class="erp-btn-secondary !text-rose-600 !hover:bg-rose-50 !py-1 !px-2.5"
-                          (click)="deleteTemplate(template)"
-                          title="Xóa lịch trực"
-                        >
-                          <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">delete_outline</mat-icon>
-                          <span>Xóa</span>
-                        </button>
+                      <td class="px-4 py-3 text-center">
+                        <div class="flex items-center justify-center">
+                          <button
+                            type="button"
+                            class="erp-btn-secondary !text-rose-600 !hover:bg-rose-50 !py-1 !px-2.5"
+                            (click)="deleteTemplate(template)"
+                            title="Xóa lịch trực"
+                          >
+                            <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">delete_outline</mat-icon>
+                            <span>Xóa</span>
+                          </button>
+                        </div>
                       </td>
                     }
                   </tr>

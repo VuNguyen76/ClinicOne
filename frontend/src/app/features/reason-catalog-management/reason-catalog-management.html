@@ -82,7 +82,7 @@
                 <th class="px-4 py-3.5 w-56">Mã lý do</th>
                 <th class="px-4 py-3.5">Nội dung hiển thị khi thao tác</th>
                 <th class="px-4 py-3.5 w-32 text-center">Trạng thái</th>
-                <th class="px-4 py-3.5 w-32 text-right">Thao tác</th>
+                <th class="px-4 py-3.5 w-32 text-center font-semibold">Thao tác</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-50">
@@ -103,15 +103,17 @@
                       </span>
                     }
                   </td>
-                  <td class="px-4 py-3 text-right">
-                    <button
-                      type="button"
-                      class="erp-btn-secondary !min-h-0 !py-1 !px-2.5 text-[11px]"
-                      (click)="toggle(item)"
-                    >
-                      <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">{{ item.active ? 'pause' : 'play_arrow' }}</mat-icon>
-                      <span>{{ item.active ? 'Tạm ngưng' : 'Kích hoạt' }}</span>
-                    </button>
+                  <td class="px-4 py-3 text-center">
+                    <div class="flex items-center justify-center">
+                      <button
+                        type="button"
+                        class="erp-btn-secondary !min-h-0 !py-1 !px-2.5 text-[11px]"
+                        (click)="toggle(item)"
+                      >
+                        <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">{{ item.active ? 'pause' : 'play_arrow' }}</mat-icon>
+                        <span>{{ item.active ? 'Tạm ngưng' : 'Kích hoạt' }}</span>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               } @empty {
@@ -163,13 +165,13 @@
               </div>
             }
             <label class="grid gap-1">
-              <span class="erp-label">Mã lý do (2-50 ký tự A-Z, 0-9, _) <span class="erp-label-required">*</span></span>
+              <span class="erp-label">Mã lý do <span class="erp-label-required">*</span></span>
               <input
                 class="erp-input font-mono uppercase"
                 [ngModel]="code()"
                 (ngModelChange)="code.set($event)"
                 name="code"
-                placeholder="vd: PATIENT_CHANGE_PLAN"
+                placeholder="PATIENT_CHANGE_PLAN"
               />
             </label>
 
@@ -180,7 +182,7 @@
                 [ngModel]="label()"
                 (ngModelChange)="label.set($event)"
                 name="label"
-                placeholder="vd: Bệnh nhân bận việc đột xuất"
+                placeholder="Bệnh nhân bận việc đột xuất"
               />
             </label>
           </div>
