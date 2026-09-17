@@ -80,7 +80,10 @@ export const homeGuard: CanActivateFn = () => {
   if (roles.includes('DOCTOR')) {
     return router.createUrlTree(['/doctor']);
   }
-  if (roles.includes('ADMIN') || roles.includes('COORDINATOR')) {
+  if (roles.includes('COORDINATOR')) {
+    return router.createUrlTree(['/admin/queues']);
+  }
+  if (roles.includes('ADMIN')) {
     return router.createUrlTree(['/admin/rooms']);
   }
   if (roles.includes('RECEPTIONIST')) {
@@ -93,7 +96,8 @@ export const staffLandingRedirect: RedirectFunction = () => {
   const roles = staffRoles();
   if (!sessionToken() || !isStaffSession() || !roles.length) return '/staff/login';
   if (roles.includes('DOCTOR')) return '/doctor';
-  if (roles.includes('ADMIN') || roles.includes('COORDINATOR')) return '/admin/rooms';
+  if (roles.includes('COORDINATOR')) return '/admin/queues';
+  if (roles.includes('ADMIN')) return '/admin/rooms';
   if (roles.includes('RECEPTIONIST')) return '/reception';
   return '/staff/login';
 };
@@ -118,6 +122,32 @@ export const clinicalStaffGuard: CanActivateFn = (_route, state) => {
     return router.createUrlTree(['/staff/login'], { queryParams: { returnUrl: state.url } });
   }
   return roles.includes('ADMIN') || roles.includes('COORDINATOR') || roles.includes('DOCTOR') ? true : router.createUrlTree(['/home']);
+};
+
+export const operationalStaffGuard: CanActivateFn = (_route, state) => {
+  const router = inject(Router);
+  const token = sessionToken();
+  const roles = staffRoles();
+
+  if (!token || !isStaffSession() || !roles.length) {
+    return router.createUrlTree(['/staff/login'], { queryParams: { returnUrl: state.url } });
+  }
+  return roles.some((role) => ['ADMIN', 'COORDINATOR', 'DOCTOR', 'RECEPTIONIST'].includes(role))
+    ? true
+    : router.createUrlTree(['/home']);
+};
+
+export const queueSupervisorGuard: CanActivateFn = (_route, state) => {
+  const router = inject(Router);
+  const token = sessionToken();
+  const roles = staffRoles();
+
+  if (!token || !isStaffSession() || !roles.length) {
+    return router.createUrlTree(['/staff/login'], { queryParams: { returnUrl: state.url } });
+  }
+  return roles.some((role) => ['ADMIN', 'COORDINATOR'].includes(role))
+    ? true
+    : router.createUrlTree(['/home']);
 };
 
 export const adminGuard: CanActivateFn = (_route, state) => {

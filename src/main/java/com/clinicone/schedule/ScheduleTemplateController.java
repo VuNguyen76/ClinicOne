@@ -19,7 +19,7 @@ import java.util.UUID;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/schedule-templates")
-@PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR', 'DOCTOR')")
+@PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR', 'DOCTOR', 'RECEPTIONIST')")
 public class ScheduleTemplateController {
     private final ScheduleTemplateService service;
 

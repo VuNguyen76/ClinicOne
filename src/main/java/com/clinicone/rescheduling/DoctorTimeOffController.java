@@ -19,7 +19,7 @@ import com.clinicone.auth.AuthException;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/doctor-time-off")
-@PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR', 'DOCTOR')")
+@PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR', 'DOCTOR', 'RECEPTIONIST')")
 public class DoctorTimeOffController {
     private final DoctorTimeOffService service;
 
