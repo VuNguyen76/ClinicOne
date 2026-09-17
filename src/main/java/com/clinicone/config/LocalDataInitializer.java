@@ -218,15 +218,15 @@ public class LocalDataInitializer implements CommandLineRunner {
                 LocalTime.of(8, 0), LocalTime.of(17, 0), standardLunch);
 
         ensureScheduleTemplates(srvTM, docTimMach, docTimMach.getRoom(),
-                Set.of(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY, DayOfWeek.FRIDAY),
+                Set.of(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY),
                 LocalTime.of(8, 0), LocalTime.of(17, 0), standardLunch);
 
         ensureScheduleTemplates(srvHH, docHoHap, docHoHap.getRoom(),
-                Set.of(DayOfWeek.TUESDAY, DayOfWeek.THURSDAY),
+                Set.of(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY),
                 LocalTime.of(8, 0), LocalTime.of(17, 0), standardLunch);
 
         ensureScheduleTemplates(srvTH, docTieuHoa, docTieuHoa.getRoom(),
-                Set.of(DayOfWeek.MONDAY, DayOfWeek.THURSDAY),
+                Set.of(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY),
                 LocalTime.of(8, 0), LocalTime.of(17, 0), standardLunch);
 
         ensureScheduleTemplates(srvNK, docNhiKhoa, docNhiKhoa.getRoom(),
@@ -238,7 +238,7 @@ public class LocalDataInitializer implements CommandLineRunner {
                 LocalTime.of(13, 0), LocalTime.of(17, 0), List.of());
 
         ensureScheduleTemplates(srvMAT, docMat, docMat.getRoom(),
-                Set.of(DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.FRIDAY),
+                Set.of(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY),
                 LocalTime.of(8, 0), LocalTime.of(17, 0), standardLunch);
 
         // 6. Patients & Comprehensive Family Sub-Profiles
