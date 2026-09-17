@@ -36,7 +36,15 @@ describe('StaffWorkspaceShell', () => {
 
   it('keeps staff inside role-specific ERP navigation without a customer home link', () => {
     const links = Array.from(fixture.nativeElement.querySelectorAll('[data-testid="staff-module-nav"] a')) as HTMLAnchorElement[];
-    expect(links.map((link) => link.querySelector('span')?.textContent?.trim())).toEqual(['Hàng đợi khám bệnh']);
+    expect(links.map((link) => link.querySelector('span')?.textContent?.trim())).toEqual([
+      'Hàng đợi khám bệnh',
+      'Lịch làm việc phòng khám',
+      'Lịch nghỉ & Báo vắng',
+      'Danh mục thuốc',
+      'Chẩn đoán (ICD-10)',
+      'Mẫu phiếu khám',
+      'Thống kê ca khám',
+    ]);
     expect(links.some((link) => link.getAttribute('href') === '/home')).toBe(false);
   });
 

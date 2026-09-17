@@ -109,6 +109,17 @@ export const roomManagerGuard: CanActivateFn = (_route, state) => {
   return roles.includes('ADMIN') || roles.includes('COORDINATOR') ? true : router.createUrlTree(['/home']);
 };
 
+export const clinicalStaffGuard: CanActivateFn = (_route, state) => {
+  const router = inject(Router);
+  const token = sessionToken();
+  const roles = staffRoles();
+
+  if (!token || !isStaffSession() || !roles.length) {
+    return router.createUrlTree(['/staff/login'], { queryParams: { returnUrl: state.url } });
+  }
+  return roles.includes('ADMIN') || roles.includes('COORDINATOR') || roles.includes('DOCTOR') ? true : router.createUrlTree(['/home']);
+};
+
 export const adminGuard: CanActivateFn = (_route, state) => {
   const router = inject(Router);
   const token = sessionToken();

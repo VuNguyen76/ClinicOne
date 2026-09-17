@@ -15,6 +15,8 @@ describe('MedicationCatalogManagement', () => {
   };
 
   beforeEach(async () => {
+    sessionStorage.setItem('clinicOneAccessToken', 'staff-token');
+    sessionStorage.setItem('clinicOneStaffRoles', JSON.stringify(['ADMIN']));
     api.getAdminMedications.mockReturnValue(of([
       { id: 'med-1', code: 'PCM500', name: 'Paracetamol 500 mg', active: true },
       { id: 'med-2', code: 'OLD-MED', name: 'Thuốc đã ngừng', active: false },
@@ -28,6 +30,10 @@ describe('MedicationCatalogManagement', () => {
     }).compileComponents();
     fixture = TestBed.createComponent(MedicationCatalogManagement);
     fixture.detectChanges();
+  });
+
+  afterEach(() => {
+    sessionStorage.clear();
   });
 
   it('lists active and inactive medicines separately for safe operation', () => {

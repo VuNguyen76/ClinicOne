@@ -16,7 +16,7 @@ import java.util.UUID;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/statistics")
-@PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
+@PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR', 'DOCTOR')")
 public class OperationalStatisticsController {
     private final OperationalStatisticsService service;
 

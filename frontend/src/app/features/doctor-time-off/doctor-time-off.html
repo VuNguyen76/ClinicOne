@@ -1,4 +1,4 @@
-<app-staff-workspace-shell moduleTitle="Vận hành" pageTitle="Bác sĩ nghỉ đột xuất">
+<app-staff-workspace-shell [moduleTitle]="isDoctorRole() ? 'Lịch trực & Công tác' : 'Vận hành'" [pageTitle]="isDoctorRole() ? 'Lịch nghỉ & Báo vắng' : 'Bác sĩ nghỉ đột xuất'">
   <div class="grid gap-6">
     <!-- Alerts & Notices -->
     @if (error() && !modalOpen()) {
@@ -32,7 +32,7 @@
           <mat-icon class="!h-6 !w-6 !text-[24px]">event_busy</mat-icon>
         </div>
         <div>
-          <p class="text-xs font-semibold text-slate-500">Tổng số Lịch nghỉ</p>
+          <p class="text-xs font-semibold text-slate-500">{{ isDoctorRole() ? 'Lịch nghỉ của tôi' : 'Tổng số Lịch nghỉ' }}</p>
           <p class="text-2xl font-bold text-slate-900 mt-0.5">{{ totalRecordsCount() }}</p>
         </div>
       </div>
@@ -43,7 +43,7 @@
           <mat-icon class="!h-6 !w-6 !text-[24px]">person_outline</mat-icon>
         </div>
         <div>
-          <p class="text-xs font-semibold text-slate-500">Bác sĩ xin nghỉ</p>
+          <p class="text-xs font-semibold text-slate-500">{{ isDoctorRole() ? 'Bác sĩ phụ trách' : 'Bác sĩ xin nghỉ' }}</p>
           <p class="text-2xl font-bold text-slate-900 mt-0.5">{{ affectedDoctorsCount() }}</p>
         </div>
       </div>
@@ -54,7 +54,7 @@
           <mat-icon class="!h-6 !w-6 !text-[24px]">notification_important</mat-icon>
         </div>
         <div>
-          <p class="text-xs font-semibold text-slate-500">Lịch hẹn bị ảnh hưởng</p>
+          <p class="text-xs font-semibold text-slate-500">{{ isDoctorRole() ? 'Lịch cần sắp xếp lại' : 'Lịch hẹn bị ảnh hưởng' }}</p>
           <p class="text-2xl font-bold text-slate-900 mt-0.5">{{ cancelledSlotsTotal() }}</p>
         </div>
       </div>
@@ -62,24 +62,50 @@
 
     <!-- 2. Search Bar + Add Button Header -->
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div class="relative w-full max-w-md">
-        <mat-icon class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 !h-4 !w-4 !text-[18px] text-slate-400">search</mat-icon>
-        <input
-          type="text"
-          class="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-8 text-xs text-slate-800 placeholder-slate-400 outline-none transition focus:border-[#0284c7] focus:ring-1 focus:ring-[#0284c7] shadow-2xs"
-          placeholder="Tìm kiếm theo bác sĩ, lý do nghỉ..."
-          [value]="searchTerm()"
-          (input)="searchTerm.set($any($event.target).value)"
-        />
-        @if (searchTerm()) {
+      <div class="flex flex-wrap items-center gap-3 w-full max-w-xl">
+        <!-- Leave scope toggle: All leaves vs My leaves -->
+        <div class="inline-flex rounded-xl border border-slate-200 bg-white p-1 shadow-2xs">
           <button
             type="button"
-            class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-            (click)="searchTerm.set('')"
+            class="rounded-lg px-3 py-1.5 text-xs font-semibold transition cursor-pointer"
+            [class.bg-[#0284c7]]="!filterOnlyMine()"
+            [class.text-white]="!filterOnlyMine()"
+            [class.text-slate-600]="filterOnlyMine()"
+            (click)="filterOnlyMine.set(false)"
           >
-            <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">close</mat-icon>
+            Tất cả lịch nghỉ
           </button>
-        }
+          <button
+            type="button"
+            class="rounded-lg px-3 py-1.5 text-xs font-semibold transition cursor-pointer"
+            [class.bg-[#0284c7]]="filterOnlyMine()"
+            [class.text-white]="filterOnlyMine()"
+            [class.text-slate-600]="!filterOnlyMine()"
+            (click)="filterOnlyMine.set(true)"
+          >
+            Lịch nghỉ của tôi
+          </button>
+        </div>
+
+        <div class="relative flex-1 min-w-[220px]">
+          <mat-icon class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 !h-4 !w-4 !text-[18px] text-slate-400">search</mat-icon>
+          <input
+            type="text"
+            class="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-8 text-xs text-slate-800 placeholder-slate-400 outline-none transition focus:border-[#0284c7] focus:ring-1 focus:ring-[#0284c7] shadow-2xs"
+            placeholder="Tìm kiếm theo bác sĩ, lý do nghỉ..."
+            [value]="searchTerm()"
+            (input)="searchTerm.set($any($event.target).value)"
+          />
+          @if (searchTerm()) {
+            <button
+              type="button"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              (click)="searchTerm.set('')"
+            >
+              <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">close</mat-icon>
+            </button>
+          }
+        </div>
       </div>
 
       <div class="flex items-center gap-2">
@@ -90,7 +116,7 @@
             (click)="openCreate()"
           >
             <mat-icon class="!h-4 !w-4 !text-[18px]">add</mat-icon>
-            <span>Ghi nhận lịch nghỉ</span>
+            <span>{{ isDoctorRole() ? 'Đăng ký nghỉ phép' : 'Ghi nhận lịch nghỉ' }}</span>
           </button>
         }
         <button
@@ -195,7 +221,7 @@
     <div class="erp-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="time-off-dialog-title" (click)="closeModal()">
       <section class="erp-modal-container max-w-lg" (click)="$event.stopPropagation()">
         <div class="erp-modal-header">
-          <h2 id="time-off-dialog-title" class="text-sm font-bold text-slate-900">Ghi nhận bác sĩ nghỉ đột xuất</h2>
+          <h2 id="time-off-dialog-title" class="text-sm font-bold text-slate-900">{{ isDoctorRole() ? 'Đăng ký báo vắng / Nghỉ phép' : 'Ghi nhận bác sĩ nghỉ đột xuất' }}</h2>
           <button type="button" class="erp-btn-icon" aria-label="Đóng" (click)="closeModal()">
             <mat-icon class="!h-4 !w-4 !text-[18px]">close</mat-icon>
           </button>
@@ -215,12 +241,13 @@
               </div>
             }
             <label class="grid gap-1">
-              <span class="erp-label">Bác sĩ xin nghỉ <span class="erp-label-required">*</span></span>
+              <span class="erp-label">{{ isDoctorRole() ? 'Bác sĩ đăng ký' : 'Bác sĩ xin nghỉ' }} <span class="erp-label-required">*</span></span>
               <select
                 data-testid="time-off-doctor"
                 class="erp-select"
                 [ngModel]="selectedDoctorId()"
                 (ngModelChange)="selectedDoctorId.set($event)"
+                [disabled]="isDoctorRole()"
                 name="doctor"
               >
                 <option value="">Chọn bác sĩ</option>
@@ -278,7 +305,7 @@
               class="erp-btn-primary"
               [disabled]="saving()"
             >
-              {{ saving() ? 'Đang ghi nhận...' : 'Xác nhận ghi nhận' }}
+              {{ saving() ? 'Đang gửi...' : (isDoctorRole() ? 'Gửi đăng ký nghỉ phép' : 'Xác nhận ghi nhận') }}
             </button>
           </div>
         </form>

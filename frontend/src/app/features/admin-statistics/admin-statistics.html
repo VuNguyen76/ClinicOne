@@ -1,4 +1,4 @@
-<app-staff-workspace-shell moduleTitle="Kiểm soát" pageTitle="Thống kê vận hành">
+<app-staff-workspace-shell [moduleTitle]="isDoctorRole() ? 'Kiểm soát & Thống kê' : 'Kiểm soát'" [pageTitle]="isDoctorRole() ? 'Thống kê ca khám' : 'Thống kê vận hành'">
   <div class="grid gap-6">
     <!-- 1. Filter Bar Header -->
     <div class="rounded-2xl border border-slate-100 bg-white p-4 shadow-xs">
