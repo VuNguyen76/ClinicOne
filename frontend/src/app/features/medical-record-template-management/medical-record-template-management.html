@@ -1,4 +1,4 @@
-<app-staff-workspace-shell moduleTitle="Danh mục" pageTitle="Mẫu phiếu khám">
+<app-staff-workspace-shell [moduleTitle]="isDoctorRole() ? 'Tra cứu chuyên môn' : 'Danh mục'" [pageTitle]="isDoctorRole() ? 'Mẫu phiếu khám lâm sàng' : 'Mẫu phiếu khám'">
   <div workspace-tabs class="flex items-center gap-1.5 border-b border-slate-200">
     <button
       type="button"

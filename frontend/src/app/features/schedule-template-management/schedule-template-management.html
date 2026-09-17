@@ -1,4 +1,4 @@
-<app-staff-workspace-shell moduleTitle="Điều phối" pageTitle="Lịch trực tuần">
+<app-staff-workspace-shell [moduleTitle]="isDoctorRole() ? 'Lịch trực & Công tác' : 'Điều phối'" [pageTitle]="isDoctorRole() ? 'Lịch làm việc phòng khám' : 'Lịch trực tuần'">
   <!-- Top Segmented View Tabs (3 Clean Tabs) -->
   <div workspace-tabs class="flex items-center gap-2 border-b border-slate-200">
     <button
@@ -90,6 +90,30 @@
       </div>
 
       <div class="flex flex-wrap items-center gap-2.5">
+        <!-- Shift scope toggle: All shifts vs My shifts -->
+        <div class="inline-flex rounded-xl border border-slate-200 bg-white p-1 shadow-2xs">
+          <button
+            type="button"
+            class="rounded-lg px-3 py-1.5 text-xs font-semibold transition cursor-pointer"
+            [class.bg-[#0284c7]]="!filterOnlyMine()"
+            [class.text-white]="!filterOnlyMine()"
+            [class.text-slate-600]="filterOnlyMine()"
+            (click)="filterOnlyMine.set(false)"
+          >
+            Tất cả ca khám
+          </button>
+          <button
+            type="button"
+            class="rounded-lg px-3 py-1.5 text-xs font-semibold transition cursor-pointer"
+            [class.bg-[#0284c7]]="filterOnlyMine()"
+            [class.text-white]="filterOnlyMine()"
+            [class.text-slate-600]="!filterOnlyMine()"
+            (click)="filterOnlyMine.set(true)"
+          >
+            Ca trực của tôi
+          </button>
+        </div>
+
         <!-- Filter by Specialty -->
         <div class="flex items-center gap-1.5 text-xs text-slate-500">
           <span>Chuyên khoa:</span>

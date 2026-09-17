@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
 import { ApiErrorResponse, AuthApiService, DiagnosisSuggestionResponse, apiErrorMessage } from '../../core/auth/auth-api.service';
+import { hasStaffRole } from '../../core/auth/auth.guard';
 
 @Component({
   selector: 'app-diagnosis-catalog-management',
@@ -13,6 +14,15 @@ import { ApiErrorResponse, AuthApiService, DiagnosisSuggestionResponse, apiError
 })
 export class DiagnosisCatalogManagement implements OnInit {
   private readonly authApi = inject(AuthApiService);
+
+  protected canManage(): boolean {
+    return hasStaffRole('ADMIN') || hasStaffRole('COORDINATOR');
+  }
+
+  protected isDoctorRole(): boolean {
+    return hasStaffRole('DOCTOR') && !hasStaffRole('COORDINATOR') && !hasStaffRole('ADMIN');
+  }
+
   protected readonly diagnoses = signal<DiagnosisSuggestionResponse[]>([]);
   protected readonly query = signal('');
   protected readonly loading = signal(true);
@@ -34,6 +44,7 @@ export class DiagnosisCatalogManagement implements OnInit {
   ngOnInit(): void { this.load(); }
 
   protected openCreate(): void {
+    if (!this.canManage()) return;
     this.editingId.set(null); this.code.set(''); this.name.set(''); this.error.set(''); this.modalOpen.set(true);
   }
 
@@ -44,6 +55,7 @@ export class DiagnosisCatalogManagement implements OnInit {
   protected closeModal(): void { if (!this.saving()) this.modalOpen.set(false); }
 
   protected save(): void {
+    if (!this.canManage()) return;
     const code = this.code().trim().toUpperCase();
     const name = this.name().trim();
     if (!/^[A-Z0-9_-]{2,50}$/.test(code) || !name || name.length > 200) {
@@ -72,6 +84,7 @@ export class DiagnosisCatalogManagement implements OnInit {
   }
 
   protected toggle(item: DiagnosisSuggestionResponse): void {
+    if (!this.canManage()) return;
     this.error.set(''); this.notice.set('');
     this.authApi.setDiagnosisActive(item.id, !item.active).subscribe({
       next: (saved) => {

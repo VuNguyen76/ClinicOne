@@ -92,6 +92,12 @@ export class ScheduleTemplateManagement implements OnInit {
   protected readonly selectedTemplateForDetail = signal<ScheduleTemplateResponse | null>(null);
   protected readonly selectedWeekdayForDetail = signal<string>('');
 
+  protected isDoctorRole(): boolean {
+    return hasStaffRole('DOCTOR') && !hasStaffRole('COORDINATOR') && !hasStaffRole('ADMIN');
+  }
+
+  protected readonly filterOnlyMine = signal(this.isDoctorRole());
+
   protected canManageSchedule(): boolean {
     return hasStaffRole('COORDINATOR');
   }
@@ -125,7 +131,18 @@ export class ScheduleTemplateManagement implements OnInit {
     const we = this.weekEndDate();
     const wsIso = `${ws.getFullYear()}-${String(ws.getMonth()+1).padStart(2,'0')}-${String(ws.getDate()).padStart(2,'0')}`;
     const weIso = `${we.getFullYear()}-${String(we.getMonth()+1).padStart(2,'0')}-${String(we.getDate()).padStart(2,'0')}`;
-    return this.templates().filter((t) => t.startDate <= weIso && t.endDate >= wsIso);
+    const onlyMine = this.filterOnlyMine();
+    const myStaffId = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('clinicOneStaffId') : null;
+    const myName = (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('clinicOnePatientName') || '' : '').toLowerCase().replace(/^(bs\.|ths\.|ckii|cki|bác sĩ|tiến sĩ|ts\.)\s*/i, '').trim();
+
+    return this.templates().filter((t) => {
+      if (t.startDate > weIso || t.endDate < wsIso) return false;
+      if (onlyMine) {
+        const matchesDoctor = (myStaffId && t.doctorId === myStaffId) || (myName && t.doctorName.toLowerCase().includes(myName));
+        if (!matchesDoctor) return false;
+      }
+      return true;
+    });
   });
 
   protected readonly filteredRooms = computed<ClinicRoomResponse[]>(() => {
@@ -147,7 +164,15 @@ export class ScheduleTemplateManagement implements OnInit {
   protected readonly filteredTemplates = computed<ScheduleTemplateResponse[]>(() => {
     const q = this.searchTerm().trim().toLowerCase();
     const spec = this.filterSpecialty().trim().toLowerCase();
+    const onlyMine = this.filterOnlyMine();
+    const myStaffId = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('clinicOneStaffId') : null;
+    const myName = (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('clinicOnePatientName') || '' : '').toLowerCase().replace(/^(bs\.|ths\.|ckii|cki|bác sĩ|tiến sĩ|ts\.)\s*/i, '').trim();
+
     return this.templates().filter((t) => {
+      if (onlyMine) {
+        const matchesDoctor = (myStaffId && t.doctorId === myStaffId) || (myName && t.doctorName.toLowerCase().includes(myName));
+        if (!matchesDoctor) return false;
+      }
       if (spec && !t.serviceName.toLowerCase().includes(spec) && !t.specialty.toLowerCase().includes(spec)) return false;
       if (q && !t.serviceName.toLowerCase().includes(q) && !t.doctorName.toLowerCase().includes(q) && !t.roomCode.toLowerCase().includes(q)) return false;
       return true;

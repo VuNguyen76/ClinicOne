@@ -1320,10 +1320,12 @@ export class AuthApiService {
       sessionStorage.setItem('clinicOneSessionType', 'STAFF');
       sessionStorage.setItem('clinicOneStaffRole', session.role);
       sessionStorage.setItem('clinicOneStaffRoles', JSON.stringify(session.roles?.length ? session.roles : [session.role]));
+      sessionStorage.setItem('clinicOneStaffId', session.staffId);
     }));
   }
 
   logoutStaff(): Observable<void> {
+    sessionStorage.removeItem('clinicOneStaffId');
     return this.http.post<void>('/api/v1/staff/auth/logout', {});
   }
 

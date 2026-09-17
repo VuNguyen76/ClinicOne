@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
 import { ApiErrorResponse, AuthApiService, MedicationSuggestionResponse, apiErrorMessage } from '../../core/auth/auth-api.service';
+import { hasStaffRole } from '../../core/auth/auth.guard';
 
 @Component({
   selector: 'app-medication-catalog-management',
@@ -13,6 +14,14 @@ import { ApiErrorResponse, AuthApiService, MedicationSuggestionResponse, apiErro
 })
 export class MedicationCatalogManagement implements OnInit {
   private readonly authApi = inject(AuthApiService);
+
+  protected canManage(): boolean {
+    return hasStaffRole('ADMIN') || hasStaffRole('COORDINATOR');
+  }
+
+  protected isDoctorRole(): boolean {
+    return hasStaffRole('DOCTOR') && !hasStaffRole('COORDINATOR') && !hasStaffRole('ADMIN');
+  }
   protected readonly medications = signal<MedicationSuggestionResponse[]>([]);
   protected readonly query = signal('');
   protected readonly loading = signal(true);
