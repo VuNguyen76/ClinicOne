@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
-import { vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { AuthApiService } from '../../core/auth/auth-api.service';
 import { MedicationCatalogManagement } from './medication-catalog-management';
 
@@ -13,6 +13,14 @@ describe('MedicationCatalogManagement', () => {
     updateMedication: vi.fn(),
     setMedicationActive: vi.fn(),
     getSpecialties: vi.fn().mockReturnValue(of([])),
+    getMedicationUnits: vi.fn().mockReturnValue(of([
+      { code: 'UNIT-VIEN', name: 'Viên', description: 'Dạng rắn: viên nén, viên nang', active: true, sortOrder: 1 },
+      { code: 'UNIT-GOI', name: 'Gói', description: 'Dạng bột hoặc cốm pha', active: true, sortOrder: 2 },
+    ])),
+    getMedicationDosages: vi.fn().mockReturnValue(of([
+      { code: 'DOS-GOI-2X', unitName: 'Gói', dosageFormat: '1 gói/lần x 2 lần/ngày (Sáng 1, Tối 1)', active: true, sortOrder: 1 },
+      { code: 'DOS-VIEN-2X', unitName: 'Viên', dosageFormat: '1 viên/lần x 2 lần/ngày (Sáng 1, Tối 1)', active: true, sortOrder: 2 },
+    ])),
   };
 
   beforeEach(async () => {
@@ -46,9 +54,31 @@ describe('MedicationCatalogManagement', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="staff-workspace-shell"]')).toBeTruthy();
   });
 
-  it('creates a medicine from the modal form', () => {
+  it('switches between Medication table, Units table, and Dosages table', () => {
+    // 1. Initially on medications tab
+    expect(fixture.nativeElement.querySelector('[data-testid="medication-row"]')).toBeTruthy();
+
+    // 2. Switch to Units tab
+    (fixture.nativeElement.querySelector('[data-testid="tab-units"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-testid="units-table-container"]')).toBeTruthy();
+    expect(fixture.nativeElement.textContent).toContain('UNIT-VIEN');
+
+    // 3. Switch to Dosages tab
+    (fixture.nativeElement.querySelector('[data-testid="tab-dosages"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-testid="dosages-table-container"]')).toBeTruthy();
+    expect(fixture.nativeElement.textContent).toContain('DOS-GOI-2X');
+  });
+
+  it('creates a medicine from the modal form without suggestion chips', () => {
     (fixture.nativeElement.querySelector('[data-testid="open-create-medication"]') as HTMLButtonElement).click();
     fixture.detectChanges();
+    const modalText = fixture.nativeElement.querySelector('.erp-modal-container')?.textContent || '';
+    expect(modalText).not.toContain('Gợi ý:');
+    expect(modalText).not.toContain('Format mẫu chuẩn y tế:');
+    expect(modalText).not.toContain('Mẫu cách dùng:');
+
     const component = fixture.componentInstance as unknown as {
       code: { set(value: string): void }; name: { set(value: string): void }; save(): void;
     };

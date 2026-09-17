@@ -282,6 +282,25 @@ export interface SpecialtyOption {
   description: string;
 }
 
+export interface MedicationUnitOption {
+  id?: string;
+  code: string;
+  name: string;
+  description?: string;
+  active?: boolean;
+  sortOrder?: number;
+}
+
+export interface MedicationDosageOption {
+  id?: string;
+  code: string;
+  unitName: string;
+  dosageFormat: string;
+  description?: string;
+  active?: boolean;
+  sortOrder?: number;
+}
+
 export interface MedicalRecordTemplate {
   id: string;
   code: string;
@@ -908,6 +927,20 @@ export class AuthApiService {
 
   getSpecialties(query?: string): Observable<SpecialtyOption[]> {
     return this.http.get<SpecialtyOption[]>(this.specialtiesRoot, query ? { params: { query } } : undefined);
+  }
+
+  getMedicationUnits(activeOnly = true): Observable<MedicationUnitOption[]> {
+    return this.http.get<MedicationUnitOption[]>('/api/v1/medication-units', {
+      params: { activeOnly: String(activeOnly) },
+    });
+  }
+
+  getMedicationDosages(unit?: string, activeOnly = true): Observable<MedicationDosageOption[]> {
+    const params: Record<string, string> = { activeOnly: String(activeOnly) };
+    if (unit && unit.trim()) {
+      params['unit'] = unit.trim();
+    }
+    return this.http.get<MedicationDosageOption[]>('/api/v1/medication-dosages', { params });
   }
 
   logoutPatient(): Observable<void> {
