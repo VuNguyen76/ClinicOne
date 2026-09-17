@@ -1,4 +1,4 @@
-<app-staff-workspace-shell [moduleTitle]="isDoctorRole() ? 'Lịch trực & Công tác' : 'Vận hành'" [pageTitle]="isDoctorRole() ? 'Lịch nghỉ & Báo vắng' : 'Bác sĩ nghỉ đột xuất'">
+<app-staff-workspace-shell [moduleTitle]="isDoctorRole() ? 'Lịch làm việc' : 'Vận hành'" [pageTitle]="isDoctorRole() ? 'Báo vắng & Nghỉ phép' : 'Bác sĩ nghỉ đột xuất'">
   <div class="grid gap-6">
     <!-- Alerts & Notices -->
     @if (error() && !modalOpen()) {

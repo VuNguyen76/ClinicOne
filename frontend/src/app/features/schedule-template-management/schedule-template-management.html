@@ -1,4 +1,4 @@
-<app-staff-workspace-shell [moduleTitle]="isDoctorRole() ? 'Lịch trực' : 'Điều phối'" [pageTitle]="isDoctorRole() ? 'Thời khóa biểu của tôi' : 'Lịch trực tuần'">
+<app-staff-workspace-shell moduleTitle="Lịch làm việc" [pageTitle]="isDoctorRole() ? 'Thời khóa biểu của tôi' : 'Thời khóa biểu'">
   <!-- Top Segmented View Tabs (Only for Coordinator managing schedules) -->
   @if (canManageSchedule()) {
     <div workspace-tabs class="flex items-center gap-2 border-b border-slate-200">
