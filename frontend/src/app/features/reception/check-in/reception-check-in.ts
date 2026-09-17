@@ -321,7 +321,7 @@ export class ReceptionCheckIn implements OnInit {
     if (!this.canAdjustQueue() || !appointment.queueTicketId) return;
     const reason = this.exceptionReason().trim();
     if (reason.length < 10) {
-      this.error.set('Nhập lý do cơ sở tạm dừng phục vụ (ít nhất 10 ký tự).');
+      this.error.set('Nhập lý do phòng khám tạm dừng phục vụ (ít nhất 10 ký tự).');
       return;
     }
     this.busyId.set(appointment.id);
@@ -331,7 +331,7 @@ export class ReceptionCheckIn implements OnInit {
       next: (updated) => {
         this.appointments.update((items) => items.map((item) => item.id === updated.id ? updated : item));
         this.busyId.set('');
-        this.notice.set(`Đã ghi nhận cơ sở tạm dừng phục vụ cho ${updated.patientName}.`);
+        this.notice.set(`Đã ghi nhận phòng khám tạm dừng phục vụ cho ${updated.patientName}.`);
       },
       error: (response) => {
         this.busyId.set('');

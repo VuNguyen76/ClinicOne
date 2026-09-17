@@ -1,21 +1,21 @@
-<main class="min-h-screen bg-[#071f29] text-[#0e3d48] lg:grid lg:grid-cols-[minmax(0,1.08fr)_minmax(440px,0.92fr)]">
+<main class="min-h-screen bg-slate-900 text-slate-900 lg:grid lg:grid-cols-[minmax(0,1.08fr)_minmax(440px,0.92fr)]">
   <!-- Left Side: Enterprise Visual Workspace Collage -->
-  <section class="relative min-h-[270px] overflow-hidden bg-[#0a303b] lg:min-h-screen" aria-label="Không gian ClinicOne">
+  <section class="relative min-h-[270px] overflow-hidden bg-slate-900 lg:min-h-screen" aria-label="Không gian ClinicOne">
     <div class="absolute inset-0 grid grid-cols-[1.15fr_0.85fr] grid-rows-3 gap-2 p-2 sm:gap-3 sm:p-4 lg:gap-4 lg:p-6">
-      <div class="row-span-3 overflow-hidden rounded-2xl bg-[#0e3d48] shadow-2xl shadow-black/30">
+      <div class="row-span-3 overflow-hidden rounded-2xl bg-slate-800 shadow-2xl shadow-black/30">
         <img src="staff-login/operations-desk.webp" alt="Bàn điều phối tại phòng khám" class="h-full w-full object-cover transition duration-700 hover:scale-[1.02]" />
       </div>
-      <div class="overflow-hidden rounded-2xl bg-[#0e3d48] shadow-2xl shadow-black/30">
+      <div class="overflow-hidden rounded-2xl bg-slate-800 shadow-2xl shadow-black/30">
         <img src="staff-login/clinic-corridor.webp" alt="Hành lang phòng khám" class="h-full w-full object-cover transition duration-700 hover:scale-[1.02]" />
       </div>
-      <div class="overflow-hidden rounded-2xl bg-[#0e3d48] shadow-2xl shadow-black/30">
+      <div class="overflow-hidden rounded-2xl bg-slate-800 shadow-2xl shadow-black/30">
         <img src="staff-login/coordination-room.webp" alt="Khu vực điều phối khám bệnh" class="h-full w-full object-cover transition duration-700 hover:scale-[1.02]" />
       </div>
-      <div class="overflow-hidden rounded-2xl bg-[#0e3d48] shadow-2xl shadow-black/30">
+      <div class="overflow-hidden rounded-2xl bg-slate-800 shadow-2xl shadow-black/30">
         <img src="staff-login/clinic-lobby.webp" alt="Sảnh tiếp đón phòng khám" class="h-full w-full object-cover transition duration-700 hover:scale-[1.02]" />
       </div>
     </div>
-    <div class="pointer-events-none absolute inset-0 bg-gradient-to-tr from-[#071f29]/70 via-transparent to-white/10"></div>
+    <div class="pointer-events-none absolute inset-0 bg-gradient-to-tr from-slate-950/70 via-transparent to-white/10"></div>
     <div class="absolute bottom-6 left-6 hidden items-center gap-3 text-white/90 sm:flex lg:bottom-10 lg:left-10">
       <span class="grid h-8 w-8 place-items-center rounded-lg bg-white/15 ring-1 ring-white/20 backdrop-blur">
         <mat-icon class="!h-4 !w-4 !text-[18px]">domain</mat-icon>
@@ -29,7 +29,7 @@
     <header class="flex items-center px-6 py-6 sm:px-10 lg:px-14 lg:py-8">
       <a routerLink="/staff/login" class="flex items-center gap-2.5" aria-label="ClinicOne, đăng nhập nội bộ">
         <img class="h-10 w-10 object-contain sm:h-12 sm:w-12" src="clinicone-mark-small.png" alt="" aria-hidden="true" />
-        <span class="text-xl font-bold tracking-tight text-[#0e3d48] sm:text-2xl">
+        <span class="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
           Clinic<span class="text-[#0284c7]">One</span>
         </span>
       </a>
@@ -83,7 +83,7 @@
           <button
             data-testid="staff-login-submit"
             type="submit"
-            class="erp-btn-primary mt-1 w-full !min-h-10 text-sm shadow-md shadow-[#0e3d48]/10"
+            class="erp-btn-primary mt-1 w-full !min-h-10 text-sm shadow-md shadow-sky-900/10"
             [disabled]="busy()"
           >
             {{ busy() ? 'Đang xác thực...' : 'Đăng nhập vào hệ thống' }}

@@ -30,7 +30,7 @@
         <mat-icon class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 !h-4 !w-4 !text-[18px] text-slate-400">search</mat-icon>
         <input
           type="text"
-          class="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-8 text-xs text-slate-800 placeholder-slate-400 outline-none transition focus:border-[#0e3d48] focus:ring-1 focus:ring-[#0e3d48] shadow-2xs"
+          class="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-8 text-xs text-slate-800 placeholder-slate-400 outline-none transition focus:border-[#0284c7] focus:ring-1 focus:ring-[#0284c7] shadow-2xs"
           placeholder="Tìm kiếm theo tên, tài khoản, phòng khám..."
           [value]="searchTerm()"
           (input)="searchTerm.set($any($event.target).value)"
@@ -71,7 +71,7 @@
                 <th class="w-10 px-4 py-3.5 text-center">
                   <input
                     type="checkbox"
-                    class="rounded border-slate-300 text-[#0e3d48] focus:ring-[#0e3d48]"
+                    class="rounded border-slate-300 text-[#0284c7] focus:ring-[#0284c7]"
                     [checked]="isAllSelected()"
                     (change)="toggleSelectAll()"
                   />
@@ -94,7 +94,7 @@
                   <td class="px-4 py-3 text-center" (click)="$event.stopPropagation()">
                     <input
                       type="checkbox"
-                      class="rounded border-slate-300 text-[#0e3d48] focus:ring-[#0e3d48]"
+                      class="rounded border-slate-300 text-[#0284c7] focus:ring-[#0284c7]"
                       [checked]="selectedDoctorIds().has(doctor.staffId)"
                       (click)="toggleSelectDoctor(doctor.staffId, $event)"
                     />
@@ -144,7 +144,7 @@
                   <td class="px-4 py-3 text-right" (click)="$event.stopPropagation()">
                     <button
                       type="button"
-                      class="erp-btn-secondary !py-1 !px-2.5 !text-xs !font-semibold text-[#0e3d48] hover:bg-slate-100"
+                      class="erp-btn-secondary !py-1 !px-2.5 !text-xs !font-semibold text-[#0284c7] hover:bg-slate-100"
                       title="Phân công chuyên môn & phòng khám"
                       (click)="openScheduleDrawer(doctor)"
                     >
@@ -161,7 +161,7 @@
                       <button
                         data-testid="empty-create-doctor"
                         type="button"
-                        class="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-[#0e3d48] px-4 py-2 text-xs font-semibold text-white"
+                        class="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-[#0284c7] px-4 py-2 text-xs font-semibold text-white"
                         (click)="openCreateDoctor()"
                       >
                         <mat-icon class="!h-4 !w-4 !text-[18px]">add</mat-icon>
@@ -226,7 +226,7 @@
         <div class="flex-1 overflow-y-auto p-6 space-y-6">
           <!-- Section 1: Assignment -->
           <form class="space-y-3.5" [formGroup]="assignmentForm" (ngSubmit)="$event.preventDefault(); saveAssignment()">
-            <h4 class="text-xs font-bold uppercase tracking-wider text-[#0e3d48]">1. Phân công chuyên môn</h4>
+            <h4 class="text-xs font-bold uppercase tracking-wider text-[#0284c7]">1. Phân công chuyên môn</h4>
             <div class="space-y-2">
               <label class="grid gap-1">
                 <span class="text-[11px] font-semibold text-slate-600">Chuyên khoa <span class="text-rose-500">*</span></span>

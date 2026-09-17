@@ -4,8 +4,8 @@
     <button
       type="button"
       class="px-4 py-2.5 text-xs font-semibold border-b-2 transition cursor-pointer flex items-center gap-1.5"
-      [class.border-[#0e3d48]]="activeTab() === 'grid'"
-      [class.text-[#0e3d48]]="activeTab() === 'grid'"
+      [class.border-[#0284c7]]="activeTab() === 'grid'"
+      [class.text-[#0284c7]]="activeTab() === 'grid'"
       [class.border-transparent]="activeTab() !== 'grid'"
       [class.text-slate-500]="activeTab() !== 'grid'"
       (click)="activeTab.set('grid')"
@@ -16,8 +16,8 @@
     <button
       type="button"
       class="px-4 py-2.5 text-xs font-semibold border-b-2 transition cursor-pointer flex items-center gap-1.5"
-      [class.border-[#0e3d48]]="activeTab() === 'list'"
-      [class.text-[#0e3d48]]="activeTab() === 'list'"
+      [class.border-[#0284c7]]="activeTab() === 'list'"
+      [class.text-[#0284c7]]="activeTab() === 'list'"
       [class.border-transparent]="activeTab() !== 'list'"
       [class.text-slate-500]="activeTab() !== 'list'"
       (click)="activeTab.set('list')"
@@ -30,8 +30,8 @@
       <button
         type="button"
         class="px-4 py-2.5 text-xs font-semibold border-b-2 transition cursor-pointer flex items-center gap-1.5"
-        [class.border-[#0e3d48]]="activeTab() === 'form'"
-        [class.text-[#0e3d48]]="activeTab() === 'form'"
+        [class.border-[#0284c7]]="activeTab() === 'form'"
+        [class.text-[#0284c7]]="activeTab() === 'form'"
         [class.border-transparent]="activeTab() !== 'form'"
         [class.text-slate-500]="activeTab() !== 'form'"
         (click)="activeTab.set('form')"
@@ -73,7 +73,7 @@
         <mat-icon class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 !h-4 !w-4 !text-[18px] text-slate-400">search</mat-icon>
         <input
           type="text"
-          class="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-8 text-xs text-slate-800 placeholder-slate-400 outline-none transition focus:border-[#0e3d48] focus:ring-1 focus:ring-[#0e3d48] shadow-2xs"
+          class="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-8 text-xs text-slate-800 placeholder-slate-400 outline-none transition focus:border-[#0284c7] focus:ring-1 focus:ring-[#0284c7] shadow-2xs"
           placeholder="Tìm kiếm bác sĩ, chuyên khoa, phòng khám..."
           [value]="searchTerm()"
           (input)="searchTerm.set($any($event.target).value)"
@@ -96,7 +96,7 @@
           <select
             [ngModel]="filterSpecialty()"
             (ngModelChange)="filterSpecialty.set($event)"
-            class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 outline-none focus:border-[#0e3d48] shadow-2xs"
+            class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 outline-none focus:border-[#0284c7] shadow-2xs"
           >
             <option value="">Tất cả chuyên khoa</option>
             @for (service of services(); track service.id) {
@@ -127,44 +127,44 @@
          <section class="rounded-xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
            <!-- Week Navigation Toolbar -->
            <div class="flex items-center justify-between border-b border-slate-200 bg-slate-50/70 px-4 py-3">
-             <div class="flex items-center gap-2">
-               <input
-                 type="date"
-                 [ngModel]="dateInputValue()"
-                 (ngModelChange)="onDateChange($event)"
-                 class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-mono text-slate-700 outline-none focus:border-[#0e3d48] focus:ring-1 focus:ring-[#0e3d48] shadow-2xs"
-               />
-             </div>
-             <div class="flex items-center gap-1.5">
-               <button
-                 type="button"
-                 (click)="onPreviousWeek()"
-                 class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-[#0e3d48] hover:bg-teal-50 transition cursor-pointer"
-                 title="Tuần trước"
-               >
-                 <mat-icon class="!h-4 !w-4 !text-[14px]">chevron_left</mat-icon>
-               </button>
-               <button
-                 type="button"
-                 (click)="onToday()"
-                 class="rounded-lg border border-[#0e3d48] bg-[#0e3d48] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#0a3140] transition cursor-pointer"
-               >
-                 HIỆN TẠI
-               </button>
-               <button
-                 type="button"
-                 (click)="onNextWeek()"
-                 class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-[#0e3d48] hover:bg-teal-50 transition cursor-pointer"
-                 title="Tuần sau"
-               >
-                 <mat-icon class="!h-4 !w-4 !text-[14px]">chevron_right</mat-icon>
-               </button>
-             </div>
-           </div>
+              <div class="flex items-center gap-2">
+                <input
+                  type="date"
+                  [ngModel]="dateInputValue()"
+                  (ngModelChange)="onDateChange($event)"
+                  class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-mono text-slate-700 outline-none focus:border-[#0284c7] focus:ring-1 focus:ring-[#0284c7] shadow-2xs"
+                />
+              </div>
+              <div class="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  (click)="onPreviousWeek()"
+                  class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-[#0284c7] hover:bg-sky-50 transition cursor-pointer"
+                  title="Tuần trước"
+                >
+                  <mat-icon class="!h-4 !w-4 !text-[14px]">chevron_left</mat-icon>
+                </button>
+                <button
+                  type="button"
+                  (click)="onToday()"
+                  class="rounded-lg border border-[#0284c7] bg-[#0284c7] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#0369a1] transition cursor-pointer"
+                >
+                  HIỆN TẠI
+                </button>
+                <button
+                  type="button"
+                  (click)="onNextWeek()"
+                  class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-[#0284c7] hover:bg-sky-50 transition cursor-pointer"
+                  title="Tuần sau"
+                >
+                  <mat-icon class="!h-4 !w-4 !text-[14px]">chevron_right</mat-icon>
+                </button>
+              </div>
+            </div>
 
-           <table class="table-fixed w-full text-left border-collapse">
-             <thead>
-               <tr class="border-b border-slate-200 bg-[#0e3d48] text-[11px] font-bold text-white">
+            <table class="table-fixed w-full text-left border-collapse">
+              <thead>
+                <tr class="border-b border-slate-200 bg-slate-900 text-[11px] font-bold text-white">
                  <th class="py-2.5 px-3 w-[16%] border-r border-slate-200/50">Phòng khám</th>
                  @for (day of displayWeekdays; track day.value; let i = $index) {
                    <th class="py-2.5 px-2 text-center w-[14%] border-r border-slate-200/50 last:border-r-0"
@@ -195,7 +195,7 @@
                                tabindex="0"
                                (click)="openTemplateDetail(tmpl, day.value)"
                                (keydown.enter)="openTemplateDetail(tmpl, day.value)"
-                               class="rounded-lg border border-slate-200 bg-white p-1.5 text-xs shadow-2xs transition hover:border-[#0e3d48] hover:shadow-xs cursor-pointer group"
+                               class="rounded-lg border border-slate-200 bg-white p-1.5 text-xs shadow-2xs transition hover:border-[#0284c7] hover:shadow-xs cursor-pointer group"
                              >
                                <div class="flex items-center gap-1.5">
                                  <img
@@ -205,7 +205,7 @@
                                    class="h-6 w-6 rounded-full object-cover border border-slate-200 shrink-0 shadow-2xs"
                                  />
                                  <div class="min-w-0 flex-1">
-                                   <p class="font-bold text-slate-900 text-[11px] leading-tight group-hover:text-[#0e3d48] truncate" [title]="tmpl.doctorName">{{ tmpl.doctorName }}</p>
+                                   <p class="font-bold text-slate-900 text-[11px] leading-tight group-hover:text-[#0284c7] truncate" [title]="tmpl.doctorName">{{ tmpl.doctorName }}</p>
                                    <p class="text-[9px] text-slate-500 font-medium truncate" [title]="tmpl.serviceName">{{ tmpl.serviceName }}</p>
                                  </div>
                                </div>
@@ -222,7 +222,7 @@
                            <button
                              type="button"
                              (click)="scheduleForRoomAndDay(room, day.value)"
-                             class="w-full h-10 rounded-lg border border-dashed border-slate-200 bg-slate-50/40 hover:bg-white hover:border-[#0e3d48] hover:text-[#0e3d48] text-slate-400 text-[10px] font-medium flex items-center justify-center gap-1 transition cursor-pointer"
+                             class="w-full h-10 rounded-lg border border-dashed border-slate-200 bg-slate-50/40 hover:bg-white hover:border-[#0284c7] hover:text-[#0284c7] text-slate-400 text-[10px] font-medium flex items-center justify-center gap-1 transition cursor-pointer"
                              title="Xếp lịch trực cho phòng này"
                            >
                              <mat-icon class="!h-3 !w-3 !text-[12px]">add</mat-icon>
@@ -437,7 +437,7 @@
                     <button
                       type="button"
                       (click)="toggleWeekday(day.value, !isWeekdaySelected(day.value))"
-                      [class]="isWeekdaySelected(day.value) ? 'bg-[#0e3d48] text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'"
+                      [class]="isWeekdaySelected(day.value) ? 'bg-[#0284c7] text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'"
                       class="rounded-full px-3.5 py-1.5 text-xs font-semibold transition cursor-pointer"
                     >
                       {{ day.label }}
@@ -494,7 +494,7 @@
                       [checked]="hasBreak()"
                       (change)="toggleBreakOption($any($event.target).checked)"
                     />
-                    <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#0e3d48]"></div>
+                    <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#0284c7]"></div>
                   </label>
                   @if (hasBreak()) {
                     <div class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-1.5 shadow-2xs font-mono text-xs text-slate-800">
