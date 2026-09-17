@@ -192,7 +192,7 @@
   <!-- Modal: Create / Edit Medication -->
   @if (modalOpen()) {
     <div class="erp-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="medication-dialog-title" (click)="closeModal()">
-      <section class="erp-modal-container max-w-xl" (click)="$event.stopPropagation()">
+      <section class="erp-modal-container max-w-2xl" (click)="$event.stopPropagation()">
         <div class="erp-modal-header">
           <h2 id="medication-dialog-title" class="text-sm font-bold text-slate-900">
             {{ canManage() ? (editingId() ? 'Sửa thông tin thuốc' : 'Thêm thuốc mới') : 'Chi tiết thuốc' }}
@@ -203,7 +203,7 @@
         </div>
 
         <form (ngSubmit)="$event.preventDefault(); save()">
-          <div class="erp-modal-body grid gap-3.5">
+          <div class="erp-modal-body grid gap-4 max-h-[78vh] overflow-y-auto pr-1">
             @if (error()) {
               <div class="flex items-center justify-between gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700" role="alert">
                 <div class="flex items-center gap-2">
@@ -216,8 +216,9 @@
               </div>
             }
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <label class="grid gap-1">
+            <!-- 1. Mã thuốc & Đơn vị tính -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 items-start">
+              <label class="grid gap-1 self-start">
                 <span class="erp-label">Mã thuốc <span class="erp-label-required">*</span></span>
                 <input
                   data-testid="medication-code-input"
@@ -230,71 +231,179 @@
                 />
               </label>
 
-              <label class="grid gap-1">
+              <div class="grid gap-1">
                 <span class="erp-label">Đơn vị tính</span>
-                <input
-                  class="erp-input"
-                  [ngModel]="unit()"
-                  (ngModelChange)="unit.set($event)"
-                  [disabled]="!canManage()"
-                  name="unit"
-                  placeholder="Viên, gói, chai..."
-                />
-              </label>
+                <div class="relative">
+                  <input
+                    data-testid="medication-unit-input"
+                    class="erp-input"
+                    list="standard-units-list"
+                    [ngModel]="unit()"
+                    (ngModelChange)="unit.set($event)"
+                    [disabled]="!canManage()"
+                    name="unit"
+                    placeholder="Viên, gói, chai, lọ, ống..."
+                  />
+                  <datalist id="standard-units-list">
+                    @for (u of standardUnits; track $index) {
+                      <option [value]="u"></option>
+                    }
+                  </datalist>
+                </div>
+                <!-- Quick unit chips (format sẵn) -->
+                <div class="flex flex-wrap items-center gap-1 pt-1">
+                  <span class="text-[10px] text-slate-400 font-medium mr-0.5">Gợi ý:</span>
+                  @for (u of standardUnits; track $index) {
+                    <button
+                      type="button"
+                      class="rounded-md border px-2 py-0.5 text-[11px] font-medium transition cursor-pointer"
+                      [class.border-[#0284c7]]="unit() === u"
+                      [class.bg-sky-50]="unit() === u"
+                      [class.text-[#0284c7]]="unit() === u"
+                      [class.border-slate-200]="unit() !== u"
+                      [class.bg-white]="unit() !== u"
+                      [class.text-slate-600]="unit() !== u"
+                      [class.hover:border-slate-300]="unit() !== u"
+                      (click)="selectUnit(u)"
+                    >
+                      {{ u }}
+                    </button>
+                  }
+                </div>
+              </div>
             </div>
 
-            <label class="grid gap-1">
-              <span class="erp-label">Tên thuốc <span class="erp-label-required">*</span></span>
-              <input
-                data-testid="medication-name-input"
-                class="erp-input"
-                [ngModel]="name()"
-                (ngModelChange)="name.set($event)"
-                [disabled]="!canManage()"
-                name="name"
-                placeholder="Paracetamol 500mg"
-              />
-            </label>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <label class="grid gap-1">
-                <span class="erp-label">Nhóm thuốc</span>
+            <!-- 2. Tên thuốc & Chuyên khoa (Chuyên khoa PHẢI CHỌN) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 items-start">
+              <label class="grid gap-1 self-start">
+                <span class="erp-label">Tên thuốc <span class="erp-label-required">*</span></span>
                 <input
+                  data-testid="medication-name-input"
                   class="erp-input"
-                  [ngModel]="category()"
-                  (ngModelChange)="category.set($event)"
+                  [ngModel]="name()"
+                  (ngModelChange)="name.set($event)"
                   [disabled]="!canManage()"
-                  name="category"
-                  placeholder="Hạ sốt, giảm đau..."
+                  name="name"
+                  placeholder="Paracetamol 500mg"
                 />
               </label>
 
-              <label class="grid gap-1">
-                <span class="erp-label">Chuyên khoa</span>
-                <input
-                  class="erp-input"
+              <div class="grid gap-1">
+                <div class="flex items-center justify-between">
+                  <span class="erp-label">Chuyên khoa</span>
+                  <span class="text-[11px] text-sky-600 font-medium">Bắt buộc chọn</span>
+                </div>
+                <select
+                  data-testid="medication-specialty-select"
+                  class="erp-select"
                   [ngModel]="specialties()"
                   (ngModelChange)="specialties.set($event)"
                   [disabled]="!canManage()"
                   name="specialties"
-                  placeholder="Khám tổng quát, Tai mũi họng..."
-                />
-              </label>
+                >
+                  <option value="">-- Chọn chuyên khoa --</option>
+                  <option value="Dùng chung (Đa khoa)">Dùng chung (Đa khoa)</option>
+                  @if (specialties() && !isKnownSpecialty(specialties())) {
+                    <option [value]="specialties()">{{ specialties() }} (hiện tại)</option>
+                  }
+                  @for (spec of availableSpecialties(); track $index) {
+                    <option [value]="spec">{{ spec }}</option>
+                  }
+                </select>
+              </div>
             </div>
 
-            <label class="grid gap-1">
-              <span class="erp-label">Liều dùng chuẩn</span>
-              <input
-                class="erp-input"
-                [ngModel]="defaultDosage()"
-                (ngModelChange)="defaultDosage.set($event)"
-                [disabled]="!canManage()"
-                name="defaultDosage"
-                placeholder="1 viên / lần x 2-3 lần/ngày"
-              />
-            </label>
+            <!-- 3. Nhóm thuốc (Category) -->
+            <div class="grid gap-1">
+              <span class="erp-label">Nhóm thuốc</span>
+              <div class="relative">
+                <input
+                  class="erp-input"
+                  list="standard-categories-list"
+                  [ngModel]="category()"
+                  (ngModelChange)="category.set($event)"
+                  [disabled]="!canManage()"
+                  name="category"
+                  placeholder="Hạ sốt & Giảm đau, Kháng sinh..."
+                />
+                <datalist id="standard-categories-list">
+                  @for (cat of standardCategories; track $index) {
+                    <option [value]="cat"></option>
+                  }
+                </datalist>
+              </div>
+              <div class="flex flex-wrap items-center gap-1 pt-1">
+                <span class="text-[10px] text-slate-400 font-medium mr-0.5">Gợi ý:</span>
+                @for (cat of standardCategories; track $index) {
+                  <button
+                    type="button"
+                    class="rounded-md border px-2 py-0.5 text-[11px] font-medium transition cursor-pointer"
+                    [class.border-[#0284c7]]="category() === cat"
+                    [class.bg-sky-50]="category() === cat"
+                    [class.text-[#0284c7]]="category() === cat"
+                    [class.border-slate-200]="category() !== cat"
+                    [class.bg-white]="category() !== cat"
+                    [class.text-slate-600]="category() !== cat"
+                    [class.hover:border-slate-300]="category() !== cat"
+                    (click)="selectCategory(cat)"
+                  >
+                    {{ cat }}
+                  </button>
+                }
+              </div>
+            </div>
 
-            <label class="grid gap-1">
+            <!-- 4. Liều dùng chuẩn (có format sẵn & cho nhập) -->
+            <div class="grid gap-1">
+              <span class="erp-label">Liều dùng chuẩn</span>
+              <div class="relative">
+                <input
+                  data-testid="medication-dosage-input"
+                  class="erp-input"
+                  list="standard-dosages-list"
+                  [ngModel]="defaultDosage()"
+                  (ngModelChange)="defaultDosage.set($event)"
+                  [disabled]="!canManage()"
+                  name="defaultDosage"
+                  placeholder="1 viên / lần x 2-3 lần/ngày"
+                />
+                <datalist id="standard-dosages-list">
+                  @for (fmt of standardDosageFormats(); track $index) {
+                    <option [value]="fmt"></option>
+                  }
+                </datalist>
+              </div>
+              <!-- Format sẵn theo chuẩn y khoa -->
+              <div class="space-y-1 pt-1">
+                <div class="flex items-center justify-between">
+                  <span class="text-[10px] text-slate-400 font-medium">Format mẫu chuẩn y tế:</span>
+                  @if (unit()) {
+                    <span class="text-[10px] text-sky-600 font-medium">(tự động khớp theo đơn vị {{ unit() }})</span>
+                  }
+                </div>
+                <div class="flex flex-wrap items-center gap-1.5">
+                  @for (fmt of standardDosageFormats(); track $index) {
+                    <button
+                      type="button"
+                      class="rounded-md border px-2.5 py-1 text-[11px] font-medium transition cursor-pointer text-left shadow-2xs"
+                      [class.border-[#0284c7]]="defaultDosage() === fmt"
+                      [class.bg-sky-50]="defaultDosage() === fmt"
+                      [class.text-[#0284c7]]="defaultDosage() === fmt"
+                      [class.border-slate-200]="defaultDosage() !== fmt"
+                      [class.bg-white]="defaultDosage() !== fmt"
+                      [class.text-slate-700]="defaultDosage() !== fmt"
+                      [class.hover:border-slate-300]="defaultDosage() !== fmt"
+                      (click)="selectDosage(fmt)"
+                    >
+                      {{ fmt }}
+                    </button>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <!-- 5. Hướng dẫn dùng -->
+            <div class="grid gap-1">
               <span class="erp-label">Hướng dẫn dùng</span>
               <textarea
                 rows="2"
@@ -305,7 +414,26 @@
                 name="defaultInstructions"
                 placeholder="Uống sau ăn no với nước ấm, cách nhau tối thiểu 4-6 giờ"
               ></textarea>
-            </label>
+              <div class="flex flex-wrap items-center gap-1 pt-1">
+                <span class="text-[10px] text-slate-400 font-medium mr-0.5">Mẫu cách dùng:</span>
+                @for (ins of standardInstructionOptions; track $index) {
+                  <button
+                    type="button"
+                    class="rounded-md border px-2 py-0.5 text-[11px] font-medium transition cursor-pointer"
+                    [class.border-[#0284c7]]="defaultInstructions() === ins"
+                    [class.bg-sky-50]="defaultInstructions() === ins"
+                    [class.text-[#0284c7]]="defaultInstructions() === ins"
+                    [class.border-slate-200]="defaultInstructions() !== ins"
+                    [class.bg-white]="defaultInstructions() !== ins"
+                    [class.text-slate-600]="defaultInstructions() !== ins"
+                    [class.hover:border-slate-300]="defaultInstructions() !== ins"
+                    (click)="selectInstruction(ins)"
+                  >
+                    {{ ins }}
+                  </button>
+                }
+              </div>
+            </div>
           </div>
 
           <div class="erp-modal-footer">
