@@ -202,6 +202,19 @@ export class ScheduleTemplateManagement implements OnInit {
     return map;
   });
 
+  protected getTemplatesForRoomAndDate(roomId: string, date: Date, weekday: string): ScheduleTemplateResponse[] {
+    if (!date) return [];
+    const dateIso = clinicTodayIso(date);
+    return this.weekTemplates().filter((t) => {
+      if (t.roomId !== roomId) return false;
+      if (!t.weekdays.includes(weekday)) return false;
+      if (t.startDate && dateIso < t.startDate) return false;
+      if (t.endDate && dateIso > t.endDate) return false;
+      if (t.exceptionDates && t.exceptionDates.includes(dateIso)) return false;
+      return true;
+    });
+  }
+
   protected getTemplatesForRoomAndDay(roomId: string, day: string): ScheduleTemplateResponse[] {
     return this.templateMatrix().get(`${roomId}_${day}`) ?? [];
   }
@@ -383,9 +396,24 @@ export class ScheduleTemplateManagement implements OnInit {
   protected scheduleForRoomAndDay(room: ClinicRoomResponse, day: string): void {
     if (!this.canManageSchedule()) return;
     this.selectedRoomId.set(room.id);
-    const matchService = this.services().find((s) => s.specialty.toLowerCase() === room.specialty.toLowerCase()) || this.services()[0];
-    if (matchService) {
-      this.selectService(matchService.id);
+    const docInRoom = this.doctors().find((d) => d.roomId === room.id);
+    if (docInRoom) {
+      this.selectedDoctorId.set(docInRoom.staffId);
+      const matchService = this.services().find((s) => s.specialty?.toLowerCase() === docInRoom.specialty?.toLowerCase()) || this.services()[0];
+      if (matchService) {
+        this.selectedServiceId.set(matchService.id);
+        this.durationMinutes.set(matchService.durationMinutes ?? 30);
+      }
+    } else {
+      const matchDoc = this.doctors().find((d) => d.specialty?.toLowerCase() === room.specialty?.toLowerCase()) || this.doctors()[0];
+      if (matchDoc) {
+        this.selectedDoctorId.set(matchDoc.staffId);
+      }
+      const matchService = this.services().find((s) => s.specialty?.toLowerCase() === room.specialty?.toLowerCase()) || this.services()[0];
+      if (matchService) {
+        this.selectedServiceId.set(matchService.id);
+        this.durationMinutes.set(matchService.durationMinutes ?? 30);
+      }
     }
     this.selectedWeekdays.set([day]);
     this.startCreate();
@@ -501,7 +529,15 @@ export class ScheduleTemplateManagement implements OnInit {
 
   protected selectDoctor(doctorId: string): void {
     this.selectedDoctorId.set(doctorId);
-    this.selectedRoomId.set(this.doctors().find((item) => item.staffId === doctorId)?.roomId ?? '');
+    const doc = this.doctors().find((item) => item.staffId === doctorId);
+    if (doc) {
+      if (doc.roomId) this.selectedRoomId.set(doc.roomId);
+      const matchSvc = this.services().find((s) => s.specialty?.toLowerCase() === doc.specialty?.toLowerCase());
+      if (matchSvc) {
+        this.selectedServiceId.set(matchSvc.id);
+        this.durationMinutes.set(matchSvc.durationMinutes ?? 30);
+      }
+    }
   }
 
   protected isWeekdaySelected(day: string): boolean {
@@ -544,7 +580,7 @@ export class ScheduleTemplateManagement implements OnInit {
     this.authApi.createScheduleTemplate(request).subscribe({
       next: (template) => {
         this.templates.update((items) => [template, ...items]);
-        this.notice.set(`Đã thiết lập lịch trực và sinh ${template.generatedSlotCount} lượt khám.`);
+        this.notice.set(`Đã kích hoạt lịch trực cho ${template.doctorName} (${template.generatedSlotCount} khung giờ khám).`);
         this.saving.set(false);
         this.modalOpen.set(false);
         this.activeTab.set('grid');
