@@ -56,7 +56,7 @@ public class SecurityConfig {
                         })
                         .authenticationEntryPoint((request, response, exception) -> {
                             recordAccessDenied(accessAuditService, request);
-                            response.sendError(HttpServletResponse.SC_FORBIDDEN);
+                            response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
                         }));
         sessionFilter.ifAvailable(filter -> chain.addFilterBefore(
                 filter, UsernamePasswordAuthenticationFilter.class));
