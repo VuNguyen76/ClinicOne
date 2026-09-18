@@ -165,7 +165,7 @@ public class DoctorExaminationService {
         if (ticket.getStatus() != QueueTicketStatus.CALLED || session.getStatus() != ExaminationSessionStatus.SCHEDULED) {
             throw conflict("QUEUE_INVALID_STATE", "Chỉ có thể bắt đầu khi bệnh nhân đang được gọi và chưa bắt đầu khám.");
         }
-        if (ticketRepository.countInServiceForDoctorExcludingTicket(doctorId, ticketId) > 0) {
+        if (ticketRepository.countInServiceForDoctorExcludingTicket(doctorId, ticketId, ticket.getQueueDate()) > 0) {
             throw conflict("DOCTOR_ACTIVE_EXAMINATION", "Bác sĩ đang có một lượt khám khác chưa hoàn thành.");
         }
 
@@ -209,7 +209,10 @@ public class DoctorExaminationService {
             List<PrescriptionLine> prescriptionLines = prescriptionLines(record, request);
             record.saveDraft(doctorName(staffId, workspace.appointment()), request.reason(), request.examinationNotes(),
                     request.diagnosis(), request.conclusion(), request.treatmentPlan(), request.prescription(),
-                    request.followUpDate(), prescriptionLines, request.followUpDays(), normalizeFollowUpNote(request.followUpNote()));
+                    request.followUpDate(), request.followUpDays(), normalizeFollowUpNote(request.followUpNote()));
+            record.replacePrescriptionLines(List.of());
+            recordRepository.saveAndFlush(record);
+            record.replacePrescriptionLines(prescriptionLines);
             recordRepository.saveAndFlush(record);
         } catch (IllegalStateException exception) {
             throw conflict("MEDICAL_RECORD_LOCKED", exception.getMessage());
@@ -264,9 +267,13 @@ public class DoctorExaminationService {
         requireCurrentRecordVersion(record, request);
         try {
             List<PrescriptionLine> prescriptionLines = prescriptionLines(record, request);
-            record.sign(doctorName(staffId, workspace.appointment()), request.reason(), request.examinationNotes(),
+            record.saveDraft(doctorName(staffId, workspace.appointment()), request.reason(), request.examinationNotes(),
                     request.diagnosis(), request.conclusion(), request.treatmentPlan(), request.prescription(),
-                    request.followUpDate(), prescriptionLines, request.followUpDays(), normalizeFollowUpNote(request.followUpNote()));
+                    request.followUpDate(), request.followUpDays(), normalizeFollowUpNote(request.followUpNote()));
+            record.replacePrescriptionLines(List.of());
+            recordRepository.saveAndFlush(record);
+            record.replacePrescriptionLines(prescriptionLines);
+            record.markSigned();
             markAppointmentSlotUnavailable(workspace.appointment());
             workspace.session().assignSignRequestKey(normalizedRequestKey);
             workspace.session().complete();
