@@ -28,7 +28,7 @@ describe('PatientHeader', () => {
     expect(text).toContain('Hướng dẫn');
     expect(text).toContain('Thắc mắc');
     expect(text).toContain('Liên hệ');
-    expect(text).toContain('1900000');
+    expect(text).toContain('1900 0000');
   });
 
   it('toggles mobile menu on trigger', () => {

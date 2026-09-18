@@ -1,4 +1,4 @@
-<app-staff-workspace-shell moduleTitle="Khám bệnh" pageTitle="Hàng đợi khám bệnh">
+<app-staff-workspace-shell [moduleTitle]="isOwnDoctor() ? 'Khám bệnh' : 'Vận hành'" [pageTitle]="isOwnDoctor() ? 'Phòng khám của tôi' : 'Điều phối hàng đợi'">
   <!-- Window Action Toolbar Slot -->
   <div workspace-actions class="flex items-center gap-2">
     <button
@@ -30,18 +30,13 @@
     @if (isOwnDoctor()) {
       <section
         data-testid="doctor-shift-bar"
-        class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm"
+        class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs"
         aria-label="Ca khám hiện tại"
       >
-        <div class="flex flex-col gap-3 border-b border-slate-200 px-4 py-3 md:flex-row md:items-center md:justify-between">
-          <div class="flex min-w-0 items-center gap-3">
-            <span class="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-sky-50 text-[#0284c7]">
-              <mat-icon class="!h-5 !w-5 !text-[20px]">meeting_room</mat-icon>
-            </span>
-            <div class="min-w-0">
-              <p class="text-xs font-bold uppercase tracking-wider text-[#0284c7]">Ca khám hiện tại</p>
-              <p class="truncate text-base font-bold text-slate-900">{{ roomName() }}</p>
-            </div>
+        <div class="flex flex-col gap-3 px-4 py-3 md:flex-row md:items-center md:justify-between">
+          <div class="min-w-0">
+            <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Ca khám hiện tại</p>
+            <p class="truncate text-base font-bold text-slate-900">{{ roomName() }}</p>
           </div>
           <div class="flex flex-wrap items-center gap-2 text-sm">
             <div class="flex items-center gap-1 font-semibold text-slate-700">
@@ -113,245 +108,250 @@
           />
         </div>
         <div class="hidden min-h-9 items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-700 lg:flex">
-          <mat-icon class="!h-4 !w-4 !text-[17px] text-slate-500">meeting_room</mat-icon>
           <span class="truncate">{{ roomName() }}</span>
         </div>
       </section>
     }
 
       <section
-        class="grid grid-cols-2 overflow-hidden rounded-lg border border-slate-200 bg-white lg:grid-cols-4"
+        class="grid grid-cols-2 divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white sm:grid-cols-4 sm:divide-y-0 sm:divide-x shadow-xs"
         aria-label="Tóm tắt hàng đợi"
         [attr.data-testid]="isOwnDoctor() ? 'doctor-metrics' : null"
       >
-        <div class="erp-kpi-card border-t-2 border-t-[#0284c7]">
-          <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Đang chờ</p>
+        <div class="p-3.5 px-5">
+          <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Đang chờ</p>
           <p data-testid="waiting-count" class="mt-1 font-mono text-2xl font-bold tracking-tight text-[#0284c7]">
             {{ waitingCount() }}
           </p>
         </div>
-        <div class="erp-kpi-card border-t-2 border-t-amber-500">
-          <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Đã gọi</p>
+        <div class="p-3.5 px-5">
+          <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Đã gọi</p>
           <p class="mt-1 font-mono text-2xl font-bold tracking-tight text-amber-600">
             {{ calledCount() }}
           </p>
         </div>
-        <div class="erp-kpi-card border-t-2 border-t-violet-500">
-          <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Đang khám</p>
+        <div class="p-3.5 px-5">
+          <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Đang khám</p>
           <p class="mt-1 font-mono text-2xl font-bold tracking-tight text-violet-600">
             {{ inServiceCount() }}
           </p>
         </div>
-        <div class="erp-kpi-card border-t-2 border-t-emerald-500">
-          <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Hoàn tất</p>
+        <div class="p-3.5 px-5">
+          <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Hoàn tất</p>
           <p class="mt-1 font-mono text-2xl font-bold tracking-tight text-emerald-600">
             {{ completedCount() }}
           </p>
         </div>
       </section>
 
-    <!-- Queue Table Card -->
-    <div
-      data-testid="doctor-main-grid"
-      [class]="isOwnDoctor() ? 'grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_320px]' : 'block'"
-    >
-    <section class="erp-card overflow-hidden" aria-label="Danh sách lượt khám">
-      <div class="erp-toolbar">
-        <div class="flex items-center gap-2.5">
-          <h2 class="text-sm font-bold uppercase tracking-wider text-slate-800">Hàng đợi</h2>
-          <span class="rounded-full bg-slate-100 px-2 py-0.5 font-mono text-[11px] font-semibold text-slate-600">
-            {{ queue().length }} lượt
-          </span>
-        </div>
-        <div class="flex items-center gap-2">
-          @if (isOwnDoctor() && nextWaitingTicket()) {
-            <button
-              data-testid="call-next"
-              type="button"
-              class="erp-btn-primary"
-              [disabled]="busyTicketId() === 'next'"
-              (click)="callNextDoctor()"
-            >
-              <mat-icon class="!h-4 !w-4 !text-[16px]">campaign</mat-icon>
-              <span>Gọi bệnh nhân tiếp theo</span>
-            </button>
-          }
-          @if (!isOwnDoctor()) {
-            <span class="hidden rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-semibold text-slate-600 sm:inline">
-              {{ roleLabel() }}
-            </span>
-          }
-        </div>
-      </div>
-
-      <!-- Loading skeleton -->
-      @if (loadingRooms() || loadingQueue()) {
-        <div class="space-y-2 p-4">
-          @for (line of [1, 2, 3, 4]; track line) {
-            <div class="h-9 animate-pulse rounded-md bg-slate-100"></div>
-          }
-        </div>
-      }
-      <!-- Empty states -->
-      @else if (!selectedRoomCode()) {
-        <div class="grid min-h-48 place-items-center p-6 text-center">
-          <div>
-            <mat-icon class="!h-9 !w-9 !text-[36px] text-slate-400">{{ isOwnDoctor() ? 'event_busy' : 'touch_app' }}</mat-icon>
-            <p class="mt-2 text-sm font-semibold text-slate-700">{{ isOwnDoctor() ? 'Không có ca làm việc' : 'Chọn phòng để xem lượt khám' }}</p>
-          </div>
-        </div>
-      }
-      @else if (queue().length === 0) {
-        <div class="grid min-h-48 place-items-center p-6 text-center">
-          <div>
-            <mat-icon class="!h-9 !w-9 !text-[36px] text-slate-300">groups</mat-icon>
-            <p class="mt-2 text-xs font-semibold text-slate-700">Chưa có lượt khám</p>
-          </div>
-        </div>
-      }
-      <!-- High Density Queue Table (36px Rows) -->
-      @else {
-        <div class="erp-table-container !rounded-none !border-0">
-          <table class="erp-table">
-            <thead>
-              <tr>
-                <th class="w-16 text-center">Số TT</th>
-                <th>Người bệnh</th>
-                <th class="w-28 text-center">Giờ hẹn</th>
-                <th class="w-32 text-center">Trạng thái</th>
-                <th class="w-56 text-right">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (ticket of queue(); track ticket.id) {
-                <tr data-testid="queue-row" class="erp-tr">
-                  <td class="text-center font-mono">
-                    <span class="font-mono text-sm font-bold text-slate-900">{{ ticket.queueNumber }}</span>
-                  </td>
-                  <td>
-                    @if (ticket.patientName) {
-                      <p class="font-semibold text-slate-800">{{ ticket.patientName }}</p>
-                      <p class="text-sm text-slate-500">
-                        Sinh ngày {{ formatDate(ticket.patientDateOfBirth) }} · {{ ticket.appointmentCode }}
-                      </p>
-                    } @else {
-                      <p class="font-semibold text-slate-800">{{ ticket.appointmentCode }}</p>
-                      <p class="text-sm text-slate-500">Chưa có thông tin hồ sơ</p>
-                    }
-                  </td>
-                  <td class="text-center font-mono text-xs font-semibold text-slate-700">
-                    {{ formatTime(ticket.appointmentTime) }}
-                  </td>
-                  <td class="text-center">
-                    <span
-                      data-testid="queue-status"
-                      class="erp-badge"
-                      [class]="statusClass(ticket.status)"
-                    >
-                      <span class="erp-dot" [class]="statusDotClass(ticket.status)"></span>
-                      <span>{{ ticket.statusLabel }}</span>
-                    </span>
-                  </td>
-                  <td class="text-right">
-                    <div class="flex items-center justify-end gap-1.5">
-                      @if (isOwnDoctor() && ticket.status === 'CALLED') {
-                        <button
-                          type="button"
-                          class="erp-btn-secondary !min-h-7 !px-2.5 !py-1 !text-[11px]"
-                          [disabled]="busyTicketId() === ticket.id"
-                          (click)="act(ticket, 'skip')"
-                        >
-                          Gọi lại sau
-                        </button>
-                        <button
-                          type="button"
-                          class="erp-btn-primary !min-h-7 !px-2.5 !py-1 !text-[11px]"
-                          [disabled]="busyTicketId() === ticket.id"
-                          (click)="act(ticket, 'start')"
-                        >
-                          Vào khám
-                        </button>
-                      }
-                      @if (isOwnDoctor() && ticket.status === 'IN_SERVICE') {
-                        <button
-                          data-testid="open-examination"
-                          type="button"
-                          class="erp-btn-primary !min-h-8 !px-3 !py-1.5 !text-sm"
-                          (click)="openExamination(ticket)"
-                        >
-                          <mat-icon class="!h-4 !w-4 !text-[16px]">clinical_notes</mat-icon>
-                          <span>Khám</span>
-                        </button>
-                      }
-                      @if (isOwnDoctor() && ticket.status === 'COMPLETED') {
-                        <button
-                          data-testid="view-completed-examination"
-                          type="button"
-                          class="erp-btn-secondary !min-h-7 !px-2.5 !py-1 !text-[11px]"
-                          (click)="openExamination(ticket)"
-                        >
-                          <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">history_edu</mat-icon>
-                          <span>Bệnh án</span>
-                        </button>
-                      }
-                    </div>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      }
-    </section>
-
-    @if (isOwnDoctor()) {
-      <aside class="erp-card self-start overflow-hidden" aria-label="Bệnh nhân đang xử lý">
-        <div class="erp-toolbar">
-          <h2 class="text-sm font-bold uppercase tracking-wider text-slate-800">Đang khám</h2>
-        </div>
+    <!-- Queue Workspace -->
+    <div data-testid="doctor-main-grid" class="space-y-4">
+      @if (isOwnDoctor()) {
         @if (currentDoctorTicket(); as current) {
-          <div data-testid="doctor-current-patient" class="p-4">
-            <div class="flex items-start justify-between gap-3">
-              <div class="grid h-14 w-14 shrink-0 place-items-center rounded-lg bg-sky-50 text-center text-[#0284c7]">
+          <section
+            data-testid="doctor-current-patient"
+            class="overflow-hidden rounded-xl border border-sky-200 bg-gradient-to-r from-sky-50/80 via-white to-sky-50/40 p-4 shadow-xs"
+            aria-label="Bệnh nhân đang xử lý"
+          >
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div class="flex items-center gap-3.5">
+                <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#0284c7] font-mono text-base font-bold text-white shadow-xs">
+                  #{{ current.queueNumber }}
+                </div>
                 <div>
-                  <span class="block text-[10px] font-bold uppercase leading-none">Số</span>
-                  <strong class="font-mono text-2xl leading-tight">{{ current.queueNumber }}</strong>
+                  <div class="flex items-center gap-2">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Lượt khám đang xử lý</span>
+                    <span class="erp-badge" [class]="statusClass(current.status)">
+                      {{ current.status === 'IN_SERVICE' ? 'Đang khám' : 'Đang được gọi' }}
+                    </span>
+                  </div>
+                  <h3 class="text-base font-bold text-slate-900">{{ current.patientName || current.appointmentCode }}</h3>
+                  <p class="text-xs text-slate-500">
+                    Sinh ngày {{ formatDate(current.patientDateOfBirth) }} · Giờ hẹn: {{ formatTime(current.appointmentTime) }} · Mã: {{ current.appointmentCode }}
+                  </p>
                 </div>
               </div>
-              <span class="erp-badge" [class]="statusClass(current.status)">
-                {{ current.status === 'IN_SERVICE' ? 'Đang khám' : 'Đang được gọi' }}
-              </span>
+
+              <div class="flex items-center gap-2">
+                @if (current.status === 'CALLED') {
+                  <button
+                    type="button"
+                    class="erp-btn-primary"
+                    [disabled]="busyTicketId() === current.id"
+                    (click)="act(current, 'start')"
+                  >
+                    <span>Vào khám</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="erp-btn-secondary"
+                    [disabled]="busyTicketId() === current.id"
+                    (click)="act(current, 'skip')"
+                  >
+                    <span>Gọi lại</span>
+                  </button>
+                } @else {
+                  <button
+                    type="button"
+                    class="erp-btn-primary"
+                    (click)="openExamination(current)"
+                  >
+                    <span>Mở phiếu khám</span>
+                  </button>
+                }
+              </div>
             </div>
-            <h3 class="mt-3 truncate text-base font-bold text-slate-900">{{ current.patientName || current.appointmentCode }}</h3>
-            <p class="mt-1 text-sm text-slate-500">{{ formatDate(current.patientDateOfBirth) }} · {{ formatTime(current.appointmentTime) }}</p>
-            <p class="mt-0.5 font-mono text-xs text-slate-400">{{ current.appointmentCode }}</p>
-            <div class="mt-4 grid gap-2">
-              @if (current.status === 'CALLED') {
-                <button type="button" class="erp-btn-primary w-full justify-center" [disabled]="busyTicketId() === current.id" (click)="act(current, 'start')">
-                  <mat-icon class="!h-4 !w-4 !text-[16px]">stethoscope</mat-icon>
-                  <span>Khám</span>
-                </button>
-                <button type="button" class="erp-btn-secondary w-full justify-center" [disabled]="busyTicketId() === current.id" (click)="act(current, 'skip')">
-                  Gọi lại
-                </button>
-              } @else {
-                <button type="button" class="erp-btn-primary w-full justify-center" (click)="openExamination(current)">
-                  <mat-icon class="!h-4 !w-4 !text-[16px]">clinical_notes</mat-icon>
-                  <span>Mở phiếu khám</span>
-                </button>
-              }
-            </div>
-          </div>
+          </section>
         } @else {
-          <div data-testid="doctor-current-patient" class="grid min-h-36 place-items-center p-5 text-center">
+          <div data-testid="doctor-current-patient" class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-500 shadow-xs flex items-center justify-between">
+            <span>Chưa có lượt khám đang xử lý. Bấm <strong>Gọi bệnh nhân tiếp theo</strong> hoặc chọn lượt khám từ hàng đợi bên dưới.</span>
+          </div>
+        }
+      }
+
+      <section class="erp-card overflow-hidden shadow-xs" aria-label="Danh sách lượt khám">
+        <div class="erp-toolbar">
+          <div class="flex items-center gap-2.5">
+            <h2 class="text-sm font-bold uppercase tracking-wider text-slate-800">Hàng đợi</h2>
+            <span class="rounded-full bg-slate-100 px-2 py-0.5 font-mono text-[11px] font-semibold text-slate-600">
+              {{ queue().length }} lượt
+            </span>
+          </div>
+          <div class="flex items-center gap-2">
+            @if (isOwnDoctor() && nextWaitingTicket()) {
+              <button
+                data-testid="call-next"
+                type="button"
+                class="erp-btn-primary"
+                [disabled]="busyTicketId() === 'next'"
+                (click)="callNextDoctor()"
+              >
+                <span>Gọi bệnh nhân tiếp theo</span>
+              </button>
+            }
+            @if (!isOwnDoctor()) {
+              <span class="hidden rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-semibold text-slate-600 sm:inline">
+                {{ roleLabel() }}
+              </span>
+            }
+          </div>
+        </div>
+
+        <!-- Loading skeleton -->
+        @if (loadingRooms() || loadingQueue()) {
+          <div class="space-y-2 p-4">
+            @for (line of [1, 2, 3, 4]; track line) {
+              <div class="h-9 animate-pulse rounded-md bg-slate-100"></div>
+            }
+          </div>
+        }
+        <!-- Empty states -->
+        @else if (!selectedRoomCode()) {
+          <div class="grid min-h-48 place-items-center p-6 text-center">
             <div>
-              <mat-icon class="!h-8 !w-8 !text-[32px] text-slate-300">person_search</mat-icon>
-              <p class="mt-2 text-sm font-semibold text-slate-600">Chưa có lượt khám</p>
+              <p class="text-sm font-semibold text-slate-700">{{ isOwnDoctor() ? 'Không có ca làm việc' : 'Chọn phòng để xem lượt khám' }}</p>
             </div>
           </div>
         }
-      </aside>
-    }
+        @else if (queue().length === 0) {
+          <div class="grid min-h-48 place-items-center p-6 text-center">
+            <div>
+              <p class="text-xs font-semibold text-slate-700">Chưa có lượt khám trong hàng đợi</p>
+            </div>
+          </div>
+        }
+        <!-- Queue Table -->
+        @else {
+          <div class="erp-table-container !rounded-none !border-0">
+            <table class="erp-table">
+              <thead>
+                <tr>
+                  <th class="w-16 text-center">Số TT</th>
+                  <th>Người bệnh</th>
+                  <th class="w-28 text-center">Giờ hẹn</th>
+                  <th class="w-32 text-center">Trạng thái</th>
+                  <th class="w-56 text-center font-semibold">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (ticket of queue(); track ticket.id) {
+                  <tr data-testid="queue-row" class="erp-tr">
+                    <td class="text-center font-mono">
+                      <span class="font-mono text-sm font-bold text-slate-900">{{ ticket.queueNumber }}</span>
+                    </td>
+                    <td>
+                      @if (ticket.patientName) {
+                        <p class="font-semibold text-slate-800">{{ ticket.patientName }}</p>
+                        <p class="text-xs text-slate-500">
+                          Sinh ngày {{ formatDate(ticket.patientDateOfBirth) }} · {{ ticket.appointmentCode }}
+                        </p>
+                      } @else {
+                        <p class="font-semibold text-slate-800">{{ ticket.appointmentCode }}</p>
+                        <p class="text-xs text-slate-500">Chưa có thông tin hồ sơ</p>
+                      }
+                    </td>
+                    <td class="text-center font-mono text-xs font-semibold text-slate-700">
+                      {{ formatTime(ticket.appointmentTime) }}
+                    </td>
+                    <td class="text-center">
+                      <span
+                        data-testid="queue-status"
+                        class="erp-badge"
+                        [class]="statusClass(ticket.status)"
+                      >
+                        <span class="erp-dot" [class]="statusDotClass(ticket.status)"></span>
+                        <span>{{ ticket.statusLabel }}</span>
+                      </span>
+                    </td>
+                    <td class="text-center">
+                      <div class="flex items-center justify-center gap-2">
+                        @if (isOwnDoctor() && ticket.status === 'CALLED') {
+                          <button
+                            type="button"
+                            class="erp-btn-secondary !min-h-7 !px-2.5 !py-1 !text-[11px]"
+                            [disabled]="busyTicketId() === ticket.id"
+                            (click)="act(ticket, 'skip')"
+                          >
+                            Gọi lại sau
+                          </button>
+                          <button
+                            type="button"
+                            class="erp-btn-primary !min-h-7 !px-2.5 !py-1 !text-[11px]"
+                            [disabled]="busyTicketId() === ticket.id"
+                            (click)="act(ticket, 'start')"
+                          >
+                            Vào khám
+                          </button>
+                        }
+                        @if (isOwnDoctor() && ticket.status === 'IN_SERVICE') {
+                          <button
+                            data-testid="open-examination"
+                            type="button"
+                            class="erp-btn-primary !min-h-8 !px-3 !py-1.5 !text-xs"
+                            (click)="openExamination(ticket)"
+                          >
+                            <span>Khám</span>
+                          </button>
+                        }
+                        @if (isOwnDoctor() && ticket.status === 'COMPLETED') {
+                          <button
+                            data-testid="view-completed-examination"
+                            type="button"
+                            class="erp-btn-secondary !min-h-7 !px-2.5 !py-1 !text-[11px]"
+                            (click)="openExamination(ticket)"
+                          >
+                            <span>Bệnh án</span>
+                          </button>
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
     </div>
   </div>
 </app-staff-workspace-shell>

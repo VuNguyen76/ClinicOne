@@ -8,7 +8,7 @@ import { StaffWorkspaceShell } from './staff-workspace-shell';
   standalone: true,
   imports: [StaffWorkspaceShell],
   template: `
-    <app-staff-workspace-shell moduleTitle="Khám bệnh" pageTitle="Hàng đợi khám bệnh">
+    <app-staff-workspace-shell moduleTitle="Khám bệnh" pageTitle="Phòng khám của tôi">
       <button workspace-actions type="button">Làm mới</button>
       <nav workspace-tabs data-testid="workspace-tabs"><button type="button">Danh sách</button><button type="button">Thiết lập</button></nav>
       <p data-testid="projected-content">Nội dung nghiệp vụ</p>
@@ -36,13 +36,21 @@ describe('StaffWorkspaceShell', () => {
 
   it('keeps staff inside role-specific ERP navigation without a customer home link', () => {
     const links = Array.from(fixture.nativeElement.querySelectorAll('[data-testid="staff-module-nav"] a')) as HTMLAnchorElement[];
-    expect(links.map((link) => link.querySelector('span')?.textContent?.trim())).toEqual(['Hàng đợi khám bệnh']);
+    expect(links.map((link) => link.querySelector('span')?.textContent?.trim())).toEqual([
+      'Phòng khám của tôi',
+      'Thời khóa biểu',
+      'Báo vắng & Nghỉ phép',
+      'Dược phẩm & Thuốc',
+      'Chẩn đoán',
+      'Mẫu bệnh án',
+      'Báo cáo thống kê',
+    ]);
     expect(links.some((link) => link.getAttribute('href') === '/home')).toBe(false);
   });
 
   it('renders a compact window toolbar and projected work area', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="staff-window-title"]')?.textContent)
-      .toContain('Hàng đợi khám bệnh');
+      .toContain('Phòng khám của tôi');
     expect(fixture.nativeElement.querySelector('[data-testid="staff-window-actions"]')?.textContent)
       .toContain('Làm mới');
     expect(fixture.nativeElement.querySelector('[data-testid="projected-content"]')).toBeTruthy();
@@ -64,13 +72,13 @@ describe('StaffWorkspaceShell', () => {
 
   it('filters the module menu from the functional search input', () => {
     const input = fixture.nativeElement.querySelector('input[type="search"]') as HTMLInputElement;
-    input.value = 'hàng đợi';
+    input.value = 'thời khóa biểu';
     input.dispatchEvent(new Event('input'));
     fixture.detectChanges();
 
     const items = fixture.nativeElement.querySelectorAll('[data-testid="staff-module-nav"] a span') as NodeListOf<HTMLSpanElement>;
     const labels = Array.from(items).map((element) => element.textContent?.trim());
-    expect(labels).toEqual(['Hàng đợi khám bệnh']);
+    expect(labels).toEqual(['Thời khóa biểu']);
   });
 
   it('shows each reception workflow as a separate menu destination', () => {
@@ -88,6 +96,8 @@ describe('StaffWorkspaceShell', () => {
       '/reception/queue',
       '/reception/exceptions',
       '/reception/profiles',
+      '/admin/schedule-templates',
+      '/admin/doctor-time-off',
     ]);
   });
 
@@ -102,5 +112,20 @@ describe('StaffWorkspaceShell', () => {
     const hrefs = links.map((link) => link.getAttribute('href'));
     expect(hrefs).toContain('/admin/diagnoses');
     expect(hrefs).not.toContain('/admin/reason-catalog');
+  });
+
+  it('shows operational queue supervision and management links for coordinator', () => {
+    fixture.destroy();
+    sessionStorage.setItem('clinicOneStaffRole', 'COORDINATOR');
+    sessionStorage.setItem('clinicOneStaffRoles', JSON.stringify(['COORDINATOR']));
+    fixture = TestBed.createComponent(HostComponent);
+    fixture.detectChanges();
+
+    const links = Array.from(fixture.nativeElement.querySelectorAll('[data-testid="staff-module-nav"] a')) as HTMLAnchorElement[];
+    const hrefs = links.map((link) => link.getAttribute('href'));
+    expect(hrefs).toContain('/admin/queues');
+    expect(hrefs).toContain('/admin/schedule-templates');
+    expect(hrefs).toContain('/admin/doctor-time-off');
+    expect(hrefs).toContain('/admin/rescheduling');
   });
 });

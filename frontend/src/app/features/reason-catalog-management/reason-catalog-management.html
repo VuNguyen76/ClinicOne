@@ -30,7 +30,7 @@
         <mat-icon class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 !h-4 !w-4 !text-[18px] text-slate-400">search</mat-icon>
         <input
           type="text"
-          class="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-8 text-xs text-slate-800 placeholder-slate-400 outline-none transition focus:border-[#0e3d48] focus:ring-1 focus:ring-[#0e3d48] shadow-2xs"
+          class="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-8 text-xs text-slate-800 placeholder-slate-400 outline-none transition focus:border-[#0284c7] focus:ring-1 focus:ring-[#0284c7] shadow-2xs"
           placeholder="Tìm kiếm theo mã hoặc nội dung lý do..."
           [value]="searchTerm()"
           (input)="searchTerm.set($any($event.target).value)"
@@ -82,7 +82,7 @@
                 <th class="px-4 py-3.5 w-56">Mã lý do</th>
                 <th class="px-4 py-3.5">Nội dung hiển thị khi thao tác</th>
                 <th class="px-4 py-3.5 w-32 text-center">Trạng thái</th>
-                <th class="px-4 py-3.5 w-32 text-right">Thao tác</th>
+                <th class="px-4 py-3.5 w-32 text-center font-semibold">Thao tác</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-50">
@@ -103,15 +103,17 @@
                       </span>
                     }
                   </td>
-                  <td class="px-4 py-3 text-right">
-                    <button
-                      type="button"
-                      class="erp-btn-secondary !min-h-0 !py-1 !px-2.5 text-[11px]"
-                      (click)="toggle(item)"
-                    >
-                      <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">{{ item.active ? 'pause' : 'play_arrow' }}</mat-icon>
-                      <span>{{ item.active ? 'Tạm ngưng' : 'Kích hoạt' }}</span>
-                    </button>
+                  <td class="px-4 py-3 text-center">
+                    <div class="flex items-center justify-center">
+                      <button
+                        type="button"
+                        class="erp-btn-secondary !min-h-0 !py-1 !px-2.5 text-[11px]"
+                        (click)="toggle(item)"
+                      >
+                        <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">{{ item.active ? 'pause' : 'play_arrow' }}</mat-icon>
+                        <span>{{ item.active ? 'Tạm ngưng' : 'Kích hoạt' }}</span>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               } @empty {
@@ -163,13 +165,13 @@
               </div>
             }
             <label class="grid gap-1">
-              <span class="erp-label">Mã lý do (2-50 ký tự A-Z, 0-9, _) <span class="erp-label-required">*</span></span>
+              <span class="erp-label">Mã lý do <span class="erp-label-required">*</span></span>
               <input
                 class="erp-input font-mono uppercase"
                 [ngModel]="code()"
                 (ngModelChange)="code.set($event)"
                 name="code"
-                placeholder="vd: PATIENT_CHANGE_PLAN"
+                placeholder="PATIENT_CHANGE_PLAN"
               />
             </label>
 
@@ -180,7 +182,7 @@
                 [ngModel]="label()"
                 (ngModelChange)="label.set($event)"
                 name="label"
-                placeholder="vd: Bệnh nhân bận việc đột xuất"
+                placeholder="Bệnh nhân bận việc đột xuất"
               />
             </label>
           </div>

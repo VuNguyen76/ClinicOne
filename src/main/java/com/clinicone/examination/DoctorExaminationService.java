@@ -206,10 +206,16 @@ public class DoctorExaminationService {
         MedicalRecord record = record(workspace.session());
         requireCurrentRecordVersion(record, request);
         try {
+            if (!record.getPrescriptionLines().isEmpty()) {
+                record.replacePrescriptionLines(List.of());
+                recordRepository.saveAndFlush(record);
+            }
             List<PrescriptionLine> prescriptionLines = prescriptionLines(record, request);
             record.saveDraft(doctorName(staffId, workspace.appointment()), request.reason(), request.examinationNotes(),
                     request.diagnosis(), request.conclusion(), request.treatmentPlan(), request.prescription(),
-                    request.followUpDate(), request.followUpDays(), normalizeFollowUpNote(request.followUpNote()));
+                    request.followUpDate(), List.of(), request.followUpDays(), normalizeFollowUpNote(request.followUpNote()),
+                    request.bloodPressure(), request.heartRate(), request.temperature(), request.spO2(),
+                    request.weight(), request.height(), request.allergySummary());
             record.replacePrescriptionLines(List.of());
             recordRepository.saveAndFlush(record);
             record.replacePrescriptionLines(prescriptionLines);
@@ -224,7 +230,7 @@ public class DoctorExaminationService {
 
     @Transactional
     public DoctorExaminationResponse sign(UUID ticketId, String staffId, DoctorExaminationRequest request,
-                                          String requestKey) {
+                                           String requestKey) {
         String normalizedRequestKey = IdempotencyKeys.required(requestKey,
                 "Cần mã chống gửi lặp để ký phiếu khám.");
         Workspace workspace = workspace(ticketId, staffId, true);
@@ -266,10 +272,16 @@ public class DoctorExaminationService {
         MedicalRecord record = existingRecord == null ? record(workspace.session()) : existingRecord;
         requireCurrentRecordVersion(record, request);
         try {
+            if (!record.getPrescriptionLines().isEmpty()) {
+                record.replacePrescriptionLines(List.of());
+                recordRepository.saveAndFlush(record);
+            }
             List<PrescriptionLine> prescriptionLines = prescriptionLines(record, request);
             record.saveDraft(doctorName(staffId, workspace.appointment()), request.reason(), request.examinationNotes(),
                     request.diagnosis(), request.conclusion(), request.treatmentPlan(), request.prescription(),
-                    request.followUpDate(), request.followUpDays(), normalizeFollowUpNote(request.followUpNote()));
+                    request.followUpDate(), List.of(), request.followUpDays(), normalizeFollowUpNote(request.followUpNote()),
+                    request.bloodPressure(), request.heartRate(), request.temperature(), request.spO2(),
+                    request.weight(), request.height(), request.allergySummary());
             record.replacePrescriptionLines(List.of());
             recordRepository.saveAndFlush(record);
             record.replacePrescriptionLines(prescriptionLines);
@@ -624,7 +636,14 @@ public class DoctorExaminationService {
                 record == null ? null : record.getFollowUpDays(), record == null ? null : record.getFollowUpNote(),
                 session.getStatus().name(), record == null ? null : record.getSignedAt(),
                 record == null ? null : record.getDraftSavedAt(), record == null ? null : record.getVersion(), requiresRecord, history,
-                record == null ? List.of() : record.getPrescriptionLines().stream().map(PrescriptionLineResponse::from).toList());
+                record == null ? List.of() : record.getPrescriptionLines().stream().map(PrescriptionLineResponse::from).toList(),
+                record == null ? null : record.getBloodPressure(),
+                record == null ? null : record.getHeartRate(),
+                record == null ? null : record.getTemperature(),
+                record == null ? null : record.getSpO2(),
+                record == null ? null : record.getWeight(),
+                record == null ? null : record.getHeight(),
+                record == null ? null : record.getAllergySummary());
     }
 
     private record Workspace(QueueTicket ticket, Appointment appointment, ExaminationSession session) {

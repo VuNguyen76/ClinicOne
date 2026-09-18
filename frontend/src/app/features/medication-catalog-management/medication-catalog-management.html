@@ -1,4 +1,4 @@
-<app-staff-workspace-shell moduleTitle="Danh mục" pageTitle="Thuốc">
+<app-staff-workspace-shell moduleTitle="Chuyên môn" pageTitle="Dược phẩm & Thuốc">
   <div class="grid gap-6">
     <!-- Alerts & Notices -->
     @if (error() && !modalOpen()) {
@@ -24,22 +24,85 @@
       </div>
     }
 
-    <!-- Search Bar + Add Button Header -->
+    <!-- 1. Tabs Navigation: Thuốc | Đơn vị tính | Liều dùng chuẩn -->
+    <div class="flex items-center gap-6 border-b border-slate-200">
+      <button
+        type="button"
+        data-testid="tab-medications"
+        (click)="setTab('medications')"
+        class="relative flex items-center gap-2 pb-3 text-xs font-bold transition cursor-pointer"
+        [class.text-[#0284c7]]="activeTab() === 'medications'"
+        [class.border-b-2]="activeTab() === 'medications'"
+        [class.border-[#0284c7]]="activeTab() === 'medications'"
+        [class.text-slate-500]="activeTab() !== 'medications'"
+        [class.hover:text-slate-800]="activeTab() !== 'medications'"
+      >
+        <mat-icon class="!h-4 !w-4 !text-[16px]">medication</mat-icon>
+        <span>Thuốc</span>
+        <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600"
+              [class.bg-sky-100]="activeTab() === 'medications'"
+              [class.text-sky-800]="activeTab() === 'medications'">
+          {{ medications().length }}
+        </span>
+      </button>
+
+      <button
+        type="button"
+        data-testid="tab-units"
+        (click)="setTab('units')"
+        class="relative flex items-center gap-2 pb-3 text-xs font-bold transition cursor-pointer"
+        [class.text-[#0284c7]]="activeTab() === 'units'"
+        [class.border-b-2]="activeTab() === 'units'"
+        [class.border-[#0284c7]]="activeTab() === 'units'"
+        [class.text-slate-500]="activeTab() !== 'units'"
+        [class.hover:text-slate-800]="activeTab() !== 'units'"
+      >
+        <mat-icon class="!h-4 !w-4 !text-[16px]">straighten</mat-icon>
+        <span>Đơn vị tính</span>
+        <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600"
+              [class.bg-sky-100]="activeTab() === 'units'"
+              [class.text-sky-800]="activeTab() === 'units'">
+          {{ medicationUnits().length }}
+        </span>
+      </button>
+
+      <button
+        type="button"
+        data-testid="tab-dosages"
+        (click)="setTab('dosages')"
+        class="relative flex items-center gap-2 pb-3 text-xs font-bold transition cursor-pointer"
+        [class.text-[#0284c7]]="activeTab() === 'dosages'"
+        [class.border-b-2]="activeTab() === 'dosages'"
+        [class.border-[#0284c7]]="activeTab() === 'dosages'"
+        [class.text-slate-500]="activeTab() !== 'dosages'"
+        [class.hover:text-slate-800]="activeTab() !== 'dosages'"
+      >
+        <mat-icon class="!h-4 !w-4 !text-[16px]">schedule</mat-icon>
+        <span>Liều dùng chuẩn</span>
+        <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600"
+              [class.bg-sky-100]="activeTab() === 'dosages'"
+              [class.text-sky-800]="activeTab() === 'dosages'">
+          {{ medicationDosages().length }}
+        </span>
+      </button>
+    </div>
+
+    <!-- 2. Search Bar + Action Buttons Header -->
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div class="relative w-full max-w-md">
         <mat-icon class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 !h-4 !w-4 !text-[18px] text-slate-400">search</mat-icon>
         <input
           type="text"
-          class="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-8 text-xs text-slate-800 placeholder-slate-400 outline-none transition focus:border-[#0e3d48] focus:ring-1 focus:ring-[#0e3d48] shadow-2xs"
-          placeholder="Tìm kiếm theo mã hoặc tên thuốc..."
+          class="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-8 text-xs text-slate-800 placeholder-slate-400 outline-none transition focus:border-[#0284c7] focus:ring-1 focus:ring-[#0284c7] shadow-2xs"
+          [placeholder]="activeTab() === 'medications' ? 'Tìm kiếm theo mã hoặc tên thuốc...' : (activeTab() === 'units' ? 'Tìm kiếm đơn vị tính...' : 'Tìm kiếm liều dùng chuẩn...')"
           [ngModel]="query()"
           (ngModelChange)="query.set($event)"
-          name="medicationSearch"
+          name="catalogSearch"
         />
         @if (query()) {
           <button
             type="button"
-            class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
             (click)="query.set('')"
           >
             <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">close</mat-icon>
@@ -48,18 +111,20 @@
       </div>
 
       <div class="flex items-center gap-2">
+        @if (activeTab() === 'medications' && canManage()) {
+          <button
+            data-testid="open-create-medication"
+            type="button"
+            class="erp-btn-primary cursor-pointer"
+            (click)="openCreate()"
+          >
+            <mat-icon class="!h-4 !w-4 !text-[18px]">add</mat-icon>
+            <span>Thêm thuốc</span>
+          </button>
+        }
         <button
-          data-testid="open-create-medication"
           type="button"
-          class="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0e3d48] px-5 py-2.5 text-xs font-semibold text-white shadow-xs transition hover:bg-[#082830] cursor-pointer"
-          (click)="openCreate()"
-        >
-          <mat-icon class="!h-4 !w-4 !text-[18px]">add</mat-icon>
-          <span>Thêm thuốc</span>
-        </button>
-        <button
-          type="button"
-          class="erp-btn-icon !h-10 !w-10 rounded-xl border border-slate-200 bg-white shadow-2xs"
+          class="erp-btn-icon !h-10 !w-10 rounded-xl border border-slate-200 bg-white shadow-2xs cursor-pointer"
           (click)="load()"
           [disabled]="loading()"
           title="Làm mới dữ liệu"
@@ -69,77 +134,201 @@
       </div>
     </div>
 
-    <!-- 3. Main DataGrid Table -->
-    @if (loading()) {
-      <div class="grid min-h-64 place-items-center rounded-2xl border border-slate-100 bg-white text-xs text-slate-500 shadow-xs">
-        Đang tải danh mục thuốc...
-      </div>
-    } @else {
-      <section class="rounded-2xl border border-slate-100 bg-white shadow-xs overflow-hidden w-full">
+    <!-- 3. TAB 1: BẢNG DANH MỤC THUỐC -->
+    @if (activeTab() === 'medications') {
+      @if (loading()) {
+        <div class="grid min-h-64 place-items-center rounded-2xl border border-slate-100 bg-white text-xs text-slate-500 shadow-xs">
+          Đang tải danh mục thuốc...
+        </div>
+      } @else {
+        <section class="rounded-2xl border border-slate-100 bg-white shadow-xs overflow-hidden w-full">
+          <div class="overflow-x-auto">
+            <table class="w-full table-fixed text-left text-xs">
+              <thead>
+                <tr class="border-b border-slate-100 text-[11px] font-semibold text-slate-500 uppercase tracking-wider bg-slate-50/50">
+                  <th class="px-4 py-3.5 w-44 whitespace-nowrap">Mã thuốc</th>
+                  <th class="px-4 py-3.5">Tên thuốc</th>
+                  <th class="px-4 py-3.5 w-36 whitespace-nowrap">Nhóm & Đơn vị</th>
+                  <th class="px-4 py-3.5 w-48">Liều dùng</th>
+                  <th class="px-4 py-3.5 w-28 text-center whitespace-nowrap">Trạng thái</th>
+                  <th class="px-4 py-3.5 w-28 text-center font-semibold whitespace-nowrap">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-50">
+                @for (item of filteredMedications(); track item.id) {
+                  <tr data-testid="medication-row" class="transition hover:bg-slate-50/70">
+                    <td class="px-4 py-3 font-mono font-bold text-slate-800 whitespace-nowrap">{{ item.code }}</td>
+                    <td class="px-4 py-3">
+                      <span class="font-semibold text-slate-900 text-xs block truncate">{{ item.name }}</span>
+                      @if (item.specialties) {
+                        <p class="text-[11px] text-slate-400 mt-0.5 truncate">{{ item.specialties }}</p>
+                      }
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap">
+                      <div class="flex items-center gap-1.5 flex-wrap">
+                        @if (item.category) {
+                          <span class="inline-flex items-center rounded-md bg-sky-50 px-2 py-0.5 text-[11px] font-medium text-sky-700 border border-sky-200/60">
+                            {{ item.category }}
+                          </span>
+                        }
+                        @if (item.unit) {
+                          <span class="inline-flex items-center rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">
+                            {{ item.unit }}
+                          </span>
+                        }
+                      </div>
+                    </td>
+                    <td class="px-4 py-3 text-slate-600 text-xs truncate" [title]="item.defaultDosage || ''">
+                      {{ item.defaultDosage || '—' }}
+                    </td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">
+                      @if (item.active) {
+                        <span class="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[11px] font-medium text-emerald-800">
+                          Đang dùng
+                        </span>
+                      } @else {
+                        <span class="inline-flex items-center rounded-full bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-[11px] font-medium text-slate-600">
+                          Tạm ngưng
+                        </span>
+                      }
+                    </td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">
+                      <div class="flex items-center justify-center gap-2">
+                        @if (canManage()) {
+                          <button
+                            type="button"
+                            class="erp-btn-icon-accent cursor-pointer"
+                            (click)="openEdit(item)"
+                            title="Sửa thông tin thuốc"
+                          >
+                            <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">edit</mat-icon>
+                          </button>
+                        }
+                        @if (canToggleActive()) {
+                          <button
+                            type="button"
+                            class="erp-btn-icon cursor-pointer"
+                            [attr.data-testid]="'toggle-medication-' + item.id"
+                            [title]="item.active ? 'Tạm ngưng dùng' : 'Kích hoạt lại'"
+                            (click)="toggleActive(item)"
+                          >
+                            <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">{{ item.active ? 'pause' : 'play_arrow' }}</mat-icon>
+                          </button>
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="6" class="px-4 py-12 text-center text-xs text-slate-500">
+                      <div>
+                        <p class="font-medium text-slate-700">Không tìm thấy thuốc nào phù hợp.</p>
+                        @if (canManage()) {
+                          <button
+                            type="button"
+                            class="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-[#0284c7] px-4 py-2 text-xs font-semibold text-white cursor-pointer"
+                            (click)="openCreate()"
+                          >
+                            <mat-icon class="!h-4 !w-4 !text-[18px]">add</mat-icon>
+                            <span>Thêm thuốc</span>
+                          </button>
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+      }
+    }
+
+    <!-- 4. TAB 2: BẢNG DANH MỤC ĐƠN VỊ TÍNH (MEDICATION UNITS TABLE) -->
+    @if (activeTab() === 'units') {
+      <section class="rounded-2xl border border-slate-100 bg-white shadow-xs overflow-hidden w-full" data-testid="units-table-container">
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs whitespace-nowrap">
+          <table class="w-full table-fixed text-left text-xs">
             <thead>
               <tr class="border-b border-slate-100 text-[11px] font-semibold text-slate-500 uppercase tracking-wider bg-slate-50/50">
-                <th class="px-4 py-3.5 w-36">Mã thuốc</th>
-                <th class="px-4 py-3.5">Tên thuốc biệt dược / Hoạt chất</th>
-                <th class="px-4 py-3.5 w-32 text-center">Trạng thái</th>
-                <th class="px-4 py-3.5 w-24 text-right">Thao tác</th>
+                <th class="px-4 py-3.5 w-16 text-center whitespace-nowrap">STT</th>
+                <th class="px-4 py-3.5 w-40 whitespace-nowrap">Mã ĐVT</th>
+                <th class="px-4 py-3.5 w-44 whitespace-nowrap">Tên đơn vị</th>
+                <th class="px-4 py-3.5">Mô tả / Dạng bào chế</th>
+                <th class="px-4 py-3.5 w-28 text-center whitespace-nowrap">Trạng thái</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-50">
-              @for (item of filteredMedications(); track item.id) {
-                <tr data-testid="medication-row" class="transition hover:bg-slate-50/70">
-                  <td class="px-4 py-3 font-mono font-bold text-slate-800">{{ item.code }}</td>
-                  <td class="px-4 py-3">
-                    <span class="font-semibold text-slate-900 text-xs">{{ item.name }}</span>
+              @for (unitItem of filteredUnits(); track unitItem.code; let idx = $index) {
+                <tr class="transition hover:bg-slate-50/70">
+                  <td class="px-4 py-3 text-center text-slate-400 font-mono">{{ idx + 1 }}</td>
+                  <td class="px-4 py-3 font-mono font-bold text-slate-800 whitespace-nowrap">{{ unitItem.code }}</td>
+                  <td class="px-4 py-3 whitespace-nowrap">
+                    <span class="inline-flex items-center rounded-md bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-700 border border-sky-200/60">
+                      {{ unitItem.name }}
+                    </span>
                   </td>
-                  <td class="px-4 py-3 text-center">
-                    @if (item.active) {
-                      <span class="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[11px] font-medium text-emerald-800">
-                        Đang dùng
-                      </span>
-                    } @else {
-                      <span class="inline-flex items-center rounded-full bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-[11px] font-medium text-slate-600">
-                        Tạm ngưng
-                      </span>
-                    }
+                  <td class="px-4 py-3 text-slate-600 text-xs truncate" [title]="unitItem.description || ''">
+                    {{ unitItem.description || '—' }}
                   </td>
-                  <td class="px-4 py-3 text-right">
-                    <div class="flex items-center justify-end gap-1.5">
-                      <button
-                        type="button"
-                        class="erp-btn-icon-accent"
-                        (click)="openEdit(item)"
-                        title="Sửa thông tin thuốc"
-                      >
-                        <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">edit</mat-icon>
-                      </button>
-                      <button
-                        type="button"
-                        class="erp-btn-icon"
-                        [attr.data-testid]="'toggle-medication-' + item.id"
-                        [title]="item.active ? 'Tạm ngưng dùng' : 'Kích hoạt lại'"
-                        (click)="toggleActive(item)"
-                      >
-                        <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">{{ item.active ? 'pause' : 'play_arrow' }}</mat-icon>
-                      </button>
-                    </div>
+                  <td class="px-4 py-3 text-center whitespace-nowrap">
+                    <span class="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[11px] font-medium text-emerald-800">
+                      Đang dùng
+                    </span>
                   </td>
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="4" class="px-4 py-12 text-center text-xs text-slate-500">
-                    <div>
-                      <p class="font-medium text-slate-700">Không tìm thấy thuốc nào phù hợp.</p>
-                      <button
-                        type="button"
-                        class="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-[#0e3d48] px-4 py-2 text-xs font-semibold text-white"
-                        (click)="openCreate()"
-                      >
-                        <mat-icon class="!h-4 !w-4 !text-[18px]">add</mat-icon>
-                        <span>Thêm thuốc</span>
-                      </button>
-                    </div>
+                  <td colspan="5" class="px-4 py-12 text-center text-xs text-slate-500">
+                    Không tìm thấy đơn vị tính nào phù hợp.
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    }
+
+    <!-- 5. TAB 3: BẢNG LIỀU DÙNG CHUẨN (MEDICATION DOSAGES TABLE) -->
+    @if (activeTab() === 'dosages') {
+      <section class="rounded-2xl border border-slate-100 bg-white shadow-xs overflow-hidden w-full" data-testid="dosages-table-container">
+        <div class="overflow-x-auto">
+          <table class="w-full table-fixed text-left text-xs">
+            <thead>
+              <tr class="border-b border-slate-100 text-[11px] font-semibold text-slate-500 uppercase tracking-wider bg-slate-50/50">
+                <th class="px-4 py-3.5 w-40 whitespace-nowrap">Mã liều</th>
+                <th class="px-4 py-3.5 w-32 whitespace-nowrap">Đơn vị áp dụng</th>
+                <th class="px-4 py-3.5">Định dạng liều chuẩn y tế</th>
+                <th class="px-4 py-3.5 w-64">Ghi chú / Hướng dẫn</th>
+                <th class="px-4 py-3.5 w-28 text-center whitespace-nowrap">Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-50">
+              @for (dosageItem of filteredDosages(); track dosageItem.code) {
+                <tr class="transition hover:bg-slate-50/70">
+                  <td class="px-4 py-3 font-mono font-bold text-slate-800 whitespace-nowrap">{{ dosageItem.code }}</td>
+                  <td class="px-4 py-3 whitespace-nowrap">
+                    <span class="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700">
+                      {{ dosageItem.unitName }}
+                    </span>
+                  </td>
+                  <td class="px-4 py-3 text-slate-900 font-medium text-xs truncate" [title]="dosageItem.dosageFormat">
+                    {{ dosageItem.dosageFormat }}
+                  </td>
+                  <td class="px-4 py-3 text-slate-500 text-xs truncate" [title]="dosageItem.description || ''">
+                    {{ dosageItem.description || '—' }}
+                  </td>
+                  <td class="px-4 py-3 text-center whitespace-nowrap">
+                    <span class="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[11px] font-medium text-emerald-800">
+                      Đang dùng
+                    </span>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="5" class="px-4 py-12 text-center text-xs text-slate-500">
+                    Không tìm thấy định dạng liều dùng nào phù hợp.
                   </td>
                 </tr>
               }
@@ -150,69 +339,174 @@
     }
   </div>
 
-  <!-- Modal: Create / Edit Medication -->
+  <!-- Modal: Create / Edit Medication (SẠCH SẼ, BỎ HOÀN TOÀN CÁC NÚT GỢI Ý) -->
   @if (modalOpen()) {
     <div class="erp-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="medication-dialog-title" (click)="closeModal()">
-      <section class="erp-modal-container max-w-lg" (click)="$event.stopPropagation()">
+      <section class="erp-modal-container max-w-2xl" (click)="$event.stopPropagation()">
         <div class="erp-modal-header">
           <h2 id="medication-dialog-title" class="text-sm font-bold text-slate-900">
-            {{ editingId() ? 'Chỉnh sửa thông tin thuốc' : 'Thêm thuốc mới vào danh mục' }}
+            {{ canManage() ? (editingId() ? 'Sửa thông tin thuốc' : 'Thêm thuốc mới') : 'Chi tiết thuốc' }}
           </h2>
-          <button type="button" class="erp-btn-icon" aria-label="Đóng" (click)="closeModal()">
+          <button type="button" class="erp-btn-icon cursor-pointer" aria-label="Đóng" (click)="closeModal()">
             <mat-icon class="!h-4 !w-4 !text-[18px]">close</mat-icon>
           </button>
         </div>
 
         <form (ngSubmit)="$event.preventDefault(); save()">
-          <div class="erp-modal-body grid gap-3.5">
+          <div class="erp-modal-body grid gap-4 max-h-[78vh] overflow-y-auto pr-1">
             @if (error()) {
               <div class="flex items-center justify-between gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700" role="alert">
                 <div class="flex items-center gap-2">
                   <mat-icon class="!h-4 !w-4 !text-[16px] text-rose-600">error_outline</mat-icon>
                   <span>{{ error() }}</span>
                 </div>
-                <button type="button" class="text-rose-400 hover:text-rose-700" aria-label="Đóng" (click)="error.set('')">
+                <button type="button" class="text-rose-400 hover:text-rose-700 cursor-pointer" aria-label="Đóng" (click)="error.set('')">
                   <mat-icon class="!h-4 !w-4 !text-[14px]">close</mat-icon>
                 </button>
               </div>
             }
-            <label class="grid gap-1">
-              <span class="erp-label">Mã thuốc (2-50 ký tự A-Z, 0-9, _, -) <span class="erp-label-required">*</span></span>
-              <input
-                data-testid="medication-code-input"
-                class="erp-input font-mono uppercase"
-                [ngModel]="code()"
-                (ngModelChange)="code.set($event)"
-                name="code"
-                placeholder="vd: PARA_500"
-              />
-            </label>
 
-            <label class="grid gap-1">
-              <span class="erp-label">Tên thuốc biệt dược / Hoạt chất <span class="erp-label-required">*</span></span>
+            <!-- 1. Mã thuốc & Đơn vị tính (có datalist format sẵn từ CSDL & cho nhập tự do) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 items-start">
+              <label class="grid gap-1 self-start">
+                <span class="erp-label">Mã thuốc <span class="erp-label-required">*</span></span>
+                <input
+                  data-testid="medication-code-input"
+                  class="erp-input font-mono uppercase"
+                  [ngModel]="code()"
+                  (ngModelChange)="code.set($event)"
+                  [disabled]="!canManage()"
+                  name="code"
+                  placeholder="MED-PARA-500"
+                />
+              </label>
+
+              <div class="grid gap-1 self-start">
+                <span class="erp-label">Đơn vị tính</span>
+                <div class="relative">
+                  <input
+                    data-testid="medication-unit-input"
+                    class="erp-input"
+                    list="standard-units-list"
+                    [ngModel]="unit()"
+                    (ngModelChange)="unit.set($event)"
+                    [disabled]="!canManage()"
+                    name="unit"
+                    placeholder="Nhập hoặc chọn đơn vị tính..."
+                  />
+                  <datalist id="standard-units-list">
+                    @for (u of medicationUnits(); track u.code) {
+                      <option [value]="u.name">{{ u.name }} — {{ u.description }}</option>
+                    }
+                  </datalist>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. Tên thuốc & Chuyên khoa (Chuyên khoa BẮT BUỘC PHẢI CHỌN từ CSDL) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 items-start">
+              <label class="grid gap-1 self-start">
+                <span class="erp-label">Tên thuốc <span class="erp-label-required">*</span></span>
+                <input
+                  data-testid="medication-name-input"
+                  class="erp-input"
+                  [ngModel]="name()"
+                  (ngModelChange)="name.set($event)"
+                  [disabled]="!canManage()"
+                  name="name"
+                  placeholder="Paracetamol 500mg"
+                />
+              </label>
+
+              <div class="grid gap-1 self-start">
+                <div class="flex items-center justify-between">
+                  <span class="erp-label">Chuyên khoa</span>
+                  <span class="text-[11px] text-sky-600 font-medium">Bắt buộc chọn</span>
+                </div>
+                <select
+                  data-testid="medication-specialty-select"
+                  class="erp-select cursor-pointer"
+                  [ngModel]="specialties()"
+                  (ngModelChange)="specialties.set($event)"
+                  [disabled]="!canManage()"
+                  name="specialties"
+                >
+                  <option value="">-- Chọn chuyên khoa --</option>
+                  <option value="Dùng chung (Đa khoa)">Dùng chung (Đa khoa)</option>
+                  @if (specialties() && !isKnownSpecialty(specialties())) {
+                    <option [value]="specialties()">{{ specialties() }} (hiện tại)</option>
+                  }
+                  @for (spec of availableSpecialties(); track spec) {
+                    <option [value]="spec">{{ spec }}</option>
+                  }
+                </select>
+              </div>
+            </div>
+
+            <!-- 3. Nhóm thuốc (Category) -->
+            <div class="grid gap-1">
+              <span class="erp-label">Nhóm thuốc</span>
               <input
-                data-testid="medication-name-input"
                 class="erp-input"
-                [ngModel]="name()"
-                (ngModelChange)="name.set($event)"
-                name="name"
-                placeholder="vd: Paracetamol 500mg (Viên nén)"
+                [ngModel]="category()"
+                (ngModelChange)="category.set($event)"
+                [disabled]="!canManage()"
+                name="category"
+                placeholder="Hạ sốt & Giảm đau, Kháng sinh, Tim mạch..."
               />
-            </label>
+            </div>
+
+            <!-- 4. Liều dùng chuẩn (có format sẵn từ CSDL & cho nhập tự do) -->
+            <div class="grid gap-1">
+              <span class="erp-label">Liều dùng chuẩn</span>
+              <div class="relative">
+                <input
+                  data-testid="medication-dosage-input"
+                  class="erp-input"
+                  list="standard-dosages-list"
+                  [ngModel]="defaultDosage()"
+                  (ngModelChange)="defaultDosage.set($event)"
+                  [disabled]="!canManage()"
+                  name="defaultDosage"
+                  placeholder="Nhập hoặc chọn liều dùng chuẩn..."
+                />
+                <datalist id="standard-dosages-list">
+                  @for (fmt of standardDosageFormats(); track fmt) {
+                    <option [value]="fmt">{{ fmt }}</option>
+                  }
+                </datalist>
+              </div>
+            </div>
+
+            <!-- 5. Hướng dẫn dùng -->
+            <div class="grid gap-1">
+              <span class="erp-label">Hướng dẫn dùng</span>
+              <textarea
+                rows="3"
+                class="erp-input resize-none py-2"
+                [ngModel]="defaultInstructions()"
+                (ngModelChange)="defaultInstructions.set($event)"
+                [disabled]="!canManage()"
+                name="defaultInstructions"
+                placeholder="Uống sau ăn no với nước ấm, cách nhau tối thiểu 4-6 giờ..."
+              ></textarea>
+            </div>
           </div>
 
           <div class="erp-modal-footer">
-            <button type="button" class="erp-btn-secondary" (click)="closeModal()">
-              Hủy
+            <button type="button" class="erp-btn-secondary cursor-pointer" (click)="closeModal()">
+              {{ canManage() ? 'Hủy' : 'Đóng' }}
             </button>
-            <button
-              data-testid="save-medication-btn"
-              type="submit"
-              class="erp-btn-primary"
-              [disabled]="saving()"
-            >
-              {{ saving() ? 'Đang lưu...' : editingId() ? 'Lưu cập nhật' : 'Thêm thuốc' }}
-            </button>
+            @if (canManage()) {
+              <button
+                data-testid="save-medication-btn"
+                type="submit"
+                class="erp-btn-primary cursor-pointer"
+                [disabled]="saving()"
+              >
+                {{ saving() ? 'Đang lưu...' : editingId() ? 'Lưu cập nhật' : 'Thêm thuốc' }}
+              </button>
+            }
           </div>
         </form>
       </section>

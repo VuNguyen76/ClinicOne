@@ -1,4 +1,4 @@
-<app-staff-workspace-shell moduleTitle="Hệ thống" pageTitle="Trạng thái gửi SMS">
+<app-staff-workspace-shell moduleTitle="Hệ thống" pageTitle="Nhật ký SMS">
   <div class="grid gap-6">
     <!-- Alerts -->
     @if (error() && !selectedMessage()) {
@@ -19,7 +19,7 @@
         <mat-icon class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 !h-4 !w-4 !text-[18px] text-slate-400">search</mat-icon>
         <input
           type="text"
-          class="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-8 text-xs text-slate-800 placeholder-slate-400 outline-none transition focus:border-[#0e3d48] focus:ring-1 focus:ring-[#0e3d48] shadow-2xs"
+          class="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-8 text-xs text-slate-800 placeholder-slate-400 outline-none transition focus:border-[#0284c7] focus:ring-1 focus:ring-[#0284c7] shadow-2xs"
           placeholder="Tìm theo số điện thoại, mã sự kiện..."
           [value]="searchTerm()"
           (input)="searchTerm.set($any($event.target).value)"
@@ -65,7 +65,7 @@
                 <th class="px-4 py-3.5 w-36">Trạng thái</th>
                 <th class="px-4 py-3.5 w-24 text-center">Lần thử</th>
                 <th class="px-4 py-3.5">Chi tiết phản hồi / Lỗi</th>
-                <th class="px-4 py-3.5 w-24 text-right">Thao tác</th>
+                <th class="px-4 py-3.5 w-28 text-center font-semibold">Thao tác</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-50">
@@ -91,8 +91,8 @@
                   </td>
                   <td class="px-4 py-3 text-center font-mono font-bold text-slate-700">{{ item.attempts }}</td>
                   <td class="px-4 py-3 max-w-xs truncate text-slate-500 font-mono text-[11px]">{{ item.lastError || '—' }}</td>
-                  <td class="px-4 py-3 text-right">
-                    <div class="flex items-center justify-end gap-1.5">
+                  <td class="px-4 py-3 text-center">
+                    <div class="flex items-center justify-center gap-2">
                       <button
                         type="button"
                         class="erp-btn-icon"

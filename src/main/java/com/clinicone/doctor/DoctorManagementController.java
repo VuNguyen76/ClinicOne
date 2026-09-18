@@ -42,6 +42,7 @@ public class DoctorManagementController {
     }
 
     @GetMapping("/{staffId}/schedules")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR', 'DOCTOR')")
     public ResponseEntity<List<DoctorScheduleResponse>> schedules(@PathVariable UUID staffId) {
         return ResponseEntity.ok(service.schedules(staffId));
     }

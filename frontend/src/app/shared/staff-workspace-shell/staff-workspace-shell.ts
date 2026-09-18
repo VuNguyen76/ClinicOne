@@ -22,54 +22,65 @@ const NAVIGATION: StaffNavigationGroup[] = [
   {
     label: 'Tiếp nhận',
     items: [
-      { label: 'Tổng quan tiếp nhận', route: '/reception', icon: 'dashboard', roles: ['RECEPTIONIST'], exact: true },
-      { label: 'Tra cứu lịch', route: '/reception/appointments', icon: 'event_search', roles: ['RECEPTIONIST'] },
-      { label: 'Tiếp nhận tại quầy', route: '/reception/walk-in', icon: 'person_add', roles: ['RECEPTIONIST'] },
-      { label: 'Hàng đợi tiếp nhận', route: '/reception/queue', icon: 'format_list_numbered', roles: ['RECEPTIONIST'] },
-      { label: 'Ngoại lệ cần xử lý', route: '/reception/exceptions', icon: 'rule', roles: ['RECEPTIONIST'] },
-      { label: 'Hồ sơ người bệnh', route: '/reception/profiles', icon: 'badge', roles: ['RECEPTIONIST'] },
+      { label: 'Tổng quan', route: '/reception', icon: 'space_dashboard', roles: ['RECEPTIONIST'], exact: true },
+      { label: 'Lịch hẹn', route: '/reception/appointments', icon: 'event_available', roles: ['RECEPTIONIST'] },
+      { label: 'Đón tiếp tại quầy', route: '/reception/walk-in', icon: 'how_to_reg', roles: ['RECEPTIONIST'] },
+      { label: 'Hàng đợi quầy', route: '/reception/queue', icon: 'confirmation_number', roles: ['RECEPTIONIST'] },
+      { label: 'Xử lý ngoại lệ', route: '/reception/exceptions', icon: 'warning_amber', roles: ['RECEPTIONIST'] },
+      { label: 'Hồ sơ bệnh nhân', route: '/reception/profiles', icon: 'folder_shared', roles: ['RECEPTIONIST'] },
     ],
   },
   {
     label: 'Khám bệnh',
     items: [
-      { label: 'Hàng đợi khám bệnh', route: '/doctor', icon: 'monitor_heart', roles: ['DOCTOR'] },
+      { label: 'Phòng khám của tôi', route: '/doctor', icon: 'stethoscope', roles: ['DOCTOR'] },
+    ],
+  },
+  {
+    label: 'Lịch làm việc',
+    items: [
+      { label: 'Thời khóa biểu', route: '/admin/schedule-templates', icon: 'calendar_month', roles: ['ADMIN', 'COORDINATOR', 'DOCTOR', 'RECEPTIONIST'] },
+      { label: 'Báo vắng & Nghỉ phép', route: '/admin/doctor-time-off', icon: 'event_busy', roles: ['ADMIN', 'COORDINATOR', 'DOCTOR', 'RECEPTIONIST'] },
     ],
   },
   {
     label: 'Vận hành',
     items: [
-      { label: 'Phòng khám', route: '/admin/rooms', icon: 'meeting_room', roles: ['ADMIN', 'COORDINATOR'] },
+      { label: 'Điều phối hàng đợi', route: '/admin/queues', icon: 'alt_route', roles: ['COORDINATOR'] },
+      { label: 'Phòng khám', route: '/admin/rooms', icon: 'door_sliding', roles: ['ADMIN', 'COORDINATOR'] },
       { label: 'Bác sĩ', route: '/admin/doctors', icon: 'medical_services', roles: ['ADMIN', 'COORDINATOR'] },
-      { label: 'Lịch làm việc', route: '/admin/schedule-templates', icon: 'calendar_month', roles: ['ADMIN', 'COORDINATOR'] },
-      { label: 'Sắp xếp lại lịch', route: '/admin/rescheduling', icon: 'event_repeat', roles: ['ADMIN', 'COORDINATOR'] },
-      { label: 'Nghỉ đột xuất', route: '/admin/doctor-time-off', icon: 'event_busy', roles: ['ADMIN', 'COORDINATOR'] },
+      { label: 'Điều chuyển lịch hẹn', route: '/admin/rescheduling', icon: 'edit_calendar', roles: ['ADMIN', 'COORDINATOR'] },
     ],
   },
   {
-    label: 'Danh mục',
+    label: 'Chuyên môn',
     items: [
-      { label: 'Dịch vụ khám', route: '/admin/services', icon: 'category', roles: ['ADMIN', 'COORDINATOR'] },
-      { label: 'Chuyên khoa', route: '/admin/specialties', icon: 'domain', roles: ['ADMIN', 'COORDINATOR'] },
-      { label: 'Mẫu phiếu khám', route: '/admin/medical-record-templates', icon: 'description', roles: ['ADMIN', 'COORDINATOR'] },
-      { label: 'Thuốc', route: '/admin/medications', icon: 'medication', roles: ['ADMIN', 'COORDINATOR'] },
-      { label: 'Chẩn đoán', route: '/admin/diagnoses', icon: 'clinical_notes', roles: ['ADMIN', 'COORDINATOR'] },
+      { label: 'Dược phẩm & Thuốc', route: '/admin/medications', icon: 'medication', roles: ['ADMIN', 'COORDINATOR', 'DOCTOR'] },
+      { label: 'Chẩn đoán', route: '/admin/diagnoses', icon: 'clinical_notes', roles: ['ADMIN', 'COORDINATOR', 'DOCTOR'] },
+      { label: 'Mẫu bệnh án', route: '/admin/medical-record-templates', icon: 'assignment', roles: ['ADMIN', 'DOCTOR'] },
     ],
   },
   {
-    label: 'Kiểm soát',
+    label: 'Dịch vụ & Khoa',
     items: [
-      { label: 'Thống kê', route: '/admin/statistics', icon: 'analytics', roles: ['ADMIN', 'COORDINATOR'] },
-      { label: 'Xử lý sai lệch dữ liệu', route: '/admin/reconciliations', icon: 'fact_check', roles: ['ADMIN', 'COORDINATOR'] },
-      { label: 'Lịch sử công việc', route: '/admin/business-audit', icon: 'history', roles: ['ADMIN', 'COORDINATOR'] },
-      { label: 'Nhật ký truy cập', route: '/admin/access-audit', icon: 'manage_search', roles: ['ADMIN'] },
+      { label: 'Dịch vụ', route: '/admin/services', icon: 'medical_information', roles: ['ADMIN'] },
+      { label: 'Chuyên khoa', route: '/admin/specialties', icon: 'local_hospital', roles: ['ADMIN'] },
+    ],
+  },
+  {
+    label: 'Báo cáo & Kiểm soát',
+    items: [
+      { label: 'Báo cáo thống kê', route: '/admin/statistics', icon: 'analytics', roles: ['ADMIN', 'COORDINATOR', 'DOCTOR'] },
+      { label: 'Đối soát dữ liệu', route: '/admin/reconciliations', icon: 'fact_check', roles: ['ADMIN', 'COORDINATOR'] },
+      { label: 'Nhật ký thao tác', route: '/admin/business-audit', icon: 'history', roles: ['ADMIN'] },
+      { label: 'Nhật ký bảo mật', route: '/admin/access-audit', icon: 'security', roles: ['ADMIN'] },
     ],
   },
   {
     label: 'Hệ thống',
     items: [
-      { label: 'Tài khoản nhân viên', route: '/admin/staff', icon: 'manage_accounts', roles: ['ADMIN'] },
-      { label: 'Tin nhắn SMS', route: '/admin/sms-deliveries', icon: 'sms', roles: ['ADMIN'] },
+      { label: 'Nhân sự & Phân quyền', route: '/admin/staff', icon: 'manage_accounts', roles: ['ADMIN'] },
+      { label: 'Nhật ký SMS', route: '/admin/sms-deliveries', icon: 'sms', roles: ['ADMIN'] },
     ],
   },
 ];
@@ -150,6 +161,7 @@ function roleLabel(role: StaffRole | undefined): string {
 
 function staffLandingRoute(roles: StaffRole[]): string {
   if (roles.includes('DOCTOR')) return '/doctor';
-  if (roles.some((role) => role === 'ADMIN' || role === 'COORDINATOR')) return '/admin/rooms';
+  if (roles.includes('COORDINATOR')) return '/admin/queues';
+  if (roles.includes('ADMIN')) return '/admin/rooms';
   return '/reception';
 }

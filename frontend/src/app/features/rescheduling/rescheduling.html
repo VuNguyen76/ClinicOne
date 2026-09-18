@@ -1,4 +1,4 @@
-<app-staff-workspace-shell moduleTitle="Vận hành" pageTitle="Sắp xếp lại lịch">
+<app-staff-workspace-shell moduleTitle="Vận hành" pageTitle="Điều chuyển lịch hẹn">
   <div class="grid gap-4">
     <!-- Alerts & Notices -->
     @if (error()) {
@@ -64,7 +64,7 @@
               <th class="py-2.5 px-3.5 w-48">LỊCH HẸN CŨ</th>
               <th class="py-2.5 px-3.5">LÝ DO THAY ĐỔI</th>
               <th class="py-2.5 px-3.5 w-80">Khung giờ đang trống tương đương</th>
-              <th class="py-2.5 px-3.5 text-right w-36">THAO TÁC</th>
+              <th class="py-2.5 px-3.5 text-center w-36 font-semibold">THAO TÁC</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
@@ -111,30 +111,32 @@
                     </button>
                   }
                 </td>
-                <td class="py-3 px-3.5 align-middle text-right">
-                  @if (selectedCase()?.id === item.id) {
-                    @if (canResolve()) {
-                      <form [formGroup]="form" (ngSubmit)="resolve()" class="inline-block">
-                        <button
-                          type="submit"
-                          class="erp-btn-primary !py-1.5 !px-3 text-xs whitespace-nowrap cursor-pointer"
-                          [disabled]="saving() || alternativesLoading() || form.invalid"
-                        >
-                          {{ saving() ? 'Đang lưu...' : 'Xác nhận đổi' }}
-                        </button>
-                      </form>
+                <td class="py-3 px-3.5 align-middle text-center">
+                  <div class="flex items-center justify-center">
+                    @if (selectedCase()?.id === item.id) {
+                      @if (canResolve()) {
+                        <form [formGroup]="form" (ngSubmit)="resolve()" class="inline-block">
+                          <button
+                            type="submit"
+                            class="erp-btn-primary !py-1.5 !px-3 text-xs whitespace-nowrap cursor-pointer"
+                            [disabled]="saving() || alternativesLoading() || form.invalid"
+                          >
+                            {{ saving() ? 'Đang lưu...' : 'Xác nhận đổi' }}
+                          </button>
+                        </form>
+                      } @else {
+                        <span class="text-[11px] text-slate-400">Chỉ Điều phối viên mới có thể xác nhận</span>
+                      }
                     } @else {
-                      <span class="text-[11px] text-slate-400">Chỉ Điều phối viên mới có thể xác nhận</span>
+                      <button
+                        type="button"
+                        class="erp-btn-secondary !py-1 !px-2.5 text-xs cursor-pointer"
+                        (click)="selectCase(item)"
+                      >
+                        Chọn
+                      </button>
                     }
-                  } @else {
-                    <button
-                      type="button"
-                      class="erp-btn-secondary !py-1 !px-2.5 text-xs cursor-pointer"
-                      (click)="selectCase(item)"
-                    >
-                      Chọn
-                    </button>
-                  }
+                  </div>
                 </td>
               </tr>
             }

@@ -4,6 +4,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { ApiErrorResponse, AuthApiService, OperationalStatisticsResponse, apiErrorMessage } from '../../core/auth/auth-api.service';
 import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
 import { clinicTodayIso } from '../../core/time/clinic-time';
+import { hasStaffRole } from '../../core/auth/auth.guard';
 
 @Component({
   selector: 'app-admin-statistics',
@@ -14,6 +15,11 @@ import { clinicTodayIso } from '../../core/time/clinic-time';
 })
 export class AdminStatistics implements OnInit {
   private readonly authApi = inject(AuthApiService);
+
+  protected isDoctorRole(): boolean {
+    return hasStaffRole('DOCTOR') && !hasStaffRole('COORDINATOR') && !hasStaffRole('ADMIN');
+  }
+
   protected readonly from = signal(this.today());
   protected readonly to = signal(this.today());
   protected readonly specialty = signal('');
@@ -26,7 +32,20 @@ export class AdminStatistics implements OnInit {
   protected readonly error = signal('');
 
   ngOnInit(): void {
-    this.authApi.getDoctors().subscribe({ next: (doctors) => this.doctors.set(doctors) });
+    this.authApi.getDoctors().subscribe({
+      next: (doctors) => {
+        this.doctors.set(doctors);
+        if (this.isDoctorRole()) {
+          const myStaffId = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('clinicOneStaffId') : null;
+          const myName = (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('clinicOnePatientName') || '' : '').toLowerCase().replace(/^(bs\.|ths\.|ckii|cki|bác sĩ|tiến sĩ|ts\.)\s*/i, '').trim();
+          const me = doctors.find((d) => (myStaffId && d.staffId === myStaffId) || (myName && d.fullName.toLowerCase().includes(myName)));
+          if (me) {
+            this.doctorId.set(me.staffId);
+            if (me.specialty) this.specialty.set(me.specialty);
+          }
+        }
+      },
+    });
     this.authApi.getSpecialties().subscribe({
       next: (specialties) => {
         this.specialties.set(specialties);

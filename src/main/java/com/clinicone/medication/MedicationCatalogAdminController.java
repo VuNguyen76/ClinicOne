@@ -22,7 +22,7 @@ import java.util.UUID;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/medications")
-@PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
+@PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR', 'DOCTOR')")
 public class MedicationCatalogAdminController {
     private final MedicationCatalogService service;
 
@@ -33,16 +33,19 @@ public class MedicationCatalogAdminController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR', 'DOCTOR')")
     public MedicationResponse create(@Valid @RequestBody CreateMedicationRequest request) {
         return service.create(request);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR', 'DOCTOR')")
     public MedicationResponse update(@PathVariable UUID id, @Valid @RequestBody UpdateMedicationRequest request) {
         return service.update(id, request);
     }
 
     @PatchMapping("/{id}/active")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
     public MedicationResponse setActive(@PathVariable UUID id, @RequestParam boolean value) {
         return service.setActive(id, value);
     }

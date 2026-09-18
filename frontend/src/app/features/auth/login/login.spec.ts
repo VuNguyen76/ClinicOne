@@ -29,7 +29,7 @@ describe('Login', () => {
   });
 
   it('links login support to the clinic hotline instead of a placeholder action', () => {
-    const supportLink = fixture.nativeElement.querySelector('a[href="tel:1900000"]') as HTMLAnchorElement | null;
+    const supportLink = fixture.nativeElement.querySelector('a[href="tel:19000000"]') as HTMLAnchorElement | null;
     expect(supportLink).not.toBeNull();
     expect(supportLink?.textContent).toContain('Cần hỗ trợ');
   });
