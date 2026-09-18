@@ -192,8 +192,8 @@ class ReceptionControllerTest {
     @Test
     void unauthenticatedUserCannotSearchAppointments() throws Exception {
         mockMvc.perform(get("/api/v1/reception/appointments?query=0912345678&date=2026-08-07"))
-                .andExpect(status().isForbidden());
-    }// chặn người dùng tra MLH khi chưa đăng nhập 403
+                .andExpect(status().isUnauthorized());
+    }// chặn người dùng tra MLH khi chưa đăng nhập 401
 
     @Test
     void doctorCannotSearchReceptionPatientProfiles() throws Exception {
