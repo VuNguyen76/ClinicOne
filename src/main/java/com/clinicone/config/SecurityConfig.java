@@ -14,6 +14,7 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.http.HttpMethod;
 import com.clinicone.audit.AccessAuditService;
 
 import java.time.Clock;
@@ -34,6 +35,11 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/v1/specialties",
+                                "/api/v1/specialties/**"
+                        ).permitAll()
                         .requestMatchers(
                                 "/api/v1/auth/check-phone",
                                 "/api/v1/auth/request-sms-otp",

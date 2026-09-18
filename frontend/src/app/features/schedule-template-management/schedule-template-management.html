@@ -141,21 +141,26 @@
          </div>
        } @else {
          <section class="rounded-xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
-           <!-- Week Navigation Toolbar -->
-            <div class="flex items-center justify-between border-b border-slate-200 bg-slate-50/70 px-4 py-2.5">
-              <div class="flex items-center gap-2">
+            <!-- Week Navigation Toolbar (Compact & Sleek) -->
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-50/80 px-4 py-2">
+              <div class="flex items-center gap-2.5">
+                <div class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1 shadow-2xs">
+                  <mat-icon class="!h-4 !w-4 !text-[16px] text-sky-600">calendar_today</mat-icon>
+                  <span class="text-xs font-semibold text-slate-800">Tuần: {{ weekRangeLabel() }}</span>
+                </div>
                 <input
                   type="date"
                   [ngModel]="dateInputValue()"
                   (ngModelChange)="onDateChange($event)"
-                  class="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-mono text-slate-700 outline-none focus:border-[#0284c7] focus:ring-1 focus:ring-[#0284c7] shadow-2xs"
+                  class="h-7 rounded-lg border border-slate-200 bg-white px-2 text-[11px] font-mono text-slate-600 outline-none focus:border-[#0284c7] shadow-2xs cursor-pointer"
+                  title="Chọn ngày trong tuần"
                 />
               </div>
-              <div class="flex items-center gap-1.5">
+              <div class="flex items-center gap-1">
                 <button
                   type="button"
                   (click)="onPreviousWeek()"
-                  class="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-600 hover:bg-slate-50 hover:text-[#0284c7] transition cursor-pointer"
+                  class="h-7 w-7 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-slate-600 hover:bg-slate-50 hover:text-[#0284c7] hover:border-sky-300 transition cursor-pointer"
                   title="Tuần trước"
                 >
                   <mat-icon class="!h-4 !w-4 !text-[16px]">chevron_left</mat-icon>
@@ -163,14 +168,14 @@
                 <button
                   type="button"
                   (click)="onToday()"
-                  class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-[#0284c7] hover:border-sky-300 transition cursor-pointer"
+                  class="h-7 px-2.5 rounded-lg border border-slate-200 bg-white text-[11px] font-semibold text-slate-700 hover:bg-slate-50 hover:text-[#0284c7] hover:border-sky-300 transition cursor-pointer"
                 >
                   Hôm nay
                 </button>
                 <button
                   type="button"
                   (click)="onNextWeek()"
-                  class="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-600 hover:bg-slate-50 hover:text-[#0284c7] transition cursor-pointer"
+                  class="h-7 w-7 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-slate-600 hover:bg-slate-50 hover:text-[#0284c7] hover:border-sky-300 transition cursor-pointer"
                   title="Tuần sau"
                 >
                   <mat-icon class="!h-4 !w-4 !text-[16px]">chevron_right</mat-icon>
@@ -181,19 +186,19 @@
             <table class="table-fixed w-full text-left border-collapse">
               <thead>
                 <tr class="border-b border-sky-600 bg-[#0284c7] text-xs font-semibold text-white">
-                  <th class="py-2.5 px-3 w-[16%] border-r border-sky-500/50">Phòng khám</th>
+                  <th class="py-2 px-3 w-[16%] border-r border-sky-500/50">Phòng khám</th>
                   @for (day of displayWeekdays; track day.value; let i = $index) {
-                    <th class="py-2 px-2 text-center w-[14%] border-r border-sky-500/50 last:border-r-0 transition-colors"
+                    <th class="py-1.5 px-2 text-center w-[12%] border-r border-sky-500/50 last:border-r-0 transition-colors"
                       [class.bg-[#0369a1]]="isToday(weekDays[i])"
                     >
-                      <div class="flex flex-col items-center justify-center gap-0.5">
-                        <div class="flex items-center gap-1.5">
+                      <div class="flex flex-col items-center justify-center gap-0">
+                        <div class="flex items-center gap-1">
                           <span class="text-xs font-bold leading-tight">{{ day.label }}</span>
                           @if (isToday(weekDays[i])) {
-                            <span class="rounded-full bg-white/25 px-1.5 py-0.2 text-[9px] font-bold uppercase tracking-wider text-white">Hôm nay</span>
+                            <span class="rounded bg-white/30 px-1 py-0.2 text-[8px] font-extrabold uppercase tracking-wider text-white">Hôm nay</span>
                           }
                         </div>
-                        <div class="text-[10px] font-mono opacity-90">{{ weekDayLabel(i) }}</div>
+                        <div class="text-[10px] font-mono opacity-85 leading-tight">{{ weekDayLabel(i) }}</div>
                       </div>
                     </th>
                   }
@@ -365,7 +370,7 @@
           </div>
 
           <form (ngSubmit)="$event.preventDefault(); submit()" class="grid gap-6 lg:grid-cols-3">
-            <section class="lg:col-span-2 rounded-2xl border border-slate-100 bg-white p-6 sm:p-8 shadow-xs space-y-5">
+            <section class="lg:col-span-2 rounded-2xl border border-slate-100 bg-white p-6 shadow-xs space-y-5">
               <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                 <h3 class="text-sm font-bold text-slate-900">Cấu hình ca trực</h3>
                 <!-- Quick Shift Presets -->
@@ -439,7 +444,7 @@
                   <select
                     class="erp-select !py-2.5"
                     [ngModel]="selectedRoomId()"
-                    (ngModelChange)="selectedRoomId.set($event)"
+                    (ngModelChange)="selectRoom($event)"
                     name="room"
                   >
                     <option value="">-- Chọn phòng khám --</option>
@@ -451,15 +456,34 @@
               </div>
 
               <!-- 4. Lịch trong tuần -->
-              <div class="grid sm:grid-cols-4 items-center gap-3">
-                <label class="text-xs font-semibold text-slate-700 sm:col-span-1">Lịch trong tuần <span class="text-rose-500">*</span></label>
-                <div class="sm:col-span-3 flex flex-wrap gap-2">
+              <div class="grid sm:grid-cols-4 items-start gap-3">
+                <div class="sm:col-span-1">
+                  <label class="text-xs font-semibold text-slate-700 block">Lịch trong tuần <span class="text-rose-500">*</span></label>
+                  <div class="mt-1 flex flex-wrap gap-1">
+                    <button
+                      type="button"
+                      (click)="applyWeekdayPreset('WEEKDAYS')"
+                      class="text-[10px] text-sky-700 hover:underline cursor-pointer"
+                    >
+                      T2 - T6
+                    </button>
+                    <span class="text-[10px] text-slate-300">·</span>
+                    <button
+                      type="button"
+                      (click)="applyWeekdayPreset('ALL')"
+                      class="text-[10px] text-sky-700 hover:underline cursor-pointer"
+                    >
+                      Cả tuần
+                    </button>
+                  </div>
+                </div>
+                <div class="sm:col-span-3 flex flex-wrap gap-1.5">
                   @for (day of weekdays; track day.value) {
                     <button
                       type="button"
                       (click)="toggleWeekday(day.value, !isWeekdaySelected(day.value))"
                       [class]="isWeekdaySelected(day.value) ? 'bg-[#0284c7] text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'"
-                      class="rounded-full px-3.5 py-1.5 text-xs font-semibold transition cursor-pointer"
+                      class="rounded-lg px-3 py-1.5 text-xs font-semibold transition cursor-pointer"
                     >
                       {{ day.label }}
                     </button>
@@ -540,30 +564,53 @@
               </div>
 
               <!-- 7. Ngày áp dụng -->
-              <div class="grid sm:grid-cols-4 items-center gap-3">
-                <label class="text-xs font-semibold text-slate-700 sm:col-span-1">Ngày áp dụng <span class="text-rose-500">*</span></label>
-                <div class="sm:col-span-3 flex items-center gap-3">
-                  <div class="relative w-full max-w-xs">
-                    <input
-                      type="date"
-                      [min]="today"
-                      [ngModel]="startDate()"
-                      (ngModelChange)="startDate.set($event)"
-                      name="startDate"
-                      class="erp-input font-mono !py-2"
-                    />
+              <div class="grid sm:grid-cols-4 items-start gap-3">
+                <div class="sm:col-span-1">
+                  <label class="text-xs font-semibold text-slate-700 block">Ngày áp dụng <span class="text-rose-500">*</span></label>
+                  <div class="mt-1 flex flex-wrap gap-1">
+                    <button
+                      type="button"
+                      (click)="applyPeriodPreset(30)"
+                      class="text-[10px] text-sky-700 hover:underline cursor-pointer"
+                    >
+                      1 tháng
+                    </button>
+                    <span class="text-[10px] text-slate-300">·</span>
+                    <button
+                      type="button"
+                      (click)="applyPeriodPreset(90)"
+                      class="text-[10px] text-sky-700 hover:underline cursor-pointer"
+                    >
+                      3 tháng
+                    </button>
+                    <span class="text-[10px] text-slate-300">·</span>
+                    <button
+                      type="button"
+                      (click)="applyPeriodPreset(180)"
+                      class="text-[10px] text-sky-700 hover:underline cursor-pointer"
+                    >
+                      6 tháng
+                    </button>
                   </div>
-                  <span class="text-xs text-slate-400">Đến:</span>
-                  <div class="relative w-full max-w-xs">
-                    <input
-                      type="date"
-                      [min]="startDate()"
-                      [ngModel]="endDate()"
-                      (ngModelChange)="endDate.set($event)"
-                      name="endDate"
-                      class="erp-input font-mono !py-2"
-                    />
-                  </div>
+                </div>
+                <div class="sm:col-span-3 flex flex-wrap items-center gap-2.5">
+                  <input
+                    type="date"
+                    [min]="today"
+                    [ngModel]="startDate()"
+                    (ngModelChange)="startDate.set($event)"
+                    name="startDate"
+                    class="h-8 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-mono text-slate-800 outline-none focus:border-[#0284c7] shadow-2xs cursor-pointer"
+                  />
+                  <span class="text-xs text-slate-400">đến</span>
+                  <input
+                    type="date"
+                    [min]="startDate()"
+                    [ngModel]="endDate()"
+                    (ngModelChange)="endDate.set($event)"
+                    name="endDate"
+                    class="h-8 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-mono text-slate-800 outline-none focus:border-[#0284c7] shadow-2xs cursor-pointer"
+                  />
                 </div>
               </div>
 
@@ -575,7 +622,7 @@
                 <button
                   data-testid="save-template"
                   type="submit"
-                  class="erp-btn-primary !min-h-11 !px-8 !text-sm !font-bold"
+                  class="erp-btn-primary !min-h-10 !px-6 !text-xs !font-bold"
                   [disabled]="saving()"
                 >
                   <mat-icon class="!h-4 !w-4 !text-[18px]">{{ saving() ? 'sync' : 'save' }}</mat-icon>
@@ -584,22 +631,59 @@
               </div>
             </section>
 
-            <!-- Right 1 Col: Live Preview Box -->
-            <section class="rounded-2xl border border-slate-100 bg-white p-6 shadow-xs flex flex-col">
-              <h3 class="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3 mb-4">Xem trước lượt khám dự kiến</h3>
-              <p class="text-[11px] text-slate-500 mb-3">Khung giờ mở khám mỗi ngày ({{ durationMinutes() }} phút/lượt):</p>
-              <div class="flex-1 space-y-1.5 max-h-[460px] overflow-y-auto pr-1">
-                @for (slot of previewSlots(); track slot.time) {
-                  @if (slot.isBreak) {
-                    <div class="rounded-xl border border-amber-200 bg-slate-200 py-2 px-3 text-center font-semibold text-xs text-slate-700 shadow-2xs my-2">
-                      {{ slot.label }}
+            <!-- Right: Compact Card Tóm Tắt Ca Trực (Replaces the 20+ slot list!) -->
+            <section class="rounded-2xl border border-slate-100 bg-white p-6 shadow-xs flex flex-col justify-between">
+              <div>
+                <h3 class="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3 mb-4">Tóm tắt ca trực</h3>
+
+                @if (selectedDoctorObj(); as doc) {
+                  <div class="flex items-center gap-3 mb-4">
+                    <img
+                      [src]="getDoctorAvatar(doc.fullName, doc.avatarUrl)"
+                      (error)="handleAvatarError($event, doc.fullName)"
+                      [alt]="doc.fullName"
+                      class="h-12 w-12 rounded-full object-cover border border-slate-200 shrink-0 shadow-2xs"
+                    />
+                    <div class="min-w-0 flex-1">
+                      <p class="font-bold text-slate-900 text-sm truncate">{{ doc.fullName }}</p>
+                      <p class="text-xs text-sky-700 font-semibold">{{ doc.specialty }}</p>
+                      @if (selectedRoomObj(); as rm) {
+                        <p class="text-[11px] text-slate-500 font-medium">Phòng {{ rm.code }} - {{ rm.name }}</p>
+                      }
                     </div>
-                  } @else {
-                    <div class="rounded-lg border border-slate-200 bg-slate-50 py-1.5 px-3 font-mono text-xs text-slate-800 text-center">
-                      {{ slot.time }}
-                    </div>
-                  }
+                  </div>
                 }
+
+                <div class="space-y-2 text-xs">
+                  <div class="flex items-center justify-between py-1.5 border-b border-slate-50">
+                    <span class="text-slate-500">Dịch vụ:</span>
+                    <span class="font-semibold text-slate-800 text-right truncate max-w-[160px]">{{ selectedServiceObj()?.name || 'Chưa chọn' }}</span>
+                  </div>
+                  <div class="flex items-center justify-between py-1.5 border-b border-slate-50">
+                    <span class="text-slate-500">Khung giờ làm việc:</span>
+                    <span class="font-mono font-bold text-slate-800">{{ dayStart() }} – {{ dayEnd() }}</span>
+                  </div>
+                  <div class="flex items-center justify-between py-1.5 border-b border-slate-50">
+                    <span class="text-slate-500">Nghỉ trưa:</span>
+                    <span class="font-semibold text-slate-700">{{ hasBreak() ? breakStart() + ' – ' + breakEnd() : 'Không nghỉ' }}</span>
+                  </div>
+                  <div class="flex items-center justify-between py-1.5 border-b border-slate-50">
+                    <span class="text-slate-500">Lịch lặp:</span>
+                    <span class="font-semibold text-sky-700">{{ selectedWeekdays().length }} ngày / tuần</span>
+                  </div>
+                  <div class="flex items-center justify-between py-1.5 border-b border-slate-50">
+                    <span class="text-slate-500">Thời lượng khám:</span>
+                    <span class="font-semibold text-slate-800">{{ durationMinutes() }} phút / lượt</span>
+                  </div>
+                  <div class="flex items-center justify-between py-2 bg-sky-50/70 px-2.5 rounded-lg border border-sky-100">
+                    <span class="font-bold text-sky-900">Tổng lượt khám ước tính:</span>
+                    <span class="font-mono font-extrabold text-sky-700 text-sm">{{ previewSlotCount() }} lượt / ngày</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-4 pt-3 border-t border-slate-100 text-[11px] text-slate-400">
+                Lịch trực sẽ tự động tạo slot khám cho bệnh nhân đặt hẹn trong khoảng ngày đã chọn.
               </div>
             </section>
           </form>

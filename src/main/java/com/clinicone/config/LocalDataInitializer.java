@@ -50,6 +50,7 @@ import com.clinicone.schedule.ScheduleBreakRequest;
 import com.clinicone.schedule.ScheduleTemplateService;
 import com.clinicone.schedule.SpecialtyCatalogEntry;
 import com.clinicone.schedule.SpecialtyCatalogRepository;
+import com.clinicone.schedule.WorkScheduleTemplate;
 import com.clinicone.schedule.WorkScheduleTemplateRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -171,7 +172,6 @@ public class LocalDataInitializer implements CommandLineRunner {
     }
 
     @Override
-    @Transactional
     public void run(String... args) {
         ensureAppointmentStatusConstraint();
 
@@ -698,10 +698,25 @@ public class LocalDataInitializer implements CommandLineRunner {
                                         Set<DayOfWeek> weekdays, LocalTime dayStart, LocalTime dayEnd,
                                         List<ScheduleBreakRequest> breaks) {
         if (scheduleTemplateService == null || workScheduleTemplateRepository == null) return;
-        boolean exists = workScheduleTemplateRepository.findByActiveTrueOrderByStartDateAsc().stream()
-                .anyMatch(t -> t.getDoctorProfile().getId().equals(doctorProfile.getId())
-                        && t.getClinicService().getId().equals(service.getId()));
-        if (exists) return;
+        List<WorkScheduleTemplate> doctorTemplates = workScheduleTemplateRepository.findByActiveTrueOrderByStartDateAsc().stream()
+                .filter(t -> t.getDoctorProfile().getId().equals(doctorProfile.getId()))
+                .toList();
+        if (!doctorTemplates.isEmpty()) {
+            boolean hasCorrupt = doctorTemplates.stream().anyMatch(t -> t.getDayStart() != null && t.getDayStart().isBefore(LocalTime.of(7, 0)));
+            if (hasCorrupt) {
+                log.info("Purging legacy corrupt midnight schedule template for doctor {}: upgrading to {} - {}",
+                        doctorProfile.getStaffAccount().getFullName(), dayStart, dayEnd);
+                for (WorkScheduleTemplate dt : doctorTemplates) {
+                    try {
+                        scheduleTemplateService.delete(dt.getId());
+                    } catch (Exception e) {
+                        log.warn("Could not delete legacy template: {}", e.getMessage());
+                    }
+                }
+            } else {
+                return;
+            }
+        }
 
         LocalDate startDate = LocalDate.now(CLINIC_ZONE);
         LocalDate endDate = startDate.plusDays(45);

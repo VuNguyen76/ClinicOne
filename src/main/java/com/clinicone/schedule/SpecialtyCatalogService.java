@@ -1,60 +1,30 @@
 package com.clinicone.schedule;
 
 import com.clinicone.auth.AuthException;
+import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
 
 import java.text.Normalizer;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 
-import org.springframework.stereotype.Service;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
-
-import java.util.ArrayList;
-import java.util.UUID;
-
 @Service
+@RequiredArgsConstructor
 public class SpecialtyCatalogService {
     private final SpecialtyCatalogRepository repository;
-    private static final List<SpecialtyResponse> SPECIALTIES = List.of(
-            new SpecialtyResponse("TQ", "Khám Tổng Quát", "Khám và tầm soát tổng quát, được hướng dẫn tới đúng chuyên khoa khi cần."),
-            new SpecialtyResponse("TGM", "Khám Tiêu Hoá - Gan Mật", "Đau bụng, ợ hơi, trào ngược, rối loạn tiêu hoá hoặc bệnh lý gan mật."),
-            new SpecialtyResponse("TK", "Khám Thần Kinh", "Đau đầu, chóng mặt, mất ngủ, tê bì hoặc đau cổ vai gáy."),
-            new SpecialtyResponse("XK", "Khám Xương Khớp", "Đau khớp, đau lưng, chấn thương thể thao hoặc hạn chế vận động."),
-            new SpecialtyResponse("DL", "Khám Da Liễu", "Mụn, ngứa, nổi mẩn, nấm da, rụng tóc hoặc bất thường trên da."),
-            new SpecialtyResponse("PK", "Khám Phụ Khoa", "Tư vấn và thăm khám các vấn đề phụ khoa thường gặp."),
-            new SpecialtyResponse("HH", "Khám Hô Hấp", "Ho kéo dài, khó thở, khò khè hoặc các vấn đề về phổi."),
-            new SpecialtyResponse("MAT", "Khám Mắt", "Mờ mắt, đau mắt, đỏ mắt, cộm ngứa hoặc các bệnh lý về mắt."),
-            new SpecialtyResponse("NHI", "Khám Nhi", "Dành cho người đi khám dưới 16 tuổi."),
-            new SpecialtyResponse("TMH", "Khám Tai Mũi Họng", "Đau họng, nghẹt mũi, viêm xoang, ù tai hoặc nghe kém."),
-            new SpecialtyResponse("NT", "Khám Nội Tiết", "Theo dõi tiểu đường, tuyến giáp và các rối loạn nội tiết."),
-            new SpecialtyResponse("TM", "Khám Tim Mạch", "Đau ngực, hồi hộp, khó thở, huyết áp hoặc mỡ máu.")
-    );
-
-    public SpecialtyCatalogService() {
-        this.repository = null;
-    }
-
-    @Autowired
-    public SpecialtyCatalogService(SpecialtyCatalogRepository repository) {
-        this.repository = repository;
-    }
 
     @Cacheable(cacheNames = "specialties", key = "#query == null ? '' : #query.trim().toLowerCase()")
     public List<SpecialtyResponse> list(String query) {
-        List<SpecialtyResponse> source;
-        if (repository != null) {
-            source = repository.findByActiveTrueOrderByNameAsc().stream()
-                    .map(item -> new SpecialtyResponse(item.getCode(), item.getName(), item.getDescription()))
-                    .toList();
-        } else {
-            source = SPECIALTIES;
-        }
+        List<SpecialtyResponse> source = repository.findByActiveTrueOrderByNameAsc().stream()
+                .map(item -> new SpecialtyResponse(item.getCode(), item.getName(), item.getDescription()))
+                .toList();
+
         if (query == null || query.isBlank()) {
-            return source.stream().sorted(java.util.Comparator.comparing(SpecialtyResponse::name)).toList();
+            return source.stream().sorted(Comparator.comparing(SpecialtyResponse::name)).toList();
         }
         String normalizedQuery = normalize(query);
         return source.stream()
@@ -80,7 +50,6 @@ public class SpecialtyCatalogService {
 
     @CacheEvict(cacheNames = "specialties", allEntries = true)
     public SpecialtyResponse create(CreateSpecialtyRequest request) {
-        requireRepository();
         String code = normalizeCode(request.code());
         String name = normalizeRequired(request.name(), 120);
         if (repository.existsByCodeIgnoreCase(code) || repository.existsByNameIgnoreCase(name)) {
@@ -93,7 +62,6 @@ public class SpecialtyCatalogService {
 
     @CacheEvict(cacheNames = "specialties", allEntries = true)
     public SpecialtyResponse update(String code, CreateSpecialtyRequest request) {
-        requireRepository();
         SpecialtyCatalogEntry entry = repository.findByCodeIgnoreCase(code)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "SPECIALTY_NOT_FOUND",
                         "Chuyên khoa không tồn tại."));
@@ -111,19 +79,11 @@ public class SpecialtyCatalogService {
 
     @CacheEvict(cacheNames = "specialties", allEntries = true)
     public void deactivate(String code) {
-        requireRepository();
         SpecialtyCatalogEntry entry = repository.findByCodeIgnoreCase(code)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "SPECIALTY_NOT_FOUND",
                         "Chuyên khoa không tồn tại."));
         entry.setActive(false);
         repository.save(entry);
-    }
-
-    private void requireRepository() {
-        if (repository == null) {
-            throw new AuthException(HttpStatus.SERVICE_UNAVAILABLE, "SPECIALTY_ADMIN_UNAVAILABLE",
-                    "Chưa bật quản trị danh mục chuyên khoa.");
-        }
     }
 
     private String normalizeCode(String value) {
