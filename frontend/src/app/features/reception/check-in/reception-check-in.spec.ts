@@ -178,7 +178,7 @@ describe('ReceptionCheckIn', () => {
     request.flush({ ...checkedIn, status: 'NOT_PERFORMED', queueStatus: 'COMPLETED', queueStatusLabel: 'Đã hoàn tất' });
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('cơ sở tạm dừng phục vụ');
+    expect(fixture.nativeElement.textContent).toContain('phòng khám tạm dừng phục vụ');
   });
 
   it('adjusts a waiting queue ticket without editing its appointment status', () => {
@@ -383,7 +383,7 @@ describe('ReceptionCheckIn', () => {
     fixture.detectChanges();
 
     const input = fixture.nativeElement.querySelector('input[name="walkInExceptionReason"]') as HTMLInputElement;
-    expect(input.placeholder).toBe('Ví dụ: Người bệnh đến quầy chưa đặt lịch');
+    expect(input.placeholder).toBe('Người bệnh đến quầy chưa đặt lịch');
   });
 });
 

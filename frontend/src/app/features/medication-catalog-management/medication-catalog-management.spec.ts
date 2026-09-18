@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
-import { vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { AuthApiService } from '../../core/auth/auth-api.service';
 import { MedicationCatalogManagement } from './medication-catalog-management';
 
@@ -12,9 +12,20 @@ describe('MedicationCatalogManagement', () => {
     createMedication: vi.fn(),
     updateMedication: vi.fn(),
     setMedicationActive: vi.fn(),
+    getSpecialties: vi.fn().mockReturnValue(of([])),
+    getMedicationUnits: vi.fn().mockReturnValue(of([
+      { code: 'UNIT-VIEN', name: 'Viên', description: 'Dạng rắn: viên nén, viên nang', active: true, sortOrder: 1 },
+      { code: 'UNIT-GOI', name: 'Gói', description: 'Dạng bột hoặc cốm pha', active: true, sortOrder: 2 },
+    ])),
+    getMedicationDosages: vi.fn().mockReturnValue(of([
+      { code: 'DOS-GOI-2X', unitName: 'Gói', dosageFormat: '1 gói/lần x 2 lần/ngày (Sáng 1, Tối 1)', active: true, sortOrder: 1 },
+      { code: 'DOS-VIEN-2X', unitName: 'Viên', dosageFormat: '1 viên/lần x 2 lần/ngày (Sáng 1, Tối 1)', active: true, sortOrder: 2 },
+    ])),
   };
 
   beforeEach(async () => {
+    sessionStorage.setItem('clinicOneAccessToken', 'staff-token');
+    sessionStorage.setItem('clinicOneStaffRoles', JSON.stringify(['ADMIN']));
     api.getAdminMedications.mockReturnValue(of([
       { id: 'med-1', code: 'PCM500', name: 'Paracetamol 500 mg', active: true },
       { id: 'med-2', code: 'OLD-MED', name: 'Thuốc đã ngừng', active: false },
@@ -30,6 +41,11 @@ describe('MedicationCatalogManagement', () => {
     fixture.detectChanges();
   });
 
+  afterEach(() => {
+    TestBed.resetTestingModule();
+    sessionStorage.clear();
+  });
+
   it('lists active and inactive medicines separately for safe operation', () => {
     const text = fixture.nativeElement.textContent;
     expect(text).toContain('Paracetamol 500 mg');
@@ -38,9 +54,31 @@ describe('MedicationCatalogManagement', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="staff-workspace-shell"]')).toBeTruthy();
   });
 
-  it('creates a medicine from the modal form', () => {
+  it('switches between Medication table, Units table, and Dosages table', () => {
+    // 1. Initially on medications tab
+    expect(fixture.nativeElement.querySelector('[data-testid="medication-row"]')).toBeTruthy();
+
+    // 2. Switch to Units tab
+    (fixture.nativeElement.querySelector('[data-testid="tab-units"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-testid="units-table-container"]')).toBeTruthy();
+    expect(fixture.nativeElement.textContent).toContain('UNIT-VIEN');
+
+    // 3. Switch to Dosages tab
+    (fixture.nativeElement.querySelector('[data-testid="tab-dosages"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-testid="dosages-table-container"]')).toBeTruthy();
+    expect(fixture.nativeElement.textContent).toContain('DOS-GOI-2X');
+  });
+
+  it('creates a medicine from the modal form without suggestion chips', () => {
     (fixture.nativeElement.querySelector('[data-testid="open-create-medication"]') as HTMLButtonElement).click();
     fixture.detectChanges();
+    const modalText = fixture.nativeElement.querySelector('.erp-modal-container')?.textContent || '';
+    expect(modalText).not.toContain('Gợi ý:');
+    expect(modalText).not.toContain('Format mẫu chuẩn y tế:');
+    expect(modalText).not.toContain('Mẫu cách dùng:');
+
     const component = fixture.componentInstance as unknown as {
       code: { set(value: string): void }; name: { set(value: string): void }; save(): void;
     };
@@ -55,5 +93,42 @@ describe('MedicationCatalogManagement', () => {
     (fixture.nativeElement.querySelector('[data-testid="toggle-medication-med-1"]') as HTMLButtonElement).click();
 
     expect(api.setMedicationActive).toHaveBeenCalledWith('med-1', false);
+  });
+
+  it('creates a medicine with clinical presets (unit, specialty select, and standard dosage)', () => {
+    (fixture.nativeElement.querySelector('[data-testid="open-create-medication"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const component = fixture.componentInstance;
+
+    // 1. Select unit preset
+    component['selectUnit']('Gói');
+    fixture.detectChanges();
+    expect(component['unit']()).toBe('Gói');
+
+    // 2. Formats adapt dynamically to "Gói"
+    const dosageFormats = component['standardDosageFormats']();
+    expect(dosageFormats.some((fmt) => fmt.includes('gói/lần'))).toBe(true);
+
+    // 3. Select standard dosage preset
+    component['selectDosage'](dosageFormats[0]);
+    expect(component['defaultDosage']()).toBe(dosageFormats[0]);
+
+    // 4. Select specialty from dropdown
+    component['specialties'].set('Khám Tổng Quát');
+
+    // 5. Select category preset
+    component['selectCategory']('Hạ sốt & Giảm đau');
+
+    component['code'].set('eff-para-250');
+    component['name'].set('Efferalgan 250mg');
+    component['save']();
+
+    expect(api.createMedication).toHaveBeenCalledWith('EFF-PARA-250', 'Efferalgan 250mg', {
+      unit: 'Gói',
+      specialties: 'Khám Tổng Quát',
+      defaultDosage: dosageFormats[0],
+      category: 'Hạ sốt & Giảm đau',
+      defaultInstructions: undefined,
+    });
   });
 });

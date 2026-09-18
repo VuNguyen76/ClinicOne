@@ -1,4 +1,4 @@
-<app-staff-workspace-shell moduleTitle="Kiểm soát" pageTitle="Lịch sử nghiệp vụ">
+<app-staff-workspace-shell moduleTitle="Báo cáo & Kiểm soát" pageTitle="Nhật ký thao tác">
   <div class="grid gap-6">
     <!-- Alerts -->
     @if (error()) {
@@ -22,7 +22,7 @@
           type="button"
           data-testid="chip-all"
           class="rounded-full px-3 py-1 text-xs font-semibold transition cursor-pointer"
-          [class.bg-[#0e3d48]]="entityType() === ''"
+          [class.bg-[#0284c7]]="entityType() === ''"
           [class.text-white]="entityType() === ''"
           [class.bg-slate-100]="entityType() !== ''"
           [class.text-slate-600]="entityType() !== ''"
@@ -35,7 +35,7 @@
           type="button"
           data-testid="chip-appointment"
           class="rounded-full px-3 py-1 text-xs font-semibold transition cursor-pointer"
-          [class.bg-[#0e3d48]]="entityType() === 'APPOINTMENT'"
+          [class.bg-[#0284c7]]="entityType() === 'APPOINTMENT'"
           [class.text-white]="entityType() === 'APPOINTMENT'"
           [class.bg-slate-100]="entityType() !== 'APPOINTMENT'"
           [class.text-slate-600]="entityType() !== 'APPOINTMENT'"
@@ -48,7 +48,7 @@
           type="button"
           data-testid="chip-queue"
           class="rounded-full px-3 py-1 text-xs font-semibold transition cursor-pointer"
-          [class.bg-[#0e3d48]]="entityType() === 'QUEUE_TICKET'"
+          [class.bg-[#0284c7]]="entityType() === 'QUEUE_TICKET'"
           [class.text-white]="entityType() === 'QUEUE_TICKET'"
           [class.bg-slate-100]="entityType() !== 'QUEUE_TICKET'"
           [class.text-slate-600]="entityType() !== 'QUEUE_TICKET'"
@@ -61,7 +61,7 @@
           type="button"
           data-testid="chip-examination"
           class="rounded-full px-3 py-1 text-xs font-semibold transition cursor-pointer"
-          [class.bg-[#0e3d48]]="entityType() === 'EXAMINATION'"
+          [class.bg-[#0284c7]]="entityType() === 'EXAMINATION'"
           [class.text-white]="entityType() === 'EXAMINATION'"
           [class.bg-slate-100]="entityType() !== 'EXAMINATION'"
           [class.text-slate-600]="entityType() !== 'EXAMINATION'"
@@ -82,8 +82,8 @@
               [ngModel]="entityId()"
               (ngModelChange)="entityId.set($event)"
               (keyup.enter)="search()"
-              placeholder="Nhập mã lịch hẹn (vd: LH-20260820-001), mã phiếu khám, số hàng đợi hoặc UUID..."
-              class="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-8 text-xs text-slate-800 placeholder-slate-400 outline-none transition focus:border-[#0e3d48] focus:ring-1 focus:ring-[#0e3d48] shadow-2xs font-mono"
+              placeholder="Nhập mã lịch hẹn (LH-20260820-001), mã phiếu khám, số hàng đợi hoặc UUID..."
+              class="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-8 text-xs text-slate-800 placeholder-slate-400 outline-none transition focus:border-[#0284c7] focus:ring-1 focus:ring-[#0284c7] shadow-2xs font-mono"
             />
             @if (entityId()) {
               <button
@@ -118,7 +118,7 @@
       <section class="rounded-2xl border border-slate-100 bg-white shadow-xs overflow-hidden w-full">
         <div class="border-b border-slate-100 px-5 py-3.5 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <h3 class="text-xs font-bold uppercase tracking-wider text-slate-800">
-            Dòng thời gian sự kiện: <span class="font-mono text-[#0e3d48]">{{ entityId() || (entityType() ? formatEntityType(entityType()) : 'Tất cả nghiệp vụ gần nhất') }}</span>
+            Dòng thời gian sự kiện: <span class="font-mono text-[#0284c7]">{{ entityId() || (entityType() ? formatEntityType(entityType()) : 'Tất cả nghiệp vụ gần nhất') }}</span>
           </h3>
           <span class="font-mono text-xs text-slate-500">
             Trang {{ page() + 1 }} / {{ totalPages() || 1 }} ({{ totalElements() }} bản ghi)
@@ -151,7 +151,7 @@
                   <td class="px-4 py-3">
                     <span class="font-mono text-[11px] text-slate-500">{{ item.previousStatus || '—' }}</span>
                     <span class="px-1 text-slate-300">→</span>
-                    <span class="font-mono text-[11px] font-bold text-[#0e3d48]">{{ item.nextStatus }}</span>
+                    <span class="font-mono text-[11px] font-bold text-[#0284c7]">{{ item.nextStatus }}</span>
                   </td>
                   <td class="px-4 py-3 text-slate-800 font-medium">{{ formatActor(item.actor) }}</td>
                   <td class="px-4 py-3 max-w-xs truncate text-slate-600">{{ item.reason || '—' }}</td>

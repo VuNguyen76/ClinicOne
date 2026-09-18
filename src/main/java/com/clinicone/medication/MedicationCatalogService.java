@@ -41,7 +41,16 @@ public class MedicationCatalogService {
         if (repository.existsByCodeIgnoreCase(code)) {
             throw new AuthException(HttpStatus.CONFLICT, "MEDICATION_CODE_EXISTS", "Mã thuốc đã tồn tại.");
         }
-        return MedicationResponse.from(repository.save(Medication.create(code, name(request.name()))));
+        Medication medication = Medication.create(
+                code,
+                name(request.name()),
+                clean(request.category()),
+                clean(request.specialties()),
+                clean(request.defaultDosage()),
+                clean(request.defaultInstructions()),
+                clean(request.unit())
+        );
+        return MedicationResponse.from(repository.save(medication));
     }
 
     @Transactional
@@ -52,7 +61,15 @@ public class MedicationCatalogService {
         if (repository.existsByCodeIgnoreCaseAndIdNot(code, id)) {
             throw new AuthException(HttpStatus.CONFLICT, "MEDICATION_CODE_EXISTS", "Mã thuốc đã tồn tại.");
         }
-        medication.update(code, name(request.name()));
+        medication.update(
+                code,
+                name(request.name()),
+                clean(request.category()),
+                clean(request.specialties()),
+                clean(request.defaultDosage()),
+                clean(request.defaultInstructions()),
+                clean(request.unit())
+        );
         return MedicationResponse.from(medication);
     }
 
@@ -81,5 +98,11 @@ public class MedicationCatalogService {
 
     private String name(String value) {
         return value.trim();
+    }
+
+    private String clean(String value) {
+        if (value == null) return null;
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }

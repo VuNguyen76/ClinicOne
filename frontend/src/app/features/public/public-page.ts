@@ -68,7 +68,7 @@ export class PublicPage {
 
   readonly processSteps = [
     { order: '01', icon: 'event_available', title: 'Đặt lịch', description: 'Chọn chuyên khoa, bác sĩ và khung giờ phù hợp trên ứng dụng.' },
-    { order: '02', icon: 'how_to_reg', title: 'Đến phòng khám', description: 'Mang theo thông tin lịch hẹn và đến đúng cơ sở, đúng thời gian.' },
+    { order: '02', icon: 'how_to_reg', title: 'Đến phòng khám', description: 'Mang theo thông tin lịch hẹn và đến đúng phòng khám, đúng thời gian.' },
     { order: '03', icon: 'qr_code_scanner', title: 'Nhận số thứ tự', description: 'Quét mã QR trước phòng bác sĩ để check-in và nhận số thứ tự.' },
     { order: '04', icon: 'task_alt', title: 'Theo dõi kết quả', description: 'Xem trạng thái lượt khám, phiếu khám đã ký và lịch tái khám.' },
   ];
@@ -80,7 +80,7 @@ export class PublicPage {
   ];
 
   readonly supportChannels = [
-    { icon: 'phone_in_talk', title: 'Tổng đài', value: '1900000', detail: 'Hỗ trợ đặt lịch và hướng dẫn nhanh', href: 'tel:1900000' },
+    { icon: 'phone_in_talk', title: 'Tổng đài', value: '1900 0000', detail: 'Hỗ trợ đặt lịch và hướng dẫn nhanh', href: 'tel:19000000' },
     { icon: 'mail_outline', title: 'Email', value: 'support@clinicone.vn', detail: 'Phản hồi trong giờ làm việc', href: 'mailto:support@clinicone.vn' },
     { icon: 'chat_bubble_outline', title: 'Tin nhắn', value: 'ClinicOne Support', detail: 'Trao đổi về lịch hẹn và hồ sơ', href: '#contact-form' },
   ];

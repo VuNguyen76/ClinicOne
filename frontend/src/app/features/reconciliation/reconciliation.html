@@ -1,4 +1,4 @@
-<app-staff-workspace-shell moduleTitle="Kiểm soát" pageTitle="Xử lý sai lệch dữ liệu">
+<app-staff-workspace-shell moduleTitle="Báo cáo & Kiểm soát" pageTitle="Đối soát dữ liệu">
   <div class="grid gap-6">
     <!-- Alerts & Notices -->
     @if (error()) {
@@ -30,7 +30,7 @@
         <mat-icon class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 !h-4 !w-4 !text-[18px] text-slate-400">search</mat-icon>
         <input
           type="text"
-          class="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-8 text-xs text-slate-800 placeholder-slate-400 outline-none transition focus:border-[#0e3d48] focus:ring-1 focus:ring-[#0e3d48] shadow-2xs"
+          class="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-8 text-xs text-slate-800 placeholder-slate-400 outline-none transition focus:border-[#0284c7] focus:ring-1 focus:ring-[#0284c7] shadow-2xs"
           placeholder="Tìm theo mã sự cố, nội dung, người phụ trách..."
           [value]="searchTerm()"
           (input)="searchTerm.set($any($event.target).value)"
@@ -61,7 +61,7 @@
         <button
           type="button"
           (click)="openCreateModal()"
-          class="inline-flex items-center gap-1.5 rounded-xl bg-[#0e3d48] px-3.5 py-2 text-xs font-bold text-white shadow-2xs transition hover:bg-[#134e5e]"
+          class="inline-flex items-center gap-1.5 rounded-xl bg-[#0284c7] px-3.5 py-2 text-xs font-bold text-white shadow-2xs transition hover:bg-[#0369a1]"
           title="Báo cáo một sự cố lệch thông tin vừa phát hiện"
         >
           <mat-icon class="!h-4 !w-4 !text-[18px]">add</mat-icon>
@@ -86,7 +86,7 @@
         type="button"
         (click)="statusTab.set('OPEN')"
         class="inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition"
-        [class.bg-[#0e3d48]]="statusTab() === 'OPEN'"
+        [class.bg-[#0284c7]]="statusTab() === 'OPEN'"
         [class.text-white]="statusTab() === 'OPEN'"
         [class.text-slate-600]="statusTab() !== 'OPEN'"
         [class.hover:bg-slate-100]="statusTab() !== 'OPEN'"
@@ -95,7 +95,7 @@
         <span
           class="rounded-full px-1.5 py-0.2 text-[10px] font-bold"
           [class.bg-white]="statusTab() === 'OPEN'"
-          [class.text-[#0e3d48]]="statusTab() === 'OPEN'"
+          [class.text-[#0284c7]]="statusTab() === 'OPEN'"
           [class.bg-amber-100]="statusTab() !== 'OPEN'"
           [class.text-amber-800]="statusTab() !== 'OPEN'"
         >
@@ -107,7 +107,7 @@
         type="button"
         (click)="statusTab.set('CLOSED')"
         class="inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition"
-        [class.bg-[#0e3d48]]="statusTab() === 'CLOSED'"
+        [class.bg-[#0284c7]]="statusTab() === 'CLOSED'"
         [class.text-white]="statusTab() === 'CLOSED'"
         [class.text-slate-600]="statusTab() !== 'CLOSED'"
         [class.hover:bg-slate-100]="statusTab() !== 'CLOSED'"
@@ -116,7 +116,7 @@
         <span
           class="rounded-full px-1.5 py-0.2 text-[10px] font-bold"
           [class.bg-white]="statusTab() === 'CLOSED'"
-          [class.text-[#0e3d48]]="statusTab() === 'CLOSED'"
+          [class.text-[#0284c7]]="statusTab() === 'CLOSED'"
           [class.bg-emerald-100]="statusTab() !== 'CLOSED'"
           [class.text-emerald-800]="statusTab() !== 'CLOSED'"
         >
@@ -128,7 +128,7 @@
         type="button"
         (click)="statusTab.set('ALL')"
         class="inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition"
-        [class.bg-[#0e3d48]]="statusTab() === 'ALL'"
+        [class.bg-[#0284c7]]="statusTab() === 'ALL'"
         [class.text-white]="statusTab() === 'ALL'"
         [class.text-slate-600]="statusTab() !== 'ALL'"
         [class.hover:bg-slate-100]="statusTab() !== 'ALL'"
@@ -137,7 +137,7 @@
         <span
           class="rounded-full px-1.5 py-0.2 text-[10px] font-bold"
           [class.bg-white]="statusTab() === 'ALL'"
-          [class.text-[#0e3d48]]="statusTab() === 'ALL'"
+          [class.text-[#0284c7]]="statusTab() === 'ALL'"
           [class.bg-slate-200]="statusTab() !== 'ALL'"
           [class.text-slate-700]="statusTab() !== 'ALL'"
         >
@@ -173,7 +173,7 @@
                 class="flex w-full flex-col gap-1.5 p-4 text-left transition hover:bg-slate-50/80 cursor-pointer"
                 [class.bg-sky-50/70]="selected()?.id === item.id"
                 [class.border-l-4]="selected()?.id === item.id"
-                [class.border-l-[#0e3d48]]="selected()?.id === item.id"
+                [class.border-l-[#0284c7]]="selected()?.id === item.id"
                 (click)="select(item)"
               >
                 <div class="flex items-center justify-between gap-2">
@@ -340,7 +340,7 @@
                   <textarea
                     rows="4"
                     class="erp-textarea"
-                    placeholder="Mô tả cách bạn đã giải quyết (vd: Đã kiểm tra lại thông tin với bệnh nhân và xác nhận đúng...)"
+                    placeholder="Mô tả cách xử lý (Đã kiểm tra lại thông tin với bệnh nhân và xác nhận đúng...)"
                     [value]="resultNote()"
                     (input)="resultNote.set($any($event.target).value)"
                   ></textarea>
@@ -419,7 +419,7 @@
               <textarea
                 rows="4"
                 class="erp-textarea"
-                placeholder="Mô tả hiện tượng (vd: Người bệnh báo đã đến quầy nhưng không thấy số trên màn hình gọi số...)"
+                placeholder="Mô tả hiện tượng (Người bệnh báo đã đến quầy nhưng không thấy số trên màn hình gọi số...)"
                 [ngModel]="newReason()"
                 (ngModelChange)="newReason.set($event)"
                 name="newReason"

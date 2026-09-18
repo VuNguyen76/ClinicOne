@@ -20,7 +20,7 @@
         aria-label="ClinicOne"
       >
         <img class="h-8 w-8 object-contain" src="clinicone-mark-small.png" alt="" aria-hidden="true" />
-        <span class="text-lg font-bold tracking-tight text-[#0e3d48]">Clinic<span class="text-[#0284c7]">One</span></span>
+        <span class="text-lg font-bold tracking-tight text-slate-900">Clinic<span class="text-[#0284c7]">One</span></span>
       </a>
 
       <!-- Center Search & Module Indicator -->
@@ -40,7 +40,8 @@
       </div>
 
       <!-- Right Staff Info & Profile -->
-      <div class="ml-auto flex items-center gap-3 px-3 sm:px-4">
+      <div class="ml-auto flex items-center gap-2.5 px-3 sm:px-4">
+        <ng-content select="[shell-header-extra]" />
         <div class="hidden items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700 sm:inline-flex">
           <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
           <span>{{ roleLabel }}</span>
@@ -69,17 +70,17 @@
       [class.-translate-x-full]="!navigationOpen()"
       data-testid="staff-module-nav"
     >
-      <nav class="py-3" aria-label="Danh mục chức năng">
+      <nav class="py-2.5" aria-label="Danh mục chức năng">
         @for (group of visibleNavigation(); track group.label) {
           <section class="mb-3">
-            <h2 class="px-4 pb-1 text-xs font-bold uppercase tracking-[0.1em] text-slate-400">{{ group.label }}</h2>
+            <h2 class="px-3 pb-1 pt-1 text-xs font-semibold uppercase tracking-wider text-slate-400">{{ group.label }}</h2>
             <div class="grid gap-0.5 px-2">
               @for (item of group.items; track item.route) {
                 <a
                   [routerLink]="item.route"
                   routerLinkActive="bg-sky-50 text-[#0284c7] font-semibold shadow-[inset_3px_0_0_#0284c7]"
                   [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
-                  class="group flex min-h-11 items-center gap-3 rounded-md px-3.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100/80 hover:text-slate-900"
+                  class="group flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-900"
                   (click)="handleNavigationClick($event)"
                 >
                   <mat-icon class="!h-5 !w-5 !text-[20px] text-slate-400 transition-colors group-hover:text-slate-700 [.bg-sky-50_&]:text-[#0284c7]">{{ item.icon }}</mat-icon>

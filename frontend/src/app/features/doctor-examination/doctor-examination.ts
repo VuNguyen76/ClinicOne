@@ -40,6 +40,17 @@ const TEMPLATE_TEXT_FIELDS: Array<{ key: ClinicalTextField | 'followUpNote'; lab
   { key: 'followUpNote', label: 'Dặn dò tái khám' },
 ];
 
+export interface SpecialtyMedicationItem {
+  id?: string;
+  code: string;
+  name: string;
+  category: string;
+  dosage: string;
+  instructions: string;
+  specialties?: string[];
+  unit?: string;
+}
+
 @Component({
   selector: 'app-doctor-examination',
   standalone: true,
@@ -81,12 +92,96 @@ export class DoctorExamination implements OnInit {
   protected readonly confirmingTemplateOverwrite = signal(false);
   protected readonly error = signal('');
   protected readonly notice = signal('');
+
+  // Clinical Workspace Tabs
+  protected readonly activeTab = signal<'exam' | 'diagnosis' | 'prescription'>('exam');
+  protected selectTab(tab: 'exam' | 'diagnosis' | 'prescription'): void {
+    this.activeTab.set(tab);
+  }
+
+  // Specialty Medication Catalog
+  protected readonly medicationCatalogOpen = signal(false);
+  protected readonly medicationCatalogLoading = signal(false);
+  protected readonly medicationCatalogLoaded = signal(false);
+  protected readonly medicationSearchQuery = signal('');
+  protected readonly selectedMedicationCategory = signal('Khoa của tôi');
+  protected readonly specialtyMedications = signal<SpecialtyMedicationItem[]>([]);
+
+  protected readonly medicationCategories = computed(() => {
+    const currentSpecialty = this.examination()?.specialty ?? '';
+    const label = currentSpecialty ? `Khoa của tôi (${currentSpecialty})` : 'Khoa của tôi';
+    const meds = this.specialtyMedications();
+    const categoriesSet = new Set<string>();
+    meds.forEach((m) => {
+      if (m.category && m.category.trim()) categoriesSet.add(m.category.trim());
+    });
+    const standardOrder = [
+      'Hạ sốt & Giảm đau',
+      'Kháng sinh',
+      'Tim mạch',
+      'Hô hấp',
+      'Tiêu hóa',
+      'Nhi khoa',
+      'Mắt & TMH',
+      'Vitamin & Khoáng chất',
+    ];
+    const ordered: string[] = [];
+    standardOrder.forEach((cat) => {
+      if (categoriesSet.has(cat)) {
+        ordered.push(cat);
+        categoriesSet.delete(cat);
+      }
+    });
+    categoriesSet.forEach((cat) => ordered.push(cat));
+
+    return [label, ...(ordered.length > 0 ? ordered : standardOrder), 'Tất cả'];
+  });
+
+  protected readonly filteredCatalogMedications = computed(() => {
+    const query = this.medicationSearchQuery().trim().toLowerCase();
+    const activeCategory = this.selectedMedicationCategory();
+    const currentSpecialty = this.examination()?.specialty ?? '';
+    let items = this.specialtyMedications();
+    if (activeCategory.startsWith('Khoa của tôi')) {
+      items = items.filter((item) => this.isMatchSpecialty(item, currentSpecialty));
+    } else if (activeCategory && activeCategory !== 'Tất cả') {
+      items = items.filter((item) => item.category === activeCategory);
+    }
+    if (query) {
+      items = items.filter((item) =>
+        item.name.toLowerCase().includes(query) ||
+        item.code.toLowerCase().includes(query) ||
+        item.category.toLowerCase().includes(query) ||
+        item.instructions.toLowerCase().includes(query) ||
+        item.dosage.toLowerCase().includes(query)
+      );
+    }
+    return items;
+  });
+  protected readonly vitalsWeight = signal<number | null>(null);
+  protected readonly vitalsHeight = signal<number | null>(null);
+  protected readonly bmi = computed(() => {
+    const w = this.vitalsWeight();
+    const h = this.vitalsHeight();
+    if (!w || !h || h <= 0) return null;
+    const heightInMeters = h / 100;
+    const bmiVal = w / (heightInMeters * heightInMeters);
+    return Math.round(bmiVal * 10) / 10;
+  });
+
   protected readonly form = this.fb.group({
     reason: ['', [Validators.maxLength(2000)]],
     examinationNotes: ['', [Validators.maxLength(2000)]],
     diagnosis: ['', [Validators.maxLength(2000)]],
     conclusion: ['', [Validators.maxLength(2000)]],
     treatmentPlan: ['', [Validators.maxLength(2000)]],
+    bloodPressure: ['', [Validators.maxLength(30)]],
+    heartRate: [null as number | null, [Validators.min(20), Validators.max(300)]],
+    temperature: [null as number | null, [Validators.min(30), Validators.max(45)]],
+    spO2: [null as number | null, [Validators.min(50), Validators.max(100)]],
+    weight: [null as number | null, [Validators.min(1), Validators.max(500)]],
+    height: [null as number | null, [Validators.min(30), Validators.max(300)]],
+    allergySummary: ['', [Validators.maxLength(500)]],
     prescriptionLines: this.fb.array<PrescriptionLineForm>([]),
     followUpDate: [''],
     followUpDays: [null as number | null, [Validators.min(1), Validators.max(365)]],
@@ -111,7 +206,11 @@ export class DoctorExamination implements OnInit {
   }
 
   ngOnInit(): void {
-    this.form.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.markDraftChanged());
+    this.form.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.vitalsWeight.set(this.form.controls.weight.value);
+      this.vitalsHeight.set(this.form.controls.height.value);
+      this.markDraftChanged();
+    });
     this.form.valueChanges.pipe(auditTime(10_000), takeUntilDestroyed(this.destroyRef)).subscribe(() => this.autosaveDraft());
     this.destroyRef.onDestroy(() => this.clearAutosaveRetry());
     const ticketId = this.route.snapshot.paramMap.get('ticketId');
@@ -129,10 +228,19 @@ export class DoctorExamination implements OnInit {
           diagnosis: value.diagnosis ?? '',
           conclusion: value.conclusion ?? '',
           treatmentPlan: value.treatmentPlan ?? '',
+          bloodPressure: value.bloodPressure ?? '',
+          heartRate: value.heartRate ?? null,
+          temperature: value.temperature ?? null,
+          spO2: value.spO2 ?? null,
+          weight: value.weight ?? null,
+          height: value.height ?? null,
+          allergySummary: value.allergySummary ?? '',
           followUpDate: value.followUpDate ?? '',
           followUpDays: value.followUpDays ?? null,
           followUpNote: value.followUpNote ?? '',
         }, { emitEvent: false });
+        this.vitalsWeight.set(value.weight ?? null);
+        this.vitalsHeight.set(value.height ?? null);
         value.prescriptionLines?.forEach((line) => this.prescriptionLines.push(this.createPrescriptionLine(line)));
         this.prescriptionEnabled.set(this.prescriptionLines.length > 0);
         this.followUpEnabled.set(value.followUpDays != null || Boolean(value.followUpNote));
@@ -480,6 +588,13 @@ export class DoctorExamination implements OnInit {
       diagnosis: value.diagnosis ?? '',
       conclusion: value.conclusion ?? '',
       treatmentPlan: value.treatmentPlan ?? '',
+      bloodPressure: value.bloodPressure?.trim() || null,
+      heartRate: value.heartRate != null && (value.heartRate as any) !== '' ? Number(value.heartRate) : null,
+      temperature: value.temperature != null && (value.temperature as any) !== '' ? Number(value.temperature) : null,
+      spO2: value.spO2 != null && (value.spO2 as any) !== '' ? Number(value.spO2) : null,
+      weight: value.weight != null && (value.weight as any) !== '' ? Number(value.weight) : null,
+      height: value.height != null && (value.height as any) !== '' ? Number(value.height) : null,
+      allergySummary: value.allergySummary?.trim() || null,
       prescription: '',
       prescriptionLines: value.prescriptionLines.map((line) => ({
         ...(line.medicationId ? { medicationId: line.medicationId } : {}),
@@ -601,6 +716,86 @@ export class DoctorExamination implements OnInit {
       return;
     }
     this.error.set(apiErrorMessage(response));
+  }
+
+  protected openMedicationCatalog(): void {
+    if (this.examination()?.signedAt) return;
+    this.medicationCatalogOpen.set(true);
+    this.loadDoctorMedications();
+  }
+
+  protected closeMedicationCatalog(): void {
+    this.medicationCatalogOpen.set(false);
+  }
+
+  protected selectMedicationCategory(category: string): void {
+    this.selectedMedicationCategory.set(category);
+  }
+
+  protected updateMedicationSearchQuery(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.medicationSearchQuery.set(input.value);
+  }
+
+  protected clearMedicationSearch(): void {
+    this.medicationSearchQuery.set('');
+  }
+
+  protected prescribeFromCatalog(item: SpecialtyMedicationItem): void {
+    if (this.prescriptionLines.length >= 20 || this.examination()?.signedAt) return;
+    this.prescriptionEnabled.set(true);
+    const line = this.fb.group({
+      medicationId: [item.id ?? null],
+      medicationName: [item.name, [Validators.required, Validators.maxLength(200)]],
+      dosage: [item.dosage, [Validators.required, Validators.maxLength(100)]],
+      quantity: [1, [Validators.required, Validators.min(1), Validators.max(999)]],
+      instructions: [item.instructions, [Validators.required, Validators.maxLength(500)]],
+    }) as PrescriptionLineForm;
+    this.prescriptionLines.push(line);
+    this.notice.set(`Đã thêm "${item.name}" vào đơn thuốc.`);
+    setTimeout(() => {
+      if (this.notice().includes(item.name)) this.notice.set('');
+    }, 2500);
+  }
+
+  protected loadDoctorMedications(): void {
+    if (this.medicationCatalogLoaded() || this.medicationCatalogLoading()) return;
+    this.medicationCatalogLoading.set(true);
+    this.authApi.getDoctorMedications().subscribe({
+      next: (apiMeds) => {
+        const items: SpecialtyMedicationItem[] = (apiMeds ?? []).map((med) => {
+          const rawSpecs = med.specialties ? med.specialties.split(',').map((s) => s.trim()).filter(Boolean) : [];
+          return {
+            id: med.id,
+            code: med.code,
+            name: med.name,
+            category: med.category || 'Khác',
+            dosage: med.defaultDosage || '1 viên / lần',
+            instructions: med.defaultInstructions || 'Dùng theo chỉ định của bác sĩ',
+            specialties: rawSpecs,
+            unit: med.unit || 'Viên',
+          };
+        });
+        this.specialtyMedications.set(items);
+        this.medicationCatalogLoaded.set(true);
+        this.medicationCatalogLoading.set(false);
+      },
+      error: () => {
+        this.medicationCatalogLoading.set(false);
+      },
+    });
+  }
+
+  private isMatchSpecialty(item: SpecialtyMedicationItem, currentSpecialty: string): boolean {
+    if (!currentSpecialty) return true;
+    const spec = currentSpecialty.toLowerCase().trim();
+    if (item.specialties && item.specialties.length > 0) {
+      return item.specialties.some((s) => {
+        const itemSpec = s.toLowerCase();
+        return itemSpec.includes(spec) || spec.includes(itemSpec);
+      });
+    }
+    return true;
   }
 
   protected printRecord(): void {

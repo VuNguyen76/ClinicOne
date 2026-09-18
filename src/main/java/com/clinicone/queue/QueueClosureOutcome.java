@@ -5,7 +5,7 @@ public enum QueueClosureOutcome {
     EXAMINATION_COMPLETED("Hoàn thành khám"),
     EXAMINATION_STOPPED("Dừng khám"),
     LEFT_BEFORE_EXAM("Rời trước khám"),
-    FACILITY_UNAVAILABLE("Cơ sở không thể phục vụ");
+    FACILITY_UNAVAILABLE("Phòng khám không thể phục vụ");
 
     private final String label;
 

@@ -55,6 +55,18 @@ class MedicationCatalogAdminControllerTest {
     }
 
     @Test
+    void doctorCanCreateMedication() throws Exception {
+        when(service.create(any())).thenReturn(response(true));
+
+        mockMvc.perform(post("/api/v1/admin/medications")
+                        .with(authentication(authenticated("ROLE_DOCTOR")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"code\":\"PCM500\",\"name\":\"Paracetamol 500 mg\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.active").value(true));
+    }
+
+    @Test
     void nonAdminCannotChangeMedicationCatalog() throws Exception {
         mockMvc.perform(patch("/api/v1/admin/medications/" + MEDICATION_ID + "/active")
                         .param("value", "false")
