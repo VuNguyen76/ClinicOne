@@ -29,8 +29,27 @@ import static org.mockito.Mockito.when;
 class AppointmentAvailabilityServiceTest {
     private final AppointmentRepository appointmentRepository = mock(AppointmentRepository.class);
     private final AppointmentAvailabilityService service = new AppointmentAvailabilityService(
-            appointmentRepository, new SpecialtyCatalogService(), null, null, null,
+            appointmentRepository, createSpecialtyCatalog(), null, null, null,
             Clock.fixed(Instant.parse("2026-08-10T00:00:00Z"), ZoneOffset.UTC));
+
+    private static SpecialtyCatalogService createSpecialtyCatalog() {
+        SpecialtyCatalogRepository repo = mock(SpecialtyCatalogRepository.class);
+        when(repo.findByActiveTrueOrderByNameAsc()).thenReturn(List.of(
+                SpecialtyCatalogEntry.create("NOI", "Khám Tổng Quát", "Khám và tầm soát tổng quát, được hướng dẫn tới đúng chuyên khoa khi cần."),
+                SpecialtyCatalogEntry.create("TIM", "Khám Tim Mạch", "Đau ngực, hồi hộp, khó thở, huyết áp hoặc mỡ máu."),
+                SpecialtyCatalogEntry.create("HO_HAP", "Khám Hô Hấp", "Ho kéo dài, khó thở, khò khè hoặc các vấn đề về phổi."),
+                SpecialtyCatalogEntry.create("TIEU_HOA", "Khám Tiêu Hoá - Gan Mật", "Đau bụng, ợ hơi, trào ngược, rối loạn tiêu hoá hoặc bệnh lý gan mật."),
+                SpecialtyCatalogEntry.create("NHI", "Khám Nhi Khoa", "Khám sức khỏe, theo dõi phát triển và tiêm chủng cho trẻ em."),
+                SpecialtyCatalogEntry.create("TMH", "Khám Tai Mũi Họng", "Đau họng, nghẹt mũi, viêm xoang, ù tai hoặc nghe kém."),
+                SpecialtyCatalogEntry.create("MAT", "Khám Mắt", "Mờ mắt, đau mắt, đỏ mắt, cộm ngứa hoặc các bệnh lý về mắt."),
+                SpecialtyCatalogEntry.create("TK", "Khám Thần Kinh", "Đau đầu, chóng mặt, mất ngủ, tê bì hoặc đau cổ vai gáy."),
+                SpecialtyCatalogEntry.create("XK", "Khám Xương Khớp", "Đau khớp, đau lưng, chấn thương thể thao hoặc hạn chế vận động."),
+                SpecialtyCatalogEntry.create("DL", "Khám Da Liễu", "Mụn, ngứa, nổi mẩn, nấm da, rụng tóc hoặc bất thường trên da."),
+                SpecialtyCatalogEntry.create("PK", "Khám Phụ Khoa", "Tư vấn và thăm khám các vấn đề phụ khoa thường gặp."),
+                SpecialtyCatalogEntry.create("NT", "Khám Nội Tiết", "Theo dõi tiểu đường, tuyến giáp và các rối loạn nội tiết.")
+        ));
+        return new SpecialtyCatalogService(repo);
+    }
 
     @Test
     void returnsOnlyWorkingDaySlotsForKnownSpecialty() {
@@ -107,7 +126,7 @@ class AppointmentAvailabilityServiceTest {
                 .thenReturn(List.of());
 
         AppointmentAvailabilityService serviceWithCatalog = new AppointmentAvailabilityService(
-                appointmentRepository, new SpecialtyCatalogService(), null, null, null,
+                appointmentRepository, createSpecialtyCatalog(), null, null, null,
                 Clock.fixed(Instant.parse("2026-08-10T00:00:00Z"), ZoneOffset.UTC), serviceRepository);
 
         List<AvailableSlotResponse> slots = serviceWithCatalog.find("Khám Tổng Quát", monday, monday, serviceId);
@@ -144,7 +163,7 @@ class AppointmentAvailabilityServiceTest {
                 .thenReturn(List.of());
 
         AppointmentAvailabilityService configuredService = new AppointmentAvailabilityService(
-                appointmentRepository, new SpecialtyCatalogService(), null, null, null,
+                appointmentRepository, createSpecialtyCatalog(), null, null, null,
                 Clock.fixed(Instant.parse("2026-08-10T00:00:00Z"), ZoneOffset.UTC), serviceRepository, slotRepository);
 
         List<AvailableSlotResponse> slots = configuredService.find("Khám Tổng Quát", monday, monday, serviceId);
@@ -172,7 +191,7 @@ class AppointmentAvailabilityServiceTest {
         when(cancelledSlot.getStatus()).thenReturn(GeneratedSlotStatus.CANCELLED);
 
         AppointmentAvailabilityService configuredService = new AppointmentAvailabilityService(
-                appointmentRepository, new SpecialtyCatalogService(), null, null, null,
+                appointmentRepository, createSpecialtyCatalog(), null, null, null,
                 Clock.fixed(Instant.parse("2026-08-10T00:00:00Z"), ZoneOffset.UTC), serviceRepository, slotRepository);
 
         AuthException exception = assertThrows(AuthException.class, () -> configuredService.ensureBookable(
@@ -200,7 +219,7 @@ class AppointmentAvailabilityServiceTest {
                 serviceId, doctorId, monday)).thenReturn(List.of(generatedSlot));
 
         AppointmentAvailabilityService configuredService = new AppointmentAvailabilityService(
-                appointmentRepository, new SpecialtyCatalogService(), null, null, null,
+                appointmentRepository, createSpecialtyCatalog(), null, null, null,
                 Clock.fixed(Instant.parse("2026-08-10T00:00:00Z"), ZoneOffset.UTC), serviceRepository, slotRepository);
 
         AuthException exception = assertThrows(AuthException.class, () -> configuredService.ensureBookable(
@@ -226,7 +245,7 @@ class AppointmentAvailabilityServiceTest {
         when(cancelledSlot.getStatus()).thenReturn(GeneratedSlotStatus.CANCELLED);
 
         AppointmentAvailabilityService configuredService = new AppointmentAvailabilityService(
-                appointmentRepository, new SpecialtyCatalogService(), null, null, null,
+                appointmentRepository, createSpecialtyCatalog(), null, null, null,
                 Clock.fixed(Instant.parse("2026-08-10T00:00:00Z"), ZoneOffset.UTC), serviceRepository, slotRepository);
 
         assertEquals(List.of(), configuredService.find("Khám Tổng Quát", monday, monday, serviceId));
@@ -246,7 +265,7 @@ class AppointmentAvailabilityServiceTest {
         when(clinicService.getDurationMinutes()).thenReturn(30);
 
         AppointmentAvailabilityService configuredService = new AppointmentAvailabilityService(
-                appointmentRepository, new SpecialtyCatalogService(), null, null, null,
+                appointmentRepository, createSpecialtyCatalog(), null, null, null,
                 Clock.fixed(Instant.parse("2026-08-13T03:00:00Z"), ZoneOffset.UTC), serviceRepository, slotRepository);
 
         AuthException exception = assertThrows(AuthException.class, () -> configuredService.ensureBookable(
@@ -280,7 +299,7 @@ class AppointmentAvailabilityServiceTest {
                 doctorId, sunday, LocalTime.of(8, 30), AppointmentStatus.BOOKED)).thenReturn(0L);
 
         AppointmentAvailabilityService configuredService = new AppointmentAvailabilityService(
-                appointmentRepository, new SpecialtyCatalogService(), null, null, null,
+                appointmentRepository, createSpecialtyCatalog(), null, null, null,
                 Clock.fixed(Instant.parse("2026-08-13T03:00:00Z"), ZoneOffset.UTC), serviceRepository, slotRepository);
 
         configuredService.ensureBookable("Khám Tổng Quát", "Bác sĩ An", doctorId, sunday,
@@ -303,7 +322,7 @@ class AppointmentAvailabilityServiceTest {
         when(clinicService.getDurationMinutes()).thenReturn(30);
 
         AppointmentAvailabilityService configuredService = new AppointmentAvailabilityService(
-                appointmentRepository, new SpecialtyCatalogService(), null, null, null,
+                appointmentRepository, createSpecialtyCatalog(), null, null, null,
                 Clock.fixed(Instant.parse("2026-08-13T03:00:00Z"), ZoneOffset.UTC), serviceRepository, slotRepository);
 
         AuthException exception = assertThrows(AuthException.class, () -> configuredService.ensureBookable(
@@ -317,7 +336,7 @@ class AppointmentAvailabilityServiceTest {
         DoctorProfileRepository doctorProfileRepository = mock(DoctorProfileRepository.class);
         DoctorScheduleRepository scheduleRepository = mock(DoctorScheduleRepository.class);
         AppointmentAvailabilityService configuredService = new AppointmentAvailabilityService(
-                appointmentRepository, new SpecialtyCatalogService(), doctorProfileRepository, scheduleRepository,
+                appointmentRepository, createSpecialtyCatalog(), doctorProfileRepository, scheduleRepository,
                 null, Clock.fixed(Instant.parse("2026-08-10T00:00:00Z"), ZoneOffset.UTC));
 
         UUID doctorStaffId = UUID.randomUUID();
@@ -360,7 +379,7 @@ class AppointmentAvailabilityServiceTest {
     void validatesBookableDateUsingClinicTimezone() {
         Clock justAfterClinicMidnight = Clock.fixed(Instant.parse("2026-08-10T17:30:00Z"), ZoneOffset.UTC);
         AppointmentAvailabilityService clinicClockService = new AppointmentAvailabilityService(
-                appointmentRepository, new SpecialtyCatalogService(), null, null, null,
+                appointmentRepository, createSpecialtyCatalog(), null, null, null,
                 justAfterClinicMidnight);
 
         AuthException exception = assertThrows(AuthException.class,

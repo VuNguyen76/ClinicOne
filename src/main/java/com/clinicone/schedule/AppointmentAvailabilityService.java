@@ -104,10 +104,6 @@ public class AppointmentAvailabilityService {
         this.generatedSlotRepository = generatedSlotRepository;
     }
 
-    public AppointmentAvailabilityService(AppointmentRepository appointmentRepository) {
-        this(appointmentRepository, new SpecialtyCatalogService());
-    }
-
     @Transactional(readOnly = true)
     public List<AvailableSlotResponse> find(String specialty, LocalDate from, LocalDate to) {
         return find(specialty, from, to, null);

@@ -127,6 +127,17 @@ export class ScheduleTemplateManagement implements OnInit {
     return d;
   });
 
+  protected readonly weekRangeLabel = computed<string>(() => {
+    const s = this.weekStartDate();
+    const e = this.weekEndDate();
+    const sDd = String(s.getDate()).padStart(2, '0');
+    const sMm = String(s.getMonth() + 1).padStart(2, '0');
+    const eDd = String(e.getDate()).padStart(2, '0');
+    const eMm = String(e.getMonth() + 1).padStart(2, '0');
+    const yyyy = e.getFullYear();
+    return `${sDd}/${sMm} – ${eDd}/${eMm}/${yyyy}`;
+  });
+
   protected readonly weekTemplates = computed<ScheduleTemplateResponse[]>(() => {
     const ws = this.weekStartDate();
     const we = this.weekEndDate();
@@ -538,6 +549,48 @@ export class ScheduleTemplateManagement implements OnInit {
         this.durationMinutes.set(matchSvc.durationMinutes ?? 30);
       }
     }
+  }
+
+  protected selectRoom(roomId: string): void {
+    this.selectedRoomId.set(roomId);
+    const room = this.rooms().find((r) => r.id === roomId);
+    if (room) {
+      const matchDoc = this.doctors().find((d) => d.roomId === room.id || d.specialty?.toLowerCase() === room.specialty?.toLowerCase());
+      if (matchDoc) {
+        this.selectedDoctorId.set(matchDoc.staffId);
+        const matchSvc = this.services().find((s) => s.specialty?.toLowerCase() === matchDoc.specialty?.toLowerCase());
+        if (matchSvc) {
+          this.selectedServiceId.set(matchSvc.id);
+          this.durationMinutes.set(matchSvc.durationMinutes ?? 30);
+        }
+      }
+    }
+  }
+
+  protected readonly previewSlotCount = computed<number>(() => {
+    return this.previewSlots().filter((s) => !s.isBreak).length;
+  });
+
+  protected readonly selectedDoctorObj = computed<DoctorAccountResponse | undefined>(() => {
+    return this.doctors().find((d) => d.staffId === this.selectedDoctorId());
+  });
+
+  protected readonly selectedRoomObj = computed<ClinicRoomResponse | undefined>(() => {
+    return this.rooms().find((r) => r.id === this.selectedRoomId());
+  });
+
+  protected readonly selectedServiceObj = computed<ClinicServiceResponse | undefined>(() => {
+    return this.services().find((s) => s.id === this.selectedServiceId());
+  });
+
+  protected currentShiftPreset(): 'FULL_DAY' | 'MORNING' | 'AFTERNOON' | 'CUSTOM' {
+    const s = this.dayStart();
+    const e = this.dayEnd();
+    const brk = this.hasBreak();
+    if (s === '08:00' && e === '17:00' && brk) return 'FULL_DAY';
+    if (s === '08:00' && e === '12:00' && !brk) return 'MORNING';
+    if (s === '13:00' && e === '17:00' && !brk) return 'AFTERNOON';
+    return 'CUSTOM';
   }
 
   protected isWeekdaySelected(day: string): boolean {
