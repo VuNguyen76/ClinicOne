@@ -238,6 +238,13 @@ public class MedicalRecord {
         prescription = null;
     }
 
+    public void markSigned() {
+        if (signedAt != null) {
+            throw new IllegalStateException("Phiếu khám đã ký, không thể ký lại.");
+        }
+        signedAt = Instant.now();
+    }
+
     @PrePersist
     void onCreate() {
         if (signedAt != null && signedAt.isAfter(Instant.now())) {

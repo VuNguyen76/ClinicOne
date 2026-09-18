@@ -48,7 +48,7 @@ class ClinicServiceCatalogControllerTest {
     @Test
     void anonymousCannotReadServices() throws Exception {
         mockMvc.perform(get("/api/v1/services"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @TestConfiguration
