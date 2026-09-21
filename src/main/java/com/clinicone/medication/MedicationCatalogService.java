@@ -4,9 +4,10 @@ import com.clinicone.auth.AuthException;
 import org.springframework.http.HttpStatus;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.Locale;
@@ -21,7 +22,7 @@ public class MedicationCatalogService {
     @Transactional(readOnly = true)
     @Cacheable(cacheNames = "medications", key = "'suggestions:' + (#query == null ? '' : #query.trim().toLowerCase())")
     public List<MedicationResponse> suggestions(String query) {
-        String normalized = query == null ? "" : query.trim();
+        String normalized = StringUtils.hasText(query) ? query.trim() : "";
         if (normalized.length() < 2) return List.of();
         return repository.findTop10ByActiveTrueAndNameContainingIgnoreCaseOrderByNameAsc(normalized)
                 .stream().map(MedicationResponse::from).toList();
@@ -102,8 +103,6 @@ public class MedicationCatalogService {
     }
 
     private String clean(String value) {
-        if (value == null) return null;
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
+        return StringUtils.hasText(value) ? value.trim() : null;
     }
 }
