@@ -13,6 +13,7 @@ import com.clinicone.rescheduling.ReschedulingService;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.Duration;
 import java.time.LocalTime;
@@ -83,7 +84,7 @@ public class DoctorManagementService {
         }
         DoctorProfile profile = profileRepository.findByStaffAccount_Id(staffId)
                 .orElseGet(() -> DoctorProfile.create(staff, specialty, room, request.avatarUrl()));
-        if (request.avatarUrl() != null) {
+        if (StringUtils.hasText(request.avatarUrl())) {
             profile.updateAssignment(specialty, room, request.avatarUrl().trim());
         } else {
             profile.updateAssignment(specialty, room);

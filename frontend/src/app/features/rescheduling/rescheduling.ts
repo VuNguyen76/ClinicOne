@@ -10,6 +10,7 @@ import {
 } from '../../core/auth/auth-api.service';
 import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
 import { hasStaffRole } from '../../core/auth/auth.guard';
+import { formatClinicDate, formatClinicTime } from '../../core/time/clinic-time';
 
 @Component({
   selector: 'app-rescheduling',
@@ -172,13 +173,11 @@ export class Rescheduling implements OnInit {
   }
 
   protected formatDate(value: string): string {
-    if (!value) return '';
-    const [year, month, day] = value.split('-').map(Number);
-    return new Intl.DateTimeFormat('vi-VN').format(new Date(year, month - 1, day));
+    return formatClinicDate(value);
   }
 
   protected formatTime(value: string): string {
-    return value ? value.slice(0, 5) : '';
+    return formatClinicTime(value);
   }
 
   protected canResolve(): boolean {

@@ -15,6 +15,7 @@ import {
 } from '../../core/auth/auth-api.service';
 import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
 import { auditTime } from 'rxjs';
+import { formatClinicDate, formatClinicTime } from '../../core/time/clinic-time';
 import {
   MedicalRecordTemplateContent,
   parseMedicalRecordTemplateContent,
@@ -573,13 +574,11 @@ export class DoctorExamination implements OnInit {
   }
 
   protected formatDate(value: string | null | undefined): string {
-    if (!value) return 'Chưa cập nhật';
-    const parts = value.split('-');
-    return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : value;
+    return formatClinicDate(value) || 'Chưa cập nhật';
   }
 
   protected formatTime(value: string | null | undefined): string {
-    return value?.slice(0, 5) ?? '';
+    return formatClinicTime(value);
   }
 
   protected formatDraftSavedAt(value: string | null | undefined): string {

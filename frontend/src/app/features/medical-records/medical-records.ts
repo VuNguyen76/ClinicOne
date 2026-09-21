@@ -6,6 +6,7 @@ import { finalize } from 'rxjs';
 import { apiErrorMessage, AuthApiService, MedicalRecordResponse, PatientProfileItem } from '../../core/auth/auth-api.service';
 import { PatientHeader } from '../../shared/patient-header/patient-header';
 import { AccountNav } from '../../shared/account-nav/account-nav';
+import { formatClinicDate, formatClinicDateTime } from '../../core/time/clinic-time';
 
 @Component({
   selector: 'app-medical-records',
@@ -79,13 +80,10 @@ export class MedicalRecords implements OnInit {
   }
 
   protected formatDate(value: string | null | undefined): string {
-    if (!value) return 'Chưa cập nhật';
-    const [year, month, day] = value.slice(0, 10).split('-').map(Number);
-    return new Intl.DateTimeFormat('vi-VN').format(new Date(year, month - 1, day));
+    return formatClinicDate(value) || 'Chưa cập nhật';
   }
 
   protected formatDateTime(value: string): string {
-    const date = new Date(value);
-    return Number.isNaN(date.valueOf()) ? value : new Intl.DateTimeFormat('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
+    return formatClinicDateTime(value);
   }
 }

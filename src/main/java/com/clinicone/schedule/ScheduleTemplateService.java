@@ -161,28 +161,27 @@ public class ScheduleTemplateService {
 
     private List<SlotSeed> buildSeeds(WorkScheduleTemplate template) {
         List<SlotSeed> result = new ArrayList<>();
-        for (LocalDate date = template.getStartDate(); !date.isAfter(template.getEndDate()); date = date.plusDays(1)) {
-            if (!template.getWeekdays().contains(date.getDayOfWeek())
-                    || template.getExceptionDates().contains(date)) {
-                continue;
-            }
-            LocalTime start = template.getDayStart();
-            while (!start.plusMinutes(template.getDurationMinutes()).isAfter(template.getDayEnd())) {
-                LocalTime end = start.plusMinutes(template.getDurationMinutes());
-                if (end.isBefore(start)) break;
-                LocalTime slotStart = start;
-                LocalTime slotEnd = end;
-                ScheduleBreak overlappingBreak = template.getBreaks().stream()
-                        .filter(item -> slotStart.isBefore(item.getEndTime()) && item.getStartTime().isBefore(slotEnd))
-                        .findFirst().orElse(null);
-                if (overlappingBreak != null) {
-                    start = overlappingBreak.getEndTime();
-                    continue;
-                }
-                result.add(new SlotSeed(date, start, end));
-                start = end;
-            }
-        }
+        template.getStartDate().datesUntil(template.getEndDate().plusDays(1))
+                .filter(date -> template.getWeekdays().contains(date.getDayOfWeek())
+                        && !template.getExceptionDates().contains(date))
+                .forEach(date -> {
+                    LocalTime start = template.getDayStart();
+                    while (!start.plusMinutes(template.getDurationMinutes()).isAfter(template.getDayEnd())) {
+                        LocalTime end = start.plusMinutes(template.getDurationMinutes());
+                        if (end.isBefore(start)) break;
+                        LocalTime slotStart = start;
+                        LocalTime slotEnd = end;
+                        ScheduleBreak overlappingBreak = template.getBreaks().stream()
+                                .filter(item -> slotStart.isBefore(item.getEndTime()) && item.getStartTime().isBefore(slotEnd))
+                                .findFirst().orElse(null);
+                        if (overlappingBreak != null) {
+                            start = overlappingBreak.getEndTime();
+                            continue;
+                        }
+                        result.add(new SlotSeed(date, start, end));
+                        start = end;
+                    }
+                });
         return result;
     }
 

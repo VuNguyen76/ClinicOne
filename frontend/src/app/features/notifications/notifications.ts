@@ -4,6 +4,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { PatientHeader } from '../../shared/patient-header/patient-header';
 import { AccountNav } from '../../shared/account-nav/account-nav';
 import { apiErrorMessage, AuthApiService, PatientNotificationResponse } from '../../core/auth/auth-api.service';
+import { formatClinicDateTime } from '../../core/time/clinic-time';
 
 @Component({
   selector: 'app-notifications',
@@ -68,6 +69,6 @@ export class Notifications implements OnInit {
   }
 
   protected formatDate(value: string): string {
-    return new Intl.DateTimeFormat('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+    return formatClinicDateTime(value);
   }
 }

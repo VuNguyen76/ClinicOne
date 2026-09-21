@@ -4,6 +4,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { finalize } from 'rxjs';
 import { apiErrorMessage, AuthApiService, MedicalRecordResponse } from '../../core/auth/auth-api.service';
 import { PatientHeader } from '../../shared/patient-header/patient-header';
+import { formatClinicDate, formatClinicMediumDateTime } from '../../core/time/clinic-time';
 
 @Component({
   selector: 'app-medical-record-detail',
@@ -46,15 +47,11 @@ export class MedicalRecordDetail implements OnInit {
   }
 
   protected formatDate(value: string | null | undefined): string {
-    if (!value) return 'Không có';
-    const [year, month, day] = value.slice(0, 10).split('-').map(Number);
-    return new Intl.DateTimeFormat('vi-VN').format(new Date(year, month - 1, day));
+    return formatClinicDate(value) || 'Không có';
   }
 
   protected formatDateTime(value: string | null | undefined): string {
-    if (!value) return 'Không có';
-    const date = new Date(value);
-    return Number.isNaN(date.valueOf()) ? value : new Intl.DateTimeFormat('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
+    return formatClinicMediumDateTime(value) || 'Không có';
   }
 
   protected printRecord(): void {

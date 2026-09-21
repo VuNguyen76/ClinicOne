@@ -4,7 +4,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { ApiErrorResponse, AppointmentResponse, AuthApiService, ClinicRoomCheckInResponse, QueueTicketResponse, apiErrorMessage } from '../../../core/auth/auth-api.service';
 import { PatientHeader } from '../../../shared/patient-header/patient-header';
-import { clinicTodayIso } from '../../../core/time/clinic-time';
+import { clinicTodayIso, formatClinicDate, formatClinicTime } from '../../../core/time/clinic-time';
 
 @Component({
   selector: 'app-queue-check-in',
@@ -77,13 +77,11 @@ export class QueueCheckIn implements OnInit {
   }
 
   protected formatTime(value: string): string {
-    return value.slice(0, 5);
+    return formatClinicTime(value);
   }
 
   protected formatDate(value: string): string {
-    const [year, month, day] = value.split('-').map(Number);
-    return new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
-      .format(new Date(year, month - 1, day));
+    return formatClinicDate(value);
   }
 
   protected statusClass(status: string): string {

@@ -3,8 +3,8 @@ package com.clinicone.config;
 import com.clinicone.auth.AuthException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.UUID;
 
@@ -70,7 +70,7 @@ public class ClinicConfigurationService {
             throw new AuthException(HttpStatus.BAD_REQUEST, "CANCELLATION_THRESHOLD_INVALID",
                     "Ngưỡng hủy phải từ 0 đến 72 giờ.");
         }
-        String updatedBy = actor == null || actor.isBlank() ? "SYSTEM" : actor.trim();
+        String updatedBy = StringUtils.hasText(actor) ? actor.trim() : "SYSTEM";
         ClinicConfiguration configuration = repository.findById(ClinicConfiguration.DEFAULT_ID)
                 .orElseGet(ClinicConfiguration::defaults);
         configuration.update(unit, department, request.holdMinutes(), request.cancellationThresholdHours(), updatedBy);
@@ -78,10 +78,9 @@ public class ClinicConfigurationService {
     }
 
     private String normalize(String value, String message) {
-        String normalized = value == null ? "" : value.trim();
-        if (normalized.isBlank()) {
+        if (!StringUtils.hasText(value)) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "CONFIGURATION_FIELD_REQUIRED", message);
         }
-        return normalized;
+        return value.trim();
     }
 }

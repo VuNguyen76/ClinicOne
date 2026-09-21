@@ -5,7 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { ApiErrorResponse, AppointmentSlotResponse, AuthApiService, ReceptionAppointmentResponse, ReceptionDoctorOption, ReceptionPatientProfile, SpecialtyOption, apiErrorMessage } from '../../../core/auth/auth-api.service';
 import { AccountMenu } from '../../../shared/account-menu/account-menu';
 import { StaffWorkspaceShell } from '../../../shared/staff-workspace-shell/staff-workspace-shell';
-import { clinicTodayIso } from '../../../core/time/clinic-time';
+import { clinicTodayIso, formatClinicPadDate } from '../../../core/time/clinic-time';
 import { hasStaffRole } from '../../../core/auth/auth.guard';
 import { VietnamAddressService, VietnamAddressUnit } from '../../../core/address/vietnam-address.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -1030,9 +1030,7 @@ export class ReceptionCheckIn implements OnInit {
   }
 
   protected formatDate(value?: string | null): string {
-    if (!value) return '—';
-    const [year, month, day] = value.split('-');
-    return `${day}/${month}/${year}`;
+    return formatClinicPadDate(value) || '—';
   }
 
   protected formatWeekday(value: string): string {
