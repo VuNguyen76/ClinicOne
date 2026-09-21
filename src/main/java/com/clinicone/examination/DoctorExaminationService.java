@@ -440,18 +440,14 @@ public class DoctorExaminationService {
         if (!today.equals(ticket.getAppointment().getAppointmentDate())) {
             throw conflict("DOCTOR_SHIFT_INACTIVE", "Bác sĩ không có ca làm việc đang hiệu lực cho ngày khám.");
         }
-        var now = LocalTime.now(clock.withZone(clinicZone));
         DoctorProfile profile = doctorProfileRepository.findByStaffAccount_Id(doctorId)
                 .filter(DoctorProfile::isActive)
                 .orElseThrow(() -> conflict("DOCTOR_ASSIGNMENT_REQUIRED",
                         "Bác sĩ chưa được gán đúng chuyên khoa và phòng khám."));
-        long activeSchedules = doctorScheduleRepository
-                .findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(profile.getId(), today.getDayOfWeek()).stream()
-                .filter(schedule -> !now.isBefore(schedule.getStartTime())
-                        && now.isBefore(schedule.getEndTime()))
-                .count();
-        if (activeSchedules != 1) {
-            throw conflict("DOCTOR_SHIFT_INACTIVE", "Bác sĩ không có đúng một ca làm việc đang hiệu lực.");
+        var schedulesToday = doctorScheduleRepository
+                .findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(profile.getId(), today.getDayOfWeek());
+        if (schedulesToday.isEmpty()) {
+            throw conflict("DOCTOR_SHIFT_INACTIVE", "Bác sĩ không có ca làm việc đang hiệu lực trong ngày khám.");
         }
     }
 

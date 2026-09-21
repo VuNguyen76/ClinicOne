@@ -17,14 +17,19 @@ import com.clinicone.queue.QueueTicket;
 import com.clinicone.queue.QueueTicketRepository;
 import com.clinicone.queue.QueueTicketStatus;
 import com.clinicone.schedule.GeneratedClinicSlot;
+import com.clinicone.doctor.DoctorSchedule;
+import com.clinicone.doctor.DoctorScheduleRepository;
 import com.clinicone.schedule.GeneratedClinicSlotRepository;
 import com.clinicone.schedule.GeneratedSlotStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.Optional;
 import java.util.List;
 import java.util.UUID;
@@ -140,6 +145,52 @@ class DoctorExaminationServiceTest {
         verify(ticketRepository, never()).save(ticket);
         verify(sessionRepository, never()).save(session);
         verify(recordRepository, never()).saveAndFlush(record);
+    }
+
+    @Test
+    void doctorCannotStartExaminationWhenNoActiveShiftOnAppointmentDate() {
+        DoctorScheduleRepository scheduleRepository = mock(DoctorScheduleRepository.class);
+        Clock fixedClock = Clock.fixed(Instant.parse("2026-08-09T02:00:00Z"), ZoneId.of("Asia/Ho_Chi_Minh"));
+        DoctorExaminationService serviceWithSchedule = new DoctorExaminationService(ticketRepository, sessionRepository,
+                recordRepository, staffRepository, appointmentRepository, profileRepository, notificationService,
+                null, null, generatedSlotRepository, wrongProfileIncidentRepository, scheduleRepository, fixedClock);
+
+        QueueTicket calledTicket = QueueTicket.create(appointment, ticket.getRoom(), appointment.getAppointmentDate(), 5);
+        setId(calledTicket, UUID.randomUUID());
+        calledTicket.call();
+        when(ticketRepository.findById(calledTicket.getId())).thenReturn(Optional.of(calledTicket));
+        when(scheduleRepository.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(any(), any())).thenReturn(List.of());
+
+        assertThatThrownBy(() -> serviceWithSchedule.start(calledTicket.getId(), DOCTOR_ID.toString(), "start-no-shift"))
+                .isInstanceOf(AuthException.class)
+                .satisfies(error -> assertThat(((AuthException) error).getCode()).isEqualTo("DOCTOR_SHIFT_INACTIVE"));
+    }
+
+    @Test
+    void doctorCanStartExaminationOutsideStrictShiftHoursIfScheduledToday() {
+        DoctorScheduleRepository scheduleRepository = mock(DoctorScheduleRepository.class);
+        // 2026-08-09 12:30 PM Vietnam time (+7) = 05:30 UTC - typically outside morning shift 08:00-12:00
+        Clock fixedClock = Clock.fixed(Instant.parse("2026-08-09T05:30:00Z"), ZoneId.of("Asia/Ho_Chi_Minh"));
+        DoctorExaminationService serviceWithSchedule = new DoctorExaminationService(ticketRepository, sessionRepository,
+                recordRepository, staffRepository, appointmentRepository, profileRepository, notificationService,
+                null, null, generatedSlotRepository, wrongProfileIncidentRepository, scheduleRepository, fixedClock);
+
+        QueueTicket calledTicket = QueueTicket.create(appointment, ticket.getRoom(), appointment.getAppointmentDate(), 5);
+        setId(calledTicket, UUID.randomUUID());
+        calledTicket.call();
+        when(ticketRepository.findById(calledTicket.getId())).thenReturn(Optional.of(calledTicket));
+
+        ExaminationSession scheduledSession = ExaminationSession.create(appointment);
+        setId(scheduledSession, UUID.randomUUID());
+        when(sessionRepository.findByAppointment_IdForUpdate(appointment.getId())).thenReturn(Optional.of(scheduledSession));
+        when(ticketRepository.countInServiceForDoctorExcludingTicket(DOCTOR_ID, calledTicket.getId())).thenReturn(0L);
+
+        DoctorSchedule schedule = mock(DoctorSchedule.class);
+        when(scheduleRepository.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(any(), any())).thenReturn(List.of(schedule));
+
+        DoctorExaminationResponse response = serviceWithSchedule.start(calledTicket.getId(), DOCTOR_ID.toString(), "start-lunch-time");
+        assertThat(response).isNotNull();
+        assertThat(calledTicket.getStatus()).isEqualTo(QueueTicketStatus.IN_SERVICE);
     }
 
     @Test
