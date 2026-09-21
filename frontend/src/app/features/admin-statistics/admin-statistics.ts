@@ -5,6 +5,7 @@ import { ApiErrorResponse, AuthApiService, OperationalStatisticsResponse, apiErr
 import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
 import { clinicTodayIso } from '../../core/time/clinic-time';
 import { hasStaffRole } from '../../core/auth/auth.guard';
+import { matchesDoctorIdentity } from '../../shared/doctor-utils';
 
 @Component({
   selector: 'app-admin-statistics',
@@ -37,8 +38,8 @@ export class AdminStatistics implements OnInit {
         this.doctors.set(doctors);
         if (this.isDoctorRole()) {
           const myStaffId = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('clinicOneStaffId') : null;
-          const myName = (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('clinicOnePatientName') || '' : '').toLowerCase().replace(/^(bs\.|ths\.|ckii|cki|bác sĩ|tiến sĩ|ts\.)\s*/i, '').trim();
-          const me = doctors.find((d) => (myStaffId && d.staffId === myStaffId) || (myName && d.fullName.toLowerCase().includes(myName)));
+          const myName = typeof sessionStorage !== 'undefined' ? (sessionStorage.getItem('clinicOneStaffName') || sessionStorage.getItem('clinicOnePatientName') || '') : '';
+          const me = doctors.find((d) => matchesDoctorIdentity({ myStaffId, myName, doctorId: d.staffId, doctorName: d.fullName }));
           if (me) {
             this.doctorId.set(me.staffId);
             if (me.specialty) this.specialty.set(me.specialty);

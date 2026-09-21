@@ -1350,6 +1350,7 @@ export class AuthApiService {
     return this.http.post<StaffLoginResponse>('/api/v1/staff/auth/login', { username, password }).pipe(tap((session) => {
       sessionStorage.setItem('clinicOneAccessToken', session.accessToken);
       sessionStorage.setItem('clinicOnePatientName', session.fullName);
+      sessionStorage.setItem('clinicOneStaffName', session.fullName);
       sessionStorage.setItem('clinicOneSessionType', 'STAFF');
       sessionStorage.setItem('clinicOneStaffRole', session.role);
       sessionStorage.setItem('clinicOneStaffRoles', JSON.stringify(session.roles?.length ? session.roles : [session.role]));
@@ -1359,6 +1360,7 @@ export class AuthApiService {
 
   logoutStaff(): Observable<void> {
     sessionStorage.removeItem('clinicOneStaffId');
+    sessionStorage.removeItem('clinicOneStaffName');
     return this.http.post<void>('/api/v1/staff/auth/logout', {});
   }
 

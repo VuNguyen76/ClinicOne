@@ -101,6 +101,7 @@ export class AccountMenu {
     sessionStorage.removeItem('clinicOneStaffRole');
     sessionStorage.removeItem('clinicOneStaffRoles');
     sessionStorage.removeItem('clinicOneStaffId');
+    sessionStorage.removeItem('clinicOneStaffName');
     sessionStorage.removeItem('clinicOneBookingSession');
     this.menuOpen.set(false);
     this.loggedIn.set(false);

@@ -15,6 +15,7 @@ import {
 import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
 import { clinicTodayIso, clinicTodayDate } from '../../core/time/clinic-time';
 import { hasStaffRole } from '../../core/auth/auth.guard';
+import { DEFAULT_DOCTOR_AVATAR, matchesDoctorIdentity, resolveDoctorAvatar } from '../../shared/doctor-utils';
 
 function getMonday(base: Date): Date {
   const d = new Date(base);
@@ -147,13 +148,12 @@ export class ScheduleTemplateManagement implements OnInit {
     const onlyMine = isDoc || this.filterOnlyMine();
     const docFilter = this.filterDoctor().trim().toLowerCase();
     const myStaffId = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('clinicOneStaffId') : null;
-    const myName = (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('clinicOnePatientName') || '' : '').toLowerCase().replace(/^(bs\.|ths\.|ckii|cki|bác sĩ|tiến sĩ|ts\.)\s*/i, '').trim();
+    const myName = typeof sessionStorage !== 'undefined' ? (sessionStorage.getItem('clinicOneStaffName') || sessionStorage.getItem('clinicOnePatientName') || '') : '';
 
     return this.templates().filter((t) => {
       if (t.startDate > weIso || t.endDate < wsIso) return false;
       if (onlyMine) {
-        const matchesDoctor = (myStaffId && t.doctorId === myStaffId) || (myName && t.doctorName.toLowerCase().includes(myName));
-        if (!matchesDoctor) return false;
+        if (!matchesDoctorIdentity({ myStaffId, myName, doctorId: t.doctorId, doctorName: t.doctorName })) return false;
       }
       if (docFilter && !t.doctorName.toLowerCase().includes(docFilter)) return false;
       return true;
@@ -183,12 +183,11 @@ export class ScheduleTemplateManagement implements OnInit {
     const isDoc = this.isDoctorRole();
     const onlyMine = isDoc || this.filterOnlyMine();
     const myStaffId = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('clinicOneStaffId') : null;
-    const myName = (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('clinicOnePatientName') || '' : '').toLowerCase().replace(/^(bs\.|ths\.|ckii|cki|bác sĩ|tiến sĩ|ts\.)\s*/i, '').trim();
+    const myName = typeof sessionStorage !== 'undefined' ? (sessionStorage.getItem('clinicOneStaffName') || sessionStorage.getItem('clinicOnePatientName') || '') : '';
 
     return this.templates().filter((t) => {
       if (onlyMine) {
-        const matchesDoctor = (myStaffId && t.doctorId === myStaffId) || (myName && t.doctorName.toLowerCase().includes(myName));
-        if (!matchesDoctor) return false;
+        if (!matchesDoctorIdentity({ myStaffId, myName, doctorId: t.doctorId, doctorName: t.doctorName })) return false;
       }
       if (docFilter && !t.doctorName.toLowerCase().includes(docFilter)) return false;
       if (spec && !t.serviceName.toLowerCase().includes(spec) && !t.specialty.toLowerCase().includes(spec)) return false;
@@ -466,50 +465,22 @@ export class ScheduleTemplateManagement implements OnInit {
     return { label: `Ca chiều (${s} - ${e})`, class: 'border-purple-200 bg-purple-50 text-purple-800' };
   }
 
-  private readonly doctorAvatarMap: Record<string, string> = {
-    'nguyễn an': 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=150&auto=format&fit=crop&q=80',
-    'trần minh': 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?w=150&auto=format&fit=crop&q=80',
-    'lê thu hà': 'https://images.unsplash.com/photo-1594824813589-32212356c382?w=150&auto=format&fit=crop&q=80',
-    'phạm quốc dũng': 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=150&auto=format&fit=crop&q=80',
-    'hoàng thanh nga': 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=150&auto=format&fit=crop&q=80',
-    'vũ đình toàn': 'https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=150&auto=format&fit=crop&q=80',
-    'đặng mai lan': 'https://images.unsplash.com/photo-1651008376811-b90baee60c1f?w=150&auto=format&fit=crop&q=80',
-  };
-
-  protected isFemaleDoctor(doctorName: string): boolean {
-    const lower = (doctorName || '').toLowerCase();
-    return lower.includes('hà') || lower.includes('nga') || lower.includes('lan') || lower.includes('thảo') || lower.includes('mai');
+  protected getDoctorSvgAvatar(_doctorName?: string): string {
+    return DEFAULT_DOCTOR_AVATAR;
   }
 
-  protected getDoctorSvgAvatar(doctorName: string): string {
-    if (this.isFemaleDoctor(doctorName)) {
-      return 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><circle cx="60" cy="60" r="60" fill="%23e0f2fe"/><circle cx="60" cy="46" r="22" fill="%23fed7aa"/><path d="M38 42c0-12 10-20 22-20s22 8 22 20c0 4-2 10-4 12-2-8-8-12-18-12s-16 4-18 12c-2-2-4-8-4-12z" fill="%23334155"/><path d="M60 72c-20 0-36 14-36 34v14h72v-14c0-20-16-34-36-34z" fill="%23ffffff"/><path d="M48 72l12 24 12-24" fill="%230284c7"/><path d="M42 86c0 10 8 18 18 18s18-8 18-18" fill="none" stroke="%23334155" stroke-width="3" stroke-linecap="round"/><circle cx="60" cy="104" r="3" fill="%230284c7"/><path d="M50 46c2 1 6 1 8 0m4 0c2 1 6 1 8 0" fill="none" stroke="%23334155" stroke-width="1.5" stroke-linecap="round"/><path d="M56 56c2 2 6 2 8 0" fill="none" stroke="%23f43f5e" stroke-width="2" stroke-linecap="round"/></svg>';
-    }
-    return 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><circle cx="60" cy="60" r="60" fill="%23ccfbf1"/><circle cx="60" cy="46" r="22" fill="%23fde047" fill-opacity="0.6"/><path d="M38 40c0-14 10-22 22-22s22 8 22 22v4c-6-4-12-6-22-6s-16 2-22 6v-4z" fill="%231e293b"/><path d="M60 72c-20 0-36 14-36 34v14h72v-14c0-20-16-34-36-34z" fill="%23ffffff"/><path d="M48 72l12 24 12-24" fill="%230f766e"/><path d="M42 86c0 10 8 18 18 18s18-8 18-18" fill="none" stroke="%23334155" stroke-width="3" stroke-linecap="round"/><circle cx="60" cy="104" r="3" fill="%230f766e"/><path d="M50 46c2 1 6 1 8 0m4 0c2 1 6 1 8 0" fill="none" stroke="%23334155" stroke-width="1.5" stroke-linecap="round"/><path d="M56 56c2 2 6 2 8 0" fill="none" stroke="%23e11d48" stroke-width="1.5" stroke-linecap="round"/></svg>';
-  }
-
-  protected handleAvatarError(event: Event, doctorName: string): void {
+  protected handleAvatarError(event: Event, _doctorName?: string): void {
     const target = event.target as HTMLImageElement;
     if (target) {
-      target.src = this.getDoctorSvgAvatar(doctorName);
+      target.src = DEFAULT_DOCTOR_AVATAR;
     }
   }
 
   protected getDoctorAvatar(doctorName: string, directAvatar?: string | null): string {
-    if (directAvatar) return directAvatar;
-    if (!doctorName) return this.getDoctorSvgAvatar('Dr');
-    const cleanName = doctorName.replace(/^(bs\.|ths\.|ckii|cki|bác sĩ|tiến sĩ|ts\.)\s*/i, '').trim().toLowerCase();
-    const doc = this.doctors().find((d) => {
-      const dClean = d.fullName.replace(/^(bs\.|ths\.|ckii|cki|bác sĩ|tiến sĩ|ts\.)\s*/i, '').trim().toLowerCase();
-      return d.fullName.toLowerCase() === doctorName.toLowerCase()
-        || (cleanName.length >= 3 && dClean.includes(cleanName))
-        || (dClean.length >= 3 && cleanName.includes(dClean));
-    });
-    if (doc?.avatarUrl) return doc.avatarUrl;
-    for (const [name, url] of Object.entries(this.doctorAvatarMap)) {
-      if (cleanName.includes(name) || name.includes(cleanName)) return url;
-    }
-    return this.getDoctorSvgAvatar(doctorName);
+    if (directAvatar) return resolveDoctorAvatar(directAvatar);
+    const doc = this.doctors().find((d) => matchesDoctorIdentity({ doctorId: null, doctorName: d.fullName, myName: doctorName }));
+    if (doc?.avatarUrl) return resolveDoctorAvatar(doc.avatarUrl);
+    return DEFAULT_DOCTOR_AVATAR;
   }
 
   protected getDoctorSpecialty(doctorName: string): string {
