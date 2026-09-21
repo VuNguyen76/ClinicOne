@@ -12,6 +12,10 @@ public record PrescriptionLineRequest(
         @NotBlank @Size(max = 200) String medicationName,
         @NotBlank @Size(max = 100) String dosage,
         @Min(1) @Max(999) Integer quantity,
+        @Size(max = 50) String unit,
         @NotBlank @Size(max = 500) String instructions
 ) {
+    public PrescriptionLineRequest(UUID medicationId, String medicationName, String dosage, Integer quantity, String instructions) {
+        this(medicationId, medicationName, dosage, quantity, null, instructions);
+    }
 }

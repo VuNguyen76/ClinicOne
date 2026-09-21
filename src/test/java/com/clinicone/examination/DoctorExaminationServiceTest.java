@@ -386,7 +386,7 @@ class DoctorExaminationServiceTest {
     void signingSnapshotsEachPrescriptionLine() {
         DoctorExaminationRequest request = new DoctorExaminationRequest(
                 "Đau đầu", "Mạch ổn", "Đau đầu căng thẳng", "Theo dõi thêm", "Nghỉ ngơi", null, null, 0L,
-                List.of(new PrescriptionLineRequest(null, "Paracetamol 500 mg", "500 mg", 10, "Uống sau ăn")));
+                List.of(new PrescriptionLineRequest(null, "Paracetamol 500 mg", "500 mg", 10, "Viên", "Uống sau ăn")));
 
         DoctorExaminationResponse response = service.sign(TICKET_ID, DOCTOR_ID.toString(), request, "sign-visit-1");
 
@@ -394,6 +394,7 @@ class DoctorExaminationServiceTest {
             assertThat(line.medicationName()).isEqualTo("Paracetamol 500 mg");
             assertThat(line.dosage()).isEqualTo("500 mg");
             assertThat(line.quantity()).isEqualTo(10);
+            assertThat(line.unit()).isEqualTo("Viên");
             assertThat(line.instructions()).isEqualTo("Uống sau ăn");
         });
     }

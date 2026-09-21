@@ -26,11 +26,12 @@ type PrescriptionLineForm = FormGroup<{
   medicationName: FormControl<string | null>;
   dosage: FormControl<string | null>;
   quantity: FormControl<number | null>;
+  unit: FormControl<string | null>;
   instructions: FormControl<string | null>;
 }>;
 
 type ClinicalTextField = 'reason' | 'examinationNotes' | 'diagnosis' | 'conclusion' | 'treatmentPlan';
-type PrescriptionTextField = 'medicationName' | 'dosage' | 'instructions';
+type PrescriptionTextField = 'medicationName' | 'dosage' | 'unit' | 'instructions';
 
 const TEMPLATE_TEXT_FIELDS: Array<{ key: ClinicalTextField | 'followUpNote'; label: string }> = [
   { key: 'reason', label: 'Lý do khám' },
@@ -99,6 +100,58 @@ export class DoctorExamination implements OnInit {
   protected selectTab(tab: 'exam' | 'diagnosis' | 'prescription'): void {
     this.activeTab.set(tab);
   }
+
+  // Clinical Safety Alerts (Cảnh báo an toàn lâm sàng)
+  protected readonly prescriptionRevision = signal(0);
+
+  protected readonly duplicatePrescriptionWarnings = computed(() => {
+    this.prescriptionRevision();
+    const lines = this.prescriptionLines.controls;
+    const names = new Map<string, number>();
+    lines.forEach((ctrl) => {
+      const name = ctrl.controls.medicationName.value?.trim().toLowerCase();
+      if (name) {
+        names.set(name, (names.get(name) ?? 0) + 1);
+      }
+    });
+    const duplicates: string[] = [];
+    names.forEach((count, name) => {
+      if (count > 1) {
+        const orig = lines.find((c) => c.controls.medicationName.value?.trim().toLowerCase() === name)?.controls.medicationName.value?.trim();
+        if (orig && !duplicates.includes(orig)) duplicates.push(orig);
+      }
+    });
+    return duplicates;
+  });
+
+  protected readonly allergyWarnings = computed(() => {
+    this.prescriptionRevision();
+    let allergyText = this.examination()?.allergySummary?.toLowerCase().trim() ?? '';
+    if (!allergyText) return [];
+    allergyText = allergyText.replace(/^(tiền sử dị ứng|dị ứng thuốc|dị ứng(\s+với)?|allergy)\s*[:\s]*/i, '');
+    const lines = this.prescriptionLines.controls;
+    const warnings: Array<{ medication: string; allergen: string }> = [];
+    const rawAllergens = allergyText
+      .split(/[,;\n]+/)
+      .map((s) => s.replace(/^thuốc\s+/i, '').trim())
+      .filter((s) => s.length >= 2);
+
+    lines.forEach((ctrl) => {
+      const medName = ctrl.controls.medicationName.value?.trim() ?? '';
+      const lowerMed = medName.toLowerCase();
+      if (!medName) return;
+
+      for (const allergen of rawAllergens) {
+        if (lowerMed.includes(allergen) || allergen.includes(lowerMed)) {
+          if (!warnings.some((w) => w.medication === medName && w.allergen === allergen)) {
+            warnings.push({ medication: medName, allergen });
+          }
+          break;
+        }
+      }
+    });
+    return warnings;
+  });
 
   // Specialty Medication Catalog
   protected readonly medicationCatalogOpen = signal(false);
@@ -210,6 +263,7 @@ export class DoctorExamination implements OnInit {
     this.form.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.vitalsWeight.set(this.form.controls.weight.value);
       this.vitalsHeight.set(this.form.controls.height.value);
+      this.prescriptionRevision.update((v) => v + 1);
       this.markDraftChanged();
     });
     this.form.valueChanges.pipe(auditTime(10_000), takeUntilDestroyed(this.destroyRef)).subscribe(() => this.autosaveDraft());
@@ -244,6 +298,7 @@ export class DoctorExamination implements OnInit {
         this.vitalsHeight.set(value.height ?? null);
         value.prescriptionLines?.forEach((line) => this.prescriptionLines.push(this.createPrescriptionLine(line)));
         this.prescriptionEnabled.set(this.prescriptionLines.length > 0);
+        this.prescriptionRevision.update((v) => v + 1);
         this.followUpEnabled.set(value.followUpDays != null || Boolean(value.followUpNote));
         if (value.signedAt) this.form.disable();
         this.loading.set(false);
@@ -477,12 +532,14 @@ export class DoctorExamination implements OnInit {
     if (this.prescriptionLines.length >= 20 || this.examination()?.signedAt) return;
     this.prescriptionEnabled.set(true);
     this.prescriptionLines.push(this.createPrescriptionLine());
+    this.prescriptionRevision.update((v) => v + 1);
   }
 
   protected removePrescriptionLine(index: number): void {
     if (this.examination()?.signedAt) return;
     this.prescriptionLines.removeAt(index);
     this.prescriptionEnabled.set(this.prescriptionLines.length > 0);
+    this.prescriptionRevision.update((v) => v + 1);
   }
 
   protected toggleFollowUp(): void {
@@ -569,8 +626,21 @@ export class DoctorExamination implements OnInit {
 
   protected selectMedication(index: number, medication: MedicationSuggestionResponse): void {
     const line = this.prescriptionLines.at(index);
-    line.patchValue({ medicationId: medication.id, medicationName: medication.name });
+    const curDosage = line.controls.dosage.value?.trim();
+    const curUnit = line.controls.unit.value?.trim();
+    const curQty = line.controls.quantity.value;
+    const curInstructions = line.controls.instructions.value?.trim();
+
+    line.patchValue({
+      medicationId: medication.id,
+      medicationName: medication.name,
+      dosage: curDosage || medication.defaultDosage || '1 viên / lần',
+      unit: medication.unit || curUnit || 'Viên',
+      quantity: (curQty && curQty > 0) ? curQty : 1,
+      instructions: curInstructions || medication.defaultInstructions || 'Dùng theo chỉ định của bác sĩ',
+    });
     this.setMedicationSuggestions(index, []);
+    this.prescriptionRevision.update((v) => v + 1);
   }
 
   protected formatDate(value: string | null | undefined): string {
@@ -614,6 +684,7 @@ export class DoctorExamination implements OnInit {
         medicationName: line.medicationName ?? '',
         dosage: line.dosage ?? '',
         quantity: Number(line.quantity),
+        unit: line.unit?.trim() || null,
         instructions: line.instructions ?? '',
       })),
       followUpDate: value.followUpDate || null,
@@ -657,6 +728,7 @@ export class DoctorExamination implements OnInit {
       medicationName: [line?.medicationName ?? '', [Validators.required, Validators.maxLength(200)]],
       dosage: [line?.dosage ?? '', [Validators.required, Validators.maxLength(100)]],
       quantity: [line?.quantity ?? 1, [Validators.required, Validators.min(1), Validators.max(999)]],
+      unit: [line?.unit ?? 'Viên', [Validators.maxLength(50)]],
       instructions: [line?.instructions ?? '', [Validators.required, Validators.maxLength(500)]],
     }) as PrescriptionLineForm;
   }
@@ -762,9 +834,11 @@ export class DoctorExamination implements OnInit {
       medicationName: [item.name, [Validators.required, Validators.maxLength(200)]],
       dosage: [item.dosage, [Validators.required, Validators.maxLength(100)]],
       quantity: [1, [Validators.required, Validators.min(1), Validators.max(999)]],
+      unit: [item.unit || 'Viên', [Validators.maxLength(50)]],
       instructions: [item.instructions, [Validators.required, Validators.maxLength(500)]],
     }) as PrescriptionLineForm;
     this.prescriptionLines.push(line);
+    this.prescriptionRevision.update((v) => v + 1);
     this.notice.set(`Đã thêm "${item.name}" vào đơn thuốc.`);
     setTimeout(() => {
       if (this.notice().includes(item.name)) this.notice.set('');

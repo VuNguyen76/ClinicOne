@@ -41,6 +41,9 @@ public class PrescriptionLine {
     @Column(nullable = false)
     private int quantity;
 
+    @Column(length = 50)
+    private String unit;
+
     @Column(nullable = false, length = 500)
     private String instructions;
 
@@ -51,25 +54,33 @@ public class PrescriptionLine {
     }
 
     private PrescriptionLine(MedicalRecord medicalRecord, UUID sourceMedicationId, String medicationName, String dosage,
-                             int quantity, String instructions, int lineNumber) {
+                             int quantity, String unit, String instructions, int lineNumber) {
         this.medicalRecord = medicalRecord;
         this.sourceMedicationId = sourceMedicationId;
         this.medicationName = medicationName;
         this.dosage = dosage;
         this.quantity = quantity;
+        this.unit = unit;
         this.instructions = instructions;
         this.lineNumber = lineNumber;
     }
 
     static PrescriptionLine create(MedicalRecord medicalRecord, PrescriptionLineRequest request, int lineNumber) {
         return new PrescriptionLine(medicalRecord, request.medicationId(), request.medicationName().trim(),
-                request.dosage().trim(), request.quantity(), request.instructions().trim(), lineNumber);
+                request.dosage().trim(), request.quantity(),
+                request.unit() != null ? request.unit().trim() : null,
+                request.instructions().trim(), lineNumber);
+    }
+
+    public static PrescriptionLine create(MedicalRecord medicalRecord, UUID medicationId, String medicationName, String dosage,
+                                          int quantity, String unit, String instructions, int lineNumber) {
+        return new PrescriptionLine(medicalRecord, medicationId, medicationName.trim(), dosage.trim(), quantity,
+                unit != null ? unit.trim() : null, instructions.trim(), lineNumber);
     }
 
     public static PrescriptionLine create(MedicalRecord medicalRecord, UUID medicationId, String medicationName, String dosage,
                                           int quantity, String instructions, int lineNumber) {
-        return new PrescriptionLine(medicalRecord, medicationId, medicationName.trim(), dosage.trim(), quantity,
-                instructions.trim(), lineNumber);
+        return create(medicalRecord, medicationId, medicationName, dosage, quantity, null, instructions, lineNumber);
     }
 
 }

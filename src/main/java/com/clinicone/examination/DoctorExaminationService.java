@@ -535,8 +535,9 @@ public class DoctorExaminationService {
                         "Thuốc được chọn không còn trong danh mục đang sử dụng.");
             }
             Medication medication = medicationCatalogService.requireActive(item.medicationId());
+            String resolvedUnit = StringUtils.hasText(item.unit()) ? item.unit().trim() : medication.getUnit();
             lines.add(PrescriptionLine.create(record, medication.getId(), medication.getName(), item.dosage(),
-                    item.quantity(), item.instructions(), index + 1));
+                    item.quantity(), resolvedUnit, item.instructions(), index + 1));
         }
         return List.copyOf(lines);
     }
