@@ -18,6 +18,7 @@ import java.util.UUID;
  * idempotent if activation is retried.
  */
 @Service
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class PatientNotificationBackfillService {
     private static final Duration HISTORY_WINDOW = Duration.ofDays(30);

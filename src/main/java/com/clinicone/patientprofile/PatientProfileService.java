@@ -15,6 +15,7 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 @Service
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class PatientProfileService {
     private static final int MAX_ACTIVE_PROFILES = 10;

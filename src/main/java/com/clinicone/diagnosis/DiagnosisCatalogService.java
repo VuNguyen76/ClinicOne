@@ -13,6 +13,7 @@ import java.util.Locale;
 import java.util.UUID;
 
 @Service
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class DiagnosisCatalogService {
     private final DiagnosisCatalogRepository repository;

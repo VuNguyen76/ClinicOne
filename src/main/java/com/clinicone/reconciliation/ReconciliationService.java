@@ -14,6 +14,7 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 @Service
+@Transactional(readOnly = true)
 public class ReconciliationService {
     private final ReconciliationIncidentRepository repository;
     private final BusinessLogRepository businessLogRepository;

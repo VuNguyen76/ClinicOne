@@ -536,16 +536,30 @@ export class DoctorExamination implements OnInit {
 
   protected limitPrescriptionQuantity(index: number): void {
     const control = this.prescriptionLines.at(index).controls.quantity;
-    if ((control.value ?? 0) <= 999) return;
-    control.setValue(999);
-    this.notice.set('Số lượng thuốc tối đa 999.');
+    if (control.value === null || control.value === undefined) return;
+    if (control.value < 1) {
+      control.setValue(1);
+      this.notice.set('Số lượng thuốc tối thiểu là 1.');
+      return;
+    }
+    if (control.value > 999) {
+      control.setValue(999);
+      this.notice.set('Số lượng thuốc tối đa 999.');
+    }
   }
 
   protected limitFollowUpDays(): void {
     const control = this.form.controls.followUpDays;
-    if ((control.value ?? 0) <= 365) return;
-    control.setValue(365);
-    this.notice.set('Số ngày tái khám tối đa 365.');
+    if (control.value === null || control.value === undefined || control.value === 0) return;
+    if (control.value < 1) {
+      control.setValue(1);
+      this.notice.set('Số ngày tái khám tối thiểu là 1.');
+      return;
+    }
+    if (control.value > 365) {
+      control.setValue(365);
+      this.notice.set('Số ngày tái khám tối đa 365.');
+    }
   }
 
   protected limitFollowUpNote(): void {

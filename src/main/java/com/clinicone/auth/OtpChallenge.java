@@ -85,4 +85,8 @@ public class OtpChallenge {
         verifiedAt = now;
     }
 
+    public void consume(Instant now) {
+        this.expiresAt = now;
+    }
+
 }

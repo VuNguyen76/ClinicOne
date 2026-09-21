@@ -37,6 +37,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 @Service
+@Transactional(readOnly = true)
 public class QueueService {
     private static final ZoneId CLINIC_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     private static final int DEFAULT_SLOT_DURATION_MINUTES = 60;
@@ -528,16 +529,18 @@ public class QueueService {
     }
 
     private void markAppointmentSlotUnavailable(Appointment appointment) {
-        if (appointment.getServiceId() == null || generatedSlotRepository == null) {
+        if (appointment == null || appointment.getServiceId() == null || appointment.getDoctorStaffId() == null
+                || generatedSlotRepository == null) {
             return;
         }
-        GeneratedClinicSlot slot = generatedSlotRepository
+        generatedSlotRepository
                 .findFirstByClinicServiceIdAndDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
                         appointment.getServiceId(), appointment.getDoctorStaffId(), appointment.getAppointmentDate(),
                         appointment.getStartTime(), GeneratedSlotStatus.OPEN)
-                .orElseThrow(() -> queueStateConflict("Không tìm thấy khung giờ đang hoạt động của lịch hẹn."));
-        slot.cancel();
-        generatedSlotRepository.save(slot);
+                .ifPresent(slot -> {
+                    slot.cancel();
+                    generatedSlotRepository.save(slot);
+                });
     }
 
     private DoctorProfile findTargetDoctor(QueueAdjustmentRequest request, String specialty, String roomCode) {

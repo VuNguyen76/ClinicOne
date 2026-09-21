@@ -17,6 +17,7 @@ import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 
 @Service
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class MedicalRecordService {
     private static final int MAX_PAGE_SIZE = 20;

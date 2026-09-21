@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class StaffAuthService {
     private static final Duration SESSION_LIFETIME = Duration.ofHours(12);
