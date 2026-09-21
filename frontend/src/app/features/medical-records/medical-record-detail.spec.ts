@@ -58,6 +58,21 @@ describe('MedicalRecordDetail', () => {
     expect(fixture.nativeElement.querySelector('input, textarea, button[data-testid="edit-prescription"]')).toBeFalsy();
   });
 
+  it('renders custom unit such as Gói or Chai for prescription line', () => {
+    http.expectOne('/api/v1/medical-records/record-1').flush({
+      id: 'record-1', examinationId: 'exam-1', appointmentCode: 'CL-20260807-0009', doctorName: 'Bác sĩ Nguyễn An',
+      reason: 'Ho có đờm', examinationNotes: 'Phổi trong', diagnosis: 'Viêm phế quản cấp', conclusion: 'Theo dõi ngoại trú',
+      treatmentPlan: 'Uống nhiều nước', prescription: null, prescriptionLines: [{
+        medicationId: 'medicine-2', medicationName: 'Acetylcystein 200mg', dosage: '1 gói/lần x 2 lần/ngày',
+        quantity: 14, unit: 'Gói', instructions: 'Pha nước ấm uống sau ăn',
+      }], followUpDate: null, signedAt: '2026-08-07T09:30:00Z',
+    });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Acetylcystein 200mg');
+    expect(fixture.nativeElement.textContent).toContain('14 Gói');
+  });
+
   it('shows the structured follow-up plan on a signed record', () => {
     http.expectOne('/api/v1/medical-records/record-1').flush({
       id: 'record-1', examinationId: 'exam-1', appointmentCode: 'CL-20260807-0009', doctorName: 'Bác sĩ Nguyễn An',

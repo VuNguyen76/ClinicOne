@@ -208,10 +208,10 @@ describe('DoctorExamination', () => {
     const request = http.expectOne('/api/v1/doctor/examinations/ticket-1/draft');
     expect(request.request.body.prescription).toBe('');
     expect(request.request.body.prescriptionLines).toEqual([{
-      medicationName: 'Paracetamol 500 mg', dosage: '500 mg', quantity: 10, instructions: 'Uống sau ăn',
+      medicationName: 'Paracetamol 500 mg', dosage: '500 mg', quantity: 10, unit: 'Viên', instructions: 'Uống sau ăn',
     }]);
     request.flush({ ...examination(), prescriptionLines: [{
-      medicationName: 'Paracetamol 500 mg', dosage: '500 mg', quantity: 10, instructions: 'Uống sau ăn',
+      medicationName: 'Paracetamol 500 mg', dosage: '500 mg', quantity: 10, unit: 'Viên', instructions: 'Uống sau ăn',
     }] });
   });
 
@@ -496,6 +496,69 @@ describe('DoctorExamination', () => {
     const searchResults = fixture.componentInstance['filteredCatalogMedications']();
     expect(searchResults.length).toBe(1);
     expect(searchResults[0].name).toBe('Amlodipine 5mg');
+  });
+
+  it('auto-fills dosage, unit, quantity, and instructions when selecting medication from suggestions', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('[data-testid="add-prescription-line"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const suggestion = {
+      id: 'med-acetyl-200',
+      code: 'MED-ACETYL-200',
+      name: 'Acetylcystein 200mg',
+      active: true,
+      category: 'Hô hấp',
+      defaultDosage: '1 gói / lần x 2 lần/ngày',
+      defaultInstructions: 'Pha với nước ấm uống sau ăn',
+      unit: 'Gói',
+    };
+
+    fixture.componentInstance['selectMedication'](0, suggestion);
+    fixture.detectChanges();
+
+    const line = fixture.componentInstance['prescriptionLines'].at(0).value;
+    expect(line.medicationId).toBe('med-acetyl-200');
+    expect(line.medicationName).toBe('Acetylcystein 200mg');
+    expect(line.dosage).toBe('1 gói / lần x 2 lần/ngày');
+    expect(line.unit).toBe('Gói');
+    expect(line.quantity).toBe(1);
+    expect(line.instructions).toBe('Pha với nước ấm uống sau ăn');
+  });
+
+  it('triggers clinical safety warnings for duplicate medications and patient allergies', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush({
+      ...examination(),
+      allergySummary: 'Dị ứng Aspirin, Penicillin',
+    });
+    fixture.detectChanges();
+
+    fixture.componentInstance['addPrescriptionLine']();
+    fixture.componentInstance['addPrescriptionLine']();
+    fixture.componentInstance['prescriptionLines'].at(0).patchValue({
+      medicationName: 'Aspirin 81mg',
+      dosage: '1 viên / ngày',
+      quantity: 1,
+      unit: 'Viên',
+      instructions: 'Uống sau ăn',
+    });
+    fixture.componentInstance['prescriptionLines'].at(1).patchValue({
+      medicationName: 'Aspirin 81mg',
+      dosage: '1 viên / ngày',
+      quantity: 1,
+      unit: 'Viên',
+      instructions: 'Uống sau ăn',
+    });
+    fixture.detectChanges();
+
+    const allergyWarnings = fixture.componentInstance['allergyWarnings']();
+    expect(allergyWarnings.length).toBe(1);
+    expect(allergyWarnings[0].allergen).toBe('aspirin');
+
+    const duplicateWarnings = fixture.componentInstance['duplicatePrescriptionWarnings']();
+    expect(duplicateWarnings).toContain('Aspirin 81mg');
   });
 });
 

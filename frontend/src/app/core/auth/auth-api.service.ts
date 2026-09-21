@@ -131,6 +131,7 @@ export interface PrescriptionLineResponse {
   medicationName: string;
   dosage: string;
   quantity: number;
+  unit?: string | null;
   instructions: string;
 }
 
@@ -662,6 +663,7 @@ export interface DoctorExaminationRequest {
     medicationName: string;
     dosage: string;
     quantity: number;
+    unit?: string | null;
     instructions: string;
   }>;
   followUpDate?: string | null;
