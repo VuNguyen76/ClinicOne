@@ -183,7 +183,7 @@ class DoctorExaminationServiceTest {
         ExaminationSession scheduledSession = ExaminationSession.create(appointment);
         setId(scheduledSession, UUID.randomUUID());
         when(sessionRepository.findByAppointment_IdForUpdate(appointment.getId())).thenReturn(Optional.of(scheduledSession));
-        when(ticketRepository.countInServiceForDoctorExcludingTicket(DOCTOR_ID, calledTicket.getId())).thenReturn(0L);
+        when(ticketRepository.countInServiceForDoctorExcludingTicket(DOCTOR_ID, calledTicket.getId(), calledTicket.getQueueDate())).thenReturn(0L);
 
         DoctorSchedule schedule = mock(DoctorSchedule.class);
         when(scheduleRepository.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(any(), any())).thenReturn(List.of(schedule));
