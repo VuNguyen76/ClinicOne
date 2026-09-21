@@ -20,6 +20,7 @@ import java.time.LocalTime;
 import java.util.UUID;
 
 @Service
+@Transactional(readOnly = true)
 public class AppointmentHoldService {
     private static final Duration DEFAULT_HOLD_DURATION = Duration.ofMinutes(10);
 

@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.UUID;
 
 @Service
+@Transactional(readOnly = true)
 public class DoctorExaminationService {
     private final QueueTicketRepository ticketRepository;
     private final ExaminationSessionRepository sessionRepository;
@@ -475,17 +476,18 @@ public class DoctorExaminationService {
     }
 
     private void markAppointmentSlotUnavailable(Appointment appointment) {
-        if (appointment.getServiceId() == null || generatedSlotRepository == null) {
+        if (appointment == null || appointment.getServiceId() == null || appointment.getDoctorStaffId() == null
+                || generatedSlotRepository == null) {
             return;
         }
-        GeneratedClinicSlot slot = generatedSlotRepository
+        generatedSlotRepository
                 .findFirstByClinicServiceIdAndDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
                         appointment.getServiceId(), appointment.getDoctorStaffId(), appointment.getAppointmentDate(),
                         appointment.getStartTime(), GeneratedSlotStatus.OPEN)
-                .orElseThrow(() -> conflict("APPOINTMENT_SLOT_NOT_FOUND",
-                        "Không tìm thấy khung giờ đang hoạt động của lịch hẹn."));
-        slot.cancel();
-        generatedSlotRepository.save(slot);
+                .ifPresent(slot -> {
+                    slot.cancel();
+                    generatedSlotRepository.save(slot);
+                });
     }
 
     private MedicalRecord record(ExaminationSession session) {

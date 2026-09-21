@@ -15,6 +15,7 @@ import com.clinicone.auth.AuthException;
 import org.springframework.http.HttpStatus;
 
 @Service
+@Transactional(readOnly = true)
 public class SmsDeliveryService {
     private static final int BATCH_SIZE = 50;
 

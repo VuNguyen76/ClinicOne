@@ -23,6 +23,7 @@ import com.clinicone.notification.PatientNotificationBackfillService;
 import com.clinicone.notification.PatientNotificationService;
 
 @Service
+@Transactional(readOnly = true)
 public class AccountAuthService {
 
     private static final Duration SESSION_LIFETIME = Duration.ofHours(12);
@@ -81,6 +82,7 @@ public class AccountAuthService {
         PatientAccount saved = accountRepository.save(account);
         syncPrimaryProfile(saved);
         linkTemporaryProfiles(saved);
+        otpService.consumeOtp(phone, OtpPurpose.REGISTRATION);
         return new RegistrationResponse(saved.getId(), saved.getPhone(), saved.getFullName());
     }
 
@@ -200,6 +202,7 @@ public class AccountAuthService {
         account.changePassword(passwordEncoder.encode(request.newPassword()));
         accountRepository.save(account);
         linkTemporaryProfiles(account);
+        otpService.consumeOtp(phone, OtpPurpose.REGISTRATION);
     }
 
     @Transactional
@@ -222,6 +225,7 @@ public class AccountAuthService {
         if (account.getId() != null) {
             sessionRepository.revokeActiveByAccountId(account.getId(), Instant.now(clock));
         }
+        otpService.consumeOtp(phone, OtpPurpose.RECOVERY);
     }
 
     @Transactional

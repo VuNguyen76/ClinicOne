@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
+@Transactional(readOnly = true)
 public class ReschedulingService {
     private static final int SEARCH_DAYS = 30;
     private static final ZoneId CLINIC_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
@@ -212,14 +213,14 @@ public class ReschedulingService {
                 || appointment.getDoctorStaffId() == null) {
             return;
         }
-        GeneratedClinicSlot slot = generatedSlotRepository
+        generatedSlotRepository
                 .findFirstByClinicServiceIdAndDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
                         appointment.getServiceId(), appointment.getDoctorStaffId(), appointment.getAppointmentDate(),
                         appointment.getStartTime(), GeneratedSlotStatus.OPEN)
-                .orElseThrow(() -> conflict("APPOINTMENT_SLOT_NOT_FOUND",
-                        "Khong tim thay khung gio cu de dong sau khi doi lich."));
-        slot.cancel();
-        generatedSlotRepository.save(slot);
+                .ifPresent(slot -> {
+                    slot.cancel();
+                    generatedSlotRepository.save(slot);
+                });
     }
 
     private RescheduleCase findOpenCaseForPatient(UUID appointmentId, UUID patientId) {

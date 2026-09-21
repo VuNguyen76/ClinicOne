@@ -6,6 +6,7 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.text.Normalizer;
 import java.util.Comparator;
@@ -13,6 +14,7 @@ import java.util.List;
 import java.util.Locale;
 
 @Service
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class SpecialtyCatalogService {
     private final SpecialtyCatalogRepository repository;
@@ -48,6 +50,7 @@ public class SpecialtyCatalogService {
                 .trim();
     }
 
+    @Transactional
     @CacheEvict(cacheNames = "specialties", allEntries = true)
     public SpecialtyResponse create(CreateSpecialtyRequest request) {
         String code = normalizeCode(request.code());
@@ -60,6 +63,7 @@ public class SpecialtyCatalogService {
         return new SpecialtyResponse(saved.getCode(), saved.getName(), saved.getDescription());
     }
 
+    @Transactional
     @CacheEvict(cacheNames = "specialties", allEntries = true)
     public SpecialtyResponse update(String code, CreateSpecialtyRequest request) {
         SpecialtyCatalogEntry entry = repository.findByCodeIgnoreCase(code)
@@ -77,6 +81,7 @@ public class SpecialtyCatalogService {
         return new SpecialtyResponse(saved.getCode(), saved.getName(), saved.getDescription());
     }
 
+    @Transactional
     @CacheEvict(cacheNames = "specialties", allEntries = true)
     public void deactivate(String code) {
         SpecialtyCatalogEntry entry = repository.findByCodeIgnoreCase(code)

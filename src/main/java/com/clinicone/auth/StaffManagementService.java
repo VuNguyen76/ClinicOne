@@ -17,6 +17,7 @@ import java.util.Locale;
 import java.util.Objects;
 
 @Service
+@Transactional(readOnly = true)
 public class StaffManagementService {
     private final StaffAccountRepository accountRepository;
     private final LoginSessionRepository sessionRepository;

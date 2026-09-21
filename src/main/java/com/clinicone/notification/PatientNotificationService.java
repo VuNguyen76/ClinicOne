@@ -17,6 +17,7 @@ import java.time.Instant;
 import com.clinicone.appointment.Appointment;
 
 @Service
+@Transactional(readOnly = true)
 public class PatientNotificationService {
     private final PatientNotificationRepository repository;
     private final PatientAccountRepository accountRepository;

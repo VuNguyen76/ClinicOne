@@ -16,6 +16,7 @@ import java.util.UUID;
 import java.util.Comparator;
 
 @Service
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class ClinicServiceManagementService {
     private final ClinicServiceRepository repository;

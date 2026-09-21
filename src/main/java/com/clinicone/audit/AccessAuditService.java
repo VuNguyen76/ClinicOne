@@ -9,6 +9,7 @@ import java.time.Instant;
 import java.util.List;
 
 @Service
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class AccessAuditService {
     private static final Instant AUDIT_START = Instant.parse("1900-01-01T00:00:00Z");

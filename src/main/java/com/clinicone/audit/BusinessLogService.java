@@ -17,6 +17,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
+@Transactional(readOnly = true)
 public class BusinessLogService {
     private final BusinessLogRepository repository;
     private final ReconciliationIncidentRepository reconciliationRepository;

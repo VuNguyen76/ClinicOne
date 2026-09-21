@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class DoctorTimeOffService {
     private static final ZoneId CLINIC_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
@@ -75,11 +76,13 @@ public class DoctorTimeOffService {
     }
 
     private void validate(CreateDoctorTimeOffRequest request) {
+        LocalDate today = LocalDate.now(clock.withZone(CLINIC_ZONE));
         if (request == null || request.startDate() == null || request.endDate() == null
+                || request.startDate().isBefore(today)
                 || request.startDate().isAfter(request.endDate())
                 || ChronoUnit.DAYS.between(request.startDate(), request.endDate()) + 1 > MAX_DAYS) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "DOCTOR_TIME_OFF_RANGE_INVALID",
-                    "Khoảng nghỉ phải nằm trong cùng một khoảng tối đa 30 ngày.");
+                    "Khoảng nghỉ phải nằm trong tương lai hoặc hôm nay và tối đa 30 ngày.");
         }
         if (request.reason() == null || request.reason().trim().length() < 10
                 || request.reason().trim().length() > 500) {

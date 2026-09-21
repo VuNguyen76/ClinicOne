@@ -14,6 +14,7 @@ import java.util.UUID;
  * through the transaction proxy instead of becoming self-invocations.
  */
 @Service
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class SmsDeliveryStateService {
     private static final long CLAIM_SECONDS = 5 * 60L;

@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 
 @Service
+@Transactional(readOnly = true)
 public class ClinicConfigurationService {
     private final ClinicConfigurationRepository repository;
     private final String defaultUnitName;

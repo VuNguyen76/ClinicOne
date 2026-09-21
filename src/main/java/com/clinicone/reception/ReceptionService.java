@@ -37,6 +37,7 @@ import java.util.Set;
 import java.util.UUID;
 
 @Service
+@Transactional(readOnly = true)
 public class ReceptionService {
     private static final ZoneId CLINIC_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     private static final int DEFAULT_SLOT_DURATION_MINUTES = 60;
@@ -123,7 +124,7 @@ public ReceptionAppointmentResponse checkIn(UUID appointmentId, ReceptionCheckIn
                     "Không tìm thấy lịch hẹn."));
 
     // 1. Kiểm tra ngày hẹn: Chỉ cho phép check-in lịch trong ngày hôm nay (FR-REC-01)
-    LocalDate today = LocalDate.now(clock);
+    LocalDate today = today();
     if (!appointment.getAppointmentDate().equals(today)) {
         throw new AuthException(HttpStatus.BAD_REQUEST, "APPOINTMENT_DATE_INVALID",
                 "Lịch hẹn không thuộc ngày hôm nay.");

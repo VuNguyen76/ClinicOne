@@ -12,6 +12,7 @@ import java.time.Duration;
 import java.time.Instant;
 
 @Service
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class OtpService {
 
@@ -76,6 +77,17 @@ public class OtpService {
                         && !challenge.getVerifiedAt().isAfter(now)
                         && !challenge.getVerifiedAt().plus(window).isBefore(now))
                 .orElse(false);
+    }
+
+    @Transactional
+    public void consumeOtp(String phone, OtpPurpose purpose) {
+        Instant now = Instant.now(clock);
+        repository.findTopByDestinationAndPurposeOrderByCreatedAtDesc(
+                        VietnamesePhoneNumbers.smsDestination(phone), purpose)
+                .ifPresent(challenge -> {
+                    challenge.consume(now);
+                    repository.save(challenge);
+                });
     }
 
     private OtpException invalidOtp() {

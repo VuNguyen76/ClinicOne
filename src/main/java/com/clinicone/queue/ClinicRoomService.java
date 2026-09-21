@@ -12,6 +12,7 @@ import java.util.UUID;
 import java.util.Locale;
 
 @Service
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class ClinicRoomService {
     private final ClinicRoomRepository repository;

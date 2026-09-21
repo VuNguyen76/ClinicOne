@@ -27,6 +27,7 @@ import java.util.UUID;
 import java.util.Objects;
 
 @Service
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class ScheduleTemplateService {
     private final WorkScheduleTemplateRepository templateRepository;

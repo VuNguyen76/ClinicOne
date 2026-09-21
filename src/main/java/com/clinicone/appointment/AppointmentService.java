@@ -47,6 +47,7 @@ import com.clinicone.queue.QueueTicket;
 import com.clinicone.queue.QueueTicketRepository;
 
 @Service
+@Transactional(readOnly = true)
 public class AppointmentService {
     private static final ZoneId CLINIC_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     private static final int APPOINTMENT_CODE_MAX_ATTEMPTS = 5;

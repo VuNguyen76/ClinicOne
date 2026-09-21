@@ -19,7 +19,9 @@ import java.security.Principal;
 import java.util.List;
 import java.util.UUID;
 import jakarta.validation.Valid;
+import org.springframework.validation.annotation.Validated;
 
+@Validated
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/staff")
