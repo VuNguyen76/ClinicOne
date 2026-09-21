@@ -25,6 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.Instant;
 import java.time.Clock;
@@ -453,7 +454,7 @@ public class DoctorExaminationService {
     }
 
     private String normalizeStopReason(String reason) {
-        String normalized = reason == null ? "" : reason.trim();
+        String normalized = StringUtils.hasText(reason) ? reason.trim() : "";
         if (normalized.length() < 10 || normalized.length() > 500) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "EXAMINATION_STOP_REASON_INVALID",
                     "Lý do dừng lượt khám phải từ 10 đến 500 ký tự.");
@@ -462,7 +463,7 @@ public class DoctorExaminationService {
     }
 
     private String normalizeWrongProfileReason(String reason) {
-        String normalized = reason == null ? "" : reason.trim();
+        String normalized = StringUtils.hasText(reason) ? reason.trim() : "";
         if (normalized.length() < 10 || normalized.length() > 500) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "WRONG_PROFILE_REASON_INVALID",
                     "Lý do bắt đầu nhầm hồ sơ phải từ 10 đến 500 ký tự.");
@@ -496,7 +497,7 @@ public class DoctorExaminationService {
     }
 
     private List<PrescriptionLine> prescriptionLines(MedicalRecord record, DoctorExaminationRequest request) {
-        if (request.prescription() != null && !request.prescription().isBlank()) {
+        if (StringUtils.hasText(request.prescription())) {
             throw conflict("PRESCRIPTION_LEGACY_FORMAT_NOT_ALLOWED",
                     "Hãy nhập thuốc theo từng dòng gồm liều, số lượng và cách dùng.");
         }
@@ -511,10 +512,10 @@ public class DoctorExaminationService {
         ArrayList<PrescriptionLine> lines = new ArrayList<>();
         for (int index = 0; index < items.size(); index++) {
             PrescriptionLineRequest item = items.get(index);
-            if (item == null || blank(item.medicationName()) || item.medicationName().trim().length() > 200
-                    || blank(item.dosage()) || item.dosage().trim().length() > 100
+            if (item == null || !StringUtils.hasText(item.medicationName()) || item.medicationName().trim().length() > 200
+                    || !StringUtils.hasText(item.dosage()) || item.dosage().trim().length() > 100
                     || item.quantity() == null || item.quantity() < 1 || item.quantity() > 999
-                    || blank(item.instructions()) || item.instructions().trim().length() > 500) {
+                    || !StringUtils.hasText(item.instructions()) || item.instructions().trim().length() > 500) {
                 throw new AuthException(HttpStatus.BAD_REQUEST, "PRESCRIPTION_LINE_INVALID",
                         "Mỗi dòng thuốc cần có tên, liều, số lượng và cách dùng hợp lệ.");
             }
@@ -537,7 +538,7 @@ public class DoctorExaminationService {
         try {
             return staffRepository.findById(UUID.fromString(staffId))
                     .map(StaffAccount::getFullName)
-                    .filter(name -> name != null && !name.isBlank())
+                    .filter(StringUtils::hasText)
                     .orElse(appointment.getDoctorName());
         } catch (IllegalArgumentException exception) {
             return appointment.getDoctorName();
@@ -545,8 +546,8 @@ public class DoctorExaminationService {
     }
 
     private void requireRequiredFields(DoctorExaminationRequest request) {
-        if (blank(request.reason()) || blank(request.examinationNotes()) || blank(request.diagnosis())
-                || blank(request.conclusion())) {
+        if (!StringUtils.hasText(request.reason()) || !StringUtils.hasText(request.examinationNotes())
+                || !StringUtils.hasText(request.diagnosis()) || !StringUtils.hasText(request.conclusion())) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "MEDICAL_RECORD_REQUIRED",
                     "Cần nhập lý do khám, ghi nhận khám, chẩn đoán và kết luận trước khi ký phiếu.");
         }
@@ -569,7 +570,7 @@ public class DoctorExaminationService {
     }
 
     private String normalizeFollowUpNote(String value) {
-        return blank(value) ? null : value.trim();
+        return StringUtils.hasText(value) ? value.trim() : null;
     }
 
     private void requireCurrentRecordVersion(MedicalRecord record, DoctorExaminationRequest request) {
@@ -581,10 +582,6 @@ public class DoctorExaminationService {
             throw conflict("MEDICAL_RECORD_VERSION_CONFLICT",
                     "Phiếu khám đã được cập nhật ở một cửa sổ khác. Hãy tải lại trang trước khi tiếp tục.");
         }
-    }
-
-    private boolean blank(String value) {
-        return value == null || value.isBlank();
     }
 
     private AuthException conflict(String code, String message) {
@@ -614,7 +611,7 @@ public class DoctorExaminationService {
                 : patient == null ? null : patient.getDateOfBirth();
         String patientGender = profile != null ? profile.getGender()
                 : patient == null ? null : patient.getGender();
-        String patientPhone = profile != null && profile.getPhone() != null && !profile.getPhone().isBlank()
+        String patientPhone = profile != null && StringUtils.hasText(profile.getPhone())
                 ? profile.getPhone() : patient == null ? null : patient.getPhone();
         return new DoctorExaminationResponse(ticket.getId(), appointment.getId(), session.getId(), ticket.getQueueNumber(),
                 ticket.getRoom().getName(), appointment.getAppointmentCode(), appointment.getSpecialty(), appointment.getServiceId(),

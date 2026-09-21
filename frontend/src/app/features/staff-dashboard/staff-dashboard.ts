@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, computed, inject
 import { Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
-import { clinicTodayIso } from '../../core/time/clinic-time';
+import { clinicTodayIso, formatClinicPadDate } from '../../core/time/clinic-time';
 import {
   ApiErrorResponse,
   AuthApiService,
@@ -269,9 +269,7 @@ export class StaffDashboard implements OnInit, OnDestroy {
   }
 
   protected formatDate(value?: string | null): string {
-    if (!value) return 'Chưa cập nhật';
-    const [year, month, day] = value.split('-');
-    return day && month && year ? `${day}/${month}/${year}` : value;
+    return formatClinicPadDate(value) || 'Chưa cập nhật';
   }
 
   protected openExamination(ticket: QueueTicketResponse): void {

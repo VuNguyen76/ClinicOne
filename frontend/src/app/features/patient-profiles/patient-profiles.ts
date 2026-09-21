@@ -6,6 +6,7 @@ import { ApiErrorResponse, AuthApiService, apiErrorMessage, PatientProfileItem, 
 import { PatientHeader } from '../../shared/patient-header/patient-header';
 import { AccountNav } from '../../shared/account-nav/account-nav';
 import { VietnamAddressService, VietnamAddressUnit } from '../../core/address/vietnam-address.service';
+import { formatClinicDate } from '../../core/time/clinic-time';
 
 @Component({
   selector: 'app-patient-profiles',
@@ -145,8 +146,7 @@ export class PatientProfiles implements OnInit {
   }
 
   protected formatDate(value: string): string {
-    const [year, month, day] = value.split('-').map(Number);
-    return new Intl.DateTimeFormat('vi-VN').format(new Date(year, month - 1, day));
+    return formatClinicDate(value);
   }
 
   protected provinceChanged(): void {

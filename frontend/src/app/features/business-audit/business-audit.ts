@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { AuthApiService, BusinessLogResponse, apiErrorMessage } from '../../core/auth/auth-api.service';
 import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
+import { formatClinicDateTime } from '../../core/time/clinic-time';
 
 @Component({
   selector: 'app-business-audit',
@@ -101,6 +102,6 @@ export class BusinessAudit implements OnInit {
   }
 
   protected formatDate(value: string): string {
-    return new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value));
+    return formatClinicDateTime(value);
   }
 }

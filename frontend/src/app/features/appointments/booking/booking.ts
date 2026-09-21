@@ -5,7 +5,7 @@ import { Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { ApiErrorResponse, AppointmentSlotResponse, AuthApiService, apiErrorMessage, ClinicServiceResponse, PatientProfileItem, SpecialtyOption } from '../../../core/auth/auth-api.service';
 import { PatientHeader } from '../../../shared/patient-header/patient-header';
-import { clinicTodayDate, clinicTodayIso } from '../../../core/time/clinic-time';
+import { clinicTodayDate, clinicTodayIso, formatClinicDate } from '../../../core/time/clinic-time';
 import { interval } from 'rxjs';
 
 type BookingStep = 1 | 2 | 3;
@@ -350,8 +350,7 @@ export class Booking implements OnInit {
   }
 
   protected formatDate(value: string): string {
-    const [year, month, day] = value.split('-').map(Number);
-    return new Intl.DateTimeFormat('vi-VN').format(new Date(year, month - 1, day));
+    return formatClinicDate(value);
   }
 
   private clearError(): void {

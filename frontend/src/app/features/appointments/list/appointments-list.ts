@@ -5,6 +5,7 @@ import { finalize } from 'rxjs';
 import { apiErrorMessage, AppointmentResponse, AuthApiService } from '../../../core/auth/auth-api.service';
 import { PatientHeader } from '../../../shared/patient-header/patient-header';
 import { AccountNav } from '../../../shared/account-nav/account-nav';
+import { formatClinicDate, formatClinicTime } from '../../../core/time/clinic-time';
 
 type AppointmentFilter = 'ALL' | 'BOOKED' | 'CHECKED_IN' | 'COMPLETED' | 'CANCELLED' | 'ABSENT' | 'NOT_PERFORMED';
 
@@ -56,13 +57,11 @@ export class AppointmentsList implements OnInit {
   }
 
   protected formatDate(value: string): string {
-    const [year, month, day] = value.split('-').map(Number);
-    return new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
-      .format(new Date(year, month - 1, day));
+    return formatClinicDate(value);
   }
 
   protected formatTime(value: string): string {
-    return value.slice(0, 5);
+    return formatClinicTime(value);
   }
 
   protected statusClass(status: string): string {

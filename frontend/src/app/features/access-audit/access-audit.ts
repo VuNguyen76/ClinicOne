@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { AccessAuditResponse, AuthApiService, apiErrorMessage } from '../../core/auth/auth-api.service';
 import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
+import { formatClinicDateTime } from '../../core/time/clinic-time';
 
 @Component({
   selector: 'app-access-audit-management',
@@ -53,5 +54,7 @@ export class AccessAuditManagement implements OnInit {
     return actor;
   }
 
-  protected formatDate(value: string): string { return new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value)); }
+  protected formatDate(value: string): string {
+    return formatClinicDateTime(value);
+  }
 }

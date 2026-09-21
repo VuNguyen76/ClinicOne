@@ -13,7 +13,7 @@ import {
   RescheduleCaseResponse,
 } from '../../../core/auth/auth-api.service';
 import { PatientHeader } from '../../../shared/patient-header/patient-header';
-import { clinicTodayDate, clinicTodayIso } from '../../../core/time/clinic-time';
+import { clinicTodayDate, clinicTodayIso, formatClinicDate, formatClinicTime } from '../../../core/time/clinic-time';
 
 @Component({
   selector: 'app-appointment-detail',
@@ -69,8 +69,7 @@ export class AppointmentDetail implements OnInit {
   }
 
   protected formatDate(value: string): string {
-    const [year, month, day] = value.split('-').map(Number);
-    return new Intl.DateTimeFormat('vi-VN').format(new Date(year, month - 1, day));
+    return formatClinicDate(value);
   }
 
   protected formatWeekday(value: string): string {
@@ -79,7 +78,7 @@ export class AppointmentDetail implements OnInit {
   }
 
   protected formatTime(value: string): string {
-    return value.slice(0, 5);
+    return formatClinicTime(value);
   }
 
   protected isLate(): boolean {

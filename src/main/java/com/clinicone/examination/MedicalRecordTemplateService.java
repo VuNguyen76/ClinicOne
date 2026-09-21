@@ -5,6 +5,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.UUID;
@@ -17,10 +18,10 @@ public class MedicalRecordTemplateService {
 
     @Transactional(readOnly = true)
     public List<MedicalRecordTemplateResponse> list(boolean activeOnly, String specialty, UUID clinicServiceId) {
-        String normalizedSpecialty = specialty == null ? null : specialty.trim();
+        String normalizedSpecialty = StringUtils.hasText(specialty) ? specialty.trim() : null;
         return (activeOnly ? repository.findAllByActiveTrueOrderBySpecialtyAscNameAsc()
                 : repository.findAllByOrderBySpecialtyAscNameAsc()).stream()
-                .filter(template -> normalizedSpecialty == null || normalizedSpecialty.isBlank()
+                .filter(template -> normalizedSpecialty == null
                         || template.getSpecialty().equalsIgnoreCase(normalizedSpecialty))
                 .filter(template -> clinicServiceId == null || template.getClinicServiceId() == null
                         || clinicServiceId.equals(template.getClinicServiceId()))
@@ -54,14 +55,14 @@ public class MedicalRecordTemplateService {
     }
 
     private String normalize(String value, int max) {
-        if (value == null || value.isBlank() || value.trim().length() > max) {
+        if (!StringUtils.hasText(value) || value.trim().length() > max) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "MEDICAL_TEMPLATE_FIELD_INVALID", "Thông tin mẫu phiếu không hợp lệ.");
         }
         return value.trim();
     }
 
     private String optional(String value, int max) {
-        if (value == null || value.isBlank()) return null;
+        if (!StringUtils.hasText(value)) return null;
         if (value.trim().length() > max) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "MEDICAL_TEMPLATE_FIELD_INVALID", "Thông tin mẫu phiếu không hợp lệ.");
         }

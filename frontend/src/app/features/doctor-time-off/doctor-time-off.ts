@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { AuthApiService, DoctorAccountResponse, DoctorTimeOffResponse, apiErrorMessage } from '../../core/auth/auth-api.service';
 import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
-import { clinicTodayIso } from '../../core/time/clinic-time';
+import { clinicTodayIso, formatClinicDate } from '../../core/time/clinic-time';
 import { hasStaffRole } from '../../core/auth/auth.guard';
 import { DEFAULT_DOCTOR_AVATAR, matchesDoctorIdentity, resolveDoctorAvatar } from '../../shared/doctor-utils';
 
@@ -166,8 +166,7 @@ export class DoctorTimeOffManagement implements OnInit {
   }
 
   protected formatDate(value: string): string {
-    const [year, month, day] = value.split('-').map(Number);
-    return new Intl.DateTimeFormat('vi-VN').format(new Date(year, month - 1, day));
+    return formatClinicDate(value);
   }
 
   protected canManageTimeOff(): boolean {

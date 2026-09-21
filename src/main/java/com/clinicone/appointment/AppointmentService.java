@@ -27,6 +27,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import lombok.Builder;
 
 import java.time.LocalDate;
@@ -462,7 +463,7 @@ public class AppointmentService {
             throw new AuthException(HttpStatus.CONFLICT, "LATE_RESCHEDULE_STATUS_INVALID",
                     "Chỉ lịch hẹn đang đặt mới được chuyển sang khung giờ khác.");
         }
-        String normalizedReason = reason == null ? null : reason.trim();
+        String normalizedReason = StringUtils.hasText(reason) ? reason.trim() : null;
         if (normalizedReason == null || normalizedReason.length() < 3 || normalizedReason.length() > 500) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "LATE_RESCHEDULE_REASON_INVALID",
                     "Lý do đến muộn phải có từ 3 đến 500 ký tự.");
@@ -628,7 +629,7 @@ public class AppointmentService {
                 ? 12
                 : configurationService.current().getCancellationThresholdHours();
         if (!remaining.isNegative() && remaining.compareTo(Duration.ofHours(thresholdHours)) <= 0
-                && (reason == null || reason.isBlank())) {
+                && !StringUtils.hasText(reason)) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "CANCELLATION_REASON_REQUIRED",
                     "Cần chọn lý do khi hủy lịch trong thời gian quy định.");
         }
@@ -639,13 +640,12 @@ public class AppointmentService {
             return null;
         }
         if (reasonCatalogService == null) {
-            return request.reason() == null || request.reason().isBlank() ? null : request.reason().trim();
+            return StringUtils.hasText(request.reason()) ? request.reason().trim() : null;
         }
-        if ((request.reasonCode() == null || request.reasonCode().isBlank())
-                && (request.reason() == null || request.reason().isBlank())) {
+        if (!StringUtils.hasText(request.reasonCode()) && !StringUtils.hasText(request.reason())) {
             return null;
         }
-        if (request.reasonCode() == null || request.reasonCode().isBlank()) {
+        if (!StringUtils.hasText(request.reasonCode())) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "CANCELLATION_REASON_REQUIRED",
                     "Hãy chọn một lý do trong danh mục.");
         }

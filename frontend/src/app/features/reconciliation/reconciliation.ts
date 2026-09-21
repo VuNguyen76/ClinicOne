@@ -4,6 +4,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { AuthApiService, ReconciliationResponse, apiErrorMessage } from '../../core/auth/auth-api.service';
 import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
 import { hasStaffRole } from '../../core/auth/auth.guard';
+import { formatClinicDateTime } from '../../core/time/clinic-time';
 
 @Component({
   selector: 'app-reconciliation-management',
@@ -69,8 +70,7 @@ export class ReconciliationManagement implements OnInit {
   }
 
   protected formatDate(val?: string | null): string {
-    if (!val) return '—';
-    return new Intl.DateTimeFormat('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(val));
+    return formatClinicDateTime(val) || '—';
   }
 
   protected readonly filteredIncidents = computed<ReconciliationResponse[]>(() => {

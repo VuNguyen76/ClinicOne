@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -111,7 +112,7 @@ public class ReconciliationService {
     }
 
     private String normalize(String value, int maxLength) {
-        if (value == null || value.isBlank() || value.trim().length() > maxLength) {
+        if (!StringUtils.hasText(value) || value.trim().length() > maxLength) {
             throw badRequest("RECONCILIATION_FIELD_INVALID", "Thông tin đối soát không hợp lệ.");
         }
         return value.trim();

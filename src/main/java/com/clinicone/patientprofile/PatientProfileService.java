@@ -8,10 +8,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
@@ -136,7 +139,7 @@ public class PatientProfileService {
     }
 
     private String fillMissing(String existing, String candidate) {
-        return existing == null || existing.isBlank() ? normalize(candidate) : existing;
+        return StringUtils.hasText(existing) ? existing : normalize(candidate);
     }
 
     @Transactional
@@ -169,16 +172,15 @@ public class PatientProfileService {
     }
 
     private String normalize(String value) {
-        return value == null || value.isBlank() ? null : value.trim();
+        return StringUtils.hasText(value) ? value.trim() : null;
     }
 
     private String composeAddress(String fallback, String street, String ward, String district, String province) {
         String composed = Stream.of(street, ward, district, province)
                 .map(this::normalize)
-                .filter(value -> value != null)
-                .reduce((left, right) -> left + ", " + right)
-                .orElse(null);
-        return composed == null ? normalize(fallback) : composed;
+                .filter(Objects::nonNull)
+                .collect(Collectors.joining(", "));
+        return StringUtils.hasText(composed) ? composed : normalize(fallback);
     }
 
     private AuthException authenticationRequired() {

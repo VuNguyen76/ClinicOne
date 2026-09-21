@@ -1,4 +1,4 @@
-import { clinicTodayDate, clinicTodayIso } from './clinic-time';
+import { clinicTodayDate, clinicTodayIso, formatClinicDate, formatClinicTime, formatClinicDateTime } from './clinic-time';
 
 describe('clinic calendar helpers', () => {
   it('uses Vietnam time even when the browser instant is near midnight UTC', () => {
@@ -8,5 +8,22 @@ describe('clinic calendar helpers', () => {
   it('returns a date object for the clinic calendar day', () => {
     const date = clinicTodayDate(new Date('2026-08-10T17:30:00.000Z'));
     expect([date.getFullYear(), date.getMonth() + 1, date.getDate()]).toEqual([2026, 8, 11]);
+  });
+
+  it('formats YYYY-MM-DD date strings properly', () => {
+    expect(formatClinicDate('2026-08-11')).toBe('11/8/2026');
+    expect(formatClinicDate('')).toBe('');
+    expect(formatClinicDate(null)).toBe('');
+  });
+
+  it('formats time strings properly', () => {
+    expect(formatClinicTime('08:30:00')).toBe('08:30');
+    expect(formatClinicTime('14:15')).toBe('14:15');
+    expect(formatClinicTime('')).toBe('');
+  });
+
+  it('formats datetime timestamps safely', () => {
+    expect(formatClinicDateTime('')).toBe('');
+    expect(formatClinicDateTime('not-a-date')).toBe('not-a-date');
   });
 });
