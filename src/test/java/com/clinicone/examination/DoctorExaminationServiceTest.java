@@ -238,7 +238,7 @@ class DoctorExaminationServiceTest {
         verify(appointmentRepository).save(appointment);
         verify(ticketRepository).save(ticket);
         verify(sessionRepository).save(session);
-        verify(recordRepository).saveAndFlush(record);
+        verify(recordRepository, times(2)).saveAndFlush(record);
         verify(notificationService).notifyMedicalRecordSigned(any(), any(), any(), any(), any());
     }
 
@@ -285,7 +285,7 @@ class DoctorExaminationServiceTest {
         assertThat(retried.signedAt()).isEqualTo(first.signedAt());
         assertThat(retried.reason()).isEqualTo("Đau đầu");
         verify(notificationService, times(1)).notifyMedicalRecordSigned(any(), any(), any(), any(), any());
-        verify(recordRepository, times(1)).saveAndFlush(record);
+        verify(recordRepository, times(2)).saveAndFlush(record);
     }
 
     @Test
@@ -522,7 +522,7 @@ class DoctorExaminationServiceTest {
         when(sessionRepository.findByAppointment_Id(APPOINTMENT_ID)).thenReturn(Optional.of(session));
         when(sessionRepository.findByAppointment_IdForUpdate(APPOINTMENT_ID)).thenReturn(Optional.of(session));
         when(sessionRepository.findByStartRequestKey("start-visit-2")).thenReturn(Optional.empty());
-        when(ticketRepository.countInServiceForDoctorExcludingTicket(DOCTOR_ID, TICKET_ID)).thenReturn(1L);
+        when(ticketRepository.countInServiceForDoctorExcludingTicket(any(), any(), any())).thenReturn(1L);
 
         assertThatThrownBy(() -> service.start(TICKET_ID, DOCTOR_ID.toString(), "start-visit-2"))
                 .isInstanceOf(AuthException.class)

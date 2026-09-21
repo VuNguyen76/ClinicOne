@@ -38,10 +38,14 @@ public interface QueueTicketRepository extends JpaRepository<QueueTicket, UUID> 
     List<QueueTicket> findByRoomCodeAndQueueDateAndRoutingDoctorStaffIdOrderByQueueNumberAsc(
             String roomCode, LocalDate queueDate, UUID doctorStaffId);
 
-    @Query("select count(ticket) from QueueTicket ticket "
+     @Query("select count(ticket) from QueueTicket ticket "
             + "where ticket.status = com.clinicone.queue.QueueTicketStatus.IN_SERVICE "
+            + "and ticket.queueDate = :queueDate "
             + "and ticket.id <> :ticketId "
             + "and (ticket.routingDoctorStaffId = :doctorId "
             + "or (ticket.routingDoctorStaffId is null and ticket.appointment.doctorStaffId = :doctorId))")
-    long countInServiceForDoctorExcludingTicket(@Param("doctorId") UUID doctorId, @Param("ticketId") UUID ticketId);
+    long countInServiceForDoctorExcludingTicket(@Param("doctorId") UUID doctorId, @Param("ticketId") UUID ticketId,
+                                                @Param("queueDate") LocalDate queueDate);
+
+    List<QueueTicket> findByStatusInAndQueueDateBefore(Collection<QueueTicketStatus> statuses, LocalDate date);
 }
