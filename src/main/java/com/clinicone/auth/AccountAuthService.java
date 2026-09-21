@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import lombok.Builder;
 
 import java.nio.charset.StandardCharsets;
@@ -74,8 +75,8 @@ public class AccountAuthService {
         PatientAccount account = new PatientAccount(phone, passwordEncoder.encode(request.password()),
                 request.fullName().trim(), AccountStatus.ACTIVE, false);
         validateProfileDetails(request.dateOfBirth(), request.gender());
-        account.updateProfile(request.fullName().trim(), request.dateOfBirth(), normalizeGender(request.gender()),
-                normalizeAddress(request.address()));
+        account.updateProfile(request.fullName().trim(), request.dateOfBirth(), normalize(request.gender()),
+                normalize(request.address()));
         account.updateIdentityAndAddress(null, null, null, normalize(request.provinceCode()), normalize(request.provinceName()),
                 normalize(request.districtCode()), normalize(request.districtName()), normalize(request.wardCode()),
                 normalize(request.wardName()), normalize(request.streetAddress()));
@@ -111,8 +112,8 @@ public class AccountAuthService {
     public PatientProfileResponse updateProfile(String accountId, UpdateProfileRequest request) {
         PatientAccount account = findAccount(accountId);
         validateProfileDetails(request.dateOfBirth(), request.gender());
-        account.updateProfile(request.fullName().trim(), request.dateOfBirth(), normalizeGender(request.gender()),
-                normalizeAddress(request.address()));
+        account.updateProfile(request.fullName().trim(), request.dateOfBirth(), normalize(request.gender()),
+                normalize(request.address()));
         account.updateIdentityAndAddress(normalize(request.identityNumber()), normalize(request.nationality()),
                 normalize(request.ethnicity()), normalize(request.provinceCode()), normalize(request.provinceName()),
                 normalize(request.districtCode()), normalize(request.districtName()), normalize(request.wardCode()),
@@ -318,16 +319,8 @@ public class AccountAuthService {
         }
     }
 
-    private String normalizeGender(String gender) {
-        return gender == null || gender.isBlank() ? null : gender.trim();
-    }
-
-    private String normalizeAddress(String address) {
-        return address == null || address.isBlank() ? null : address.trim();
-    }
-
     private String normalize(String value) {
-        return value == null || value.isBlank() ? null : value.trim();
+        return StringUtils.hasText(value) ? value.trim() : null;
     }
 
     private LoginResponse createSession(PatientAccount account) {

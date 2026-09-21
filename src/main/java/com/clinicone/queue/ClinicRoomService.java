@@ -6,6 +6,7 @@ import com.clinicone.auth.AuthException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.UUID;
@@ -20,7 +21,7 @@ public class ClinicRoomService {
     @Transactional
     public List<ClinicRoomResponse> list() {
         return repository.findAllByOrderByCodeAsc().stream().map(room -> {
-            boolean missingToken = room.getQrToken() == null || room.getQrToken().isBlank();
+            boolean missingToken = !StringUtils.hasText(room.getQrToken());
             room.ensureQrToken();
             if (missingToken) repository.save(room);
             return response(room);
@@ -70,7 +71,7 @@ public class ClinicRoomService {
     }
 
     private ClinicRoom findActiveByCodeOrQrToken(String roomKey) {
-        String normalized = roomKey == null ? "" : roomKey.trim();
+        String normalized = StringUtils.hasText(roomKey) ? roomKey.trim() : "";
         return repository.findByCodeAndActiveTrue(normalized)
                 .or(() -> repository.findByQrTokenAndActiveTrue(normalized))
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "ROOM_NOT_FOUND", "Không tìm thấy phòng khám đang hoạt động."));

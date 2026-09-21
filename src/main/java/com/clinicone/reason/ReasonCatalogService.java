@@ -4,9 +4,10 @@ import com.clinicone.auth.AuthException;
 import org.springframework.http.HttpStatus;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.Locale;
@@ -94,10 +95,9 @@ public class ReasonCatalogService {
     }
 
     private String normalizeLabel(String value) {
-        String normalized = value == null ? "" : value.trim();
-        if (normalized.isBlank()) {
+        if (!StringUtils.hasText(value)) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "REASON_LABEL_REQUIRED", "Tên lý do không được để trống.");
         }
-        return normalized;
+        return value.trim();
     }
 }

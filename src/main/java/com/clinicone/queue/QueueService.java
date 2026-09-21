@@ -21,6 +21,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -550,7 +551,7 @@ public class QueueService {
                     .filter(DoctorProfile::isActive)
                     .orElse(null);
         }
-        if (specialty.isBlank() || roomCode.isBlank()) {
+        if (!StringUtils.hasText(specialty) || !StringUtils.hasText(roomCode)) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "QUEUE_TARGET_DOCTOR_REQUIRED",
                     "Cần chọn bác sĩ đích hoặc chỉ rõ chuyên khoa và phòng đích.");
         }
@@ -673,49 +674,34 @@ public class QueueService {
         if (reason == null) {
             return null;
         }
-        String normalized = reason.trim();
-        if (normalized.length() < 10 || normalized.length() > 250) {
-            throw new AuthException(HttpStatus.BAD_REQUEST, "RECEPTION_REASON_INVALID",
-                    "Lý do hỗ trợ tại quầy phải từ 10 đến 250 ký tự.");
-        }
-        return normalized;
+        return validateReasonLength(reason, "RECEPTION_REASON_INVALID", "Lý do hỗ trợ tại quầy phải từ 10 đến 250 ký tự.", 10, 250);
     }
 
     private String normalizeSkipReason(String reason) {
-        if (reason == null) {
-            throw new AuthException(HttpStatus.BAD_REQUEST, "QUEUE_SKIP_REASON_REQUIRED",
-                    "Cần ghi lý do khi gọi lại sau.");
-        }
-        String normalized = reason.trim();
-        if (normalized.length() < 10 || normalized.length() > 250) {
-            throw new AuthException(HttpStatus.BAD_REQUEST, "QUEUE_SKIP_REASON_INVALID",
-                    "Lý do gọi lại sau phải từ 10 đến 250 ký tự.");
-        }
-        return normalized;
+        requireReasonPresent(reason, "QUEUE_SKIP_REASON_REQUIRED", "Cần ghi lý do khi gọi lại sau.");
+        return validateReasonLength(reason, "QUEUE_SKIP_REASON_INVALID", "Lý do gọi lại sau phải từ 10 đến 250 ký tự.", 10, 250);
     }
 
     private String normalizeLeaveReason(String reason) {
-        if (reason == null) {
-            throw new AuthException(HttpStatus.BAD_REQUEST, "QUEUE_LEAVE_REASON_REQUIRED",
-                    "Cần ghi lý do bệnh nhân rời trước khi khám.");
-        }
-        String normalized = reason.trim();
-        if (normalized.length() < 10 || normalized.length() > 500) {
-            throw new AuthException(HttpStatus.BAD_REQUEST, "QUEUE_LEAVE_REASON_INVALID",
-                    "Lý do phải từ 10 đến 500 ký tự.");
-        }
-        return normalized;
+        requireReasonPresent(reason, "QUEUE_LEAVE_REASON_REQUIRED", "Cần ghi lý do bệnh nhân rời trước khi khám.");
+        return validateReasonLength(reason, "QUEUE_LEAVE_REASON_INVALID", "Lý do phải từ 10 đến 500 ký tự.", 10, 500);
     }
 
     private String normalizeAdjustmentReason(String reason) {
+        requireReasonPresent(reason, "QUEUE_ADJUSTMENT_REASON_REQUIRED", "Cần ghi lý do điều chỉnh hàng đợi.");
+        return validateReasonLength(reason, "QUEUE_ADJUSTMENT_REASON_INVALID", "Lý do điều chỉnh phải từ 10 đến 500 ký tự.", 10, 500);
+    }
+
+    private void requireReasonPresent(String reason, String errorCode, String message) {
         if (reason == null) {
-            throw new AuthException(HttpStatus.BAD_REQUEST, "QUEUE_ADJUSTMENT_REASON_REQUIRED",
-                    "Cần ghi lý do điều chỉnh hàng đợi.");
+            throw new AuthException(HttpStatus.BAD_REQUEST, errorCode, message);
         }
+    }
+
+    private String validateReasonLength(String reason, String errorCode, String message, int min, int max) {
         String normalized = reason.trim();
-        if (normalized.length() < 10 || normalized.length() > 500) {
-            throw new AuthException(HttpStatus.BAD_REQUEST, "QUEUE_ADJUSTMENT_REASON_INVALID",
-                    "Lý do điều chỉnh phải từ 10 đến 500 ký tự.");
+        if (normalized.length() < min || normalized.length() > max) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, errorCode, message);
         }
         return normalized;
     }
