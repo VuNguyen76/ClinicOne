@@ -219,10 +219,23 @@ public class QueueService {
                 appointmentRepository.save(appointment);
             }
             boolean returned = false;
-            if (ticket.getPresenceStatus() == QueuePresenceStatus.RETURN_REQUIRED
-                    && doctorHasActiveShift(appointment, room)) {
-                ticket.markReturned(Instant.now(clock));
-                returned = true;
+            if (ticket.getPresenceStatus() == QueuePresenceStatus.RETURN_REQUIRED) {
+                boolean canReturn = false;
+                UUID effectiveDoctorId = ticket.getEffectiveDoctorStaffId();
+                if (effectiveDoctorId != null && doctorProfileRepository != null) {
+                    DoctorProfile effectiveProfile = doctorProfileRepository.findByStaffAccount_Id(effectiveDoctorId)
+                            .filter(DoctorProfile::isActive)
+                            .filter(value -> value.getRoom().getCode().equalsIgnoreCase(room.getCode()))
+                            .orElse(null);
+                    canReturn = effectiveProfile != null && hasActiveShift(effectiveProfile, today());
+                }
+                if (!canReturn) {
+                    canReturn = doctorHasActiveShift(appointment, room);
+                }
+                if (canReturn) {
+                    ticket.markReturned(Instant.now(clock));
+                    returned = true;
+                }
             }
             boolean reasonChanged = exceptionReason != null && !exceptionReason.equals(ticket.getExceptionReason());
             if (exceptionReason != null) {
@@ -781,9 +794,28 @@ public class QueueService {
     }
 
     private void ensureDoctorCanOperateQueue(QueueTicket ticket) {
-        if (!ticket.getQueueDate().equals(today()) || !doctorHasActiveShift(ticket.getAppointment(), ticket.getRoom())) {
+        if (!ticket.getQueueDate().equals(today())) {
             throw new AuthException(HttpStatus.CONFLICT, "DOCTOR_SHIFT_INACTIVE",
                     "Bác sĩ không có ca làm việc đang hiệu lực để gọi bệnh nhân.");
+        }
+        UUID effectiveDoctorId = ticket.getEffectiveDoctorStaffId();
+        if (effectiveDoctorId == null || doctorProfileRepository == null) {
+            if (!doctorHasActiveShift(ticket.getAppointment(), ticket.getRoom())) {
+                throw new AuthException(HttpStatus.CONFLICT, "DOCTOR_SHIFT_INACTIVE",
+                        "Bác sĩ không có ca làm việc đang hiệu lực để gọi bệnh nhân.");
+            }
+            return;
+        }
+        DoctorProfile effectiveProfile = doctorProfileRepository.findByStaffAccount_Id(effectiveDoctorId)
+                .filter(DoctorProfile::isActive)
+                .filter(value -> value.getRoom().getCode().equalsIgnoreCase(ticket.getRoom().getCode()))
+                .orElse(null);
+        boolean hasShift = effectiveProfile != null && hasActiveShift(effectiveProfile, today());
+        if (!hasShift) {
+            if (!doctorHasActiveShift(ticket.getAppointment(), ticket.getRoom())) {
+                throw new AuthException(HttpStatus.CONFLICT, "DOCTOR_SHIFT_INACTIVE",
+                        "Bác sĩ không có ca làm việc đang hiệu lực để gọi bệnh nhân.");
+            }
         }
     }
 
