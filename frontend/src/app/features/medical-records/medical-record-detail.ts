@@ -54,7 +54,19 @@ export class MedicalRecordDetail implements OnInit {
     return formatClinicMediumDateTime(value) || 'Không có';
   }
 
+  protected readonly printMode = signal<'full' | 'prescription'>('full');
+
+  protected printFullRecord(): void {
+    this.printMode.set('full');
+    setTimeout(() => window.print(), 50);
+  }
+
+  protected printPrescription(): void {
+    this.printMode.set('prescription');
+    setTimeout(() => window.print(), 50);
+  }
+
   protected printRecord(): void {
-    window.print();
+    this.printFullRecord();
   }
 }

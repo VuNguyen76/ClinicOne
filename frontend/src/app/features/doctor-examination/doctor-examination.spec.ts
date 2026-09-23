@@ -560,6 +560,59 @@ describe('DoctorExamination', () => {
     const duplicateWarnings = fixture.componentInstance['duplicatePrescriptionWarnings']();
     expect(duplicateWarnings).toContain('Aspirin 81mg');
   });
+
+  it('opens prescription protocols modal and applies a clinical protocol set', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+
+    fixture.componentInstance['selectTab']('prescription');
+    fixture.detectChanges();
+
+    const openBtn = fixture.nativeElement.querySelector('[data-testid="open-prescription-protocols"]') as HTMLButtonElement;
+    expect(openBtn).toBeTruthy();
+    openBtn.click();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance['prescriptionProtocolsOpen']()).toBe(true);
+    expect(fixture.nativeElement.querySelector('#protocols-modal-title')?.textContent)
+      .toContain('Phác đồ & Toa thuốc mẫu');
+
+    const option0 = fixture.nativeElement.querySelector('[data-testid="protocol-option-0"]') as HTMLButtonElement;
+    expect(option0).toBeTruthy();
+    option0.click();
+    fixture.detectChanges();
+
+    const applyBtn = fixture.nativeElement.querySelector('[data-testid="apply-prescription-protocol"]') as HTMLButtonElement;
+    expect(applyBtn).toBeTruthy();
+    applyBtn.click();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance['prescriptionProtocolsOpen']()).toBe(false);
+    expect(fixture.componentInstance['prescriptionLines'].length).toBeGreaterThanOrEqual(3);
+
+    const line0 = fixture.componentInstance['prescriptionLines'].at(0).value;
+    expect(line0.medicationName).toBeTruthy();
+    expect(line0.dosage).toBeTruthy();
+    expect(line0.unit).toBeTruthy();
+    expect(line0.quantity).toBeGreaterThan(0);
+    expect(line0.instructions).toBeTruthy();
+
+    expect(fixture.componentInstance['form'].controls.diagnosis.value).toBeTruthy();
+  });
+
+  it('sets printMode to prescription when printing prescription', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+
+    fixture.componentInstance['addPrescriptionLine']();
+    fixture.detectChanges();
+
+    fixture.componentInstance['printPrescription']();
+    expect(fixture.componentInstance['printMode']()).toBe('prescription');
+
+    fixture.componentInstance['printFullRecord']();
+    expect(fixture.componentInstance['printMode']()).toBe('full');
+  });
 });
 
 function examination() {

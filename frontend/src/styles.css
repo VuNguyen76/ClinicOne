@@ -951,7 +951,7 @@ input {
   }
 }
 
-/* Circular 33/2025/TT-BYT Print Optimization */
+/* Circular 33/2025/TT-BYT & 27/2021/TT-BYT Print Optimization */
 @media print {
   @page {
     size: A4 portrait;
@@ -975,8 +975,23 @@ input {
   }
 
   article, section {
-    page-break-inside: avoid;
     box-shadow: none !important;
+  }
+
+  [data-testid="staff-workspace-shell"],
+  .erp-workspace-canvas,
+  [data-testid="doctor-workspace"] {
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #ffffff !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  table {
+    border-collapse: collapse !important;
+    width: 100% !important;
   }
 }
 
