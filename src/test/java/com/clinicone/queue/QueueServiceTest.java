@@ -633,6 +633,99 @@ class QueueServiceTest {
     }
 
     @Test
+    void reassignedWaitingTicketCanBeCalledByTargetDoctorEvenWhenSourceRoomDiffers() {
+        UUID sourceDoctorId = UUID.randomUUID();
+        UUID targetDoctorId = UUID.randomUUID();
+        ClinicRoom sourceRoom = ClinicRoom.create("NOI-01", "Phòng Nội tổng quát 01", "Nội tổng quát");
+        ClinicRoom targetRoom = ClinicRoom.create("NOI-02", "Phòng Nội tổng quát 02", "Nội tổng quát");
+        StaffAccount targetStaff = StaffAccount.create("doctor-target", "hash", "BS. Trần Bình", StaffRole.DOCTOR);
+        setId(targetStaff, targetDoctorId);
+        DoctorProfile targetProfile = DoctorProfile.create(targetStaff, "Nội tổng quát", targetRoom);
+        // schedule covering 02:00Z = 09:00 HCM (inside 08-17)
+        com.clinicone.doctor.DoctorSchedule schedule = com.clinicone.doctor.DoctorSchedule.create(targetProfile, java.time.DayOfWeek.THURSDAY, LocalTime.of(8, 0), LocalTime.of(17, 0), 60);
+        DoctorScheduleRepository scheduleRepository = mock(DoctorScheduleRepository.class);
+        when(scheduleRepository.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(targetProfile.getId(), TODAY.getDayOfWeek())).thenReturn(List.of(schedule));
+        when(doctorProfileRepository.findByStaffAccount_Id(targetDoctorId)).thenReturn(Optional.of(targetProfile));
+        // source appointment stays on source doctor
+        PatientAccount patient = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
+        setId(patient, UUID.randomUUID());
+        Appointment movedAppointment = Appointment.create(patient, sourceDoctorId, "CL-MOVED-001", "Nội tổng quát", "BS. Nguyễn An", TODAY, LocalTime.of(9, 0), "Đau đầu");
+        setId(movedAppointment, UUID.randomUUID());
+        QueueTicket ticket = QueueTicket.create(movedAppointment, targetRoom, TODAY, 1);
+        setId(ticket, UUID.randomUUID());
+        setField(ticket, "routingDoctorStaffId", targetDoctorId);
+        setField(ticket, "routingDoctorName", "BS. Trần Bình");
+        setField(ticket, "routingSpecialty", "Nội tổng quát");
+        // ticket is WAITING READY by default
+        when(ticketRepository.findByRoomCodeAndQueueDateAndAppointment_DoctorStaffIdOrderByQueueNumberAsc(targetRoom.getCode(), TODAY, targetDoctorId)).thenReturn(List.of());
+        when(ticketRepository.findByRoomCodeAndQueueDateAndRoutingDoctorStaffIdOrderByQueueNumberAsc(targetRoom.getCode(), TODAY, targetDoctorId)).thenReturn(List.of(ticket));
+        when(ticketRepository.findById(ticket.getId())).thenReturn(Optional.of(ticket));
+        when(ticketRepository.save(any(QueueTicket.class))).thenAnswer(inv -> inv.getArgument(0));
+        QueueService routedService = new QueueService(roomRepository, ticketRepository, appointmentRepository, doctorProfileRepository, examinationSessionRepository, null, scheduleRepository, null, Clock.fixed(Instant.parse("2026-08-06T02:00:00Z"), ZoneId.of("Asia/Ho_Chi_Minh")));
+        QueueTicketResponse response = routedService.callNext(targetDoctorId.toString(), TODAY);
+        assertEquals(QueueTicketStatus.CALLED.name(), response.status());
+    }
+
+    @Test
+    void reassignedTicketCallNextFailsWhenTargetDoctorHasNoActiveShift() {
+        UUID sourceDoctorId = UUID.randomUUID();
+        UUID targetDoctorId = UUID.randomUUID();
+        ClinicRoom targetRoom = ClinicRoom.create("NOI-02", "Phòng Nội tổng quát 02", "Nội tổng quát");
+        StaffAccount targetStaff = StaffAccount.create("doctor-target-no-shift", "hash", "BS. Trần Bình", StaffRole.DOCTOR);
+        setId(targetStaff, targetDoctorId);
+        DoctorProfile targetProfile = DoctorProfile.create(targetStaff, "Nội tổng quát", targetRoom);
+        DoctorScheduleRepository scheduleRepository = mock(DoctorScheduleRepository.class);
+        when(scheduleRepository.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(targetProfile.getId(), TODAY.getDayOfWeek())).thenReturn(List.of());
+        when(doctorProfileRepository.findByStaffAccount_Id(targetDoctorId)).thenReturn(Optional.of(targetProfile));
+        PatientAccount patient = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
+        setId(patient, UUID.randomUUID());
+        Appointment movedAppointment = Appointment.create(patient, sourceDoctorId, "CL-MOVED-002", "Nội tổng quát", "BS. Nguyễn An", TODAY, LocalTime.of(9, 0), "Đau đầu");
+        setId(movedAppointment, UUID.randomUUID());
+        QueueTicket ticket = QueueTicket.create(movedAppointment, targetRoom, TODAY, 1);
+        setId(ticket, UUID.randomUUID());
+        setField(ticket, "routingDoctorStaffId", targetDoctorId);
+        when(ticketRepository.findByRoomCodeAndQueueDateAndAppointment_DoctorStaffIdOrderByQueueNumberAsc(targetRoom.getCode(), TODAY, targetDoctorId)).thenReturn(List.of());
+        when(ticketRepository.findByRoomCodeAndQueueDateAndRoutingDoctorStaffIdOrderByQueueNumberAsc(targetRoom.getCode(), TODAY, targetDoctorId)).thenReturn(List.of(ticket));
+        QueueService routedService = new QueueService(roomRepository, ticketRepository, appointmentRepository, doctorProfileRepository, examinationSessionRepository, null, scheduleRepository, null, Clock.fixed(Instant.parse("2026-08-06T02:00:00Z"), ZoneId.of("Asia/Ho_Chi_Minh")));
+        AuthException ex = assertThrows(AuthException.class, () -> routedService.callNext(targetDoctorId.toString(), TODAY));
+        assertEquals("DOCTOR_SHIFT_INACTIVE", ex.getCode());
+    }
+
+    @Test
+    void reassignedReturnRequiredTicketIsMarkedReadyWhenTargetDoctorHasActiveShift() {
+        UUID targetDoctorId = UUID.randomUUID();
+        ClinicRoom targetRoom = ClinicRoom.create("NOI-02", "Phòng Nội tổng quát 02", "Nội tổng quát");
+        StaffAccount targetStaff = StaffAccount.create("doctor-target-return", "hash", "BS. Lê Hà", StaffRole.DOCTOR);
+        setId(targetStaff, targetDoctorId);
+        DoctorProfile targetProfile = DoctorProfile.create(targetStaff, "Nội tổng quát", targetRoom);
+        com.clinicone.doctor.DoctorSchedule schedule = com.clinicone.doctor.DoctorSchedule.create(targetProfile, java.time.DayOfWeek.THURSDAY, LocalTime.of(8, 0), LocalTime.of(17, 0), 60);
+        DoctorScheduleRepository scheduleRepository = mock(DoctorScheduleRepository.class);
+        when(scheduleRepository.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(targetProfile.getId(), TODAY.getDayOfWeek())).thenReturn(List.of(schedule));
+        when(doctorProfileRepository.findByStaffAccount_Id(targetDoctorId)).thenReturn(Optional.of(targetProfile));
+        PatientAccount patient = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
+        setId(patient, UUID.randomUUID());
+        PatientProfile profile = PatientProfile.create(patient, "Nguyen Van A", "Bản thân", LocalDate.of(1990, 1, 1), "Nam", "0912345678", null, "VN", "Kinh", null, true);
+        Appointment appointment = Appointment.create(patient, targetDoctorId, profile, "CL-RETURN-002", "Nội tổng quát", "BS. Lê Hà", TODAY, LocalTime.of(9, 0), "Đau đầu");
+        appointment.checkIn();
+        setId(appointment, UUID.randomUUID());
+        QueueTicket ticket = QueueTicket.create(appointment, targetRoom, TODAY, 1);
+        setId(ticket, UUID.randomUUID());
+        setField(ticket, "routingDoctorStaffId", targetDoctorId);
+        ticket.call();
+        ticket.skip("Ly do goi lai sau de test");
+        // ticket now WAITING RETURN_REQUIRED and routed to target
+        when(ticketRepository.findByAppointmentId(appointment.getId())).thenReturn(Optional.of(ticket));
+        when(appointmentRepository.findByIdAndPatientId(any(UUID.class), any(UUID.class))).thenReturn(Optional.of(appointment));
+        when(appointmentRepository.findById(appointment.getId())).thenReturn(Optional.of(appointment));
+        when(roomRepository.findByCodeAndActiveTrue(targetRoom.getCode())).thenReturn(Optional.of(targetRoom));
+        when(ticketRepository.save(any(QueueTicket.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(appointmentRepository.findById(any(UUID.class))).thenReturn(Optional.of(appointment));
+        QueueService routedService = new QueueService(roomRepository, ticketRepository, appointmentRepository, doctorProfileRepository, examinationSessionRepository, null, scheduleRepository, null, Clock.fixed(Instant.parse("2026-08-06T02:00:00Z"), ZoneId.of("Asia/Ho_Chi_Minh")));
+        QueueTicketResponse response = routedService.checkIn(patient.getId().toString(), targetRoom.getCode(), appointment.getId());
+        assertEquals(QueuePresenceStatus.READY.name(), response.presenceStatus());
+    }
+
+    @Test
     void currentRoutingDoctorCanStartAReassignedTicket() {
         UUID targetDoctorId = UUID.randomUUID();
         StaffAccount targetStaff = StaffAccount.create("doctor-routed", "hash", "BS. Trần Bình", StaffRole.DOCTOR);
