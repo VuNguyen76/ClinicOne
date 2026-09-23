@@ -561,43 +561,51 @@ describe('DoctorExamination', () => {
     expect(duplicateWarnings).toContain('Aspirin 81mg');
   });
 
-  it('opens prescription protocols modal and applies a clinical protocol set', () => {
+  it('applies medical template with prescription lines loaded from database', () => {
     http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
     fixture.detectChanges();
 
-    fixture.componentInstance['selectTab']('prescription');
+    fixture.componentInstance['openMedicalTemplates']();
+    const req = http.expectOne((r) => r.url.startsWith('/api/v1/medical-record-templates'));
+    req.flush([
+      {
+        id: 'tmpl-gerd-1',
+        code: 'TMPL-TH-01',
+        name: 'Mẫu khám Dạ dày - GERD',
+        specialty: 'Khám Tổng Quát',
+        fieldDefinition: JSON.stringify({
+          reason: 'Đau âm ỉ vùng thượng vị',
+          diagnosis: 'K21 - Bệnh trào ngược dạ dày - thực quản',
+          prescriptionLines: [
+            { medicationName: 'Omeprazole 20mg', dosage: '20mg x 2 lần/ngày', quantity: 28, unit: 'Viên', instructions: 'Uống trước ăn 30 phút' },
+            { medicationName: 'Phosphalugel', dosage: '1 gói x 2 lần/ngày', quantity: 20, unit: 'Gói', instructions: 'Uống sau ăn 1 giờ' }
+          ]
+        }),
+        active: true,
+        createdBy: 'admin',
+        createdAt: '2026-03-01T08:00:00Z',
+        updatedAt: '2026-03-01T08:00:00Z',
+        version: 1,
+      },
+    ]);
     fixture.detectChanges();
 
-    const openBtn = fixture.nativeElement.querySelector('[data-testid="open-prescription-protocols"]') as HTMLButtonElement;
-    expect(openBtn).toBeTruthy();
-    openBtn.click();
+    const templateOption = fixture.nativeElement.querySelector('[data-testid="medical-template-option-0"]') as HTMLButtonElement;
+    expect(templateOption).toBeTruthy();
+    templateOption.click();
     fixture.detectChanges();
 
-    expect(fixture.componentInstance['prescriptionProtocolsOpen']()).toBe(true);
-    expect(fixture.nativeElement.querySelector('#protocols-modal-title')?.textContent)
-      .toContain('Phác đồ & Toa thuốc mẫu');
-
-    const option0 = fixture.nativeElement.querySelector('[data-testid="protocol-option-0"]') as HTMLButtonElement;
-    expect(option0).toBeTruthy();
-    option0.click();
-    fixture.detectChanges();
-
-    const applyBtn = fixture.nativeElement.querySelector('[data-testid="apply-prescription-protocol"]') as HTMLButtonElement;
+    const applyBtn = fixture.nativeElement.querySelector('[data-testid="apply-medical-template"]') as HTMLButtonElement;
     expect(applyBtn).toBeTruthy();
     applyBtn.click();
     fixture.detectChanges();
 
-    expect(fixture.componentInstance['prescriptionProtocolsOpen']()).toBe(false);
-    expect(fixture.componentInstance['prescriptionLines'].length).toBeGreaterThanOrEqual(3);
-
-    const line0 = fixture.componentInstance['prescriptionLines'].at(0).value;
-    expect(line0.medicationName).toBeTruthy();
-    expect(line0.dosage).toBeTruthy();
-    expect(line0.unit).toBeTruthy();
-    expect(line0.quantity).toBeGreaterThan(0);
-    expect(line0.instructions).toBeTruthy();
-
-    expect(fixture.componentInstance['form'].controls.diagnosis.value).toBeTruthy();
+    expect(fixture.componentInstance['form'].controls.diagnosis.value).toBe('K21 - Bệnh trào ngược dạ dày - thực quản');
+    expect(fixture.componentInstance['prescriptionLines'].length).toBe(2);
+    expect(fixture.componentInstance['prescriptionLines'].at(0).value.medicationName).toBe('Omeprazole 20mg');
+    expect(fixture.componentInstance['prescriptionLines'].at(0).value.unit).toBe('Viên');
+    expect(fixture.componentInstance['prescriptionLines'].at(1).value.medicationName).toBe('Phosphalugel');
+    expect(fixture.componentInstance['prescriptionLines'].at(1).value.unit).toBe('Gói');
   });
 
   it('sets printMode to prescription when printing prescription', () => {

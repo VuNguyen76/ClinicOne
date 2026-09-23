@@ -60,6 +60,37 @@ describe('MedicalRecordTemplateManagement', () => {
     http.expectOne((candidate) => candidate.url === '/api/v1/medical-record-templates').flush([]);
   });
 
+  it('supports configuring prescription lines in a medical record template', () => {
+    flushReferenceData([]);
+    fixture.detectChanges();
+    setValue('template-code', 'NOI-TQ-2');
+    setValue('template-name', 'Khám dạ dày kèm đơn thuốc');
+    setValue('template-specialty', 'Nội tổng quát');
+    fixture.detectChanges();
+    setValue('template-notes', 'Đau thượng vị');
+    fixture.detectChanges();
+
+    fixture.componentInstance['addPrescriptionLine']();
+    fixture.componentInstance['updateLineField'](0, 'medicationName', 'Omeprazole 20mg');
+    fixture.componentInstance['updateLineField'](0, 'dosage', '20mg x 2 lần/ngày');
+    fixture.componentInstance['updateLineField'](0, 'quantity', 28);
+    fixture.componentInstance['updateLineField'](0, 'unit', 'Viên');
+    fixture.componentInstance['updateLineField'](0, 'instructions', 'Uống trước ăn');
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('[data-testid="save-medical-template"]') as HTMLButtonElement).click();
+    const request = http.expectOne('/api/v1/medical-record-templates');
+    expect(request.request.method).toBe('POST');
+    const savedContent = JSON.parse(request.request.body.fieldDefinition);
+    expect(savedContent.examinationNotes).toBe('Đau thượng vị');
+    expect(savedContent.prescriptionLines).toBeDefined();
+    expect(savedContent.prescriptionLines.length).toBe(1);
+    expect(savedContent.prescriptionLines[0].medicationName).toBe('Omeprazole 20mg');
+    expect(savedContent.prescriptionLines[0].unit).toBe('Viên');
+    request.flush(template());
+    http.expectOne((candidate) => candidate.url === '/api/v1/medical-record-templates').flush([]);
+  });
+
   function flushReferenceData(templates = [template()]): void {
     http.expectOne((candidate) => candidate.url === '/api/v1/medical-record-templates').flush(templates);
     http.expectOne((candidate) => candidate.url === '/api/v1/specialties').flush([

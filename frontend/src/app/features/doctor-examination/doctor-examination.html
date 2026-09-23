@@ -656,34 +656,27 @@
               <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-50/70 px-5 py-3.5">
                 <div class="flex items-center gap-2">
                   <h4 class="text-sm font-bold uppercase tracking-wider text-slate-900">3. Đơn thuốc điều trị</h4>
-                  <span class="rounded-full bg-sky-50 border border-sky-200 px-2.5 py-0.5 text-xs font-semibold text-[#0284c7]">
+                  <span class="rounded-full bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
                     {{ prescriptionLines.length ? ('Tổng: ' + prescriptionLines.length + ' loại') : 'Chưa có thuốc' }}
                   </span>
                 </div>
                 @if (!exam.signedAt) {
                   <div class="flex flex-wrap items-center gap-2">
                     <button
-                      data-testid="open-prescription-protocols"
-                      type="button"
-                      class="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800 shadow-xs transition hover:bg-amber-100 active:scale-95 cursor-pointer"
-                      (click)="openPrescriptionProtocols()"
-                    >
-                      <mat-icon class="!h-3.5 !w-3.5 !text-[15px] text-amber-600">bolt</mat-icon>
-                      <span>Phác đồ &amp; Toa mẫu</span>
-                    </button>
-                    <button
                       data-testid="open-medication-catalog"
                       type="button"
-                      class="inline-flex items-center rounded-lg border border-[#0284c7] bg-white px-3 py-1.5 text-xs font-semibold text-[#0284c7] shadow-xs transition hover:bg-sky-50 active:scale-95 cursor-pointer"
+                      class="erp-btn-secondary !text-xs !py-1.5 !px-3 cursor-pointer"
                       (click)="openMedicationCatalog()"
+                      title="Tra cứu thuốc theo danh mục chuyên khoa từ cơ sở dữ liệu"
                     >
+                      <mat-icon class="!h-3.5 !w-3.5 !text-[15px] text-slate-500">medication</mat-icon>
                       <span>Tra cứu thuốc chuyên khoa</span>
                     </button>
                     @if (prescriptionLines.length > 0) {
                       <button
                         data-testid="print-prescription-btn"
                         type="button"
-                        class="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 shadow-xs transition hover:bg-slate-50 cursor-pointer"
+                        class="erp-btn-secondary !text-xs !py-1.5 !px-2.5 cursor-pointer"
                         (click)="printPrescription()"
                         title="In đơn thuốc điện tử"
                       >
@@ -698,7 +691,8 @@
                         class="erp-btn-primary !min-h-8 !px-3 !py-1.5 !text-xs cursor-pointer shadow-xs"
                         (click)="addPrescriptionLine()"
                       >
-                        <span>+ Thêm thuốc</span>
+                        <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">add</mat-icon>
+                        <span>Thêm thuốc</span>
                       </button>
                     }
                   </div>
@@ -706,10 +700,10 @@
                   <button
                     data-testid="print-prescription-btn"
                     type="button"
-                    class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-xs transition hover:bg-slate-50 cursor-pointer"
+                    class="erp-btn-secondary !text-xs !py-1.5 !px-3 cursor-pointer"
                     (click)="printPrescription()"
                   >
-                    <mat-icon class="!h-3.5 !w-3.5 !text-[15px] text-emerald-600">print</mat-icon>
+                    <mat-icon class="!h-3.5 !w-3.5 !text-[15px] text-slate-500">print</mat-icon>
                     <span>In đơn thuốc</span>
                   </button>
                 }
@@ -839,37 +833,36 @@
                     }
                   </div>
                 </div>
-              } @else {
-                <div class="grid place-items-center p-8 text-center bg-slate-50/40">
-                  <p class="text-xs font-bold text-slate-800">Chưa có thuốc trong đơn</p>
+              }              @else {
+                <div class="grid place-items-center p-8 text-center bg-slate-50/50">
+                  <div class="grid h-10 w-10 place-items-center rounded-xl bg-slate-100 text-slate-400">
+                    <mat-icon class="!h-5 !w-5 !text-[20px]">medication</mat-icon>
+                  </div>
+                  <p class="mt-2 text-xs font-bold text-slate-800">Chưa có thuốc trong đơn</p>
                   <p class="mt-0.5 text-xs text-slate-500">
-                    Chọn thuốc từ danh mục chuyên khoa hoặc thêm thuốc thủ công.
+                    Tra cứu thuốc từ danh mục chuyên khoa hoặc thêm thuốc thủ công vào đơn.
                   </p>
                   @if (!exam.signedAt) {
-                    <div class="mt-3 flex flex-wrap items-center justify-center gap-2">
+                    <div class="mt-3 flex items-center gap-2">
                       <button
                         type="button"
-                        class="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 px-3.5 py-1.5 text-xs font-semibold text-amber-800 shadow-xs transition hover:bg-amber-100 cursor-pointer"
-                        (click)="openPrescriptionProtocols()"
-                      >
-                        <mat-icon class="!h-3.5 !w-3.5 !text-[15px] text-amber-600">bolt</mat-icon>
-                        <span>Áp dụng phác đồ toa mẫu</span>
-                      </button>
-                      <button
-                        type="button"
-                        class="erp-btn-primary !min-h-8 !px-3 !py-1 !text-xs cursor-pointer"
+                        class="erp-btn-secondary !text-xs !py-1.5 !px-3 cursor-pointer"
                         (click)="openMedicationCatalog()"
                       >
+                        <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">medication</mat-icon>
                         <span>Tra cứu thuốc chuyên khoa</span>
                       </button>
-                      <button
-                        data-testid="add-prescription-line"
-                        type="button"
-                        class="erp-btn-secondary !min-h-8 !px-3 !py-1 !text-xs cursor-pointer"
-                        (click)="addPrescriptionLine()"
-                      >
-                        <span>+ Thêm thuốc</span>
-                      </button>
+                      @if (prescriptionLines.length < 20) {
+                        <button
+                          data-testid="add-prescription-line"
+                          type="button"
+                          class="erp-btn-primary !min-h-8 !px-3 !py-1.5 !text-xs cursor-pointer"
+                          (click)="addPrescriptionLine()"
+                        >
+                          <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">add</mat-icon>
+                          <span>Thêm thuốc</span>
+                        </button>
+                      }
                     </div>
                   }
                 </div>
@@ -1127,177 +1120,7 @@
         </div>
       }
 
-      <!-- ======================================================== -->
-      <!-- MODAL: PHÁC ĐỒ & TOA THUỐC MẪU THEO CHẨN ĐOÁN           -->
-      <!-- ======================================================== -->
-      @if (prescriptionProtocolsOpen()) {
-        <div class="erp-modal-overlay" role="presentation" (click)="closePrescriptionProtocols()">
-          <section
-            class="erp-modal-container max-w-4xl flex max-h-[calc(100dvh-2rem)] flex-col overflow-hidden"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="protocols-modal-title"
-            (click)="$event.stopPropagation()"
-          >
-            <!-- Modal Header -->
-            <div class="flex shrink-0 items-center justify-between border-b border-slate-200 bg-white px-5 py-4">
-              <div class="flex items-center gap-3">
-                <span class="grid h-10 w-10 place-items-center rounded-xl bg-amber-100 text-amber-600">
-                  <mat-icon class="!h-6 !w-6 !text-[24px]">bolt</mat-icon>
-                </span>
-                <div>
-                  <div class="flex items-center gap-2">
-                    <h2 id="protocols-modal-title" class="text-base font-bold text-slate-900">Phác đồ &amp; Toa thuốc mẫu</h2>
-                    <span class="rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">Chuẩn y khoa</span>
-                  </div>
-                  <p class="text-xs text-slate-500">Toa thuốc mẫu theo chẩn đoán bệnh · Kê combo thuốc 1-chạm</p>
-                </div>
-              </div>
-              <button type="button" aria-label="Đóng" class="erp-btn-icon cursor-pointer" (click)="closePrescriptionProtocols()">
-                <mat-icon class="!h-4 !w-4 !text-[18px]">close</mat-icon>
-              </button>
-            </div>
 
-            <!-- Search & Category Filters -->
-            <div class="shrink-0 space-y-3 border-b border-slate-200 bg-slate-50/80 p-4">
-              <div class="relative">
-                <mat-icon class="absolute left-3 top-1/2 -translate-y-1/2 !h-4 !w-4 !text-[18px] text-slate-400">search</mat-icon>
-                <input
-                  type="search"
-                  class="erp-input pl-9"
-                  placeholder="Tìm phác đồ theo tên bệnh, mã ICD-10, triệu chứng, tên thuốc..."
-                  [value]="protocolSearchQuery()"
-                  (input)="updateProtocolSearchQuery($event)"
-                />
-              </div>
-              <div class="flex flex-wrap gap-1.5">
-                @for (cat of protocolCategories; track cat) {
-                  <button
-                    type="button"
-                    class="rounded-full border px-3 py-1 text-xs font-semibold transition cursor-pointer"
-                    [class.border-amber-600]="selectedProtocolCategory() === cat"
-                    [class.bg-amber-600]="selectedProtocolCategory() === cat"
-                    [class.text-white]="selectedProtocolCategory() === cat"
-                    [class.border-slate-200]="selectedProtocolCategory() !== cat"
-                    [class.bg-white]="selectedProtocolCategory() !== cat"
-                    [class.text-slate-600]="selectedProtocolCategory() !== cat"
-                    (click)="selectProtocolCategory(cat)"
-                  >{{ cat }}</button>
-                }
-              </div>
-            </div>
-
-            <!-- Protocols Two-Column Content: Left = List, Right = Details -->
-            <div class="min-h-0 flex-1 overflow-y-auto">
-              @if (filteredProtocols().length === 0) {
-                <div class="grid place-items-center p-8 text-center text-slate-400">
-                  <mat-icon class="!h-8 !w-8 !text-[32px]">medication</mat-icon>
-                  <p class="mt-2 text-sm">Không tìm thấy phác đồ toa thuốc phù hợp với tìm kiếm.</p>
-                </div>
-              } @else {
-                <div class="grid min-h-[350px] sm:grid-cols-[280px_minmax(0,1fr)]">
-                  <!-- Left List -->
-                  <div class="border-b border-slate-200 p-2 sm:border-b-0 sm:border-r space-y-1 overflow-y-auto max-h-[460px]">
-                    @for (proto of filteredProtocols(); track proto.id; let idx = $index) {
-                      <button
-                        [attr.data-testid]="'protocol-option-' + idx"
-                        type="button"
-                        class="w-full rounded-lg border p-3 text-left transition cursor-pointer"
-                        [class.border-amber-500]="selectedProtocol()?.id === proto.id"
-                        [class.bg-amber-50/70]="selectedProtocol()?.id === proto.id"
-                        [class.border-transparent]="selectedProtocol()?.id !== proto.id"
-                        [class.hover:bg-slate-50]="selectedProtocol()?.id !== proto.id"
-                        (click)="previewProtocol(proto)"
-                      >
-                        <div class="flex items-center justify-between gap-1">
-                          <span class="font-mono text-[10px] font-bold text-amber-700">{{ proto.code }}</span>
-                          <span class="rounded bg-sky-50 border border-sky-100 px-1.5 py-0.2 text-[10px] font-semibold text-[#0284c7]">
-                            {{ proto.lines.length }} thuốc
-                          </span>
-                        </div>
-                        <h4 class="mt-1 text-xs font-bold text-slate-900 leading-snug">{{ proto.name }}</h4>
-                        <p class="mt-0.5 text-[11px] text-slate-500 truncate">{{ proto.diagnosisCode }}</p>
-                      </button>
-                    }
-                  </div>
-
-                  <!-- Right Preview & Apply -->
-                  <div class="p-5 bg-white overflow-y-auto max-h-[460px] space-y-4">
-                    @if (selectedProtocol(); as proto) {
-                      <div>
-                        <!-- Header Preview -->
-                        <div class="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 pb-3">
-                          <div>
-                            <div class="flex items-center gap-2">
-                              <span class="rounded bg-amber-100 px-2 py-0.5 font-mono text-xs font-bold text-amber-800">{{ proto.code }}</span>
-                              <span class="rounded bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">{{ proto.category }}</span>
-                            </div>
-                            <h3 class="mt-1.5 text-base font-bold text-slate-900">{{ proto.name }}</h3>
-                            <p class="mt-0.5 text-xs font-semibold text-[#0284c7]">{{ proto.diagnosisCode }}</p>
-                          </div>
-                          <button
-                            data-testid="apply-prescription-protocol"
-                            type="button"
-                            class="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-4 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-amber-700 active:scale-95 cursor-pointer disabled:opacity-50"
-                            [disabled]="prescriptionLines.length >= 20"
-                            (click)="applyPrescriptionProtocol(proto)"
-                          >
-                            <mat-icon class="!h-4 !w-4 !text-[16px]">add_task</mat-icon>
-                            <span>Áp dụng toa này</span>
-                          </button>
-                        </div>
-
-                        <!-- Indication & Treatment Duration -->
-                        <div class="grid gap-2 sm:grid-cols-2 rounded-lg bg-slate-50 p-3 text-xs my-3">
-                          <div>
-                            <span class="block text-[10px] font-bold uppercase text-slate-500">Chỉ định lâm sàng:</span>
-                            <span class="text-slate-800">{{ proto.indication }}</span>
-                          </div>
-                          <div>
-                            <span class="block text-[10px] font-bold uppercase text-slate-500">Thời gian điều trị:</span>
-                            <span class="font-bold text-slate-900">{{ proto.treatmentDays }} ngày</span>
-                          </div>
-                        </div>
-
-                        <!-- Medications List -->
-                        <div class="space-y-2">
-                          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-700">
-                            Danh sách thuốc trong phác đồ ({{ proto.lines.length }} thuốc)
-                          </h4>
-                          <div class="divide-y divide-slate-100 rounded-lg border border-slate-200">
-                            @for (line of proto.lines; track $index; let lidx = $index) {
-                              <div class="p-3 text-xs hover:bg-slate-50/60 transition">
-                                <div class="flex items-start justify-between gap-2">
-                                  <div class="font-bold text-slate-900">
-                                    {{ lidx + 1 }}. {{ line.medicationName }}
-                                  </div>
-                                  <span class="shrink-0 rounded bg-sky-50 border border-sky-200 px-2 py-0.5 font-bold text-[#0284c7]">
-                                    {{ line.quantity }} {{ line.unit || 'Viên' }}
-                                  </span>
-                                </div>
-                                <div class="mt-1 text-slate-600">
-                                  <span class="font-medium text-slate-800">Liều dùng:</span> {{ line.dosage }}
-                                </div>
-                                <div class="mt-0.5 text-slate-500 italic">
-                                  <span class="font-medium not-italic text-slate-700">HDSD:</span> {{ line.instructions }}
-                                </div>
-                              </div>
-                            }
-                          </div>
-                        </div>
-                      </div>
-                    } @else {
-                      <div class="grid min-h-48 place-items-center text-center text-xs text-slate-400">
-                        Chọn một phác đồ bên trái để xem chi tiết đơn thuốc.
-                      </div>
-                    }
-                  </div>
-                </div>
-              }
-            </div>
-          </section>
-        </div>
-      }
 
       <!-- ============================================== -->
       <!-- DIALOGS & CONFIRMATION MODALS                  -->
