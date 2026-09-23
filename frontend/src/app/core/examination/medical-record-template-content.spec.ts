@@ -49,4 +49,18 @@ describe('medical record template content', () => {
       followUpNote: 'Mang kết quả cũ.',
     });
   });
+
+  it('parses and normalizes prescription lines in template content', () => {
+    const parsed = parseMedicalRecordTemplateContent(JSON.stringify({
+      diagnosis: 'Viêm họng cấp',
+      prescriptionLines: [
+        { medicationName: 'Paracetamol 500mg', dosage: '1 viên/lần', quantity: 10, unit: 'Viên', instructions: 'Sau ăn' },
+        { medicationName: '   ', dosage: 'x', quantity: 5 },
+      ],
+    }));
+    expect(parsed.prescriptionLines?.length).toBe(1);
+    expect(parsed.prescriptionLines?.[0].medicationName).toBe('Paracetamol 500mg');
+    expect(parsed.prescriptionLines?.[0].quantity).toBe(10);
+    expect(parsed.prescriptionLines?.[0].unit).toBe('Viên');
+  });
 });

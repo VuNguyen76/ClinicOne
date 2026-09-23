@@ -27,10 +27,21 @@
       workspace-actions
       type="button"
       class="erp-btn-secondary"
-      (click)="printRecord()"
+      (click)="printFullRecord()"
     >
       <mat-icon class="!h-4 !w-4 !text-[16px] text-[#0284c7]">print</mat-icon>
       <span>In phiếu khám</span>
+    </button>
+  }
+  @if (examination()?.status === 'COMPLETED' && prescriptionLines.length > 0) {
+    <button
+      workspace-actions
+      type="button"
+      class="erp-btn-secondary"
+      (click)="printPrescription()"
+    >
+      <mat-icon class="!h-4 !w-4 !text-[16px] text-emerald-600">receipt_long</mat-icon>
+      <span>In đơn thuốc</span>
     </button>
   }
 
@@ -45,8 +56,9 @@
         </div>
       </div>
     } @else if (examination(); as exam) {
-      <!-- Feedback Alerts -->
-      @if (error() && !confirmingSign() && !confirmingWrongProfile() && !confirmingStop() && !confirmingTemplateOverwrite()) {
+      <div class="print:hidden space-y-4">
+        <!-- Feedback Alerts -->
+        @if (error() && !confirmingSign() && !confirmingWrongProfile() && !confirmingStop() && !confirmingTemplateOverwrite()) {
         <div class="flex items-center justify-between rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-medium text-rose-800 shadow-xs" role="alert">
           <div class="flex items-center gap-2">
             <mat-icon class="!h-4 !w-4 !text-[18px] text-rose-600">error_outline</mat-icon>
@@ -649,7 +661,16 @@
                   </span>
                 </div>
                 @if (!exam.signedAt) {
-                  <div class="flex items-center gap-2">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <button
+                      data-testid="open-prescription-protocols"
+                      type="button"
+                      class="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800 shadow-xs transition hover:bg-amber-100 active:scale-95 cursor-pointer"
+                      (click)="openPrescriptionProtocols()"
+                    >
+                      <mat-icon class="!h-3.5 !w-3.5 !text-[15px] text-amber-600">bolt</mat-icon>
+                      <span>Phác đồ &amp; Toa mẫu</span>
+                    </button>
                     <button
                       data-testid="open-medication-catalog"
                       type="button"
@@ -658,6 +679,18 @@
                     >
                       <span>Tra cứu thuốc chuyên khoa</span>
                     </button>
+                    @if (prescriptionLines.length > 0) {
+                      <button
+                        data-testid="print-prescription-btn"
+                        type="button"
+                        class="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 shadow-xs transition hover:bg-slate-50 cursor-pointer"
+                        (click)="printPrescription()"
+                        title="In đơn thuốc điện tử"
+                      >
+                        <mat-icon class="!h-3.5 !w-3.5 !text-[15px] text-slate-500">print</mat-icon>
+                        <span>In đơn</span>
+                      </button>
+                    }
                     @if (prescriptionLines.length < 20) {
                       <button
                         data-testid="add-prescription-line"
@@ -669,6 +702,16 @@
                       </button>
                     }
                   </div>
+                } @else if (prescriptionLines.length > 0) {
+                  <button
+                    data-testid="print-prescription-btn"
+                    type="button"
+                    class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-xs transition hover:bg-slate-50 cursor-pointer"
+                    (click)="printPrescription()"
+                  >
+                    <mat-icon class="!h-3.5 !w-3.5 !text-[15px] text-emerald-600">print</mat-icon>
+                    <span>In đơn thuốc</span>
+                  </button>
                 }
               </div>
 
@@ -804,6 +847,14 @@
                   </p>
                   @if (!exam.signedAt) {
                     <div class="mt-3 flex flex-wrap items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        class="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 px-3.5 py-1.5 text-xs font-semibold text-amber-800 shadow-xs transition hover:bg-amber-100 cursor-pointer"
+                        (click)="openPrescriptionProtocols()"
+                      >
+                        <mat-icon class="!h-3.5 !w-3.5 !text-[15px] text-amber-600">bolt</mat-icon>
+                        <span>Áp dụng phác đồ toa mẫu</span>
+                      </button>
                       <button
                         type="button"
                         class="erp-btn-primary !min-h-8 !px-3 !py-1 !text-xs cursor-pointer"
@@ -1076,6 +1127,178 @@
         </div>
       }
 
+      <!-- ======================================================== -->
+      <!-- MODAL: PHÁC ĐỒ & TOA THUỐC MẪU THEO CHẨN ĐOÁN           -->
+      <!-- ======================================================== -->
+      @if (prescriptionProtocolsOpen()) {
+        <div class="erp-modal-overlay" role="presentation" (click)="closePrescriptionProtocols()">
+          <section
+            class="erp-modal-container max-w-4xl flex max-h-[calc(100dvh-2rem)] flex-col overflow-hidden"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="protocols-modal-title"
+            (click)="$event.stopPropagation()"
+          >
+            <!-- Modal Header -->
+            <div class="flex shrink-0 items-center justify-between border-b border-slate-200 bg-white px-5 py-4">
+              <div class="flex items-center gap-3">
+                <span class="grid h-10 w-10 place-items-center rounded-xl bg-amber-100 text-amber-600">
+                  <mat-icon class="!h-6 !w-6 !text-[24px]">bolt</mat-icon>
+                </span>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <h2 id="protocols-modal-title" class="text-base font-bold text-slate-900">Phác đồ &amp; Toa thuốc mẫu</h2>
+                    <span class="rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">Chuẩn y khoa</span>
+                  </div>
+                  <p class="text-xs text-slate-500">Toa thuốc mẫu theo chẩn đoán bệnh · Kê combo thuốc 1-chạm</p>
+                </div>
+              </div>
+              <button type="button" aria-label="Đóng" class="erp-btn-icon cursor-pointer" (click)="closePrescriptionProtocols()">
+                <mat-icon class="!h-4 !w-4 !text-[18px]">close</mat-icon>
+              </button>
+            </div>
+
+            <!-- Search & Category Filters -->
+            <div class="shrink-0 space-y-3 border-b border-slate-200 bg-slate-50/80 p-4">
+              <div class="relative">
+                <mat-icon class="absolute left-3 top-1/2 -translate-y-1/2 !h-4 !w-4 !text-[18px] text-slate-400">search</mat-icon>
+                <input
+                  type="search"
+                  class="erp-input pl-9"
+                  placeholder="Tìm phác đồ theo tên bệnh, mã ICD-10, triệu chứng, tên thuốc..."
+                  [value]="protocolSearchQuery()"
+                  (input)="updateProtocolSearchQuery($event)"
+                />
+              </div>
+              <div class="flex flex-wrap gap-1.5">
+                @for (cat of protocolCategories; track cat) {
+                  <button
+                    type="button"
+                    class="rounded-full border px-3 py-1 text-xs font-semibold transition cursor-pointer"
+                    [class.border-amber-600]="selectedProtocolCategory() === cat"
+                    [class.bg-amber-600]="selectedProtocolCategory() === cat"
+                    [class.text-white]="selectedProtocolCategory() === cat"
+                    [class.border-slate-200]="selectedProtocolCategory() !== cat"
+                    [class.bg-white]="selectedProtocolCategory() !== cat"
+                    [class.text-slate-600]="selectedProtocolCategory() !== cat"
+                    (click)="selectProtocolCategory(cat)"
+                  >{{ cat }}</button>
+                }
+              </div>
+            </div>
+
+            <!-- Protocols Two-Column Content: Left = List, Right = Details -->
+            <div class="min-h-0 flex-1 overflow-y-auto">
+              @if (filteredProtocols().length === 0) {
+                <div class="grid place-items-center p-8 text-center text-slate-400">
+                  <mat-icon class="!h-8 !w-8 !text-[32px]">medication</mat-icon>
+                  <p class="mt-2 text-sm">Không tìm thấy phác đồ toa thuốc phù hợp với tìm kiếm.</p>
+                </div>
+              } @else {
+                <div class="grid min-h-[350px] sm:grid-cols-[280px_minmax(0,1fr)]">
+                  <!-- Left List -->
+                  <div class="border-b border-slate-200 p-2 sm:border-b-0 sm:border-r space-y-1 overflow-y-auto max-h-[460px]">
+                    @for (proto of filteredProtocols(); track proto.id; let idx = $index) {
+                      <button
+                        [attr.data-testid]="'protocol-option-' + idx"
+                        type="button"
+                        class="w-full rounded-lg border p-3 text-left transition cursor-pointer"
+                        [class.border-amber-500]="selectedProtocol()?.id === proto.id"
+                        [class.bg-amber-50/70]="selectedProtocol()?.id === proto.id"
+                        [class.border-transparent]="selectedProtocol()?.id !== proto.id"
+                        [class.hover:bg-slate-50]="selectedProtocol()?.id !== proto.id"
+                        (click)="previewProtocol(proto)"
+                      >
+                        <div class="flex items-center justify-between gap-1">
+                          <span class="font-mono text-[10px] font-bold text-amber-700">{{ proto.code }}</span>
+                          <span class="rounded bg-sky-50 border border-sky-100 px-1.5 py-0.2 text-[10px] font-semibold text-[#0284c7]">
+                            {{ proto.lines.length }} thuốc
+                          </span>
+                        </div>
+                        <h4 class="mt-1 text-xs font-bold text-slate-900 leading-snug">{{ proto.name }}</h4>
+                        <p class="mt-0.5 text-[11px] text-slate-500 truncate">{{ proto.diagnosisCode }}</p>
+                      </button>
+                    }
+                  </div>
+
+                  <!-- Right Preview & Apply -->
+                  <div class="p-5 bg-white overflow-y-auto max-h-[460px] space-y-4">
+                    @if (selectedProtocol(); as proto) {
+                      <div>
+                        <!-- Header Preview -->
+                        <div class="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 pb-3">
+                          <div>
+                            <div class="flex items-center gap-2">
+                              <span class="rounded bg-amber-100 px-2 py-0.5 font-mono text-xs font-bold text-amber-800">{{ proto.code }}</span>
+                              <span class="rounded bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">{{ proto.category }}</span>
+                            </div>
+                            <h3 class="mt-1.5 text-base font-bold text-slate-900">{{ proto.name }}</h3>
+                            <p class="mt-0.5 text-xs font-semibold text-[#0284c7]">{{ proto.diagnosisCode }}</p>
+                          </div>
+                          <button
+                            data-testid="apply-prescription-protocol"
+                            type="button"
+                            class="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-4 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-amber-700 active:scale-95 cursor-pointer disabled:opacity-50"
+                            [disabled]="prescriptionLines.length >= 20"
+                            (click)="applyPrescriptionProtocol(proto)"
+                          >
+                            <mat-icon class="!h-4 !w-4 !text-[16px]">add_task</mat-icon>
+                            <span>Áp dụng toa này</span>
+                          </button>
+                        </div>
+
+                        <!-- Indication & Treatment Duration -->
+                        <div class="grid gap-2 sm:grid-cols-2 rounded-lg bg-slate-50 p-3 text-xs my-3">
+                          <div>
+                            <span class="block text-[10px] font-bold uppercase text-slate-500">Chỉ định lâm sàng:</span>
+                            <span class="text-slate-800">{{ proto.indication }}</span>
+                          </div>
+                          <div>
+                            <span class="block text-[10px] font-bold uppercase text-slate-500">Thời gian điều trị:</span>
+                            <span class="font-bold text-slate-900">{{ proto.treatmentDays }} ngày</span>
+                          </div>
+                        </div>
+
+                        <!-- Medications List -->
+                        <div class="space-y-2">
+                          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-700">
+                            Danh sách thuốc trong phác đồ ({{ proto.lines.length }} thuốc)
+                          </h4>
+                          <div class="divide-y divide-slate-100 rounded-lg border border-slate-200">
+                            @for (line of proto.lines; track $index; let lidx = $index) {
+                              <div class="p-3 text-xs hover:bg-slate-50/60 transition">
+                                <div class="flex items-start justify-between gap-2">
+                                  <div class="font-bold text-slate-900">
+                                    {{ lidx + 1 }}. {{ line.medicationName }}
+                                  </div>
+                                  <span class="shrink-0 rounded bg-sky-50 border border-sky-200 px-2 py-0.5 font-bold text-[#0284c7]">
+                                    {{ line.quantity }} {{ line.unit || 'Viên' }}
+                                  </span>
+                                </div>
+                                <div class="mt-1 text-slate-600">
+                                  <span class="font-medium text-slate-800">Liều dùng:</span> {{ line.dosage }}
+                                </div>
+                                <div class="mt-0.5 text-slate-500 italic">
+                                  <span class="font-medium not-italic text-slate-700">HDSD:</span> {{ line.instructions }}
+                                </div>
+                              </div>
+                            }
+                          </div>
+                        </div>
+                      </div>
+                    } @else {
+                      <div class="grid min-h-48 place-items-center text-center text-xs text-slate-400">
+                        Chọn một phác đồ bên trái để xem chi tiết đơn thuốc.
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          </section>
+        </div>
+      }
+
       <!-- ============================================== -->
       <!-- DIALOGS & CONFIRMATION MODALS                  -->
       <!-- ============================================== -->
@@ -1304,6 +1527,262 @@
           </div>
         </div>
       }
+      </div>
+
+      <!-- ======================================================== -->
+      <!-- OFFICIAL PRINT TEMPLATES (CHỈ HIỂN THỊ KHI IN ẤN)         -->
+      <!-- ======================================================== -->
+
+      <!-- TEMPLATE 1: ĐƠN THUỐC ĐIỆN TỬ (CIRCULAR 27/2021 & 04/2022/TT-BYT) -->
+      <div
+        id="print-prescription-section"
+        class="hidden print:p-6 print:text-slate-900 print:bg-white"
+        [class.!block]="printMode() === 'prescription'"
+        [class.!hidden]="printMode() !== 'prescription'"
+      >
+        <!-- Header Cơ sở khám bệnh -->
+        <div class="border-b-2 border-slate-800 pb-3">
+          <div class="flex items-start justify-between text-xs leading-relaxed">
+            <div>
+              <p class="font-bold uppercase tracking-wide text-sm">PHÒNG KHÁM ĐA KHOA CLINICONE</p>
+              <p class="text-slate-600">Địa chỉ: 123 Nguyễn Văn Cừ, Phường 4, Quận 5, TP. Hồ Chí Minh</p>
+              <p class="text-slate-600">Hotline: 1900 0000 · Giấy phép hoạt động: 01234/SYT-GPHĐ</p>
+            </div>
+            <div class="text-right">
+              <p class="font-bold uppercase">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</p>
+              <p class="italic text-slate-700">Độc lập - Tự do - Hạnh phúc</p>
+              <p class="mt-1 font-mono text-[11px] font-bold text-slate-600">Mã đơn: DT-CL-{{ exam.appointmentCode }}</p>
+            </div>
+          </div>
+          <div class="mt-4 text-center">
+            <h1 class="text-xl font-bold uppercase tracking-wider text-slate-900">ĐƠN THUỐC ĐIỆN TỬ</h1>
+            <p class="text-[11px] italic text-slate-600">
+              (Ban hành theo Thông tư số 27/2021/TT-BYT và Thông tư số 04/2022/TT-BYT của Bộ Y tế)
+            </p>
+          </div>
+        </div>
+
+        <!-- Thông tin người bệnh -->
+        <div class="my-4 border-b border-slate-300 pb-3 text-xs leading-relaxed space-y-1.5">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <span>Họ và tên người bệnh: </span>
+              <strong class="uppercase font-bold text-slate-900">{{ exam.patientName }}</strong>
+            </div>
+            <div>
+              <span>Ngày sinh: </span>
+              <strong>{{ formatDate(exam.patientDateOfBirth) }}</strong>
+              <span class="mx-2">•</span>
+              <span>Giới tính: </span>
+              <strong>{{ exam.patientGender || 'Không xác định' }}</strong>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <span>Số điện thoại: </span>
+              <strong>{{ exam.patientPhone }}</strong>
+              @if (form.controls.weight.value || exam.weight) {
+                <span class="mx-2">•</span>
+                <span>Cân nặng: </span>
+                <strong>{{ form.controls.weight.value || exam.weight }} kg</strong>
+              }
+            </div>
+            <div>
+              <span>Tiền sử dị ứng: </span>
+              <strong [class.text-rose-700]="form.controls.allergySummary.value || exam.allergySummary">
+                {{ form.controls.allergySummary.value || exam.allergySummary || 'Không ghi nhận' }}
+              </strong>
+            </div>
+          </div>
+          <div>
+            <span>Chẩn đoán: </span>
+            <strong class="text-slate-900">{{ form.controls.diagnosis.value || exam.diagnosis || 'Theo dõi và điều trị ngoại trú' }}</strong>
+          </div>
+        </div>
+
+        <!-- Bảng danh mục thuốc chỉ định -->
+        <div class="my-4">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-800 mb-2">Thuốc điều trị:</h2>
+          <table class="w-full text-xs border-collapse border border-slate-300">
+            <thead>
+              <tr class="bg-slate-100 text-slate-800 font-bold uppercase text-[10px]">
+                <th class="border border-slate-300 p-2 text-center w-8">#</th>
+                <th class="border border-slate-300 p-2 text-left">Tên thuốc, nồng độ, hàm lượng</th>
+                <th class="border border-slate-300 p-2 text-center w-24">Số lượng</th>
+                <th class="border border-slate-300 p-2 text-left">Cách dùng</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (line of prescriptionLines.controls; track $index; let idx = $index) {
+                <tr class="border-t border-slate-300">
+                  <td class="border border-slate-300 p-2 text-center font-bold text-slate-500">{{ idx + 1 }}</td>
+                  <td class="border border-slate-300 p-2">
+                    <p class="font-bold text-slate-900">{{ line.controls.medicationName.value }}</p>
+                    <p class="text-slate-600 text-[11px] italic">Liều: {{ line.controls.dosage.value }}</p>
+                  </td>
+                  <td class="border border-slate-300 p-2 text-center font-bold text-slate-900">
+                    {{ line.controls.quantity.value }} {{ line.controls.unit.value || 'Viên' }}
+                  </td>
+                  <td class="border border-slate-300 p-2 text-slate-700">
+                    {{ line.controls.instructions.value }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+          <p class="mt-1 text-[11px] italic text-slate-500 text-right">
+            Tổng cộng: {{ prescriptionLines.length }} loại thuốc.
+          </p>
+        </div>
+
+        <!-- Lời dặn & Hẹn tái khám -->
+        <div class="my-4 border border-slate-200 rounded-md p-3 text-xs leading-relaxed space-y-1 bg-slate-50/50">
+          <p class="font-bold text-slate-800">Lời dặn của Bác sĩ:</p>
+          <p class="whitespace-pre-line text-slate-700">
+            {{ form.controls.treatmentPlan.value || exam.treatmentPlan || 'Uống thuốc đúng liều, đủ ngày theo hướng dẫn. Khi có dấu hiệu bất thường liên hệ ngay cơ sở y tế.' }}
+          </p>
+          @if (form.controls.followUpDays.value || exam.followUpDays || form.controls.followUpNote.value || exam.followUpNote) {
+            <p class="mt-2 text-slate-800">
+              <strong>Hẹn tái khám:</strong>
+              @if (form.controls.followUpDays.value || exam.followUpDays) {
+                <span> Sau {{ form.controls.followUpDays.value || exam.followUpDays }} ngày</span>
+              }
+              @if (form.controls.followUpNote.value || exam.followUpNote) {
+                <span> ({{ form.controls.followUpNote.value || exam.followUpNote }})</span>
+              }
+            </p>
+          }
+        </div>
+
+        <!-- Chân trang & Chữ ký số -->
+        <div class="mt-6 pt-4 text-xs">
+          <div class="flex items-start justify-between">
+            <div class="space-y-1 max-w-xs text-[11px] text-slate-500">
+              <p class="italic text-slate-600">Lưu ý người bệnh:</p>
+              <p>• Đơn thuốc có giá trị mua trong vòng 05 ngày kể từ ngày kê đơn.</p>
+              <p>• Khi đi tái khám, người bệnh vui lòng mang theo đơn thuốc này.</p>
+              <p>• Tra cứu hồ sơ điện tử tại: <span class="font-mono text-slate-700">https://clinicone.vn</span></p>
+            </div>
+            <div class="text-center space-y-1 min-w-[200px]">
+              <p class="italic text-slate-600">Ngày kê đơn: {{ formatDate(exam.draftSavedAt || exam.signedAt) }}</p>
+              <p class="font-bold uppercase text-slate-900">Bác sĩ khám bệnh</p>
+              <p class="mt-10 font-bold text-slate-900 text-sm">{{ exam.doctorName }}</p>
+              <p class="text-[10px] text-emerald-700 font-semibold">[Đã ký số điện tử y tế]</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TEMPLATE 2: PHIẾU KHÁM BỆNH TOÀN DIỆN (CIRCULAR 33/2025/TT-BYT) -->
+      <div
+        id="print-full-record-section"
+        class="hidden print:p-6 print:text-slate-900 print:bg-white"
+        [class.!block]="printMode() === 'full'"
+        [class.!hidden]="printMode() !== 'full'"
+      >
+        <!-- Circular 33/2025 header -->
+        <div class="border-b-2 border-slate-800 pb-3">
+          <div class="flex items-start justify-between text-xs leading-relaxed">
+            <div>
+              <p class="font-bold uppercase tracking-wide text-sm">PHÒNG KHÁM ĐA KHOA CLINICONE</p>
+              <p class="text-slate-600">Địa chỉ: 123 Nguyễn Văn Cừ, Phường 4, Quận 5, TP. Hồ Chí Minh</p>
+              <p class="text-slate-600">Hotline: 1900 0000 · Giấy phép hoạt động: 01234/SYT-GPHĐ</p>
+            </div>
+            <div class="text-right">
+              <p class="font-bold uppercase">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</p>
+              <p class="italic text-slate-700">Độc lập - Tự do - Hạnh phúc</p>
+              <p class="mt-1 font-mono text-[11px] font-bold text-slate-600">Mã BA: {{ exam.appointmentCode }}</p>
+            </div>
+          </div>
+          <div class="mt-4 text-center">
+            <h1 class="text-xl font-bold uppercase tracking-wider text-slate-900">PHIẾU KHÁM BỆNH NGOẠI TRÚ</h1>
+            <p class="text-[11px] italic text-slate-600">(Ban hành kèm theo Thông tư số 33/2025/TT-BYT của Bộ Y tế)</p>
+          </div>
+        </div>
+
+        <!-- Thông tin hành chính -->
+        <div class="my-4 border-b border-slate-300 pb-3 text-xs leading-relaxed space-y-1.5">
+          <div class="grid grid-cols-2 gap-4">
+            <div><span>Họ tên: </span><strong class="uppercase font-bold">{{ exam.patientName }}</strong></div>
+            <div><span>Ngày sinh: </span><strong>{{ formatDate(exam.patientDateOfBirth) }}</strong> · <span>Giới tính: </span><strong>{{ exam.patientGender }}</strong></div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div><span>SĐT: </span><strong>{{ exam.patientPhone }}</strong></div>
+            <div><span>Chuyên khoa: </span><strong>{{ exam.specialty }}</strong> · <span>Phòng: </span><strong>{{ exam.roomName }}</strong></div>
+          </div>
+          <div class="grid grid-cols-4 gap-2 pt-1 border-t border-slate-100">
+            <div><span>Huyết áp: </span><strong>{{ form.controls.bloodPressure.value || exam.bloodPressure || '—' }}</strong></div>
+            <div><span>Mạch: </span><strong>{{ (form.controls.heartRate.value || exam.heartRate) ? (form.controls.heartRate.value || exam.heartRate) + ' bpm' : '—' }}</strong></div>
+            <div><span>Nhiệt độ: </span><strong>{{ (form.controls.temperature.value || exam.temperature) ? (form.controls.temperature.value || exam.temperature) + ' °C' : '—' }}</strong></div>
+            <div><span>SpO2: </span><strong>{{ (form.controls.spO2.value || exam.spO2) ? (form.controls.spO2.value || exam.spO2) + ' %' : '—' }}</strong></div>
+          </div>
+        </div>
+
+        <!-- Nội dung khám lâm sàng -->
+        <div class="my-4 space-y-3 text-xs leading-relaxed">
+          <div>
+            <p class="font-bold text-slate-800 uppercase text-[11px]">1. Lý do khám:</p>
+            <p class="text-slate-700 whitespace-pre-line">{{ form.controls.reason.value || exam.reason || 'Không ghi nhận' }}</p>
+          </div>
+          <div>
+            <p class="font-bold text-slate-800 uppercase text-[11px]">2. Ghi nhận lâm sàng / Triệu chứng:</p>
+            <p class="text-slate-700 whitespace-pre-line">{{ form.controls.examinationNotes.value || exam.examinationNotes || 'Không ghi nhận' }}</p>
+          </div>
+          <div>
+            <p class="font-bold text-slate-800 uppercase text-[11px]">3. Chẩn đoán xác định:</p>
+            <p class="text-slate-900 font-bold whitespace-pre-line">{{ form.controls.diagnosis.value || exam.diagnosis || 'Không ghi nhận' }}</p>
+          </div>
+          <div>
+            <p class="font-bold text-slate-800 uppercase text-[11px]">4. Kết luận:</p>
+            <p class="text-slate-700 whitespace-pre-line">{{ form.controls.conclusion.value || exam.conclusion || 'Không ghi nhận' }}</p>
+          </div>
+          <div>
+            <p class="font-bold text-slate-800 uppercase text-[11px]">5. Hướng xử trí &amp; Phác đồ:</p>
+            <p class="text-slate-700 whitespace-pre-line">{{ form.controls.treatmentPlan.value || exam.treatmentPlan || 'Không ghi nhận' }}</p>
+          </div>
+          @if (prescriptionLines.length > 0) {
+            <div>
+              <p class="font-bold text-slate-800 uppercase text-[11px]">6. Đơn thuốc chỉ định:</p>
+              <table class="w-full text-xs border border-slate-300 mt-1">
+                <thead>
+                  <tr class="bg-slate-100 text-[10px] font-bold uppercase">
+                    <th class="border border-slate-300 p-1.5 w-8">#</th>
+                    <th class="border border-slate-300 p-1.5 text-left">Thuốc &amp; Liều</th>
+                    <th class="border border-slate-300 p-1.5 text-center w-20">SL</th>
+                    <th class="border border-slate-300 p-1.5 text-left">Cách dùng</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (line of prescriptionLines.controls; track $index; let lidx = $index) {
+                    <tr>
+                      <td class="border border-slate-300 p-1.5 text-center">{{ lidx + 1 }}</td>
+                      <td class="border border-slate-300 p-1.5 font-bold">{{ line.controls.medicationName.value }} ({{ line.controls.dosage.value }})</td>
+                      <td class="border border-slate-300 p-1.5 text-center font-bold">{{ line.controls.quantity.value }} {{ line.controls.unit.value || 'Viên' }}</td>
+                      <td class="border border-slate-300 p-1.5">{{ line.controls.instructions.value }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+
+        <!-- Chữ ký số -->
+        <div class="mt-8 pt-4 text-xs border-t border-slate-200">
+          <div class="flex items-start justify-between">
+            <div class="text-[11px] text-slate-500">
+              <p>Lưu trữ hồ sơ điện tử y tế 10 năm theo Thông tư 33/2025/TT-BYT</p>
+              <p>Mã liên thông: CL-{{ exam.appointmentCode }}</p>
+            </div>
+            <div class="text-center space-y-1 min-w-[200px]">
+              <p class="italic text-slate-600">Ngày lập: {{ formatDate(exam.signedAt || exam.draftSavedAt) }}</p>
+              <p class="font-bold uppercase text-slate-900">Bác sĩ khám bệnh</p>
+              <p class="mt-10 font-bold text-slate-900 text-sm">{{ exam.doctorName }}</p>
+              <p class="text-[10px] text-emerald-700 font-semibold">[Đã ký số điện tử]</p>
+            </div>
+          </div>
+        </div>
+      </div>
     }
   </div>
 </app-staff-workspace-shell>

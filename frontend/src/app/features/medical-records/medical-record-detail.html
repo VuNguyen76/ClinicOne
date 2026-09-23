@@ -10,14 +10,26 @@
         <span class="font-semibold text-[#0284c7]">Chi tiết phiếu</span>
       </div>
       @if (record()) {
-        <button
-          type="button"
-          (click)="printRecord()"
-          class="inline-flex min-h-9 items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 text-xs font-semibold text-slate-700 shadow-xs transition hover:border-slate-400 hover:bg-slate-50 active:scale-[0.98]"
-        >
-          <mat-icon class="!h-4 !w-4 !text-[17px] text-[#0284c7]">print</mat-icon>
-          <span>In phiếu khám (A4)</span>
-        </button>
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            (click)="printFullRecord()"
+            class="inline-flex min-h-9 items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 text-xs font-semibold text-slate-700 shadow-xs transition hover:border-slate-400 hover:bg-slate-50 active:scale-[0.98] cursor-pointer"
+          >
+            <mat-icon class="!h-4 !w-4 !text-[17px] text-[#0284c7]">print</mat-icon>
+            <span>In phiếu khám (A4)</span>
+          </button>
+          @if (record()?.prescriptionLines?.length) {
+            <button
+              type="button"
+              (click)="printPrescription()"
+              class="inline-flex min-h-9 items-center gap-2 rounded-lg border border-emerald-300 bg-white px-4 text-xs font-semibold text-emerald-800 shadow-xs transition hover:border-emerald-400 hover:bg-emerald-50 active:scale-[0.98] cursor-pointer"
+            >
+              <mat-icon class="!h-4 !w-4 !text-[17px] text-emerald-600">receipt_long</mat-icon>
+              <span>In đơn thuốc</span>
+            </button>
+          }
+        </div>
       }
     </div>
 
@@ -27,11 +39,14 @@
       </div>
     } @else if (record(); as item) {
       <!-- Official Circular 33/2025/TT-BYT Print Header (Visible on Print) -->
-      <div class="hidden border-b-2 border-slate-800 pb-4 text-slate-900 print:block">
+      <div
+        class="hidden border-b-2 border-slate-800 pb-4 text-slate-900 print:block"
+        [class.!hidden]="printMode() !== 'full'"
+      >
         <div class="flex items-start justify-between text-xs leading-relaxed">
           <div>
             <p class="font-bold uppercase tracking-wide">PHÒNG KHÁM ĐA KHOA CLINICONE</p>
-            <p class="text-slate-600">Địa chỉ: 123 Nguyễn Văn Cừ, Quận 5, TP. Hồ Chí Minh</p>
+            <p class="text-slate-600">Địa chỉ: 123 Nguyễn Văn Cừ, Phường 4, Quận 5, TP. Hồ Chí Minh</p>
             <p class="text-slate-600">Hotline: 1900 0000 · Giấy phép hoạt động: 01234/SYT-GPHĐ</p>
           </div>
           <div class="text-right">
@@ -47,7 +62,10 @@
       </div>
 
       <!-- Main Medical Record Container -->
-      <article class="mt-8 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs print:mt-4 print:border-none print:shadow-none">
+      <article
+        class="mt-8 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs print:mt-4 print:border-none print:shadow-none"
+        [class.print:hidden]="printMode() !== 'full'"
+      >
         <!-- Banner on screen -->
         <div class="border-b border-slate-100 bg-[#0284c7] px-6 py-6 sm:px-8 print:hidden">
           <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
@@ -158,6 +176,125 @@
           </div>
         </div>
       </article>
+
+      <!-- Official Circular 27/2021 & 04/2022/TT-BYT Prescription Print Layout -->
+      @if (item.prescriptionLines?.length) {
+        <div
+          id="print-prescription-section"
+          class="hidden print:p-6 print:text-slate-900 print:bg-white"
+          [class.!block]="printMode() === 'prescription'"
+          [class.!hidden]="printMode() !== 'prescription'"
+        >
+          <!-- Header Cơ sở khám bệnh -->
+          <div class="border-b-2 border-slate-800 pb-3">
+            <div class="flex items-start justify-between text-xs leading-relaxed">
+              <div>
+                <p class="font-bold uppercase tracking-wide text-sm">PHÒNG KHÁM ĐA KHOA CLINICONE</p>
+                <p class="text-slate-600">Địa chỉ: 123 Nguyễn Văn Cừ, Phường 4, Quận 5, TP. Hồ Chí Minh</p>
+                <p class="text-slate-600">Hotline: 1900 0000 · Giấy phép hoạt động: 01234/SYT-GPHĐ</p>
+              </div>
+              <div class="text-right">
+                <p class="font-bold uppercase">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</p>
+                <p class="italic text-slate-700">Độc lập - Tự do - Hạnh phúc</p>
+                <p class="mt-1 font-mono text-[11px] font-bold text-slate-600">Mã đơn: DT-CL-{{ item.appointmentCode }}</p>
+              </div>
+            </div>
+            <div class="mt-4 text-center">
+              <h1 class="text-xl font-bold uppercase tracking-wider text-slate-900">ĐƠN THUỐC ĐIỆN TỬ</h1>
+              <p class="text-[11px] italic text-slate-600">
+                (Ban hành theo Thông tư số 27/2021/TT-BYT và Thông tư số 04/2022/TT-BYT của Bộ Y tế)
+              </p>
+            </div>
+          </div>
+
+          <!-- Thông tin người bệnh -->
+          <div class="my-4 border-b border-slate-300 pb-3 text-xs leading-relaxed space-y-1.5">
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <span>Họ và tên người bệnh: </span>
+                <strong class="uppercase font-bold text-slate-900">{{ item.patientName || 'Bệnh nhân' }}</strong>
+              </div>
+              <div>
+                <span>Bác sĩ điều trị: </span>
+                <strong>{{ item.doctorName }}</strong>
+              </div>
+            </div>
+            <div>
+              <span>Chẩn đoán xác định: </span>
+              <strong class="text-slate-900">{{ item.diagnosis || 'Theo dõi và điều trị ngoại trú' }}</strong>
+            </div>
+          </div>
+
+          <!-- Bảng danh mục thuốc chỉ định -->
+          <div class="my-4">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-800 mb-2">Thuốc điều trị:</h2>
+            <table class="w-full text-xs border-collapse border border-slate-300">
+              <thead>
+                <tr class="bg-slate-100 text-slate-800 font-bold uppercase text-[10px]">
+                  <th class="border border-slate-300 p-2 text-center w-8">#</th>
+                  <th class="border border-slate-300 p-2 text-left">Tên thuốc, nồng độ, hàm lượng</th>
+                  <th class="border border-slate-300 p-2 text-center w-24">Số lượng</th>
+                  <th class="border border-slate-300 p-2 text-left">Cách dùng</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (line of item.prescriptionLines; track $index; let idx = $index) {
+                  <tr class="border-t border-slate-300">
+                    <td class="border border-slate-300 p-2 text-center font-bold text-slate-500">{{ idx + 1 }}</td>
+                    <td class="border border-slate-300 p-2">
+                      <p class="font-bold text-slate-900">{{ line.medicationName }}</p>
+                      <p class="text-slate-600 text-[11px] italic">Liều: {{ line.dosage }}</p>
+                    </td>
+                    <td class="border border-slate-300 p-2 text-center font-bold text-slate-900">
+                      {{ line.quantity }} {{ line.unit || 'Viên' }}
+                    </td>
+                    <td class="border border-slate-300 p-2 text-slate-700">
+                      {{ line.instructions }}
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+            <p class="mt-1 text-[11px] italic text-slate-500 text-right">
+              Tổng cộng: {{ item.prescriptionLines?.length || 0 }} loại thuốc.
+            </p>
+          </div>
+
+          <!-- Lời dặn & Hẹn tái khám -->
+          <div class="my-4 border border-slate-200 rounded-md p-3 text-xs leading-relaxed space-y-1 bg-slate-50/50">
+            <p class="font-bold text-slate-800">Lời dặn của Bác sĩ:</p>
+            <p class="whitespace-pre-line text-slate-700">
+              {{ item.treatmentPlan || 'Uống thuốc đúng liều, đủ ngày theo hướng dẫn. Khi có dấu hiệu bất thường liên hệ ngay cơ sở y tế.' }}
+            </p>
+            @if (item.followUpDays || item.followUpDate || item.followUpNote) {
+              <p class="mt-2 text-slate-800">
+                <strong>Hẹn tái khám:</strong>
+                @if (item.followUpDays) { <span> Sau {{ item.followUpDays }} ngày</span> }
+                @else if (item.followUpDate) { <span> Ngày {{ formatDate(item.followUpDate) }}</span> }
+                @if (item.followUpNote) { <span> ({{ item.followUpNote }})</span> }
+              </p>
+            }
+          </div>
+
+          <!-- Chân trang & Chữ ký số -->
+          <div class="mt-6 pt-4 text-xs">
+            <div class="flex items-start justify-between">
+              <div class="space-y-1 max-w-xs text-[11px] text-slate-500">
+                <p class="italic text-slate-600">Lưu ý người bệnh:</p>
+                <p>• Đơn thuốc có giá trị mua trong vòng 05 ngày kể từ ngày kê đơn.</p>
+                <p>• Khi đi tái khám, người bệnh vui lòng mang theo đơn thuốc này.</p>
+                <p>• Tra cứu hồ sơ điện tử tại: <span class="font-mono text-slate-700">https://clinicone.vn</span></p>
+              </div>
+              <div class="text-center space-y-1 min-w-[200px]">
+                <p class="italic text-slate-600">Ngày ký: {{ formatDateTime(item.signedAt) }}</p>
+                <p class="font-bold uppercase text-slate-900">Bác sĩ khám bệnh</p>
+                <p class="mt-10 font-bold text-slate-900 text-sm">{{ item.doctorName }}</p>
+                <p class="text-[10px] text-emerald-700 font-semibold">[Đã ký số điện tử y tế]</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
 
       @if (item.followUpDays) {
         <section class="mt-4 rounded-xl border border-sky-200 bg-sky-50/70 px-5 py-4 print:hidden">

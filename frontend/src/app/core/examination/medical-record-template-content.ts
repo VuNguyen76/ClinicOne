@@ -1,3 +1,11 @@
+export type TemplatePrescriptionLine = {
+  medicationName: string;
+  dosage: string;
+  quantity: number;
+  unit?: string;
+  instructions: string;
+};
+
 export type MedicalRecordTemplateContent = {
   reason?: string;
   examinationNotes?: string;
@@ -6,6 +14,7 @@ export type MedicalRecordTemplateContent = {
   treatmentPlan?: string;
   followUpDays?: number;
   followUpNote?: string;
+  prescriptionLines?: TemplatePrescriptionLine[];
 };
 
 const TEXT_LIMITS = {
@@ -60,6 +69,25 @@ function normalizeContent(value: unknown): MedicalRecordTemplateContent {
     && followUpDays >= 1 && followUpDays <= 365) {
     content.followUpDays = followUpDays;
   }
+
+  const rawLines = value['prescriptionLines'];
+  if (Array.isArray(rawLines)) {
+    const lines: TemplatePrescriptionLine[] = [];
+    rawLines.forEach((item) => {
+      if (isRecord(item) && typeof item['medicationName'] === 'string' && item['medicationName'].trim()) {
+        const qty = typeof item['quantity'] === 'number' && item['quantity'] > 0 ? Math.min(Math.floor(item['quantity']), 999) : 1;
+        lines.push({
+          medicationName: item['medicationName'].trim().slice(0, 200),
+          dosage: typeof item['dosage'] === 'string' ? item['dosage'].trim().slice(0, 100) : '',
+          quantity: qty,
+          unit: typeof item['unit'] === 'string' && item['unit'].trim() ? item['unit'].trim().slice(0, 50) : 'Viên',
+          instructions: typeof item['instructions'] === 'string' ? item['instructions'].trim().slice(0, 500) : '',
+        });
+      }
+    });
+    if (lines.length > 0) content.prescriptionLines = lines.slice(0, 20);
+  }
+
   return content;
 }
 
