@@ -61,6 +61,7 @@ public class SmsDeliveryService {
         }
     }
 
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
     public int processDue() {
         if (smsSender == null) return 0;
         var sample = metrics == null ? null : metrics.workerStarted();

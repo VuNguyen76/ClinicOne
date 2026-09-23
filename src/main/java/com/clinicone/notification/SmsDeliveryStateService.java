@@ -14,7 +14,6 @@ import java.util.UUID;
  * through the transaction proxy instead of becoming self-invocations.
  */
 @Service
-@Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class SmsDeliveryStateService {
     private static final long CLAIM_SECONDS = 5 * 60L;
@@ -22,7 +21,7 @@ public class SmsDeliveryStateService {
     private final SmsDeliveryRepository repository;
     private final Clock clock;
 
-    @Transactional
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
     public boolean claim(UUID deliveryId, Instant current) {
         SmsDelivery delivery = repository.findByIdForUpdate(deliveryId).orElse(null);
         if (delivery == null) return false;
@@ -42,7 +41,7 @@ public class SmsDeliveryStateService {
         return true;
     }
 
-    @Transactional
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
     public void markSent(UUID deliveryId) {
         repository.findByIdForUpdate(deliveryId).ifPresent(delivery -> {
             if (delivery.getStatus() == SmsDeliveryStatus.PROCESSING) {
@@ -52,7 +51,7 @@ public class SmsDeliveryStateService {
         });
     }
 
-    @Transactional
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
     public void markFailed(UUID deliveryId, RuntimeException failure) {
         repository.findByIdForUpdate(deliveryId).ifPresent(delivery -> {
             if (delivery.getStatus() == SmsDeliveryStatus.PROCESSING) {
