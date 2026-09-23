@@ -15,6 +15,7 @@ import {
   MedicalRecordTemplateContent,
   parseMedicalRecordTemplateContent,
   serializeMedicalRecordTemplateContent,
+  TemplatePrescriptionLine,
 } from '../../core/examination/medical-record-template-content';
 import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
 import { hasStaffRole } from '../../core/auth/auth.guard';
@@ -49,6 +50,7 @@ export class MedicalRecordTemplateManagement implements OnInit {
   protected readonly treatmentPlan = signal('');
   protected readonly followUpDays = signal<number | null>(null);
   protected readonly followUpNote = signal('');
+  protected readonly prescriptionLines = signal<TemplatePrescriptionLine[]>([]);
   protected readonly loading = signal(true);
   protected readonly saving = signal(false);
   protected readonly error = signal('');
@@ -150,6 +152,7 @@ export class MedicalRecordTemplateManagement implements OnInit {
     this.treatmentPlan.set(content.treatmentPlan ?? '');
     this.followUpDays.set(content.followUpDays ?? null);
     this.followUpNote.set(content.followUpNote ?? '');
+    this.prescriptionLines.set(content.prescriptionLines ? [...content.prescriptionLines] : []);
     this.clearMessages();
     this.activeTab.set('form');
   }
@@ -164,6 +167,30 @@ export class MedicalRecordTemplateManagement implements OnInit {
     this.resetForm();
     this.clearMessages();
     this.activeTab.set('form');
+  }
+
+  protected addPrescriptionLine(): void {
+    if (this.prescriptionLines().length >= 20) return;
+    this.prescriptionLines.update((lines) => [
+      ...lines,
+      {
+        medicationName: '',
+        dosage: '',
+        quantity: 1,
+        unit: 'Viên',
+        instructions: '',
+      },
+    ]);
+  }
+
+  protected removePrescriptionLine(index: number): void {
+    this.prescriptionLines.update((lines) => lines.filter((_, i) => i !== index));
+  }
+
+  protected updateLineField(index: number, field: keyof TemplatePrescriptionLine, value: any): void {
+    this.prescriptionLines.update((lines) =>
+      lines.map((line, i) => (i === index ? { ...line, [field]: value } : line))
+    );
   }
 
   protected selectSpecialty(value: string): void {
@@ -202,8 +229,12 @@ export class MedicalRecordTemplateManagement implements OnInit {
 
   protected contentSummary(item: MedicalRecordTemplate): string {
     const content = parseMedicalRecordTemplateContent(item.fieldDefinition);
-    return [content.reason, content.examinationNotes, content.diagnosis, content.conclusion, content.treatmentPlan]
+    const summary = [content.reason, content.examinationNotes, content.diagnosis, content.conclusion, content.treatmentPlan]
       .filter(Boolean).slice(0, 2).join(' · ') || 'Chưa có nội dung';
+    if (content.prescriptionLines?.length) {
+      return `${summary} (+ ${content.prescriptionLines.length} thuốc)`;
+    }
+    return summary;
   }
 
   private loadInitialData(): void {
@@ -235,6 +266,7 @@ export class MedicalRecordTemplateManagement implements OnInit {
   }
 
   private formContent(): MedicalRecordTemplateContent {
+    const lines = this.prescriptionLines().filter((l) => l.medicationName.trim());
     return {
       reason: this.reason(),
       examinationNotes: this.examinationNotes(),
@@ -243,6 +275,7 @@ export class MedicalRecordTemplateManagement implements OnInit {
       treatmentPlan: this.treatmentPlan(),
       followUpDays: this.followUpDays() ?? undefined,
       followUpNote: this.followUpNote(),
+      prescriptionLines: lines.length > 0 ? lines : undefined,
     };
   }
 
@@ -260,6 +293,7 @@ export class MedicalRecordTemplateManagement implements OnInit {
     this.treatmentPlan.set('');
     this.followUpDays.set(null);
     this.followUpNote.set('');
+    this.prescriptionLines.set([]);
   }
 
   private clearMessages(): void {

@@ -566,31 +566,31 @@ public class LocalDataInitializer implements CommandLineRunner {
         ensureOneTemplate("TMPL-TM-01", "Mẫu khám Tăng huyết áp & Tim mạch", "Khám Tim Mạch",
                 "Mẫu chuẩn theo dõi và điều trị tăng huyết áp nguyên phát",
                 """
-                {"reason":"Đo kiểm tra huyết áp định kỳ, thỉnh thoảng hơi căng tức thái dương","examinationNotes":"Huyết áp đo tại phòng khám 140/85 mmHg, mạch 76 lần/phút, tim T1 T2 đều rõ, không phù chi dưới, không ran phổi.","diagnosis":"I10 - Tăng huyết áp vô căn (nguyên phát)","conclusion":"Tăng huyết áp độ 1 giai đoạn ổn định","treatmentPlan":"Duy trì thuốc hạ áp hàng ngày vào buổi sáng, chế độ ăn giảm muối, hạn chế dầu mỡ và thức uống có cồn.","followUpDays":30,"followUpNote":"Tái khám đo lại huyết áp và đánh giá chức năng sau 1 tháng"}
+                {"reason":"Đo kiểm tra huyết áp định kỳ, thỉnh thoảng hơi căng tức thái dương","examinationNotes":"Huyết áp đo tại phòng khám 140/85 mmHg, mạch 76 lần/phút, tim T1 T2 đều rõ, không phù chi dưới, không ran phổi.","diagnosis":"I10 - Tăng huyết áp vô căn (nguyên phát)","conclusion":"Tăng huyết áp độ 1 giai đoạn ổn định","treatmentPlan":"Duy trì thuốc hạ áp hàng ngày vào buổi sáng, chế độ ăn giảm muối, hạn chế dầu mỡ và thức uống có cồn.","followUpDays":30,"followUpNote":"Tái khám đo lại huyết áp và đánh giá chức năng sau 1 tháng","prescriptionLines":[{"medicationName":"Amlodipine 5mg (Hạ huyết áp chẹn kênh Canxi)","dosage":"5mg x 1 lần/ngày","quantity":30,"unit":"Viên","instructions":"Uống 1 viên vào buổi sáng sau ăn"},{"medicationName":"Losartan 50mg (Hạ huyết áp ức chế thụ thể ARB)","dosage":"50mg x 1 lần/ngày","quantity":30,"unit":"Viên","instructions":"Uống 1 viên vào buổi sáng"}]}
                 """);
 
         ensureOneTemplate("TMPL-HH-01", "Mẫu khám viêm đường hô hấp / Cảm cúm", "Khám Hô Hấp",
                 "Mẫu chuẩn viêm mũi họng, cảm cúm, ho khan sốt nhẹ",
                 """
-                {"reason":"Đau rát họng, ho húng hắng, sốt nhẹ 38°C, nghẹt mũi","examinationNotes":"Niêm mạc họng đỏ, amidan sung huyết nhẹ không giả mạc, mũi xuất tiết dịch trong, phổi thông khí tốt không rale.","diagnosis":"J00 - Viêm mũi họng cấp tính (cảm thường)","conclusion":"Viêm đường hô hấp trên cấp tính thể nhẹ","treatmentPlan":"Nghỉ ngơi, súc họng nước muối sinh lý 3 lần/ngày, giữ ấm cổ ngực, uống nhiều nước ấm.","followUpDays":7,"followUpNote":"Tái khám sau 7 ngày nếu còn sốt cao hoặc ho kéo dài"}
+                {"reason":"Đau rát họng, ho húng hắng, sốt nhẹ 38°C, nghẹt mũi","examinationNotes":"Niêm mạc họng đỏ, amidan sung huyết nhẹ không giả mạc, mũi xuất tiết dịch trong, phổi thông khí tốt không rale.","diagnosis":"J00 - Viêm mũi họng cấp tính (cảm thường)","conclusion":"Viêm đường hô hấp trên cấp tính thể nhẹ","treatmentPlan":"Nghỉ ngơi, súc họng nước muối sinh lý 3 lần/ngày, giữ ấm cổ ngực, uống nhiều nước ấm.","followUpDays":7,"followUpNote":"Tái khám sau 7 ngày nếu còn sốt cao hoặc ho kéo dài","prescriptionLines":[{"medicationName":"Paracetamol 500mg (Hạ sốt, giảm đau nhanh)","dosage":"500mg x 3 lần/ngày","quantity":15,"unit":"Viên","instructions":"Uống 1 viên khi sốt trên 38.5°C hoặc đau rát họng"},{"medicationName":"Acetylcystein 200mg (Long đờm, tiêu nhầy đường hô hấp)","dosage":"200mg x 2 lần/ngày","quantity":14,"unit":"Gói","instructions":"Hòa tan 1 gói với 100ml nước ấm, uống sau ăn"},{"medicationName":"Loratadine 10mg (Kháng Histamin H1, chống dị ứng thế hệ 2)","dosage":"10mg x 1 lần/ngày","quantity":7,"unit":"Viên","instructions":"Uống 1 viên vào buổi tối trước khi đi ngủ"}]}
                 """);
 
         ensureOneTemplate("TMPL-TH-01", "Mẫu khám Dạ dày - GERD - Gan mật", "Khám Tiêu Hoá - Gan Mật",
                 "Mẫu chuẩn viêm dạ dày, trào ngược dạ dày thực quản",
                 """
-                {"reason":"Đau âm ỉ vùng thượng vị sau ăn, ợ hơi ợ chua, cồn cào","examinationNotes":"Bụng mềm, ấn tức nhẹ vùng thượng vị, không đề kháng thành bụng, gan lách không to.","diagnosis":"K21 - Bệnh trào ngược dạ dày - thực quản (GERD)","conclusion":"Viêm dạ dày kết hợp trào ngược thực quản","treatmentPlan":"Uống thuốc bảo vệ niêm mạc trước ăn sáng 30 phút, ăn đúng giờ, không ăn no sát giờ ngủ, tránh thức ăn cay nóng, cà phê.","followUpDays":14,"followUpNote":"Tái khám sau 2 tuần để đánh giá đáp ứng điều trị"}
+                {"reason":"Đau âm ỉ vùng thượng vị sau ăn, ợ hơi ợ chua, cồn cào","examinationNotes":"Bụng mềm, ấn tức nhẹ vùng thượng vị, không đề kháng thành bụng, gan lách không to.","diagnosis":"K21 - Bệnh trào ngược dạ dày - thực quản (GERD)","conclusion":"Viêm dạ dày kết hợp trào ngược thực quản","treatmentPlan":"Uống thuốc bảo vệ niêm mạc trước ăn sáng 30 phút, ăn đúng giờ, không ăn no sát giờ ngủ, tránh thức ăn cay nóng, cà phê.","followUpDays":14,"followUpNote":"Tái khám sau 2 tuần để đánh giá đáp ứng điều trị","prescriptionLines":[{"medicationName":"Omeprazole 20mg (Ức chế bơm Proton, viêm loét dạ dày)","dosage":"20mg x 2 lần/ngày","quantity":28,"unit":"Viên","instructions":"Uống trước ăn sáng và ăn tối 30 phút"},{"medicationName":"Phosphalugel (Gel chữ P trung hòa acid dạ dày, giảm ợ chua)","dosage":"1 gói x 2 lần/ngày","quantity":20,"unit":"Gói","instructions":"Uống khi đau hoặc sau ăn 1-2 giờ"},{"medicationName":"Domperidone 10mg / Motilium (Chống nôn, đầy hơi, chậm tiêu)","dosage":"10mg x 2 lần/ngày","quantity":20,"unit":"Viên","instructions":"Uống trước bữa ăn 15-30 phút"}]}
                 """);
 
         ensureOneTemplate("TMPL-NK-01", "Mẫu khám Nhi khoa & Dinh dưỡng", "Khám Nhi Khoa",
                 "Mẫu khám nhi khoa tổng quát và viêm đường hô hấp trẻ em",
                 """
-                {"reason":"Trẻ ho, sổ mũi, quấy khóc nhẹ, không sốt cao","examinationNotes":"Tri giác tỉnh, họng đỏ nhẹ, không rale phổi, bụng mềm, thóp phẳng, dinh dưỡng cân đối.","diagnosis":"J20 - Viêm phế quản cấp tính","conclusion":"Viêm phế quản cấp thể nhẹ ở trẻ em","treatmentPlan":"Vệ sinh mũi họng bằng nước muối sinh lý, uống nhiều nước, giữ ấm, theo dõi nhịp thở.","followUpDays":5,"followUpNote":"Tái khám ngay nếu trẻ sốt cao li bì hoặc thở nhanh co lõm ngực"}
+                {"reason":"Trẻ ho, sổ mũi, quấy khóc nhẹ, không sốt cao","examinationNotes":"Tri giác tỉnh, họng đỏ nhẹ, không rale phổi, bụng mềm, thóp phẳng, dinh dưỡng cân đối.","diagnosis":"J20 - Viêm phế quản cấp tính","conclusion":"Viêm phế quản cấp thể nhẹ ở trẻ em","treatmentPlan":"Vệ sinh mũi họng bằng nước muối sinh lý, uống nhiều nước, giữ ấm, theo dõi nhịp thở.","followUpDays":5,"followUpNote":"Tái khám ngay nếu trẻ sốt cao li bì hoặc thở nhanh co lõm ngực","prescriptionLines":[{"medicationName":"Paracetamol 500mg (Hạ sốt, giảm đau nhanh)","dosage":"10-15mg/kg/lần khi sốt >= 38.5°C","quantity":10,"unit":"Gói","instructions":"Uống cách nhau 4-6 giờ, tối đa 4 lần/ngày"},{"medicationName":"Acetylcystein 200mg (Long đờm, tiêu nhầy đường hô hấp)","dosage":"100mg x 2 lần/ngày","quantity":10,"unit":"Gói","instructions":"Pha nước ấm uống sau bữa ăn"}]}
                 """);
 
         ensureOneTemplate("TMPL-TMH-01", "Mẫu khám & Nội soi Tai Mũi Họng", "Khám Tai Mũi Họng",
                 "Mẫu chuẩn nội soi và chẩn đoán bệnh lý Tai Mũi Họng",
                 """
-                {"reason":"Nghẹt mũi 2 bên, chảy mũi trong, ngứa mũi hắt hơi","examinationNotes":"Nội soi TMH: Cuống mũi phù nề nhợt màu, xuất tiết dịch nhầy trong, vách ngăn không vẹo, họng sạch.","diagnosis":"J01 - Viêm xoang cấp tính","conclusion":"Viêm mũi xoang dị ứng cấp","treatmentPlan":"Xịt mũi nước muối ưu trương, tránh tiếp xúc khói bụi phấn hoa, dùng kháng histamin khi cần.","followUpDays":10,"followUpNote":"Tái khám sau 10 ngày để nội soi kiểm tra lại"}
+                {"reason":"Nghẹt mũi 2 bên, chảy mũi trong, ngứa mũi hắt hơi","examinationNotes":"Nội soi TMH: Cuống mũi phù nề nhợt màu, xuất tiết dịch nhầy trong, vách ngăn không vẹo, họng sạch.","diagnosis":"J01 - Viêm xoang cấp tính","conclusion":"Viêm mũi xoang dị ứng cấp","treatmentPlan":"Xịt mũi nước muối ưu trương, tránh tiếp xúc khói bụi phấn hoa, dùng kháng histamin khi cần.","followUpDays":10,"followUpNote":"Tái khám sau 10 ngày để nội soi kiểm tra lại","prescriptionLines":[{"medicationName":"Augmentin 1g / Amoxicillin + Acid Clavulanic 1000mg (Kháng sinh phổ rộng)","dosage":"1000mg x 2 lần/ngày","quantity":14,"unit":"Viên","instructions":"Uống ngay trước bữa ăn sáng và tối"},{"medicationName":"Paracetamol 500mg (Hạ sốt, giảm đau nhanh)","dosage":"500mg x 3 lần/ngày","quantity":10,"unit":"Viên","instructions":"Uống khi đau đầu hoặc đau nhức vùng xoang"},{"medicationName":"Otrivin 0.1% / Xylometazoline (Thuốc xịt mũi thông mũi, giảm nghẹt cấp)","dosage":"Xịt 1 nhát mỗi bên mũi x 2 lần/ngày","quantity":1,"unit":"Lọ","instructions":"Xịt khi nghẹt mũi, không dùng quá 7 ngày liên tục"}]}
                 """);
 
         ensureOneTemplate("TMPL-MAT-01", "Mẫu khám Mắt & Đo khúc xạ", "Khám Mắt",
@@ -601,9 +601,14 @@ public class LocalDataInitializer implements CommandLineRunner {
     }
 
     private void ensureOneTemplate(String code, String name, String specialty, String description, String fieldDef) {
-        boolean exists = medicalRecordTemplateRepository.findAll().stream().anyMatch(t -> t.getCode().equalsIgnoreCase(code));
-        if (!exists) {
+        MedicalRecordTemplate existing = medicalRecordTemplateRepository.findAll().stream()
+                .filter(t -> t.getCode().equalsIgnoreCase(code))
+                .findFirst().orElse(null);
+        if (existing == null) {
             medicalRecordTemplateRepository.save(MedicalRecordTemplate.create(code, name, specialty, null, description, fieldDef.trim(), "admin"));
+        } else if (existing.getFieldDefinition() == null || (!existing.getFieldDefinition().contains("prescriptionLines") && fieldDef.contains("prescriptionLines"))) {
+            existing.update(existing.getName(), existing.getSpecialty(), existing.getClinicServiceId(), existing.getDescription(), fieldDef.trim());
+            medicalRecordTemplateRepository.save(existing);
         }
     }
 

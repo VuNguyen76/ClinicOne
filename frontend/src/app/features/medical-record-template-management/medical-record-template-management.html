@@ -289,6 +289,113 @@
             </div>
           </div>
 
+          <!-- Full-width Section: Prescription Lines in Template -->
+          <div class="space-y-4 rounded-2xl border border-slate-200/80 bg-slate-50/50 p-5">
+            <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+              <div class="flex items-center gap-2">
+                <mat-icon class="!h-4 !w-4 !text-[18px] text-sky-600">medication</mat-icon>
+                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-800">3. Đơn thuốc đi kèm trong mẫu (Tùy chọn)</h4>
+                <span class="rounded-full bg-slate-200/70 px-2 py-0.5 text-[11px] font-semibold text-slate-700">
+                  {{ prescriptionLines().length }} thuốc
+                </span>
+              </div>
+              @if (prescriptionLines().length < 20) {
+                <button
+                  type="button"
+                  class="erp-btn-secondary !text-xs !py-1 !px-3 cursor-pointer"
+                  (click)="addPrescriptionLine()"
+                >
+                  <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">add</mat-icon>
+                  <span>Thêm thuốc vào mẫu</span>
+                </button>
+              }
+            </div>
+
+            @if (prescriptionLines().length > 0) {
+              <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                <table class="w-full text-left text-xs whitespace-nowrap">
+                  <thead>
+                    <tr class="border-b border-slate-100 bg-slate-50/70 text-[11px] font-semibold text-slate-500 uppercase">
+                      <th class="px-3 py-2.5 w-8 text-center">#</th>
+                      <th class="px-3 py-2.5">Tên thuốc</th>
+                      <th class="px-3 py-2.5">Liều dùng</th>
+                      <th class="px-3 py-2.5 w-20 text-center">SL</th>
+                      <th class="px-3 py-2.5 w-20 text-center">ĐVT</th>
+                      <th class="px-3 py-2.5">Hướng dẫn sử dụng</th>
+                      <th class="px-3 py-2.5 w-12 text-center"></th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-100">
+                    @for (line of prescriptionLines(); track $index; let idx = $index) {
+                      <tr>
+                        <td class="px-3 py-2 text-center font-bold text-slate-400">{{ idx + 1 }}</td>
+                        <td class="px-3 py-2 min-w-44">
+                          <input
+                            class="erp-input !text-xs !py-1 !px-2"
+                            placeholder="Tên thuốc..."
+                            [ngModel]="line.medicationName"
+                            (ngModelChange)="updateLineField(idx, 'medicationName', $event)"
+                            [name]="'med-name-' + idx"
+                          />
+                        </td>
+                        <td class="px-3 py-2 min-w-36">
+                          <input
+                            class="erp-input !text-xs !py-1 !px-2"
+                            placeholder="Liều dùng..."
+                            [ngModel]="line.dosage"
+                            (ngModelChange)="updateLineField(idx, 'dosage', $event)"
+                            [name]="'med-dosage-' + idx"
+                          />
+                        </td>
+                        <td class="px-3 py-2 w-20">
+                          <input
+                            type="number"
+                            min="1"
+                            max="999"
+                            class="erp-input !text-xs !py-1 !px-1 text-center font-mono"
+                            [ngModel]="line.quantity"
+                            (ngModelChange)="updateLineField(idx, 'quantity', $event)"
+                            [name]="'med-qty-' + idx"
+                          />
+                        </td>
+                        <td class="px-3 py-2 w-20">
+                          <input
+                            class="erp-input !text-xs !py-1 !px-1 text-center"
+                            placeholder="Viên"
+                            [ngModel]="line.unit"
+                            (ngModelChange)="updateLineField(idx, 'unit', $event)"
+                            [name]="'med-unit-' + idx"
+                          />
+                        </td>
+                        <td class="px-3 py-2 min-w-48">
+                          <input
+                            class="erp-input !text-xs !py-1 !px-2"
+                            placeholder="Cách uống..."
+                            [ngModel]="line.instructions"
+                            (ngModelChange)="updateLineField(idx, 'instructions', $event)"
+                            [name]="'med-instructions-' + idx"
+                          />
+                        </td>
+                        <td class="px-3 py-2 text-center">
+                          <button
+                            type="button"
+                            class="erp-btn-icon-danger !h-7 !w-7"
+                            title="Xóa thuốc"
+                            (click)="removePrescriptionLine(idx)"
+                          >
+                            <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">delete_outline</mat-icon>
+                          </button>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            } @else {
+              <p class="text-xs text-slate-500 italic">Mẫu này chưa thiết lập đơn thuốc đi kèm. Bác sĩ có thể thêm thuốc bằng nút bấm phía trên.</p>
+            }
+          </div>
+
           <!-- Bottom Action Bar -->
           <div class="flex items-center justify-end gap-3 border-t border-slate-100 pt-5">
             <button type="button" class="erp-btn-secondary" (click)="cancelEdit()">

@@ -21,12 +21,6 @@ import {
   parseMedicalRecordTemplateContent,
   TemplatePrescriptionLine,
 } from '../../core/examination/medical-record-template-content';
-import {
-  PrescriptionProtocol,
-  PROTOCOL_CATEGORIES,
-  searchProtocols,
-  CLINICAL_PRESCRIPTION_PROTOCOLS,
-} from '../../core/examination/prescription-protocols';
 
 type PrescriptionLineForm = FormGroup<{
   medicationId: FormControl<string | null>;
@@ -220,21 +214,6 @@ export class DoctorExamination implements OnInit {
       );
     }
     return items;
-  });
-
-  // Clinical Prescription Protocols (Phác đồ toa thuốc mẫu)
-  protected readonly prescriptionProtocolsOpen = signal(false);
-  protected readonly protocolSearchQuery = signal('');
-  protected readonly selectedProtocolCategory = signal('Tất cả');
-  protected readonly selectedProtocol = signal<PrescriptionProtocol | null>(null);
-  protected readonly protocolCategories = PROTOCOL_CATEGORIES;
-
-  protected readonly filteredProtocols = computed(() => {
-    return searchProtocols(
-      this.protocolSearchQuery(),
-      this.selectedProtocolCategory(),
-      this.examination()?.specialty,
-    );
   });
 
   // Print Mode ('full' = Phiếu khám bệnh ngoại trú, 'prescription' = Đơn thuốc điện tử)
@@ -937,81 +916,6 @@ export class DoctorExamination implements OnInit {
       });
     }
     return true;
-  }
-
-  // Prescription Protocols Methods
-  protected openPrescriptionProtocols(): void {
-    if (this.examination()?.signedAt) return;
-    this.prescriptionProtocolsOpen.set(true);
-    if (!this.selectedProtocol()) {
-      const list = this.filteredProtocols();
-      if (list.length > 0) this.selectedProtocol.set(list[0]);
-    }
-  }
-
-  protected closePrescriptionProtocols(): void {
-    this.prescriptionProtocolsOpen.set(false);
-    this.selectedProtocol.set(null);
-  }
-
-  protected selectProtocolCategory(category: string): void {
-    this.selectedProtocolCategory.set(category);
-    const list = this.filteredProtocols();
-    this.selectedProtocol.set(list.length > 0 ? list[0] : null);
-  }
-
-  protected updateProtocolSearchQuery(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    this.protocolSearchQuery.set(input.value);
-    const list = this.filteredProtocols();
-    this.selectedProtocol.set(list.length > 0 ? list[0] : null);
-  }
-
-  protected clearProtocolSearch(): void {
-    this.protocolSearchQuery.set('');
-    const list = this.filteredProtocols();
-    this.selectedProtocol.set(list.length > 0 ? list[0] : null);
-  }
-
-  protected previewProtocol(protocol: PrescriptionProtocol): void {
-    this.selectedProtocol.set(protocol);
-  }
-
-  protected applyPrescriptionProtocol(protocol: PrescriptionProtocol): void {
-    if (this.examination()?.signedAt) return;
-    if (this.prescriptionLines.length >= 20) {
-      this.error.set('Đơn thuốc đã đạt tối đa 20 thuốc, không thể thêm tiếp.');
-      return;
-    }
-
-    const availableSlots = 20 - this.prescriptionLines.length;
-    const linesToAdd = protocol.lines.slice(0, availableSlots);
-
-    linesToAdd.forEach((line) => {
-      this.prescriptionLines.push(this.fb.group({
-        medicationId: [null],
-        medicationName: [line.medicationName, [Validators.required, Validators.maxLength(200)]],
-        dosage: [line.dosage, [Validators.required, Validators.maxLength(100)]],
-        quantity: [line.quantity, [Validators.required, Validators.min(1), Validators.max(999)]],
-        unit: [line.unit || 'Viên', [Validators.maxLength(50)]],
-        instructions: [line.instructions, [Validators.required, Validators.maxLength(500)]],
-      }) as PrescriptionLineForm);
-    });
-
-    this.prescriptionEnabled.set(true);
-    this.prescriptionRevision.update((v) => v + 1);
-
-    // Điền chẩn đoán gợi ý nếu hiện tại đang trống
-    const currentDiag = this.form.controls.diagnosis.value?.trim();
-    if (!currentDiag && protocol.diagnosisCode) {
-      this.form.controls.diagnosis.setValue(protocol.diagnosisCode);
-    }
-
-    this.closePrescriptionProtocols();
-    this.notice.set(`Đã áp dụng phác đồ "${protocol.name}" (${linesToAdd.length} thuốc).`);
-    setTimeout(() => {
-      if (this.notice().includes(protocol.name)) this.notice.set('');
-    }, 3500);
   }
 
   // Print Handlers
