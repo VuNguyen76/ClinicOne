@@ -710,6 +710,9 @@ export interface ReceptionDoctorOption {
   specialty: string;
   roomCode: string;
   roomName: string;
+  shiftStatus?: string;
+  waitingCount?: number;
+  slots?: { startTime: string; endTime: string; remaining: number }[];
 }
 
 export interface ReceptionWalkInRequest {
@@ -1169,6 +1172,7 @@ export class AuthApiService {
     targetRoomCode?: string;
     targetSpecialty?: string;
     reason: string;
+    targetStartTime?: string;
   }): Observable<QueueTicketResponse> {
     return this.http.post<QueueTicketResponse>(`${this.queueRoot}/${ticketId}/adjust`, request);
   }
@@ -1197,6 +1201,10 @@ export class AuthApiService {
 
   getReceptionDoctors(): Observable<ReceptionDoctorOption[]> {
     return this.http.get<ReceptionDoctorOption[]>('/api/v1/reception/doctors');
+  }
+
+  getReceptionDoctorsAvailability(date: string): Observable<ReceptionDoctorOption[]> {
+    return this.http.get<ReceptionDoctorOption[]>('/api/v1/reception/doctors', { params: { date } });
   }
 
   receptionCheckIn(appointmentId: string, roomCode: string, reason: string): Observable<ReceptionAppointmentResponse> {

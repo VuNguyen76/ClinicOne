@@ -534,6 +534,21 @@ public class QueueService {
                     "Phòng đích không khớp với phân công của bác sĩ.");
         }
         ClinicRoom targetRoom = targetDoctor.getRoom();
+        if (request.targetStartTime() != null && !request.targetStartTime().isBlank()) {
+            java.time.LocalTime newTime = java.time.LocalTime.parse(request.targetStartTime());
+            // validate slot is within target doctor's schedule and not taken (1 per slot)
+            boolean scheduled = doctorScheduleRepository != null && doctorScheduleRepository.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(targetDoctor.getId(), ticket.getQueueDate().getDayOfWeek()).stream()
+                    .anyMatch(s -> !newTime.isBefore(s.getStartTime()) && newTime.plusMinutes(s.getSlotDurationMinutes()).compareTo(s.getEndTime()) <= 0);
+            if (!scheduled) {
+                throw new AuthException(HttpStatus.CONFLICT, "QUEUE_TARGET_SLOT_INVALID", "Khung giờ không nằm trong ca trực của bác sĩ đích.");
+            }
+            long booked = appointmentRepository.countByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatusIn(targetDoctor.getStaffAccount().getId(), ticket.getQueueDate(), newTime, java.util.List.of(com.clinicone.appointment.AppointmentStatus.BOOKED, com.clinicone.appointment.AppointmentStatus.CHECKED_IN));
+            if (booked > 0) {
+                throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_SLOT_FULL", "Khung giờ đã có người đặt.");
+            }
+            ticket.getAppointment().reschedule(ticket.getQueueDate(), newTime, targetDoctor.getStaffAccount().getId(), targetDoctor.getStaffAccount().getFullName());
+            appointmentRepository.save(ticket.getAppointment());
+        }
         // A reassignment always receives a fresh number in the destination queue,
         // including when the destination room is unchanged. The old number remains
         // visible through the business journal rather than being reused.

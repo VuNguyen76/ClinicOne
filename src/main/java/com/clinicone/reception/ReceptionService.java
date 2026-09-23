@@ -13,9 +13,9 @@ import com.clinicone.auth.PatientAccountRepository;
 import com.clinicone.audit.BusinessLogService;
 import com.clinicone.doctor.DoctorProfile;
 import com.clinicone.doctor.DoctorProfileRepository;
+import com.clinicone.doctor.DoctorScheduleRepository;
 import com.clinicone.patientprofile.PatientProfile;
 import com.clinicone.patientprofile.PatientProfileRepository;
-import com.clinicone.patientprofile.PatientProfileResponse;
 import com.clinicone.queue.QueueService;
 import com.clinicone.queue.QueueTicketRepository;
 import com.clinicone.queue.QueueTicketResponse;
@@ -30,8 +30,10 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -45,6 +47,7 @@ public class ReceptionService {
 
     private final AppointmentRepository appointmentRepository;
     private final DoctorProfileRepository doctorProfileRepository;
+    private final DoctorScheduleRepository doctorScheduleRepository;
     private final QueueTicketRepository ticketRepository;
     private final QueueService queueService;
     private final Clock clock;
@@ -58,7 +61,7 @@ public class ReceptionService {
                             QueueTicketRepository ticketRepository,
                             QueueService queueService,
                             Clock clock) {
-        this(appointmentRepository, doctorProfileRepository, ticketRepository, queueService, clock, null, null, null, null);
+        this(appointmentRepository, doctorProfileRepository, null, ticketRepository, queueService, clock, null, null, null, null);
     }
 
     public ReceptionService(AppointmentRepository appointmentRepository,
@@ -69,13 +72,14 @@ public class ReceptionService {
                             PatientAccountRepository patientAccountRepository,
                             AppointmentService appointmentService,
                             PatientProfileRepository patientProfileRepository) {
-        this(appointmentRepository, doctorProfileRepository, ticketRepository, queueService, clock,
+        this(appointmentRepository, doctorProfileRepository, null, ticketRepository, queueService, clock,
                 patientAccountRepository, appointmentService, patientProfileRepository, null);
     }
 
     @Autowired
     public ReceptionService(AppointmentRepository appointmentRepository,
                             DoctorProfileRepository doctorProfileRepository,
+                            DoctorScheduleRepository doctorScheduleRepository,
                             QueueTicketRepository ticketRepository,
                             QueueService queueService,
                             Clock clock,
@@ -85,6 +89,7 @@ public class ReceptionService {
                             BusinessLogService businessLogService) {
         this.appointmentRepository = appointmentRepository;
         this.doctorProfileRepository = doctorProfileRepository;
+        this.doctorScheduleRepository = doctorScheduleRepository;
         this.ticketRepository = ticketRepository;
         this.queueService = queueService;
         this.clock = clock;
@@ -297,10 +302,57 @@ public ReceptionAppointmentResponse checkIn(UUID appointmentId, ReceptionCheckIn
 
     @Transactional(readOnly = true)
     public List<ReceptionDoctorOptionResponse> doctors() {
+        return doctors(null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ReceptionDoctorOptionResponse> doctors(LocalDate date) {
+        LocalDate targetDate = date == null ? today() : date;
         return doctorProfileRepository.findAllByOrderByCreatedAtDesc().stream()
                 .filter(DoctorProfile::isActive)
-                .map(ReceptionDoctorOptionResponse::from)
+                .map(profile -> {
+                    String shiftStatus = computeShiftStatus(profile, targetDate);
+                    int waitingCount = computeWaitingCount(profile, targetDate);
+                    java.util.List<ReceptionDoctorOptionResponse.SlotInfo> slots = computeSlots(profile, targetDate);
+                    return ReceptionDoctorOptionResponse.from(profile, shiftStatus, waitingCount, slots);
+                })
                 .toList();
+    }
+
+    private String computeShiftStatus(DoctorProfile profile, LocalDate date) {
+        if (doctorScheduleRepository == null) return "ACTIVE";
+        if (!date.equals(today())) return "NONE";
+        var now = LocalTime.now(clock.withZone(CLINIC_ZONE));
+        long active = doctorScheduleRepository.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(profile.getId(), date.getDayOfWeek()).stream()
+                .filter(s -> !now.isBefore(s.getStartTime()) && now.isBefore(s.getEndTime())).count();
+        if (active == 0) return "NONE";
+        return active == 1 ? "ACTIVE" : "CONFLICT";
+    }
+
+    private int computeWaitingCount(DoctorProfile profile, LocalDate date) {
+        try {
+            var tickets = ticketRepository.findByRoomCodeAndQueueDateOrderByQueueNumberAsc(profile.getRoom().getCode(), date);
+            return (int) tickets.stream().filter(t -> t.getStatus().name().equals("WAITING") && t.getEffectiveDoctorStaffId().equals(profile.getStaffAccount().getId())).count();
+        } catch (Exception e) { return 0; }
+    }
+
+    private java.util.List<ReceptionDoctorOptionResponse.SlotInfo> computeSlots(DoctorProfile profile, LocalDate date) {
+        if (doctorScheduleRepository == null) return java.util.List.of();
+        var schedules = doctorScheduleRepository.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(profile.getId(), date.getDayOfWeek());
+        java.util.List<ReceptionDoctorOptionResponse.SlotInfo> result = new ArrayList<>();
+        for (var schedule : schedules) {
+            LocalTime start = schedule.getStartTime();
+            int duration = schedule.getSlotDurationMinutes();
+            while (!start.plusMinutes(duration).isAfter(schedule.getEndTime())) {
+                LocalTime end = start.plusMinutes(duration);
+                long booked = appointmentRepository.countByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatusIn(profile.getStaffAccount().getId(), date, start, List.of(AppointmentStatus.BOOKED, AppointmentStatus.CHECKED_IN));
+                int remaining = booked == 0 ? 1 : 0;
+                result.add(new ReceptionDoctorOptionResponse.SlotInfo(start, end, remaining));
+                start = end;
+            }
+        }
+        result.sort((a,b) -> a.startTime().compareTo(b.startTime()));
+        return result;
     }
 
     /** Tiếp nhận người bệnh đến quầy mà chưa có lịch trong ngày. */
