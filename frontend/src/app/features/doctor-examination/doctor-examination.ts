@@ -126,9 +126,11 @@ export class DoctorExamination implements OnInit {
 
   protected readonly allergyWarnings = computed(() => {
     this.prescriptionRevision();
-    let allergyText = this.examination()?.allergySummary?.toLowerCase().trim() ?? '';
+    const formAllergy = this.form?.controls?.allergySummary?.value?.toLowerCase().trim() ?? '';
+    let allergyText = formAllergy || (this.examination()?.allergySummary?.toLowerCase().trim() ?? '');
     if (!allergyText) return [];
     allergyText = allergyText.replace(/^(tiền sử dị ứng|dị ứng thuốc|dị ứng(\s+với)?|allergy)\s*[:\s]*/i, '');
+    allergyText = allergyText.replace(/\(.*?\)/g, ' ');
     const lines = this.prescriptionLines.controls;
     const warnings: Array<{ medication: string; allergen: string }> = [];
     const rawAllergens = allergyText
