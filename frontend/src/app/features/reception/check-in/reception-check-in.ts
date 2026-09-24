@@ -389,6 +389,46 @@ export class ReceptionCheckIn implements OnInit {
       return;
     }
     this.rebookSlotsLoading.set(true);
+    // LATE: within-day like queue adjustment -> use doctors?date= (lightweight, correct with ensureBookable)
+    if (this.rebookMode() === 'LATE') {
+      const today = clinicTodayIso();
+      // Force today for LATE (business rule: must stay within same day)
+      if (date !== today) {
+        this.rebookDate.set(today);
+      }
+      this.authApi.getReceptionDoctorsAvailability(today).subscribe({
+        next: (doctors) => {
+          const relevant = doctors.filter((d) => d.specialty === appointment.specialty);
+          const list: typeof this.rebookSlots extends import('@angular/core').Signal<infer T> ? T : never = [] as any;
+          for (const d of relevant) {
+            for (const s of d.slots ?? []) {
+              if (s.remaining <= 0) continue;
+              if (s.startTime === appointment.startTime) continue; // same-slot hide
+              (list as any).push({
+                appointmentDate: today,
+                startTime: s.startTime,
+                endTime: s.endTime,
+                specialty: appointment.specialty,
+                doctorId: d.staffId,
+                doctorName: d.fullName,
+                remainingCapacity: s.remaining,
+                roomCode: d.roomCode,
+              });
+            }
+          }
+          (list as any).sort((a: any, b: any) => a.startTime.localeCompare(b.startTime));
+          this.rebookAvailableDates.set([]);
+          this.rebookSlots.set(list as any);
+          this.rebookStartTime.set((list as any)[0]?.startTime ?? '');
+          this.rebookSlotsLoading.set(false);
+        },
+        error: (response) => {
+          this.rebookSlotsLoading.set(false);
+          this.handleError(response);
+        },
+      });
+      return;
+    }
     const fromDate = date < clinicTodayIso() ? date : clinicTodayIso();
     const toDate = this.addDays(fromDate, 30);
     this.authApi.getAppointmentSlots(appointment.specialty, fromDate, toDate).subscribe({
@@ -413,11 +453,10 @@ export class ReceptionCheckIn implements OnInit {
         }
         dates.sort((a, b) => a.date.localeCompare(b.date));
         this.rebookAvailableDates.set(dates);
-
-        const allowOverflow = date === today;
-        const available = slots.filter((slot) => slot.appointmentDate === date && !!slot.doctorId && (allowOverflow || slot.remainingCapacity > 0));
-        this.rebookSlots.set(available);
-        this.rebookStartTime.set(available[0]?.startTime ?? '');
+        const filtered = slots.filter((slot) => slot.appointmentDate === date && !!slot.doctorId && slot.remainingCapacity > 0)
+          .filter((slot) => !(slot.appointmentDate === appointment.appointmentDate && slot.startTime === appointment.startTime));
+        this.rebookSlots.set(filtered);
+        this.rebookStartTime.set(filtered[0]?.startTime ?? '');
         this.rebookSlotsLoading.set(false);
       },
       error: (response) => {
