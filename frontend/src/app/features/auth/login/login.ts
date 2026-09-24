@@ -30,7 +30,7 @@ export class Login {
   }
 
   readonly phoneForm = this.formBuilder.nonNullable.group({
-    phone: ['', [Validators.required, Validators.pattern(/^0\d{9}$/)]],
+    phone: [this.route.snapshot.queryParamMap.get('phone') ?? '', [Validators.required, Validators.pattern(/^0\d{9}$/)]],
   });
 
   readonly passwordForm = this.formBuilder.nonNullable.group({
