@@ -65,6 +65,17 @@
               >
                 <mat-icon class="!h-4 !w-4 !text-[16px]">chevron_right</mat-icon>
               </button>
+              @if (!isToday()) {
+                <button
+                  type="button"
+                  data-testid="doctor-today-btn"
+                  (click)="goToToday()"
+                  class="erp-btn-secondary !h-7 !px-2.5 !py-0.5 !text-xs font-semibold cursor-pointer ml-1"
+                  title="Trở về ngày hôm nay"
+                >
+                  Hôm nay
+                </button>
+              }
             </div>
             <span
               class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold"
@@ -98,7 +109,19 @@
           </select>
         </div>
         <div class="w-full sm:w-44">
-          <label class="erp-label">Ngày khám</label>
+          <div class="flex items-center justify-between mb-1">
+            <label class="erp-label !mb-0">Ngày khám</label>
+            @if (!isToday()) {
+              <button
+                type="button"
+                (click)="goToToday()"
+                class="text-[11px] font-semibold text-sky-600 hover:text-sky-800 cursor-pointer"
+                title="Trở về ngày hôm nay"
+              >
+                Hôm nay
+              </button>
+            }
+          </div>
           <input
             data-testid="date-selector"
             type="date"
@@ -167,7 +190,7 @@
                   </div>
                   <h3 class="text-base font-bold text-slate-900">{{ current.patientName || current.appointmentCode }}</h3>
                   <p class="text-xs text-slate-500">
-                    Sinh ngày {{ formatDate(current.patientDateOfBirth) }} · Giờ hẹn: {{ formatTime(current.appointmentTime) }} · Mã: {{ current.appointmentCode }}
+                    {{ patientBirthLabel(current.patientDateOfBirth) ? patientBirthLabel(current.patientDateOfBirth) + ' · ' : '' }}{{ isToday() ? 'Khám hôm nay' : ('Khám ngày ' + formatDate(selectedDate())) }} · Giờ hẹn: {{ formatTime(current.appointmentTime) }} · Mã: {{ current.appointmentCode }}
                   </p>
                 </div>
               </div>
@@ -262,86 +285,180 @@
         }
         <!-- Queue Table -->
         @else {
-          <div class="erp-table-container !rounded-none !border-0">
-            <table class="erp-table">
+          <div class="erp-table-container !rounded-none !border-0 overflow-x-auto">
+            <table class="erp-table table-fixed w-full">
               <thead>
                 <tr>
-                  <th class="w-16 text-center">Số TT</th>
-                  <th>Người bệnh</th>
-                  <th class="w-28 text-center">Giờ hẹn</th>
-                  <th class="w-32 text-center">Trạng thái</th>
-                  <th class="w-56 text-center font-semibold">Thao tác</th>
+                  <th class="w-16 !text-center">Số TT</th>
+                  <th class="min-w-0 !text-left">Người bệnh</th>
+                  <th class="w-32 !text-center">Giờ hẹn</th>
+                  <th class="w-32 !text-center">Trạng thái</th>
+                  <th class="w-44 !text-center font-bold">Thao tác</th>
                 </tr>
               </thead>
               <tbody>
                 @for (ticket of queue(); track ticket.id) {
                   <tr data-testid="queue-row" class="erp-tr">
-                    <td class="text-center font-mono">
+                    <td class="w-16 !text-center font-mono">
                       <span class="font-mono text-sm font-bold text-slate-900">{{ ticket.queueNumber }}</span>
                     </td>
-                    <td>
-                      @if (ticket.patientName) {
-                        <p class="font-semibold text-slate-800">{{ ticket.patientName }}</p>
-                        <p class="text-xs text-slate-500">
-                          Sinh ngày {{ formatDate(ticket.patientDateOfBirth) }} · {{ ticket.appointmentCode }}
-                        </p>
-                      } @else {
-                        <p class="font-semibold text-slate-800">{{ ticket.appointmentCode }}</p>
-                        <p class="text-xs text-slate-500">Chưa có thông tin hồ sơ</p>
-                      }
-                    </td>
-                    <td class="text-center font-mono text-xs font-semibold text-slate-700">
-                      {{ formatTime(ticket.appointmentTime) }}
-                    </td>
-                    <td class="text-center">
-                      <span
-                        data-testid="queue-status"
-                        class="erp-badge"
-                        [class]="statusClass(ticket.status)"
-                      >
-                        <span class="erp-dot" [class]="statusDotClass(ticket.status)"></span>
-                        <span>{{ ticket.statusLabel }}</span>
-                      </span>
-                    </td>
-                    <td class="text-center">
-                      <div class="flex items-center justify-center gap-2">
-                        @if (isOwnDoctor() && ticket.status === 'CALLED') {
-                          <button
-                            type="button"
-                            class="erp-btn-secondary !min-h-7 !px-2.5 !py-1 !text-[11px]"
-                            [disabled]="busyTicketId() === ticket.id"
-                            (click)="act(ticket, 'skip')"
-                          >
-                            Gọi lại sau
-                          </button>
-                          <button
-                            type="button"
-                            class="erp-btn-primary !min-h-7 !px-2.5 !py-1 !text-[11px]"
-                            [disabled]="busyTicketId() === ticket.id"
-                            (click)="act(ticket, 'start')"
-                          >
-                            Vào khám
-                          </button>
+                    <td class="min-w-0">
+                      <div class="flex items-center gap-1.5 flex-wrap">
+                        @if (ticket.patientName) {
+                          <span class="font-semibold text-slate-800">{{ ticket.patientName }}</span>
+                        } @else {
+                          <span class="font-semibold text-slate-800">{{ ticket.appointmentCode }}</span>
                         }
-                        @if (isOwnDoctor() && ticket.status === 'IN_SERVICE') {
-                          <button
-                            data-testid="open-examination"
-                            type="button"
-                            class="erp-btn-primary !min-h-8 !px-3 !py-1.5 !text-xs"
-                            (click)="openExamination(ticket)"
-                          >
-                            <span>Khám</span>
-                          </button>
+                        @if (ticket.priority) {
+                          <span class="erp-badge erp-badge-warning !text-[10px] !py-0 !px-1.5">Ưu tiên</span>
                         }
-                        @if (isOwnDoctor() && ticket.status === 'COMPLETED') {
-                          <button
-                            data-testid="view-completed-examination"
-                            type="button"
-                            class="erp-btn-secondary !min-h-7 !px-2.5 !py-1 !text-[11px]"
-                            (click)="openExamination(ticket)"
-                          >
-                            <span>Bệnh án</span>
-                          </button>
+                      </div>
+                      <p class="text-xs text-slate-500">
+                        {{ patientBirthLabel(ticket.patientDateOfBirth) ? patientBirthLabel(ticket.patientDateOfBirth) + ' · ' : '' }}Mã: {{ ticket.appointmentCode }}
+                      </p>
+                    </td>
+                    <td class="w-32 !text-center font-mono text-xs font-semibold text-slate-700">
+                      <div class="flex flex-col items-center justify-center leading-tight">
+                        <span class="font-bold text-slate-800">{{ formatTime(ticket.appointmentTime) }}</span>
+                        <span class="text-[10px] font-medium" [class.text-sky-600]="isToday()" [class.text-slate-500]="!isToday()">
+                          {{ isToday() ? 'Hôm nay' : formatDate(ticket.queueDate || selectedDate()) }}
+                        </span>
+                      </div>
+                    </td>
+                    <td class="w-32 !text-center">
+                      <div class="flex flex-col items-center gap-0.5">
+                        <span
+                          data-testid="queue-status"
+                          class="erp-badge"
+                          [class]="statusClass(ticket.status)"
+                        >
+                          <span class="erp-dot" [class]="statusDotClass(ticket.status)"></span>
+                          <span>{{ ticket.statusLabel }}</span>
+                        </span>
+                        @if (ticket.presenceStatus === 'RETURN_REQUIRED') {
+                          <span class="text-[10px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200/60">
+                            Cần xác nhận lại
+                          </span>
+                        }
+                      </div>
+                    </td>
+                    <td class="w-44 !text-center">
+                      <div class="flex items-center justify-center gap-1.5">
+                        @if (isOwnDoctor()) {
+                          @if (ticket.status === 'WAITING') {
+                            @if (ticket.presenceStatus === 'RETURN_REQUIRED') {
+                              <span class="inline-flex items-center text-xs text-amber-700 font-semibold bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200/60" title="Bệnh nhân cần xác nhận tại quầy tiếp nhận trước khi vào khám">
+                                Chờ xác nhận
+                              </span>
+                            } @else {
+                              <button
+                                type="button"
+                                class="erp-btn-primary !min-h-7.5 !h-7.5 !px-3 !py-1 !text-xs shadow-2xs"
+                                [disabled]="busyTicketId() === ticket.id || !isToday() || doctorShiftStatus() !== 'ACTIVE'"
+                                (click)="callTicket(ticket)"
+                                [title]="!isToday() ? 'Chỉ gọi trong ngày hôm nay' : 'Gọi vào khám'"
+                              >
+                                <span>Gọi</span>
+                              </button>
+                            }
+                          }
+                          @if (ticket.status === 'CALLED') {
+                            <button
+                              type="button"
+                              class="erp-btn-secondary !min-h-7.5 !h-7.5 !px-2.5 !py-1 !text-xs"
+                              [disabled]="busyTicketId() === ticket.id || !isToday() || doctorShiftStatus() !== 'ACTIVE'"
+                              (click)="act(ticket, 'skip')"
+                              [title]="!isToday() ? 'Chỉ thao tác trong ngày hôm nay' : 'Gọi lại sau'"
+                            >
+                              Gọi lại sau
+                            </button>
+                            <button
+                              type="button"
+                              class="erp-btn-primary !min-h-7.5 !h-7.5 !px-2.5 !py-1 !text-xs"
+                              [disabled]="busyTicketId() === ticket.id || !isToday() || doctorShiftStatus() !== 'ACTIVE'"
+                              (click)="act(ticket, 'start')"
+                              [title]="!isToday() ? 'Chỉ thao tác trong ngày hôm nay' : 'Vào khám'"
+                            >
+                              Vào khám
+                            </button>
+                          }
+                          @if (ticket.status === 'IN_SERVICE') {
+                            <button
+                              data-testid="open-examination"
+                              type="button"
+                              class="erp-btn-primary !min-h-7.5 !h-7.5 !px-4 !py-1 !text-xs font-semibold shadow-xs"
+                              (click)="openExamination(ticket)"
+                            >
+                              <span>Khám</span>
+                            </button>
+                          }
+                          @if (ticket.status === 'SKIPPED') {
+                            @if (ticket.presenceStatus === 'RETURN_REQUIRED') {
+                              <span class="inline-flex items-center text-xs text-amber-700 font-semibold bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200/60" title="Bệnh nhân cần xác nhận tại quầy tiếp nhận">
+                                Chờ xác nhận
+                              </span>
+                            } @else {
+                              <button
+                                type="button"
+                                class="erp-btn-secondary !min-h-7.5 !h-7.5 !px-2.5 !py-1 !text-xs text-amber-700 hover:border-amber-300 hover:bg-amber-50"
+                                [disabled]="busyTicketId() === ticket.id || !isToday() || doctorShiftStatus() !== 'ACTIVE'"
+                                (click)="callTicket(ticket)"
+                                [title]="!isToday() ? 'Chỉ gọi trong ngày hôm nay' : 'Gọi lại người bệnh'"
+                              >
+                                Gọi lại
+                              </button>
+                            }
+                          }
+                          @if (ticket.status === 'LEFT_BEFORE_EXAM') {
+                            <span class="inline-flex items-center text-xs text-rose-700 font-semibold bg-rose-50 px-2.5 py-1 rounded-md border border-rose-200/60">
+                              Đã rời hàng
+                            </span>
+                          }
+                          @if (ticket.status === 'COMPLETED') {
+                            <button
+                              data-testid="view-completed-examination"
+                              type="button"
+                              class="erp-btn-secondary !min-h-7.5 !h-7.5 !px-3 !py-1 !text-xs"
+                              (click)="openExamination(ticket)"
+                              title="Xem bệnh án đã hoàn tất"
+                            >
+                              <span>Bệnh án</span>
+                            </button>
+                          }
+                        } @else {
+                          @if (ticket.status === 'WAITING' || ticket.status === 'CALLED' || ticket.status === 'SKIPPED') {
+                            <button
+                              data-testid="leave-ticket-btn"
+                              type="button"
+                              class="erp-btn-secondary !min-h-7.5 !h-7.5 !px-2.5 !py-1 !text-xs text-rose-700 hover:border-rose-300 hover:bg-rose-50"
+                              [disabled]="busyTicketId() === ticket.id"
+                              (click)="openLeaveDialog(ticket)"
+                              title="Bệnh nhân rời hàng đợi"
+                            >
+                              Rời hàng
+                            </button>
+                            <button
+                              data-testid="reschedule-ticket-btn"
+                              type="button"
+                              class="erp-btn-secondary !min-h-7.5 !h-7.5 !px-2.5 !py-1 !text-xs text-sky-700 hover:border-sky-300 hover:bg-sky-50"
+                              (click)="navigateToReschedule(ticket)"
+                              title="Điều chuyển ca khám"
+                            >
+                              Chuyển ca
+                            </button>
+                          } @else if (ticket.status === 'IN_SERVICE') {
+                            <span class="inline-flex items-center text-xs text-violet-700 font-semibold bg-violet-50 px-2.5 py-1 rounded-md border border-violet-200/60">
+                              Đang tại phòng
+                            </span>
+                          } @else if (ticket.status === 'LEFT_BEFORE_EXAM') {
+                            <span class="inline-flex items-center text-xs text-rose-700 font-semibold bg-rose-50 px-2.5 py-1 rounded-md border border-rose-200/60">
+                              Đã rời hàng
+                            </span>
+                          } @else if (ticket.status === 'COMPLETED') {
+                            <span class="inline-flex items-center text-xs text-emerald-700 font-semibold bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200/60">
+                              Hoàn tất
+                            </span>
+                          }
                         }
                       </div>
                     </td>
@@ -354,4 +471,62 @@
       </section>
     </div>
   </div>
+
+  @if (operatingTicket(); as opTicket) {
+    <div class="erp-modal-overlay" role="dialog" aria-modal="true" (click)="closeOperatingDialog()">
+      <section class="erp-modal-container max-w-md" (click)="$event.stopPropagation()">
+        <div class="erp-modal-header">
+          <div>
+            <span class="erp-badge" [class]="operatingAction() === 'leave' ? 'erp-badge-danger' : 'erp-badge-warning'">
+              {{ operatingAction() === 'leave' ? 'Rời hàng đợi' : 'Tạm hoãn phòng' }}
+            </span>
+            <h2 class="mt-1 text-sm font-bold text-slate-900">
+              Số #{{ opTicket.queueNumber }} · {{ opTicket.patientName || opTicket.appointmentCode }}
+            </h2>
+          </div>
+          <button type="button" aria-label="Đóng" class="erp-btn-icon" (click)="closeOperatingDialog()">
+            <mat-icon class="!h-4 !w-4 !text-[18px]">close</mat-icon>
+          </button>
+        </div>
+
+        <div class="erp-modal-body space-y-3">
+          <p class="text-xs text-slate-600">
+            {{ operatingAction() === 'leave'
+              ? 'Xác nhận đánh dấu bệnh nhân rời hàng đợi trước khám. Thao tác này sẽ hủy lượt chờ của người bệnh.'
+              : 'Xác nhận tạm hoãn lượt khám do phòng khám tạm ngưng hoạt động.' }}
+          </p>
+
+          <div>
+            <label class="erp-label">Lý do <span class="erp-label-required">*</span></label>
+            <input
+              type="text"
+              class="erp-input !text-xs"
+              [value]="operatingReason()"
+              (input)="operatingReason.set($any($event.target).value)"
+              placeholder="Nhập lý do tối thiểu 3 ký tự..."
+            />
+          </div>
+        </div>
+
+        <div class="erp-modal-footer">
+          <button
+            type="button"
+            class="erp-btn-secondary"
+            [disabled]="operatingBusy()"
+            (click)="closeOperatingDialog()"
+          >
+            Hủy
+          </button>
+          <button
+            type="button"
+            class="erp-btn-primary"
+            [disabled]="operatingBusy() || operatingReason().trim().length < 3"
+            (click)="submitOperatingAction()"
+          >
+            {{ operatingBusy() ? 'Đang lưu...' : 'Xác nhận' }}
+          </button>
+        </div>
+      </section>
+    </div>
+  }
 </app-staff-workspace-shell>
