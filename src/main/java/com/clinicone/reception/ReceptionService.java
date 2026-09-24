@@ -340,10 +340,16 @@ public ReceptionAppointmentResponse checkIn(UUID appointmentId, ReceptionCheckIn
         if (doctorScheduleRepository == null) return java.util.List.of();
         var schedules = doctorScheduleRepository.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(profile.getId(), date.getDayOfWeek());
         java.util.List<ReceptionDoctorOptionResponse.SlotInfo> result = new ArrayList<>();
+        LocalTime now = LocalTime.now(clock.withZone(CLINIC_ZONE));
+        boolean isToday = date.equals(today());
         for (var schedule : schedules) {
             LocalTime start = schedule.getStartTime();
             int duration = schedule.getSlotDurationMinutes();
             while (!start.plusMinutes(duration).isAfter(schedule.getEndTime())) {
+                if (isToday && start.isBefore(now)) {
+                    start = start.plusMinutes(duration);
+                    continue;
+                }
                 LocalTime end = start.plusMinutes(duration);
                 long booked = appointmentRepository.countByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatusIn(profile.getStaffAccount().getId(), date, start, List.of(AppointmentStatus.BOOKED, AppointmentStatus.CHECKED_IN));
                 int remaining = booked == 0 ? 1 : 0;
