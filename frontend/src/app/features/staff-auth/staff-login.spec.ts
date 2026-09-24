@@ -76,4 +76,40 @@ describe('StaffLogin', () => {
 
     expect(navigateSpy).toHaveBeenCalledWith('/reception');
   });
+
+  it('sends coordinator staff to the queue management workspace after login', () => {
+    const router = TestBed.inject(Router);
+    const navigateSpy = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+    fixture.nativeElement.querySelector('[formcontrolname="username"]').value = 'coordinator';
+    fixture.nativeElement.querySelector('[formcontrolname="password"]').value = 'admin123';
+    fixture.nativeElement.querySelector('[formcontrolname="username"]').dispatchEvent(new Event('input'));
+    fixture.nativeElement.querySelector('[formcontrolname="password"]').dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('[data-testid="staff-login-submit"]') as HTMLButtonElement).click();
+
+    http.expectOne('/api/v1/staff/auth/login').flush({
+      accessToken: 'coord-token', tokenType: 'Bearer', expiresAt: '2099-01-01T00:00:00Z',
+      staffId: 'staff-coord', fullName: 'Điều phối viên', role: 'COORDINATOR', roles: ['COORDINATOR'],
+    });
+
+    expect(navigateSpy).toHaveBeenCalledWith('/admin/queues');
+  });
+
+  it('sends doctor staff to the doctor workspace after login', () => {
+    const router = TestBed.inject(Router);
+    const navigateSpy = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+    fixture.nativeElement.querySelector('[formcontrolname="username"]').value = 'doctor';
+    fixture.nativeElement.querySelector('[formcontrolname="password"]').value = 'admin123';
+    fixture.nativeElement.querySelector('[formcontrolname="username"]').dispatchEvent(new Event('input'));
+    fixture.nativeElement.querySelector('[formcontrolname="password"]').dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('[data-testid="staff-login-submit"]') as HTMLButtonElement).click();
+
+    http.expectOne('/api/v1/staff/auth/login').flush({
+      accessToken: 'doctor-token', tokenType: 'Bearer', expiresAt: '2099-01-01T00:00:00Z',
+      staffId: 'staff-doc', fullName: 'Bác sĩ A', role: 'DOCTOR', roles: ['DOCTOR'],
+    });
+
+    expect(navigateSpy).toHaveBeenCalledWith('/doctor');
+  });
 });
