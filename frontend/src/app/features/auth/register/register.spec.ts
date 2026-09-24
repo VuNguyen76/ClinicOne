@@ -39,6 +39,7 @@ describe('Register', () => {
   it('moves through SMS verification and account details', () => {
     component.phoneForm.controls.phone.setValue('0912345678');
     component['submitPhone']();
+    http.expectOne('/api/v1/auth/check-phone').flush({ accountExists: false });
     http.expectOne('/api/v1/auth/request-sms-otp').flush({ expiresInSeconds: 300, retryAfterSeconds: 60 });
     expect((component as any).step()).toBe('otp');
 
@@ -59,9 +60,52 @@ describe('Register', () => {
     component['submitPhone']();
     component['submitPhone']();
 
+    const checkRequests = http.match('/api/v1/auth/check-phone');
+    expect(checkRequests).toHaveLength(1);
+    checkRequests[0].flush({ accountExists: false });
+
     const requests = http.match('/api/v1/auth/request-sms-otp');
     expect(requests).toHaveLength(1);
     requests[0].flush({ expiresInSeconds: 300, retryAfterSeconds: 60 });
+  });
+
+  it('blocks registration and shows prompt if phone already registered', () => {
+    component.phoneForm.controls.phone.setValue('0912345678');
+    component['submitPhone']();
+
+    http.expectOne('/api/v1/auth/check-phone').flush({ accountExists: true });
+
+    expect((component as any).step()).toBe('phone');
+    expect((component as any).existingAccount()).toBe(true);
+    expect((component as any).error()).toContain('đã được đăng ký tài khoản');
+    http.expectNone('/api/v1/auth/request-sms-otp');
+  });
+
+  it('handles phone already used error returned from request-sms-otp directly', () => {
+    component.phoneForm.controls.phone.setValue('0912345678');
+    component['submitPhone']();
+
+    http.expectOne('/api/v1/auth/check-phone').error(new ProgressEvent('error'));
+    http.expectOne('/api/v1/auth/request-sms-otp').flush(
+      { message: 'Số điện thoại này đã được đăng ký tài khoản.' },
+      { status: 409, statusText: 'Conflict' }
+    );
+
+    expect((component as any).step()).toBe('phone');
+    expect((component as any).existingAccount()).toBe(true);
+  });
+
+  it('clears existingAccount error when user changes phone number', () => {
+    component.phoneForm.controls.phone.setValue('0912345678');
+    component['submitPhone']();
+    http.expectOne('/api/v1/auth/check-phone').flush({ accountExists: true });
+
+    expect((component as any).existingAccount()).toBe(true);
+    expect((component as any).error()).not.toBe('');
+
+    component.phoneForm.controls.phone.setValue('0987654321');
+    expect((component as any).existingAccount()).toBe(false);
+    expect((component as any).error()).toBe('');
   });
 
   it('rejects mismatched passwords', () => {

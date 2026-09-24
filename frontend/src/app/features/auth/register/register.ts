@@ -31,6 +31,8 @@ export class Register implements OnInit {
   protected readonly notice = signal('');
   protected readonly error = signal('');
   protected readonly busy = signal(false);
+  protected readonly existingAccount = signal(false);
+  protected readonly accountPendingActivation = signal(false);
   protected readonly showPassword = signal(false);
   protected readonly showConfirmPassword = signal(false);
   protected readonly provinces = signal<VietnamAddressUnit[]>([]);
@@ -72,6 +74,14 @@ export class Register implements OnInit {
       next: (items) => this.provinces.set(items),
       error: () => this.error.set('Không tải được danh sách tỉnh/thành. Bạn vẫn có thể đăng ký trước.'),
     });
+
+    this.phoneForm.controls.phone.valueChanges.subscribe(() => {
+      if (this.existingAccount() || this.accountPendingActivation() || this.error()) {
+        this.existingAccount.set(false);
+        this.accountPendingActivation.set(false);
+        this.error.set('');
+      }
+    });
   }
 
   protected submitPhone(): void {
@@ -79,25 +89,58 @@ export class Register implements OnInit {
       return;
     }
     this.clearMessages();
+    this.existingAccount.set(false);
+    this.accountPendingActivation.set(false);
     if (this.phoneForm.invalid) {
       this.phoneForm.markAllAsTouched();
       return;
     }
 
-    const phone = this.phoneForm.controls.phone.value;
+    const phone = this.phoneForm.controls.phone.value.trim();
     this.phone.set(phone);
-    this.step.set('otp');
-    this.notice.set('Đang gửi mã OTP...');
     this.busy.set(true);
+    this.notice.set('Đang kiểm tra số điện thoại...');
+
+    this.authApi.checkPhone(phone).subscribe({
+      next: (response) => {
+        if (response.accountExists) {
+          this.busy.set(false);
+          this.notice.set('');
+          this.existingAccount.set(true);
+          this.error.set('Số điện thoại này đã được đăng ký tài khoản. Vui lòng đăng nhập hoặc khôi phục mật khẩu.');
+          return;
+        }
+        this.sendRegistrationOtp(phone);
+      },
+      error: () => {
+        // Fallback nếu checkPhone gặp sự cố mạng, backend requestSmsOtp vẫn sẽ kiểm tra
+        this.sendRegistrationOtp(phone);
+      },
+    });
+  }
+
+  private sendRegistrationOtp(phone: string): void {
+    this.notice.set('Đang gửi mã OTP...');
     this.authApi
       .requestSmsOtp(phone, 'REGISTRATION')
       .pipe(finalize(() => this.busy.set(false)))
       .subscribe({
         next: () => {
+          this.step.set('otp');
           this.notice.set('Mã OTP đã được gửi đến số điện thoại của bạn.');
           setTimeout(() => this.notice.set(''), 4000);
         },
-        error: (response) => this.showError(response),
+        error: (response) => {
+          const msg = apiErrorMessage(response);
+          const errCode = (response as { error?: { code?: string } })?.error?.code;
+          if (msg.includes('đã có tài khoản') || msg.includes('đã được đăng ký') || errCode === 'PHONE_ALREADY_USED') {
+            this.existingAccount.set(true);
+          }
+          if (errCode === 'ACCOUNT_PENDING_ACTIVATION') {
+            this.accountPendingActivation.set(true);
+          }
+          this.showError(response);
+        },
       });
   }
 
@@ -149,6 +192,8 @@ export class Register implements OnInit {
 
   protected backToPhone(): void {
     this.step.set('phone');
+    this.existingAccount.set(false);
+    this.accountPendingActivation.set(false);
     this.otpForm.reset();
     this.profileForm.reset();
     this.clearMessages();
