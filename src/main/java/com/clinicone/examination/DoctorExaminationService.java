@@ -522,9 +522,10 @@ public class DoctorExaminationService {
             if (item == null || !StringUtils.hasText(item.medicationName()) || item.medicationName().trim().length() > 200
                     || !StringUtils.hasText(item.dosage()) || item.dosage().trim().length() > 100
                     || item.quantity() == null || item.quantity() < 1 || item.quantity() > 999
+                    || !StringUtils.hasText(item.unit()) || item.unit().trim().length() > 50
                     || !StringUtils.hasText(item.instructions()) || item.instructions().trim().length() > 500) {
                 throw new AuthException(HttpStatus.BAD_REQUEST, "PRESCRIPTION_LINE_INVALID",
-                        "Mỗi dòng thuốc cần có tên, liều, số lượng và cách dùng hợp lệ.");
+                        "Mỗi dòng thuốc cần có tên, liều, số lượng, đơn vị tính và cách dùng hợp lệ.");
             }
             if (item.medicationId() == null) {
                 lines.add(PrescriptionLine.create(record, item, index + 1));

@@ -91,6 +91,52 @@ describe('MedicalRecordTemplateManagement', () => {
     http.expectOne((candidate) => candidate.url === '/api/v1/medical-record-templates').flush([]);
   });
 
+  it('shows template management as read-only view mode for DOCTOR role', () => {
+    sessionStorage.setItem('clinicOneStaffRole', 'DOCTOR');
+    sessionStorage.setItem('clinicOneStaffRoles', JSON.stringify(['DOCTOR']));
+
+    const tplWithPrescription = {
+      ...template(),
+      fieldDefinition: JSON.stringify({
+        reason: 'Khám kiểm tra',
+        examinationNotes: 'Bụng mềm, không điểm đau khu trú',
+        diagnosis: 'Viêm dạ dày cấp',
+        prescriptionLines: [
+          { medicationName: 'Phosphalugel', dosage: '1 gói x 2 lần', quantity: 14, unit: 'Gói', instructions: 'Uống khi đau' }
+        ]
+      })
+    };
+    flushReferenceData([tplWithPrescription]);
+    fixture.detectChanges();
+
+    // DOCTOR cannot see "Thiết lập mẫu" tab
+    expect(fixture.nativeElement.querySelector('[workspace-tabs]')?.textContent).not.toContain('Thiết lập mẫu');
+    // DOCTOR cannot see "+ Thêm mẫu phiếu" button
+    expect(fixture.nativeElement.querySelector('[data-testid="add-template-btn"]')).toBeNull();
+
+    // DOCTOR sees "Xem" button instead of Edit / Delete buttons
+    const row = fixture.nativeElement.querySelector('[data-testid="template-row-0"]');
+    expect(row.textContent).toContain('Xem');
+    expect(row.querySelector('button[title="Sửa mẫu"]')).toBeNull();
+    expect(row.querySelector('button[title="Xóa mẫu"]')).toBeNull();
+
+    // Clicking "Xem" opens read-only detail modal
+    const viewBtn = Array.from(row.querySelectorAll('button')).find((b: any) => b.textContent.includes('Xem')) as HTMLButtonElement;
+    viewBtn.click();
+    fixture.detectChanges();
+
+    const modal = fixture.nativeElement.querySelector('[role="dialog"]');
+    expect(modal).toBeTruthy();
+    expect(modal.textContent).toContain('Phosphalugel');
+    expect(modal.textContent).toContain('Viêm dạ dày cấp');
+
+    // Clicking close button dismisses modal
+    const closeBtn = modal.querySelector('button[aria-label="Đóng"]') as HTMLButtonElement;
+    closeBtn.click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
+  });
+
   function flushReferenceData(templates = [template()]): void {
     http.expectOne((candidate) => candidate.url === '/api/v1/medical-record-templates').flush(templates);
     http.expectOne((candidate) => candidate.url === '/api/v1/specialties').flush([

@@ -145,9 +145,9 @@ export const queueSupervisorGuard: CanActivateFn = (_route, state) => {
   if (!token || !isStaffSession() || !roles.length) {
     return router.createUrlTree(['/staff/login'], { queryParams: { returnUrl: state.url } });
   }
-  return roles.some((role) => ['ADMIN', 'COORDINATOR'].includes(role))
+  return roles.includes('COORDINATOR')
     ? true
-    : router.createUrlTree(['/home']);
+    : router.createUrlTree(['/admin/rooms']);
 };
 
 export const adminGuard: CanActivateFn = (_route, state) => {
