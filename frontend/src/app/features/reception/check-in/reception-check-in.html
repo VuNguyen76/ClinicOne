@@ -161,15 +161,12 @@
               <option [value]="doctor.staffId">{{ doctor.fullName }} · {{ doctor.roomCode }} · {{ doctor.shiftStatus === 'ACTIVE' ? 'Trong ca' : 'Ngoài ca' }} · Chờ {{ doctor.waitingCount }}</option>
             }
           </select>
-          <label class="mt-2 flex items-center gap-2 text-xs"><input type="checkbox" [checked]="adjustmentShowDifferentSpecialty()" (change)="adjustmentShowDifferentSpecialty.set(($event.target).checked)"> Hiện bác sĩ khác khoa (cảnh báo)</label>
-          @if (adjustmentShowDifferentSpecialty() && doctors().find(d=>d.staffId===adjustmentDoctorId())?.specialty !== adjustmentTicket()?.specialty) {
-            <p class="mt-1 text-xs text-amber-600">Cảnh báo: chuyển khác khoa — kiểm tra kỹ trước khi xác nhận.</p>
-          }
+          <label class="mt-2 flex items-center gap-2 text-xs"><input type="checkbox" [checked]="adjustmentShowDifferentSpecialty()" (change)="adjustmentShowDifferentSpecialty.set(($event.target).checked)"> Hiện bác sĩ khác khoa</label>
         </div>
         @if (doctors().find(d=>d.staffId===adjustmentDoctorId()); as sel) {
-          <div>
-            <label class="erp-label">Khung giờ đích (1 slot = 1 chỗ)</label>
-            <select class="erp-select" [ngModel]="adjustmentSelectedSlot()" (ngModelChange)="adjustmentSelectedSlot.set($event)" name="adjustmentSlot">
+          <div class="mt-3">
+            <label class="erp-label">Khung giờ đích</label>
+            <select class="erp-select max-h-40 overflow-y-auto" size="6" style="max-height: 160px;" [ngModel]="adjustmentSelectedSlot()" (ngModelChange)="adjustmentSelectedSlot.set($event)" name="adjustmentSlot">
               @for (slot of sel.slots; track slot.startTime) {
                 <option [value]="slot.startTime.slice(0,5)" [disabled]="slot.remaining===0">{{ slot.startTime.slice(0,5) }} - {{ slot.endTime.slice(0,5) }} {{ slot.remaining===0 ? '(Hết)' : '(Còn)' }}</option>
               }
