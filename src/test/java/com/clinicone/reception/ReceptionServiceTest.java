@@ -704,4 +704,72 @@ class ReceptionServiceTest {
         verifyNoInteractions(doctorProfileRepository, appointmentService);
     }
 
+    @Test
+    void doctorsAvailabilityHidesPastSlotsForToday() {
+        Clock clock = Clock.fixed(Instant.parse("2026-08-07T06:10:00Z"), java.time.ZoneId.of("Asia/Ho_Chi_Minh"));
+        var scheduleRepo = mock(com.clinicone.doctor.DoctorScheduleRepository.class);
+        var svc = new ReceptionService(appointmentRepository, doctorProfileRepository, scheduleRepo, ticketRepository, queueService, clock, patientAccountRepository, appointmentService, patientProfileRepository, null);
+        var room = com.clinicone.queue.ClinicRoom.create("MAT-01", "Phong Mat 01", "Kham Mat");
+        var staff = com.clinicone.auth.StaffAccount.create("doctor01", "hash", "BS A", com.clinicone.auth.StaffRole.DOCTOR);
+        setId(staff, DOCTOR_ID);
+        var profile = com.clinicone.doctor.DoctorProfile.create(staff, "Kham Mat", room);
+        when(doctorProfileRepository.findAllByOrderByCreatedAtDesc()).thenReturn(List.of(profile));
+        var schedule = com.clinicone.doctor.DoctorSchedule.create(profile, TODAY.getDayOfWeek(), LocalTime.of(8,0), LocalTime.of(17,0), 30);
+        when(scheduleRepo.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(profile.getId(), TODAY.getDayOfWeek())).thenReturn(List.of(schedule));
+        when(ticketRepository.findByRoomCodeAndQueueDateOrderByQueueNumberAsc("MAT-01", TODAY)).thenReturn(List.of());
+        when(appointmentRepository.countByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatusIn(any(), any(), any(), any())).thenReturn(0L);
+        var result = svc.doctors(TODAY);
+        var slots = result.get(0).slots();
+        assertThat(slots).extracting(s -> s.startTime().toString()).doesNotContain("08:00", "13:00");
+        assertThat(slots).extracting(s -> s.startTime().toString()).contains("13:30", "14:00");
+    }
+
+    @Test
+    void doctorsAvailabilityShowsAllSlotsForFutureDate() {
+        Clock clock = Clock.fixed(Instant.parse("2026-08-07T06:10:00Z"), java.time.ZoneId.of("Asia/Ho_Chi_Minh"));
+        var scheduleRepo = mock(com.clinicone.doctor.DoctorScheduleRepository.class);
+        var svc = new ReceptionService(appointmentRepository, doctorProfileRepository, scheduleRepo, ticketRepository, queueService, clock, patientAccountRepository, appointmentService, patientProfileRepository, null);
+        var room = com.clinicone.queue.ClinicRoom.create("MAT-01", "Phong Mat 01", "Kham Mat");
+        var staff = com.clinicone.auth.StaffAccount.create("doctor01", "hash", "BS A", com.clinicone.auth.StaffRole.DOCTOR);
+        setId(staff, DOCTOR_ID);
+        var profile = com.clinicone.doctor.DoctorProfile.create(staff, "Kham Mat", room);
+        var tomorrow = TODAY.plusDays(1);
+        when(doctorProfileRepository.findAllByOrderByCreatedAtDesc()).thenReturn(List.of(profile));
+        var schedule = com.clinicone.doctor.DoctorSchedule.create(profile, tomorrow.getDayOfWeek(), LocalTime.of(8,0), LocalTime.of(17,0), 30);
+        when(scheduleRepo.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(profile.getId(), tomorrow.getDayOfWeek())).thenReturn(List.of(schedule));
+        when(ticketRepository.findByRoomCodeAndQueueDateOrderByQueueNumberAsc("MAT-01", tomorrow)).thenReturn(List.of());
+        when(appointmentRepository.countByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatusIn(any(), any(), any(), any())).thenReturn(0L);
+        var result = svc.doctors(tomorrow);
+        var slots = result.get(0).slots();
+        assertThat(slots).extracting(s -> s.startTime().toString()).contains("08:00", "08:30");
+    }
+
+    @Test
+    void doctorsAvailabilityKeepsSlotAtExactNow() {
+        Clock clock = Clock.fixed(Instant.parse("2026-08-07T06:30:00Z"), java.time.ZoneId.of("Asia/Ho_Chi_Minh"));
+        var scheduleRepo = mock(com.clinicone.doctor.DoctorScheduleRepository.class);
+        var svc = new ReceptionService(appointmentRepository, doctorProfileRepository, scheduleRepo, ticketRepository, queueService, clock, patientAccountRepository, appointmentService, patientProfileRepository, null);
+        var room = com.clinicone.queue.ClinicRoom.create("MAT-01", "Phong Mat 01", "Kham Mat");
+        var staff = com.clinicone.auth.StaffAccount.create("doctor01", "hash", "BS A", com.clinicone.auth.StaffRole.DOCTOR);
+        setId(staff, DOCTOR_ID);
+        var profile = com.clinicone.doctor.DoctorProfile.create(staff, "Kham Mat", room);
+        when(doctorProfileRepository.findAllByOrderByCreatedAtDesc()).thenReturn(List.of(profile));
+        var schedule = com.clinicone.doctor.DoctorSchedule.create(profile, TODAY.getDayOfWeek(), LocalTime.of(8,0), LocalTime.of(17,0), 30);
+        when(scheduleRepo.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(profile.getId(), TODAY.getDayOfWeek())).thenReturn(List.of(schedule));
+        when(ticketRepository.findByRoomCodeAndQueueDateOrderByQueueNumberAsc("MAT-01", TODAY)).thenReturn(List.of());
+        when(appointmentRepository.countByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatusIn(any(), any(), any(), any())).thenReturn(0L);
+        var result = svc.doctors(TODAY);
+        var slots = result.get(0).slots();
+        assertThat(slots).extracting(s -> s.startTime().toString()).contains("13:30");
+        assertThat(slots).extracting(s -> s.startTime().toString()).doesNotContain("13:00");
+    }
+
+    private static void setId(Object target, UUID id) {
+        try {
+            var field = target.getClass().getDeclaredField("id");
+            field.setAccessible(true);
+            field.set(target, id);
+        } catch (ReflectiveOperationException e) { throw new AssertionError(e); }
+    }
+
 }

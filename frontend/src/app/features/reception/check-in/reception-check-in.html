@@ -149,19 +149,30 @@
           </div>
         }
         <div>
-          <label class="erp-label">Bác sĩ/phòng đích</label>
+          <label class="erp-label">Bác sĩ/phòng đích (mặc định cùng khoa {{ adjustmentTicket()?.specialty }})</label>
           <select
             class="erp-select"
             [ngModel]="adjustmentDoctorId()"
-            (ngModelChange)="adjustmentDoctorId.set($event)"
+            (ngModelChange)="adjustmentDoctorId.set($event); adjustmentSelectedSlot.set('')"
             name="adjustmentDoctorId"
           >
             <option value="">Chọn khi chuyển hàng đợi</option>
-            @for (doctor of doctors(); track doctor.staffId) {
-              <option [value]="doctor.staffId">{{ doctor.fullName }} · {{ doctor.specialty }} · {{ doctor.roomCode }}</option>
+            @for (doctor of filteredDoctors(); track doctor.staffId) {
+              <option [value]="doctor.staffId">{{ doctor.fullName }} · {{ doctor.roomCode }} · {{ doctor.shiftStatus === 'ACTIVE' ? 'Trong ca' : 'Ngoài ca' }} · Chờ {{ doctor.waitingCount }}</option>
             }
           </select>
+          <label class="mt-2 flex items-center gap-2 text-xs"><input type="checkbox" [checked]="adjustmentShowDifferentSpecialty()" (change)="adjustmentShowDifferentSpecialty.set(($event.target).checked)"> Hiện bác sĩ khác khoa</label>
         </div>
+        @if (doctors().find(d=>d.staffId===adjustmentDoctorId()); as sel) {
+          <div class="mt-3">
+            <label class="erp-label">Khung giờ đích</label>
+            <select class="erp-select max-h-40 overflow-y-auto" size="6" style="max-height: 160px;" [ngModel]="adjustmentSelectedSlot()" (ngModelChange)="adjustmentSelectedSlot.set($event)" name="adjustmentSlot">
+              @for (slot of sel.slots; track slot.startTime) {
+                <option [value]="slot.startTime.slice(0,5)" [disabled]="slot.remaining===0">{{ slot.startTime.slice(0,5) }} - {{ slot.endTime.slice(0,5) }} {{ slot.remaining===0 ? '(Hết)' : '(Còn)' }}</option>
+              }
+            </select>
+          </div>
+        }
         <div>
           <label class="erp-label">Lý do (tối thiểu 10 ký tự)</label>
           <textarea
