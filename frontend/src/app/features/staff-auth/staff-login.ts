@@ -38,11 +38,13 @@ export class StaffLogin {
         const roles = session.roles?.length ? session.roles : [session.role];
         const destination = roles.includes('DOCTOR')
           ? '/doctor'
-          : roles.includes('ADMIN') || roles.includes('COORDINATOR')
-            ? '/admin/rooms'
-            : session.role === 'RECEPTIONIST'
-              ? '/reception'
-              : '/staff/login';
+          : roles.includes('COORDINATOR')
+            ? '/admin/queues'
+            : roles.includes('ADMIN')
+              ? '/admin/rooms'
+              : session.role === 'RECEPTIONIST'
+                ? '/reception'
+                : '/staff/login';
         void this.router.navigateByUrl(destination);
       },
       error: (response) => {

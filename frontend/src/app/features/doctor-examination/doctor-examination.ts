@@ -96,6 +96,10 @@ export class DoctorExamination implements OnInit {
   protected readonly error = signal('');
   protected readonly notice = signal('');
 
+  protected readonly isReadonly = computed(() =>
+    !this.examination() || Boolean(this.examination()?.signedAt) || this.examination()?.status === 'COMPLETED'
+  );
+
   // Clinical Workspace Tabs
   protected readonly activeTab = signal<'exam' | 'diagnosis' | 'prescription'>('exam');
   protected selectTab(tab: 'exam' | 'diagnosis' | 'prescription'): void {
@@ -313,7 +317,7 @@ export class DoctorExamination implements OnInit {
         this.prescriptionEnabled.set(this.prescriptionLines.length > 0);
         this.prescriptionRevision.update((v) => v + 1);
         this.followUpEnabled.set(value.followUpDays != null || Boolean(value.followUpNote));
-        if (value.signedAt) this.form.disable();
+        if (value.signedAt || value.status === 'COMPLETED') this.form.disable();
         this.loading.set(false);
       },
       error: (response) => {
@@ -328,7 +332,7 @@ export class DoctorExamination implements OnInit {
   }
 
   protected openMedicalTemplates(): void {
-    if (this.examination()?.signedAt) return;
+    if (this.isReadonly()) return;
     this.templatesOpen.set(true);
     if (this.templatesLoaded() || this.templatesLoading()) return;
     this.templatesLoading.set(true);
@@ -387,7 +391,8 @@ export class DoctorExamination implements OnInit {
 
   private persistDraft(manual: boolean): void {
     const ticketId = this.examination()?.ticketId;
-    if (!ticketId || this.saving() || this.signing() || this.examination()?.requiresMedicalRecord === false) return;
+    if (!ticketId || this.saving() || this.signing() || this.isReadonly() || this.examination()?.requiresMedicalRecord === false) return;
+    if (manual && !this.validateVitalsBeforeSaving()) return;
     if (!this.validatePrescriptionLines()) return;
     this.saving.set(true);
     this.error.set('');
@@ -411,22 +416,64 @@ export class DoctorExamination implements OnInit {
   }
 
   private autosaveDraft(): void {
-    if (!this.draftDirty || this.loading() || this.examination()?.signedAt || this.prescriptionLines.invalid) return;
+    if (!this.draftDirty || this.loading() || this.isReadonly() || this.prescriptionLines.invalid || this.form.invalid) return;
     this.persistDraft(false);
+  }
+
+  protected validateVitalsBeforeSaving(): boolean {
+    const invalidFields: string[] = [];
+    if (this.form.controls.heartRate.invalid) invalidFields.push('Nhịp tim (20 - 300 lần/phút)');
+    if (this.form.controls.temperature.invalid) invalidFields.push('Thân nhiệt (30 - 45°C)');
+    if (this.form.controls.spO2.invalid) invalidFields.push('SpO2 (50 - 100%)');
+    if (this.form.controls.weight.invalid) invalidFields.push('Cân nặng (1 - 500 kg)');
+    if (this.form.controls.height.invalid) invalidFields.push('Chiều cao (30 - 300 cm)');
+    if (this.form.controls.bloodPressure.invalid) invalidFields.push('Huyết áp (tối đa 30 ký tự)');
+
+    if (invalidFields.length > 0) {
+      this.selectTab('exam');
+      this.error.set(`Chỉ số sinh hiệu không hợp lệ: ${invalidFields.join(', ')}.`);
+      return false;
+    }
+    return true;
   }
 
   protected requestSign(): void {
     const ticketId = this.examination()?.ticketId;
     if (!ticketId || this.saving() || this.signing() || this.examination()?.status === 'COMPLETED') return;
-    const required = ['reason', 'examinationNotes', 'diagnosis', 'conclusion'] as const;
     if (this.examination()?.requiresMedicalRecord !== false) {
-      required.forEach((name) => this.form.controls[name].markAsTouched());
-      if (required.some((name) => !this.form.controls[name].value?.trim())) {
+      // 1. Kiểm tra Tab 1 (Lý do khám & ghi nhận lâm sàng)
+      if (!this.form.controls.reason.value?.trim() || !this.form.controls.examinationNotes.value?.trim()) {
+        this.form.controls.reason.markAsTouched();
+        this.form.controls.examinationNotes.markAsTouched();
+        this.selectTab('exam');
         this.error.set('Nhập đủ lý do khám, ghi nhận khám, chẩn đoán và kết luận trước khi ký.');
         return;
       }
-      if (!this.validatePrescriptionLines()) return;
-      if (!this.validateFollowUpBeforeSigning()) return;
+
+      // 2. Kiểm tra chỉ số sinh hiệu
+      if (!this.validateVitalsBeforeSaving()) return;
+
+      // 3. Kiểm tra Tab 2 (Chẩn đoán & Kết luận)
+      if (!this.form.controls.diagnosis.value?.trim() || !this.form.controls.conclusion.value?.trim()) {
+        this.form.controls.diagnosis.markAsTouched();
+        this.form.controls.conclusion.markAsTouched();
+        this.selectTab('diagnosis');
+        this.error.set('Nhập đủ lý do khám, ghi nhận khám, chẩn đoán và kết luận trước khi ký.');
+        return;
+      }
+
+      // 4. Kiểm tra Tab 3 (Đơn thuốc điều trị)
+      if (!this.validatePrescriptionLines()) {
+        this.selectTab('prescription');
+        return;
+      }
+
+      // 5. Kiểm tra Tab 3 (Hẹn tái khám nếu bật)
+      if (!this.validateFollowUpBeforeSigning()) {
+        this.selectTab('prescription');
+        return;
+      }
+
       this.ensureSignRequestKey();
       this.confirmingSign.set(true);
       return;
@@ -542,21 +589,21 @@ export class DoctorExamination implements OnInit {
   }
 
   protected addPrescriptionLine(): void {
-    if (this.prescriptionLines.length >= 20 || this.examination()?.signedAt) return;
+    if (this.prescriptionLines.length >= 20 || this.isReadonly()) return;
     this.prescriptionEnabled.set(true);
     this.prescriptionLines.push(this.createPrescriptionLine());
     this.prescriptionRevision.update((v) => v + 1);
   }
 
   protected removePrescriptionLine(index: number): void {
-    if (this.examination()?.signedAt) return;
+    if (this.isReadonly()) return;
     this.prescriptionLines.removeAt(index);
     this.prescriptionEnabled.set(this.prescriptionLines.length > 0);
     this.prescriptionRevision.update((v) => v + 1);
   }
 
   protected toggleFollowUp(): void {
-    if (this.examination()?.signedAt) return;
+    if (this.isReadonly()) return;
     const enabled = !this.followUpEnabled();
     this.followUpEnabled.set(enabled);
     if (!enabled) {
@@ -660,6 +707,24 @@ export class DoctorExamination implements OnInit {
     return formatClinicDate(value) || 'Chưa cập nhật';
   }
 
+  protected patientBirthLabel(value: string | null | undefined): string {
+    const formatted = this.formatDate(value);
+    if (!value || formatted === 'Chưa cập nhật') return 'Chưa cập nhật';
+    try {
+      const birthDate = new Date(value);
+      if (isNaN(birthDate.getTime())) return formatted;
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      return age >= 0 ? `${formatted} (${age} tuổi)` : formatted;
+    } catch {
+      return formatted;
+    }
+  }
+
   protected formatTime(value: string | null | undefined): string {
     return formatClinicTime(value);
   }
@@ -738,8 +803,8 @@ export class DoctorExamination implements OnInit {
             medicationId: [null],
             medicationName: [line.medicationName, [Validators.required, Validators.maxLength(200)]],
             dosage: [line.dosage, [Validators.required, Validators.maxLength(100)]],
-            quantity: [line.quantity, [Validators.required, Validators.min(1), Validators.max(999)]],
-            unit: [line.unit || 'Viên', [Validators.maxLength(50)]],
+            quantity: [line.quantity, [Validators.required, Validators.min(1), Validators.max(999), Validators.pattern(/^[1-9]\d*$/)]],
+            unit: [line.unit || 'Viên', [Validators.required, Validators.maxLength(50)]],
             instructions: [line.instructions, [Validators.required, Validators.maxLength(500)]],
           }) as PrescriptionLineForm);
         });
@@ -755,22 +820,40 @@ export class DoctorExamination implements OnInit {
     this.notice.set(templateName ? `Đã áp dụng mẫu ${templateName}.` : 'Đã áp dụng mẫu phiếu.');
   }
 
+  protected lineControlInvalid(index: number, controlName: keyof PrescriptionLineForm['controls']): boolean {
+    const line = this.prescriptionLines.at(index);
+    if (!line) return false;
+    const ctrl = line.get(controlName);
+    return Boolean(ctrl && ctrl.invalid && (ctrl.touched || ctrl.dirty));
+  }
+
   private createPrescriptionLine(line?: DoctorExaminationResponse['prescriptionLines'][number]): PrescriptionLineForm {
     return this.fb.group({
       medicationId: [line?.medicationId ?? null],
       medicationName: [line?.medicationName ?? '', [Validators.required, Validators.maxLength(200)]],
       dosage: [line?.dosage ?? '', [Validators.required, Validators.maxLength(100)]],
-      quantity: [line?.quantity ?? 1, [Validators.required, Validators.min(1), Validators.max(999)]],
-      unit: [line?.unit ?? 'Viên', [Validators.maxLength(50)]],
+      quantity: [line?.quantity ?? 1, [Validators.required, Validators.min(1), Validators.max(999), Validators.pattern(/^[1-9]\d*$/)]],
+      unit: [line?.unit ?? 'Viên', [Validators.required, Validators.maxLength(50)]],
       instructions: [line?.instructions ?? '', [Validators.required, Validators.maxLength(500)]],
     }) as PrescriptionLineForm;
   }
 
   private validatePrescriptionLines(): boolean {
-    if (this.prescriptionLines.valid) return true;
-    this.prescriptionLines.markAllAsTouched();
-    this.error.set('Mỗi thuốc cần có tên, liều dùng, số lượng và hướng dẫn sử dụng hợp lệ.');
-    return false;
+    if (this.prescriptionLines.length === 0) return true;
+    let valid = true;
+    for (let i = 0; i < this.prescriptionLines.length; i++) {
+      const line = this.prescriptionLines.at(i);
+      line.markAllAsTouched();
+      if (line.invalid) {
+        valid = false;
+      }
+    }
+    if (!valid) {
+      this.selectTab('prescription');
+      this.error.set('Đơn thuốc chưa hợp lệ. Vui lòng kiểm tra lại số lượng (1-999), liều dùng, ĐVT và hướng dẫn sử dụng của từng thuốc.');
+      return false;
+    }
+    return true;
   }
 
   private validateFollowUpBeforeSigning(): boolean {
@@ -837,7 +920,7 @@ export class DoctorExamination implements OnInit {
   }
 
   protected openMedicationCatalog(): void {
-    if (this.examination()?.signedAt) return;
+    if (this.isReadonly()) return;
     this.medicationCatalogOpen.set(true);
     this.loadDoctorMedications();
   }
@@ -859,16 +942,56 @@ export class DoctorExamination implements OnInit {
     this.medicationSearchQuery.set('');
   }
 
+  protected getPrescribedQuantity(item: SpecialtyMedicationItem): number {
+    const ctrl = this.prescriptionLines.controls.find(
+      (c) => (item.id && c.controls.medicationId.value === item.id) ||
+             c.controls.medicationName.value?.trim().toLowerCase() === item.name.trim().toLowerCase()
+    );
+    return ctrl ? (Number(ctrl.controls.quantity.value) || 0) : 0;
+  }
+
   protected prescribeFromCatalog(item: SpecialtyMedicationItem): void {
-    if (this.prescriptionLines.length >= 20 || this.examination()?.signedAt) return;
+    if (this.isReadonly()) return;
+
+    // Kiểm tra xem thuốc đã có trong đơn hay chưa
+    const existingIndex = this.prescriptionLines.controls.findIndex(
+      (ctrl) => (item.id && ctrl.controls.medicationId.value === item.id) ||
+                ctrl.controls.medicationName.value?.trim().toLowerCase() === item.name.trim().toLowerCase()
+    );
+
+    if (existingIndex >= 0) {
+      const existingLine = this.prescriptionLines.at(existingIndex);
+      const currentQty = Number(existingLine.controls.quantity.value) || 0;
+      if (currentQty < 999) {
+        const newQty = currentQty + 1;
+        existingLine.controls.quantity.setValue(newQty);
+        this.prescriptionRevision.update((v) => v + 1);
+        this.notice.set(`Thuốc "${item.name}" đã có trong đơn — đã tăng số lượng lên ${newQty}.`);
+      } else {
+        this.notice.set(`Thuốc "${item.name}" đã đạt số lượng tối đa (999).`);
+      }
+      setTimeout(() => {
+        if (this.notice().includes(item.name)) this.notice.set('');
+      }, 3000);
+      return;
+    }
+
+    if (this.prescriptionLines.length >= 20) {
+      this.error.set('Đơn thuốc đã đạt tối đa 20 loại thuốc.');
+      setTimeout(() => {
+        if (this.error().includes('tối đa 20')) this.error.set('');
+      }, 3000);
+      return;
+    }
+
     this.prescriptionEnabled.set(true);
     const line = this.fb.group({
       medicationId: [item.id ?? null],
       medicationName: [item.name, [Validators.required, Validators.maxLength(200)]],
-      dosage: [item.dosage, [Validators.required, Validators.maxLength(100)]],
-      quantity: [1, [Validators.required, Validators.min(1), Validators.max(999)]],
-      unit: [item.unit || 'Viên', [Validators.maxLength(50)]],
-      instructions: [item.instructions, [Validators.required, Validators.maxLength(500)]],
+      dosage: [item.dosage || '1 viên / lần', [Validators.required, Validators.maxLength(100)]],
+      quantity: [1, [Validators.required, Validators.min(1), Validators.max(999), Validators.pattern(/^[1-9]\d*$/)]],
+      unit: [item.unit || 'Viên', [Validators.required, Validators.maxLength(50)]],
+      instructions: [item.instructions || 'Dùng theo chỉ định của bác sĩ', [Validators.required, Validators.maxLength(500)]],
     }) as PrescriptionLineForm;
     this.prescriptionLines.push(line);
     this.prescriptionRevision.update((v) => v + 1);

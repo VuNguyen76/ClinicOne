@@ -39,8 +39,8 @@ const NAVIGATION: StaffNavigationGroup[] = [
   {
     label: 'Lịch làm việc',
     items: [
-      { label: 'Thời khóa biểu', route: '/admin/schedule-templates', icon: 'calendar_month', roles: ['ADMIN', 'COORDINATOR', 'DOCTOR', 'RECEPTIONIST'] },
-      { label: 'Báo vắng & Nghỉ phép', route: '/admin/doctor-time-off', icon: 'event_busy', roles: ['ADMIN', 'COORDINATOR', 'DOCTOR', 'RECEPTIONIST'] },
+      { label: 'Thời khóa biểu', route: '/admin/schedule-templates', icon: 'calendar_month', roles: ['ADMIN', 'COORDINATOR'] },
+      { label: 'Báo vắng & Nghỉ phép', route: '/admin/doctor-time-off', icon: 'event_busy', roles: ['ADMIN', 'COORDINATOR', 'DOCTOR'] },
     ],
   },
   {
@@ -55,22 +55,22 @@ const NAVIGATION: StaffNavigationGroup[] = [
   {
     label: 'Chuyên môn',
     items: [
-      { label: 'Dược phẩm & Thuốc', route: '/admin/medications', icon: 'medication', roles: ['ADMIN', 'COORDINATOR', 'DOCTOR'] },
-      { label: 'Chẩn đoán', route: '/admin/diagnoses', icon: 'clinical_notes', roles: ['ADMIN', 'COORDINATOR', 'DOCTOR'] },
-      { label: 'Mẫu bệnh án', route: '/admin/medical-record-templates', icon: 'assignment', roles: ['ADMIN', 'DOCTOR'] },
+      { label: 'Dược phẩm & Thuốc', route: '/admin/medications', icon: 'medication', roles: ['ADMIN', 'COORDINATOR'] },
+      { label: 'Chẩn đoán', route: '/admin/diagnoses', icon: 'clinical_notes', roles: ['ADMIN', 'COORDINATOR'] },
+      { label: 'Mẫu bệnh án', route: '/admin/medical-record-templates', icon: 'assignment', roles: ['ADMIN', 'COORDINATOR', 'DOCTOR'] },
     ],
   },
   {
     label: 'Dịch vụ & Khoa',
     items: [
-      { label: 'Dịch vụ', route: '/admin/services', icon: 'medical_information', roles: ['ADMIN'] },
-      { label: 'Chuyên khoa', route: '/admin/specialties', icon: 'local_hospital', roles: ['ADMIN'] },
+      { label: 'Dịch vụ', route: '/admin/services', icon: 'medical_information', roles: ['ADMIN', 'COORDINATOR'] },
+      { label: 'Chuyên khoa', route: '/admin/specialties', icon: 'local_hospital', roles: ['ADMIN', 'COORDINATOR'] },
     ],
   },
   {
     label: 'Báo cáo & Kiểm soát',
     items: [
-      { label: 'Báo cáo thống kê', route: '/admin/statistics', icon: 'analytics', roles: ['ADMIN', 'COORDINATOR', 'DOCTOR'] },
+      { label: 'Báo cáo thống kê', route: '/admin/statistics', icon: 'analytics', roles: ['ADMIN', 'COORDINATOR'] },
       { label: 'Đối soát dữ liệu', route: '/admin/reconciliations', icon: 'fact_check', roles: ['ADMIN', 'COORDINATOR'] },
       { label: 'Nhật ký thao tác', route: '/admin/business-audit', icon: 'history', roles: ['ADMIN'] },
       { label: 'Nhật ký bảo mật', route: '/admin/access-audit', icon: 'security', roles: ['ADMIN'] },
