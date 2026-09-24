@@ -22,6 +22,7 @@ import java.util.HexFormat;
 import java.util.UUID;
 import com.clinicone.notification.PatientNotificationBackfillService;
 import com.clinicone.notification.PatientNotificationService;
+import com.clinicone.validation.VietnamesePhoneNumbers;
 
 @Service
 @Transactional(readOnly = true)
@@ -64,13 +65,14 @@ public class AccountAuthService {
 
     @Transactional
     public RegistrationResponse register(RegistrationRequest request) {
-        String phone = request.phone().trim();
+        String phone = VietnamesePhoneNumbers.local(request.phone());
         if (!otpService.isPhoneRecentlyVerified(phone, OtpPurpose.REGISTRATION)) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "PHONE_NOT_VERIFIED",
                     "Số điện thoại chưa được xác thực OTP.");
         }
         if (accountRepository.existsByPhone(phone)) {
-            throw new AuthException(HttpStatus.CONFLICT, "PHONE_ALREADY_USED", "Số điện thoại đã được sử dụng.");
+            throw new AuthException(HttpStatus.CONFLICT, "PHONE_ALREADY_USED",
+                    "Số điện thoại này đã được đăng ký tài khoản. Vui lòng đăng nhập hoặc khôi phục mật khẩu.");
         }
         PatientAccount account = new PatientAccount(phone, passwordEncoder.encode(request.password()),
                 request.fullName().trim(), AccountStatus.ACTIVE, false);
