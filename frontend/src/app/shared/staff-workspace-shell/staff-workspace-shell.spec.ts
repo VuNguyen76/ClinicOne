@@ -38,12 +38,8 @@ describe('StaffWorkspaceShell', () => {
     const links = Array.from(fixture.nativeElement.querySelectorAll('[data-testid="staff-module-nav"] a')) as HTMLAnchorElement[];
     expect(links.map((link) => link.querySelector('span')?.textContent?.trim())).toEqual([
       'Phòng khám của tôi',
-      'Thời khóa biểu',
       'Báo vắng & Nghỉ phép',
-      'Dược phẩm & Thuốc',
-      'Chẩn đoán',
       'Mẫu bệnh án',
-      'Báo cáo thống kê',
     ]);
     expect(links.some((link) => link.getAttribute('href') === '/home')).toBe(false);
   });
@@ -72,13 +68,13 @@ describe('StaffWorkspaceShell', () => {
 
   it('filters the module menu from the functional search input', () => {
     const input = fixture.nativeElement.querySelector('input[type="search"]') as HTMLInputElement;
-    input.value = 'thời khóa biểu';
+    input.value = 'bệnh án';
     input.dispatchEvent(new Event('input'));
     fixture.detectChanges();
 
     const items = fixture.nativeElement.querySelectorAll('[data-testid="staff-module-nav"] a span') as NodeListOf<HTMLSpanElement>;
     const labels = Array.from(items).map((element) => element.textContent?.trim());
-    expect(labels).toEqual(['Thời khóa biểu']);
+    expect(labels).toEqual(['Mẫu bệnh án']);
   });
 
   it('shows each reception workflow as a separate menu destination', () => {
@@ -96,8 +92,6 @@ describe('StaffWorkspaceShell', () => {
       '/reception/queue',
       '/reception/exceptions',
       '/reception/profiles',
-      '/admin/schedule-templates',
-      '/admin/doctor-time-off',
     ]);
   });
 
@@ -112,6 +106,7 @@ describe('StaffWorkspaceShell', () => {
     const hrefs = links.map((link) => link.getAttribute('href'));
     expect(hrefs).toContain('/admin/diagnoses');
     expect(hrefs).not.toContain('/admin/reason-catalog');
+    expect(hrefs).not.toContain('/admin/queues');
   });
 
   it('shows operational queue supervision and management links for coordinator', () => {

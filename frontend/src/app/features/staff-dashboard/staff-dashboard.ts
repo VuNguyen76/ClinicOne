@@ -49,13 +49,17 @@ export class StaffDashboard implements OnInit, OnDestroy {
   protected readonly currentDoctorTicket = computed(() =>
     this.queue().find((ticket) => ticket.status === 'IN_SERVICE')
       ?? this.queue().find((ticket) => ticket.status === 'CALLED'));
-  protected readonly nextWaitingTicket = computed(() => this.doctorShiftStatus() === 'ACTIVE'
+  protected readonly nextWaitingTicket = computed(() => (this.doctorShiftStatus() === 'ACTIVE' && this.isToday())
     ? this.queue().find((ticket) =>
-        (ticket.status === 'WAITING' && ticket.presenceStatus !== 'RETURN_REQUIRED') || ticket.status === 'SKIPPED')
+        ticket.presenceStatus !== 'RETURN_REQUIRED' && (ticket.status === 'WAITING' || ticket.status === 'SKIPPED'))
     : undefined);
 
   protected readonly isOwnDoctor = computed(() => this.role() === 'DOCTOR');
   protected readonly canManageRooms = computed(() => ['ADMIN', 'COORDINATOR'].includes(this.role()));
+  protected readonly operatingTicket = signal<QueueTicketResponse | null>(null);
+  protected readonly operatingAction = signal<'leave' | 'unavailable' | null>(null);
+  protected readonly operatingReason = signal('');
+  protected readonly operatingBusy = signal(false);
 
   ngOnInit(): void {
     if (this.isOwnDoctor()) {
@@ -197,7 +201,24 @@ export class StaffDashboard implements OnInit, OnDestroy {
     return this.selectedDate() === clinicTodayIso();
   }
 
+  protected canCallTicket(ticket: QueueTicketResponse): boolean {
+    return this.isOwnDoctor()
+      && this.isToday()
+      && this.doctorShiftStatus() === 'ACTIVE'
+      && ticket.presenceStatus !== 'RETURN_REQUIRED'
+      && (ticket.status === 'WAITING' || ticket.status === 'SKIPPED');
+  }
+
+  protected canStartTicket(ticket: QueueTicketResponse): boolean {
+    return this.isOwnDoctor()
+      && this.isToday()
+      && this.doctorShiftStatus() === 'ACTIVE'
+      && ticket.status === 'CALLED';
+  }
+
   protected act(ticket: QueueTicketResponse, action: QueueAction): void {
+    if (action === 'start' && !this.canStartTicket(ticket)) return;
+    if (action === 'skip' && (!this.isOwnDoctor() || !this.isToday() || ticket.status !== 'CALLED')) return;
     this.busyTicketId.set(ticket.id);
     this.error.set('');
     if (action === 'start') {
@@ -234,7 +255,7 @@ export class StaffDashboard implements OnInit, OnDestroy {
   }
 
   protected callNextDoctor(): void {
-    if (!this.isOwnDoctor() || !this.nextWaitingTicket()) return;
+    if (!this.isOwnDoctor() || !this.isToday() || !this.nextWaitingTicket()) return;
     this.busyTicketId.set('next');
     this.error.set('');
     this.authApi.callNextDoctor(this.selectedDate()).subscribe({
@@ -246,6 +267,79 @@ export class StaffDashboard implements OnInit, OnDestroy {
         this.busyTicketId.set('');
         this.handleError(response);
       },
+    });
+  }
+
+  protected callTicket(ticket: QueueTicketResponse): void {
+    if (!this.canCallTicket(ticket)) return;
+    this.busyTicketId.set(ticket.id);
+    this.error.set('');
+    this.authApi.callQueueTicket(ticket.id).subscribe({
+      next: (updated) => {
+        this.queue.update((items) => items.map((item) => item.id === updated.id ? updated : item));
+        this.busyTicketId.set('');
+      },
+      error: (response) => {
+        this.busyTicketId.set('');
+        this.handleError(response);
+      },
+    });
+  }
+
+  protected openLeaveDialog(ticket: QueueTicketResponse): void {
+    this.operatingTicket.set(ticket);
+    this.operatingAction.set('leave');
+    this.operatingReason.set('Người bệnh xin rời hàng đợi trước khám');
+    this.error.set('');
+  }
+
+  protected openUnavailableDialog(ticket: QueueTicketResponse): void {
+    this.operatingTicket.set(ticket);
+    this.operatingAction.set('unavailable');
+    this.operatingReason.set('Phòng khám tạm ngưng hoạt động');
+    this.error.set('');
+  }
+
+  protected closeOperatingDialog(): void {
+    if (!this.operatingBusy()) {
+      this.operatingTicket.set(null);
+      this.operatingAction.set(null);
+      this.operatingReason.set('');
+    }
+  }
+
+  protected submitOperatingAction(): void {
+    const ticket = this.operatingTicket();
+    const action = this.operatingAction();
+    const reason = this.operatingReason().trim();
+    if (!ticket || !action) return;
+    if (reason.length < 3) {
+      this.error.set('Vui lòng nhập lý do tối thiểu 3 ký tự.');
+      return;
+    }
+    this.operatingBusy.set(true);
+    this.error.set('');
+
+    const request$ = action === 'leave'
+      ? this.authApi.leaveQueueTicket(ticket.id, reason)
+      : this.authApi.markQueueFacilityUnavailable(ticket.id, reason);
+
+    request$.subscribe({
+      next: (updated) => {
+        this.queue.update((items) => items.map((item) => item.id === updated.id ? updated : item));
+        this.operatingBusy.set(false);
+        this.closeOperatingDialog();
+      },
+      error: (response) => {
+        this.operatingBusy.set(false);
+        this.handleError(response);
+      },
+    });
+  }
+
+  protected navigateToReschedule(ticket: QueueTicketResponse): void {
+    void this.router.navigate(['/admin/rescheduling'], {
+      queryParams: { q: ticket.appointmentCode },
     });
   }
 
@@ -272,6 +366,16 @@ export class StaffDashboard implements OnInit, OnDestroy {
     return formatClinicPadDate(value) || 'Chưa cập nhật';
   }
 
+  protected patientBirthLabel(dob?: string | null): string {
+    if (!dob) return '';
+    const formatted = formatClinicPadDate(dob);
+    if (!formatted) return '';
+    const birthYear = parseInt(dob.slice(0, 4), 10);
+    const currentYear = new Date().getFullYear();
+    const age = currentYear - birthYear;
+    return age > 0 ? `${age} tuổi (NS: ${formatted})` : `NS: ${formatted}`;
+  }
+
   protected openExamination(ticket: QueueTicketResponse): void {
     void this.router.navigate(['/doctor/examinations', ticket.id]);
   }
@@ -281,6 +385,7 @@ export class StaffDashboard implements OnInit, OnDestroy {
     if (status === 'IN_SERVICE') return 'erp-badge-info';
     if (status === 'COMPLETED') return 'erp-badge-success';
     if (status === 'SKIPPED') return 'erp-badge-warning';
+    if (status === 'LEFT_BEFORE_EXAM') return 'erp-badge-danger';
     return 'erp-badge-info';
   }
 
@@ -289,6 +394,7 @@ export class StaffDashboard implements OnInit, OnDestroy {
     if (status === 'IN_SERVICE') return 'erp-dot-info';
     if (status === 'COMPLETED') return 'erp-dot-success';
     if (status === 'SKIPPED') return 'erp-dot-warning';
+    if (status === 'LEFT_BEFORE_EXAM') return 'erp-dot-danger';
     return 'erp-dot-info';
   }
 

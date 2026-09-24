@@ -142,4 +142,13 @@ describe('ClinicOne route guards', () => {
     expect(TestBed.runInInjectionContext(() => queueSupervisorGuard(null as never, { url: '/admin/queues' } as never))).toBe(true);
     expect(staffLandingRedirect(null as never)).toBe('/admin/queues');
   });
+
+  it('redirects admin from queue supervisor route to rooms workspace', () => {
+    sessionStorage.setItem('clinicOneAccessToken', 'staff-token');
+    sessionStorage.setItem('clinicOneSessionType', 'STAFF');
+    sessionStorage.setItem('clinicOneStaffRole', 'ADMIN');
+
+    const result = TestBed.runInInjectionContext(() => queueSupervisorGuard(null as never, { url: '/admin/queues' } as never));
+    expect(result).toEqual({ commands: ['/admin/rooms'] });
+  });
 });

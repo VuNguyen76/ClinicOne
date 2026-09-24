@@ -33,7 +33,12 @@ export class MedicalRecordTemplateManagement implements OnInit {
     return hasStaffRole('DOCTOR') && !hasStaffRole('COORDINATOR') && !hasStaffRole('ADMIN');
   }
 
+  protected canManageTemplates(): boolean {
+    return hasStaffRole('ADMIN') || hasStaffRole('COORDINATOR');
+  }
+
   protected readonly items = signal<MedicalRecordTemplate[]>([]);
+  protected readonly viewingTemplate = signal<MedicalRecordTemplate | null>(null);
   protected readonly specialties = signal<SpecialtyOption[]>([]);
   protected readonly services = signal<ClinicServiceResponse[]>([]);
   protected readonly diagnoses = signal<DiagnosisSuggestionResponse[]>([]);
@@ -89,7 +94,21 @@ export class MedicalRecordTemplateManagement implements OnInit {
     this.loadInitialData();
   }
 
+  protected viewTemplate(item: MedicalRecordTemplate): void {
+    this.viewingTemplate.set(item);
+  }
+
+  protected closeViewTemplate(): void {
+    this.viewingTemplate.set(null);
+  }
+
+  protected readonly viewingTemplateContent = computed(() => {
+    const item = this.viewingTemplate();
+    return item ? parseMedicalRecordTemplateContent(item.fieldDefinition) : null;
+  });
+
   protected save(): void {
+    if (!this.canManageTemplates()) return;
     this.clearMessages();
     if (!this.code().trim() || !this.name().trim() || !this.specialty()) {
       this.error.set('Vui lòng nhập mã, tên và chọn chuyên khoa.');
@@ -138,6 +157,7 @@ export class MedicalRecordTemplateManagement implements OnInit {
   }
 
   protected edit(item: MedicalRecordTemplate): void {
+    if (!this.canManageTemplates()) return;
     const content = parseMedicalRecordTemplateContent(item.fieldDefinition);
     this.editingId.set(item.id);
     this.code.set(item.code);
@@ -164,6 +184,7 @@ export class MedicalRecordTemplateManagement implements OnInit {
   }
 
   protected startCreate(): void {
+    if (!this.canManageTemplates()) return;
     this.resetForm();
     this.clearMessages();
     this.activeTab.set('form');
@@ -209,6 +230,7 @@ export class MedicalRecordTemplateManagement implements OnInit {
   }
 
   protected deactivate(item: MedicalRecordTemplate): void {
+    if (!this.canManageTemplates()) return;
     if (!confirm(`Ngưng sử dụng mẫu ${item.name}?`)) return;
     this.clearMessages();
     this.api.deactivateMedicalRecordTemplate(item.id).subscribe({
