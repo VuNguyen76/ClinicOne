@@ -191,16 +191,17 @@ describe('ReceptionCheckIn', () => {
     fixture.detectChanges();
 
     (fixture.nativeElement.querySelector('[data-testid="adjust-queue"]') as HTMLButtonElement).click();
-    http.expectOne('/api/v1/reception/doctors').flush([
-      { staffId: 'doctor-2', fullName: 'BS. Nguyễn Bình', specialty: 'Nhi khoa', roomCode: 'NHI-01', roomName: 'Phòng Nhi 01' },
+    http.expectOne((r) => r.url.includes('/api/v1/reception/doctors')).flush([
+      { staffId: 'doctor-2', fullName: 'BS. Nguyễn Bình', specialty: 'Nhi khoa', roomCode: 'NHI-01', roomName: 'Phòng Nhi 01', shiftStatus: 'ACTIVE', waitingCount: 0, slots: [{ startTime: '09:00:00', endTime: '09:30:00', remaining: 1 }] },
     ]);
     component.adjustmentDoctorId.set('doctor-2');
+    component.adjustmentSelectedSlot.set('09:00');
     component.adjustmentReason.set('Điều chuyển theo phân công trong ca');
     component.adjustQueue('MOVE');
     const request = http.expectOne('/api/v1/queue/ticket-1/adjust');
     expect(request.request.body).toEqual({
       action: 'MOVE', targetDoctorId: 'doctor-2', targetRoomCode: 'NHI-01', targetSpecialty: 'Nhi khoa',
-      reason: 'Điều chuyển theo phân công trong ca',
+      reason: 'Điều chuyển theo phân công trong ca', targetStartTime: '09:00',
     });
     request.flush({
       id: 'ticket-1', queueNumber: 8, roomCode: 'NHI-01', roomName: 'Phòng Nhi 01', queueDate: '2026-08-07',
@@ -384,6 +385,31 @@ describe('ReceptionCheckIn', () => {
 
     const input = fixture.nativeElement.querySelector('input[name="walkInExceptionReason"]') as HTMLInputElement;
     expect(input.placeholder).toBe('Người bệnh đến quầy chưa đặt lịch');
+  });
+
+  it('filters doctors to same specialty by default', () => {
+    const c = fixture.componentInstance as any;
+    c.doctors.set([
+      { staffId: 'd1', fullName: 'BS A', specialty: 'Noi tong quat', roomCode: 'NOI-01', shiftStatus: 'ACTIVE', waitingCount: 0, slots: [] },
+      { staffId: 'd2', fullName: 'BS B', specialty: 'Nhi khoa', roomCode: 'NHI-01', shiftStatus: 'ACTIVE', waitingCount: 0, slots: [] },
+    ]);
+    c.adjustmentTicket.set({ specialty: 'Noi tong quat' });
+    expect(c.filteredDoctors().length).toBe(1);
+    expect(c.filteredDoctors()[0].staffId).toBe('d1');
+    c.adjustmentShowDifferentSpecialty.set(true);
+    expect(c.filteredDoctors().length).toBe(2);
+  });
+
+  it('blocks move when target doctor is outside shift', () => {
+    const c = fixture.componentInstance as any;
+    c.doctors.set([{ staffId: 'd1', fullName: 'BS A', specialty: 'Noi tong quat', roomCode: 'NOI-01', shiftStatus: 'NONE', waitingCount: 0, slots: [{ startTime: '09:00:00', endTime: '09:30:00', remaining: 1 }] }]);
+    c.adjustmentTicket.set({ id: 'a-1', queueTicketId: 't-1', specialty: 'Noi tong quat' });
+    c.adjustmentDoctorId.set('d1');
+    c.adjustmentSelectedSlot.set('09:00');
+    c.adjustmentReason.set('Ly do chuyen hop le 12345');
+    c.adjustQueue('MOVE');
+    expect(c.error()).toContain('ngoài ca');
+    expect(http.match('/api/v1/queue/t-1/adjust').length).toBe(0);
   });
 });
 
