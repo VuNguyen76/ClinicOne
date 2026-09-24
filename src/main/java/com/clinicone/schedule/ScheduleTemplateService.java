@@ -117,12 +117,26 @@ public class ScheduleTemplateService {
         for (DayOfWeek dow : template.getWeekdays()) {
             List<DoctorSchedule> existing = doctorScheduleRepository.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(
                     template.getDoctorProfile().getId(), dow);
+            // Deactivate stale rows when dayEnd changes (e.g. 23:00 -> 21:30) to avoid duplicate 21:00 and leak 21:30/22:00
+            for (DoctorSchedule old : existing) {
+                if (!old.getStartTime().equals(template.getDayStart()) || !old.getEndTime().equals(template.getDayEnd())) {
+                    old.setActive(false);
+                    doctorScheduleRepository.save(old);
+                }
+            }
             boolean present = existing.stream().anyMatch(item ->
                     item.getStartTime().equals(template.getDayStart())
-                            && item.getEndTime().equals(template.getDayEnd()));
+                            && item.getEndTime().equals(template.getDayEnd()) && item.isActive());
+            // re-query after deactivation: if present was deactivated above, need to check again
             if (!present) {
-                doctorScheduleRepository.save(DoctorSchedule.create(template.getDoctorProfile(), dow,
-                        template.getDayStart(), template.getDayEnd(), template.getDurationMinutes()));
+                // avoid duplicate insert if we just deactivated and now inserting new time
+                boolean alreadyInserted = doctorScheduleRepository.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(
+                        template.getDoctorProfile().getId(), dow).stream()
+                        .anyMatch(item -> item.getStartTime().equals(template.getDayStart()) && item.getEndTime().equals(template.getDayEnd()));
+                if (!alreadyInserted) {
+                    doctorScheduleRepository.save(DoctorSchedule.create(template.getDoctorProfile(), dow,
+                            template.getDayStart(), template.getDayEnd(), template.getDurationMinutes()));
+                }
             }
         }
     }
