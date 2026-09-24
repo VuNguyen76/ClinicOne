@@ -199,6 +199,73 @@ describe('StaffDashboard', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="queue-sync-warning"]')).not.toBeNull();
   });
 
+  it('allows a doctor to call a specific waiting ticket from the table', () => {
+    createDashboard('DOCTOR');
+    http.expectOne((candidate) => candidate.url === '/api/v1/doctor/queue')
+      .flush(doctorQueue([ticket('ticket-1', 'WAITING')]));
+    fixture.detectChanges();
+
+    const callBtn = fixture.nativeElement.querySelector('button[title="Gọi vào khám"]') as HTMLButtonElement;
+    expect(callBtn).not.toBeNull();
+    callBtn.click();
+
+    const request = http.expectOne('/api/v1/queue/ticket-1/call');
+    request.flush({ ...ticket('ticket-1', 'CALLED'), statusLabel: 'Đã gọi' });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Đã gọi');
+  });
+
+  it('allows a coordinator to mark a waiting ticket as leaving before exam', () => {
+    createDashboard('COORDINATOR');
+    http.expectOne('/api/v1/rooms').flush([room('NOI-01')]);
+    http.expectOne((request) => request.url.endsWith('/queue')).flush([ticket('ticket-1', 'WAITING')]);
+    fixture.detectChanges();
+
+    const leaveBtn = fixture.nativeElement.querySelector('[data-testid="leave-ticket-btn"]') as HTMLButtonElement;
+    expect(leaveBtn).not.toBeNull();
+    leaveBtn.click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Rời hàng đợi');
+
+    const component = fixture.componentInstance as any;
+    component.submitOperatingAction();
+
+    const leaveRequest = http.expectOne('/api/v1/queue/ticket-1/leave');
+    leaveRequest.flush({ ...ticket('ticket-1', 'CANCELLED'), statusLabel: 'Đã hủy' });
+    fixture.detectChanges();
+
+    expect(component.operatingTicket()).toBeNull();
+  });
+
+  it('displays priority badge and return required status badge appropriately', () => {
+    createDashboard('DOCTOR');
+    const priorityTicket = { ...ticket('ticket-1', 'WAITING'), priority: true };
+    const returnRequiredTicket = {
+      ...ticket('ticket-2', 'WAITING'),
+      presenceStatus: 'RETURN_REQUIRED',
+      priority: false,
+    };
+    http.expectOne((candidate) => candidate.url === '/api/v1/doctor/queue')
+      .flush(doctorQueue([priorityTicket, returnRequiredTicket]));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Ưu tiên');
+    expect(fixture.nativeElement.textContent).toContain('Cần xác nhận lại');
+    expect(fixture.nativeElement.textContent).toContain('Chờ xác nhận');
+  });
+
+  it('renders skipped ticket with recall action for doctor', () => {
+    createDashboard('DOCTOR');
+    const skippedTicket = { ...ticket('ticket-1', 'SKIPPED') };
+    http.expectOne((candidate) => candidate.url === '/api/v1/doctor/queue')
+      .flush(doctorQueue([skippedTicket]));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Gọi lại');
+  });
+
   function createDashboard(role: string): void {
     sessionStorage.setItem('clinicOneStaffRole', role);
     fixture = TestBed.createComponent(StaffDashboard);

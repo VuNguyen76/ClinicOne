@@ -621,6 +621,140 @@ describe('DoctorExamination', () => {
     fixture.componentInstance['printFullRecord']();
     expect(fixture.componentInstance['printMode']()).toBe('full');
   });
+
+  it('blocks saveDraft and displays error when prescription line has invalid quantity or empty dosage', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+
+    fixture.componentInstance['addPrescriptionLine']();
+    fixture.detectChanges();
+
+    // Set invalid quantity 0
+    const line = fixture.componentInstance['prescriptionLines'].at(0);
+    line.patchValue({
+      medicationName: 'Paracetamol 500mg',
+      dosage: '',
+      quantity: 0,
+      unit: 'Viên',
+      instructions: 'Uống sau ăn',
+    });
+    fixture.detectChanges();
+
+    fixture.componentInstance['saveDraft']();
+    fixture.detectChanges();
+
+    http.expectNone('/api/v1/doctor/examinations/ticket-1/draft');
+    expect(fixture.componentInstance['error']()).toContain('Đơn thuốc chưa hợp lệ');
+  });
+
+  it('opens specialty medication catalog with department tab when clicking prescribe from department', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+
+    const openCatalogBtn = fixture.nativeElement.querySelector('[data-testid="open-medication-catalog"]') as HTMLButtonElement;
+    expect(openCatalogBtn).toBeTruthy();
+    openCatalogBtn.click();
+    fixture.detectChanges();
+
+    http.expectOne('/api/v1/doctor/medications').flush([]);
+    expect(fixture.componentInstance['medicationCatalogOpen']()).toBe(true);
+  });
+
+  it('increments quantity and avoids duplicate lines when prescribing the same medication repeatedly from catalog', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+
+    const med = {
+      id: 'med-para-500',
+      code: 'PARA-500',
+      name: 'Paracetamol 500mg',
+      category: 'Hạ sốt & Giảm đau',
+      dosage: '1 viên / lần',
+      instructions: 'Uống sau ăn',
+      specialties: ['Nội tổng quát'],
+      unit: 'Viên',
+    };
+
+    fixture.componentInstance['prescribeFromCatalog'](med);
+    expect(fixture.componentInstance['prescriptionLines'].length).toBe(1);
+    expect(fixture.componentInstance['prescriptionLines'].at(0).value.quantity).toBe(1);
+    expect(fixture.componentInstance['getPrescribedQuantity'](med)).toBe(1);
+
+    // Prescribe again
+    fixture.componentInstance['prescribeFromCatalog'](med);
+    expect(fixture.componentInstance['prescriptionLines'].length).toBe(1);
+    expect(fixture.componentInstance['prescriptionLines'].at(0).value.quantity).toBe(2);
+    expect(fixture.componentInstance['getPrescribedQuantity'](med)).toBe(2);
+    expect(fixture.componentInstance['notice']()).toContain('đã tăng số lượng lên 2');
+  });
+
+  it('auto-switches to exam tab when reason or notes is missing and to diagnosis tab when diagnosis is missing on sign', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+
+    // Doctor starts on prescription tab
+    fixture.componentInstance['selectTab']('prescription');
+    expect(fixture.componentInstance['activeTab']()).toBe('prescription');
+
+    // Request sign with empty fields
+    (fixture.nativeElement.querySelector('[data-testid="sign-record"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    // Auto-switched to exam tab
+    expect(fixture.componentInstance['activeTab']()).toBe('exam');
+    expect(fixture.componentInstance['error']()).toContain('Nhập đủ lý do khám');
+
+    // Fill exam fields
+    fixture.componentInstance['form'].controls.reason.setValue('Sốt cao 2 ngày');
+    fixture.componentInstance['form'].controls.examinationNotes.setValue('Họng đỏ');
+    fixture.componentInstance['selectTab']('prescription');
+
+    // Request sign again
+    (fixture.nativeElement.querySelector('[data-testid="sign-record"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    // Auto-switched to diagnosis tab
+    expect(fixture.componentInstance['activeTab']()).toBe('diagnosis');
+  });
+
+  it('auto-switches to exam tab and prevents sign when vitals are out of range', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+
+    fixture.componentInstance['form'].patchValue({
+      reason: 'Đau đầu',
+      examinationNotes: 'Ghi nhận bình thường',
+      diagnosis: 'Đau đầu',
+      conclusion: 'Nghỉ ngơi',
+      spO2: 120, // Invalid (> 100)
+    });
+
+    fixture.componentInstance['selectTab']('prescription');
+    (fixture.nativeElement.querySelector('[data-testid="sign-record"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance['activeTab']()).toBe('exam');
+    expect(fixture.componentInstance['error']()).toContain('Chỉ số sinh hiệu không hợp lệ');
+  });
+
+  it('disables form and hides modification controls when examination is completed without signature', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush({
+      ...examination(),
+      status: 'COMPLETED',
+      signedAt: null,
+      reason: 'Đã hoàn tất tư vấn',
+      examinationNotes: 'Sức khỏe ổn định',
+    });
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance['form'].disabled).toBe(true);
+    expect(fixture.componentInstance['isReadonly']()).toBe(true);
+    expect(fixture.nativeElement.querySelector('[data-testid="open-medical-templates"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="open-medication-catalog"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="toggle-follow-up"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="sign-record"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="save-draft"]')).toBeNull();
+  });
 });
 
 function examination() {

@@ -186,6 +186,20 @@ input {
   backdrop-filter: blur(4px);
 }
 
+.erp-table th.text-center,
+.erp-table td.text-center,
+.erp-th.text-center,
+.erp-td.text-center {
+  text-align: center;
+}
+
+.erp-table th.text-right,
+.erp-table td.text-right,
+.erp-th.text-right,
+.erp-td.text-right {
+  text-align: right;
+}
+
 .erp-table tr,
 .erp-tr {
   height: 2.25rem; /* 36px */
