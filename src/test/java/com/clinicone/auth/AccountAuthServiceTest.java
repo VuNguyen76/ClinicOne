@@ -115,6 +115,18 @@ class AccountAuthServiceTest {
     }
 
     @Test
+    void rejectsRegistrationWhenPhoneAlreadyUsed() {
+        when(otpService.isPhoneRecentlyVerified("0912345678", OtpPurpose.REGISTRATION)).thenReturn(true);
+        when(accountRepository.existsByPhone("0912345678")).thenReturn(true);
+
+        AuthException exception = assertThrows(AuthException.class, () -> service.register(new RegistrationRequest(
+                "0912345678", "Nguyen Van A", "password123")));
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        assertEquals("PHONE_ALREADY_USED", exception.getCode());
+    }
+
+    @Test
     void loginCreatesOpaqueSessionToken() {
         PatientAccount account = new PatientAccount("0912345678", "password-hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
         setId(account, ACCOUNT_ID);
