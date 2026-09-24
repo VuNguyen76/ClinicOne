@@ -104,8 +104,8 @@ public class ReceptionController {
 
     @GetMapping("/doctors")
     @PreAuthorize("hasAnyRole('RECEPTIONIST', 'COORDINATOR')")
-    public ResponseEntity<List<ReceptionDoctorOptionResponse>> doctors() {
-        return ResponseEntity.ok(service.doctors());
+    public ResponseEntity<List<ReceptionDoctorOptionResponse>> doctors(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return ResponseEntity.ok(service.doctors(date));
     }
 
     @PostMapping("/patients/request-otp")

@@ -91,6 +91,15 @@ export class ReceptionCheckIn implements OnInit {
   protected readonly adjustmentDoctorId = signal('');
   protected readonly adjustmentReason = signal('');
   protected readonly adjustmentLoading = signal(false);
+  protected readonly adjustmentShowDifferentSpecialty = signal(false);
+  protected readonly adjustmentSelectedSlot = signal('');
+  protected readonly filteredDoctors = computed(() => {
+    const ticket = this.adjustmentTicket();
+    const showDiff = this.adjustmentShowDifferentSpecialty();
+    const all = this.doctors();
+    if (!ticket || showDiff) return all;
+    return all.filter(d => d.specialty === ticket.specialty);
+  });
   protected readonly rebookTicket = signal<ReceptionAppointmentResponse | null>(null);
   protected readonly rebookMode = signal<'LATE' | 'ABSENT'>('ABSENT');
   protected readonly rebookDate = signal(clinicTodayIso());
@@ -345,13 +354,14 @@ export class ReceptionCheckIn implements OnInit {
     this.adjustmentTicket.set(appointment);
     this.adjustmentDoctorId.set('');
     this.adjustmentReason.set('');
+    this.adjustmentShowDifferentSpecialty.set(false);
+    this.adjustmentSelectedSlot.set(appointment.startTime?.slice(0,5) ?? '');
     this.error.set('');
-    if (this.doctors().length === 0) {
-      this.authApi.getReceptionDoctors().subscribe({
-        next: (doctors) => this.doctors.set(doctors),
-        error: (response) => this.handleError(response),
-      });
-    }
+    const date = appointment.appointmentDate ?? clinicTodayIso();
+    this.authApi.getReceptionDoctorsAvailability(date).subscribe({
+      next: (doctors) => this.doctors.set(doctors),
+      error: (response) => this.handleError(response),
+    });
   }
 
   protected openRebook(appointment: ReceptionAppointmentResponse): void {
@@ -481,6 +491,18 @@ export class ReceptionCheckIn implements OnInit {
       this.error.set('Chọn bác sĩ và phòng đích.');
       return;
     }
+    if (action === 'MOVE' && doctor && doctor.shiftStatus && doctor.shiftStatus !== 'ACTIVE') {
+      this.error.set('Bác sĩ đích ngoài ca trực, không thể chuyển.');
+      return;
+    }
+    const selectedSlot = this.adjustmentSelectedSlot();
+    if (action === 'MOVE' && doctor && selectedSlot) {
+      const slot = doctor.slots?.find(s => s.startTime.slice(0,5) === selectedSlot);
+      if (slot && slot.remaining === 0) {
+        this.error.set('Khung giờ đã hết chỗ, chọn khung giờ khác.');
+        return;
+      }
+    }
     this.adjustmentLoading.set(true);
     this.error.set('');
     this.authApi.adjustQueueTicket(appointment.queueTicketId, {
@@ -489,6 +511,7 @@ export class ReceptionCheckIn implements OnInit {
       targetRoomCode: action === 'MOVE' ? doctor?.roomCode : undefined,
       targetSpecialty: action === 'MOVE' ? doctor?.specialty : undefined,
       reason,
+      targetStartTime: action === 'MOVE' ? (this.adjustmentSelectedSlot() || undefined) : undefined,
     }).subscribe({
       next: (ticket) => {
         this.appointments.update((items) => items.map((item) => item.id === appointment.id ? {
