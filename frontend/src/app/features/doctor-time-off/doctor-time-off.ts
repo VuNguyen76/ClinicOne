@@ -80,27 +80,40 @@ export class DoctorTimeOffManagement implements OnInit {
 
   protected loadData(): void {
     this.loading.set(true);
-    this.authApi.getDoctors().subscribe({
-      next: (doctors) => {
-        const activeAssigned = doctors.filter((item) => item.active && item.assigned);
-        this.doctors.set(activeAssigned);
-        if (this.isDoctorRole()) {
-          const myStaffId = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('clinicOneStaffId') : null;
-          const myName = typeof sessionStorage !== 'undefined' ? (sessionStorage.getItem('clinicOneStaffName') || sessionStorage.getItem('clinicOnePatientName') || '') : '';
-          const me = activeAssigned.find((d) => matchesDoctorIdentity({ myStaffId, myName, doctorId: d.staffId, doctorName: d.fullName }));
-          if (me) {
-            this.selectedDoctorId.set(me.staffId);
+    if (this.isDoctorRole()) {
+      const myStaffId = typeof sessionStorage !== 'undefined' ? (sessionStorage.getItem('clinicOneStaffId') || '') : '';
+      const myName = typeof sessionStorage !== 'undefined' ? (sessionStorage.getItem('clinicOneStaffName') || sessionStorage.getItem('clinicOnePatientName') || 'Bác sĩ') : 'Bác sĩ';
+      if (myStaffId) {
+        this.selectedDoctorId.set(myStaffId);
+        this.doctors.set([{
+          staffId: myStaffId,
+          username: '',
+          fullName: myName,
+          specialty: null,
+          roomId: null,
+          roomCode: null,
+          roomName: null,
+          active: true,
+          assigned: true,
+        }]);
+      }
+      this.loading.set(false);
+    } else {
+      this.authApi.getDoctors().subscribe({
+        next: (doctors) => {
+          const activeAssigned = doctors.filter((item) => item.active && item.assigned);
+          this.doctors.set(activeAssigned);
+          if (activeAssigned[0] && !this.selectedDoctorId()) {
+            this.selectedDoctorId.set(activeAssigned[0].staffId);
           }
-        } else if (activeAssigned[0] && !this.selectedDoctorId()) {
-          this.selectedDoctorId.set(activeAssigned[0].staffId);
-        }
-        this.loading.set(false);
-      },
-      error: (response) => {
-        this.loading.set(false);
-        this.error.set(apiErrorMessage(response));
-      },
-    });
+          this.loading.set(false);
+        },
+        error: (response) => {
+          this.loading.set(false);
+          this.error.set(apiErrorMessage(response));
+        },
+      });
+    }
     this.authApi.getDoctorTimeOffs().subscribe({
       next: (items) => this.records.set(items),
       error: (response) => this.error.set(apiErrorMessage(response)),
@@ -146,11 +159,23 @@ export class DoctorTimeOffManagement implements OnInit {
     this.error.set('');
     this.notice.set('');
     if (this.isDoctorRole()) {
-      const myStaffId = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('clinicOneStaffId') : null;
-      const myName = typeof sessionStorage !== 'undefined' ? (sessionStorage.getItem('clinicOneStaffName') || sessionStorage.getItem('clinicOnePatientName') || '') : '';
-      const me = this.doctors().find((d) => matchesDoctorIdentity({ myStaffId, myName, doctorId: d.staffId, doctorName: d.fullName }));
-      if (me) {
-        this.selectedDoctorId.set(me.staffId);
+      const myStaffId = typeof sessionStorage !== 'undefined' ? (sessionStorage.getItem('clinicOneStaffId') || '') : '';
+      const myName = typeof sessionStorage !== 'undefined' ? (sessionStorage.getItem('clinicOneStaffName') || sessionStorage.getItem('clinicOnePatientName') || 'Bác sĩ') : 'Bác sĩ';
+      if (myStaffId) {
+        this.selectedDoctorId.set(myStaffId);
+        if (!this.doctors().some((d) => d.staffId === myStaffId)) {
+          this.doctors.set([{
+            staffId: myStaffId,
+            username: '',
+            fullName: myName,
+            specialty: null,
+            roomId: null,
+            roomCode: null,
+            roomName: null,
+            active: true,
+            assigned: true,
+          }]);
+        }
       }
     }
     this.modalOpen.set(true);
