@@ -41,7 +41,7 @@
         @if (isDoctor()) {<a routerLink="/doctor" [class.bg-sky-50]="isActive('/doctor')"
         [class.text-[#0284c7]]="isActive('/doctor')" [attr.aria-current]="isActive('/doctor') ? 'page' : null"
         class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-sky-50 hover:text-[#0284c7]"
-        role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">monitor_heart</mat-icon>Không gian bác sĩ</a>}
+        role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">stethoscope</mat-icon>Không gian bác sĩ</a>}
       @if (canReceivePatients()) {<a routerLink="/reception" [class.bg-sky-50]="isActive('/reception')"
         [class.text-[#0284c7]]="isActive('/reception')" [attr.aria-current]="isActive('/reception') ? 'page' : null"
         class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-sky-50 hover:text-[#0284c7]"
@@ -62,7 +62,7 @@
       @if (canManageRooms()) {<a routerLink="/admin/services" [class.bg-sky-50]="isActive('/admin/services')"
         [class.text-[#0284c7]]="isActive('/admin/services')" [attr.aria-current]="isActive('/admin/services') ? 'page' : null"
         class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-sky-50 hover:text-[#0284c7]"
-        role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">category</mat-icon>Dịch vụ khám</a>}
+        role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">medical_information</mat-icon>Dịch vụ khám</a>}
       @if (canManageRooms()) {<a routerLink="/admin/schedule-templates" [class.bg-sky-50]="isActive('/admin/schedule-templates')"
         [class.text-[#0284c7]]="isActive('/admin/schedule-templates')" [attr.aria-current]="isActive('/admin/schedule-templates') ? 'page' : null"
         class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-sky-50 hover:text-[#0284c7]"
@@ -126,17 +126,17 @@
       <a routerLink="/account" [class.bg-sky-50]="isActive('/account')" [class.text-[#0284c7]]="isActive('/account')"
         [attr.aria-current]="isActive('/account') ? 'page' : null"
         class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-sky-50 hover:text-[#0284c7]"
-        role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">badge</mat-icon>Hồ sơ bệnh nhân</a>
+        role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">account_circle</mat-icon>Hồ sơ bệnh nhân</a>
       <a routerLink="/patient-profiles" [class.bg-sky-50]="isActive('/patient-profiles')"
         [class.text-[#0284c7]]="isActive('/patient-profiles')"
         [attr.aria-current]="isActive('/patient-profiles') ? 'page' : null"
         class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-sky-50 hover:text-[#0284c7]"
-        role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">group</mat-icon>Hồ sơ người đi khám</a>
+        role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">groups</mat-icon>Hồ sơ người đi khám</a>
       <a routerLink="/medical-records" [class.bg-sky-50]="isActive('/medical-records')"
         [class.text-[#0284c7]]="isActive('/medical-records')"
         [attr.aria-current]="isActive('/medical-records') ? 'page' : null"
         class="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 transition hover:bg-sky-50 hover:text-[#0284c7]"
-        role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">receipt_long</mat-icon>Phiếu khám bệnh</a>
+        role="menuitem" (click)="closeMenu()"><mat-icon class="!text-[20px]">clinical_notes</mat-icon>Phiếu khám bệnh</a>
       <a routerLink="/notifications" [class.bg-sky-50]="isActive('/notifications')"
         [class.text-[#0284c7]]="isActive('/notifications')"
         [attr.aria-current]="isActive('/notifications') ? 'page' : null"
