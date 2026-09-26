@@ -117,9 +117,12 @@ public class ScheduleTemplateService {
         for (DayOfWeek dow : template.getWeekdays()) {
             List<DoctorSchedule> existing = doctorScheduleRepository.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(
                     template.getDoctorProfile().getId(), dow);
-            // Deactivate stale rows when dayEnd changes (e.g. 23:00 -> 21:30) to avoid duplicate 21:00 and leak 21:30/22:00
+            // Deactivate stale rows that overlap the new time (e.g. 23:00 -> 21:30).
+            // Gap rows (e.g. 13:00-17:00 vs new 08:00-12:00) are kept untouched.
             for (DoctorSchedule old : existing) {
-                if (!old.getStartTime().equals(template.getDayStart()) || !old.getEndTime().equals(template.getDayEnd())) {
+                if ((!old.getStartTime().equals(template.getDayStart()) || !old.getEndTime().equals(template.getDayEnd()))
+                        && old.getStartTime().isBefore(template.getDayEnd())
+                        && template.getDayStart().isBefore(old.getEndTime())) {
                     old.setActive(false);
                     doctorScheduleRepository.save(old);
                 }
