@@ -47,7 +47,7 @@ const NAVIGATION: StaffNavigationGroup[] = [
     label: 'Vận hành',
     items: [
       { label: 'Điều phối hàng đợi', route: '/admin/queues', icon: 'alt_route', roles: ['COORDINATOR'] },
-      { label: 'Phòng khám', route: '/admin/rooms', icon: 'door_sliding', roles: ['ADMIN', 'COORDINATOR'] },
+      { label: 'Phòng khám', route: '/admin/rooms', icon: 'meeting_room', roles: ['ADMIN', 'COORDINATOR'] },
       { label: 'Bác sĩ', route: '/admin/doctors', icon: 'medical_services', roles: ['ADMIN', 'COORDINATOR'] },
       { label: 'Điều chuyển lịch hẹn', route: '/admin/rescheduling', icon: 'edit_calendar', roles: ['ADMIN', 'COORDINATOR'] },
     ],

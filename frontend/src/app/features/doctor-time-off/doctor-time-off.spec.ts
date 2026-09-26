@@ -59,6 +59,29 @@ describe('DoctorTimeOffManagement', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="save-time-off"]')).toBeNull();
     expect(fixture.nativeElement.textContent).not.toContain('Chế độ xem');
   });
+
+  it('loads for DOCTOR role without requesting all doctors from admin API', () => {
+    http.expectOne('/api/v1/admin/doctors').flush([doctor()]);
+    http.expectOne('/api/v1/admin/doctor-time-off').flush([]);
+
+    sessionStorage.setItem('clinicOneStaffRole', 'DOCTOR');
+    sessionStorage.setItem('clinicOneStaffId', 'doctor-1');
+    sessionStorage.setItem('clinicOneStaffName', 'Bác sĩ Nguyễn An');
+
+    const docFixture = TestBed.createComponent(DoctorTimeOffManagement);
+    docFixture.detectChanges();
+
+    // Doctor role must NOT call /api/v1/admin/doctors
+    http.expectNone('/api/v1/admin/doctors');
+    const req = http.expectOne('/api/v1/admin/doctor-time-off');
+    req.flush([
+      { id: 'off-1', doctorId: 'doctor-1', doctorName: 'Bác sĩ Nguyễn An', startDate: '2026-08-10', endDate: '2026-08-11', reason: 'Bác sĩ nghỉ phép cá nhân', lockedSlotCount: 1, releasedHoldCount: 0, affectedAppointmentCount: 0, active: true },
+    ]);
+    docFixture.detectChanges();
+
+    expect(docFixture.nativeElement.textContent).toContain('Lịch nghỉ của tôi');
+    expect(docFixture.nativeElement.querySelectorAll('[data-testid="time-off-row"]').length).toBe(1);
+  });
 });
 
 function doctor() {
