@@ -27,6 +27,8 @@ export const authTokenInterceptor: HttpInterceptorFn = (request, next) => {
         const loginRoute = isStaffSession ? '/staff/login' : '/login';
         sessionStorage.removeItem('clinicOneAccessToken');
         sessionStorage.removeItem('clinicOnePatientName');
+        sessionStorage.removeItem('clinicOneStaffName');
+        sessionStorage.removeItem('clinicOneStaffId');
         sessionStorage.removeItem('clinicOneSessionType');
         sessionStorage.removeItem('clinicOneStaffRole');
         sessionStorage.removeItem('clinicOneStaffRoles');

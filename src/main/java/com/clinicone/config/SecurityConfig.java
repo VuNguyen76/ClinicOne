@@ -51,7 +51,8 @@ public class SecurityConfig {
                                 "/api/v1/auth/recover-password",
                                 "/api/v1/addresses/**",
                                 "/api/v1/staff/auth/login",
-                                "/actuator/health"
+                                "/actuator/health",
+                                "/error"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

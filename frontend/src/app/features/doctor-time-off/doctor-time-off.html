@@ -254,7 +254,7 @@
               >
                 <option value="">Chọn bác sĩ</option>
                 @for (doctor of doctors(); track doctor.staffId) {
-                  <option [value]="doctor.staffId">{{ doctor.fullName }} (Phòng {{ doctor.roomCode || 'Chưa gán' }})</option>
+                  <option [value]="doctor.staffId">{{ doctor.fullName }}{{ doctor.roomCode ? ' (Phòng ' + doctor.roomCode + ')' : '' }}</option>
                 }
               </select>
             </label>
