@@ -345,6 +345,9 @@ public ReceptionAppointmentResponse checkIn(UUID appointmentId, ReceptionCheckIn
         for (var schedule : schedules) {
             LocalTime start = schedule.getStartTime();
             int duration = schedule.getSlotDurationMinutes();
+            if (duration <= 0) {
+                continue;
+            }
             while (!start.plusMinutes(duration).isAfter(schedule.getEndTime())) {
                 if (isToday && start.isBefore(now)) {
                     start = start.plusMinutes(duration);
@@ -357,8 +360,12 @@ public ReceptionAppointmentResponse checkIn(UUID appointmentId, ReceptionCheckIn
                 start = end;
             }
         }
-        result.sort((a,b) -> a.startTime().compareTo(b.startTime()));
-        return result;
+        // Dedup duplicate schedules (e.g. legacy 23:00 + new 21:30 both active) -> keep one per startTime
+        var seen = new java.util.HashSet<java.time.LocalTime>();
+        var deduped = result.stream().filter(s -> seen.add(s.startTime())).toList();
+        deduped = new java.util.ArrayList<>(deduped);
+        deduped.sort((a,b) -> a.startTime().compareTo(b.startTime()));
+        return deduped;
     }
 
     /** Tiếp nhận người bệnh đến quầy mà chưa có lịch trong ngày. */

@@ -845,6 +845,85 @@ class QueueServiceTest {
         }
     }
 
+    @Test
+    void adjustMoveValidTargetStartTimeChangesAppointmentTime() {
+        UUID targetDoctorId = UUID.randomUUID();
+        ClinicRoom targetRoom = ClinicRoom.create("NOI-02", "Phong Noi 02", "Noi tong quat");
+        StaffAccount targetStaff = StaffAccount.create("doctor-target-valid", "hash", "BS Valid", StaffRole.DOCTOR);
+        setId(targetStaff, targetDoctorId);
+        DoctorProfile targetProfile = DoctorProfile.create(targetStaff, "Noi tong quat", targetRoom);
+        DoctorScheduleRepository scheduleRepo = mock(DoctorScheduleRepository.class);
+        var schedule = com.clinicone.doctor.DoctorSchedule.create(targetProfile, TODAY.getDayOfWeek(), LocalTime.of(8,0), LocalTime.of(17,0), 30);
+        when(scheduleRepo.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(targetProfile.getId(), TODAY.getDayOfWeek())).thenReturn(List.of(schedule));
+        when(doctorProfileRepository.findByStaffAccount_Id(targetDoctorId)).thenReturn(Optional.of(targetProfile));
+        when(roomRepository.findByCodeAndActiveTrueForUpdate(targetRoom.getCode())).thenReturn(Optional.of(targetRoom));
+        when(ticketRepository.findMaxQueueNumberByRoomCodeAndQueueDate(targetRoom.getCode(), TODAY)).thenReturn(5);
+        PatientAccount patient = new PatientAccount("0912345678","hash","A", AccountStatus.ACTIVE,false);
+        setId(patient, UUID.randomUUID());
+        Appointment appt = Appointment.create(patient, UUID.randomUUID(), "CL-VALID-01", "Noi tong quat", "BS A", TODAY, LocalTime.of(9,0), "r");
+        setId(appt, UUID.randomUUID());
+        QueueTicket ticket = QueueTicket.create(appt, room, TODAY, 1);
+        setId(ticket, UUID.randomUUID());
+        when(ticketRepository.findById(ticket.getId())).thenReturn(Optional.of(ticket));
+        when(doctorProfileRepository.findBySpecialtyIgnoreCaseAndActiveTrue("Noi tong quat")).thenReturn(List.of(targetProfile));
+        when(appointmentRepository.countByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatusIn(eq(targetDoctorId), eq(TODAY), eq(LocalTime.of(10,0)), any())).thenReturn(0L);
+        when(ticketRepository.save(any(QueueTicket.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(appointmentRepository.save(any(Appointment.class))).thenAnswer(inv -> inv.getArgument(0));
+        QueueService svc = new QueueService(roomRepository, ticketRepository, appointmentRepository, doctorProfileRepository, examinationSessionRepository, null, scheduleRepo, null, Clock.fixed(Instant.parse("2026-08-06T02:00:00Z"), ZoneId.of("Asia/Ho_Chi_Minh")));
+        QueueTicketResponse resp = svc.adjust(ticket.getId(), new QueueAdjustmentRequest(QueueAdjustmentAction.MOVE, targetDoctorId, targetRoom.getCode(), "Noi tong quat", "Ly do hop le", "10:00"), "reception-1");
+        assertEquals("10:00", appt.getStartTime().toString());
+        assertEquals(QueueTicketStatus.WAITING.name(), resp.status());
+    }
+
+    @Test
+    void adjustMoveInvalidTargetStartTimeThrowsQueueTargetSlotInvalid() {
+        UUID targetDoctorId = UUID.randomUUID();
+        ClinicRoom targetRoom = ClinicRoom.create("NOI-02", "Phong Noi 02", "Noi tong quat");
+        StaffAccount targetStaff = StaffAccount.create("doctor-target-invalid", "hash", "BS Invalid", StaffRole.DOCTOR);
+        setId(targetStaff, targetDoctorId);
+        DoctorProfile targetProfile = DoctorProfile.create(targetStaff, "Noi tong quat", targetRoom);
+        DoctorScheduleRepository scheduleRepo = mock(DoctorScheduleRepository.class);
+        var schedule = com.clinicone.doctor.DoctorSchedule.create(targetProfile, TODAY.getDayOfWeek(), LocalTime.of(8,0), LocalTime.of(12,0), 30);
+        when(scheduleRepo.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(targetProfile.getId(), TODAY.getDayOfWeek())).thenReturn(List.of(schedule));
+        when(doctorProfileRepository.findByStaffAccount_Id(targetDoctorId)).thenReturn(Optional.of(targetProfile));
+        PatientAccount patient = new PatientAccount("0912345678","hash","A", AccountStatus.ACTIVE,false);
+        Appointment appt = Appointment.create(patient, UUID.randomUUID(), "CL-INVALID-01", "Noi tong quat", "BS A", TODAY, LocalTime.of(9,0), "r");
+        setId(appt, UUID.randomUUID());
+        QueueTicket ticket = QueueTicket.create(appt, room, TODAY, 1);
+        setId(ticket, UUID.randomUUID());
+        when(ticketRepository.findById(ticket.getId())).thenReturn(Optional.of(ticket));
+        when(doctorProfileRepository.findBySpecialtyIgnoreCaseAndActiveTrue("Noi tong quat")).thenReturn(List.of(targetProfile));
+        QueueService svc = new QueueService(roomRepository, ticketRepository, appointmentRepository, doctorProfileRepository, examinationSessionRepository, null, scheduleRepo, null, Clock.fixed(Instant.parse("2026-08-06T02:00:00Z"), ZoneId.of("Asia/Ho_Chi_Minh")));
+        assertThrows(AuthException.class, () -> svc.adjust(ticket.getId(), new QueueAdjustmentRequest(QueueAdjustmentAction.MOVE, targetDoctorId, targetRoom.getCode(), "Noi tong quat", "Ly do hop le", "13:00"), "reception-1"));
+    }
+
+    @Test
+    void adjustMoveSameStartTimeHidesOriginalSlot() {
+        UUID targetDoctorId = UUID.randomUUID();
+        ClinicRoom targetRoom = ClinicRoom.create("NOI-02", "Phong Noi 02", "Noi tong quat");
+        StaffAccount targetStaff = StaffAccount.create("doctor-target-same", "hash", "BS Same", StaffRole.DOCTOR);
+        setId(targetStaff, targetDoctorId);
+        DoctorProfile targetProfile = DoctorProfile.create(targetStaff, "Noi tong quat", targetRoom);
+        DoctorScheduleRepository scheduleRepo = mock(DoctorScheduleRepository.class);
+        var schedule = com.clinicone.doctor.DoctorSchedule.create(targetProfile, TODAY.getDayOfWeek(), LocalTime.of(8,0), LocalTime.of(17,0), 30);
+        when(scheduleRepo.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(targetProfile.getId(), TODAY.getDayOfWeek())).thenReturn(List.of(schedule));
+        when(doctorProfileRepository.findByStaffAccount_Id(targetDoctorId)).thenReturn(Optional.of(targetProfile));
+        when(roomRepository.findByCodeAndActiveTrueForUpdate(targetRoom.getCode())).thenReturn(Optional.of(targetRoom));
+        PatientAccount patient = new PatientAccount("0912345678","hash","A", AccountStatus.ACTIVE,false);
+        Appointment appt = Appointment.create(patient, UUID.randomUUID(), "CL-SAME-01", "Noi tong quat", "BS A", TODAY, LocalTime.of(9,0), "r");
+        setId(appt, UUID.randomUUID());
+        QueueTicket ticket = QueueTicket.create(appt, targetRoom, TODAY, 1);
+        setId(ticket, UUID.randomUUID());
+        when(ticketRepository.findById(ticket.getId())).thenReturn(Optional.of(ticket));
+        when(doctorProfileRepository.findBySpecialtyIgnoreCaseAndActiveTrue("Noi tong quat")).thenReturn(List.of(targetProfile));
+        when(appointmentRepository.countByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatusIn(eq(targetDoctorId), eq(TODAY), eq(LocalTime.of(9,0)), any())).thenReturn(0L);
+        when(ticketRepository.save(any(QueueTicket.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(appointmentRepository.save(any(Appointment.class))).thenAnswer(inv -> inv.getArgument(0));
+        QueueService svc = new QueueService(roomRepository, ticketRepository, appointmentRepository, doctorProfileRepository, examinationSessionRepository, null, scheduleRepo, null, Clock.fixed(Instant.parse("2026-08-06T02:00:00Z"), ZoneId.of("Asia/Ho_Chi_Minh")));
+        QueueTicketResponse resp = svc.adjust(ticket.getId(), new QueueAdjustmentRequest(QueueAdjustmentAction.MOVE, targetDoctorId, targetRoom.getCode(), "Noi tong quat", "Ly do hop le", "09:00"), "reception-1");
+        assertEquals("09:00", appt.getStartTime().toString()); // same start time, slot should be hidden in FE
+    }
+
     private static void setField(Object target, String name, Object value) {
         try {
             var field = target.getClass().getDeclaredField(name);

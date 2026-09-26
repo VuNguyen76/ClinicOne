@@ -150,6 +150,10 @@ public class DoctorManagementService {
     }
 
     private void validateTimeRange(LocalTime start, LocalTime end, int durationMinutes) {
+        if (durationMinutes <= 0) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "SLOT_DURATION_INVALID",
+                    "Thời lượng khung giờ phải lớn hơn 0.");
+        }
         if (start == null || end == null || !start.isBefore(end)) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "DOCTOR_SCHEDULE_TIME_INVALID",
                     "Giờ bắt đầu phải trước giờ kết thúc.");
