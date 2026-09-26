@@ -4,6 +4,7 @@ import com.clinicone.auth.AuthException;
 import com.clinicone.auth.StaffAccount;
 import com.clinicone.doctor.DoctorProfile;
 import com.clinicone.doctor.DoctorProfileRepository;
+import com.clinicone.doctor.DoctorSchedule;
 import com.clinicone.doctor.DoctorScheduleRepository;
 import com.clinicone.queue.ClinicRoom;
 import com.clinicone.queue.ClinicRoomRepository;
@@ -22,6 +23,8 @@ import java.lang.reflect.Field;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -235,6 +238,144 @@ class ScheduleTemplateServiceTest {
         assertEquals(Set.of(DayOfWeek.TUESDAY), storedTemplate.getWeekdays());
         verify(templateRepository).save(storedTemplate);
         verify(slotRepository).deleteAllByIdIn(List.of(slotMondayId));
+    }
+
+    @Test
+    void regenerateWithChangedDayEndDeactivatesStaleScheduleAndInsertsNewOnce() throws Exception {
+        ClinicService clinicService = mock(ClinicService.class);
+        DoctorProfile doctor = mock(DoctorProfile.class);
+        StaffAccount staff = mock(StaffAccount.class);
+        ClinicRoom room = mock(ClinicRoom.class);
+        UUID templateId = UUID.randomUUID();
+        // Template changed 08:00-17:00 -> 08:00-21:30 (e.g. legacy 23:00 -> new 21:30)
+        WorkScheduleTemplate storedTemplate = scheduleTemplate(clinicService, doctor, room, staff, templateId,
+                LocalTime.of(8, 0), LocalTime.of(21, 30), Set.of(DayOfWeek.MONDAY));
+        when(templateRepository.findById(templateId)).thenReturn(Optional.of(storedTemplate));
+        stubEmptySlots(templateId);
+
+        var realProfile = realDoctorProfile();
+        DoctorSchedule stale = DoctorSchedule.create(realProfile, DayOfWeek.MONDAY,
+                LocalTime.of(8, 0), LocalTime.of(17, 0), 30);
+        when(doctorScheduleRepository.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(any(), eq(DayOfWeek.MONDAY)))
+                .thenReturn(new java.util.ArrayList<>(List.of(stale)));
+        when(doctorScheduleRepository.save(any(DoctorSchedule.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+
+        service.regenerate(templateId);
+
+        assertEquals(false, stale.isActive()); // stale 08:00-17:00 deactivated
+        var captor = org.mockito.ArgumentCaptor.forClass(DoctorSchedule.class);
+        verify(doctorScheduleRepository, org.mockito.Mockito.times(2)).save(captor.capture());
+        var inserted = captor.getAllValues().stream()
+                .filter(s -> s != stale).toList();
+        assertEquals(1, inserted.size()); // exactly one new row, no duplicate
+        assertEquals(LocalTime.of(8, 0), inserted.get(0).getStartTime());
+        assertEquals(LocalTime.of(21, 30), inserted.get(0).getEndTime());
+    }
+
+    @Test
+    void regenerateKeepsGapSchedulesUntouched() throws Exception {
+        ClinicService clinicService = mock(ClinicService.class);
+        DoctorProfile doctor = mock(DoctorProfile.class);
+        StaffAccount staff = mock(StaffAccount.class);
+        ClinicRoom room = mock(ClinicRoom.class);
+        UUID templateId = UUID.randomUUID();
+        WorkScheduleTemplate storedTemplate = scheduleTemplate(clinicService, doctor, room, staff, templateId,
+                LocalTime.of(8, 0), LocalTime.of(12, 0), Set.of(DayOfWeek.MONDAY));
+        when(templateRepository.findById(templateId)).thenReturn(Optional.of(storedTemplate));
+        stubEmptySlots(templateId);
+
+        var realProfile = realDoctorProfile();
+        DoctorSchedule morning = DoctorSchedule.create(realProfile, DayOfWeek.MONDAY,
+                LocalTime.of(8, 0), LocalTime.of(12, 0), 30);
+        DoctorSchedule afternoon = DoctorSchedule.create(realProfile, DayOfWeek.MONDAY,
+                LocalTime.of(13, 0), LocalTime.of(17, 0), 30);
+        when(doctorScheduleRepository.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(any(), eq(DayOfWeek.MONDAY)))
+                .thenReturn(new java.util.ArrayList<>(List.of(morning, afternoon)));
+
+        service.regenerate(templateId);
+
+        assertEquals(true, morning.isActive()); // gap preserved
+        assertEquals(true, afternoon.isActive()); // gap preserved
+        verify(doctorScheduleRepository, never()).save(any(DoctorSchedule.class)); // no deactivate, no insert
+    }
+
+    @Test
+    void regenerateWithThreeOverlappingKeepsNewestTimeOnly() throws Exception {
+        ClinicService clinicService = mock(ClinicService.class);
+        DoctorProfile doctor = mock(DoctorProfile.class);
+        StaffAccount staff = mock(StaffAccount.class);
+        ClinicRoom room = mock(ClinicRoom.class);
+        UUID templateId = UUID.randomUUID();
+        // Newest template time 08:00-17:00 wins over 08:00-21:00 and 20:00-23:00
+        WorkScheduleTemplate storedTemplate = scheduleTemplate(clinicService, doctor, room, staff, templateId,
+                LocalTime.of(8, 0), LocalTime.of(17, 0), Set.of(DayOfWeek.MONDAY));
+        when(templateRepository.findById(templateId)).thenReturn(Optional.of(storedTemplate));
+        stubEmptySlots(templateId);
+
+        var realProfile = realDoctorProfile();
+        DoctorSchedule newest = DoctorSchedule.create(realProfile, DayOfWeek.MONDAY,
+                LocalTime.of(8, 0), LocalTime.of(17, 0), 30);
+        DoctorSchedule old1 = DoctorSchedule.create(realProfile, DayOfWeek.MONDAY,
+                LocalTime.of(8, 0), LocalTime.of(21, 0), 30);
+        DoctorSchedule old2 = DoctorSchedule.create(realProfile, DayOfWeek.MONDAY,
+                LocalTime.of(16, 0), LocalTime.of(23, 0), 30);
+        when(doctorScheduleRepository.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(any(), eq(DayOfWeek.MONDAY)))
+                .thenReturn(new java.util.ArrayList<>(List.of(newest, old1, old2)));
+
+        service.regenerate(templateId);
+
+        assertEquals(true, newest.isActive());
+        assertEquals(false, old1.isActive());
+        assertEquals(false, old2.isActive());
+        verify(doctorScheduleRepository, never()).save(argThat((DoctorSchedule s)
+                -> s != newest && s != old1 && s != old2));
+    }
+
+    private void stubEmptySlots(UUID templateId) {
+        when(slotRepository.findByDoctorStaffIdAndAppointmentDateBetweenAndStatus(any(), any(), any(), any()))
+                .thenReturn(List.of());
+        when(slotRepository.findByRoomIdAndAppointmentDateBetweenAndStatus(any(), any(), any(), any()))
+                .thenReturn(List.of());
+        when(slotRepository.findByTemplateIdOrderByAppointmentDateAscStartTimeAsc(templateId))
+                .thenReturn(List.of());
+        when(slotRepository.saveAll(any())).thenAnswer(inv -> inv.getArgument(0));
+    }
+
+    private WorkScheduleTemplate scheduleTemplate(ClinicService clinicService, DoctorProfile doctor, ClinicRoom room,
+                                                  StaffAccount staff, UUID templateId,
+                                                  LocalTime dayStart, LocalTime dayEnd,
+                                                  Set<DayOfWeek> weekdays) throws Exception {
+        when(clinicService.getId()).thenReturn(SERVICE_ID);
+        when(clinicService.getName()).thenReturn("Khám tổng quát cơ bản");
+        when(clinicService.getSpecialty()).thenReturn("Khám Tổng Quát");
+        when(clinicService.getVisitType()).thenReturn("Khám thường");
+        when(doctor.getStaffAccount()).thenReturn(staff);
+        when(staff.getId()).thenReturn(DOCTOR_ID);
+        when(staff.getFullName()).thenReturn("Bác sĩ Nguyễn An");
+        when(room.getId()).thenReturn(ROOM_ID);
+        when(room.getCode()).thenReturn("TQ-01");
+        WorkScheduleTemplate template = WorkScheduleTemplate.create(clinicService, doctor, room,
+                LocalDate.of(2026, 8, 10), LocalDate.of(2026, 8, 10), dayStart, dayEnd,
+                30, weekdays, List.of(), Set.of());
+        Field field = WorkScheduleTemplate.class.getDeclaredField("id");
+        field.setAccessible(true);
+        field.set(template, templateId);
+        return template;
+    }
+
+    private com.clinicone.doctor.DoctorProfile realDoctorProfile() throws Exception {
+        var realRoom = com.clinicone.queue.ClinicRoom.create("TQ-01", "Phong TQ 01", "Kham Tong Quat");
+        var realStaff = com.clinicone.auth.StaffAccount.create("doctor-tpl", "hash", "BS Tpl",
+                com.clinicone.auth.StaffRole.DOCTOR);
+        var idField = realStaff.getClass().getDeclaredField("id");
+        idField.setAccessible(true);
+        idField.set(realStaff, DOCTOR_ID);
+        var profile = com.clinicone.doctor.DoctorProfile.create(realStaff, "Kham Tong Quat", realRoom);
+        var pField = profile.getClass().getDeclaredField("id");
+        pField.setAccessible(true);
+        pField.set(profile, UUID.randomUUID());
+        return profile;
     }
 
     private WorkScheduleTemplate template(ClinicService clinicService, DoctorProfile doctor, ClinicRoom room,
