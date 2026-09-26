@@ -66,6 +66,23 @@ class DoctorManagementServiceTest {
     }
 
     @Test
+    void rejectsScheduleWithNonPositiveSlotDuration() {
+        java.util.UUID staffId = java.util.UUID.randomUUID();
+        var doctor = StaffAccount.create("bs.an", "hash", "Bác sĩ An", StaffRole.DOCTOR);
+        var profile = org.mockito.Mockito.mock(DoctorProfile.class);
+        when(staffRepository.findById(staffId)).thenReturn(Optional.of(doctor));
+        when(profileRepository.findByStaffAccount_Id(staffId)).thenReturn(Optional.of(profile));
+
+        assertThatThrownBy(() -> service.addSchedule(staffId, new DoctorScheduleRequest(
+                        java.time.DayOfWeek.MONDAY, java.time.LocalTime.of(8, 0),
+                        java.time.LocalTime.of(17, 0), 0)))
+                .isInstanceOf(AuthException.class)
+                .hasMessage("Thời lượng khung giờ phải lớn hơn 0.");
+        org.mockito.Mockito.verify(scheduleRepository, org.mockito.Mockito.never())
+                .save(org.mockito.ArgumentMatchers.any(DoctorSchedule.class));
+    }
+
+    @Test
     void rejectsDuplicateUsernameBeforeSaving() {
         when(staffRepository.findByUsernameIgnoreCase("bs.an")).thenReturn(
                 Optional.of(StaffAccount.create("bs.an", "hash", "Bác sĩ cũ", StaffRole.DOCTOR)));
