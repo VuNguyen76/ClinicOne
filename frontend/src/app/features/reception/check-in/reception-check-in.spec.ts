@@ -411,6 +411,35 @@ describe('ReceptionCheckIn', () => {
     expect(c.error()).toContain('ngoài ca');
     expect(http.match('/api/v1/queue/t-1/adjust').length).toBe(0);
   });
+
+  it('late rebook hides full slots and the same slot', () => {
+    const c = fixture.componentInstance as any;
+    const appt = { ...appointment(), status: 'BOOKED', startTime: '09:00:00', specialty: 'Nội tổng quát' };
+    c.openRebook(appt);
+    expect(c.rebookMode()).toBe('LATE');
+    const req = http.expectOne((item) => item.url === '/api/v1/reception/doctors');
+    req.flush([
+      {
+        staffId: 'd-1', fullName: 'BS. Nguyễn An', specialty: 'Nội tổng quát', roomCode: 'NOI-01',
+        shiftStatus: 'ACTIVE', waitingCount: 0,
+        slots: [
+          { startTime: '09:00:00', endTime: '09:30:00', remaining: 1 }, // same slot -> hidden
+          { startTime: '09:30:00', endTime: '10:00:00', remaining: 0 }, // full -> hidden
+          { startTime: '10:00:00', endTime: '10:30:00', remaining: 1 }, // shown
+        ],
+      },
+      {
+        staffId: 'd-2', fullName: 'BS. Nguyễn Bình', specialty: 'Nhi khoa', roomCode: 'NHI-01',
+        shiftStatus: 'ACTIVE', waitingCount: 0,
+        slots: [{ startTime: '10:00:00', endTime: '10:30:00', remaining: 1 }], // other specialty -> hidden
+      },
+    ]);
+    const slots = c.rebookSlots();
+    expect(slots.length).toBe(1);
+    expect(slots[0].startTime).toBe('10:00:00');
+    expect(slots[0].remainingCapacity).toBe(1);
+    expect(c.rebookStartTime()).toBe('10:00:00');
+  });
 });
 
 function appointment() {
