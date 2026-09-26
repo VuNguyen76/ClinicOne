@@ -120,11 +120,15 @@ public class AppointmentAvailabilityService {
             List<GeneratedClinicSlot> generatedSlots = generatedSlotRepository
                     .findByClinicServiceIdAndAppointmentDateBetweenOrderByAppointmentDateAscStartTimeAsc(
                             serviceId, from, to);
-            if (!generatedSlots.isEmpty()) {
-                List<GeneratedClinicSlot> openSlots = generatedSlots.stream()
-                        .filter(slot -> slot.getStatus() == GeneratedSlotStatus.OPEN)
-                        .toList();
+            List<GeneratedClinicSlot> openSlots = generatedSlots.stream()
+                    .filter(slot -> slot.getStatus() == GeneratedSlotStatus.OPEN)
+                    .toList();
+            if (!openSlots.isEmpty()) {
                 return findGenerated(openSlots, from, to);
+            }
+            if (!generatedSlots.isEmpty()) {
+                // All slots are CANCELLED/CLOSED -> no availability, don't fallback to weekly
+                return List.of();
             }
         }
         if (doctorProfileRepository != null) {
@@ -375,6 +379,10 @@ public class AppointmentAvailabilityService {
         UUID doctorStaffId = profile.getStaffAccount().getId();
         ArrayList<AvailableSlotResponse> slots = new ArrayList<>();
         int duration = serviceDuration == null ? schedule.getSlotDurationMinutes() : serviceDuration;
+        if (duration <= 0) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "SLOT_DURATION_INVALID",
+                    "Thời lượng khung giờ không hợp lệ.");
+        }
         LocalTime start = schedule.getStartTime();
         while (!start.plusMinutes(duration).isAfter(schedule.getEndTime())) {
             long booked = bookedBySlot.getOrDefault(new DoctorSlotKey(doctorStaffId, date, start), 0L);
@@ -389,6 +397,9 @@ public class AppointmentAvailabilityService {
 
     private boolean contains(DoctorSchedule schedule, LocalTime start, Integer serviceDuration) {
         int duration = serviceDuration == null ? schedule.getSlotDurationMinutes() : serviceDuration;
+        if (duration <= 0) {
+            return false;
+        }
         return !start.isBefore(schedule.getStartTime())
                 && !start.plusMinutes(duration).isAfter(schedule.getEndTime());
     }
@@ -445,6 +456,10 @@ public class AppointmentAvailabilityService {
     }
 
     private void addTemplates(List<SlotTemplate> target, LocalTime windowStart, LocalTime windowEnd, int duration) {
+        if (duration <= 0) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "SLOT_DURATION_INVALID",
+                    "Thời lượng khung giờ không hợp lệ.");
+        }
         LocalTime start = windowStart;
         while (!start.plusMinutes(duration).isAfter(windowEnd)) {
             target.add(new SlotTemplate(start, start.plusMinutes(duration)));

@@ -865,6 +865,67 @@ class ReceptionServiceTest {
         assertThat(slots).anySatisfy(s -> { if (s.startTime().equals(LocalTime.of(8,30))) assertThat(s.remaining()).isEqualTo(1); });
     }
 
+    @Test
+    void doctors_dedupKeepsOneSlotWhenOverlappingSchedules() {
+        Clock clock = Clock.fixed(Instant.parse("2026-08-07T03:00:00Z"), java.time.ZoneId.of("Asia/Ho_Chi_Minh"));
+        var scheduleRepo = mock(com.clinicone.doctor.DoctorScheduleRepository.class);
+        var svc = new ReceptionService(appointmentRepository, doctorProfileRepository, scheduleRepo, ticketRepository, queueService, clock, patientAccountRepository, appointmentService, patientProfileRepository, null);
+        var room = com.clinicone.queue.ClinicRoom.create("MAT-02", "Phong Mat 02", "Kham Mat");
+        var staff = com.clinicone.auth.StaffAccount.create("doctor02", "hash", "BS Trung", com.clinicone.auth.StaffRole.DOCTOR);
+        setId(staff, DOCTOR_ID);
+        var profile = com.clinicone.doctor.DoctorProfile.create(staff, "Kham Mat", room);
+        when(doctorProfileRepository.findAllByOrderByCreatedAtDesc()).thenReturn(List.of(profile));
+        var s1 = com.clinicone.doctor.DoctorSchedule.create(profile, TODAY.getDayOfWeek(), LocalTime.of(8,0), LocalTime.of(17,0), 30);
+        var s2 = com.clinicone.doctor.DoctorSchedule.create(profile, TODAY.getDayOfWeek(), LocalTime.of(8,0), LocalTime.of(21,0), 30);
+        when(scheduleRepo.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(profile.getId(), TODAY.getDayOfWeek())).thenReturn(List.of(s1, s2));
+        when(ticketRepository.findByRoomCodeAndQueueDateOrderByQueueNumberAsc("MAT-02", TODAY)).thenReturn(List.of());
+        when(appointmentRepository.countByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatusIn(any(), any(), any(), any())).thenReturn(0L);
+        var result = svc.doctors(TODAY);
+        var slots = result.get(0).slots();
+        var startTimeList = slots.stream().map(s -> s.startTime().toString()).toList();
+        var count20 = (int) startTimeList.stream().filter(s -> s.equals("20:00")).count();
+        assertThat(count20).isEqualTo(1); // dedup keeps 20:00 only once despite 2 overlapping schedules
+    }
+
+    @Test
+    void doctors_todayFiltersPastSlots() {
+        Clock clock = Clock.fixed(Instant.parse("2026-08-07T07:00:00Z"), java.time.ZoneId.of("Asia/Ho_Chi_Minh"));
+        var scheduleRepo = mock(com.clinicone.doctor.DoctorScheduleRepository.class);
+        var svc = new ReceptionService(appointmentRepository, doctorProfileRepository, scheduleRepo, ticketRepository, queueService, clock, patientAccountRepository, appointmentService, patientProfileRepository, null);
+        var room = com.clinicone.queue.ClinicRoom.create("MAT-02", "Phong Mat 02", "Kham Mat");
+        var staff = com.clinicone.auth.StaffAccount.create("doctor02", "hash", "BS Trung", com.clinicone.auth.StaffRole.DOCTOR);
+        setId(staff, DOCTOR_ID);
+        var profile = com.clinicone.doctor.DoctorProfile.create(staff, "Kham Mat", room);
+        when(doctorProfileRepository.findAllByOrderByCreatedAtDesc()).thenReturn(List.of(profile));
+        var schedule = com.clinicone.doctor.DoctorSchedule.create(profile, TODAY.getDayOfWeek(), LocalTime.of(8,0), LocalTime.of(17,0), 30);
+        when(scheduleRepo.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(profile.getId(), TODAY.getDayOfWeek())).thenReturn(List.of(schedule));
+        when(ticketRepository.findByRoomCodeAndQueueDateOrderByQueueNumberAsc("MAT-02", TODAY)).thenReturn(List.of());
+        when(appointmentRepository.countByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatusIn(any(), any(), any(), any())).thenReturn(0L);
+        var result = svc.doctors(TODAY);
+        var times = result.get(0).slots().stream().map(s -> s.startTime().toString()).toList();
+        assertThat(times).noneMatch(t -> t.equals("08:00") || t.equals("08:30") || t.equals("09:00")); // before 14:00 local filtered
+        assertThat(times).contains("14:30"); // future slots still present
+    }
+
+    @Test
+    void doctors_futureDateShowsAllSlotsNotPast() {
+        Clock clock = Clock.fixed(Instant.parse("2026-08-07T07:00:00Z"), java.time.ZoneId.of("Asia/Ho_Chi_Minh"));
+        var scheduleRepo = mock(com.clinicone.doctor.DoctorScheduleRepository.class);
+        var svc = new ReceptionService(appointmentRepository, doctorProfileRepository, scheduleRepo, ticketRepository, queueService, clock, patientAccountRepository, appointmentService, patientProfileRepository, null);
+        var room = com.clinicone.queue.ClinicRoom.create("MAT-02", "Phong Mat 02", "Kham Mat");
+        var staff = com.clinicone.auth.StaffAccount.create("doctor02", "hash", "BS Trung", com.clinicone.auth.StaffRole.DOCTOR);
+        setId(staff, DOCTOR_ID);
+        var profile = com.clinicone.doctor.DoctorProfile.create(staff, "Kham Mat", room);
+        when(doctorProfileRepository.findAllByOrderByCreatedAtDesc()).thenReturn(List.of(profile));
+        var tomorrow = LocalDate.of(2026, 8, 8);
+        var schedule = com.clinicone.doctor.DoctorSchedule.create(profile, tomorrow.getDayOfWeek(), LocalTime.of(8,0), LocalTime.of(17,0), 30);
+        when(scheduleRepo.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(profile.getId(), tomorrow.getDayOfWeek())).thenReturn(List.of(schedule));
+        when(ticketRepository.findByRoomCodeAndQueueDateOrderByQueueNumberAsc("MAT-02", tomorrow)).thenReturn(List.of());
+        when(appointmentRepository.countByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatusIn(any(), any(), any(), any())).thenReturn(0L);
+        var result = svc.doctors(tomorrow);
+        assertThat(result.get(0).slots().get(0).startTime()).isEqualTo(LocalTime.of(8, 0)); // all future slots shown
+    }
+
     private static void setId(Object target, UUID id) {
         try {
             var field = target.getClass().getDeclaredField("id");
