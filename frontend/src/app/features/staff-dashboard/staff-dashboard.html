@@ -30,16 +30,21 @@
     @if (isOwnDoctor()) {
       <section
         data-testid="doctor-shift-bar"
-        class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs"
+        class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs"
         aria-label="Ca khám hiện tại"
       >
-        <div class="flex flex-col gap-3 px-4 py-3 md:flex-row md:items-center md:justify-between">
-          <div class="min-w-0">
-            <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Ca khám hiện tại</p>
-            <p class="truncate text-base font-bold text-slate-900">{{ roomName() }}</p>
+        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div class="flex items-center gap-3">
+            <div class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-sky-50 text-[#0284c7]">
+              <mat-icon class="!h-5 !w-5 !text-[20px]">meeting_room</mat-icon>
+            </div>
+            <div class="min-w-0">
+              <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Ca khám hiện tại</p>
+              <p class="truncate text-base font-bold text-slate-900">{{ roomName() }}</p>
+            </div>
           </div>
-          <div class="flex flex-wrap items-center gap-2 text-sm">
-            <div class="flex items-center gap-1 font-semibold text-slate-700">
+          <div class="flex flex-wrap items-center gap-2.5 text-sm">
+            <div class="flex items-center gap-1 font-semibold text-slate-700 bg-slate-50 p-1 rounded-xl border border-slate-200/80">
               <button
                 type="button"
                 data-testid="doctor-prev-day-btn"
@@ -52,7 +57,7 @@
               <input
                 data-testid="doctor-date-selector"
                 type="date"
-                class="erp-input font-mono !py-1 !px-2.5 !text-xs !w-36"
+                class="erp-input font-mono !py-1 !px-2.5 !text-xs !w-36 !border-0 !bg-transparent shadow-none"
                 [value]="selectedDate()"
                 (change)="selectDate($event)"
               />
@@ -78,21 +83,21 @@
               }
             </div>
             <span
-              class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold"
+              class="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1 text-xs font-bold"
               [class]="doctorShiftStatus() === 'ACTIVE'
-                ? 'bg-emerald-50 text-emerald-700'
+                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80'
                 : doctorShiftStatus() === 'CONFLICT'
-                  ? 'bg-amber-50 text-amber-800'
-                  : 'bg-slate-100 text-slate-600'"
+                  ? 'bg-amber-50 text-amber-800 border border-amber-200/80'
+                  : 'bg-slate-100 text-slate-600 border border-slate-200/80'"
             >
-              <span class="h-2 w-2 rounded-full" [class]="doctorShiftStatus() === 'ACTIVE' ? 'bg-emerald-500' : doctorShiftStatus() === 'CONFLICT' ? 'bg-amber-500' : 'bg-slate-400'"></span>
+              <span class="h-2 w-2 rounded-full" [class]="doctorShiftStatus() === 'ACTIVE' ? 'bg-emerald-500 animate-pulse' : doctorShiftStatus() === 'CONFLICT' ? 'bg-amber-500' : 'bg-slate-400'"></span>
               {{ doctorShiftStatus() === 'ACTIVE' ? 'Đang trong ca' : doctorShiftStatus() === 'CONFLICT' ? 'Ca bị trùng' : 'Không có ca làm việc' }}
             </span>
           </div>
         </div>
       </section>
     } @else {
-      <section class="erp-filter-bar flex flex-col gap-3 sm:flex-row sm:items-end" aria-label="Bộ lọc hàng đợi">
+      <section class="erp-filter-bar flex flex-col gap-3 sm:flex-row sm:items-end rounded-2xl" aria-label="Bộ lọc hàng đợi">
         <div class="min-w-0 flex-1">
           <label class="erp-label">Phòng khám</label>
           <select
@@ -130,40 +135,60 @@
             (change)="selectDate($event)"
           />
         </div>
-        <div class="hidden min-h-9 items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-700 lg:flex">
+        <div class="hidden min-h-9 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-700 lg:flex">
           <span class="truncate">{{ roomName() }}</span>
         </div>
       </section>
     }
 
       <section
-        class="grid grid-cols-2 divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white sm:grid-cols-4 sm:divide-y-0 sm:divide-x shadow-xs"
+        class="grid grid-cols-2 gap-3 sm:grid-cols-4"
         aria-label="Tóm tắt hàng đợi"
         [attr.data-testid]="isOwnDoctor() ? 'doctor-metrics' : null"
       >
-        <div class="p-3.5 px-5">
-          <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Đang chờ</p>
-          <p data-testid="waiting-count" class="mt-1 font-mono text-2xl font-bold tracking-tight text-[#0284c7]">
-            {{ waitingCount() }}
-          </p>
+        <div class="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs flex items-center justify-between">
+          <div>
+            <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Đang chờ</p>
+            <p data-testid="waiting-count" class="mt-1 font-mono text-2xl sm:text-3xl font-bold tracking-tight text-amber-600">
+              {{ waitingCount() }}
+            </p>
+          </div>
+          <div class="grid h-10 w-10 place-items-center rounded-xl bg-amber-50 text-amber-600">
+            <mat-icon class="!h-5 !w-5 !text-[20px]">schedule</mat-icon>
+          </div>
         </div>
-        <div class="p-3.5 px-5">
-          <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Đã gọi</p>
-          <p class="mt-1 font-mono text-2xl font-bold tracking-tight text-amber-600">
-            {{ calledCount() }}
-          </p>
+        <div class="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs flex items-center justify-between">
+          <div>
+            <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Đã gọi</p>
+            <p class="mt-1 font-mono text-2xl sm:text-3xl font-bold tracking-tight text-blue-600">
+              {{ calledCount() }}
+            </p>
+          </div>
+          <div class="grid h-10 w-10 place-items-center rounded-xl bg-blue-50 text-blue-600">
+            <mat-icon class="!h-5 !w-5 !text-[20px]">campaign</mat-icon>
+          </div>
         </div>
-        <div class="p-3.5 px-5">
-          <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Đang khám</p>
-          <p class="mt-1 font-mono text-2xl font-bold tracking-tight text-violet-600">
-            {{ inServiceCount() }}
-          </p>
+        <div class="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs flex items-center justify-between">
+          <div>
+            <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Đang khám</p>
+            <p class="mt-1 font-mono text-2xl sm:text-3xl font-bold tracking-tight text-[#0284c7]">
+              {{ inServiceCount() }}
+            </p>
+          </div>
+          <div class="grid h-10 w-10 place-items-center rounded-xl bg-sky-50 text-[#0284c7]">
+            <mat-icon class="!h-5 !w-5 !text-[20px]">stethoscope</mat-icon>
+          </div>
         </div>
-        <div class="p-3.5 px-5">
-          <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Hoàn tất</p>
-          <p class="mt-1 font-mono text-2xl font-bold tracking-tight text-emerald-600">
-            {{ completedCount() }}
-          </p>
+        <div class="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs flex items-center justify-between">
+          <div>
+            <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Hoàn tất</p>
+            <p class="mt-1 font-mono text-2xl sm:text-3xl font-bold tracking-tight text-emerald-600">
+              {{ completedCount() }}
+            </p>
+          </div>
+          <div class="grid h-10 w-10 place-items-center rounded-xl bg-emerald-50 text-emerald-600">
+            <mat-icon class="!h-5 !w-5 !text-[20px]">task_alt</mat-icon>
+          </div>
         </div>
       </section>
 
@@ -173,52 +198,56 @@
         @if (currentDoctorTicket(); as current) {
           <section
             data-testid="doctor-current-patient"
-            class="overflow-hidden rounded-xl border border-sky-200 bg-gradient-to-r from-sky-50/80 via-white to-sky-50/40 p-4 shadow-xs"
+            class="overflow-hidden rounded-2xl border border-sky-200/80 bg-gradient-to-r from-sky-50/70 via-white to-sky-50/30 p-4 sm:p-5 shadow-xs"
             aria-label="Bệnh nhân đang xử lý"
           >
-            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div class="flex items-center gap-3.5">
-                <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#0284c7] font-mono text-base font-bold text-white shadow-xs">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div class="flex items-center gap-4">
+                <div class="flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl bg-[#0284c7] font-mono text-lg font-bold text-white shadow-xs">
                   #{{ current.queueNumber }}
                 </div>
                 <div>
                   <div class="flex items-center gap-2">
                     <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Lượt khám đang xử lý</span>
                     <span class="erp-badge" [class]="statusClass(current.status)">
-                      {{ current.status === 'IN_SERVICE' ? 'Đang khám' : 'Đang được gọi' }}
+                      <span class="erp-dot" [class]="statusDotClass(current.status)"></span>
+                      <span>{{ current.status === 'IN_SERVICE' ? 'Đang khám' : 'Đang được gọi' }}</span>
                     </span>
                   </div>
-                  <h3 class="text-base font-bold text-slate-900">{{ current.patientName || current.appointmentCode }}</h3>
-                  <p class="text-xs text-slate-500">
+                  <h3 class="text-lg font-bold text-slate-900 mt-0.5">{{ current.patientName || current.appointmentCode }}</h3>
+                  <p class="text-xs text-slate-500 mt-0.5">
                     {{ patientBirthLabel(current.patientDateOfBirth) ? patientBirthLabel(current.patientDateOfBirth) + ' · ' : '' }}{{ isToday() ? 'Khám hôm nay' : ('Khám ngày ' + formatDate(selectedDate())) }} · Giờ hẹn: {{ formatTime(current.appointmentTime) }} · Mã: {{ current.appointmentCode }}
                   </p>
                 </div>
               </div>
 
-              <div class="flex items-center gap-2">
+              <div class="flex items-center gap-2.5">
                 @if (current.status === 'CALLED') {
                   <button
                     type="button"
-                    class="erp-btn-primary"
+                    class="erp-btn-primary !h-10 !px-4 text-xs font-semibold cursor-pointer"
                     [disabled]="busyTicketId() === current.id"
                     (click)="act(current, 'start')"
                   >
+                    <mat-icon class="!h-4 !w-4 !text-[16px]">stethoscope</mat-icon>
                     <span>Vào khám</span>
                   </button>
                   <button
                     type="button"
-                    class="erp-btn-secondary"
+                    class="erp-btn-secondary !h-10 !px-3.5 text-xs font-semibold cursor-pointer"
                     [disabled]="busyTicketId() === current.id"
                     (click)="act(current, 'skip')"
                   >
+                    <mat-icon class="!h-4 !w-4 !text-[16px]">replay</mat-icon>
                     <span>Gọi lại</span>
                   </button>
                 } @else {
                   <button
                     type="button"
-                    class="erp-btn-primary"
+                    class="erp-btn-primary !h-10 !px-5 text-xs font-semibold cursor-pointer shadow-md shadow-sky-900/15"
                     (click)="openExamination(current)"
                   >
+                    <mat-icon class="!h-4 !w-4 !text-[16px]">clinical_notes</mat-icon>
                     <span>Mở phiếu khám</span>
                   </button>
                 }
@@ -226,17 +255,22 @@
             </div>
           </section>
         } @else {
-          <div data-testid="doctor-current-patient" class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-500 shadow-xs flex items-center justify-between">
-            <span>Chưa có lượt khám đang xử lý. Bấm <strong>Gọi bệnh nhân tiếp theo</strong> hoặc chọn lượt khám từ hàng đợi bên dưới.</span>
+          <div data-testid="doctor-current-patient" class="rounded-2xl border border-slate-200/80 bg-white p-4.5 text-xs text-slate-500 shadow-xs flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-400">
+                <mat-icon class="!h-5 !w-5 !text-[20px]">person_outline</mat-icon>
+              </span>
+              <span>Chưa có lượt khám đang xử lý. Bấm <strong>Gọi bệnh nhân tiếp theo</strong> hoặc chọn lượt khám từ hàng đợi bên dưới.</span>
+            </div>
           </div>
         }
       }
 
-      <section class="erp-card overflow-hidden shadow-xs" aria-label="Danh sách lượt khám">
-        <div class="erp-toolbar">
+      <section class="erp-card overflow-hidden shadow-xs rounded-2xl" aria-label="Danh sách lượt khám">
+        <div class="erp-toolbar !p-3.5 sm:!p-4">
           <div class="flex items-center gap-2.5">
             <h2 class="text-sm font-bold uppercase tracking-wider text-slate-800">Hàng đợi</h2>
-            <span class="rounded-full bg-slate-100 px-2 py-0.5 font-mono text-[11px] font-semibold text-slate-600">
+            <span class="rounded-full bg-slate-100 px-2.5 py-0.5 font-mono text-xs font-bold text-slate-600">
               {{ queue().length }} lượt
             </span>
           </div>
@@ -245,10 +279,11 @@
               <button
                 data-testid="call-next"
                 type="button"
-                class="erp-btn-primary"
+                class="erp-btn-primary !h-9 !px-4 text-xs font-bold shadow-xs cursor-pointer"
                 [disabled]="busyTicketId() === 'next'"
                 (click)="callNextDoctor()"
               >
+                <mat-icon class="!h-4 !w-4 !text-[16px]">campaign</mat-icon>
                 <span>Gọi bệnh nhân tiếp theo</span>
               </button>
             }

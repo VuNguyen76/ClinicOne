@@ -83,21 +83,21 @@
 
       <!-- TOP SECTION: PATIENT IDENTITY -->
       <section
-        class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs"
+        class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-4.5 sm:p-5 shadow-xs"
         data-testid="patient-summary"
       >
-        <div class="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between lg:px-6">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between lg:px-2">
           <div class="flex flex-wrap items-center gap-4">
             <!-- Queue Number Badge -->
-            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#0284c7] font-mono text-base font-bold text-white shadow-xs">
+            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#0284c7] font-mono text-base font-bold text-white shadow-xs">
               #{{ exam.queueNumber }}
             </div>
 
             <!-- Patient Core Identity -->
             <div>
               <div class="flex flex-wrap items-center gap-2.5">
-                <h2 class="text-base font-bold text-slate-900">{{ exam.patientName }}</h2>
-                <span class="inline-flex items-center rounded-md bg-sky-50 border border-sky-200 px-2 py-0.5 font-mono text-xs font-bold text-[#0284c7]">
+                <h2 class="text-lg font-bold text-slate-900">{{ exam.patientName }}</h2>
+                <span class="inline-flex items-center rounded-lg bg-sky-50 border border-sky-200/80 px-2.5 py-0.5 font-mono text-xs font-bold text-[#0284c7]">
                   {{ exam.appointmentCode }}
                 </span>
                 <span
@@ -108,12 +108,12 @@
                   <span>{{ exam.status === 'COMPLETED' ? 'Đã hoàn thành' : 'Đang khám' }}</span>
                 </span>
               </div>
-              <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600">
-                <span>Ngày sinh: <strong class="text-slate-700">{{ patientBirthLabel(exam.patientDateOfBirth) }}</strong></span>
+              <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+                <span>Ngày sinh: <strong class="text-slate-700 font-semibold">{{ patientBirthLabel(exam.patientDateOfBirth) }}</strong></span>
                 <span class="text-slate-300">•</span>
-                <span>Giới tính: <strong class="text-slate-700">{{ exam.patientGender || 'Chưa cập nhật' }}</strong></span>
+                <span>Giới tính: <strong class="text-slate-700 font-semibold">{{ exam.patientGender || 'Chưa cập nhật' }}</strong></span>
                 <span class="text-slate-300">•</span>
-                <span>SĐT: <strong class="text-slate-700">{{ exam.patientPhone }}</strong></span>
+                <span>SĐT: <strong class="text-slate-700 font-semibold">{{ exam.patientPhone }}</strong></span>
               </div>
             </div>
           </div>
@@ -124,7 +124,7 @@
               <button
                 data-testid="wrong-profile"
                 type="button"
-                class="group relative inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-400 transition hover:border-amber-400 hover:bg-amber-50 hover:text-amber-700 focus:outline-hidden focus:ring-2 focus:ring-amber-200 disabled:opacity-50 cursor-pointer shadow-2xs"
+                class="group relative inline-flex h-9.5 w-9.5 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-400 transition hover:border-amber-400 hover:bg-amber-50 hover:text-amber-700 focus:outline-hidden focus:ring-2 focus:ring-amber-200 disabled:opacity-50 cursor-pointer shadow-2xs"
                 [disabled]="saving() || signing() || stopping() || returningWrongProfile()"
                 (click)="requestWrongProfile()"
                 title="Báo nhầm hồ sơ người bệnh (Bấm để xác nhận)"
@@ -147,15 +147,14 @@
       >
         @if (exam.requiresMedicalRecord !== false) {
           <!-- CLINICAL WORKFLOW TABS (1, 2, 3) -->
-          <nav class="flex border-b border-slate-200 bg-white rounded-xl shadow-xs overflow-hidden" aria-label="Các phân vùng khám bệnh">
+          <nav class="flex border border-slate-200/80 bg-white p-1.5 rounded-2xl shadow-xs overflow-hidden gap-1.5" aria-label="Các phân vùng khám bệnh">
             <button
               type="button"
               data-testid="tab-exam"
-              class="flex-1 flex items-center justify-center gap-2 py-3 px-4 text-xs font-bold uppercase tracking-wider transition border-b-2 cursor-pointer"
-              [class.border-[#0284c7]]="activeTab() === 'exam'"
+              class="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 text-xs font-bold uppercase tracking-wider transition-all duration-150 rounded-xl cursor-pointer"
+              [class.bg-sky-50]="activeTab() === 'exam'"
               [class.text-[#0284c7]]="activeTab() === 'exam'"
-              [class.bg-sky-50/50]="activeTab() === 'exam'"
-              [class.border-transparent]="activeTab() !== 'exam'"
+              [class.shadow-2xs]="activeTab() === 'exam'"
               [class.text-slate-500]="activeTab() !== 'exam'"
               [class.hover:text-slate-800]="activeTab() !== 'exam'"
               [class.hover:bg-slate-50]="activeTab() !== 'exam'"
@@ -173,11 +172,10 @@
             <button
               type="button"
               data-testid="tab-diagnosis"
-              class="flex-1 flex items-center justify-center gap-2 py-3 px-4 text-xs font-bold uppercase tracking-wider transition border-b-2 cursor-pointer"
-              [class.border-[#0284c7]]="activeTab() === 'diagnosis'"
+              class="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 text-xs font-bold uppercase tracking-wider transition-all duration-150 rounded-xl cursor-pointer"
+              [class.bg-sky-50]="activeTab() === 'diagnosis'"
               [class.text-[#0284c7]]="activeTab() === 'diagnosis'"
-              [class.bg-sky-50/50]="activeTab() === 'diagnosis'"
-              [class.border-transparent]="activeTab() !== 'diagnosis'"
+              [class.shadow-2xs]="activeTab() === 'diagnosis'"
               [class.text-slate-500]="activeTab() !== 'diagnosis'"
               [class.hover:text-slate-800]="activeTab() !== 'diagnosis'"
               [class.hover:bg-slate-50]="activeTab() !== 'diagnosis'"
@@ -195,11 +193,10 @@
             <button
               type="button"
               data-testid="tab-prescription"
-              class="flex-1 flex items-center justify-center gap-2 py-3 px-4 text-xs font-bold uppercase tracking-wider transition border-b-2 cursor-pointer"
-              [class.border-[#0284c7]]="activeTab() === 'prescription'"
+              class="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 text-xs font-bold uppercase tracking-wider transition-all duration-150 rounded-xl cursor-pointer"
+              [class.bg-sky-50]="activeTab() === 'prescription'"
               [class.text-[#0284c7]]="activeTab() === 'prescription'"
-              [class.bg-sky-50/50]="activeTab() === 'prescription'"
-              [class.border-transparent]="activeTab() !== 'prescription'"
+              [class.shadow-2xs]="activeTab() === 'prescription'"
               [class.text-slate-500]="activeTab() !== 'prescription'"
               [class.hover:text-slate-800]="activeTab() !== 'prescription'"
               [class.hover:bg-slate-50]="activeTab() !== 'prescription'"
@@ -225,8 +222,8 @@
           <!-- ======================================================== -->
           <div [class.hidden]="activeTab() !== 'exam'" class="space-y-4">
             <!-- Chỉ số sinh hiệu & Thể trạng -->
-            <section class="overflow-hidden rounded-xl border border-slate-200 bg-white p-4 shadow-xs" aria-label="Chỉ số sinh hiệu">
-              <div class="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+            <section class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-4.5 sm:p-5 shadow-xs" aria-label="Chỉ số sinh hiệu">
+              <div class="mb-3.5 flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
                 <span class="text-xs font-bold uppercase tracking-wider text-slate-700">Chỉ số sinh hiệu &amp; Thể trạng</span>
                 @if (bmi()) {
                   <div class="flex items-center gap-1.5 text-xs font-medium">
@@ -382,8 +379,8 @@
             </section>
 
             <!-- Khám lâm sàng -->
-            <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
-              <div class="flex items-center justify-between border-b border-slate-200 bg-slate-50/70 px-5 py-3">
+            <section class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
+              <div class="flex items-center justify-between border-b border-slate-200/80 bg-slate-50/60 px-5 py-3.5">
                 <h3 class="text-sm font-bold uppercase tracking-wider text-slate-900">1. Khám lâm sàng</h3>
 
                 @if (!isReadonly()) {
@@ -532,8 +529,8 @@
             </section>
 
             <!-- Card: Lịch sử khám trước đây -->
-            <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
-              <div class="border-b border-slate-200 bg-slate-50/70 px-5 py-3">
+            <section class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
+              <div class="border-b border-slate-200/80 bg-slate-50/60 px-5 py-3.5">
                 <h4 class="text-xs font-bold uppercase tracking-wider text-slate-700">Lịch sử các lần khám trước</h4>
               </div>
               <div class="p-4">
@@ -672,9 +669,9 @@
           <!-- ======================================================== -->
           <div [class.hidden]="activeTab() !== 'prescription'" class="space-y-4">
             <!-- Đơn thuốc điều trị (Full Width) -->
-            <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs" formArrayName="prescriptionLines">
+            <section class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs" formArrayName="prescriptionLines">
               <!-- Header Prescription -->
-              <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-50/70 px-5 py-3.5">
+              <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 bg-slate-50/60 px-5 py-3.5">
                 <div class="flex items-center gap-2">
                   <h4 class="text-sm font-bold uppercase tracking-wider text-slate-900">3. Đơn thuốc điều trị</h4>
                   <span class="rounded-full bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
