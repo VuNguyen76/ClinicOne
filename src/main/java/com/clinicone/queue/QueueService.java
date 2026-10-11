@@ -198,7 +198,7 @@ public class QueueService {
         var existing = ticketRepository.findByAppointmentId(appointmentId);
         if (existing.isPresent()) {
             QueueTicket ticket = existing.get();
-            if (!ticket.getRoom().getCode().equalsIgnoreCase(room.getCode())) {
+            if (ticket.getRoom() == null || !ticket.getRoom().getCode().equalsIgnoreCase(room.getCode())) {
                 throw new AuthException(HttpStatus.CONFLICT, "QUEUE_ALREADY_CHECKED_IN",
                         "Lịch hẹn đã lấy số tại phòng khác.");
             }
@@ -225,7 +225,7 @@ public class QueueService {
                 if (effectiveDoctorId != null && doctorProfileRepository != null) {
                     DoctorProfile effectiveProfile = doctorProfileRepository.findByStaffAccount_Id(effectiveDoctorId)
                             .filter(DoctorProfile::isActive)
-                            .filter(value -> value.getRoom().getCode().equalsIgnoreCase(room.getCode()))
+                            .filter(value -> value.getRoom() != null && value.getRoom().getCode().equalsIgnoreCase(room.getCode()))
                             .orElse(null);
                     canReturn = effectiveProfile != null && hasActiveShift(effectiveProfile, today());
                 }
@@ -312,7 +312,7 @@ public class QueueService {
         if (role == StaffRole.DOCTOR) {
             UUID doctorId = AuthenticatedIds.staff(staffId);
             DoctorProfile profile = doctorProfile(doctorId);
-            if (!profile.getRoom().getCode().equalsIgnoreCase(roomCode)) {
+            if (profile.getRoom() == null || !profile.getRoom().getCode().equalsIgnoreCase(roomCode)) {
                 throw new AuthException(HttpStatus.FORBIDDEN, "DOCTOR_ROOM_SCOPE",
                         "Bác sĩ chỉ được xem hàng đợi của phòng được phân công.");
             }
@@ -330,12 +330,14 @@ public class QueueService {
         DoctorProfile profile = doctorProfile(doctorId);
         LocalDate queueDate = date == null ? today() : date;
         String shiftStatus = doctorShiftStatus(profile, queueDate);
-        List<QueueTicketResponse> tickets = "ACTIVE".equals(shiftStatus)
-                ? doctorTickets(profile.getRoom().getCode(), queueDate, doctorId).stream()
+        String roomCode = profile.getRoom() != null ? profile.getRoom().getCode() : "";
+        String roomName = profile.getRoom() != null ? profile.getRoom().getName() : "";
+        List<QueueTicketResponse> tickets = "ACTIVE".equals(shiftStatus) && !roomCode.isBlank()
+                ? doctorTickets(roomCode, queueDate, doctorId).stream()
                         .map(QueueTicketResponse::from)
                         .toList()
                 : List.of();
-        return new DoctorQueueResponse(profile.getRoom().getCode(), profile.getRoom().getName(),
+        return new DoctorQueueResponse(roomCode, roomName,
                 profile.getSpecialty(), shiftStatus, tickets);
     }
 
@@ -360,6 +362,10 @@ public class QueueService {
     public QueueTicketResponse callNext(String staffId, LocalDate date) {
         UUID doctorId = AuthenticatedIds.staff(staffId);
         DoctorProfile profile = doctorProfile(doctorId);
+        if (profile.getRoom() == null) {
+            throw new AuthException(HttpStatus.CONFLICT, "DOCTOR_ROOM_REQUIRED",
+                    "Bác sĩ chưa được phân công phòng khám.");
+        }
         LocalDate queueDate = date == null ? today() : date;
         if (!hasActiveShift(profile, queueDate)) {
             throw new AuthException(HttpStatus.CONFLICT, "DOCTOR_SHIFT_INACTIVE",
@@ -529,6 +535,10 @@ public class QueueService {
             throw new AuthException(HttpStatus.CONFLICT, "QUEUE_TARGET_SPECIALTY_MISMATCH",
                     "Chuyên khoa đích không khớp với phân công của bác sĩ.");
         }
+        if (targetDoctor.getRoom() == null) {
+            throw new AuthException(HttpStatus.CONFLICT, "QUEUE_TARGET_ROOM_INVALID",
+                    "Bác sĩ đích chưa được phân công phòng khám.");
+        }
         if (!requestedRoom.isBlank() && !requestedRoom.equalsIgnoreCase(targetDoctor.getRoom().getCode())) {
             throw new AuthException(HttpStatus.CONFLICT, "QUEUE_TARGET_ROOM_MISMATCH",
                     "Phòng đích không khớp với phân công của bác sĩ.");
@@ -584,7 +594,7 @@ public class QueueService {
                     "Cần chọn bác sĩ đích hoặc chỉ rõ chuyên khoa và phòng đích.");
         }
         List<DoctorProfile> candidates = doctorProfileRepository.findBySpecialtyIgnoreCaseAndActiveTrue(specialty)
-                .stream().filter(profile -> profile.getRoom().getCode().equalsIgnoreCase(roomCode)).toList();
+                .stream().filter(profile -> profile.getRoom() != null && profile.getRoom().getCode().equalsIgnoreCase(roomCode)).toList();
         if (candidates.size() > 1) {
             throw new AuthException(HttpStatus.CONFLICT, "QUEUE_TARGET_DOCTOR_REQUIRED",
                     "Có nhiều bác sĩ trong hàng đợi đích; cần chọn đúng bác sĩ.");
@@ -654,7 +664,7 @@ public class QueueService {
         }
         DoctorProfile profile = doctorProfileRepository.findByStaffAccount_Id(appointment.getDoctorStaffId())
                 .filter(DoctorProfile::isActive)
-                .filter(value -> value.getRoom().getCode().equalsIgnoreCase(room.getCode()))
+                .filter(value -> value.getRoom() != null && room != null && value.getRoom().getCode().equalsIgnoreCase(room.getCode()))
                 .orElse(null);
         if (profile == null) {
             return false;
@@ -784,9 +794,10 @@ public class QueueService {
     }
 
     private void ensureDoctorRoom(Appointment appointment, ClinicRoom room) {
-        if (doctorProfileRepository == null || appointment.getDoctorStaffId() == null) return;
+        if (doctorProfileRepository == null || appointment.getDoctorStaffId() == null || room == null) return;
         doctorProfileRepository.findByStaffAccount_Id(appointment.getDoctorStaffId())
                 .filter(profile -> profile.isActive()
+                        && profile.getRoom() != null
                         && profile.getRoom().getCode().equalsIgnoreCase(room.getCode()))
                 .orElseThrow(() -> new AuthException(HttpStatus.CONFLICT, "QUEUE_ROOM_MISMATCH",
                         "Vui lòng quét mã tại đúng phòng của bác sĩ trong lịch hẹn."));
@@ -802,7 +813,8 @@ public class QueueService {
                     "Bác sĩ chỉ được thao tác trên lượt đã được phân công.");
         }
         DoctorProfile profile = doctorProfile(doctorId);
-        if (!profile.getRoom().getCode().equalsIgnoreCase(ticket.getRoom().getCode())) {
+        if (profile.getRoom() == null || ticket.getRoom() == null
+                || !profile.getRoom().getCode().equalsIgnoreCase(ticket.getRoom().getCode())) {
             throw new AuthException(HttpStatus.FORBIDDEN, "DOCTOR_ROOM_SCOPE",
                     "Bác sĩ chỉ được thao tác trong phòng được phân công.");
         }
@@ -823,7 +835,8 @@ public class QueueService {
         }
         DoctorProfile effectiveProfile = doctorProfileRepository.findByStaffAccount_Id(effectiveDoctorId)
                 .filter(DoctorProfile::isActive)
-                .filter(value -> value.getRoom().getCode().equalsIgnoreCase(ticket.getRoom().getCode()))
+                .filter(value -> value.getRoom() != null && ticket.getRoom() != null
+                        && value.getRoom().getCode().equalsIgnoreCase(ticket.getRoom().getCode()))
                 .orElse(null);
         boolean hasShift = effectiveProfile != null && hasActiveShift(effectiveProfile, today());
         if (!hasShift) {

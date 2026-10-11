@@ -300,13 +300,18 @@ public class AppointmentAvailabilityService {
         List<DoctorSchedule> schedules = doctorScheduleRepository.findActiveBySpecialtyIgnoreCase(specialty);
         if (service != null && service.getEligibleDoctors() != null && !service.getEligibleDoctors().isEmpty()) {
             var eligibleDoctorIds = service.getEligibleDoctors().stream()
+                    .filter(doctor -> doctor != null && doctor.getStaffAccount() != null)
                     .map(doctor -> doctor.getStaffAccount().getId())
                     .collect(Collectors.toSet());
             schedules = schedules.stream()
-                    .filter(schedule -> eligibleDoctorIds.contains(schedule.getDoctorProfile().getStaffAccount().getId()))
+                    .filter(schedule -> schedule.getDoctorProfile() != null
+                            && schedule.getDoctorProfile().getStaffAccount() != null
+                            && eligibleDoctorIds.contains(schedule.getDoctorProfile().getStaffAccount().getId()))
                     .toList();
         }
         List<UUID> doctorStaffIds = schedules.stream()
+                .filter(schedule -> schedule.getDoctorProfile() != null
+                        && schedule.getDoctorProfile().getStaffAccount() != null)
                 .map(schedule -> schedule.getDoctorProfile().getStaffAccount().getId())
                 .distinct()
                 .toList();

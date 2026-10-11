@@ -46,6 +46,11 @@ public class DoctorTimeOffService {
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "DOCTOR_NOT_AVAILABLE",
                         "Bác sĩ không tồn tại hoặc đang ngừng hoạt động."));
 
+        if (timeOffRepository.existsOverlapping(doctor.getId(), request.startDate(), request.endDate())) {
+            throw new AuthException(HttpStatus.CONFLICT, "DOCTOR_TIME_OFF_OVERLAP",
+                    "Bác sĩ đã có lịch nghỉ trùng với khoảng thời gian này.");
+        }
+
         DoctorTimeOff timeOff = timeOffRepository.save(DoctorTimeOff.create(doctor, request.startDate(),
                 request.endDate(), request.reason()));
         List<GeneratedClinicSlot> openSlots = slotRepository

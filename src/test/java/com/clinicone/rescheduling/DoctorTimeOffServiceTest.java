@@ -104,4 +104,19 @@ class DoctorTimeOffServiceTest {
         assertEquals("DOCTOR_TIME_OFF_RANGE_INVALID", exception.getCode());
         verify(timeOffRepository, never()).save(any(DoctorTimeOff.class));
     }
+
+    @Test
+    void rejectsOverlappingTimeOff() {
+        DoctorProfile profile = mock(DoctorProfile.class);
+        when(doctorRepository.findByStaffAccount_Id(DOCTOR_ID)).thenReturn(Optional.of(profile));
+        when(profile.isActive()).thenReturn(true);
+        when(profile.getId()).thenReturn(PROFILE_ID);
+        when(timeOffRepository.existsOverlapping(PROFILE_ID, FROM, TO)).thenReturn(true);
+
+        AuthException exception = assertThrows(AuthException.class, () -> service.create(new CreateDoctorTimeOffRequest(
+                DOCTOR_ID, FROM, TO, "Bác sĩ nghỉ đột xuất")));
+
+        assertEquals("DOCTOR_TIME_OFF_OVERLAP", exception.getCode());
+        verify(timeOffRepository, never()).save(any(DoctorTimeOff.class));
+    }
 }
