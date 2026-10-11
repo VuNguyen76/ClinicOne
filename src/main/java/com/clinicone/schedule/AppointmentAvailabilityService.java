@@ -376,32 +376,51 @@ public class AppointmentAvailabilityService {
     private List<AvailableSlotResponse> slotsFor(DoctorSchedule schedule, LocalDate date,
                                                   Map<DoctorSlotKey, Long> bookedBySlot, Integer serviceDuration) {
         DoctorProfile profile = schedule.getDoctorProfile();
-        UUID doctorStaffId = profile.getStaffAccount().getId();
+        UUID doctorStaffId = profile.getStaffAccount() != null ? profile.getStaffAccount().getId() : null;
+        String doctorName = profile.getStaffAccount() != null ? profile.getStaffAccount().getFullName() : DEFAULT_DOCTOR;
+        String roomCode = profile.getRoom() != null ? profile.getRoom().getCode() : null;
         ArrayList<AvailableSlotResponse> slots = new ArrayList<>();
         int duration = serviceDuration == null ? schedule.getSlotDurationMinutes() : serviceDuration;
-        if (duration <= 0) {
-            throw new AuthException(HttpStatus.BAD_REQUEST, "SLOT_DURATION_INVALID",
-                    "Thời lượng khung giờ không hợp lệ.");
+        if (duration < 10) {
+            duration = 30;
         }
         LocalTime start = schedule.getStartTime();
-        while (!start.plusMinutes(duration).isAfter(schedule.getEndTime())) {
-            long booked = bookedBySlot.getOrDefault(new DoctorSlotKey(doctorStaffId, date, start), 0L);
+        LocalTime endTime = schedule.getEndTime();
+        if (start == null || endTime == null || !endTime.isAfter(start)) {
+            return slots;
+        }
+        int maxSlots = 96;
+        int count = 0;
+        while (count++ < maxSlots) {
             LocalTime end = start.plusMinutes(duration);
+            // End must not wrap midnight (end <= start) and must not exceed endTime
+            if (!end.isAfter(start) || end.isAfter(endTime)) {
+                break;
+            }
+            long booked = bookedBySlot.getOrDefault(new DoctorSlotKey(doctorStaffId, date, start), 0L);
             slots.add(new AvailableSlotResponse(profile.getSpecialty(), date, start, end,
-                    profile.getStaffAccount().getFullName(), booked == 0 ? 1 : 0,
-                    doctorStaffId, profile.getRoom().getCode()));
+                    doctorName, booked == 0 ? 1 : 0,
+                    doctorStaffId, roomCode));
             start = end;
         }
         return slots;
     }
 
     private boolean contains(DoctorSchedule schedule, LocalTime start, Integer serviceDuration) {
+        if (schedule.getStartTime() == null || schedule.getEndTime() == null
+                || !schedule.getEndTime().isAfter(schedule.getStartTime())) {
+            return false;
+        }
         int duration = serviceDuration == null ? schedule.getSlotDurationMinutes() : serviceDuration;
-        if (duration <= 0) {
+        if (duration < 10) {
+            duration = 30;
+        }
+        LocalTime end = start.plusMinutes(duration);
+        if (!end.isAfter(start)) {
             return false;
         }
         return !start.isBefore(schedule.getStartTime())
-                && !start.plusMinutes(duration).isAfter(schedule.getEndTime());
+                && !end.isAfter(schedule.getEndTime());
     }
 
     private void validateDate(LocalDate appointmentDate) {
@@ -456,14 +475,19 @@ public class AppointmentAvailabilityService {
     }
 
     private void addTemplates(List<SlotTemplate> target, LocalTime windowStart, LocalTime windowEnd, int duration) {
-        if (duration <= 0) {
-            throw new AuthException(HttpStatus.BAD_REQUEST, "SLOT_DURATION_INVALID",
-                    "Thời lượng khung giờ không hợp lệ.");
+        if (duration < 10) {
+            duration = 30;
         }
         LocalTime start = windowStart;
-        while (!start.plusMinutes(duration).isAfter(windowEnd)) {
-            target.add(new SlotTemplate(start, start.plusMinutes(duration)));
-            start = start.plusMinutes(duration);
+        int maxSlots = 96;
+        int count = 0;
+        while (count++ < maxSlots) {
+            LocalTime end = start.plusMinutes(duration);
+            if (!end.isAfter(start) || end.isAfter(windowEnd)) {
+                break;
+            }
+            target.add(new SlotTemplate(start, end));
+            start = end;
         }
     }
 

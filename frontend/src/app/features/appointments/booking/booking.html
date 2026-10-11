@@ -1,322 +1,486 @@
-<main class="min-h-screen bg-slate-50 text-slate-800 antialiased">
+<main class="min-h-screen bg-slate-50/60 text-slate-800 antialiased">
   <app-patient-header />
 
-  <div class="relative isolate overflow-hidden py-7 text-white sm:py-9">
-    <img src="booking-banner.webp" alt="Không gian phòng khám ClinicOne" class="absolute inset-0 -z-20 h-full w-full object-cover object-center" />
-    <div class="absolute inset-0 -z-10 bg-gradient-to-r from-slate-900/95 via-slate-900/85 to-[#0284c7]/40"></div>
-    <div class="mx-auto max-w-[1200px] px-5 lg:px-0">
-      <div class="flex items-center gap-3 text-sm text-white/75"><a routerLink="/dashboard"
-          class="hover:text-white">Tổng quan</a><mat-icon class="!h-4 !w-4 !text-[16px]">chevron_right</mat-icon><span
-          class="font-semibold text-white">Đặt lịch khám</span></div>
-      <h1 class="mt-4 text-2xl font-bold tracking-[-0.035em] sm:text-3xl">Đặt lịch khám trực tuyến</h1>
-      <p class="mt-2 text-sm text-white/80">Chọn chuyên khoa, bác sĩ và khung giờ khám nhanh chóng.</p>
-    </div>
-  </div>
-
-  <div class="mx-auto grid max-w-[1200px] gap-6 px-5 py-8 lg:grid-cols-[265px_minmax(0,1fr)] lg:py-10 lg:px-0">
-    <aside class="h-fit overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs lg:sticky lg:top-[96px]">
-      <div class="flex items-center gap-3 border-b border-slate-200 bg-[#0284c7] px-5 py-4 text-sm font-bold text-white"><span class="grid h-8 w-8 place-items-center rounded-lg bg-white/15"><mat-icon class="!h-5 !w-5 !text-[20px]">event_note</mat-icon></span><span>Thông tin đặt lịch</span></div>
-      <div class="px-5 py-2 text-sm">
-        <div class="flex min-w-0 gap-3 border-b border-slate-100 py-3.5"><mat-icon class="mt-0.5 !h-5 !w-5 !shrink-0 !text-[20px] text-[#0284c7]">local_hospital</mat-icon>
-          <div class="min-w-0"><p class="truncate font-semibold text-slate-800">Phòng khám Đa khoa ClinicOne</p></div>
+  <!-- Clean Minimalist Editorial Header -->
+  <section class="border-b border-slate-200/80 bg-white py-7 sm:py-8">
+    <div class="mx-auto max-w-[1200px] px-5 lg:px-8">
+      <nav class="flex items-center gap-2 text-xs font-medium text-slate-500" aria-label="Đường dẫn">
+        <a routerLink="/dashboard" class="transition hover:text-[#0284c7]">Tổng quan</a>
+        <mat-icon class="!h-3.5 !w-3.5 !text-[14px] text-slate-400">chevron_right</mat-icon>
+        <span class="font-semibold text-slate-800">Đặt lịch khám</span>
+      </nav>
+      <div class="mt-3 flex flex-col justify-between gap-3 sm:flex-row sm:items-baseline">
+        <div>
+          <h1 class="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Đặt lịch khám trực tuyến</h1>
+          <p class="mt-1 text-sm text-slate-500">Đặt hẹn trực tiếp cùng bác sĩ chuyên khoa tại Phòng khám Đa khoa ClinicOne nhanh chóng, tiện lợi.</p>
         </div>
-        @if (selectedSpecialty()) {<div class="flex min-w-0 gap-3 border-b border-slate-100 py-3.5"><mat-icon
-            class="mt-0.5 !h-5 !w-5 !shrink-0 !text-[20px] text-[#0284c7]">medical_services</mat-icon>
-          <div class="min-w-0"><p class="text-xs text-slate-500">Chuyên khoa</p><p class="mt-0.5 font-semibold leading-5 text-slate-800">{{ selectedSpecialty() }}</p></div>
-        </div>}
-        @if (selectedDate()) {<div class="flex min-w-0 gap-3 border-b border-slate-100 py-3.5"><mat-icon
-            class="mt-0.5 !h-5 !w-5 !shrink-0 !text-[20px] text-[#0284c7]">event</mat-icon>
-          <div class="min-w-0"><p class="text-xs text-slate-500">Ngày khám</p><time class="mt-0.5 block font-semibold leading-5 text-slate-800">{{ formatDate(selectedDate()) }}</time></div>
-        </div>}
-        @if (selectedSlotDetails(); as slot) {<div class="flex min-w-0 gap-3 py-3.5"><mat-icon
-            class="mt-0.5 !h-5 !w-5 !shrink-0 !text-[20px] text-[#0284c7]">schedule</mat-icon>
-          <div class="min-w-0"><p class="text-xs text-slate-500">Khung giờ</p><p class="mt-0.5 font-bold leading-5 text-slate-900">{{ slot.label }}</p><div class="mt-1 flex flex-wrap items-center gap-1.5 text-xs font-medium text-slate-500"><span>{{ slot.doctorName }}</span>@if (slot.roomCode) {<span class="rounded-md bg-sky-50 px-2 py-0.5 text-[11px] font-semibold text-[#0284c7]">Phòng {{ slot.roomCode }}</span>}</div></div>
-        </div>}
+        <div class="inline-flex w-fit items-center gap-2 rounded-full border border-sky-100 bg-sky-50/70 px-3.5 py-1 text-xs font-semibold text-[#0284c7]">
+          <mat-icon class="!h-4 !w-4 !text-[16px]">lock_clock</mat-icon>
+          <span>Giữ chỗ tự động 10 phút</span>
+        </div>
       </div>
-      <div class="border-t border-slate-200 bg-slate-50/75 px-5 py-4">
-        <p class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Tiến trình</p>
-        <ol class="mt-3 grid gap-2.5 text-sm">
-          <li class="flex items-center gap-3" [class.font-semibold]="step() === 1"
-            [class.text-[#0284c7]]="step() === 1" [class.text-slate-700]="step() !== 1"><span class="grid h-6 w-6 place-items-center rounded-full border text-xs font-bold transition"
-              [class.border-[#0284c7]]="step() === 1" [class.bg-[#0284c7]]="step() === 1"
-              [class.text-white]="step() === 1" [class.border-slate-300]="step() !== 1" [class.bg-white]="step() !== 1" [class.text-slate-500]="step() !== 1">1</span>Chuyên khoa</li>
-          <li class="flex items-center gap-3" [class.font-semibold]="step() === 2"
-            [class.text-[#0284c7]]="step() === 2" [class.text-slate-700]="step() !== 2"><span class="grid h-6 w-6 place-items-center rounded-full border text-xs font-bold transition"
-              [class.border-[#0284c7]]="step() === 2" [class.bg-[#0284c7]]="step() === 2"
-              [class.text-white]="step() === 2" [class.border-slate-300]="step() !== 2" [class.bg-white]="step() !== 2" [class.text-slate-500]="step() !== 2">2</span>Bác sĩ và lịch khám</li>
-          <li class="flex items-center gap-3" [class.font-semibold]="step() === 3"
-            [class.text-[#0284c7]]="step() === 3" [class.text-slate-700]="step() !== 3"><span class="grid h-6 w-6 place-items-center rounded-full border text-xs font-bold transition"
-              [class.border-[#0284c7]]="step() === 3" [class.bg-[#0284c7]]="step() === 3"
-              [class.text-white]="step() === 3" [class.border-slate-300]="step() !== 3" [class.bg-white]="step() !== 3" [class.text-slate-500]="step() !== 3">3</span>Thông tin khám</li>
+    </div>
+  </section>
+
+  <!-- Main Booking Workspace Grid -->
+  <div class="mx-auto grid max-w-[1200px] gap-6 px-5 py-8 lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-8 lg:px-8 lg:py-10">
+    <!-- Left Summary & Progress Sidebar -->
+    <aside class="h-fit overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-xs lg:sticky lg:top-[96px]">
+      <div class="border-b border-slate-100 bg-slate-50/70 px-5 py-4">
+        <span class="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">Tóm tắt lịch hẹn</span>
+        <p class="mt-0.5 font-bold text-slate-900">Phòng khám Đa khoa ClinicOne</p>
+      </div>
+
+      <div class="divide-y divide-slate-100 px-5 text-sm">
+        @if (selectedSpecialty()) {
+          <div class="py-3.5">
+            <span class="text-xs text-slate-400">Chuyên khoa / Dịch vụ</span>
+            <p class="mt-0.5 font-semibold text-slate-900">{{ selectedSpecialty() }}</p>
+            @if (selectedClinicService(); as s) {
+              <span class="mt-1 inline-block rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">{{ s.name }}</span>
+            }
+          </div>
+        }
+        @if (selectedDate()) {
+          <div class="py-3.5">
+            <span class="text-xs text-slate-400">Ngày khám</span>
+            <time class="mt-0.5 block font-semibold text-slate-900">{{ formatDate(selectedDate()) }}</time>
+          </div>
+        }
+        @if (selectedSlotDetails(); as slot) {
+          <div class="py-3.5">
+            <span class="text-xs text-slate-400">Khung giờ</span>
+            <p class="mt-0.5 font-bold text-[#0284c7]">{{ slot.label }}</p>
+            <div class="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-slate-600">
+              <span class="font-medium text-slate-900">{{ slot.doctorName }}</span>
+              @if (slot.roomCode) {
+                <span class="rounded-md bg-sky-50 px-2 py-0.5 text-[11px] font-semibold text-[#0284c7]">Phòng {{ slot.roomCode }}</span>
+              }
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Stepper Progress Tracker -->
+      <div class="border-t border-slate-100 bg-slate-50/50 p-5">
+        <span class="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">Tiến trình</span>
+        <ol class="mt-3 space-y-2.5 text-xs font-semibold">
+          <li class="flex items-center gap-3 transition" [class.text-[#0284c7]]="step() === 1" [class.text-slate-500]="step() !== 1">
+            <span class="grid h-6 w-6 place-items-center rounded-full text-[11px] font-bold transition"
+              [class.bg-[#0284c7]]="step() === 1" [class.text-white]="step() === 1"
+              [class.bg-slate-200]="step() !== 1" [class.text-slate-600]="step() !== 1">1</span>
+            <span>Dịch vụ & Chuyên khoa</span>
+          </li>
+          <li class="flex items-center gap-3 transition" [class.text-[#0284c7]]="step() === 2" [class.text-slate-500]="step() !== 2">
+            <span class="grid h-6 w-6 place-items-center rounded-full text-[11px] font-bold transition"
+              [class.bg-[#0284c7]]="step() === 2" [class.text-white]="step() === 2"
+              [class.bg-slate-200]="step() !== 2" [class.text-slate-600]="step() !== 2">2</span>
+            <span>Bác sĩ & Khung giờ</span>
+          </li>
+          <li class="flex items-center gap-3 transition" [class.text-[#0284c7]]="step() === 3" [class.text-slate-500]="step() !== 3">
+            <span class="grid h-6 w-6 place-items-center rounded-full text-[11px] font-bold transition"
+              [class.bg-[#0284c7]]="step() === 3" [class.text-white]="step() === 3"
+              [class.bg-slate-200]="step() !== 3" [class.text-slate-600]="step() !== 3">3</span>
+            <span>Hồ sơ & Xác nhận</span>
+          </li>
         </ol>
       </div>
     </aside>
 
-    <section class="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
+    <!-- Right Interaction Step Content Card -->
+    <section class="min-w-0 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-xs">
+      <!-- Step 1: Chọn chuyên khoa hoặc gói khám -->
       @if (step() === 1) {
-      <div class="border-b border-slate-200 bg-[#0284c7] px-6 py-4 text-base font-bold text-white sm:px-8">
-        Bước 1: Chọn dịch vụ hoặc chuyên khoa khám
-      </div>
-      <div class="p-6 sm:p-8 space-y-6">
-        <label class="relative block">
-          <mat-icon class="pointer-events-none absolute left-4 top-1/2 !h-5 !w-5 !-translate-y-1/2 !text-[20px] text-slate-400">search</mat-icon>
-          <input
-            class="min-h-11 w-full rounded-lg border border-slate-300 pl-12 pr-4 text-sm outline-none transition focus:border-[#0284c7] focus:ring-3 focus:ring-sky-500/15"
-            placeholder="Tìm dịch vụ hoặc chuyên khoa..."
-            [value]="specialtySearch()"
-            (input)="specialtySearch.set($any($event.target).value)"
-          />
-        </label>
+        <div class="border-b border-slate-100 bg-slate-50/40 px-6 py-4.5 sm:px-8">
+          <h2 class="text-sm font-bold uppercase tracking-wider text-slate-700">Bước 1: Chọn dịch vụ hoặc chuyên khoa khám</h2>
+        </div>
 
-        @if (clinicServicesLoading() || specialtiesLoading()) {
-          <p class="rounded-lg border border-slate-200 bg-slate-50 px-5 py-8 text-center text-sm text-slate-500">Đang tải danh mục khám...</p>
-        } @else {
-          <!-- Section 1: Gói dịch vụ khám nếu có -->
-          @if (clinicServices().length > 0) {
-            <div>
-              <div class="mb-2.5 flex items-center gap-2">
-                <span class="grid h-6 w-6 place-items-center rounded-md bg-sky-100 text-[#0284c7]">
-                  <mat-icon class="!h-4 !w-4 !text-[16px]">health_and_safety</mat-icon>
-                </span>
-                <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500">Gói Dịch Vụ Khám Y Tế</h2>
+        <div class="p-6 sm:p-8 space-y-6">
+          <div class="relative">
+            <mat-icon class="pointer-events-none absolute left-3.5 top-1/2 !h-5 !w-5 !-translate-y-1/2 !text-[20px] text-slate-400">search</mat-icon>
+            <input
+              class="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-11 pr-4 text-sm outline-none transition focus:border-[#0284c7] focus:bg-white focus:ring-3 focus:ring-sky-500/10"
+              placeholder="Tìm theo tên dịch vụ, chuyên khoa hoặc triệu chứng..."
+              [value]="specialtySearch()"
+              (input)="specialtySearch.set($any($event.target).value)"
+            />
+          </div>
+
+          @if (clinicServicesLoading() || specialtiesLoading()) {
+            <div class="grid min-h-48 place-items-center rounded-xl border border-slate-100 bg-slate-50/50 text-sm text-slate-500">
+              Đang tải danh mục khám...
+            </div>
+          } @else {
+            <!-- Gói Dịch Vụ Khám -->
+            @if (clinicServices().length > 0) {
+              <div>
+                <div class="mb-3 flex items-center gap-2">
+                  <span class="grid h-6 w-6 place-items-center rounded-md bg-sky-100 text-[#0284c7]">
+                    <mat-icon class="!h-4 !w-4 !text-[16px]">health_and_safety</mat-icon>
+                  </span>
+                  <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Gói Dịch Vụ Khám Y Tế</h3>
+                </div>
+                <div class="divide-y divide-slate-100 rounded-xl border border-slate-200/90 overflow-hidden">
+                  @for (service of filteredClinicServices(); track service.id) {
+                    <button
+                      type="button"
+                      class="group flex w-full items-center justify-between px-5 py-4 text-left transition hover:bg-sky-50/50"
+                      (click)="chooseClinicService(service)"
+                    >
+                      <div class="min-w-0 pr-4">
+                        <span class="block text-sm font-bold text-slate-900 group-hover:text-[#0284c7]">{{ service.name }}</span>
+                        <span class="mt-0.5 block text-xs text-slate-500">{{ service.specialty }} · {{ service.visitType }} · {{ service.durationMinutes }} phút</span>
+                      </div>
+                      <mat-icon class="!h-5 !w-5 !text-[20px] text-slate-300 transition group-hover:translate-x-1 group-hover:text-[#0284c7]">chevron_right</mat-icon>
+                    </button>
+                  } @empty {
+                    <p class="px-5 py-4 text-center text-xs text-slate-400">Không tìm thấy gói dịch vụ phù hợp với từ khóa.</p>
+                  }
+                </div>
               </div>
-              <div class="divide-y divide-slate-200 rounded-lg border border-slate-200 overflow-hidden">
-                @for (service of filteredClinicServices(); track service.id) {
+            }
+
+            <!-- Khám theo Chuyên khoa -->
+            <div>
+              <div class="mb-3 flex items-center gap-2">
+                <span class="grid h-6 w-6 place-items-center rounded-md bg-teal-100 text-teal-700">
+                  <mat-icon class="!h-4 !w-4 !text-[16px]">medical_services</mat-icon>
+                </span>
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Khám Theo Chuyên Khoa</h3>
+              </div>
+              <div class="divide-y divide-slate-100 rounded-xl border border-slate-200/90 overflow-hidden">
+                @for (specialty of filteredSpecialties(); track specialty.name) {
                   <button
                     type="button"
-                    class="group flex w-full items-center justify-between px-5 py-3.5 text-left transition hover:bg-sky-50/60"
-                    (click)="chooseClinicService(service)"
+                    class="group flex w-full items-center justify-between px-5 py-4 text-left transition hover:bg-sky-50/50"
+                    (click)="chooseSpecialty(specialty)"
                   >
-                    <div>
-                      <span class="block text-sm font-semibold text-slate-800 group-hover:text-[#0284c7]">{{ service.name }}</span>
-                      <span class="mt-0.5 block text-xs leading-5 text-slate-500">{{ service.specialty }} · {{ service.visitType }} · {{ service.durationMinutes }} phút</span>
+                    <div class="min-w-0 pr-4">
+                      <span class="block text-sm font-bold text-slate-900 group-hover:text-[#0284c7]">{{ specialty.name }}</span>
+                      <span class="mt-0.5 block text-xs text-slate-500">{{ specialty.description }}</span>
                     </div>
-                    <mat-icon class="!h-5 !w-5 !text-[20px] text-slate-300 transition-transform group-hover:translate-x-1 group-hover:text-[#0284c7]">chevron_right</mat-icon>
+                    <mat-icon class="!h-5 !w-5 !text-[20px] text-slate-300 transition group-hover:translate-x-1 group-hover:text-[#0284c7]">chevron_right</mat-icon>
                   </button>
                 } @empty {
-                  <p class="px-5 py-4 text-center text-xs text-slate-400">Không tìm thấy gói dịch vụ phù hợp với từ khóa.</p>
+                  <p class="px-5 py-8 text-center text-sm text-slate-500">Không tìm thấy chuyên khoa phù hợp.</p>
                 }
               </div>
             </div>
           }
+        </div>
+      }
 
-          <!-- Section 2: Danh sách Chuyên khoa khám -->
-          <div>
-            <div class="mb-2.5 flex items-center gap-2">
-              <span class="grid h-6 w-6 place-items-center rounded-md bg-teal-100 text-teal-700">
-                <mat-icon class="!h-4 !w-4 !text-[16px]">medical_services</mat-icon>
-              </span>
-              <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500">Khám Theo Chuyên Khoa</h2>
-            </div>
-            <div class="divide-y divide-slate-200 rounded-lg border border-slate-200 overflow-hidden">
-              @for (specialty of filteredSpecialties(); track specialty.name) {
+      <!-- Step 2: Chọn bác sĩ, ngày và khung giờ khám -->
+      @else if (step() === 2) {
+        <div class="border-b border-slate-100 bg-slate-50/40 px-6 py-4.5 sm:px-8">
+          <h2 class="text-sm font-bold uppercase tracking-wider text-slate-700">Bước 2: Chọn bác sĩ, ngày và khung giờ khám</h2>
+        </div>
+
+        <div class="p-6 sm:p-8 space-y-7">
+          <!-- Bác sĩ phụ trách -->
+          @if (!slotsLoading() && availableDoctors().length > 0) {
+            <section aria-label="Chọn bác sĩ">
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Bác sĩ khám</span>
+              <div class="mt-3 grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
                 <button
                   type="button"
-                  class="group flex w-full items-center justify-between px-5 py-3.5 text-left transition hover:bg-sky-50/60"
-                  (click)="chooseSpecialty(specialty)"
+                  class="flex min-h-14 items-center gap-3 rounded-xl border border-slate-200/90 px-3.5 py-3 text-left transition hover:border-[#0284c7] hover:bg-sky-50/40"
+                  [class.border-[#0284c7]]="selectedDoctorId() === ''"
+                  [class.bg-sky-50/60]="selectedDoctorId() === ''"
+                  (click)="chooseDoctor('')"
                 >
-                  <div>
-                    <span class="block text-sm font-semibold uppercase tracking-wide text-slate-800 group-hover:text-[#0284c7]">{{ specialty.name }}</span>
-                    <span class="mt-0.5 block text-xs leading-5 text-slate-500">{{ specialty.description }}</span>
-                  </div>
-                  <mat-icon class="!h-5 !w-5 !text-[20px] text-slate-300 transition-transform group-hover:translate-x-1 group-hover:text-[#0284c7]">chevron_right</mat-icon>
-                </button>
-              } @empty {
-                <p class="px-5 py-8 text-center text-sm text-slate-500">Không tìm thấy chuyên khoa phù hợp.</p>
-              }
-            </div>
-          </div>
-        }
-      </div>
-      } @else if (step() === 2) {
-      <div class="border-b border-slate-200 bg-[#0284c7] px-6 py-4 text-base font-bold text-white sm:px-8">
-        Bước 2: Chọn bác sĩ, ngày và khung giờ khám
-      </div>
-      <div class="p-6 sm:p-8">
-        @if (!slotsLoading() && availableDoctors().length > 0) {
-          <section class="mb-6 border-b border-slate-200 pb-6" aria-label="Chọn bác sĩ">
-            <h2 class="text-base font-bold text-slate-900">Chọn bác sĩ</h2>
-            <div class="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-              <button
-                type="button"
-                class="flex min-h-14 items-center gap-3 rounded-lg border border-slate-200 px-3 py-2.5 text-left transition hover:border-[#0284c7] hover:bg-sky-50/60"
-                [class.border-[#0284c7]]="selectedDoctorId() === ''"
-                [class.bg-sky-50]="selectedDoctorId() === ''"
-                (click)="chooseDoctor('')"
-              >
-                <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-sky-100 text-[#0284c7]">
-                  <mat-icon class="!h-5 !w-5 !text-[20px]">groups</mat-icon>
-                </span>
-                <span class="min-w-0">
-                  <strong class="block text-sm text-slate-900">Tất cả bác sĩ</strong>
-                  <span class="mt-0.5 block text-xs text-slate-500">Sắp xếp khung giờ tối ưu</span>
-                </span>
-              </button>
-              @for (doctor of availableDoctors(); track doctor.id) {
-                <button
-                  data-testid="doctor-option"
-                  type="button"
-                  class="flex min-h-14 items-center gap-3 rounded-lg border border-slate-200 px-3 py-2.5 text-left transition hover:border-[#0284c7] hover:bg-sky-50/60"
-                  [class.border-[#0284c7]]="selectedDoctorId() === doctor.id"
-                  [class.bg-sky-50]="selectedDoctorId() === doctor.id"
-                  (click)="chooseDoctor(doctor.id)"
-                >
-                  <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-sky-100 text-[#0284c7]">
-                    <mat-icon class="!h-5 !w-5 !text-[20px]">stethoscope</mat-icon>
+                  <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-sky-100 text-[#0284c7]">
+                    <mat-icon class="!h-5 !w-5 !text-[20px]">groups</mat-icon>
                   </span>
                   <span class="min-w-0">
-                    <strong class="block truncate text-sm text-slate-900">{{ doctor.name }}</strong>
-                    <span class="mt-0.5 block truncate text-xs text-slate-500">{{ doctor.roomCode ? 'Phòng ' + doctor.roomCode : selectedSpecialty() }}</span>
+                    <strong class="block text-sm font-bold text-slate-900">Tất cả bác sĩ</strong>
+                    <span class="mt-0.5 block text-xs text-slate-500">Xem toàn bộ lịch trống</span>
                   </span>
+                </button>
+                @for (doctor of availableDoctors(); track doctor.id) {
+                  <button
+                    data-testid="doctor-option"
+                    type="button"
+                    class="flex min-h-14 items-center gap-3 rounded-xl border border-slate-200/90 px-3.5 py-3 text-left transition hover:border-[#0284c7] hover:bg-sky-50/40"
+                    [class.border-[#0284c7]]="selectedDoctorId() === doctor.id"
+                    [class.bg-sky-50/60]="selectedDoctorId() === doctor.id"
+                    (click)="chooseDoctor(doctor.id)"
+                  >
+                    <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-sky-100 text-[#0284c7]">
+                      <mat-icon class="!h-5 !w-5 !text-[20px]">stethoscope</mat-icon>
+                    </span>
+                    <span class="min-w-0">
+                      <strong class="block truncate text-sm font-bold text-slate-900">{{ doctor.name }}</strong>
+                      <span class="mt-0.5 block truncate text-xs text-slate-500">{{ doctor.roomCode ? 'Phòng ' + doctor.roomCode : selectedSpecialty() }}</span>
+                    </span>
+                  </button>
+                }
+              </div>
+            </section>
+          }
+
+          <!-- Calendar Section -->
+          <section aria-label="Chọn ngày khám" class="space-y-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Lịch tháng</span>
+                <h3 class="text-base font-bold capitalize text-slate-900">{{ monthLabel() }}</h3>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  class="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600 transition hover:border-[#0284c7] hover:bg-slate-50 hover:text-[#0284c7] disabled:cursor-not-allowed disabled:opacity-30"
+                  aria-label="Tháng trước"
+                  [disabled]="isPreviousMonthDisabled()"
+                  (click)="previousMonth()"
+                >
+                  <mat-icon class="!h-5 !w-5 !text-[20px]">chevron_left</mat-icon>
+                </button>
+                <button
+                  type="button"
+                  class="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600 transition hover:border-[#0284c7] hover:bg-slate-50 hover:text-[#0284c7] disabled:cursor-not-allowed disabled:opacity-30"
+                  aria-label="Tháng sau"
+                  [disabled]="isNextMonthDisabled()"
+                  (click)="nextMonth()"
+                >
+                  <mat-icon class="!h-5 !w-5 !text-[20px]">chevron_right</mat-icon>
+                </button>
+              </div>
+            </div>
+
+            <!-- Calendar Grid Header -->
+            <div class="grid grid-cols-7 gap-1 text-center text-[11px] font-bold uppercase tracking-wider text-slate-400 sm:gap-2">
+              <span>Th 2</span><span>Th 3</span><span>Th 4</span><span>Th 5</span><span>Th 6</span><span>Th 7</span><span>CN</span>
+            </div>
+
+            <!-- Calendar Grid Dates -->
+            <div class="grid grid-cols-7 gap-1 sm:gap-2">
+              @for (date of dates(); track date.iso) {
+                <button
+                  data-testid="calendar-date"
+                  type="button"
+                  class="relative min-h-11 rounded-xl border border-slate-200/90 p-1 text-center transition hover:border-[#0284c7] hover:bg-sky-50/50 disabled:cursor-not-allowed disabled:opacity-30 sm:min-h-12"
+                  [class.border-[#0284c7]]="selectedDate() === date.iso"
+                  [class.bg-sky-50]="selectedDate() === date.iso"
+                  [class.text-slate-400]="!date.inCurrentMonth"
+                  [disabled]="!date.inCurrentMonth || date.iso < today || date.iso > bookingWindowEndIso() || slotsLoading()"
+                  (click)="chooseDate(date)"
+                >
+                  <span class="block text-xs sm:text-sm font-bold" [class.text-slate-900]="date.inCurrentMonth">{{ date.day }}</span>
+                  @if (hasAvailability(date)) {
+                    <span class="absolute bottom-1.5 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-[#0284c7]" aria-label="Có lịch trống"></span>
+                  }
                 </button>
               }
             </div>
           </section>
-        }
-        <div class="co-reveal mt-2 flex items-center justify-between"><button type="button"
-            class="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600 transition hover:border-[#0284c7] hover:text-[#0284c7] hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-35"
-            aria-label="Tháng trước" [disabled]="isPreviousMonthDisabled()"
-            (click)="previousMonth()"><mat-icon class="!h-5 !w-5 !text-[20px]">chevron_left</mat-icon></button>
-          <h2 class="text-base font-bold capitalize text-slate-900">{{ monthLabel() }}</h2><button type="button"
-            class="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600 transition hover:border-[#0284c7] hover:text-[#0284c7] hover:bg-slate-50"
-            aria-label="Tháng sau" [disabled]="isNextMonthDisabled()" (click)="nextMonth()"><mat-icon class="!h-5 !w-5 !text-[20px]">chevron_right</mat-icon></button>
-        </div>
-        <div
-          class="co-reveal co-delay-1 mt-4 grid grid-cols-7 gap-1 text-center text-[11px] font-bold uppercase tracking-wide text-slate-400 sm:gap-2">
-          <span>Th 2</span><span>Th 3</span><span>Th 4</span><span>Th 5</span><span>Th 6</span><span>Th
-            7</span><span>CN</span>
-        </div>
-        <div class="co-reveal co-delay-2 mt-2 grid grid-cols-7 gap-1 sm:gap-2">@for (date of dates(); track date.iso)
-          {<button data-testid="calendar-date" type="button"
-            class="relative min-h-10 rounded-lg border border-slate-200 px-1 py-1 text-center transition hover:-translate-y-0.5 hover:border-[#0284c7] hover:bg-sky-50/50 disabled:cursor-not-allowed disabled:opacity-35 sm:min-h-11"
-            [class.border-[#0284c7]]="selectedDate() === date.iso" [class.bg-sky-50]="selectedDate() === date.iso"
-            [class.text-slate-400]="!date.inCurrentMonth" [disabled]="!date.inCurrentMonth || date.iso < today || date.iso > bookingWindowEndIso() || slotsLoading()"
-            (click)="chooseDate(date)"><span class="block text-xs sm:text-sm font-bold"
-              [class.text-slate-800]="date.inCurrentMonth">{{ date.day }}</span>@if (hasAvailability(date)) {<span
-              class="absolute bottom-1 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-[#0284c7]"
-              aria-label="Có lịch trống"></span>}</button>}</div>@if (slotsLoading()) {<p
-          class="mt-5 text-center text-sm text-slate-500">Đang tải khung giờ...</p>} @else if (selectedDate() &&
-        availableSlots().length === 0) {<p
-          class="mt-5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">Ngày này chưa có
-          khung giờ trống. Bạn hãy chọn ngày khác.</p>} @if (selectedDate() && availableSlots().length > 0) {<div
-          class="co-reveal mt-7 border-t border-slate-200 pt-5">
-          <h2 class="text-sm font-bold text-slate-800">Chọn khung giờ khả dụng</h2>@for (period of ['Buổi sáng', 'Buổi chiều'];
-          track period) {<div class="mt-4">
-            <p class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{{ period }}</p>
-            <div class="mt-2.5 grid gap-2.5 sm:grid-cols-4">@for (slot of slotsFor($any(period)); track slot.key) {<button
-                type="button"
-                class="min-h-11 rounded-lg border border-slate-200 p-2.5 text-center transition hover:border-[#0284c7] hover:bg-sky-50/50"
-                [class.border-[#0284c7]]="selectedSlot() === slot.key"
-                [class.bg-sky-50]="selectedSlot() === slot.key"
-                [class.text-[#0284c7]]="selectedSlot() === slot.key" (click)="chooseSlot(slot)"><span
-                class="block text-sm font-bold">{{ slot.label }}</span><span class="mt-0.5 block truncate text-xs font-normal text-slate-500">{{
-                  slot.doctorName }}{{ slot.roomCode ? ' · ' + slot.roomCode : '' }}</span></button>}</div>
-          </div>}
-        </div>}<div class="mt-8 flex justify-between border-t border-slate-100 pt-5"><button type="button"
-            class="min-h-10 rounded-md border border-slate-300 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-            (click)="back()">Quay lại</button><button type="button"
-            class="min-h-10 rounded-md bg-[#0284c7] px-5 text-sm font-semibold text-white transition hover:bg-[#0369a1] disabled:cursor-not-allowed disabled:opacity-50"
-            [disabled]="!selectedSlot() || holdBusy()" (click)="continueToDetails()">{{ holdBusy() ? 'Đang giữ chỗ...' : 'Tiếp tục' }}</button></div>
-      </div>
-      } @else {
-      <div class="flex items-center justify-between border-b border-slate-200 bg-[#0284c7] px-6 py-4 text-base font-bold text-white sm:px-8"><span>Bước 3: Thông tin người đi khám</span>@if (holdId()) {<span class="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold text-white">Giữ chỗ còn {{ holdCountdownLabel() }}</span>}</div>
-      <form class="grid gap-6 p-6 sm:p-8" [formGroup]="form" (ngSubmit)="submit()" novalidate>
-        <div class="grid gap-4 border-b border-slate-100 pb-5 sm:grid-cols-2">
-          <div>
-            <p class="text-xs text-slate-500">Chuyên khoa</p>
-            <p class="mt-1 font-semibold text-slate-800">{{ selectedSpecialty() }}</p>
-          </div>
-          <div class="min-w-0"><p class="text-xs text-slate-500">Ngày khám</p><p class="mt-1 font-semibold text-slate-800">{{ formatDate(selectedDate()) }}</p><p class="mt-1 text-sm font-medium text-slate-600">Khung giờ: {{ selectedSlotDetails()?.label }}</p></div>
-        </div>
-        <!-- Người đi khám selection -->
-        <div class="grid gap-2">
-          <div class="flex items-center justify-between">
-            <label class="text-sm font-semibold text-slate-700">Người đi khám *</label>
-            <a routerLink="/patient-profiles" target="_blank" class="inline-flex items-center gap-1 text-xs font-semibold text-[#0284c7] hover:underline">
-              <mat-icon class="!h-4 !w-4 !text-[15px]">person_add</mat-icon>
-              <span>Quản lý hồ sơ người thân</span>
-            </a>
-          </div>
-          <select
-            class="min-h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-800 outline-none transition focus:border-[#0284c7] focus:ring-3 focus:ring-sky-500/15"
-            formControlName="profileId"
-            (change)="onProfileChange($event)">
-            @if (primaryProfile(); as primary) {
-              <optgroup label="Hồ sơ chính">
-                <option [value]="primary.id">{{ primary.fullName }} · {{ primary.relationship || 'Bản thân' }} (Mặc định)</option>
-              </optgroup>
-            }
-            @if (subProfiles().length > 0) {
-              <optgroup label="Hồ sơ người thân (Hồ sơ phụ)">
-                @for (profile of subProfiles(); track profile.id) {
-                  <option [value]="profile.id">{{ profile.fullName }} · {{ profile.relationship }}</option>
-                }
-              </optgroup>
-            }
-          </select>
 
-          <!-- Selected Patient Detail Card -->
-          @if (selectedProfile(); as patient) {
-            <div class="mt-1 flex items-start gap-3.5 rounded-xl border border-slate-200 bg-slate-50/80 p-3.5 text-xs text-slate-700">
-              <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-sky-100 text-[#0284c7]">
-                <mat-icon class="!h-4 !w-4 !text-[18px]">person</mat-icon>
-              </span>
-              <div class="grid gap-0.5">
-                <div class="flex items-center gap-2">
-                  <span class="font-bold text-slate-900 text-sm">{{ patient.fullName }}</span>
-                  <span class="rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-semibold text-[#0284c7] border border-sky-200">
-                    {{ patient.relationship || 'Bản thân' }}
-                  </span>
+          <!-- Status Indicators / Empty state -->
+          @if (slotsLoading()) {
+            <div class="grid min-h-24 place-items-center rounded-xl border border-slate-100 bg-slate-50/50 text-sm text-slate-500">
+              Đang tải danh sách khung giờ...
+            </div>
+          } @else if (selectedDate() && availableSlots().length === 0) {
+            <div class="rounded-xl border border-amber-200 bg-amber-50/80 px-4 py-3.5 text-xs text-amber-800">
+              Ngày này chưa có khung giờ khám còn trống. Quý khách vui lòng chọn một ngày khác có chấm xanh.
+            </div>
+          }
+
+          <!-- Available Time Slots -->
+          @if (selectedDate() && availableSlots().length > 0) {
+            <section class="border-t border-slate-100 pt-6 space-y-5">
+              <div>
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Khung giờ khả dụng</span>
+                <p class="text-xs text-slate-400">Chọn giờ khám thuận tiện cho bạn</p>
+              </div>
+
+              @for (period of ['Buổi sáng', 'Buổi chiều']; track period) {
+                <div>
+                  <span class="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">{{ period }}</span>
+                  <div class="mt-2.5 grid gap-2.5 sm:grid-cols-3 xl:grid-cols-4">
+                    @for (slot of slotsFor($any(period)); track slot.key) {
+                      <button
+                        type="button"
+                        class="group rounded-xl border border-slate-200/90 p-3 text-center transition hover:border-[#0284c7] hover:bg-sky-50/50"
+                        [class.border-[#0284c7]]="selectedSlot() === slot.key"
+                        [class.bg-sky-50]="selectedSlot() === slot.key"
+                        [class.text-[#0284c7]]="selectedSlot() === slot.key"
+                        (click)="chooseSlot(slot)"
+                      >
+                        <span class="block text-sm font-bold text-slate-900 group-hover:text-[#0284c7]">{{ slot.label }}</span>
+                        <span class="mt-1 block truncate text-xs text-slate-500">
+                          {{ slot.doctorName }}{{ slot.roomCode ? ' · Phòng ' + slot.roomCode : '' }}
+                        </span>
+                      </button>
+                    }
+                  </div>
                 </div>
-                <p class="text-slate-500">
-                  Ngày sinh: <strong class="text-slate-700">{{ formatDate(patient.dateOfBirth) }}</strong> · Giới tính: <strong class="text-slate-700">{{ patient.gender }}</strong>
-                  @if (patient.phone) { · SĐT: <strong class="text-slate-700">{{ patient.phone }}</strong> }
-                </p>
+              }
+            </section>
+          }
+
+          <!-- Bottom Action Buttons for Step 2 -->
+          <div class="flex items-center justify-between border-t border-slate-100 pt-6">
+            <button
+              type="button"
+              class="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 active:scale-[0.98]"
+              (click)="back()"
+            >
+              Quay lại
+            </button>
+            <button
+              type="button"
+              class="inline-flex min-h-10 items-center justify-center rounded-xl bg-[#0284c7] px-6 text-sm font-semibold text-white transition hover:bg-[#0369a1] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+              [disabled]="!selectedSlot() || holdBusy()"
+              (click)="continueToDetails()"
+            >
+              {{ holdBusy() ? 'Đang giữ chỗ...' : 'Tiếp tục' }}
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- Step 3: Thông tin người đi khám -->
+      @else {
+        <div class="flex items-center justify-between border-b border-slate-100 bg-slate-50/40 px-6 py-4.5 sm:px-8">
+          <h2 class="text-sm font-bold uppercase tracking-wider text-slate-700">Bước 3: Thông tin người đi khám</h2>
+          @if (holdId()) {
+            <span class="inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-[#0284c7]">
+              <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">timer</mat-icon>
+              Giữ chỗ còn {{ holdCountdownLabel() }}
+            </span>
+          }
+        </div>
+
+        <form class="p-6 sm:p-8 space-y-6" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+          <!-- Appointment summary recap card -->
+          <div class="grid gap-4 rounded-xl border border-slate-100 bg-slate-50/60 p-4 sm:grid-cols-2 sm:p-5">
+            <div>
+              <span class="text-xs text-slate-400">Chuyên khoa</span>
+              <p class="mt-0.5 font-bold text-slate-900">{{ selectedSpecialty() }}</p>
+            </div>
+            <div class="min-w-0">
+              <span class="text-xs text-slate-400">Ngày khám</span>
+              <p class="mt-0.5 font-bold text-slate-900">{{ formatDate(selectedDate()) }}</p>
+              <p class="mt-1 text-xs font-medium text-slate-600">Khung giờ: {{ selectedSlotDetails()?.label }}</p>
+            </div>
+          </div>
+
+          <!-- Doctor badge in Step 3 -->
+          @if (selectedSlotDetails(); as slot) {
+            <div data-testid="selected-doctor" class="flex items-center gap-3 rounded-xl border border-sky-100 bg-sky-50/50 p-4">
+              <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-[#0284c7] shadow-xs">
+                <mat-icon class="!h-5 !w-5 !text-[20px]">stethoscope</mat-icon>
+              </span>
+              <div class="min-w-0">
+                <span class="text-xs text-slate-500">Bác sĩ phụ trách</span>
+                <p class="truncate text-sm font-bold text-slate-900">{{ slot.doctorName }}{{ slot.roomCode ? ' · Phòng ' + slot.roomCode : '' }}</p>
               </div>
             </div>
           }
-        </div>
 
-        @if (selectedSlotDetails(); as slot) {
-          <div data-testid="selected-doctor" class="flex items-center gap-3 rounded-lg border border-sky-200 bg-sky-50/60 px-4 py-3">
-            <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-[#0284c7]">
-              <mat-icon class="!h-5 !w-5 !text-[20px]">stethoscope</mat-icon>
-            </span>
-            <div class="min-w-0">
-              <p class="text-xs font-medium text-slate-500">Bác sĩ khám</p>
-              <p class="truncate text-sm font-bold text-slate-900">{{ slot.doctorName }}{{ slot.roomCode ? ' · Phòng ' + slot.roomCode : '' }}</p>
+          <!-- Patient Profile Selection -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <label class="text-sm font-bold text-slate-900">Người đi khám *</label>
+              <a routerLink="/patient-profiles" target="_blank" class="inline-flex items-center gap-1 text-xs font-semibold text-[#0284c7] hover:underline">
+                <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">person_add</mat-icon>
+                <span>Quản lý hồ sơ người thân</span>
+              </a>
             </div>
+
+            <select
+              class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-medium text-slate-800 outline-none transition focus:border-[#0284c7] focus:ring-3 focus:ring-sky-500/10"
+              formControlName="profileId"
+              (change)="onProfileChange($event)"
+            >
+              @if (primaryProfile(); as primary) {
+                <optgroup label="Hồ sơ chính">
+                  <option [value]="primary.id">{{ primary.fullName }} · {{ primary.relationship || 'Bản thân' }} (Mặc định)</option>
+                </optgroup>
+              }
+              @if (subProfiles().length > 0) {
+                <optgroup label="Hồ sơ người thân">
+                  @for (profile of subProfiles(); track profile.id) {
+                    <option [value]="profile.id">{{ profile.fullName }} · {{ profile.relationship }}</option>
+                  }
+                </optgroup>
+              }
+            </select>
+
+            <!-- Patient Preview Card -->
+            @if (selectedProfile(); as patient) {
+              <div class="mt-2 flex items-start gap-3.5 rounded-xl border border-slate-200/90 bg-slate-50/60 p-4 text-xs text-slate-700">
+                <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-sky-100 text-[#0284c7]">
+                  <mat-icon class="!h-5 !w-5 !text-[20px]">badge</mat-icon>
+                </span>
+                <div class="min-w-0 space-y-1">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm font-bold text-slate-900">{{ patient.fullName }}</span>
+                    <span class="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-semibold text-[#0284c7]">
+                      {{ patient.relationship || 'Bản thân' }}
+                    </span>
+                  </div>
+                  <p class="text-slate-500">
+                    Ngày sinh: <strong class="text-slate-700">{{ formatDate(patient.dateOfBirth) }}</strong> · Giới tính: <strong class="text-slate-700">{{ patient.gender }}</strong>
+                    @if (patient.phone) { · SĐT: <strong class="text-slate-700">{{ patient.phone }}</strong> }
+                  </p>
+                </div>
+              </div>
+            }
           </div>
-        }
 
-        <div class="grid gap-2">
-          <label class="text-sm font-semibold text-slate-700">Lý do khám *</label>
-          <textarea
-            class="min-h-24 rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal outline-none transition focus:border-[#0284c7] focus:ring-3 focus:ring-sky-500/15"
-            [class.border-rose-400]="form.controls.reason.invalid && form.controls.reason.touched"
-            formControlName="reason" maxlength="500" placeholder="Triệu chứng hoặc nhu cầu khám..."></textarea>
-          @if (form.controls.reason.invalid && form.controls.reason.touched) {
-            <p class="text-xs text-rose-600 font-medium" role="alert">
-              @if (form.controls.reason.hasError('required')) { Lý do khám là thông tin bắt buộc. }
-              @else if (form.controls.reason.hasError('minlength')) { Vui lòng nhập ít nhất 3 ký tự mô tả triệu chứng hoặc nhu cầu khám. }
-            </p>
+          <!-- Reason for Visit -->
+          <div class="space-y-1.5">
+            <label class="text-sm font-bold text-slate-900">Lý do khám / Triệu chứng *</label>
+            <textarea
+              class="min-h-24 w-full rounded-xl border border-slate-200 px-3.5 py-3 text-sm outline-none transition focus:border-[#0284c7] focus:ring-3 focus:ring-sky-500/10"
+              [class.border-rose-400]="form.controls.reason.invalid && form.controls.reason.touched"
+              formControlName="reason"
+              maxlength="500"
+              placeholder="Mô tả cụ thể triệu chứng, cảm giác khó chịu hoặc nhu cầu khám tổng quát..."
+            ></textarea>
+            @if (form.controls.reason.invalid && form.controls.reason.touched) {
+              <p class="text-xs font-medium text-rose-600" role="alert">
+                @if (form.controls.reason.hasError('required')) { Lý do khám là thông tin bắt buộc. }
+                @else if (form.controls.reason.hasError('minlength')) { Vui lòng nhập ít nhất 3 ký tự mô tả triệu chứng hoặc nhu cầu khám. }
+              </p>
+            }
+          </div>
+
+          <!-- Error Alert in Step 3 -->
+          @if (error) {
+            <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-semibold text-rose-700" role="alert">
+              {{ error }}
+            </div>
           }
-        </div>
 
-        @if (error) {
-          <p class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">{{ error }}</p>
-        }<div
-          class="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-between"><button
-            type="button"
-            class="min-h-10 rounded-md border border-slate-300 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-            (click)="back()">Quay lại</button><button
-            class="min-h-10 rounded-md bg-[#0284c7] px-5 text-sm font-semibold text-white transition hover:bg-[#0369a1] disabled:cursor-not-allowed disabled:opacity-60"
-            type="submit" [disabled]="busy">{{ busy ? 'Đang lưu...' : 'Xác nhận đặt lịch' }}</button></div>
-      </form>
+          <!-- Bottom Action Buttons for Step 3 -->
+          <div class="flex flex-col-reverse gap-3 border-t border-slate-100 pt-6 sm:flex-row sm:items-center sm:justify-between">
+            <button
+              type="button"
+              class="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 active:scale-[0.98]"
+              (click)="back()"
+            >
+              Quay lại
+            </button>
+            <button
+              type="submit"
+              class="inline-flex min-h-10 items-center justify-center rounded-xl bg-[#0284c7] px-6 text-sm font-semibold text-white transition hover:bg-[#0369a1] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+              [disabled]="busy"
+            >
+              {{ busy ? 'Đang lưu...' : 'Xác nhận đặt lịch' }}
+            </button>
+          </div>
+        </form>
       }
-      @if (error && step() !== 3) {<p
-        class="mx-6 mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 sm:mx-8"
-        role="alert">{{ error }}</p>}
+
+      <!-- Error Alert for Steps 1 & 2 -->
+      @if (error && step() !== 3) {
+        <div class="mx-6 mb-6 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-semibold text-rose-700 sm:mx-8" role="alert">
+          {{ error }}
+        </div>
+      }
     </section>
   </div>
 </main>

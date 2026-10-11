@@ -388,4 +388,44 @@ class AppointmentAvailabilityServiceTest {
 
         assertEquals("APPOINTMENT_SLOT_INVALID", exception.getCode());
     }
+
+    @Test
+    void handlesLateNightScheduleWithoutInfiniteLoopOrOOM() {
+        DoctorProfileRepository profileRepository = mock(DoctorProfileRepository.class);
+        DoctorScheduleRepository scheduleRepository = mock(DoctorScheduleRepository.class);
+        AppointmentAvailabilityService configuredService = new AppointmentAvailabilityService(
+                appointmentRepository, createSpecialtyCatalog(), profileRepository, scheduleRepository,
+                null, Clock.fixed(Instant.parse("2026-08-10T00:00:00Z"), ZoneOffset.UTC));
+
+        UUID doctorStaffId = UUID.randomUUID();
+        LocalDate monday = LocalDate.of(2026, 8, 10);
+        StaffAccount staff = mock(StaffAccount.class);
+        DoctorProfile profile = mock(DoctorProfile.class);
+        DoctorSchedule schedule = mock(DoctorSchedule.class);
+        when(profile.getStaffAccount()).thenReturn(staff);
+        when(profile.getSpecialty()).thenReturn("Khám Tổng Quát");
+        when(profile.getRoom()).thenReturn(null);
+        when(staff.getId()).thenReturn(doctorStaffId);
+        when(staff.getFullName()).thenReturn("Bác sĩ Đêm");
+        when(schedule.getDoctorProfile()).thenReturn(profile);
+        when(schedule.getDayOfWeek()).thenReturn(monday.getDayOfWeek());
+        when(schedule.getStartTime()).thenReturn(LocalTime.of(0, 0));
+        when(schedule.getEndTime()).thenReturn(LocalTime.of(23, 30));
+        when(schedule.getSlotDurationMinutes()).thenReturn(30);
+        when(scheduleRepository.findActiveBySpecialtyIgnoreCase("Khám Tổng Quát"))
+                .thenReturn(List.of(schedule));
+        when(appointmentRepository.countBookedByDoctorsAndDateRangeAndStatusIn(
+                List.of(doctorStaffId), monday, monday, List.of(AppointmentStatus.BOOKED, AppointmentStatus.CHECKED_IN)))
+                .thenReturn(List.of());
+
+        List<AvailableSlotResponse> slots = configuredService.find("Khám Tổng Quát", monday, monday);
+
+        // In Asia/Ho_Chi_Minh timezone, 2026-08-10T00:00:00Z is 07:00:00.
+        // Slots strictly after 07:00 up to 23:30 = 32 slots.
+        // Terminates safely in milliseconds without infinite loop or OOM.
+        assertEquals(32, slots.size());
+        assertEquals(LocalTime.of(7, 30), slots.get(0).startTime());
+        assertEquals(LocalTime.of(23, 0), slots.get(slots.size() - 1).startTime());
+    }
 }
+
