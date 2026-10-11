@@ -77,6 +77,10 @@ public class ReschedulingService {
 
     @Transactional
     public int openForScheduleRemoval(DoctorSchedule schedule) {
+        if (schedule == null || schedule.getDoctorProfile() == null
+                || schedule.getDoctorProfile().getStaffAccount() == null) {
+            return 0;
+        }
         UUID doctorId = schedule.getDoctorProfile().getStaffAccount().getId();
         LocalDate from = LocalDate.now(clock.withZone(CLINIC_ZONE));
         LocalDate to = from.plusDays(SEARCH_DAYS);
@@ -191,10 +195,11 @@ public class ReschedulingService {
         markPreviousGeneratedSlotUnavailable(appointment);
         String previousDate = appointment.getAppointmentDate().toString();
         String previousTime = appointment.getStartTime().toString();
+        String resolvedDoctorName = request.doctorName() != null ? request.doctorName().trim() : "";
         appointment.reschedule(request.appointmentDate(), request.startTime(), request.doctorId(),
-                request.doctorName().trim());
+                resolvedDoctorName);
         appointmentRepository.save(appointment);
-        item.resolve(request.appointmentDate(), request.startTime(), request.doctorId(), request.doctorName().trim(),
+        item.resolve(request.appointmentDate(), request.startTime(), request.doctorId(), resolvedDoctorName,
                 Instant.now(clock));
         RescheduleCaseResponse response = RescheduleCaseResponse.from(caseRepository.save(item));
         if (businessLogService != null) {

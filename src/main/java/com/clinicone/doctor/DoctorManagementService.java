@@ -125,6 +125,9 @@ public class DoctorManagementService {
         if (!schedule.getDoctorProfile().getId().equals(profile.getId())) {
             throw new AuthException(HttpStatus.NOT_FOUND, "DOCTOR_SCHEDULE_NOT_FOUND", "Không tìm thấy giờ làm.");
         }
+        if (!schedule.isActive()) {
+            return;
+        }
         schedule.setActive(false);
         scheduleRepository.save(schedule);
         if (reschedulingService != null) {

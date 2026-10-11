@@ -95,10 +95,16 @@ public class MedicationCatalogService {
     }
 
     private String code(String value) {
+        if (!StringUtils.hasText(value)) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "MEDICATION_CODE_REQUIRED", "Mã thuốc không được để trống.");
+        }
         return value.trim().toUpperCase(Locale.ROOT);
     }
 
     private String name(String value) {
+        if (!StringUtils.hasText(value)) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "MEDICATION_NAME_REQUIRED", "Tên thuốc không được để trống.");
+        }
         return value.trim();
     }
 

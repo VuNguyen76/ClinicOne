@@ -600,6 +600,21 @@ class DoctorExaminationServiceTest {
                 List.of(new PrescriptionLineRequest(null, "Paracetamol", "500 mg", 10, "Uống khi đau")));
     }
 
+    @Test
+    void rejectsInvalidVitalsOnDraft() {
+        DoctorExaminationRequest invalidTemp = new DoctorExaminationRequest(
+                "Đau đầu", "Mạch ổn", "Đau đầu căng thẳng", "Theo dõi thêm",
+                "Nghỉ ngơi", null, null, 0L, List.of(), null, null,
+                null, null, java.math.BigDecimal.valueOf(50.5), null, null, null, null);
+
+        assertThatThrownBy(() -> service.saveDraft(TICKET_ID, DOCTOR_ID.toString(), invalidTemp))
+                .isInstanceOf(AuthException.class)
+                .satisfies(error -> {
+                    AuthException exception = (AuthException) error;
+                    assertThat(exception.getCode()).isEqualTo("VITALS_TEMPERATURE_INVALID");
+                });
+    }
+
     private void stubCurrentGeneratedSlot() {
         when(generatedSlotRepository.findFirstByClinicServiceIdAndDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
                 appointment.getServiceId(), DOCTOR_ID, appointment.getAppointmentDate(), appointment.getStartTime(),

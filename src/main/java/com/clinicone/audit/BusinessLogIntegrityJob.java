@@ -30,6 +30,7 @@ import java.util.UUID;
 @Component
 public class BusinessLogIntegrityJob {
     private static final Logger log = LoggerFactory.getLogger(BusinessLogIntegrityJob.class);
+    private static final java.time.ZoneId CLINIC_ZONE = java.time.ZoneId.of("Asia/Ho_Chi_Minh");
 
     private final BusinessLogRepository businessLogRepository;
     private final ReconciliationIncidentRepository incidentRepository;
@@ -113,7 +114,7 @@ public class BusinessLogIntegrityJob {
     }
 
     private String generateIncidentCode() {
-        String yearMonth = DateTimeFormatter.ofPattern("uuuuMM").format(LocalDate.now(clock));
+        String yearMonth = DateTimeFormatter.ofPattern("uuuuMM").format(LocalDate.now(clock.withZone(CLINIC_ZONE)));
         String shortCode = UUID.randomUUID().toString().replace("-", "").substring(0, 6).toUpperCase();
         return "SC-" + yearMonth + "-" + shortCode;
     }

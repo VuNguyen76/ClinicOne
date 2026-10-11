@@ -107,7 +107,10 @@ public class AppointmentService {
         List<UUID> appointmentIds = appointments.stream().map(Appointment::getId).toList();
         List<QueueTicket> tickets = queueTicketRepository.findByAppointmentIdIn(appointmentIds);
         Map<UUID, QueueTicket> ticketMap = tickets.stream()
-                .collect(Collectors.toMap(t -> t.getAppointment().getId(), Function.identity()));
+                .collect(Collectors.toMap(
+                        t -> t.getAppointment().getId(),
+                        Function.identity(),
+                        (existing, replacement) -> replacement));
         return appointments.stream()
                 .map(a -> AppointmentResponse.from(a, ticketMap.get(a.getId())))
                 .toList();

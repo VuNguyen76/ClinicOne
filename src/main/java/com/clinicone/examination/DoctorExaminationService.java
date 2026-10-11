@@ -207,6 +207,7 @@ public class DoctorExaminationService {
         workspace.session().begin();
         MedicalRecord record = record(workspace.session());
         requireCurrentRecordVersion(record, request);
+        validateVitals(request);
         try {
             if (!record.getPrescriptionLines().isEmpty()) {
                 record.replacePrescriptionLines(List.of());
@@ -271,6 +272,7 @@ public class DoctorExaminationService {
         }
         requireRequiredFields(request);
         validateFollowUpForSigning(request);
+        validateVitals(request);
         MedicalRecord record = existingRecord == null ? record(workspace.session()) : existingRecord;
         requireCurrentRecordVersion(record, request);
         try {
@@ -433,6 +435,8 @@ public class DoctorExaminationService {
                     "Tài khoản nhân viên đã bị khóa và không thể thực hiện lượt khám.");
         }
         if (!profile.isActive()
+                || profile.getRoom() == null
+                || ticket.getRoom() == null
                 || !profile.getRoom().getCode().equalsIgnoreCase(ticket.getRoom().getCode())) {
             throw new AuthException(HttpStatus.FORBIDDEN, "DOCTOR_ASSIGNMENT_REQUIRED",
                     "Bác sĩ chưa được gán đúng chuyên khoa và phòng khám.");
@@ -582,6 +586,31 @@ public class DoctorExaminationService {
         return StringUtils.hasText(value) ? value.trim() : null;
     }
 
+    private void validateVitals(DoctorExaminationRequest request) {
+        if (request == null) return;
+        if (request.temperature() != null) {
+            if (request.temperature().compareTo(java.math.BigDecimal.valueOf(25)) < 0
+                    || request.temperature().compareTo(java.math.BigDecimal.valueOf(45)) > 0) {
+                throw new AuthException(HttpStatus.BAD_REQUEST, "VITALS_TEMPERATURE_INVALID",
+                        "Nhiệt độ cơ thể phải từ 25.0°C đến 45.0°C.");
+            }
+        }
+        if (request.weight() != null) {
+            if (request.weight().compareTo(java.math.BigDecimal.valueOf(0.5)) < 0
+                    || request.weight().compareTo(java.math.BigDecimal.valueOf(500)) > 0) {
+                throw new AuthException(HttpStatus.BAD_REQUEST, "VITALS_WEIGHT_INVALID",
+                        "Cân nặng phải từ 0.5kg đến 500kg.");
+            }
+        }
+        if (request.height() != null) {
+            if (request.height().compareTo(java.math.BigDecimal.valueOf(20)) < 0
+                    || request.height().compareTo(java.math.BigDecimal.valueOf(300)) > 0) {
+                throw new AuthException(HttpStatus.BAD_REQUEST, "VITALS_HEIGHT_INVALID",
+                        "Chiều cao phải từ 20cm đến 300cm.");
+            }
+        }
+    }
+
     private void requireCurrentRecordVersion(MedicalRecord record, DoctorExaminationRequest request) {
         if (request.recordVersion() == null) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "MEDICAL_RECORD_VERSION_REQUIRED",
@@ -623,7 +652,7 @@ public class DoctorExaminationService {
         String patientPhone = profile != null && StringUtils.hasText(profile.getPhone())
                 ? profile.getPhone() : patient == null ? null : patient.getPhone();
         return new DoctorExaminationResponse(ticket.getId(), appointment.getId(), session.getId(), ticket.getQueueNumber(),
-                ticket.getRoom().getName(), appointment.getAppointmentCode(), appointment.getSpecialty(), appointment.getServiceId(),
+                ticket.getRoom() != null ? ticket.getRoom().getName() : "", appointment.getAppointmentCode(), appointment.getSpecialty(), appointment.getServiceId(),
                 recordDoctorName == null ? ticket.getEffectiveDoctorName() : recordDoctorName,
                 appointment.getAppointmentDate(), appointment.getStartTime(), patientName,
                 patientDateOfBirth, patientGender, patientPhone, record == null ? null : record.getReason(),
