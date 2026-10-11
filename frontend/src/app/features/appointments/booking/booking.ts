@@ -140,6 +140,7 @@ export class Booking implements OnInit {
   protected onProfileChange(event: Event): void {
     const value = (event.target as HTMLSelectElement).value;
     this.profileIdValue.set(value);
+    this.form.controls.profileId.setValue(value);
   }
 
   protected filteredSpecialties(): SpecialtyOption[] {

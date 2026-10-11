@@ -344,17 +344,25 @@ public ReceptionAppointmentResponse checkIn(UUID appointmentId, ReceptionCheckIn
         boolean isToday = date.equals(today());
         for (var schedule : schedules) {
             LocalTime start = schedule.getStartTime();
+            LocalTime endTime = schedule.getEndTime();
             int duration = schedule.getSlotDurationMinutes();
-            if (duration <= 0) {
+            if (duration < 10 || start == null || endTime == null || !endTime.isAfter(start)) {
                 continue;
             }
-            while (!start.plusMinutes(duration).isAfter(schedule.getEndTime())) {
+            int maxSlots = 96;
+            int count = 0;
+            while (count++ < maxSlots) {
+                LocalTime end = start.plusMinutes(duration);
+                if (!end.isAfter(start) || end.isAfter(endTime)) {
+                    break;
+                }
                 if (isToday && start.isBefore(now)) {
-                    start = start.plusMinutes(duration);
+                    start = end;
                     continue;
                 }
-                LocalTime end = start.plusMinutes(duration);
-                long booked = appointmentRepository.countByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatusIn(profile.getStaffAccount().getId(), date, start, List.of(AppointmentStatus.BOOKED, AppointmentStatus.CHECKED_IN));
+                long booked = appointmentRepository.countByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatusIn(
+                        profile.getStaffAccount().getId(), date, start,
+                        List.of(AppointmentStatus.BOOKED, AppointmentStatus.CHECKED_IN));
                 int remaining = booked == 0 ? 1 : 0;
                 result.add(new ReceptionDoctorOptionResponse.SlotInfo(start, end, remaining));
                 start = end;
