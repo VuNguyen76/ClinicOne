@@ -25,6 +25,8 @@ frontend/UI-STAFF-ERP-RULES.md
 !.mvn/
 !.mvn/**
 !README.md
+!Dockerfile
+!docker-compose.yml
 !.gitignore
 
 # Tài liệu, cấu hình công cụ và output cục bộ
