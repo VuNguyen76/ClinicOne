@@ -2,6 +2,7 @@ package com.clinicone.config;
 
 import com.clinicone.auth.AuthException;
 import com.clinicone.auth.OtpException;
+import com.clinicone.queue.QueueTicket;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -57,11 +58,19 @@ class GlobalExceptionHandlerTest {
     @Test
     void handlesOptimisticLockingFailure() {
         var response = handler.handle(
-                new ObjectOptimisticLockingFailureException("Record", "id-1"),
+                new ObjectOptimisticLockingFailureException(com.clinicone.examination.MedicalRecord.class, "id-1"),
                 request);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
         assertThat(response.getBody()).containsEntry("code", "MEDICAL_RECORD_VERSION_CONFLICT");
+    }
+
+    @Test
+    void reportsQueueConflictForConcurrentQueueTicketUpdates() {
+        var response = handler.handle(new ObjectOptimisticLockingFailureException(QueueTicket.class, "ticket-1"), request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody()).containsEntry("code", "QUEUE_TICKET_VERSION_CONFLICT");
     }
 
     @Test
