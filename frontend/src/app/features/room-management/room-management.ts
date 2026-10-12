@@ -21,6 +21,7 @@ export class RoomManagement implements OnInit {
   private readonly formBuilder = inject(FormBuilder);
   private readonly authApi = inject(AuthApiService);
   private readonly router = inject(Router);
+  private qrRequestId = 0;
 
   protected readonly rooms = signal<ClinicRoomResponse[]>([]);
   protected readonly specialties = signal<SpecialtyOption[]>([]);
@@ -131,25 +132,32 @@ export class RoomManagement implements OnInit {
   }
 
   protected openQr(room: ClinicRoomResponse): void {
+    const requestId = ++this.qrRequestId;
     this.qrRoom.set(room);
     this.qrImage.set('');
     this.qrLoading.set(true);
+    this.error.set('');
     void QRCode.toDataURL(this.roomCheckInUrl(room), {
       width: 360,
       margin: 2,
       errorCorrectionLevel: 'M',
       color: { dark: '#082b35', light: '#ffffff' },
     }).then((image) => {
-      if (this.qrRoom()?.id === room.id) this.qrImage.set(image);
+      if (requestId === this.qrRequestId) this.qrImage.set(image);
     }).catch(() => {
+      if (requestId !== this.qrRequestId) return;
       this.error.set('Không thể tạo mã QR. Vui lòng thử lại.');
       this.closeQr();
-    }).finally(() => this.qrLoading.set(false));
+    }).finally(() => {
+      if (requestId === this.qrRequestId) this.qrLoading.set(false);
+    });
   }
 
   protected closeQr(): void {
+    this.qrRequestId++;
     this.qrRoom.set(null);
     this.qrImage.set('');
+    this.qrLoading.set(false);
   }
 
   protected roomCheckInUrl(room: ClinicRoomResponse): string {
