@@ -32,6 +32,7 @@ export class Rescheduling implements OnInit {
   protected readonly error = signal('');
   protected readonly notice = signal('');
   protected readonly searchTerm = signal('');
+  private alternativesRequestId = 0;
   protected readonly form = this.formBuilder.nonNullable.group({
     appointmentDate: ['', [Validators.required]],
     startTime: ['', [Validators.required]],
@@ -84,6 +85,7 @@ export class Rescheduling implements OnInit {
   protected readonly selectedSlot = signal<AvailableReplacementSlot | null>(null);
 
   protected selectCase(item: RescheduleCaseResponse): void {
+    const requestId = ++this.alternativesRequestId;
     this.selectedCase.set(item);
     this.selectedSlot.set(null);
     this.error.set('');
@@ -93,6 +95,7 @@ export class Rescheduling implements OnInit {
     this.alternativesLoading.set(true);
     this.authApi.getReplacementSlots(item.id).subscribe({
       next: (slots) => {
+        if (requestId !== this.alternativesRequestId || this.selectedCase()?.id !== item.id) return;
         this.alternatives.set(slots);
         this.alternativesLoading.set(false);
         if (slots[0]) {
@@ -100,6 +103,7 @@ export class Rescheduling implements OnInit {
         }
       },
       error: (response) => {
+        if (requestId !== this.alternativesRequestId || this.selectedCase()?.id !== item.id) return;
         this.alternativesLoading.set(false);
         this.error.set(apiErrorMessage(response));
       },
