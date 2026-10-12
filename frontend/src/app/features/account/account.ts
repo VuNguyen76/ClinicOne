@@ -257,7 +257,7 @@ export class Account implements OnInit {
   }
 
   private showError(response: { status?: number; error?: { message?: string; detail?: string; title?: string } | string; message?: string; detail?: string }): void {
-    if (response.status === 401 || response.status === 403) {
+    if (response.status === 401) {
       sessionStorage.removeItem('clinicOneAccessToken');
       sessionStorage.removeItem('clinicOnePatientName');
       sessionStorage.removeItem('clinicOneSessionType');

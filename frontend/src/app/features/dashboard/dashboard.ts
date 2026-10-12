@@ -30,7 +30,7 @@ export class Dashboard implements OnInit {
       .subscribe({
         next: (profile) => this.profile.set(profile),
         error: (response) => {
-          if (response.status === 401 || response.status === 403) {
+          if (response.status === 401) {
             sessionStorage.removeItem('clinicOneAccessToken');
             sessionStorage.removeItem('clinicOnePatientName');
             sessionStorage.removeItem('clinicOneSessionType');
@@ -46,7 +46,7 @@ export class Dashboard implements OnInit {
       .subscribe({
         next: (appointments) => this.appointments.set(appointments),
         error: (response) => {
-          if (response.status === 401 || response.status === 403) {
+          if (response.status === 401) {
             sessionStorage.removeItem('clinicOneAccessToken');
             sessionStorage.removeItem('clinicOnePatientName');
             sessionStorage.removeItem('clinicOneSessionType');
@@ -61,7 +61,7 @@ export class Dashboard implements OnInit {
       .subscribe({
         next: (tickets) => this.queueTickets.set(tickets),
         error: (response) => {
-          if (response.status === 401 || response.status === 403) {
+          if (response.status === 401) {
             sessionStorage.removeItem('clinicOneAccessToken');
             sessionStorage.removeItem('clinicOnePatientName');
             sessionStorage.removeItem('clinicOneSessionType');

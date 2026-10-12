@@ -261,7 +261,7 @@ export class AppointmentDetail implements OnInit {
   }
 
   private handleError(response: ApiErrorResponse & { status?: number }): void {
-    if (response.status === 401 || response.status === 403) {
+    if (response.status === 401) {
       sessionStorage.removeItem('clinicOneAccessToken');
       sessionStorage.removeItem('clinicOnePatientName');
       sessionStorage.removeItem('clinicOneSessionType');

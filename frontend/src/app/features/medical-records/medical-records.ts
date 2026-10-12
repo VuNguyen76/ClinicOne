@@ -67,7 +67,7 @@ export class MedicalRecords implements OnInit {
           this.totalElements.set(result.totalElements);
         },
         error: (response) => {
-          if (response.status === 401 || response.status === 403) {
+          if (response.status === 401) {
             sessionStorage.removeItem('clinicOneAccessToken');
             sessionStorage.removeItem('clinicOnePatientName');
             sessionStorage.removeItem('clinicOneSessionType');
