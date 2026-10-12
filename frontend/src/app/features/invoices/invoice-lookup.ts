@@ -40,6 +40,10 @@ export class InvoiceLookup {
       this.error.set('Vui lòng nhập số điện thoại.');
       return;
     }
+    if (!/^0\d{9}$/.test(phone)) {
+      this.error.set('Số điện thoại phải gồm 10 chữ số và bắt đầu bằng 0.');
+      return;
+    }
 
     this.requestingOtp.set(true);
     this.authApi.requestSmsOtp(phone, 'RECEIPT_LOOKUP').subscribe({
