@@ -23,6 +23,7 @@ frontend/UI-STAFF-ERP-RULES.md
 !mvnw
 !mvnw.cmd
 !.mvn/
+!vercel.json
 !.mvn/**
 !README.md
 !Dockerfile
