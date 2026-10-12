@@ -113,7 +113,7 @@ public class AppointmentHoldService {
 
         AppointmentHold hold = AppointmentHold.create(patient, request.specialty().trim(), request.doctorName().trim(),
                 request.doctorId(), request.appointmentDate(), request.startTime(), holdKey,
-                now.plus(holdDuration()), request.serviceId(), normalizedSessionKey);
+                now.plus(holdDuration()), request.serviceId(), normalizedSessionKey, request.profileId());
         try {
             return AppointmentHoldResponse.from(holdRepository.saveAndFlush(hold));
         } catch (DataIntegrityViolationException exception) {
@@ -165,6 +165,7 @@ public class AppointmentHoldService {
                 : hold.getServiceId().equals(request.serviceId()))
                 && (hold.getDoctorStaffId() == null ? request.doctorId() == null
                 : hold.getDoctorStaffId().equals(request.doctorId()))
+                && java.util.Objects.equals(hold.getPatientProfileId(), request.profileId())
                 && hold.getAppointmentDate().equals(request.appointmentDate())
                 && hold.getStartTime().equals(request.startTime());
     }

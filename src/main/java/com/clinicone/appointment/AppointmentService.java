@@ -155,6 +155,8 @@ public class AppointmentService {
                                                boolean allowOverCapacity, String sessionKey) {
         UUID patientId = AuthenticatedIds.patient(accountId);
         String normalizedRequestKey = IdempotencyKeys.optional(requestKey);
+        PatientAccount patient = accountRepository.findByIdForUpdate(patientId)
+                .orElseThrow(() -> authenticationRequired());
         if (normalizedRequestKey != null) {
             var existing = appointmentRepository.findByPatientIdAndCreationRequestKey(patientId, normalizedRequestKey);
             if (existing.isPresent()) {
@@ -165,8 +167,6 @@ public class AppointmentService {
                 return AppointmentResponse.from(existing.get());
             }
         }
-        PatientAccount patient = accountRepository.findById(patientId)
-                .orElseThrow(() -> authenticationRequired());
         if (patient.isMustChangePassword()) {
             throw new AuthException(HttpStatus.FORBIDDEN, "ACCOUNT_ACTIVATION_REQUIRED",
                     "Tài khoản chưa được kích hoạt. Vui lòng kích hoạt tài khoản trước khi đặt lịch.");
@@ -374,12 +374,23 @@ public class AppointmentService {
     }
 
     private PatientProfile resolveProfile(UUID profileId, UUID patientId) {
-        if (profileId == null || profileRepository == null) {
-            return null;
+        if (profileRepository == null) {
+            throw patientProfileRequired();
+        }
+        if (profileId == null) {
+            return profileRepository.findByOwnerIdAndActiveTrueOrderByPrimaryProfileDescCreatedAtAsc(patientId)
+                    .stream()
+                    .findFirst()
+                    .orElseThrow(this::patientProfileRequired);
         }
         return profileRepository.findByIdAndOwnerIdAndActiveTrue(profileId, patientId)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "PATIENT_PROFILE_NOT_FOUND",
                         "Không tìm thấy hồ sơ được chọn."));
+    }
+
+    private AuthException patientProfileRequired() {
+        return new AuthException(HttpStatus.CONFLICT, "PATIENT_PROFILE_REQUIRED",
+                "Vui lòng tạo hồ sơ bệnh nhân trước khi đặt lịch.");
     }
 
     @Transactional
