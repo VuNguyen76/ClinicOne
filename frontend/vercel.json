@@ -3,7 +3,7 @@
   "rewrites": [
     {
       "source": "/api/:match*",
-      "destination": "https://clinicone-production-efaf.up.railway.app/api/:match*"
+      "destination": "https://app-clinicone-api.azurewebsites.net/api/:match*"
     },
     {
       "source": "/(.*)",
