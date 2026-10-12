@@ -675,25 +675,19 @@ describe('ReceptionCheckIn', () => {
 
   it('late rebook hides full slots and the same slot', () => {
     const c = fixture.componentInstance as any;
-    const appt = { ...appointment(), status: 'BOOKED', startTime: '09:00:00', specialty: 'Nội tổng quát' };
+    const appt = { ...appointment(), status: 'BOOKED', startTime: '09:00:00', specialty: 'Nội tổng quát', serviceId: 'service-123' };
     c.openRebook(appt);
     expect(c.rebookMode()).toBe('LATE');
-    const req = http.expectOne((item) => item.url === '/api/v1/reception/doctors');
+    const req = http.expectOne((item) => item.url === '/api/v1/appointment-slots');
+    expect(req.request.params.get('serviceId')).toBe('service-123');
+    const today = c.selectedDate();
     req.flush([
-      {
-        staffId: 'd-1', fullName: 'BS. Nguyễn An', specialty: 'Nội tổng quát', roomCode: 'NOI-01',
-        shiftStatus: 'ACTIVE', waitingCount: 0,
-        slots: [
-          { startTime: '09:00:00', endTime: '09:30:00', remaining: 1 }, // same slot -> hidden
-          { startTime: '09:30:00', endTime: '10:00:00', remaining: 0 }, // full -> hidden
-          { startTime: '10:00:00', endTime: '10:30:00', remaining: 1 }, // shown
-        ],
-      },
-      {
-        staffId: 'd-2', fullName: 'BS. Nguyễn Bình', specialty: 'Nhi khoa', roomCode: 'NHI-01',
-        shiftStatus: 'ACTIVE', waitingCount: 0,
-        slots: [{ startTime: '10:00:00', endTime: '10:30:00', remaining: 1 }], // other specialty -> hidden
-      },
+      { appointmentDate: today, startTime: '09:00:00', endTime: '09:30:00', specialty: 'Nội tổng quát',
+        doctorName: 'BS A', doctorId: 'd-1', remainingCapacity: 1 }, // same slot -> hidden
+      { appointmentDate: today, startTime: '09:30:00', endTime: '10:00:00', specialty: 'Nội tổng quát',
+        doctorName: 'BS A', doctorId: 'd-1', remainingCapacity: 0 }, // full -> hidden
+      { appointmentDate: today, startTime: '10:00:00', endTime: '10:30:00', specialty: 'Nội tổng quát',
+        doctorName: 'BS A', doctorId: 'd-1', remainingCapacity: 1 }, // shown
     ]);
     const slots = c.rebookSlots();
     expect(slots.length).toBe(1);
@@ -727,6 +721,19 @@ describe('ReceptionCheckIn', () => {
 
     expect(c.rebookSlots().map((slot: any) => slot.appointmentDate)).toEqual([currentDate]);
     expect(c.rebookStartTime()).toBe('10:00:00');
+  });
+
+  it('limits absent-appointment rebooking to the original clinic service', () => {
+    const c = fixture.componentInstance as any;
+    const serviceId = 'service-123';
+    c.rebookTicket.set({ ...appointment(), status: 'ABSENT', serviceId });
+    c.rebookMode.set('ABSENT');
+    c.rebookDate.set(c.addDays(c.selectedDate(), 1));
+    c.loadRebookSlots();
+
+    const request = http.expectOne((item) => item.url === '/api/v1/appointment-slots');
+    expect(request.request.params.get('serviceId')).toBe(serviceId);
+    request.flush([]);
   });
 });
 

@@ -29,7 +29,8 @@ public record ReceptionAppointmentResponse(
         boolean queuePriority,
         String queueClosureOutcome,
         String queueClosureOutcomeLabel,
-        boolean lateArrival
+        boolean lateArrival,
+        UUID serviceId
 ) {
     public ReceptionAppointmentResponse(UUID id, String appointmentCode, LocalDate appointmentDate,
                                         LocalTime startTime, String specialty, String doctorName,
@@ -38,7 +39,7 @@ public record ReceptionAppointmentResponse(
                                         Integer queueNumber, String queueStatus, String queueStatusLabel) {
         this(id, appointmentCode, appointmentDate, startTime, specialty, doctorName, roomCode, roomName,
                 patientProfileId, patientName, patientPhone, status, queueNumber, queueStatus, queueStatusLabel,
-                null, null, null, false, null, null, false);
+                null, null, null, false, null, null, false, null);
     }
 
     public ReceptionAppointmentResponse(UUID id, String appointmentCode, LocalDate appointmentDate,
@@ -50,7 +51,7 @@ public record ReceptionAppointmentResponse(
                                         boolean queuePriority) {
         this(id, appointmentCode, appointmentDate, startTime, specialty, doctorName, roomCode, roomName,
                 patientProfileId, patientName, patientPhone, status, queueNumber, queueStatus, queueStatusLabel,
-                queuePresenceStatus, queuePresenceLabel, queueTicketId, queuePriority, null, null, false);
+                queuePresenceStatus, queuePresenceLabel, queueTicketId, queuePriority, null, null, false, null);
     }
 
     public static ReceptionAppointmentResponse from(Appointment appointment, String roomCode, String roomName,
@@ -75,7 +76,7 @@ public record ReceptionAppointmentResponse(
                 ticket == null ? null : ticket.statusLabel(), ticket == null ? null : ticket.presenceStatus(),
                 ticket == null ? null : ticket.presenceLabel(), ticket == null ? null : ticket.id(),
                 ticket != null && ticket.priority(), ticket == null ? null : ticket.closureOutcome(),
-                ticket == null ? null : ticket.closureOutcomeLabel(), lateArrival);
+                ticket == null ? null : ticket.closureOutcomeLabel(), lateArrival, appointment.getServiceId());
     }
 
 }

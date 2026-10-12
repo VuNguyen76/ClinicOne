@@ -472,31 +472,16 @@ export class ReceptionCheckIn implements OnInit {
       if (date !== today) {
         this.rebookDate.set(today);
       }
-      this.authApi.getReceptionDoctorsAvailability(today).subscribe({
-        next: (doctors) => {
+      this.authApi.getAppointmentSlots(
+        appointment.specialty, today, today, appointment.serviceId ?? undefined,
+      ).subscribe({
+        next: (slots) => {
           if (requestId !== this.rebookSlotRequestId) return;
-          const relevant = doctors.filter((d) => d.specialty === appointment.specialty);
-          const list: typeof this.rebookSlots extends import('@angular/core').Signal<infer T> ? T : never = [] as any;
-          for (const d of relevant) {
-            for (const s of d.slots ?? []) {
-              if (s.remaining <= 0) continue;
-              if (s.startTime === appointment.startTime) continue; // same-slot hide
-              (list as any).push({
-                appointmentDate: today,
-                startTime: s.startTime,
-                endTime: s.endTime,
-                specialty: appointment.specialty,
-                doctorId: d.staffId,
-                doctorName: d.fullName,
-                remainingCapacity: s.remaining,
-                roomCode: d.roomCode,
-              });
-            }
-          }
-          (list as any).sort((a: any, b: any) => a.startTime.localeCompare(b.startTime));
+          const list = slots.filter((slot) => slot.appointmentDate === today
+            && !!slot.doctorId && slot.remainingCapacity > 0 && slot.startTime !== appointment.startTime);
           this.rebookAvailableDates.set([]);
-          this.rebookSlots.set(list as any);
-          this.rebookStartTime.set((list as any)[0]?.startTime ?? '');
+          this.rebookSlots.set(list);
+          this.rebookStartTime.set(list[0]?.startTime ?? '');
           this.rebookSlotsLoading.set(false);
         },
         error: (response) => {
@@ -509,7 +494,7 @@ export class ReceptionCheckIn implements OnInit {
     }
     const fromDate = date < clinicTodayIso() ? date : clinicTodayIso();
     const toDate = this.addDays(fromDate, 30);
-    this.authApi.getAppointmentSlots(appointment.specialty, fromDate, toDate).subscribe({
+    this.authApi.getAppointmentSlots(appointment.specialty, fromDate, toDate, appointment.serviceId ?? undefined).subscribe({
       next: (slots) => {
         if (requestId !== this.rebookSlotRequestId) return;
         const today = clinicTodayIso();

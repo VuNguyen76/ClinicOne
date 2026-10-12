@@ -61,6 +61,18 @@ class ReceptionServiceTest {
     private ClinicConfigurationService clinicConfigurationService;
     private ReceptionService service;
 
+    @Test
+    void exposesClinicServiceIdInReceptionAppointmentDataForRebooking() {
+        UUID serviceId = UUID.randomUUID();
+        Appointment appointment = mock(Appointment.class);
+        when(appointment.getStatus()).thenReturn(AppointmentStatus.BOOKED);
+        when(appointment.getServiceId()).thenReturn(serviceId);
+
+        ReceptionAppointmentResponse response = ReceptionAppointmentResponse.from(appointment, null, null, null);
+
+        assertThat(response.serviceId()).isEqualTo(serviceId);
+    }
+
     @BeforeEach
     void setUp() {
         patientAccountRepository = mock(PatientAccountRepository.class);
