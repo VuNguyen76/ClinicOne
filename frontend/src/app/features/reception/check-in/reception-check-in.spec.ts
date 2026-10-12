@@ -342,6 +342,29 @@ describe('ReceptionCheckIn', () => {
     expect(fixture.nativeElement.textContent).toContain('Rời trước khám');
   });
 
+  it('keeps each reception action locked until its own request finishes', () => {
+    const component = fixture.componentInstance as any;
+    const first = { ...appointment(), status: 'CHECKED_IN', queueStatus: 'WAITING' };
+    const second = { ...appointment(), id: 'a-2', status: 'CHECKED_IN', queueStatus: 'WAITING' };
+    component.leaveReason.set('NgÆ°á»i bá»‡nh báº­n viá»‡c Ä‘á»™t xuáº¥t');
+
+    component.leaveBeforeExam(first);
+    component.leaveBeforeExam(second);
+    const firstRequest = http.expectOne('/api/v1/reception/appointments/a-1/leave');
+    const secondRequest = http.expectOne('/api/v1/reception/appointments/a-2/leave');
+    expect(component.isAppointmentBusy('a-1')).toBe(true);
+    expect(component.isAppointmentBusy('a-2')).toBe(true);
+
+    firstRequest.flush({ ...first, status: 'NOT_PERFORMED', queueStatus: 'LEFT_BEFORE_EXAM' });
+    expect(component.isAppointmentBusy('a-1')).toBe(false);
+    expect(component.isAppointmentBusy('a-2')).toBe(true);
+
+    component.leaveBeforeExam(second);
+    expect(http.match('/api/v1/reception/appointments/a-2/leave')).toHaveLength(0);
+    secondRequest.flush({ ...second, status: 'NOT_PERFORMED', queueStatus: 'LEFT_BEFORE_EXAM' });
+    expect(component.isAppointmentBusy('a-2')).toBe(false);
+  });
+
   it('records a facility outage for an existing queue ticket', () => {
     const component = fixture.componentInstance as any;
     const checkedIn = { ...appointment(), status: 'CHECKED_IN', queueNumber: 5,

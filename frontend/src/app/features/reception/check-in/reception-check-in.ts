@@ -50,7 +50,7 @@ export class ReceptionCheckIn implements OnInit {
   protected readonly appointments = signal<ReceptionAppointmentResponse[]>([]);
   protected readonly loading = signal(false);
   protected readonly searched = signal(false);
-  protected readonly busyId = signal('');
+  protected readonly busyAppointmentIds = signal<ReadonlySet<string>>(new Set());
   protected readonly error = signal('');
   protected readonly notice = signal('');
   protected readonly walkInOpen = signal(false);
@@ -310,25 +310,38 @@ export class ReceptionCheckIn implements OnInit {
     return this.appointments().some((appointment) => appointment.status === 'ABSENT');
   }
 
+  protected isAppointmentBusy(appointmentId: string): boolean {
+    return this.busyAppointmentIds().has(appointmentId);
+  }
+
+  private setAppointmentBusy(appointmentId: string, busy: boolean): void {
+    this.busyAppointmentIds.update((current) => {
+      const next = new Set(current);
+      if (busy) next.add(appointmentId);
+      else next.delete(appointmentId);
+      return next;
+    });
+  }
+
   protected checkIn(appointment: ReceptionAppointmentResponse): void {
-    if (this.busyId() === appointment.id) return;
+    if (this.isAppointmentBusy(appointment.id)) return;
     if (appointment.status !== 'BOOKED' || !appointment.roomCode || appointment.queueStatus) return;
     const reason = this.exceptionReason().trim();
     if (reason.length < 3) {
       this.error.set('Nhập lý do hỗ trợ tại quầy trước khi cấp số.');
       return;
     }
-    this.busyId.set(appointment.id);
+    this.setAppointmentBusy(appointment.id, true);
     this.error.set('');
     this.notice.set('');
     this.authApi.receptionCheckIn(appointment.id, appointment.roomCode, reason).subscribe({
       next: (updated) => {
         this.appointments.update((items) => items.map((item) => item.id === updated.id ? updated : item));
-        this.busyId.set('');
+        this.setAppointmentBusy(appointment.id, false);
         this.notice.set(`Đã cấp số ${String(updated.queueNumber).padStart(2, '0')} cho ${updated.patientName}.`);
       },
       error: (response) => {
-        this.busyId.set('');
+        this.setAppointmentBusy(appointment.id, false);
         const errorCode = typeof response?.error === 'object' && response.error !== null
           ? response.error.code
           : undefined;
@@ -354,17 +367,18 @@ export class ReceptionCheckIn implements OnInit {
   }
 
   protected markReturned(appointment: ReceptionAppointmentResponse): void {
-    if (appointment.queuePresenceStatus !== 'RETURN_REQUIRED' || !appointment.roomCode) return;
-    this.busyId.set(appointment.id);
+    if (this.isAppointmentBusy(appointment.id)
+      || appointment.queuePresenceStatus !== 'RETURN_REQUIRED' || !appointment.roomCode) return;
+    this.setAppointmentBusy(appointment.id, true);
     this.error.set('');
     this.authApi.receptionCheckIn(appointment.id, appointment.roomCode, 'Người bệnh đã quay lại hàng đợi').subscribe({
       next: (updated) => {
         this.appointments.update((items) => items.map((item) => item.id === updated.id ? updated : item));
-        this.busyId.set('');
+        this.setAppointmentBusy(appointment.id, false);
         this.notice.set(`Đã xác nhận ${updated.patientName} quay lại hàng đợi.`);
       },
       error: (response) => {
-        this.busyId.set('');
+        this.setAppointmentBusy(appointment.id, false);
         this.handleError(response);
       },
     });
@@ -375,47 +389,47 @@ export class ReceptionCheckIn implements OnInit {
       this.error.set('Chỉ nhân viên tiếp nhận được ghi nhận người bệnh rời trước khám.');
       return;
     }
-    if (appointment.queueStatus !== 'WAITING') return;
+    if (this.isAppointmentBusy(appointment.id) || appointment.queueStatus !== 'WAITING') return;
     const reason = this.leaveReason().trim();
     if (reason.length < 10) {
       this.error.set('Nhập lý do người bệnh rời trước khám (ít nhất 10 ký tự).');
       return;
     }
-    this.busyId.set(appointment.id);
+    this.setAppointmentBusy(appointment.id, true);
     this.error.set('');
     this.notice.set('');
     this.authApi.leaveReceptionAppointment(appointment.id, reason).subscribe({
       next: (updated) => {
         this.appointments.update((items) => items.map((item) => item.id === updated.id ? updated : item));
-        this.busyId.set('');
+        this.setAppointmentBusy(appointment.id, false);
         this.leaveReason.set('');
         this.notice.set(`Đã ghi nhận ${updated.patientName} rời trước khám.`);
       },
       error: (response) => {
-        this.busyId.set('');
+        this.setAppointmentBusy(appointment.id, false);
         this.handleError(response);
       },
     });
   }
 
   protected markFacilityUnavailable(appointment: ReceptionAppointmentResponse): void {
-    if (!this.canAdjustQueue() || !appointment.queueTicketId) return;
+    if (this.isAppointmentBusy(appointment.id) || !this.canAdjustQueue() || !appointment.queueTicketId) return;
     const reason = this.exceptionReason().trim();
     if (reason.length < 10) {
       this.error.set('Nhập lý do phòng khám tạm dừng phục vụ (ít nhất 10 ký tự).');
       return;
     }
-    this.busyId.set(appointment.id);
+    this.setAppointmentBusy(appointment.id, true);
     this.error.set('');
     this.notice.set('');
     this.authApi.markReceptionFacilityUnavailable(appointment.id, reason).subscribe({
       next: (updated) => {
         this.appointments.update((items) => items.map((item) => item.id === updated.id ? updated : item));
-        this.busyId.set('');
+        this.setAppointmentBusy(appointment.id, false);
         this.notice.set(`Đã ghi nhận phòng khám tạm dừng phục vụ cho ${updated.patientName}.`);
       },
       error: (response) => {
-        this.busyId.set('');
+        this.setAppointmentBusy(appointment.id, false);
         this.handleError(response);
       },
     });
