@@ -11,6 +11,9 @@ spring:
       hibernate:
         jdbc:
           time_zone: Asia/Ho_Chi_Minh
+          batch_size: 25
+        order_inserts: true
+        order_updates: true
   jackson:
     time-zone: Asia/Ho_Chi_Minh
   mvc:
