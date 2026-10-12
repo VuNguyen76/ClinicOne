@@ -297,6 +297,44 @@ class ScheduleTemplateServiceTest {
     }
 
     @Test
+    void invalidWeekdayDoesNotDeleteTheEntireTemplate() throws Exception {
+        ClinicService clinicService = mock(ClinicService.class);
+        DoctorProfile doctor = mock(DoctorProfile.class);
+        StaffAccount staff = mock(StaffAccount.class);
+        ClinicRoom room = mock(ClinicRoom.class);
+        UUID templateId = UUID.randomUUID();
+        WorkScheduleTemplate storedTemplate = scheduleTemplate(clinicService, doctor, room, staff, templateId,
+                LocalTime.of(8, 0), LocalTime.of(17, 0), Set.of(DayOfWeek.MONDAY, DayOfWeek.TUESDAY));
+        when(templateRepository.findById(templateId)).thenReturn(Optional.of(storedTemplate));
+
+        AuthException exception = assertThrows(AuthException.class, () -> service.delete(templateId, "MONDY"));
+
+        assertEquals("SCHEDULE_WEEKDAY_INVALID", exception.getCode());
+        assertEquals(true, storedTemplate.isActive());
+        verify(templateRepository, never()).save(any(WorkScheduleTemplate.class));
+        verify(slotRepository, never()).deleteByTemplateIdAndStatus(any(), any());
+    }
+
+    @Test
+    void weekdayNotInTemplateDoesNotDeleteTheEntireTemplate() throws Exception {
+        ClinicService clinicService = mock(ClinicService.class);
+        DoctorProfile doctor = mock(DoctorProfile.class);
+        StaffAccount staff = mock(StaffAccount.class);
+        ClinicRoom room = mock(ClinicRoom.class);
+        UUID templateId = UUID.randomUUID();
+        WorkScheduleTemplate storedTemplate = scheduleTemplate(clinicService, doctor, room, staff, templateId,
+                LocalTime.of(8, 0), LocalTime.of(17, 0), Set.of(DayOfWeek.MONDAY));
+        when(templateRepository.findById(templateId)).thenReturn(Optional.of(storedTemplate));
+
+        AuthException exception = assertThrows(AuthException.class, () -> service.delete(templateId, "TUESDAY"));
+
+        assertEquals("SCHEDULE_WEEKDAY_NOT_IN_TEMPLATE", exception.getCode());
+        assertEquals(true, storedTemplate.isActive());
+        verify(templateRepository, never()).save(any(WorkScheduleTemplate.class));
+        verify(slotRepository, never()).deleteByTemplateIdAndStatus(any(), any());
+    }
+
+    @Test
     void regenerateWithChangedDayEndDeactivatesStaleScheduleAndInsertsNewOnce() throws Exception {
         ClinicService clinicService = mock(ClinicService.class);
         DoctorProfile doctor = mock(DoctorProfile.class);
