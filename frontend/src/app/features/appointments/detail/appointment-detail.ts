@@ -124,7 +124,7 @@ export class AppointmentDetail implements OnInit {
   }
 
   protected canCancel(): boolean {
-    return this.appointment()?.status === 'BOOKED';
+    return this.appointment()?.status === 'BOOKED' && !this.isLate();
   }
 
   protected canCheckIn(): boolean {
