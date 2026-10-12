@@ -77,6 +77,28 @@ describe('Account', () => {
     expect(component['districts']().map((item) => item.name)).toEqual(['District B']);
   });
 
+  it('does not apply profile-prefill address responses after the province changes', () => {
+    component['setProfileForm']({
+      accountId: 'account-1', phone: '0912345678', fullName: 'Nguyen Van A', dateOfBirth: '2005-06-07', gender: 'Nam',
+      address: '', identityNumber: '', nationality: 'Việt Nam', ethnicity: 'Kinh', provinceCode: '01', provinceName: 'Province A',
+      districtCode: '0101', districtName: 'District A', wardCode: '010101', wardName: 'Ward A', streetAddress: '',
+      status: 'ACTIVE', mustChangePassword: false,
+    });
+    const oldDistricts = http.expectOne('/api/v1/addresses/provinces/01/districts?page=1&limit=100');
+    const oldWards = http.expectOne('/api/v1/addresses/districts/0101/wards?page=1&limit=100');
+
+    component['provinces'].set([{ code: '02', name: 'Province B' }]);
+    component['profileForm'].controls.provinceCode.setValue('02');
+    component['provinceChanged']();
+    const currentDistricts = http.expectOne('/api/v1/addresses/provinces/02/districts?page=1&limit=100');
+    currentDistricts.flush([{ code: '0201', name: 'District B' }]);
+    oldDistricts.flush([{ code: '0101', name: 'District A' }]);
+    oldWards.flush([{ code: '010101', name: 'Ward A' }]);
+
+    expect(component['districts']().map((item) => item.name)).toEqual(['District B']);
+    expect(component['wards']()).toEqual([]);
+  });
+
   it('sends the selected address parts as one display address', () => {
     component['profileForm'].patchValue({
       provinceCode: '72', provinceName: 'Tây Ninh',
@@ -98,5 +120,22 @@ describe('Account', () => {
     });
     http.expectOne('/api/v1/addresses/provinces/72/districts?page=1&limit=100').flush([]);
     http.expectOne('/api/v1/addresses/districts/718/wards?page=1&limit=100').flush([]);
+  });
+
+  it('prevents profile edits from being overwritten while a save is pending', () => {
+    component['saveProfile']();
+    fixture.detectChanges();
+    const fullNameInput = fixture.nativeElement.querySelector('[formControlName="fullName"]') as HTMLInputElement;
+    expect(fullNameInput.disabled).toBe(true);
+
+    http.expectOne((item) => item.url === '/api/v1/auth/me' && item.method === 'PATCH').flush({
+      accountId: 'account-1', phone: '0912345678', fullName: 'Nguyen Van A', dateOfBirth: '2005-06-07',
+      gender: 'Nam', address: 'Tây Ninh', identityNumber: '012345678901', nationality: 'Việt Nam', ethnicity: 'Kinh',
+      provinceCode: null, provinceName: null, districtCode: null, districtName: null, wardCode: null, wardName: null,
+      streetAddress: null, status: 'ACTIVE', mustChangePassword: false,
+    });
+    fixture.detectChanges();
+
+    expect(fullNameInput.disabled).toBe(false);
   });
 });
