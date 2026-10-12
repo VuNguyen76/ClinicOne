@@ -3,6 +3,7 @@ import { ActivatedRoute } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
+import { clinicTodayIso } from '../../../core/time/clinic-time';
 import { AppointmentDetail } from './appointment-detail';
 
 describe('AppointmentDetail', () => {
@@ -37,8 +38,12 @@ describe('AppointmentDetail', () => {
     sessionStorage.clear();
   });
 
-  function flushAppointment(caseResponse: object | null, alternatives: object[] = []): void {
-    http.expectOne('/api/v1/appointments/appointment-1').flush(appointment);
+  function flushAppointment(
+    caseResponse: object | null,
+    alternatives: object[] = [],
+    currentAppointment: object = appointment,
+  ): void {
+    http.expectOne('/api/v1/appointments/appointment-1').flush(currentAppointment);
     http.expectOne((request) => request.url === '/api/v1/reasons'
       && request.params.get('type') === 'APPOINTMENT_CANCELLATION').flush([]);
     if (caseResponse) {
@@ -120,7 +125,11 @@ describe('AppointmentDetail', () => {
   });
 
   it('offers QR scanning and does not allow free-form date or time rescheduling', () => {
-    flushAppointment(null);
+    flushAppointment(null, [], {
+      ...appointment,
+      appointmentDate: clinicTodayIso(),
+      startTime: '23:59:00',
+    });
 
     const scanLink = fixture.nativeElement.querySelector('[data-testid="qr-scan-action"]') as HTMLAnchorElement;
     expect(scanLink.getAttribute('href')).toBe('/queue/scan');

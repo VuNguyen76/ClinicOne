@@ -10,6 +10,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.lang.reflect.Field;
 import java.time.Clock;
@@ -386,6 +387,18 @@ class AccountAuthServiceTest {
         service.logout(ACCOUNT_ID.toString());
 
         verify(sessionRepository).revokeActiveByAccountId(eq(ACCOUNT_ID), eq(NOW));
+    }
+
+    @Test
+    void patientLoginCommitsPasswordFailureAndOtpAttemptCounters() throws Exception {
+        Transactional passwordLogin = AccountAuthService.class
+                .getMethod("login", PasswordLoginRequest.class).getAnnotation(Transactional.class);
+        Transactional otpLogin = AccountAuthService.class
+                .getMethod("loginBySmsOtp", SmsLoginRequest.class).getAnnotation(Transactional.class);
+
+        assertTrue(java.util.Arrays.asList(passwordLogin.noRollbackFor()).contains(AuthException.class));
+        assertTrue(java.util.Arrays.asList(otpLogin.noRollbackFor()).contains(AuthException.class));
+        assertTrue(java.util.Arrays.asList(otpLogin.noRollbackFor()).contains(OtpException.class));
     }
 
     private static void setId(PatientAccount account, UUID id) {

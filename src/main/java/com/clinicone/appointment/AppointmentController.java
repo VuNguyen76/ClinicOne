@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 
 import com.clinicone.auth.AuthException;
 import com.clinicone.validation.IdempotencyKey;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -43,11 +44,18 @@ public class AppointmentController {
     @PostMapping
     public ResponseEntity<AppointmentResponse> create(Authentication authentication,
                                                        @Valid @RequestBody CreateAppointmentRequest request,
+                                                       HttpServletRequest httpRequest,
+                                                       @RequestHeader(value = "X-ClinicOne-Session", required = false)
+                                                       String sessionKey,
                                                        @IdempotencyKey
                                                        @RequestHeader(value = "Idempotency-Key", required = false) String requestKey) {
-        AppointmentResponse response = requestKey == null || requestKey.isBlank()
-                ? appointmentService.create(authentication.getName(), request)
-                : appointmentService.create(authentication.getName(), request, requestKey);
+        Object serverSessionId = httpRequest.getAttribute("clinicOneLoginSessionId");
+        String effectiveSessionKey = serverSessionId == null ? sessionKey : serverSessionId.toString();
+        AppointmentResponse response = effectiveSessionKey == null || effectiveSessionKey.isBlank()
+                ? requestKey == null || requestKey.isBlank()
+                    ? appointmentService.create(authentication.getName(), request)
+                    : appointmentService.create(authentication.getName(), request, requestKey)
+                : appointmentService.create(authentication.getName(), request, requestKey, effectiveSessionKey);
         return ResponseEntity.status(201).body(response);
     }
 

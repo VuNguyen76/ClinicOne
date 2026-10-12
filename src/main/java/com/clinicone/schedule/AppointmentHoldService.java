@@ -17,6 +17,10 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 import java.util.UUID;
 
 @Service
@@ -73,7 +77,9 @@ public class AppointmentHoldService {
                 .orElseThrow(() -> authRequired());
         validateService(request);
         Instant now = Instant.now(clock);
-        String holdKey = holdKey(patientId, request);
+        boolean legacySession = sessionKey == null || sessionKey.isBlank();
+        String normalizedSessionKey = normalizeSessionKey(sessionKey);
+        String holdKey = holdKey(patientId, request, normalizedSessionKey);
         var existing = holdRepository.findByHoldKey(holdKey);
         if (existing.isPresent()) {
             AppointmentHold hold = existing.get();
@@ -90,8 +96,6 @@ public class AppointmentHoldService {
         // Một tài khoản chỉ giữ một khung giờ tại một thời điểm. Khi người bệnh
         // chọn khung mới, giải phóng khung cũ ngay trong cùng giao dịch để không
         // khóa lịch của người khác quá lâu.
-        boolean legacySession = sessionKey == null || sessionKey.isBlank();
-        String normalizedSessionKey = normalizeSessionKey(sessionKey);
         var activeHolds = legacySession
                 ? holdRepository.findByPatientIdAndExpiresAtAfter(patientId, now)
                 : holdRepository.findByPatientIdAndSessionKeyAndExpiresAtAfter(patientId, normalizedSessionKey, now);
@@ -119,9 +123,19 @@ public class AppointmentHoldService {
 
     @Transactional
     public AppointmentHold requireForBooking(String accountId, UUID holdId, CreateAppointmentRequest request) {
+        return requireForBooking(accountId, holdId, request, null);
+    }
+
+    @Transactional
+    public AppointmentHold requireForBooking(String accountId, UUID holdId, CreateAppointmentRequest request,
+                                               String sessionKey) {
         UUID patientId = AuthenticatedIds.patient(accountId);
         AppointmentHold hold = holdRepository.findByIdAndPatientId(holdId, patientId)
                 .orElseThrow(() -> holdMissing());
+        if (!normalizeSessionKey(hold.getSessionKey()).equals(normalizeSessionKey(sessionKey))) {
+            throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_HOLD_SESSION_MISMATCH",
+                    "Khung giá» giá»¯ khÃ´ng thuá»™c phiÃªn Ä‘Äƒng nháº­p hiá»‡n táº¡i.");
+        }
         Instant now = Instant.now(clock);
         if (!hold.getExpiresAt().isAfter(now)) {
             throwExpired(hold);
@@ -155,21 +169,19 @@ public class AppointmentHoldService {
                 && hold.getStartTime().equals(request.startTime());
     }
 
-    private String holdKey(UUID patientId, CreateAppointmentHoldRequest request) {
-        String date = request.appointmentDate().toString();
-        String time = request.startTime().toString();
-        String profilePart = request.profileId() != null ? ":PROFILE:" + request.profileId() : "";
-        if (request.doctorId() != null) {
-            if (request.serviceId() == null) {
-                return "DOCTOR:" + request.doctorId() + ":" + date + ":" + time + profilePart;
-            }
-            return "DOCTOR:" + request.doctorId() + ":" + request.serviceId() + ":" + date + ":" + time + profilePart;
+    private String holdKey(UUID patientId, CreateAppointmentHoldRequest request, String normalizedSessionKey) {
+        String material = String.join(":", patientId.toString(), normalizedSessionKey,
+                request.profileId() == null ? "" : request.profileId().toString(),
+                request.doctorId() == null ? "" : request.doctorId().toString(),
+                request.serviceId() == null ? "" : request.serviceId().toString(),
+                request.specialty().trim().toLowerCase(), request.appointmentDate().toString(),
+                request.startTime().toString());
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(material.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(digest);
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 is required by the Java runtime", exception);
         }
-        String base = "PATIENT:" + patientId + ":" + request.specialty().trim().toLowerCase();
-        String key = request.serviceId() == null
-                ? base + ":" + date + ":" + time
-                : base + ":" + request.serviceId() + ":" + date + ":" + time;
-        return key + profilePart;
     }
 
     private void validateService(CreateAppointmentHoldRequest request) {

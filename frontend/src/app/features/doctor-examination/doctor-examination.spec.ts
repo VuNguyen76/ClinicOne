@@ -254,6 +254,30 @@ describe('DoctorExamination', () => {
     vi.useRealTimers();
   });
 
+  it('persists edits made while an earlier draft save is in flight', () => {
+    vi.useFakeTimers();
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+
+    const reason = fixture.nativeElement.querySelector('textarea[formControlName="reason"]') as HTMLTextAreaElement;
+    reason.value = 'Bản nháp lần một';
+    reason.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    vi.advanceTimersByTime(10_000);
+    const firstSave = http.expectOne('/api/v1/doctor/examinations/ticket-1/draft');
+
+    reason.value = 'Bản nháp mới nhất';
+    reason.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    firstSave.flush({ ...examination(), reason: 'Bản nháp lần một', recordVersion: 1 });
+
+    const secondSave = http.expectOne('/api/v1/doctor/examinations/ticket-1/draft');
+    expect(secondSave.request.body.reason).toBe('Bản nháp mới nhất');
+    expect(secondSave.request.body.recordVersion).toBe(1);
+    secondSave.flush({ ...examination(), reason: 'Bản nháp mới nhất', recordVersion: 2 });
+    vi.useRealTimers();
+  });
+
   it('saves a changed draft when the doctor leaves a clinical field', () => {
     http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
     fixture.detectChanges();

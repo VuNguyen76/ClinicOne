@@ -20,6 +20,7 @@ import java.util.UUID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
@@ -134,7 +135,28 @@ class AppointmentControllerTest {
                 .andExpect(status().isGone())
                 .andExpect(jsonPath("$.code").value("PATIENT_RESCHEDULE_NOT_SUPPORTED"));
 
-        org.mockito.Mockito.verifyNoInteractions(appointmentService);
+        verify(appointmentService, never()).reschedule(any(), any(), any());
+    }
+
+    @Test
+    void prefersServerLoginSessionWhenCreatingAppointmentHoldBooking() throws Exception {
+        when(appointmentService.create(eq(ACCOUNT_ID.toString()), any(), eq("booking-key-2"),
+                eq("server-session-1"))).thenReturn(new AppointmentResponse(
+                UUID.randomUUID(), "CL-20260810-1234", "Ná»™i khoa", "BS. Nguyá»…n An",
+                LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), "Äau Ä‘áº§u", "BOOKED", "ÄÃ£ Ä‘áº·t"));
+
+        mockMvc.perform(post("/api/v1/appointments")
+                        .with(authentication(UsernamePasswordAuthenticationToken.authenticated(
+                                ACCOUNT_ID.toString(), null, List.of(new SimpleGrantedAuthority("ROLE_PATIENT")))))
+                        .requestAttr("clinicOneLoginSessionId", "server-session-1")
+                        .header("X-ClinicOne-Session", "untrusted-client-session")
+                        .header("Idempotency-Key", "booking-key-2")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"specialty\":\"Ná»™i khoa\",\"doctorName\":\"BS. Nguyá»…n An\",\"appointmentDate\":\"2099-01-01\",\"startTime\":\"08:30\",\"reason\":\"Äau Ä‘áº§u\"}"))
+                .andExpect(status().isCreated());
+
+        verify(appointmentService).create(eq(ACCOUNT_ID.toString()), any(), eq("booking-key-2"),
+                eq("server-session-1"));
     }
 
     @Test

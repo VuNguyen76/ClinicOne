@@ -79,6 +79,7 @@ export class DoctorExamination implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
   private draftDirty = false;
+  private draftRevision = 0;
   private autosaveRetryCount = 0;
   private autosaveRetryTimer: ReturnType<typeof setTimeout> | null = null;
   private signRequestKey: string | null = null;
@@ -512,13 +513,20 @@ export class DoctorExamination implements OnInit {
     if (!ticketId || this.saving() || this.signing() || this.isReadonly() || this.examination()?.requiresMedicalRecord === false) return;
     if (manual && !this.validateVitalsBeforeSaving()) return;
     if (!this.validatePrescriptionLines()) return;
+    const savedRevision = this.draftRevision;
+    const draftRequest = this.request();
     this.saving.set(true);
     this.error.set('');
     this.notice.set('');
-    this.authApi.saveDoctorExaminationDraft(ticketId, this.request()).subscribe({
+    this.authApi.saveDoctorExaminationDraft(ticketId, draftRequest).subscribe({
       next: (value) => {
         this.examination.set(value);
         this.saving.set(false);
+        if (savedRevision !== this.draftRevision) {
+          this.draftDirty = true;
+          this.persistDraft(false);
+          return;
+        }
         this.draftDirty = false;
         this.autosaveRetryCount = 0;
         this.clearAutosaveRetry();
@@ -996,6 +1004,7 @@ export class DoctorExamination implements OnInit {
 
   private markDraftChanged(): void {
     this.draftDirty = true;
+    this.draftRevision += 1;
     this.signRequestKey = null;
     this.autosaveRetryCount = 0;
     this.clearAutosaveRetry();
