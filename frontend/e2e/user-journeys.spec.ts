@@ -200,10 +200,15 @@ test.describe('luồng người dùng ClinicOne', () => {
   });
 
   test('bệnh nhân quét mã phòng và nhận số thứ tự', async ({ page }) => {
-    const today = new Date();
-    const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    const clinicNow = new Date();
+    const clinicDateParts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit',
+    }).formatToParts(clinicNow);
+    const clinicDate = Object.fromEntries(clinicDateParts.map(({ type, value }) => [type, value]));
+    const todayIso = `${clinicDate['year']}-${clinicDate['month']}-${clinicDate['day']}`;
     const qrToken = 'room-qr-token';
-    const appointmentTime = new Date(Date.now() + 10 * 60_000 + 7 * 60 * 60_000).toISOString().slice(11, 19);
+    const appointmentTime = '10:10:00';
+    await page.clock.install({ time: new Date(`${todayIso}T10:00:00+07:00`) });
     await page.addInitScript(() => {
       sessionStorage.setItem('clinicOneAccessToken', 'e2e-token');
       sessionStorage.setItem('clinicOnePatientName', 'Nguyễn An');
