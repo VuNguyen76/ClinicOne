@@ -24,7 +24,6 @@ public interface InvoiceRepository extends JpaRepository<Invoice, UUID> {
     @EntityGraph(attributePaths = {"appointment", "appointment.patientProfile", "appointment.patient", "items"})
     List<Invoice> findByAppointment_Patient_IdOrderByCreatedAtDesc(UUID patientId);
 
-    @EntityGraph(attributePaths = {"appointment", "appointment.patientProfile", "appointment.patient", "items"})
     Optional<Invoice> findByInvoiceCode(String invoiceCode);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
