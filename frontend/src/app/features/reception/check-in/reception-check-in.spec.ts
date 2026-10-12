@@ -293,6 +293,17 @@ describe('ReceptionCheckIn', () => {
     expect(component.walkInProfileNeedsCompletion()).toBe(false);
   });
 
+  it('does not send duplicate check-in requests while the first request is pending', () => {
+    const component = fixture.componentInstance as any;
+    component.exceptionReason.set('QR phòng bị lỗi');
+    component.checkIn(appointment());
+    component.checkIn(appointment());
+
+    const requests = http.match('/api/v1/reception/appointments/a-1/check-in');
+    expect(requests).toHaveLength(1);
+    requests[0].flush({ ...appointment(), queueNumber: 5, queueStatus: 'WAITING', queueStatusLabel: 'Đang chờ' });
+  });
+
   it('confirms arrival and updates the queue number', () => {
     const component = fixture.componentInstance as any;
     component.query.set('CL-20260807-1234');

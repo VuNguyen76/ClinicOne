@@ -309,6 +309,7 @@ export class ReceptionCheckIn implements OnInit {
   }
 
   protected checkIn(appointment: ReceptionAppointmentResponse): void {
+    if (this.busyId() === appointment.id) return;
     if (appointment.status !== 'BOOKED' || !appointment.roomCode || appointment.queueStatus) return;
     const reason = this.exceptionReason().trim();
     if (reason.length < 3) {
