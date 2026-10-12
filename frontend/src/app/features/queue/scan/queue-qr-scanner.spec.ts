@@ -35,4 +35,19 @@ describe('QueueQrScanner', () => {
     expect(navigate).not.toHaveBeenCalled();
     expect((component as any).error()).toContain('không thuộc ClinicOne');
   });
+  it('does not navigate from a QR frame that finishes decoding after the camera is stopped', async () => {
+    const navigate = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+    let finishDetection!: (results: { rawValue: string }[]) => void;
+    const pendingDetection = new Promise<{ rawValue: string }[]>((resolve) => {
+      finishDetection = resolve;
+    });
+    (component as any).scanning.set(true);
+    (component as any).scanFrames({ detect: () => pendingDetection }, {} as HTMLVideoElement);
+
+    (component as any).stopCamera();
+    finishDetection([{ rawValue: `${window.location.origin}/queue/check-in/room-token-123` }]);
+    await Promise.resolve();
+
+    expect(navigate).not.toHaveBeenCalled();
+  });
 });
