@@ -385,7 +385,7 @@ export class Booking implements OnInit {
   }
 
   private handleAuthError(response: { status?: number } & ApiErrorResponse): void {
-    if (response.status === 401 || response.status === 403) {
+    if (response.status === 401) {
       sessionStorage.removeItem('clinicOneAccessToken');
       sessionStorage.removeItem('clinicOnePatientName');
       sessionStorage.removeItem('clinicOneSessionType');

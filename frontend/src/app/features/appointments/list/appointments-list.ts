@@ -40,7 +40,7 @@ export class AppointmentsList implements OnInit {
       .subscribe({
         next: (appointments) => this.appointments.set(appointments),
         error: (response) => {
-          if (response.status === 401 || response.status === 403) {
+          if (response.status === 401) {
             sessionStorage.removeItem('clinicOneAccessToken');
             sessionStorage.removeItem('clinicOnePatientName');
             sessionStorage.removeItem('clinicOneSessionType');

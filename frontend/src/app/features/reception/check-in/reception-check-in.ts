@@ -1337,7 +1337,7 @@ export class ReceptionCheckIn implements OnInit {
   protected canAdjustQueue(): boolean { return hasStaffRole('RECEPTIONIST'); }
 
   private handleError(response: { status?: number } & ApiErrorResponse): void {
-    if (response.status === 401 || response.status === 403) {
+    if (response.status === 401) {
       sessionStorage.removeItem('clinicOneAccessToken');
       sessionStorage.removeItem('clinicOneSessionType');
       sessionStorage.removeItem('clinicOneStaffRole');

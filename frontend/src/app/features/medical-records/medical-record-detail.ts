@@ -42,7 +42,7 @@ export class MedicalRecordDetail implements OnInit {
       .subscribe({
         next: (record) => this.record.set(record),
         error: (response) => {
-          if (response.status === 401 || response.status === 403) {
+          if (response.status === 401) {
             sessionStorage.removeItem('clinicOneAccessToken');
             sessionStorage.removeItem('clinicOnePatientName');
             sessionStorage.removeItem('clinicOneSessionType');

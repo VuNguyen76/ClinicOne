@@ -28,6 +28,31 @@ describe('Booking calendar', () => {
 
   afterEach(() => http.verify());
 
+  it('keeps the patient session for a business-rule 403 instead of redirecting to login', () => {
+    const sessionToken = 'valid-patient-session';
+    sessionStorage.setItem('clinicOneAccessToken', sessionToken);
+    const navigate = vi.spyOn(component['router'], 'navigateByUrl').mockResolvedValue(true);
+
+    component['handleAuthError']({
+      status: 403,
+      error: { code: 'ACCOUNT_ACTIVATION_REQUIRED', message: 'Kích hoạt tài khoản trước khi đặt lịch.' },
+    });
+
+    expect(sessionStorage.getItem('clinicOneAccessToken')).toBe(sessionToken);
+    expect(navigate).not.toHaveBeenCalled();
+    expect(component['error']).toContain('Kích hoạt tài khoản trước khi đặt lịch.');
+  });
+
+  it('clears the session and redirects when authentication really expired', () => {
+    sessionStorage.setItem('clinicOneAccessToken', 'expired-session');
+    const navigate = vi.spyOn(component['router'], 'navigateByUrl').mockResolvedValue(true);
+
+    component['handleAuthError']({ status: 401, error: { message: 'Phiên hết hạn.' } });
+
+    expect(sessionStorage.getItem('clinicOneAccessToken')).toBeNull();
+    expect(navigate).toHaveBeenCalledWith('/login');
+  });
+
   it('renders a complete six-week calendar grid instead of a short date strip', () => {
     expect(component['dates']().length).toBe(42);
     component['chooseSpecialty']({ code: 'NOI', name: 'Nội tổng quát', description: 'Khám tổng quát' });

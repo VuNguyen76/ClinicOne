@@ -238,7 +238,7 @@ export class PatientProfiles implements OnInit {
 
   private handleError(response: ApiErrorResponse & { status: number }): void {
     this.loading.set(false);
-    if (response.status === 401 || response.status === 403) {
+    if (response.status === 401) {
       sessionStorage.removeItem('clinicOneAccessToken');
       sessionStorage.removeItem('clinicOnePatientName');
       sessionStorage.removeItem('clinicOneSessionType');
