@@ -4,6 +4,7 @@ import com.clinicone.appointment.Appointment;
 import com.clinicone.appointment.AppointmentRepository;
 import com.clinicone.appointment.AppointmentStatus;
 import com.clinicone.auth.AccountStatus;
+import com.clinicone.auth.AuthException;
 import com.clinicone.auth.PatientAccount;
 import com.clinicone.auth.StaffAccount;
 import com.clinicone.auth.StaffRole;
@@ -61,29 +62,50 @@ class ReschedulingServiceTest {
     void opensOneCaseAndLeavesBookedAppointmentUntouchedWhenScheduleIsRemoved() throws Exception {
         Appointment appointment = appointment();
         DoctorSchedule schedule = schedule();
-        when(appointmentRepository.findByDoctorStaffIdAndAppointmentDateBetweenAndStatusOrderByAppointmentDateAscStartTimeAsc(
+        when(appointmentRepository.findIdsByDoctorAndAppointmentDateBetweenAndStatusOrderByAppointmentDateAscStartTimeAsc(
                 DOCTOR_ID, LocalDate.of(2026, 8, 10), LocalDate.of(2026, 9, 9), AppointmentStatus.BOOKED))
-                .thenReturn(List.of(appointment));
+                .thenReturn(List.of(APPOINTMENT_ID));
+        when(appointmentRepository.findByIdForUpdate(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
 
         int opened = service.openForScheduleRemoval(schedule);
 
         assertEquals(1, opened);
         assertEquals(AppointmentStatus.BOOKED, appointment.getStatus());
         verify(caseRepository).save(any(RescheduleCase.class));
+        org.mockito.InOrder order = org.mockito.Mockito.inOrder(appointmentRepository, caseRepository);
+        order.verify(appointmentRepository).findByIdForUpdate(APPOINTMENT_ID);
+        order.verify(caseRepository).findByAppointmentIdAndStatus(APPOINTMENT_ID, RescheduleCaseStatus.OPEN);
     }
 
     @Test
     void doesNotDuplicateAnAlreadyOpenCase() throws Exception {
         Appointment appointment = appointment();
         DoctorSchedule schedule = schedule();
-        when(appointmentRepository.findByDoctorStaffIdAndAppointmentDateBetweenAndStatusOrderByAppointmentDateAscStartTimeAsc(
+        when(appointmentRepository.findIdsByDoctorAndAppointmentDateBetweenAndStatusOrderByAppointmentDateAscStartTimeAsc(
                 DOCTOR_ID, LocalDate.of(2026, 8, 10), LocalDate.of(2026, 9, 9), AppointmentStatus.BOOKED))
-                .thenReturn(List.of(appointment));
+                .thenReturn(List.of(APPOINTMENT_ID));
         when(caseRepository.findByAppointmentIdAndStatus(APPOINTMENT_ID, RescheduleCaseStatus.OPEN))
                 .thenReturn(Optional.of(RescheduleCase.open(appointment, "existing")));
 
         assertEquals(0, service.openForScheduleRemoval(schedule));
         verify(caseRepository, never()).save(any(RescheduleCase.class));
+    }
+
+    @Test
+    void locksAppointmentBeforeCheckingExistingTimeOffCase() throws Exception {
+        Appointment appointment = appointment();
+        LocalDate from = LocalDate.of(2026, 8, 10);
+        LocalDate to = LocalDate.of(2026, 8, 12);
+        when(appointmentRepository.findIdsByDoctorAndAppointmentDateBetweenAndStatusOrderByAppointmentDateAscStartTimeAsc(
+                DOCTOR_ID, from, to, AppointmentStatus.BOOKED)).thenReturn(List.of(APPOINTMENT_ID));
+        when(appointmentRepository.findByIdForUpdate(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
+
+        assertEquals(1, service.openForDoctorTimeOff(DOCTOR_ID, from, to, "Bác sĩ nghỉ đột xuất"));
+
+        org.mockito.InOrder order = org.mockito.Mockito.inOrder(appointmentRepository, caseRepository);
+        order.verify(appointmentRepository).findByIdForUpdate(APPOINTMENT_ID);
+        order.verify(caseRepository).findByAppointmentIdAndStatus(APPOINTMENT_ID, RescheduleCaseStatus.OPEN);
+        verify(caseRepository).save(any(RescheduleCase.class));
     }
 
     @Test
@@ -99,6 +121,7 @@ class ReschedulingServiceTest {
         UUID caseId = UUID.randomUUID();
         setId(rescheduleCase, caseId);
         when(caseRepository.findByIdForUpdate(caseId)).thenReturn(Optional.of(rescheduleCase));
+        when(appointmentRepository.findByIdForUpdate(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
         when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
         when(caseRepository.save(any(RescheduleCase.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -111,6 +134,47 @@ class ReschedulingServiceTest {
         verify(oldSlot).cancel();
         verify(generatedSlotRepository).save(oldSlot);
         verify(notificationService).notifyAppointmentRescheduled(appointment, "2026-08-10", "08:30");
+    }
+
+    @Test
+    void rejectsResolutionWhenAppointmentWasCancelledBeforeItCouldBeLocked() throws Exception {
+        Appointment caseAppointment = appointment();
+        RescheduleCase item = openCase(caseAppointment);
+        Appointment cancelledAppointment = appointment();
+        cancelledAppointment.cancel("Bệnh nhân đã hủy", Instant.parse("2026-08-10T01:05:00Z"));
+        when(caseRepository.findByIdForUpdate(item.getId())).thenReturn(Optional.of(item));
+        when(appointmentRepository.findByIdForUpdate(APPOINTMENT_ID))
+                .thenReturn(Optional.of(cancelledAppointment));
+
+        AuthException error = assertThrows(AuthException.class, () -> service.resolve(item.getId(),
+                new ResolveRescheduleRequest(LocalDate.of(2026, 8, 11), LocalTime.of(9, 30),
+                        "Bác sĩ An", DOCTOR_ID), "coordinator"));
+
+        assertEquals("RESCHEDULE_APPOINTMENT_NOT_BOOKED", error.getCode());
+        assertEquals(RescheduleCaseStatus.OPEN, item.getStatus());
+        verifyNoInteractions(availabilityService, notificationService, generatedSlotRepository);
+    }
+
+    @Test
+    void patientCannotConfirmReplacementUsingStaleBookedAppointmentAfterCancellation() throws Exception {
+        Appointment caseAppointment = appointment();
+        RescheduleCase item = openCase(caseAppointment);
+        Appointment cancelledAppointment = appointment();
+        cancelledAppointment.cancel("Bệnh nhân đã hủy", Instant.parse("2026-08-10T01:05:00Z"));
+        when(caseRepository.findForPatientAndStatus(
+                APPOINTMENT_ID, PATIENT_ID, RescheduleCaseStatus.OPEN)).thenReturn(Optional.of(item));
+        when(caseRepository.findByIdForUpdate(item.getId())).thenReturn(Optional.of(item));
+        when(appointmentRepository.findByIdForUpdate(APPOINTMENT_ID))
+                .thenReturn(Optional.of(cancelledAppointment));
+
+        AuthException error = assertThrows(AuthException.class, () -> service.resolveForPatient(
+                PATIENT_ID.toString(), APPOINTMENT_ID,
+                new ResolveRescheduleRequest(LocalDate.of(2026, 8, 11), LocalTime.of(9, 30),
+                        "Bác sĩ An", DOCTOR_ID)));
+
+        assertEquals("RESCHEDULE_APPOINTMENT_NOT_BOOKED", error.getCode());
+        assertEquals(RescheduleCaseStatus.OPEN, item.getStatus());
+        verifyNoInteractions(availabilityService, notificationService, generatedSlotRepository);
     }
 
     @Test
@@ -164,9 +228,10 @@ class ReschedulingServiceTest {
         Appointment appointment = appointment();
         RescheduleCase item = openCase(appointment);
         UUID caseId = item.getId();
-        when(caseRepository.findByAppointmentIdAndStatus(APPOINTMENT_ID, RescheduleCaseStatus.OPEN))
+        when(caseRepository.findForPatientAndStatus(APPOINTMENT_ID, PATIENT_ID, RescheduleCaseStatus.OPEN))
                 .thenReturn(Optional.of(item));
         when(caseRepository.findByIdForUpdate(caseId)).thenReturn(Optional.of(item));
+        when(appointmentRepository.findByIdForUpdate(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
         when(caseRepository.save(any(RescheduleCase.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         RescheduleCaseResponse response = service.resolveForPatient(PATIENT_ID.toString(), APPOINTMENT_ID,

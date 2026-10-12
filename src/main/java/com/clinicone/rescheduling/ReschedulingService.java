@@ -84,11 +84,15 @@ public class ReschedulingService {
         UUID doctorId = schedule.getDoctorProfile().getStaffAccount().getId();
         LocalDate from = LocalDate.now(clock.withZone(CLINIC_ZONE));
         LocalDate to = from.plusDays(SEARCH_DAYS);
-        List<Appointment> appointments = appointmentRepository
-                .findByDoctorStaffIdAndAppointmentDateBetweenAndStatusOrderByAppointmentDateAscStartTimeAsc(
+        List<UUID> appointmentIds = appointmentRepository
+                .findIdsByDoctorAndAppointmentDateBetweenAndStatusOrderByAppointmentDateAscStartTimeAsc(
                         doctorId, from, to, AppointmentStatus.BOOKED);
         int opened = 0;
-        for (Appointment appointment : appointments) {
+        for (UUID appointmentId : appointmentIds) {
+            Appointment appointment = appointmentRepository.findByIdForUpdate(appointmentId).orElse(null);
+            if (appointment == null || appointment.getStatus() != AppointmentStatus.BOOKED) {
+                continue;
+            }
             if (!matchesSchedule(appointment, schedule)) {
                 continue;
             }
@@ -107,11 +111,15 @@ public class ReschedulingService {
 
     @Transactional
     public int openForDoctorTimeOff(UUID doctorId, LocalDate from, LocalDate to, String reason) {
-        List<Appointment> appointments = appointmentRepository
-                .findByDoctorStaffIdAndAppointmentDateBetweenAndStatusOrderByAppointmentDateAscStartTimeAsc(
+        List<UUID> appointmentIds = appointmentRepository
+                .findIdsByDoctorAndAppointmentDateBetweenAndStatusOrderByAppointmentDateAscStartTimeAsc(
                         doctorId, from, to, AppointmentStatus.BOOKED);
         int opened = 0;
-        for (Appointment appointment : appointments) {
+        for (UUID appointmentId : appointmentIds) {
+            Appointment appointment = appointmentRepository.findByIdForUpdate(appointmentId).orElse(null);
+            if (appointment == null || appointment.getStatus() != AppointmentStatus.BOOKED) {
+                continue;
+            }
             if (caseRepository.findByAppointmentIdAndStatus(appointment.getId(), RescheduleCaseStatus.OPEN).isPresent()) {
                 continue;
             }
@@ -156,9 +164,10 @@ public class ReschedulingService {
     public RescheduleCaseResponse resolveForPatient(String accountId, UUID appointmentId,
                                                     ResolveRescheduleRequest request) {
         UUID patientId = AuthenticatedIds.patient(accountId);
-        RescheduleCase openCase = findOpenCaseForPatient(appointmentId, patientId);
+        RescheduleCase openCase = caseRepository.findForPatientAndStatus(
+                        appointmentId, patientId, RescheduleCaseStatus.OPEN)
+                .orElseThrow(this::notFound);
         RescheduleCase item = caseRepository.findByIdForUpdate(openCase.getId()).orElseThrow(this::notFound);
-        ensurePatientOwns(item, patientId);
         return resolveLocked(item, request, "PATIENT:" + patientId);
     }
 
@@ -181,7 +190,9 @@ public class ReschedulingService {
         if (item.getStatus() != RescheduleCaseStatus.OPEN) {
             throw conflict("RESCHEDULE_CASE_ALREADY_RESOLVED", "Lịch cần sắp xếp lại đã được xử lý.");
         }
-        Appointment appointment = item.getAppointment();
+        UUID appointmentId = item.getAppointment().getId();
+        Appointment appointment = appointmentRepository.findByIdForUpdate(appointmentId)
+                .orElseThrow(this::notFound);
         if (appointment.getStatus() != AppointmentStatus.BOOKED) {
             throw conflict("RESCHEDULE_APPOINTMENT_NOT_BOOKED", "Lịch hẹn không còn ở trạng thái có thể sắp xếp lại.");
         }
