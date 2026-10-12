@@ -312,6 +312,7 @@ class AppointmentHoldServiceTest {
                 "login-session-b"));
 
         assertEquals("APPOINTMENT_HOLD_SESSION_MISMATCH", exception.getCode());
+        assertEquals("Khung giờ giữ không thuộc phiên đăng nhập hiện tại.", exception.getMessage());
     }
 
     @Test

@@ -139,7 +139,7 @@ public class AppointmentHoldService {
                 .orElseThrow(() -> holdMissing());
         if (!normalizeSessionKey(hold.getSessionKey()).equals(normalizeSessionKey(sessionKey))) {
             throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_HOLD_SESSION_MISMATCH",
-                    "Khung giá» giá»¯ khÃ´ng thuá»™c phiÃªn Ä‘Äƒng nháº­p hiá»‡n táº¡i.");
+                    "Khung giờ giữ không thuộc phiên đăng nhập hiện tại.");
         }
         Instant now = Instant.now(clock);
         if (!hold.getExpiresAt().isAfter(now)) {
