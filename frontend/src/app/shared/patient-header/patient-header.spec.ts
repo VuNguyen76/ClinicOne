@@ -25,9 +25,9 @@ describe('PatientHeader', () => {
     expect(text).toContain('Trang chủ');
     expect(text).toContain('Giới thiệu');
     expect(text).toContain('Quy trình');
+    expect(text).toContain('Tra cứu PTT & đơn thuốc');
     expect(text).toContain('Hướng dẫn');
     expect(text).toContain('Thắc mắc');
-    expect(text).toContain('Liên hệ');
     expect(text).toContain('1900 0000');
   });
 
@@ -37,5 +37,15 @@ describe('PatientHeader', () => {
     expect(component.mobileMenuOpen()).toBe(true);
     component.closeMenu();
     expect(component.mobileMenuOpen()).toBe(false);
+  });
+
+  it('shows the navigation links when the compact menu is opened', () => {
+    const trigger = fixture.nativeElement.querySelector('button[aria-label="Mở menu"]') as HTMLButtonElement;
+    trigger.click();
+    fixture.detectChanges();
+
+    const menu = fixture.nativeElement.querySelector('nav[aria-label="Menu điều hướng"]') as HTMLElement | null;
+    expect(menu?.textContent).toContain('Tra cứu PTT & đơn thuốc');
+    expect(menu?.querySelectorAll('a').length).toBe(6);
   });
 });
