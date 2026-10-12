@@ -42,6 +42,15 @@ describe('InvoiceLookup', () => {
     expect(http.match('/api/v1/invoices')).toHaveLength(0);
   });
 
+  it('rejects an invalid Vietnamese phone before requesting an OTP', () => {
+    for (const phone of ['1234567890', '091234567']) {
+      component.phone.set(phone);
+      component.requestOtp();
+      expect(http.match('/api/v1/auth/request-sms-otp')).toHaveLength(0);
+    }
+    expect(component.error()).toContain('10');
+  });
+
   it('requests a purpose-specific OTP for the entered phone', () => {
     component.phone.set('0862764830');
     component.requestOtp();
