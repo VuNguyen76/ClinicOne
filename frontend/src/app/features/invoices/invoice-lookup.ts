@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
@@ -18,12 +18,15 @@ export type LookupTab = 'invoices' | 'prescriptions';
 })
 export class InvoiceLookup {
   private readonly authApi = inject(AuthApiService);
+  private readonly destroyRef = inject(DestroyRef);
   private lookupAttempt = 0;
+  private resendTimer: ReturnType<typeof setInterval> | null = null;
 
   readonly step = signal<LookupStep>('phone');
   readonly phone = signal('');
   readonly code = signal('');
   readonly requestingOtp = signal(false);
+  readonly resendSeconds = signal(0);
   readonly searching = signal(false);
   readonly error = signal('');
   readonly profiles = signal<PublicPatientProfileDataResponse[]>([]);
@@ -33,6 +36,10 @@ export class InvoiceLookup {
   readonly selectedProfile = computed(() =>
     this.profiles().find((profile) => profile.profileId === this.selectedProfileId()) ?? null,
   );
+
+  constructor() {
+    this.destroyRef.onDestroy(() => this.clearResendTimer());
+  }
 
   requestOtp(): void {
     if (this.requestingOtp()) return;
@@ -49,13 +56,14 @@ export class InvoiceLookup {
 
     this.requestingOtp.set(true);
     this.authApi.requestSmsOtp(phone, 'RECEIPT_LOOKUP').subscribe({
-      next: () => {
+      next: (response) => {
         this.requestingOtp.set(false);
         if (this.phone().trim() !== phone) {
           this.error.set('Số điện thoại đã thay đổi. Vui lòng gửi lại OTP cho số mới.');
           return;
         }
         this.code.set('');
+        this.startResendCooldown(response.retryAfterSeconds);
         this.step.set('otp');
       },
       error: (response) => {
@@ -115,6 +123,7 @@ export class InvoiceLookup {
   }
 
   changePhone(): void {
+    this.clearResendTimer();
     this.lookupAttempt++;
     this.searching.set(false);
     this.step.set('phone');
@@ -127,5 +136,25 @@ export class InvoiceLookup {
 
   printInvoice(): void {
     window.print();
+  }
+
+  private startResendCooldown(seconds: number): void {
+    this.clearResendTimer();
+    this.resendSeconds.set(Math.max(0, Math.floor(seconds)));
+    if (this.resendSeconds() === 0) return;
+
+    this.resendTimer = setInterval(() => {
+      const remaining = this.resendSeconds() - 1;
+      this.resendSeconds.set(Math.max(0, remaining));
+      if (remaining <= 0) this.clearResendTimer();
+    }, 1000);
+  }
+
+  private clearResendTimer(): void {
+    if (this.resendTimer !== null) {
+      clearInterval(this.resendTimer);
+      this.resendTimer = null;
+    }
+    this.resendSeconds.set(0);
   }
 }
