@@ -273,6 +273,24 @@ class ScheduleTemplateServiceTest {
     }
 
     @Test
+    void refusesToRegenerateAnInactiveTemplate() throws Exception {
+        ClinicService clinicService = mock(ClinicService.class);
+        DoctorProfile doctor = mock(DoctorProfile.class);
+        StaffAccount staff = mock(StaffAccount.class);
+        ClinicRoom room = mock(ClinicRoom.class);
+        UUID templateId = UUID.randomUUID();
+        WorkScheduleTemplate inactiveTemplate = scheduleTemplate(clinicService, doctor, room, staff, templateId,
+                LocalTime.of(8, 0), LocalTime.of(17, 0), Set.of(DayOfWeek.MONDAY));
+        inactiveTemplate.setActive(false);
+        when(templateRepository.findById(templateId)).thenReturn(Optional.of(inactiveTemplate));
+
+        AuthException exception = assertThrows(AuthException.class, () -> service.regenerate(templateId));
+
+        assertEquals("SCHEDULE_TEMPLATE_INACTIVE", exception.getCode());
+        org.mockito.Mockito.verifyNoInteractions(slotRepository, doctorScheduleRepository);
+    }
+
+    @Test
     void deletingSpecificWeekdayRemovesOnlyThatWeekdayFromMultiDayTemplate() {
         ClinicService clinicService = mock(ClinicService.class);
         DoctorProfile doctor = mock(DoctorProfile.class);
