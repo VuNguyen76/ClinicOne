@@ -1,20 +1,26 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, convertToParamMap } from '@angular/router';
+import { BehaviorSubject } from 'rxjs';
 import { QueueCheckIn } from './queue-check-in';
 
 describe('QueueCheckIn', () => {
   let fixture: ComponentFixture<QueueCheckIn>;
   let http: HttpTestingController;
+  let routeParams: BehaviorSubject<ReturnType<typeof convertToParamMap>>;
 
   beforeEach(async () => {
+    routeParams = new BehaviorSubject(convertToParamMap({ roomCode: 'room-qr-token' }));
     await TestBed.configureTestingModule({
       imports: [QueueCheckIn],
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
-        { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => 'room-qr-token' } } } },
+        { provide: ActivatedRoute, useValue: {
+          snapshot: { paramMap: { get: () => 'room-qr-token' } },
+          paramMap: routeParams.asObservable(),
+        } },
       ],
     }).compileComponents();
 
@@ -24,6 +30,25 @@ describe('QueueCheckIn', () => {
   });
 
   afterEach(() => http.verify());
+
+  it('loads the newly scanned room when Angular reuses the check-in route', () => {
+    const initialRoomRequest = http.expectOne('/api/v1/rooms/room-qr-token/check-in');
+    routeParams.next(convertToParamMap({ roomCode: 'another-room-token' }));
+
+    const nextRoomRequests = http.match('/api/v1/rooms/another-room-token/check-in');
+    nextRoomRequests.forEach((request) => request.flush({
+      code: 'NHI-02', name: 'PhÃ²ng Nhi 02', specialty: 'Nhi khoa',
+    }));
+    initialRoomRequest.flush({ code: 'NOI-01', name: 'PhÃ²ng Ná»™i 01', specialty: 'Ná»™i khoa' });
+
+    http.match((request) => request.url.endsWith('/check-in/appointments'))
+      .forEach((request) => request.flush([]));
+    fixture.detectChanges();
+
+    expect(nextRoomRequests).toHaveLength(1);
+    expect((fixture.componentInstance as any).room().code).toBe('NHI-02');
+    expect(fixture.nativeElement.querySelector('[data-testid="room-code"]').textContent).toContain('PhÃ²ng Nhi 02');
+  });
 
   it('asks the patient to choose a profile when multiple matching profiles have appointments', () => {
     const today = localIsoDate();
