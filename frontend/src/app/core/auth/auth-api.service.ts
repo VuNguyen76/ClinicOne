@@ -126,6 +126,42 @@ export interface MedicalRecordResponse {
   appointmentDate?: string | null;
 }
 
+export type InvoiceStatus = 'PENDING' | 'PAID' | 'CANCELLED';
+export type PaymentMethod = 'CASH' | 'BANK_TRANSFER' | 'CARD';
+
+export interface InvoiceItemResponse {
+  id: string;
+  itemType: string;
+  itemName: string;
+  unit: string | null;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  lineNumber: number;
+}
+
+export interface InvoiceResponse {
+  id: string;
+  invoiceCode: string;
+  appointmentCode: string;
+  patientName: string;
+  patientPhone: string | null;
+  doctorName: string;
+  specialty: string;
+  examFee: number;
+  labFee: number;
+  medicationFee: number;
+  discountAmount: number;
+  totalAmount: number;
+  paidAmount: number;
+  paymentMethod: PaymentMethod | null;
+  status: InvoiceStatus;
+  cashierName: string | null;
+  createdAt: string;
+  paidAt: string | null;
+  items: InvoiceItemResponse[];
+}
+
 export interface PrescriptionLineResponse {
   medicationId: string | null;
   medicationName: string;
@@ -145,6 +181,7 @@ export interface MedicationSuggestionResponse {
   defaultDosage?: string;
   defaultInstructions?: string;
   unit?: string;
+    unitPrice?: number;
 }
 
 export interface DiagnosisSuggestionResponse {
@@ -402,6 +439,7 @@ export interface ClinicServiceResponse {
   active: boolean;
   eligibleDoctors: EligibleDoctorResponse[];
   requiresMedicalRecord?: boolean;
+  consultationFee?: number;
 }
 
 export interface ClinicServiceRequest {
@@ -411,6 +449,7 @@ export interface ClinicServiceRequest {
   durationMinutes: number;
   doctorIds: string[];
   requiresMedicalRecord?: boolean;
+  consultationFee: number;
 }
 
 export interface ScheduleBreakRequest {
@@ -1052,6 +1091,32 @@ export class AuthApiService {
     return this.http.get<MedicalRecordResponse>(`${this.medicalRecordsRoot}/${id}`);
   }
 
+  getInvoices(): Observable<InvoiceResponse[]> {
+    return this.http.get<InvoiceResponse[]>('/api/v1/invoices');
+  }
+
+  getInvoice(invoiceCode: string): Observable<InvoiceResponse> {
+    return this.http.get<InvoiceResponse>(`/api/v1/invoices/${encodeURIComponent(invoiceCode)}`);
+  }
+
+  getInvoiceByAppointmentCode(appointmentCode: string): Observable<InvoiceResponse> {
+    return this.http.get<InvoiceResponse>(`/api/v1/invoices/appointments/${encodeURIComponent(appointmentCode)}`);
+  }
+
+  createPaymentReceipt(sessionId: string): Observable<InvoiceResponse> {
+    return this.http.post<InvoiceResponse>(`/api/v1/invoices/sessions/${encodeURIComponent(sessionId)}`, {});
+  }
+
+  createPaymentReceiptForAppointment(appointmentCode: string): Observable<InvoiceResponse> {
+    return this.http.post<InvoiceResponse>(
+      `/api/v1/invoices/appointments/${encodeURIComponent(appointmentCode)}`, {});
+  }
+
+  markInvoicePaid(invoiceCode: string, amount: number, paymentMethod: PaymentMethod): Observable<InvoiceResponse> {
+    return this.http.post<InvoiceResponse>(
+      `/api/v1/invoices/${encodeURIComponent(invoiceCode)}/payment`, { amount, paymentMethod });
+  }
+
   holdAppointmentSlot(request: CreateAppointmentHoldRequest): Observable<AppointmentHoldResponse> {
     let sessionKey = sessionStorage.getItem('clinicOneBookingSession');
     if (!sessionKey) {
@@ -1306,7 +1371,7 @@ export class AuthApiService {
   createMedication(
     code: string,
     name: string,
-    metadata?: { category?: string; specialties?: string; defaultDosage?: string; defaultInstructions?: string; unit?: string }
+      metadata?: { category?: string; specialties?: string; defaultDosage?: string; defaultInstructions?: string; unit?: string; unitPrice?: number }
   ): Observable<MedicationSuggestionResponse> {
     return this.http.post<MedicationSuggestionResponse>('/api/v1/admin/medications', {
       code,
@@ -1316,6 +1381,7 @@ export class AuthApiService {
       defaultDosage: metadata?.defaultDosage ?? null,
       defaultInstructions: metadata?.defaultInstructions ?? null,
       unit: metadata?.unit ?? null,
+        unitPrice: metadata?.unitPrice ?? 0,
     });
   }
 
@@ -1323,7 +1389,7 @@ export class AuthApiService {
     id: string,
     code: string,
     name: string,
-    metadata?: { category?: string; specialties?: string; defaultDosage?: string; defaultInstructions?: string; unit?: string }
+      metadata?: { category?: string; specialties?: string; defaultDosage?: string; defaultInstructions?: string; unit?: string; unitPrice?: number }
   ): Observable<MedicationSuggestionResponse> {
     return this.http.put<MedicationSuggestionResponse>(`/api/v1/admin/medications/${id}`, {
       code,
@@ -1333,6 +1399,7 @@ export class AuthApiService {
       defaultDosage: metadata?.defaultDosage ?? null,
       defaultInstructions: metadata?.defaultInstructions ?? null,
       unit: metadata?.unit ?? null,
+        unitPrice: metadata?.unitPrice ?? 0,
     });
   }
 

@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 
 import java.util.List;
@@ -16,10 +17,16 @@ public record CreateClinicServiceRequest(
         @NotBlank @Size(max = 60) String visitType,
         @Min(5) @Max(120) int durationMinutes,
         @NotEmpty @Size(max = 100) List<@NotNull UUID> doctorIds,
-        Boolean requiresMedicalRecord
+        Boolean requiresMedicalRecord,
+        @NotNull @PositiveOrZero Long consultationFee
 ) {
     public CreateClinicServiceRequest(String name, String specialty, String visitType, int durationMinutes,
                                       List<UUID> doctorIds) {
-        this(name, specialty, visitType, durationMinutes, doctorIds, true);
+        this(name, specialty, visitType, durationMinutes, doctorIds, true, 0L);
+    }
+
+    public CreateClinicServiceRequest(String name, String specialty, String visitType, int durationMinutes,
+                                      List<UUID> doctorIds, Boolean requiresMedicalRecord) {
+        this(name, specialty, visitType, durationMinutes, doctorIds, requiresMedicalRecord, 0L);
     }
 }

@@ -51,19 +51,26 @@ class MedicationCatalogAdminControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"code\":\"PCM500\",\"name\":\"Paracetamol 500 mg\"}"))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.active").value(true));
+                .andExpect(jsonPath("$.active").value(true))
+                .andExpect(jsonPath("$.unitPrice").value(0));
     }
 
     @Test
-    void doctorCanCreateMedication() throws Exception {
-        when(service.create(any())).thenReturn(response(true));
-
+    void doctorCannotChangeMedicationPrices() throws Exception {
         mockMvc.perform(post("/api/v1/admin/medications")
                         .with(authentication(authenticated("ROLE_DOCTOR")))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"code\":\"PCM500\",\"name\":\"Paracetamol 500 mg\"}"))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.active").value(true));
+                        .content("{\"code\":\"PCM500\",\"name\":\"Paracetamol 500 mg\",\"unitPrice\":1200}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void rejectsNegativeMedicationPrice() throws Exception {
+        mockMvc.perform(post("/api/v1/admin/medications")
+                        .with(authentication(authenticated("ROLE_ADMIN")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"code\":\"PCM500\",\"name\":\"Paracetamol 500 mg\",\"unitPrice\":-1}"))
+                .andExpect(status().isBadRequest());
     }
 
     @Test

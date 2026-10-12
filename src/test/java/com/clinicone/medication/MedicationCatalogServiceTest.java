@@ -15,6 +15,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 
 class MedicationCatalogServiceTest {
     private MedicationRepository repository;
@@ -37,7 +39,28 @@ class MedicationCatalogServiceTest {
         when(repository.findTop10ByActiveTrueAndNameContainingIgnoreCaseOrderByNameAsc("para"))
                 .thenReturn(List.of(medication));
 
-        assertThat(service.suggestions(" para ")).containsExactly(new MedicationResponse(id, "PCM500", "Paracetamol 500 mg", true));
+        assertThat(service.suggestions(" para ")).containsExactly(
+                new MedicationResponse(id, "PCM500", "Paracetamol 500 mg", true, null, null, null, null, null, 0));
+    }
+
+    @Test
+    void persistsAndReturnsTheConfiguredSalePrice() {
+        when(repository.existsByCodeIgnoreCase("PCM500")).thenReturn(false);
+        doAnswer(invocation -> invocation.getArgument(0)).when(repository).save(any(Medication.class));
+
+        MedicationResponse response = service.create(new CreateMedicationRequest(
+                "PCM500", "Paracetamol 500 mg", null, null, null, null, "Viên", 1250L));
+
+        assertThat(response.unitPrice()).isEqualTo(1250);
+        verify(repository).save(any(Medication.class));
+    }
+
+    @Test
+    void rejectsNegativeSalePrice() {
+        assertThatThrownBy(() -> service.create(new CreateMedicationRequest(
+                "PCM500", "Paracetamol 500 mg", null, null, null, null, "Viên", -1L)))
+                .isInstanceOf(AuthException.class)
+                .isInstanceOf(AuthException.class);
     }
 
     @Test

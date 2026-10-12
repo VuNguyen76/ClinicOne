@@ -44,6 +44,9 @@ public class ClinicService {
     @Column(name = "duration_minutes", nullable = false)
     private int durationMinutes;
 
+    @Column(name = "consultation_fee", nullable = false)
+    private long consultationFee;
+
     @Column(name = "requires_medical_record")
     private Boolean requiresMedicalRecord;
 
@@ -65,12 +68,13 @@ public class ClinicService {
     protected ClinicService() {
     }
 
-    private ClinicService(String name, String specialty, String visitType, int durationMinutes,
+    private ClinicService(String name, String specialty, String visitType, int durationMinutes, long consultationFee,
                            boolean requiresMedicalRecord, Collection<DoctorProfile> eligibleDoctors) {
         this.name = name.trim();
         this.specialty = specialty.trim();
         this.visitType = visitType.trim();
         this.durationMinutes = durationMinutes;
+        this.consultationFee = consultationFee;
         this.requiresMedicalRecord = requiresMedicalRecord;
         this.active = true;
         replaceEligibleDoctors(eligibleDoctors);
@@ -83,7 +87,14 @@ public class ClinicService {
 
     public static ClinicService create(String name, String specialty, String visitType, int durationMinutes,
                                        boolean requiresMedicalRecord, Collection<DoctorProfile> eligibleDoctors) {
-        return new ClinicService(name, specialty, visitType, durationMinutes, requiresMedicalRecord, eligibleDoctors);
+        return create(name, specialty, visitType, durationMinutes, 0, requiresMedicalRecord, eligibleDoctors);
+    }
+
+    public static ClinicService create(String name, String specialty, String visitType, int durationMinutes,
+                                       long consultationFee, boolean requiresMedicalRecord,
+                                       Collection<DoctorProfile> eligibleDoctors) {
+        return new ClinicService(name, specialty, visitType, durationMinutes, consultationFee,
+                requiresMedicalRecord, eligibleDoctors);
     }
 
     public void update(String name, String specialty, String visitType, int durationMinutes,
@@ -93,10 +104,16 @@ public class ClinicService {
 
     public void update(String name, String specialty, String visitType, int durationMinutes,
                        boolean requiresMedicalRecord, Collection<DoctorProfile> eligibleDoctors) {
+        update(name, specialty, visitType, durationMinutes, consultationFee, requiresMedicalRecord, eligibleDoctors);
+    }
+
+    public void update(String name, String specialty, String visitType, int durationMinutes, long consultationFee,
+                       boolean requiresMedicalRecord, Collection<DoctorProfile> eligibleDoctors) {
         this.name = name.trim();
         this.specialty = specialty.trim();
         this.visitType = visitType.trim();
         this.durationMinutes = durationMinutes;
+        this.consultationFee = consultationFee;
         this.requiresMedicalRecord = requiresMedicalRecord;
         replaceEligibleDoctors(eligibleDoctors);
     }

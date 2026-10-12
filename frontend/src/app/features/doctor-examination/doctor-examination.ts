@@ -22,7 +22,7 @@ import {
   TemplatePrescriptionLine,
 } from '../../core/examination/medical-record-template-content';
 import { ElectronicInvoiceComponent } from '../../shared/electronic-invoice/electronic-invoice.component';
-import { buildElectronicInvoice } from '../../core/invoice/vietnamese-currency';
+import { ElectronicInvoiceData } from '../../core/invoice/vietnamese-currency';
 
 type PrescriptionLineForm = FormGroup<{
   medicationId: FormControl<string | null>;
@@ -341,28 +341,9 @@ export class DoctorExamination implements OnInit {
   // Print Mode ('full' = Phiếu khám bệnh ngoại trú, 'prescription' = Đơn thuốc điện tử, 'invoice' = Hóa đơn điện tử)
   protected readonly printMode = signal<'full' | 'prescription' | 'invoice'>('full');
 
-  protected readonly invoice = computed(() => {
-    const exam = this.examination();
-    if (!exam) return null;
-    const lines = this.prescriptionLines.getRawValue().map((line) => ({
-      medicationName: line.medicationName || '',
-      quantity: Number(line.quantity) || 1,
-      unit: line.unit,
-      dosage: line.dosage,
-    })).filter((line) => Boolean(line.medicationName));
-    return buildElectronicInvoice({
-      appointmentCode: exam.appointmentCode,
-      patientName: exam.patientName,
-      patientPhone: exam.patientPhone,
-      patientDateOfBirth: exam.patientDateOfBirth,
-      patientGender: exam.patientGender,
-      doctorName: exam.doctorName,
-      specialty: exam.specialty,
-      serviceName: exam.specialty ? `Khám chuyên khoa ${exam.specialty}` : 'Khám chuyên khoa',
-      signedAt: exam.signedAt,
-      appointmentDate: exam.appointmentDate,
-      prescriptionLines: lines.length > 0 ? lines : exam.prescriptionLines,
-    });
+  protected readonly invoice = computed((): ElectronicInvoiceData | null => {
+    // Invoice issuance is not implemented by BE; never synthesize invoice data in FE.
+    return null;
   });
 
   protected readonly vitalsWeight = signal<number | null>(null);

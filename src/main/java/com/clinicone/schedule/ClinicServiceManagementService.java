@@ -38,13 +38,14 @@ public class ClinicServiceManagementService {
         String name = normalize(request.name(), "Tên dịch vụ không được để trống.");
         String visitType = normalize(request.visitType(), "Loại lượt khám không được để trống.");
         validateDuration(request.durationMinutes());
+        validateFee(request.consultationFee());
         String specialty = canonicalSpecialty(request.specialty());
         if (repository.existsByNameIgnoreCaseAndSpecialtyIgnoreCaseAndVisitTypeIgnoreCase(name, specialty, visitType)) {
             throw conflict("SERVICE_EXISTS", "Dịch vụ cùng tên, chuyên khoa và loại lượt đã tồn tại.");
         }
         List<DoctorProfile> doctors = resolveDoctors(request.doctorIds(), specialty);
         ClinicService service = ClinicService.create(name, specialty, visitType, request.durationMinutes(),
-                requiresMedicalRecord(request.requiresMedicalRecord()), doctors);
+                request.consultationFee(), requiresMedicalRecord(request.requiresMedicalRecord()), doctors);
         return toResponse(repository.save(service));
     }
 
@@ -54,13 +55,15 @@ public class ClinicServiceManagementService {
         String name = normalize(request.name(), "Tên dịch vụ không được để trống.");
         String visitType = normalize(request.visitType(), "Loại lượt khám không được để trống.");
         validateDuration(request.durationMinutes());
+        validateFee(request.consultationFee());
         String specialty = canonicalSpecialty(request.specialty());
         if (repository.existsByNameIgnoreCaseAndSpecialtyIgnoreCaseAndVisitTypeIgnoreCaseAndIdNot(
                 name, specialty, visitType, id)) {
             throw conflict("SERVICE_EXISTS", "Dịch vụ cùng tên, chuyên khoa và loại lượt đã tồn tại.");
         }
         service.update(name, specialty, visitType, request.durationMinutes(),
-                requiresMedicalRecord(request.requiresMedicalRecord()), resolveDoctors(request.doctorIds(), specialty));
+                request.consultationFee(), requiresMedicalRecord(request.requiresMedicalRecord()),
+                resolveDoctors(request.doctorIds(), specialty));
         return toResponse(repository.save(service));
     }
 
@@ -109,6 +112,13 @@ public class ClinicServiceManagementService {
         }
     }
 
+    private void validateFee(Long consultationFee) {
+        if (consultationFee == null || consultationFee < 0 || consultationFee > 100_000_000L) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "SERVICE_FEE_INVALID",
+                    "Phí khám phải từ 0 đến 100.000.000 đồng.");
+        }
+    }
+
     private String normalize(String value, String message) {
         String normalized = value == null ? "" : value.trim();
         if (normalized.isBlank()) throw new AuthException(HttpStatus.BAD_REQUEST, "SERVICE_FIELD_REQUIRED", message);
@@ -122,7 +132,7 @@ public class ClinicServiceManagementService {
                 .toList();
         return new ClinicServiceResponse(service.getId(), service.getName(), service.getSpecialty(),
                 service.getVisitType(), service.getDurationMinutes(), service.isActive(), doctors,
-                service.requiresMedicalRecord());
+                service.requiresMedicalRecord(), service.getConsultationFee());
     }
 
     private boolean requiresMedicalRecord(Boolean value) {

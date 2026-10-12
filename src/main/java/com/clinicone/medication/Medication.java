@@ -48,6 +48,9 @@ public class Medication {
     @Column(length = 50)
     private String unit;
 
+    @Column(name = "unit_price", nullable = false)
+    private long unitPrice;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -58,7 +61,7 @@ public class Medication {
     }
 
     private Medication(String code, String name, String category, String specialties,
-                       String defaultDosage, String defaultInstructions, String unit) {
+                       String defaultDosage, String defaultInstructions, String unit, long unitPrice) {
         this.code = code;
         this.name = name;
         this.category = category;
@@ -66,16 +69,22 @@ public class Medication {
         this.defaultDosage = defaultDosage;
         this.defaultInstructions = defaultInstructions;
         this.unit = unit;
+        this.unitPrice = unitPrice;
         this.active = true;
     }
 
     public static Medication create(String code, String name) {
-        return new Medication(code, name, null, null, null, null, null);
+        return new Medication(code, name, null, null, null, null, null, 0);
     }
 
     public static Medication create(String code, String name, String category, String specialties,
                                    String defaultDosage, String defaultInstructions, String unit) {
-        return new Medication(code, name, category, specialties, defaultDosage, defaultInstructions, unit);
+        return new Medication(code, name, category, specialties, defaultDosage, defaultInstructions, unit, 0);
+    }
+
+    public static Medication create(String code, String name, String category, String specialties,
+                                    String defaultDosage, String defaultInstructions, String unit, long unitPrice) {
+        return new Medication(code, name, category, specialties, defaultDosage, defaultInstructions, unit, unitPrice);
     }
 
     public void update(String code, String name) {
@@ -84,7 +93,7 @@ public class Medication {
     }
 
     public void update(String code, String name, String category, String specialties,
-                       String defaultDosage, String defaultInstructions, String unit) {
+                       String defaultDosage, String defaultInstructions, String unit, long unitPrice) {
         this.code = code;
         this.name = name;
         this.category = category;
@@ -92,6 +101,7 @@ public class Medication {
         this.defaultDosage = defaultDosage;
         this.defaultInstructions = defaultInstructions;
         this.unit = unit;
+        this.unitPrice = unitPrice;
     }
 
     public void setActive(boolean active) {

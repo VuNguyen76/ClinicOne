@@ -41,5 +41,8 @@ describe('ElectronicInvoiceComponent', () => {
     expect(text).toContain('Gạc tẩm cồn tiệt trùng');
     expect(text).toContain('SIGNATURE VALID');
     expect(text).toContain('KCT');
+    expect(text).not.toContain('CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM');
+    expect(fixture.nativeElement.querySelector('img[src="clinicone-mark-small.png"]')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.invoice-signatures')).toBeTruthy();
   });
 });

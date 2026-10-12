@@ -56,6 +56,7 @@ describe('ServiceManagement', () => {
       specialty: 'Khám Tổng Quát',
       visitType: 'Khám thường',
       durationMinutes: 30,
+      consultationFee: 0,
       doctorIds: ['d-1'],
       requiresMedicalRecord: true,
     });
