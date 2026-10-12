@@ -1,263 +1,189 @@
-<main class="min-h-screen bg-slate-50 text-slate-800 antialiased print:bg-white print:p-0 font-sans">
+<main class="min-h-screen bg-slate-50 text-slate-800">
   <app-patient-header [printHidden]="true" />
 
-  <div class="mx-auto max-w-[960px] px-4 py-8 sm:px-6 lg:py-10 print:max-w-full print:p-0">
-    <!-- Breadcrumb & Header Title -->
-    <div class="mb-6 print:hidden">
-      <nav class="flex items-center gap-2 text-xs font-medium text-slate-500 mb-3" aria-label="Đường dẫn">
-        <a routerLink="/home" class="transition hover:text-[#0284c7]">Trang chủ</a>
-        <mat-icon class="!h-3.5 !w-3.5 !text-[14px] text-slate-400">chevron_right</mat-icon>
-        <span class="font-semibold text-slate-800">Cổng thông tin Hóa đơn điện tử</span>
-      </nav>
+  <div class="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+    <nav class="mb-3 flex items-center gap-2 text-sm text-slate-500 print:hidden" aria-label="Đường dẫn">
+      <a routerLink="/home" class="hover:text-sky-700">Trang chủ</a>
+      <mat-icon class="!h-4 !w-4 !text-base">chevron_right</mat-icon>
+      <span class="font-medium text-slate-800">Phiếu thanh toán</span>
+    </nav>
 
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200/80 pb-5">
-        <div>
-          <div class="flex items-center gap-2 mb-1">
-            <span class="rounded bg-sky-100 px-2 py-0.5 font-mono text-[11px] font-bold text-[#0284c7]">
-              E-INVOICE PORTAL
-            </span>
-            <span class="text-xs text-slate-400">• Nghị định 123/2020 & Thông tư 78/2021</span>
-          </div>
-          <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
-            Tra cứu Hóa đơn điện tử
-          </h1>
-          <p class="mt-1 text-xs text-slate-500">
-            Hệ thống tra cứu hóa đơn bán hàng kiêm biên lai thu tiền viện phí chính thức của Phòng khám Đa khoa ClinicOne
-          </p>
+    <header class="mb-6 border-b border-slate-200 pb-5 print:hidden">
+      <h1 class="text-2xl font-bold text-slate-900">Phiếu thanh toán</h1>
+      <p class="mt-1 text-sm text-slate-600">Tra cứu phiếu thanh toán của tài khoản đang đăng nhập.</p>
+    </header>
+
+    <div class="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(250px,1fr)] print:hidden">
+      <section class="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
+        <div class="mb-5 flex rounded-lg bg-slate-100 p-1">
+          <button
+            type="button"
+            (click)="setLookupType('invoiceCode')"
+            class="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5 text-sm font-semibold"
+            [class.bg-white]="lookupType() === 'invoiceCode'"
+            [class.text-sky-700]="lookupType() === 'invoiceCode'"
+            [class.shadow-sm]="lookupType() === 'invoiceCode'"
+          >
+            <mat-icon class="!h-5 !w-5 !text-xl">qr_code</mat-icon>
+            Mã phiếu thanh toán
+          </button>
+          <button
+            type="button"
+            (click)="setLookupType('appointmentCode')"
+            class="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5 text-sm font-semibold"
+            [class.bg-white]="lookupType() === 'appointmentCode'"
+            [class.text-sky-700]="lookupType() === 'appointmentCode'"
+            [class.shadow-sm]="lookupType() === 'appointmentCode'"
+          >
+            <mat-icon class="!h-5 !w-5 !text-xl">badge</mat-icon>
+            Mã lịch hẹn
+          </button>
         </div>
 
-        @if (invoiceResult()) {
-          <div class="flex items-center gap-2">
-            <button
-              type="button"
-              (click)="printInvoice()"
-              data-testid="invoice-lookup-print-btn"
-              class="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#0284c7] px-4 text-xs font-bold text-white shadow-xs transition hover:bg-[#0369a1] active:scale-[0.98] cursor-pointer"
-            >
-              <mat-icon class="!h-4 !w-4 !text-[18px]">print</mat-icon>
-              <span>In hóa đơn (A4)</span>
-            </button>
-            <button
-              type="button"
-              (click)="resetSearch()"
-              class="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 shadow-xs transition hover:bg-slate-50 cursor-pointer"
-            >
-              <mat-icon class="!h-4 !w-4 !text-[18px]">refresh</mat-icon>
-              <span>Tra cứu khác</span>
-            </button>
-          </div>
+        @if (lookupType() === 'invoiceCode') {
+          <label class="block text-sm font-semibold text-slate-800">
+            Mã phiếu thanh toán
+            <input
+              type="text"
+              [ngModel]="invoiceCodeInput()"
+              (ngModelChange)="invoiceCodeInput.set($event)"
+              class="mt-2 h-11 w-full rounded-lg border border-slate-300 px-3 text-base outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-100"
+              autocomplete="off"
+            />
+          </label>
+        } @else {
+          <label class="block text-sm font-semibold text-slate-800">
+            Mã lịch hẹn
+            <input
+              type="text"
+              [ngModel]="appointmentCodeInput()"
+              (ngModelChange)="appointmentCodeInput.set($event)"
+              class="mt-2 h-11 w-full rounded-lg border border-slate-300 px-3 text-base outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-100"
+              autocomplete="off"
+            />
+          </label>
         }
-      </div>
+
+        @if (error()) {
+          <p class="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="alert">
+            {{ error() }}
+          </p>
+        }
+
+        <button
+          type="button"
+          (click)="search()"
+          [disabled]="searching()"
+          data-testid="search-invoice-btn"
+          class="mt-5 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-sky-600 px-4 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-60"
+        >
+          <mat-icon class="!h-5 !w-5 !text-xl">search</mat-icon>
+          {{ searching() ? 'Đang tra cứu…' : 'Tra cứu phiếu' }}
+        </button>
+      </section>
+
+      <aside class="h-fit rounded-xl border border-amber-200 bg-amber-50 p-5">
+        <div class="flex items-center gap-2 font-semibold text-amber-950">
+          <mat-icon class="!h-5 !w-5 !text-xl">info</mat-icon>
+          Phiếu thanh toán
+        </div>
+        <p class="mt-2 text-sm leading-6 text-amber-900">
+          Chỉ hiển thị phiếu đã được quầy tiếp nhận lập. Hóa đơn điện tử có chữ ký số sẽ được tích hợp riêng khi có nhà cung cấp ký số.
+        </p>
+      </aside>
     </div>
 
-    <!-- KHUNG TRA CỨU HÓA ĐƠN (ẢN KHI ĐANG IN) -->
-    @if (!invoiceResult()) {
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 print:hidden">
-        <!-- Cột trái: Form tra cứu chính (2 tabs) -->
-        <div class="lg:col-span-2 space-y-6">
-          <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 sm:p-7 shadow-xs">
-            <!-- Tabs Lựa chọn hình thức tra cứu -->
-            <div class="flex rounded-xl bg-slate-100 p-1 mb-6">
-              <button
-                type="button"
-                (click)="setLookupType('lookupCode')"
-                class="flex-1 flex items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-bold transition cursor-pointer"
-                [class.bg-white]="lookupType() === 'lookupCode'"
-                [class.text-[#0284c7]]="lookupType() === 'lookupCode'"
-                [class.shadow-2xs]="lookupType() === 'lookupCode'"
-                [class.text-slate-600]="lookupType() !== 'lookupCode'"
-              >
-                <mat-icon class="!h-4 !w-4 !text-[16px]">qr_code</mat-icon>
-                <span>Mã tra cứu hóa đơn</span>
-              </button>
-              <button
-                type="button"
-                (click)="setLookupType('patientCode')"
-                class="flex-1 flex items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-bold transition cursor-pointer"
-                [class.bg-white]="lookupType() === 'patientCode'"
-                [class.text-[#0284c7]]="lookupType() === 'patientCode'"
-                [class.shadow-2xs]="lookupType() === 'patientCode'"
-                [class.text-slate-600]="lookupType() !== 'patientCode'"
-              >
-                <mat-icon class="!h-4 !w-4 !text-[16px]">badge</mat-icon>
-                <span>Mã bệnh nhân / Lịch hẹn</span>
-              </button>
-            </div>
+    <section class="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm print:hidden" aria-labelledby="patient-receipts-title">
+      <header class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+        <div>
+          <h2 id="patient-receipts-title" class="text-lg font-bold text-slate-900">Phiếu thanh toán của tôi</h2>
+          <p class="mt-0.5 text-sm text-slate-500">{{ patientReceipts().length }} phiếu</p>
+        </div>
+        <button type="button" (click)="loadReceipts()" [disabled]="loadingReceipts()"
+          class="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-300 px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60">
+          <mat-icon class="!h-4 !w-4 !text-base">refresh</mat-icon> Làm mới
+        </button>
+      </header>
 
-            <!-- Form Tab 1: Mã tra cứu -->
-            @if (lookupType() === 'lookupCode') {
-              <div class="space-y-4">
-                <div>
-                  <label class="block text-xs font-bold text-slate-800 mb-1.5">
-                    Mã tra cứu hóa đơn <span class="text-rose-500">*</span>
-                  </label>
-                  <div class="relative">
-                    <input
-                      type="text"
-                      [ngModel]="lookupCodeInput()"
-                      (ngModelChange)="lookupCodeInput.set($event)"
-                      placeholder="Ví dụ: 220051896851388"
-                      class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 font-mono text-sm text-slate-900 outline-none transition focus:border-[#0284c7] focus:ring-3 focus:ring-sky-500/10"
-                    />
-                    <mat-icon class="absolute right-3 top-3 !h-5 !w-5 text-slate-400">confirmation_number</mat-icon>
-                  </div>
-                  <p class="mt-1 text-[11px] text-slate-500">
-                    Mã tra cứu được in ở chân biên lai thu tiền hoặc thông báo thanh toán viện phí của bạn.
-                  </p>
-                </div>
-              </div>
-            } @else {
-              <!-- Form Tab 2: Mã bệnh nhân -->
-              <div class="space-y-4">
-                <div>
-                  <label class="block text-xs font-bold text-slate-800 mb-1.5">
-                    Mã bệnh nhân / Mã lịch hẹn <span class="text-rose-500">*</span>
-                  </label>
-                  <div class="relative">
-                    <input
-                      type="text"
-                      [ngModel]="patientCodeInput()"
-                      (ngModelChange)="patientCodeInput.set($event)"
-                      placeholder="Ví dụ: CL-YJTPP2AJYK5G"
-                      class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 font-mono text-sm text-slate-900 uppercase outline-none transition focus:border-[#0284c7] focus:ring-3 focus:ring-sky-500/10"
-                    />
-                    <mat-icon class="absolute right-3 top-3 !h-5 !w-5 text-slate-400">person</mat-icon>
-                  </div>
-                  <p class="mt-1 text-[11px] text-slate-500">
-                    Nhập mã số hồ sơ bệnh nhân hoặc mã lịch hẹn khám được gửi qua tin nhắn SMS/Zalo.
-                  </p>
-                </div>
-              </div>
-            }
-
-            <!-- Mã xác thực Captcha -->
-            <div class="mt-4 pt-4 border-t border-slate-100">
-              <label class="block text-xs font-bold text-slate-800 mb-1.5">
-                Mã xác thực bảo mật <span class="text-rose-500">*</span>
-              </label>
-              <div class="flex items-center gap-3">
-                <input
-                  type="text"
-                  [ngModel]="captchaInput()"
-                  (ngModelChange)="captchaInput.set($event)"
-                  placeholder="Nhập 4 ký tự"
-                  maxlength="4"
-                  class="h-11 w-36 rounded-xl border border-slate-200 bg-white px-3.5 font-mono text-sm uppercase tracking-widest text-slate-900 outline-none transition focus:border-[#0284c7] focus:ring-3 focus:ring-sky-500/10"
-                />
-
-                <div class="flex items-center gap-1.5 rounded-xl border border-slate-300 bg-slate-100 px-3.5 py-2 font-mono text-lg font-black tracking-widest text-[#0284c7] select-none shadow-2xs">
-                  <span>{{ currentCaptcha() }}</span>
-                </div>
-
-                <button
-                  type="button"
-                  (click)="refreshCaptcha()"
-                  class="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 active:scale-95 transition cursor-pointer"
-                  title="Đổi mã bảo mật khác"
-                >
-                  <mat-icon class="!h-5 !w-5 !text-[20px]">refresh</mat-icon>
-                </button>
-              </div>
-            </div>
-
-            <!-- Error Banner -->
-            @if (error()) {
-              <div class="mt-4 flex items-center gap-2 rounded-xl bg-rose-50 border border-rose-200 p-3 text-xs font-semibold text-rose-800" role="alert">
-                <mat-icon class="!h-4 !w-4 !text-[16px] text-rose-600">error_outline</mat-icon>
-                <span>{{ error() }}</span>
-              </div>
-            }
-
-            <!-- Nút Tra cứu Submit -->
-            <button
-              type="button"
-              (click)="search()"
-              [disabled]="searching()"
-              data-testid="search-invoice-btn"
-              class="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-[#0284c7] py-3 text-sm font-bold text-white shadow-xs transition hover:bg-[#0369a1] active:scale-[0.99] disabled:opacity-50 cursor-pointer"
-            >
-              @if (searching()) {
-                <span class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
-                <span>Đang tìm kiếm hóa đơn...</span>
-              } @else {
-                <mat-icon class="!h-5 !w-5 !text-[20px]">search</mat-icon>
-                <span>Tra cứu hóa đơn</span>
+      @if (receiptsError()) {
+        <p class="m-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700" role="alert">{{ receiptsError() }}</p>
+      } @else if (loadingReceipts() && patientReceipts().length === 0) {
+        <p class="px-5 py-8 text-center text-sm text-slate-500">Đang tải phiếu thanh toán…</p>
+      } @else if (patientReceipts().length === 0) {
+        <p class="px-5 py-10 text-center text-sm text-slate-500">Chưa có phiếu thanh toán.</p>
+      } @else {
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-[620px] text-left text-sm">
+            <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-5 py-3">Mã phiếu</th><th class="px-5 py-3">Lịch hẹn</th><th class="px-5 py-3">Ngày lập</th><th class="px-5 py-3 text-right">Tổng tiền</th><th class="px-5 py-3">Trạng thái</th><th class="px-5 py-3"></th></tr></thead>
+            <tbody class="divide-y divide-slate-100">
+              @for (receipt of patientReceipts(); track receipt.id) {
+                <tr class="hover:bg-sky-50/40">
+                  <td class="px-5 py-3 font-semibold text-slate-900">{{ receipt.invoiceCode }}</td>
+                  <td class="px-5 py-3 text-slate-600">{{ receipt.appointmentCode }}</td>
+                  <td class="px-5 py-3 text-slate-600">{{ receipt.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
+                  <td class="px-5 py-3 text-right font-mono font-semibold">{{ receipt.totalAmount | number:'1.0-0' }} đ</td>
+                  <td class="px-5 py-3"><span class="rounded-full px-2.5 py-1 text-xs font-semibold" [class.bg-emerald-50]="receipt.status === 'PAID'" [class.text-emerald-700]="receipt.status === 'PAID'" [class.bg-amber-50]="receipt.status === 'PENDING'" [class.text-amber-800]="receipt.status === 'PENDING'" [class.bg-slate-100]="receipt.status === 'CANCELLED'" [class.text-slate-600]="receipt.status === 'CANCELLED'">{{ receipt.status === 'PAID' ? 'Đã thanh toán' : receipt.status === 'PENDING' ? 'Chờ thanh toán' : 'Đã hủy' }}</span></td>
+                  <td class="px-5 py-3 text-right"><button type="button" (click)="showReceipt(receipt)" class="rounded-lg px-3 py-1.5 font-semibold text-sky-700 hover:bg-sky-100">Chi tiết</button></td>
+                </tr>
               }
-            </button>
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
+    @if (invoiceResult(); as receipt) {
+      <section class="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm print:mt-0 print:border-0 print:shadow-none">
+        <div class="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 p-5">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-sky-700">ClinicOne · Phiếu thanh toán</p>
+            <h2 class="mt-1 text-xl font-bold text-slate-900">{{ receipt.invoiceCode }}</h2>
+            <p class="mt-1 text-sm text-slate-600">Lịch hẹn {{ receipt.appointmentCode }}</p>
+          </div>
+          <div class="flex items-center gap-2 print:hidden">
+            <span class="rounded-full px-3 py-1.5 text-sm font-semibold"
+              [class.bg-emerald-50]="receipt.status === 'PAID'"
+              [class.text-emerald-700]="receipt.status === 'PAID'"
+              [class.bg-amber-50]="receipt.status === 'PENDING'"
+              [class.text-amber-800]="receipt.status === 'PENDING'"
+              [class.bg-slate-100]="receipt.status === 'CANCELLED'"
+              [class.text-slate-600]="receipt.status === 'CANCELLED'">
+              {{ receipt.status === 'PAID' ? 'Đã thanh toán' : receipt.status === 'PENDING' ? 'Chờ thanh toán' : 'Đã hủy' }}
+            </span>
+            <button type="button" (click)="printInvoice()" class="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold hover:bg-slate-50">In phiếu</button>
+            <button type="button" (click)="resetSearch()" class="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold hover:bg-slate-50">Tra cứu khác</button>
           </div>
         </div>
 
-        <!-- Cột phải: Hướng dẫn tra cứu & Hotline hỗ trợ (Phong cách Bệnh viện Ung Bướu) -->
-        <div class="space-y-4">
-          <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs text-xs space-y-3">
-            <div class="flex items-center gap-2 font-bold text-slate-900 border-b border-slate-100 pb-2">
-              <mat-icon class="text-[#0284c7] !h-5 !w-5 !text-[20px]">info</mat-icon>
-              <span>Lưu ý khi tra cứu hóa đơn</span>
-            </div>
-            <ul class="space-y-2 text-slate-600 leading-relaxed list-disc list-inside">
-              <li>Mỗi hóa đơn điện tử có một <strong>Mã tra cứu</strong> duy nhất in trên phiếu thu tiền viện phí.</li>
-              <li>Để việc xem và in hóa đơn được hiển thị chuẩn xác nhất, người bệnh nên sử dụng trình duyệt <strong>Google Chrome</strong> hoặc <strong>Cốc Cốc</strong>.</li>
-              <li>Hóa đơn được ký bằng <strong>Chữ ký số hợp lệ</strong> của Phòng khám Đa khoa ClinicOne theo quy định của Tổng cục Thuế.</li>
-            </ul>
-          </div>
-
-          <div class="rounded-2xl border border-sky-200 bg-sky-50/70 p-5 shadow-xs text-xs space-y-2.5">
-            <div class="flex items-center gap-2 font-bold text-[#0284c7]">
-              <mat-icon class="!h-5 !w-5 !text-[20px]">support_agent</mat-icon>
-              <span>Hỗ trợ tra cứu hóa đơn</span>
-            </div>
-            <p class="text-slate-600 leading-relaxed">
-              Nếu gặp khó khăn trong quá trình tra cứu hoặc cần cấp lại hóa đơn chuyển đổi, quý khách vui lòng liên hệ:
-            </p>
-            <div class="space-y-1 font-semibold text-slate-800">
-              <p>• Hotline Phòng khám: <strong class="text-[#0284c7]">1900 0000</strong></p>
-              <p>• Tổng đài Viện phí: <strong>(028) 38.433.021</strong></p>
-              <p>• Giờ làm việc: 7:00 - 17:00 (Thứ 2 - Thứ 7)</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    }
-
-    <!-- KẾT QUẢ HIỂN THỊ HÓA ĐƠN ĐIỆN TỬ -->
-    @if (invoiceResult(); as inv) {
-      <div class="space-y-6">
-        <!-- Thông báo tìm thấy kết quả -->
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/80 p-4 text-xs print:hidden shadow-xs">
-          <div class="flex items-center gap-2.5">
-            <mat-icon class="text-emerald-600">check_circle</mat-icon>
-            <div>
-              <strong class="text-emerald-900 text-sm">Đã tìm thấy hóa đơn điện tử gốc hợp lệ</strong>
-              <p class="text-emerald-800 mt-0.5">
-                Ký hiệu: <span class="font-mono font-bold">{{ inv.invoiceSerial }}</span> ·
-                Số HĐ: <span class="font-mono font-bold">{{ inv.invoiceNumber }}</span> ·
-                Mã tra cứu: <span class="font-mono font-bold text-[#0284c7]">{{ inv.lookupCode }}</span>
-              </p>
-            </div>
-          </div>
-
-          <div class="flex items-center gap-2">
-            <button
-              type="button"
-              (click)="printInvoice()"
-              class="inline-flex items-center gap-1.5 rounded-lg bg-[#0284c7] px-3.5 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-[#0369a1] transition cursor-pointer"
-            >
-              <mat-icon class="!h-4 !w-4 !text-[16px]">print</mat-icon>
-              <span>In hóa đơn A4</span>
-            </button>
-            <button
-              type="button"
-              (click)="resetSearch()"
-              class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
-            >
-              <span>Tra cứu mã khác</span>
-            </button>
-          </div>
+        <div class="grid gap-4 border-b border-slate-100 p-5 sm:grid-cols-2">
+          <p><span class="text-slate-500">Người bệnh</span><br /><strong>{{ receipt.patientName }}</strong></p>
+          <p><span class="text-slate-500">Số điện thoại</span><br /><strong>{{ receipt.patientPhone || '—' }}</strong></p>
+          <p><span class="text-slate-500">Bác sĩ</span><br /><strong>{{ receipt.doctorName }}</strong></p>
+          <p><span class="text-slate-500">Chuyên khoa</span><br /><strong>{{ receipt.specialty }}</strong></p>
         </div>
 
-        <!-- Render Hóa đơn điện tử chuẩn Bệnh viện Ung Bướu -->
-        <app-electronic-invoice [invoice]="inv" [printOnly]="false" />
-      </div>
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-[520px] text-left text-sm">
+            <thead class="bg-slate-50 text-xs uppercase text-slate-500">
+              <tr><th class="px-5 py-3">Nội dung</th><th class="px-5 py-3 text-right">Số lượng</th><th class="px-5 py-3 text-right">Thành tiền</th></tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              @for (item of receipt.items; track item.id) {
+                <tr>
+                  <td class="px-5 py-3 font-medium text-slate-800">{{ item.itemName }}</td>
+                  <td class="px-5 py-3 text-right">{{ item.quantity }} {{ item.unit || '' }}</td>
+                  <td class="px-5 py-3 text-right font-mono">{{ item.totalPrice | number:'1.0-0' }} đ</td>
+                </tr>
+              }
+            </tbody>
+            <tfoot class="border-t border-slate-200">
+              <tr><th colspan="2" class="px-5 py-2 text-right font-medium text-slate-600">Đã thanh toán</th><td class="px-5 py-2 text-right font-mono">{{ receipt.paidAmount | number:'1.0-0' }} đ</td></tr>
+              <tr><th colspan="2" class="px-5 py-3 text-right text-base font-bold text-slate-900">Tổng cộng</th><td class="px-5 py-3 text-right font-mono text-lg font-bold text-sky-700">{{ receipt.totalAmount | number:'1.0-0' }} đ</td></tr>
+            </tfoot>
+          </table>
+        </div>
+        <p class="border-t border-slate-100 px-5 py-3 text-xs text-slate-500">Phiếu thanh toán nội bộ; không thay thế hóa đơn điện tử có mã/chữ ký số.</p>
+      </section>
     }
   </div>
 </main>

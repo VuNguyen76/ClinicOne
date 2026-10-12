@@ -96,7 +96,7 @@ describe('MedicalRecordDetail', () => {
     expect(fixture.nativeElement.textContent).not.toContain('Phiếu khám đã ký');
   });
 
-  it('renders electronic invoice action buttons and opens the preview modal', () => {
+  it('does not synthesize an invoice from a signed medical record', () => {
     http.expectOne('/api/v1/medical-records/record-1').flush({
       id: 'record-1', examinationId: 'exam-1', appointmentCode: 'CL-20260807-0009', doctorName: 'Bác sĩ Nguyễn An',
       specialty: 'Khám Tổng Quát',
@@ -107,17 +107,8 @@ describe('MedicalRecordDetail', () => {
     });
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('button[data-testid="print-invoice-btn"]')).toBeTruthy();
-    expect(fixture.nativeElement.textContent).toContain('In hóa đơn điện tử');
-    expect(fixture.nativeElement.textContent).toContain('Hóa đơn điện tử viện phí');
-
-    const viewBtn = fixture.nativeElement.querySelector('button[data-testid="view-invoice-btn"]') as HTMLButtonElement;
-    expect(viewBtn).toBeTruthy();
-    viewBtn.click();
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.textContent).toContain('HÓA ĐƠN BÁN HÀNG');
-    expect(fixture.nativeElement.textContent).toContain('2K26TVP');
-    expect(fixture.nativeElement.textContent).toContain('SIGNATURE VALID');
+    expect(fixture.componentInstance['invoice']()).toBeNull();
+    expect(fixture.nativeElement.querySelector('button[data-testid="print-invoice-btn"]')).toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('SIGNATURE VALID');
   });
 });

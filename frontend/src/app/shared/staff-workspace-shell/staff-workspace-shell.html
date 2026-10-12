@@ -1,6 +1,6 @@
 <main class="min-h-[100dvh] bg-[#f8fafc] text-slate-800" data-testid="staff-workspace-shell">
   <!-- Top Navigation Header -->
-  <header class="sticky top-0 z-40 h-14 border-b border-slate-200/80 bg-white/95 backdrop-blur-xs shadow-2xs">
+  <header class="sticky top-0 z-40 h-14 border-b border-slate-200/80 bg-white/95 backdrop-blur-xs shadow-2xs" [class.print:hidden]="printMode()">
     <div class="flex h-full items-center">
       <!-- Mobile menu toggle -->
       <button
@@ -66,6 +66,7 @@
     <!-- Left Navigation Rail -->
     <aside
       class="fixed inset-y-14 left-0 z-30 w-[256px] overflow-y-auto border-r border-slate-200/80 bg-white transition-transform lg:sticky lg:top-14 lg:h-[calc(100dvh-3.5rem)] lg:translate-x-0"
+      [class.print:hidden]="printMode()"
       [class.translate-x-0]="navigationOpen()"
       [class.-translate-x-full]="!navigationOpen()"
       data-testid="staff-module-nav"
@@ -96,7 +97,7 @@
     <!-- Work Area Window -->
     <section class="min-w-0">
       <!-- Window Header -->
-      <header class="flex min-h-14 flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 bg-white px-4 py-2.5 lg:px-6">
+      <header class="flex min-h-14 flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 bg-white px-4 py-2.5 lg:px-6" [class.print:hidden]="printMode()">
         <div class="min-w-0">
           <div class="flex items-center gap-1.5 text-xs text-slate-400">
             <span>{{ moduleTitle() }}</span>

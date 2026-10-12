@@ -6,7 +6,7 @@ import { apiErrorMessage, AuthApiService, MedicalRecordResponse } from '../../co
 import { PatientHeader } from '../../shared/patient-header/patient-header';
 import { formatClinicDate, formatClinicMediumDateTime } from '../../core/time/clinic-time';
 import { ElectronicInvoiceComponent } from '../../shared/electronic-invoice/electronic-invoice.component';
-import { buildElectronicInvoice } from '../../core/invoice/vietnamese-currency';
+import { ElectronicInvoiceData } from '../../core/invoice/vietnamese-currency';
 
 @Component({
   selector: 'app-medical-record-detail',
@@ -25,22 +25,9 @@ export class MedicalRecordDetail implements OnInit {
   protected readonly error = signal('');
   protected readonly viewInvoiceModal = signal(false);
 
-  protected readonly invoice = computed(() => {
-    const item = this.record();
-    if (!item) return null;
-    return buildElectronicInvoice({
-      appointmentCode: item.appointmentCode,
-      patientName: item.patientName,
-      patientPhone: item.patientPhone,
-      patientDateOfBirth: item.patientDateOfBirth,
-      patientGender: item.patientGender,
-      doctorName: item.doctorName,
-      specialty: item.specialty,
-      serviceName: item.specialty ? `Khám chuyên khoa ${item.specialty}` : 'Khám chuyên khoa ngoại trú',
-      signedAt: item.signedAt,
-      appointmentDate: item.appointmentDate,
-      prescriptionLines: item.prescriptionLines,
-    });
+  protected readonly invoice = computed((): ElectronicInvoiceData | null => {
+    // Invoice issuance is not implemented by BE; never synthesize invoice data in FE.
+    return null;
   });
 
   ngOnInit(): void {

@@ -1,0 +1,91 @@
+<app-staff-workspace-shell moduleTitle="Tiếp nhận" pageTitle="Thu phí" [printMode]="printing()">
+  <main class="mx-auto w-full max-w-[1440px] space-y-5 p-4 sm:p-6" data-testid="reception-payments-screen">
+    <header class="flex flex-wrap items-center justify-between gap-3 print:hidden">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-[0.14em] text-sky-700">Tiếp nhận · Thanh toán</p>
+        <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900">Thu phí khám bệnh</h1>
+      </div>
+      <div class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600">
+        <mat-icon class="!h-5 !w-5 !text-[20px] text-sky-700">receipt_long</mat-icon>
+        Phiếu thu nội bộ
+      </div>
+    </header>
+
+    <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 print:hidden">
+      <form class="flex flex-col gap-3 sm:flex-row sm:items-end" (ngSubmit)="createReceipt()">
+        <label class="min-w-0 flex-1 text-sm font-semibold text-slate-700">
+          Mã lịch hẹn
+          <input class="mt-1.5 h-11 w-full rounded-lg border border-slate-300 px-3 text-base font-normal text-slate-900 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+            name="appointmentCode" autocomplete="off" [ngModel]="appointmentCode()"
+            (ngModelChange)="appointmentCode.set($event)" placeholder="Nhập mã lịch hẹn" />
+        </label>
+        <button class="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
+          type="submit" [disabled]="loading()">
+          <mat-icon class="!h-5 !w-5 !text-[20px]">{{ loading() ? 'progress_activity' : 'search' }}</mat-icon>
+          {{ loading() ? 'Đang tra cứu' : 'Lập phiếu thu' }}
+        </button>
+      </form>
+      @if (error()) {
+        <p class="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700" role="alert">{{ error() }}</p>
+      }
+      @if (notice()) {
+        <p class="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700" role="status">{{ notice() }}</p>
+      }
+    </section>
+
+    @if (receipt(); as current) {
+      <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm print:border-0 print:shadow-none" data-testid="payment-receipt">
+        <header class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
+          <div>
+            <h2 class="text-lg font-bold text-slate-900">Phiếu {{ current.invoiceCode }}</h2>
+            <p class="mt-0.5 text-sm text-slate-500">Lịch hẹn {{ current.appointmentCode }} · {{ current.createdAt | date:'dd/MM/yyyy HH:mm' }}</p>
+          </div>
+          <span class="rounded-full px-3 py-1 text-sm font-semibold"
+            [class.bg-amber-50]="current.status === 'PENDING'" [class.text-amber-800]="current.status === 'PENDING'"
+            [class.bg-emerald-50]="current.status === 'PAID'" [class.text-emerald-800]="current.status === 'PAID'"
+            [class.bg-slate-100]="current.status === 'CANCELLED'" [class.text-slate-700]="current.status === 'CANCELLED'">
+            {{ current.status === 'PAID' ? 'Đã thanh toán' : current.status === 'PENDING' ? 'Chờ thanh toán' : 'Đã hủy' }}
+          </span>
+          <button type="button" (click)="printReceipt()" class="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-300 px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 print:hidden">
+            <mat-icon class="!h-4 !w-4 !text-base">print</mat-icon> In phiếu
+          </button>
+        </header>
+
+        <div class="grid gap-4 border-b border-slate-200 p-5 sm:grid-cols-2 lg:grid-cols-4">
+          <div><p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Bệnh nhân</p><p class="mt-1 font-semibold text-slate-900">{{ current.patientName }}</p><p class="text-sm text-slate-600">{{ current.patientPhone || '—' }}</p></div>
+          <div><p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Dịch vụ</p><p class="mt-1 font-semibold text-slate-900">{{ current.specialty }}</p><p class="text-sm text-slate-600">{{ current.doctorName }}</p></div>
+          <div><p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Cần thanh toán</p><p class="mt-1 text-xl font-bold tabular-nums text-sky-700">{{ formatAmount(current.totalAmount - current.paidAmount) }} đ</p></div>
+          <div><p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Đã thu</p><p class="mt-1 text-xl font-bold tabular-nums text-slate-900">{{ formatAmount(current.paidAmount) }} đ</p></div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-[640px] text-left text-sm">
+            <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-5 py-3">Nội dung</th><th class="px-5 py-3">ĐVT</th><th class="px-5 py-3 text-right">SL</th><th class="px-5 py-3 text-right">Đơn giá</th><th class="px-5 py-3 text-right">Thành tiền</th></tr></thead>
+            <tbody class="divide-y divide-slate-100">
+              @for (item of current.items; track item.id) {
+                <tr><td class="px-5 py-3 font-medium text-slate-800">{{ item.itemName }}</td><td class="px-5 py-3 text-slate-600">{{ item.unit || '—' }}</td><td class="px-5 py-3 text-right tabular-nums">{{ item.quantity }}</td><td class="px-5 py-3 text-right tabular-nums">{{ formatAmount(item.unitPrice) }} đ</td><td class="px-5 py-3 text-right font-semibold tabular-nums">{{ formatAmount(item.totalPrice) }} đ</td></tr>
+              }
+            </tbody>
+            <tfoot class="border-t border-slate-200 bg-slate-50"><tr><th colspan="4" class="px-5 py-3 text-right text-base">Tổng cộng</th><td class="px-5 py-3 text-right text-lg font-bold tabular-nums text-sky-700">{{ formatAmount(current.totalAmount) }} đ</td></tr></tfoot>
+          </table>
+        </div>
+
+        @if (current.status === 'PENDING') {
+          <form class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50/70 p-5 sm:flex-row sm:items-end sm:justify-end" (ngSubmit)="markPaid()">
+            <label class="text-sm font-semibold text-slate-700">Phương thức thanh toán
+              <select class="mt-1.5 h-11 min-w-56 rounded-lg border border-slate-300 bg-white px-3 text-sm font-normal outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                name="paymentMethod" [ngModel]="paymentMethod()" (ngModelChange)="paymentMethod.set($event)">
+                <option value="CASH">Tiền mặt</option><option value="BANK_TRANSFER">Chuyển khoản</option><option value="CARD">Thẻ</option>
+              </select>
+            </label>
+            <button class="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60" type="submit" [disabled]="saving()">
+              <mat-icon class="!h-5 !w-5 !text-[20px]">check_circle</mat-icon>{{ saving() ? 'Đang ghi nhận' : 'Xác nhận đã thu' }}
+            </button>
+          </form>
+        } @else if (current.status === 'PAID') {
+          <p class="border-t border-slate-200 px-5 py-4 text-sm text-slate-600">Thanh toán: {{ paymentMethodLabel(current.paymentMethod) }} · Thu ngân: {{ current.cashierName || '—' }}</p>
+        }
+      </section>
+    }
+  </main>
+</app-staff-workspace-shell>

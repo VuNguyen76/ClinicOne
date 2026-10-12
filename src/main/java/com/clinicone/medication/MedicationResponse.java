@@ -11,10 +11,11 @@ public record MedicationResponse(
         String specialties,
         String defaultDosage,
         String defaultInstructions,
-        String unit
+        String unit,
+        long unitPrice
 ) {
     public MedicationResponse(UUID id, String code, String name, boolean active) {
-        this(id, code, name, active, null, null, null, null, null);
+        this(id, code, name, active, null, null, null, null, null, 0);
     }
 
     static MedicationResponse from(Medication medication) {
@@ -27,7 +28,8 @@ public record MedicationResponse(
                 medication.getSpecialties(),
                 medication.getDefaultDosage(),
                 medication.getDefaultInstructions(),
-                medication.getUnit()
+                medication.getUnit(),
+                medication.getUnitPrice()
         );
     }
 }

@@ -8,6 +8,45 @@ import { ElectronicInvoiceData } from '../../core/invoice/vietnamese-currency';
   standalone: true,
   imports: [CommonModule, MatIconModule],
   templateUrl: './electronic-invoice.component.html',
+  styles: [`
+    :host {
+      display: block;
+    }
+    .invoice-formal-font {
+      font-family: 'Times New Roman', Times, 'Liberation Serif', serif;
+    }
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 8mm 10mm;
+      }
+      .electronic-invoice-sheet {
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+        font-size: 9.5pt !important;
+        line-height: 1.25 !important;
+      }
+      .electronic-invoice-sheet table {
+        font-size: 9pt !important;
+      }
+      .electronic-invoice-sheet th,
+      .electronic-invoice-sheet td {
+        padding: 3px 6px !important;
+        height: auto !important;
+      }
+      .invoice-signatures {
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important;
+      }
+    }
+  `],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ElectronicInvoiceComponent {

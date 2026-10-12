@@ -97,6 +97,7 @@ export class MedicationCatalogManagement implements OnInit {
   protected readonly defaultDosage = signal('');
   protected readonly defaultInstructions = signal('');
   protected readonly unit = signal('');
+  protected readonly unitPrice = signal(0);
 
   protected readonly availableSpecialties = computed<string[]>(() => {
     return this.specialtiesFromApi().map((s) => s.name);
@@ -215,6 +216,7 @@ export class MedicationCatalogManagement implements OnInit {
     this.defaultDosage.set('');
     this.defaultInstructions.set('');
     this.unit.set('');
+    this.unitPrice.set(0);
     this.error.set('');
     this.modalOpen.set(true);
   }
@@ -229,6 +231,7 @@ export class MedicationCatalogManagement implements OnInit {
     this.defaultDosage.set(item.defaultDosage || '');
     this.defaultInstructions.set(item.defaultInstructions || '');
     this.unit.set(item.unit || 'Viên');
+    this.unitPrice.set(item.unitPrice ?? 0);
     this.error.set('');
     this.modalOpen.set(true);
   }
@@ -240,27 +243,26 @@ export class MedicationCatalogManagement implements OnInit {
   protected save(): void {
     const code = this.code().trim().toUpperCase();
     const name = this.name().trim();
+    const unitPrice = Number(this.unitPrice());
     if (!/^[A-Z0-9_-]{2,50}$/.test(code) || !name || name.length > 200) {
       this.error.set('Nhập mã thuốc hợp lệ và tên thuốc không quá 200 ký tự.');
+      return;
+    }
+    if (!Number.isSafeInteger(unitPrice) || unitPrice < 0) {
+      this.error.set('Giá bán phải là số nguyên không âm.');
       return;
     }
     this.saving.set(true);
     this.error.set('');
     const editingId = this.editingId();
-    const hasMetadata = Boolean(
-      this.category().trim() ||
-      this.specialties().trim() ||
-      this.defaultDosage().trim() ||
-      this.defaultInstructions().trim() ||
-      this.unit().trim()
-    );
-    const metadata = hasMetadata ? {
+    const metadata = {
       category: this.category().trim() || undefined,
       specialties: this.specialties().trim() || undefined,
       defaultDosage: this.defaultDosage().trim() || undefined,
       defaultInstructions: this.defaultInstructions().trim() || undefined,
       unit: this.unit().trim() || undefined,
-    } : undefined;
+      unitPrice,
+    };
     const request = editingId
       ? (metadata ? this.authApi.updateMedication(editingId, code, name, metadata) : this.authApi.updateMedication(editingId, code, name))
       : (metadata ? this.authApi.createMedication(code, name, metadata) : this.authApi.createMedication(code, name));

@@ -17,6 +17,15 @@ public interface ExaminationSessionRepository extends JpaRepository<ExaminationS
     Optional<ExaminationSession> findByAppointment_Id(UUID appointmentId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select session from ExaminationSession session join fetch session.appointment appointment "
+            + "where upper(appointment.appointmentCode) = upper(:appointmentCode)")
+    Optional<ExaminationSession> findByAppointment_CodeForUpdate(@Param("appointmentCode") String appointmentCode);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select session from ExaminationSession session join fetch session.appointment where session.id = :id")
+    Optional<ExaminationSession> findByIdForUpdate(@Param("id") UUID id);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select session from ExaminationSession session where session.appointment.id = :appointmentId")
     Optional<ExaminationSession> findByAppointment_IdForUpdate(@Param("appointmentId") UUID appointmentId);
 

@@ -92,6 +92,7 @@ describe('StaffWorkspaceShell', () => {
       '/reception/queue',
       '/reception/exceptions',
       '/reception/profiles',
+      '/reception/payments',
     ]);
   });
 

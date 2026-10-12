@@ -30,7 +30,7 @@ describe('MedicationCatalogManagement', () => {
       { id: 'med-1', code: 'PCM500', name: 'Paracetamol 500 mg', active: true },
       { id: 'med-2', code: 'OLD-MED', name: 'Thuốc đã ngừng', active: false },
     ]));
-    api.createMedication.mockReturnValue(of({ id: 'med-3', code: 'AMOX500', name: 'Amoxicillin 500 mg', active: true }));
+    api.createMedication.mockReturnValue(of({ id: 'med-3', code: 'AMOX500', name: 'Amoxicillin 500 mg', active: true, unitPrice: 0 }));
     api.updateMedication.mockReturnValue(of({ id: 'med-1', code: 'PCM500', name: 'Paracetamol 500 mg', active: true }));
     api.setMedicationActive.mockReturnValue(of({ id: 'med-1', code: 'PCM500', name: 'Paracetamol 500 mg', active: false }));
     await TestBed.configureTestingModule({
@@ -86,7 +86,40 @@ describe('MedicationCatalogManagement', () => {
     component.name.set('Amoxicillin 500 mg');
     component.save();
 
-    expect(api.createMedication).toHaveBeenCalledWith('AMOX500', 'Amoxicillin 500 mg');
+    expect(api.createMedication).toHaveBeenCalledWith('AMOX500', 'Amoxicillin 500 mg', {
+      category: undefined,
+      specialties: undefined,
+      defaultDosage: undefined,
+      defaultInstructions: undefined,
+      unit: undefined,
+      unitPrice: 0,
+    });
+  });
+
+  it('shows and saves the configured medicine sale price', () => {
+    (fixture.nativeElement.querySelector('[data-testid="open-create-medication"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const component = fixture.componentInstance;
+    component['code'].set('AMOX500');
+    component['name'].set('Amoxicillin 500 mg');
+    component['unitPrice'].set(1250);
+    component['save']();
+
+    expect(api.createMedication).toHaveBeenCalledWith('AMOX500', 'Amoxicillin 500 mg', expect.objectContaining({ unitPrice: 1250 }));
+  });
+
+  it('rejects negative or fractional medicine sale prices before calling the API', () => {
+    api.createMedication.mockClear();
+    (fixture.nativeElement.querySelector('[data-testid="open-create-medication"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const component = fixture.componentInstance;
+    component['code'].set('AMOX500');
+    component['name'].set('Amoxicillin 500 mg');
+    component['unitPrice'].set(-0.5);
+    component['save']();
+
+    expect(api.createMedication).not.toHaveBeenCalled();
+    expect(component['error']()).toContain('Giá bán');
   });
 
   it('asks the API to suspend an active medicine instead of deleting it', () => {
@@ -129,6 +162,7 @@ describe('MedicationCatalogManagement', () => {
       defaultDosage: dosageFormats[0],
       category: 'Hạ sốt & Giảm đau',
       defaultInstructions: undefined,
+      unitPrice: 0,
     });
   });
 });

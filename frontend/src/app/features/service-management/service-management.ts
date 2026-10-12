@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { forkJoin } from 'rxjs';
@@ -17,7 +18,7 @@ import { hasStaffRole } from '../../core/auth/auth.guard';
 @Component({
   selector: 'app-service-management',
   standalone: true,
-  imports: [FormsModule, MatIconModule, StaffWorkspaceShell],
+  imports: [FormsModule, MatIconModule, StaffWorkspaceShell, DecimalPipe],
   templateUrl: './service-management.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -38,6 +39,7 @@ export class ServiceManagement implements OnInit {
   protected readonly visitTypes = ['Khám thường', 'Khám chuyên khoa', 'Khám theo yêu cầu', 'Khám cấp cứu', 'Tái khám'] as const;
   protected readonly visitType = signal<string>('Khám thường');
   protected readonly durationMinutes = signal(30);
+  protected readonly consultationFee = signal(0);
   protected readonly searchTerm = signal('');
   protected readonly selectedDoctorIds = signal<string[]>([]);
   protected readonly requiresMedicalRecord = signal(true);
@@ -121,6 +123,7 @@ export class ServiceManagement implements OnInit {
     this.specialty.set('');
     this.visitType.set('Khám thường');
     this.durationMinutes.set(30);
+    this.consultationFee.set(0);
     this.selectedDoctorIds.set([]);
     this.requiresMedicalRecord.set(true);
     this.error.set('');
@@ -138,6 +141,7 @@ export class ServiceManagement implements OnInit {
     this.specialty.set(service.specialty);
     this.visitType.set(service.visitType);
     this.durationMinutes.set(service.durationMinutes);
+    this.consultationFee.set(service.consultationFee ?? 0);
     this.selectedDoctorIds.set(service.eligibleDoctors.map((doctor) => doctor.staffId));
     this.requiresMedicalRecord.set(service.requiresMedicalRecord !== false);
     this.error.set('');
@@ -161,11 +165,14 @@ export class ServiceManagement implements OnInit {
       specialty: this.specialty().trim(),
       visitType: this.visitType().trim(),
       durationMinutes: Number(this.durationMinutes()),
+      consultationFee: Number(this.consultationFee()),
       doctorIds: this.selectedDoctorIds(),
       requiresMedicalRecord: this.requiresMedicalRecord(),
     };
     if (!request.name || !request.specialty || !request.visitType || request.durationMinutes < 5
-      || request.durationMinutes > 120 || request.doctorIds.length === 0) {
+      || request.durationMinutes > 120 || request.doctorIds.length === 0
+      || !Number.isSafeInteger(request.consultationFee) || request.consultationFee < 0
+      || request.consultationFee > 100_000_000) {
       this.error.set('Nhập đủ thông tin và chọn ít nhất một bác sĩ đủ điều kiện.');
       return;
     }

@@ -28,6 +28,7 @@ const NAVIGATION: StaffNavigationGroup[] = [
       { label: 'Hàng đợi quầy', route: '/reception/queue', icon: 'confirmation_number', roles: ['RECEPTIONIST'] },
       { label: 'Xử lý ngoại lệ', route: '/reception/exceptions', icon: 'warning_amber', roles: ['RECEPTIONIST'] },
       { label: 'Hồ sơ bệnh nhân', route: '/reception/profiles', icon: 'folder_shared', roles: ['RECEPTIONIST'] },
+      { label: 'Thu phí', route: '/reception/payments', icon: 'payments', roles: ['RECEPTIONIST'] },
     ],
   },
   {
@@ -95,6 +96,7 @@ const NAVIGATION: StaffNavigationGroup[] = [
 export class StaffWorkspaceShell {
   readonly moduleTitle = input.required<string>();
   readonly pageTitle = input.required<string>();
+  readonly printMode = input(false);
   protected readonly navigationOpen = signal(false);
   protected readonly functionQuery = signal('');
   private readonly roles = readStaffRoles();

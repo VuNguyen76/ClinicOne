@@ -50,7 +50,8 @@ public class MedicationCatalogService {
                 clean(request.specialties()),
                 clean(request.defaultDosage()),
                 clean(request.defaultInstructions()),
-                clean(request.unit())
+                clean(request.unit()),
+                unitPrice(request.unitPrice())
         );
         return MedicationResponse.from(repository.save(medication));
     }
@@ -70,7 +71,8 @@ public class MedicationCatalogService {
                 clean(request.specialties()),
                 clean(request.defaultDosage()),
                 clean(request.defaultInstructions()),
-                clean(request.unit())
+                clean(request.unit()),
+                unitPrice(request.unitPrice())
         );
         return MedicationResponse.from(medication);
     }
@@ -110,5 +112,13 @@ public class MedicationCatalogService {
 
     private String clean(String value) {
         return StringUtils.hasText(value) ? value.trim() : null;
+    }
+
+    private long unitPrice(Long value) {
+        if (value != null && value < 0) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "MEDICATION_PRICE_INVALID",
+                    "Giá bán thuốc không được âm.");
+        }
+        return value == null ? 0 : value;
     }
 }

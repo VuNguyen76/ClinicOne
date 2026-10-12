@@ -980,6 +980,30 @@ input {
     line-height: 1.4 !important;
   }
 
+  /* Electronic Invoice Print Rules: 1-Page Fit & No Split Signatures */
+  .electronic-invoice-sheet {
+    font-family: 'Times New Roman', Times, 'Liberation Serif', serif !important;
+    font-size: 9.5pt !important;
+    line-height: 1.25 !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .electronic-invoice-sheet table {
+    font-size: 9pt !important;
+  }
+
+  .electronic-invoice-sheet th,
+  .electronic-invoice-sheet td {
+    padding: 3px 6px !important;
+    height: auto !important;
+  }
+
+  .electronic-invoice-sheet .invoice-signatures {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
   header,
   nav,
   footer,

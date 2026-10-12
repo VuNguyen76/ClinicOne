@@ -73,6 +73,7 @@
                 <th class="px-4 py-3.5">Tên dịch vụ</th>
                 <th class="px-4 py-3.5">Chuyên khoa</th>
                 <th class="px-4 py-3.5">Hình thức & Thời lượng</th>
+                <th class="px-4 py-3.5 text-right">Phí khám</th>
                 <th class="px-4 py-3.5">Phiếu khám</th>
                 <th class="px-4 py-3.5">Bác sĩ phụ trách</th>
                 <th class="px-4 py-3.5">Trạng thái</th>
@@ -91,6 +92,7 @@
                     </span>
                   </td>
                   <td class="px-4 py-3 font-mono text-slate-600">{{ service.visitType }} · {{ service.durationMinutes }} phút</td>
+                  <td class="px-4 py-3 text-right font-mono font-semibold">{{ (service.consultationFee ?? 0) | number:'1.0-0' }} đ</td>
                   <td class="px-4 py-3">
                     <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium" [class.bg-emerald-50]="service.requiresMedicalRecord" [class.text-emerald-700]="service.requiresMedicalRecord" [class.bg-slate-100]="!service.requiresMedicalRecord" [class.text-slate-500]="!service.requiresMedicalRecord">
                       {{ service.requiresMedicalRecord ? 'Bắt buộc phiếu' : 'Không bắt buộc' }}
@@ -209,6 +211,11 @@
             <label class="grid gap-1">
               <span class="erp-label">Thời lượng khám (phút) <span class="erp-label-required">*</span></span>
               <input type="number" min="5" max="120" step="5" class="erp-input font-mono" [ngModel]="durationMinutes()" (ngModelChange)="durationMinutes.set(+$event)" name="durationMinutes" />
+            </label>
+
+            <label class="grid gap-1">
+              <span class="erp-label">Phí khám (đồng) <span class="erp-label-required">*</span></span>
+              <input type="number" min="0" max="100000000" step="1000" class="erp-input font-mono" [ngModel]="consultationFee()" (ngModelChange)="consultationFee.set(+$event)" name="consultationFee" />
             </label>
 
             <label class="flex items-start gap-2.5 rounded-xl border border-slate-200 bg-slate-50/50 p-2.5 text-xs">

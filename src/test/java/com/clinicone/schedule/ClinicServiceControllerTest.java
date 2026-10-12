@@ -39,7 +39,7 @@ class ClinicServiceControllerTest {
         mockMvc.perform(post("/api/v1/admin/services")
                         .with(authentication(authenticated("ROLE_COORDINATOR")))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"Khám tổng quát cơ bản\",\"specialty\":\"Khám Tổng Quát\",\"visitType\":\"Khám thường\",\"durationMinutes\":30,\"doctorIds\":[\"9d9e3fb4-1045-4ca4-86d2-7d1fca4c1a13\"]}"))
+                        .content("{\"name\":\"Khám tổng quát cơ bản\",\"specialty\":\"Khám Tổng Quát\",\"visitType\":\"Khám thường\",\"durationMinutes\":30,\"doctorIds\":[\"9d9e3fb4-1045-4ca4-86d2-7d1fca4c1a13\"],\"consultationFee\":0}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.name").value("Khám tổng quát cơ bản"))
                 .andExpect(jsonPath("$.durationMinutes").value(30));
@@ -50,7 +50,7 @@ class ClinicServiceControllerTest {
         mockMvc.perform(post("/api/v1/admin/services")
                         .with(authentication(authenticated("ROLE_ADMIN")))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"Khám tổng quát cơ bản\",\"specialty\":\"Khám Tổng Quát\",\"visitType\":\"Khám thường\",\"durationMinutes\":30,\"doctorIds\":[\"9d9e3fb4-1045-4ca4-86d2-7d1fca4c1a13\"]}"))
+                        .content("{\"name\":\"Khám tổng quát cơ bản\",\"specialty\":\"Khám Tổng Quát\",\"visitType\":\"Khám thường\",\"durationMinutes\":30,\"doctorIds\":[\"9d9e3fb4-1045-4ca4-86d2-7d1fca4c1a13\"],\"consultationFee\":0}"))
                 .andExpect(status().isCreated());
     }
 
@@ -59,7 +59,7 @@ class ClinicServiceControllerTest {
         mockMvc.perform(post("/api/v1/admin/services")
                         .with(authentication(authenticated("ROLE_COORDINATOR")))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"Khám tổng quát cơ bản\",\"specialty\":\"Khám Tổng Quát\",\"visitType\":\"Khám thường\",\"durationMinutes\":121,\"doctorIds\":[\"9d9e3fb4-1045-4ca4-86d2-7d1fca4c1a13\"]}"))
+                        .content("{\"name\":\"Khám tổng quát cơ bản\",\"specialty\":\"Khám Tổng Quát\",\"visitType\":\"Khám thường\",\"durationMinutes\":121,\"doctorIds\":[\"9d9e3fb4-1045-4ca4-86d2-7d1fca4c1a13\"],\"consultationFee\":0}"))
                 .andExpect(status().isBadRequest());
     }
 
