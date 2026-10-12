@@ -99,11 +99,13 @@ public class InvoiceService {
             throw new AuthException(HttpStatus.CONFLICT, "EXAMINATION_NOT_COMPLETED",
                     "Chỉ tạo phiếu thanh toán sau khi bác sĩ hoàn tất lượt khám.");
         }
-        var medicalRecord = medicalRecordRepository.findBySession_Id(session.getId())
-                .filter(record -> record.getSignedAt() != null)
-                .orElseThrow(() -> new AuthException(HttpStatus.CONFLICT, "SIGNED_RECORD_REQUIRED",
-                        "Lượt khám chưa có phiếu khám đã ký."));
         var appointment = session.getAppointment();
+        if (appointment.requiresMedicalRecord()) {
+            medicalRecordRepository.findBySession_Id(session.getId())
+                    .filter(record -> record.getSignedAt() != null)
+                    .orElseThrow(() -> new AuthException(HttpStatus.CONFLICT, "SIGNED_RECORD_REQUIRED",
+                            "Lượt khám chưa có phiếu khám đã ký."));
+        }
         if (appointment.getServiceId() == null) {
             throw new AuthException(HttpStatus.CONFLICT, "SERVICE_TARIFF_REQUIRED",
                     "Lịch khám chưa được gắn dịch vụ có biểu phí.");

@@ -44,6 +44,7 @@ class InvoiceServiceTest {
     @Test
     void createsPendingPaymentReceiptFromConfiguredDatabaseTariff() {
         ExaminationSession session = completedSession();
+        when(session.getId()).thenReturn(sessionId);
         PatientProfile profile = mock(PatientProfile.class);
         when(profile.getFullName()).thenReturn("Patient A");
         when(profile.getPhone()).thenReturn("0912345678");
@@ -88,6 +89,7 @@ class InvoiceServiceTest {
     @Test
     void requiresConfiguredTariffInsteadOfInventingAnAmount() {
         ExaminationSession session = completedSession();
+        when(session.getId()).thenReturn(sessionId);
         MedicalRecord record = mock(MedicalRecord.class);
         when(record.getSignedAt()).thenReturn(Instant.parse("2026-10-10T02:00:00Z"));
         when(sessionRepository.findByIdForUpdate(sessionId)).thenReturn(Optional.of(session));
@@ -101,11 +103,36 @@ class InvoiceServiceTest {
                         .isEqualTo("SERVICE_TARIFF_REQUIRED"));
     }
 
+    @Test
+    void createsReceiptWithoutSignedRecordWhenServiceDoesNotRequireOne() {
+        ExaminationSession session = completedSession(false);
+        PatientProfile profile = mock(PatientProfile.class);
+        when(profile.getFullName()).thenReturn("Patient A");
+        when(profile.getPhone()).thenReturn("0912345678");
+        when(appointment.getPatientProfile()).thenReturn(profile);
+        when(appointment.getServiceName()).thenReturn("Tư vấn nhanh");
+        ClinicService clinicService = mock(ClinicService.class);
+        when(clinicService.getConsultationFee()).thenReturn(100_000L);
+        when(sessionRepository.findByIdForUpdate(sessionId)).thenReturn(Optional.of(session));
+        when(invoiceRepository.findBySession_Id(sessionId)).thenReturn(Optional.empty());
+        when(clinicServiceRepository.findById(serviceId)).thenReturn(Optional.of(clinicService));
+        when(invoiceRepository.save(any(Invoice.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        InvoiceResponse response = service.createPaymentReceipt(sessionId, "cashier-1");
+
+        assertThat(response.totalAmount()).isEqualTo(100_000L);
+        assertThat(response.status()).isEqualTo(InvoiceStatus.PENDING);
+    }
+
     private ExaminationSession completedSession() {
+        return completedSession(true);
+    }
+
+    private ExaminationSession completedSession(boolean requiresMedicalRecord) {
         appointment = mock(Appointment.class);
         when(appointment.getServiceId()).thenReturn(serviceId);
+        when(appointment.requiresMedicalRecord()).thenReturn(requiresMedicalRecord);
         ExaminationSession session = mock(ExaminationSession.class);
-        when(session.getId()).thenReturn(sessionId);
         when(session.getAppointment()).thenReturn(appointment);
         when(session.getStatus()).thenReturn(ExaminationSessionStatus.COMPLETED);
         return session;
