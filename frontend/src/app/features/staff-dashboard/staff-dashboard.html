@@ -196,7 +196,7 @@
                 <button
                   type="button"
                   class="erp-btn-primary !h-9 !px-4 text-xs font-semibold cursor-pointer"
-                  [disabled]="busyTicketId() === current.id"
+                  [disabled]="busyTicketId() !== ''"
                   (click)="act(current, 'start')"
                 >
                   <mat-icon class="!h-4 !w-4 !text-[16px]">stethoscope</mat-icon>
@@ -205,7 +205,7 @@
                 <button
                   type="button"
                   class="erp-btn-secondary !h-9 !px-3 text-xs font-semibold cursor-pointer"
-                  [disabled]="busyTicketId() === current.id"
+                  [disabled]="busyTicketId() !== ''"
                   (click)="act(current, 'skip')"
                 >
                   <mat-icon class="!h-4 !w-4 !text-[16px]">replay</mat-icon>
@@ -247,7 +247,7 @@
                 data-testid="call-next"
                 type="button"
                 class="erp-btn-primary !h-9 !px-4 text-xs font-bold shadow-xs cursor-pointer"
-                [disabled]="busyTicketId() === 'next'"
+                [disabled]="busyTicketId() !== ''"
                 (click)="callNextDoctor()"
               >
                 <mat-icon class="!h-4 !w-4 !text-[16px]">campaign</mat-icon>
@@ -356,7 +356,7 @@
                               <button
                                 type="button"
                                 class="erp-btn-primary !min-h-7.5 !h-7.5 !px-3 !py-1 !text-xs shadow-2xs"
-                                [disabled]="busyTicketId() === ticket.id || !isToday() || doctorShiftStatus() !== 'ACTIVE'"
+                                [disabled]="busyTicketId() !== '' || !isToday() || doctorShiftStatus() !== 'ACTIVE'"
                                 (click)="callTicket(ticket)"
                                 [title]="!isToday() ? 'Chỉ gọi trong ngày hôm nay' : 'Gọi vào khám'"
                               >
@@ -368,7 +368,7 @@
                             <button
                               type="button"
                               class="erp-btn-secondary !min-h-7.5 !h-7.5 !px-2.5 !py-1 !text-xs"
-                              [disabled]="busyTicketId() === ticket.id || !isToday() || doctorShiftStatus() !== 'ACTIVE'"
+                              [disabled]="busyTicketId() !== '' || !isToday() || doctorShiftStatus() !== 'ACTIVE'"
                               (click)="act(ticket, 'skip')"
                               [title]="!isToday() ? 'Chỉ thao tác trong ngày hôm nay' : 'Gọi lại sau'"
                             >
@@ -377,7 +377,7 @@
                             <button
                               type="button"
                               class="erp-btn-primary !min-h-7.5 !h-7.5 !px-2.5 !py-1 !text-xs"
-                              [disabled]="busyTicketId() === ticket.id || !isToday() || doctorShiftStatus() !== 'ACTIVE'"
+                              [disabled]="busyTicketId() !== '' || !isToday() || doctorShiftStatus() !== 'ACTIVE'"
                               (click)="act(ticket, 'start')"
                               [title]="!isToday() ? 'Chỉ thao tác trong ngày hôm nay' : 'Vào khám'"
                             >
@@ -403,7 +403,7 @@
                               <button
                                 type="button"
                                 class="erp-btn-secondary !min-h-7.5 !h-7.5 !px-2.5 !py-1 !text-xs text-amber-700 hover:border-amber-300 hover:bg-amber-50"
-                                [disabled]="busyTicketId() === ticket.id || !isToday() || doctorShiftStatus() !== 'ACTIVE'"
+                                [disabled]="busyTicketId() !== '' || !isToday() || doctorShiftStatus() !== 'ACTIVE'"
                                 (click)="callTicket(ticket)"
                                 [title]="!isToday() ? 'Chỉ gọi trong ngày hôm nay' : 'Gọi lại người bệnh'"
                               >

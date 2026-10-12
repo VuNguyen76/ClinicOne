@@ -245,6 +245,7 @@ export class StaffDashboard implements OnInit, OnDestroy {
   }
 
   protected act(ticket: QueueTicketResponse, action: QueueAction): void {
+    if (this.busyTicketId()) return;
     if (action === 'start' && !this.canStartTicket(ticket)) return;
     if (action === 'skip' && (!this.isOwnDoctor() || !this.isToday() || ticket.status !== 'CALLED')) return;
     this.busyTicketId.set(ticket.id);
@@ -283,6 +284,7 @@ export class StaffDashboard implements OnInit, OnDestroy {
   }
 
   protected callNextDoctor(): void {
+    if (this.busyTicketId()) return;
     if (!this.isOwnDoctor() || !this.isToday() || !this.nextWaitingTicket()) return;
     this.busyTicketId.set('next');
     this.error.set('');
@@ -299,6 +301,7 @@ export class StaffDashboard implements OnInit, OnDestroy {
   }
 
   protected callTicket(ticket: QueueTicketResponse): void {
+    if (this.busyTicketId()) return;
     if (!this.canCallTicket(ticket)) return;
     this.busyTicketId.set(ticket.id);
     this.error.set('');
