@@ -1,11 +1,13 @@
 package com.clinicone.auth;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
 import java.time.Duration;
@@ -16,9 +18,14 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @ActiveProfiles("test")
+@AutoConfigureMockMvc
 class OtpConcurrentVerificationIntegrationTest {
     private static final String PHONE = "0900000001";
 
@@ -30,6 +37,9 @@ class OtpConcurrentVerificationIntegrationTest {
 
     @Autowired
     private OtpChallengeRetentionJob retentionJob;
+
+    @Autowired
+    private MockMvc mockMvc;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -129,5 +139,26 @@ class OtpConcurrentVerificationIntegrationTest {
         assertTrue(repository.findById(oldChallenge.getId()).isEmpty());
         assertTrue(repository.findById(recentRegistration.getId()).isPresent());
         assertTrue(repository.findById(recentReceiptLookup.getId()).isPresent());
+    }
+
+    @Test
+    void publicPatientDataLookupIsAnonymousAndConsumesOtpExactlyOnce() throws Exception {
+        Instant now = Instant.now();
+        OtpChallenge challenge = new OtpChallenge("+84900000001", OtpPurpose.RECEIPT_LOOKUP,
+                passwordEncoder.encode("123456"), now, now.plusSeconds(300));
+        repository.saveAndFlush(challenge);
+
+        mockMvc.perform(post("/api/v1/public/patient-data/lookup")
+                        .contentType("application/json")
+                        .content("{\"phone\":\"0900000001\",\"code\":\"123456\"}"))
+                .andExpect(status().isOk())
+                .andExpect(content().json("{\"profiles\":[]}"));
+
+        assertThat(repository.findById(challenge.getId()).orElseThrow().isExpired(Instant.now())).isTrue();
+
+        mockMvc.perform(post("/api/v1/public/patient-data/lookup")
+                        .contentType("application/json")
+                        .content("{\"phone\":\"0900000001\",\"code\":\"123456\"}"))
+                .andExpect(status().isBadRequest());
     }
 }
