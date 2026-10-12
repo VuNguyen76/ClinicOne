@@ -415,6 +415,23 @@ describe('ReceptionCheckIn', () => {
     expect(fixture.nativeElement.textContent).toContain('BS. Nguyễn Bình');
   });
 
+  it('does not submit queue adjustment twice while the first update is pending', () => {
+    const component = fixture.componentInstance as any;
+    component.adjustmentTicket.set({ ...appointment(), queueTicketId: 'ticket-1', queueStatus: 'WAITING' });
+    component.adjustmentReason.set('Æ¯u tiÃªn ngÆ°á»i bá»‡nh cáº¥p cá»©u');
+
+    component.adjustQueue('SET_PRIORITY');
+    component.adjustQueue('SET_PRIORITY');
+
+    const requests = http.match('/api/v1/queue/ticket-1/adjust');
+    requests.forEach((request) => request.flush({
+      id: 'ticket-1', queueNumber: 5, roomCode: 'NOI-01', roomName: 'PhÃ²ng Ná»™i 01',
+      queueDate: '2026-08-07', appointmentTime: '09:00:00', status: 'WAITING', statusLabel: 'Äang chá»',
+      appointmentCode: 'CL-20260807-1234', specialty: 'Ná»™i tá»•ng quÃ¡t', doctorName: 'BS. Nguyá»…n An', priority: true,
+    }));
+    expect(requests).toHaveLength(1);
+  });
+
   it('does not let an older queue-adjustment doctor list replace the selected ticket availability', () => {
     const component = fixture.componentInstance as any;
     const firstTicket = { ...appointment(), queueStatus: 'WAITING', queueTicketId: 'ticket-1' };
