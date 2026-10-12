@@ -78,6 +78,20 @@ describe('StaffDashboard', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="call-next"]')).not.toBeNull();
   });
 
+  it('does not call the next patient twice while the first call is pending', () => {
+    createDashboard('DOCTOR');
+    http.expectOne((candidate) => candidate.url === '/api/v1/doctor/queue')
+      .flush(doctorQueue([ticket('ticket-1', 'WAITING')]));
+    const component = fixture.componentInstance as any;
+
+    component.callNextDoctor();
+    component.callNextDoctor();
+
+    const requests = http.match((request) => request.url === '/api/v1/doctor/queue/call-next');
+    requests.forEach((request) => request.flush(ticket('ticket-1', 'CALLED')));
+    expect(requests).toHaveLength(1);
+  });
+
   it('uses the current assigned shift without asking a doctor to choose a date', () => {
     createDashboard('DOCTOR');
     http.expectOne((candidate) => candidate.url === '/api/v1/doctor/queue')
