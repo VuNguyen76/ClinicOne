@@ -445,6 +445,22 @@ public ReceptionAppointmentResponse checkIn(UUID appointmentId, ReceptionCheckIn
         LocalDate appointmentDate = request.appointmentDate();
         boolean appointmentIsToday = today().equals(appointmentDate);
 
+        if (Boolean.TRUE.equals(request.overCapacity()) && patient != null) {
+            // Keep lock ordering consistent with AppointmentService: patient account first,
+            // then doctor profile. Reversing this order can deadlock a concurrent booking.
+            patient = patientAccountRepository.findByIdForUpdate(patient.getId())
+                    .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "PATIENT_ACCOUNT_NOT_FOUND",
+                            "Không tìm thấy tài khoản người bệnh."));
+            if (patient.getStatus() == AccountStatus.LOCKED) {
+                throw new AuthException(HttpStatus.CONFLICT, "PATIENT_ACCOUNT_LOCKED",
+                        "Tài khoản người bệnh đang bị khóa.");
+            }
+            if (patient.isMustChangePassword()) {
+                throw new AuthException(HttpStatus.CONFLICT, "PASSWORD_CHANGE_REQUIRED",
+                        "Người bệnh cần đổi mật khẩu tạm trước khi check-in.");
+            }
+        }
+
         DoctorProfile doctor = doctorProfileRepository.findByStaffAccount_Id(request.doctorId())
                 .filter(DoctorProfile::isActive)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "DOCTOR_ASSIGNMENT_NOT_FOUND",
