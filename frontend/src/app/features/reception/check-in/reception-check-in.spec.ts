@@ -152,6 +152,22 @@ describe('ReceptionCheckIn', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="open-profile-intake"]')).not.toBeNull();
   });
 
+  it('keeps profile search results for the latest submitted phone number', () => {
+    const component = fixture.componentInstance as any;
+    component.profileQuery.set('0912345678');
+    component.searchProfiles();
+    const oldRequest = http.expectOne('/api/v1/reception/profiles?phone=0912345678');
+
+    component.profileQuery.set('0987654321');
+    component.searchProfiles();
+    const latestRequest = http.expectOne('/api/v1/reception/profiles?phone=0987654321');
+    latestRequest.flush([{ id: 'p-2', fullName: 'Nguyễn Thị An', relationship: 'Bản thân', phone: '0987654321', primaryProfile: true }]);
+    oldRequest.flush([{ id: 'p-1', fullName: 'Nguyễn Thanh Vũ', relationship: 'Bản thân', phone: '0912345678', primaryProfile: true }]);
+
+    expect(component.profileResults().map((profile: any) => profile.id)).toEqual(['p-2']);
+    expect(component.profileLoading()).toBe(false);
+  });
+
   it('ignores a walk-in profile response after the phone number changes', () => {
     const component = fixture.componentInstance as any;
     component.walkInPhone.set('0912345678');
@@ -222,6 +238,48 @@ describe('ReceptionCheckIn', () => {
     });
 
     expect(component.registrationStreetAddress()).toBe('');
+  });
+
+  it('keeps districts for the latest selected province when address requests finish out of order', () => {
+    const component = fixture.componentInstance as any;
+    component.registrationProvinces.set([
+      { code: '01', name: 'Hà Nội' },
+      { code: '79', name: 'TP. Hồ Chí Minh' },
+    ]);
+
+    component.registrationProvinceCode.set('01');
+    component.registrationProvinceChanged();
+    const oldDistricts = http.expectOne('/api/v1/addresses/provinces/01/districts?page=1&limit=100');
+
+    component.registrationProvinceCode.set('79');
+    component.registrationProvinceChanged();
+    const latestDistricts = http.expectOne('/api/v1/addresses/provinces/79/districts?page=1&limit=100');
+    latestDistricts.flush([{ code: '760', name: 'Quận 1' }]);
+    oldDistricts.flush([{ code: '001', name: 'Ba Đình' }]);
+
+    expect(component.registrationDistricts().map((item: any) => item.name)).toEqual(['Quận 1']);
+    expect(component.registrationAddressLoading()).toBe(false);
+  });
+
+  it('keeps wards for the latest selected district when address requests finish out of order', () => {
+    const component = fixture.componentInstance as any;
+    component.registrationDistricts.set([
+      { code: '001', name: 'Ba Đình' },
+      { code: '760', name: 'Quận 1' },
+    ]);
+
+    component.registrationDistrictCode.set('001');
+    component.registrationDistrictChanged();
+    const oldWards = http.expectOne('/api/v1/addresses/districts/001/wards?page=1&limit=100');
+
+    component.registrationDistrictCode.set('760');
+    component.registrationDistrictChanged();
+    const latestWards = http.expectOne('/api/v1/addresses/districts/760/wards?page=1&limit=100');
+    latestWards.flush([{ code: '26734', name: 'Bến Nghé' }]);
+    oldWards.flush([{ code: '00001', name: 'Phúc Xá' }]);
+
+    expect(component.registrationWards().map((item: any) => item.name)).toEqual(['Bến Nghé']);
+    expect(component.registrationAddressLoading()).toBe(false);
   });
 
   it('only requires the three minimum identity fields before reception', () => {

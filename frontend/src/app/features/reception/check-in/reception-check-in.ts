@@ -29,8 +29,10 @@ export class ReceptionCheckIn implements OnInit {
   private walkInProfileRequestId = 0;
   private walkInSlotRequestId = 0;
   private walkInOtpRequestId = 0;
+  private registrationAddressRequestId = 0;
   private worklistRequestId = 0;
   private searchRequestId = 0;
+  private profileSearchRequestId = 0;
   private submittedSearchQuery = '';
   private submittedSearchDate = '';
 
@@ -213,16 +215,23 @@ export class ReceptionCheckIn implements OnInit {
       this.error.set('Nhập số điện thoại gồm 10 chữ số để tra hồ sơ.');
       return;
     }
+    const requestId = ++this.profileSearchRequestId;
     this.profileLoading.set(true);
+    this.profileResults.set([]);
+    this.notice.set('');
     this.error.set('');
     this.authApi.getReceptionProfiles(phone).subscribe({
       next: (profiles) => {
-        this.profileResults.set(profiles);
+        if (requestId !== this.profileSearchRequestId) return;
         this.profileLoading.set(false);
+        if (phone !== this.profileQuery().trim()) return;
+        this.profileResults.set(profiles);
         if (profiles.length === 0) this.notice.set('Chưa có hồ sơ phù hợp.');
       },
       error: (response) => {
+        if (requestId !== this.profileSearchRequestId) return;
         this.profileLoading.set(false);
+        if (phone !== this.profileQuery().trim()) return;
         if (response.status === 404) {
           this.profileResults.set([]);
           this.notice.set('Chưa có hồ sơ cho số điện thoại này.');
@@ -1105,6 +1114,10 @@ export class ReceptionCheckIn implements OnInit {
   }
 
   private prepareProfileCompletion(profile: ReceptionPatientProfile | undefined): void {
+    this.registrationAddressRequestId++;
+    this.registrationAddressLoading.set(false);
+    this.registrationDistricts.set([]);
+    this.registrationWards.set([]);
     this.completionProfile.set(profile ?? null);
     if (!profile || profile.accountStatus !== 'ACTIVE' || profile.mustChangePassword) {
       this.walkInProfileNeedsCompletion.set(false);
@@ -1170,6 +1183,8 @@ export class ReceptionCheckIn implements OnInit {
   }
 
   protected registrationProvinceChanged(): void {
+    const requestId = ++this.registrationAddressRequestId;
+    const provinceCode = this.registrationProvinceCode();
     const province = this.registrationProvinces().find((item) => String(item.code) === this.registrationProvinceCode());
     this.registrationProvinceName.set(province?.name ?? '');
     this.registrationDistrictCode.set('');
@@ -1178,29 +1193,51 @@ export class ReceptionCheckIn implements OnInit {
     this.registrationWardName.set('');
     this.registrationDistricts.set([]);
     this.registrationWards.set([]);
-    if (this.registrationProvinceCode()) {
+    if (provinceCode) {
       this.registrationAddressLoading.set(true);
-      this.addressApi.getDistricts(this.registrationProvinceCode()).subscribe({
-        next: (items) => this.registrationDistricts.set(items),
-        complete: () => this.registrationAddressLoading.set(false),
-        error: () => this.registrationAddressLoading.set(false),
+      this.addressApi.getDistricts(provinceCode).subscribe({
+        next: (items) => {
+          if (requestId === this.registrationAddressRequestId && provinceCode === this.registrationProvinceCode()) {
+            this.registrationDistricts.set(items);
+          }
+        },
+        complete: () => {
+          if (requestId === this.registrationAddressRequestId) this.registrationAddressLoading.set(false);
+        },
+        error: () => {
+          if (requestId === this.registrationAddressRequestId) this.registrationAddressLoading.set(false);
+        },
       });
+    } else {
+      this.registrationAddressLoading.set(false);
     }
   }
 
   protected registrationDistrictChanged(): void {
+    const requestId = ++this.registrationAddressRequestId;
+    const districtCode = this.registrationDistrictCode();
     const district = this.registrationDistricts().find((item) => String(item.code) === this.registrationDistrictCode());
     this.registrationDistrictName.set(district?.name ?? '');
     this.registrationWardCode.set('');
     this.registrationWardName.set('');
     this.registrationWards.set([]);
-    if (this.registrationDistrictCode()) {
+    if (districtCode) {
       this.registrationAddressLoading.set(true);
-      this.addressApi.getWards(this.registrationDistrictCode()).subscribe({
-        next: (items) => this.registrationWards.set(items),
-        complete: () => this.registrationAddressLoading.set(false),
-        error: () => this.registrationAddressLoading.set(false),
+      this.addressApi.getWards(districtCode).subscribe({
+        next: (items) => {
+          if (requestId === this.registrationAddressRequestId && districtCode === this.registrationDistrictCode()) {
+            this.registrationWards.set(items);
+          }
+        },
+        complete: () => {
+          if (requestId === this.registrationAddressRequestId) this.registrationAddressLoading.set(false);
+        },
+        error: () => {
+          if (requestId === this.registrationAddressRequestId) this.registrationAddressLoading.set(false);
+        },
       });
+    } else {
+      this.registrationAddressLoading.set(false);
     }
   }
 
