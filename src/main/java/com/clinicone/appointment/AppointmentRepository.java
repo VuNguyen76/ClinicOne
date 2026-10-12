@@ -101,6 +101,11 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
 
     Optional<Appointment> findByIdAndPatientId(UUID appointmentId, UUID patientId);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select a from Appointment a where a.id = :appointmentId and a.patient.id = :patientId")
+    Optional<Appointment> findByIdAndPatientIdForUpdate(@Param("appointmentId") UUID appointmentId,
+                                                         @Param("patientId") UUID patientId);
+
     Optional<Appointment> findByPatientIdAndCreationRequestKey(UUID patientId, String creationRequestKey);
 
     Optional<Appointment> findByPatientProfileIdAndCreationRequestKey(UUID patientProfileId, String creationRequestKey);
