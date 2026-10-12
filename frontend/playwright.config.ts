@@ -7,7 +7,7 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   reporter: 'list',
   use: {
-    baseURL: process.env.BASE_URL ?? 'http://localhost:4200',
+    baseURL: process.env.BASE_URL ?? 'http://localhost:4300',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -20,8 +20,8 @@ export default defineConfig({
     // Starting only the frontend makes every unmocked API request fail with
     // ECONNREFUSED and hides real integration regressions.
     command: 'npm run start:e2e',
-    url: 'http://localhost:4200',
-    reuseExistingServer: true,
+    url: 'http://localhost:4300',
+    reuseExistingServer: false,
     timeout: 120_000,
   },
 });
