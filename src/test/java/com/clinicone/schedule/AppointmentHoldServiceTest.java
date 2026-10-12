@@ -294,6 +294,24 @@ class AppointmentHoldServiceTest {
         assertEquals("APPOINTMENT_HOLD_MISMATCH", exception.getCode());
     }
 
+    @Test
+    void rejectsBookingForDifferentDoctorNameWhenHoldHasNoDoctorId() throws Exception {
+        PatientAccount account = account();
+        UUID holdId = UUID.randomUUID();
+        LocalDate date = LocalDate.of(2026, 8, 10);
+        LocalTime time = LocalTime.of(8, 30);
+        AppointmentHold hold = AppointmentHold.create(account, "General", "Doctor A", null,
+                date, time, "legacy-hold", NOW.plusSeconds(600));
+        setId(hold, holdId);
+        when(holdRepository.findByIdAndPatientId(holdId, ACCOUNT_ID)).thenReturn(Optional.of(hold));
+
+        AuthException exception = assertThrows(AuthException.class, () -> service.requireForBooking(
+                ACCOUNT_ID.toString(), holdId, new CreateAppointmentRequest("General", "Doctor B", date, time,
+                        "Follow-up", null, null, holdId)));
+
+        assertEquals("APPOINTMENT_HOLD_MISMATCH", exception.getCode());
+    }
+
     private PatientAccount account() {
         PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
         try {
