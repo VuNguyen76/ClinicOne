@@ -184,7 +184,7 @@ describe('AppointmentDetail', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="cancel-appointment-action"]')).not.toBeNull();
   });
 
-  it('keeps cancellation available but blocks QR check-in when appointment is late', () => {
+  it('blocks both cancellation and QR check-in when the appointment is late', () => {
     http.expectOne('/api/v1/appointments/appointment-1').flush({
       ...appointment,
       appointmentDate: '2020-01-01',
@@ -200,7 +200,7 @@ describe('AppointmentDetail', () => {
     expect(fixture.nativeElement.textContent).toContain('Đã quá giờ check-in');
     expect(fixture.nativeElement.querySelector('[data-testid="open-reschedule"]')).toBeNull();
     expect(fixture.nativeElement.querySelector('[data-testid="qr-scan-action"]')).toBeNull();
-    expect(fixture.nativeElement.querySelector('[data-testid="cancel-appointment-action"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="cancel-appointment-action"]')).toBeNull();
   });
 
   it('renders correct color classes for cancelled (red), absent (yellow), completed (green), and booked (blue) statuses', () => {
