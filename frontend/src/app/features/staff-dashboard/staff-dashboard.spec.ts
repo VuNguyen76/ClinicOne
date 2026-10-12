@@ -37,6 +37,27 @@ describe('StaffDashboard', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="waiting-count"]').textContent).toContain('1');
   });
 
+  it('does not replace the selected room queue with a slower response from the previous room', () => {
+    createDashboard('COORDINATOR');
+    http.expectOne('/api/v1/rooms').flush([room('NOI-01'), room('NOI-02')]);
+    http.expectOne((request) => request.url === '/api/v1/rooms/NOI-01/queue')
+      .flush([ticket('initial', 'WAITING', 1)]);
+
+    const component = fixture.componentInstance as any;
+    component.selectRoom({ target: { value: 'NOI-02' } } as unknown as Event);
+    const previousRoomRequest = http.expectOne((request) => request.url === '/api/v1/rooms/NOI-02/queue');
+    component.selectRoom({ target: { value: 'NOI-01' } } as unknown as Event);
+    const selectedRoomRequest = http.expectOne((request) => request.url === '/api/v1/rooms/NOI-01/queue');
+
+    selectedRoomRequest.flush([ticket('selected-room', 'WAITING', 2)]);
+    previousRoomRequest.flush([ticket('stale-room', 'WAITING', 9)]);
+    fixture.detectChanges();
+
+    expect(component.selectedRoomCode()).toBe('NOI-01');
+    expect(fixture.nativeElement.querySelector('[data-testid="queue-row"] td:first-child span')?.textContent?.trim())
+      .toBe('2');
+  });
+
   it('keeps a coordinator view read-only for waiting tickets', () => {
     createDashboard('COORDINATOR');
     http.expectOne('/api/v1/rooms').flush([room('NOI-01')]);
