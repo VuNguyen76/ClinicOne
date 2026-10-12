@@ -232,6 +232,29 @@ class AppointmentServiceTest {
     }
 
     @Test
+    void rejectsMovingLateAppointmentToAnotherDate() {
+        UUID appointmentId = UUID.randomUUID();
+        UUID oldDoctorId = UUID.randomUUID();
+        UUID newDoctorId = UUID.randomUUID();
+        Appointment appointment = Appointment.create(
+                new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false),
+                oldDoctorId, "CL-LATE-002", "Nội tổng quát", "BS. Cũ", LocalDate.of(2026, 8, 10),
+                LocalTime.of(9, 0), "Đau đầu");
+        setId(appointment, appointmentId);
+        when(appointmentRepository.findByIdForUpdate(appointmentId)).thenReturn(Optional.of(appointment));
+
+        AppointmentService lateService = serviceBuilder()
+                .clock(Clock.fixed(Instant.parse("2026-08-10T03:35:00Z"), ZoneOffset.UTC))
+                .build();
+
+        AuthException exception = assertThrows(AuthException.class, () -> lateService.rescheduleForReception(
+                appointmentId, newDoctorId, "BS. Mới", LocalDate.of(2026, 8, 11), LocalTime.of(11, 0),
+                "Người bệnh đến muộn và đồng ý đổi lịch", "reception-1"));
+
+        assertEquals("LATE_RESCHEDULE_DATE_INVALID", exception.getCode());
+    }
+
+    @Test
     void repeatedCreateWithSameIdempotencyKeyReturnsTheExistingAppointment() {
         PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
         setId(account, ACCOUNT_ID);

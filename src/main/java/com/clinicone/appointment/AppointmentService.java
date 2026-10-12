@@ -461,6 +461,10 @@ public class AppointmentService {
             throw new AuthException(HttpStatus.CONFLICT, "LATE_RESCHEDULE_WINDOW_CLOSED",
                     "Chỉ có thể chuyển lịch trong thời gian đến muộn của ngày khám.");
         }
+        if (!today().equals(appointmentDate)) {
+            throw new AuthException(HttpStatus.CONFLICT, "LATE_RESCHEDULE_DATE_INVALID",
+                    "Lịch đến muộn chỉ được chuyển sang khung giờ khác trong cùng ngày.");
+        }
         boolean sameSlot = appointment.getAppointmentDate().equals(appointmentDate)
                 && appointment.getStartTime().equals(startTime)
                 && Objects.equals(appointment.getDoctorStaffId(), doctorStaffId);
