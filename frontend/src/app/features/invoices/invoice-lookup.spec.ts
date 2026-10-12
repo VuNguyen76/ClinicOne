@@ -62,6 +62,16 @@ describe('InvoiceLookup', () => {
     expect(fixture.nativeElement.textContent).toContain('Mã OTP');
   });
 
+  it('does not send duplicate OTP requests while the first request is pending', () => {
+    component.phone.set('0862764830');
+    component.requestOtp();
+    component.requestOtp();
+
+    const requests = http.match('/api/v1/auth/request-sms-otp');
+    expect(requests).toHaveLength(1);
+    requests[0].flush({ expiresInSeconds: 300, retryAfterSeconds: 60 });
+  });
+
   it('does not advance to OTP entry for a phone number changed while the request is pending', () => {
     component.phone.set('0862764830');
     component.requestOtp();
