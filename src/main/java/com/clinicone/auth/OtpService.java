@@ -24,6 +24,7 @@ public class OtpService {
     static final int MAX_FAILED_ATTEMPTS = 5;
 
     private final OtpChallengeRepository repository;
+    private final OtpIssuanceLock issuanceLock;
     private final OtpSender sender;
     private final PasswordEncoder passwordEncoder;
     private final OtpCodeGenerator codeGenerator;
@@ -98,6 +99,7 @@ public class OtpService {
     }
 
     private RequestOtpResponse issueOtp(String destination, OtpPurpose purpose) {
+        issuanceLock.lock(destination, purpose);
         Instant now = Instant.now(clock);
         Instant windowStart = now.minusSeconds(RATE_WINDOW_SECONDS);
         if (repository.countByDestinationAndPurposeAndCreatedAtAfter(destination, purpose, windowStart)
