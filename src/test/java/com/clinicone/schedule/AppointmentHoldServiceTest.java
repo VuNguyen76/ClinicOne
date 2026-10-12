@@ -90,6 +90,26 @@ class AppointmentHoldServiceTest {
     }
 
     @Test
+    void doctorNameIsPartOfTheHoldClaimWhenDoctorIdIsUnavailable() {
+        when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account()));
+        when(holdRepository.findByHoldKey(any())).thenReturn(Optional.empty());
+        when(holdRepository.findByPatientIdAndSessionKeyAndExpiresAtAfter(eq(ACCOUNT_ID), eq("session-a"), eq(NOW)))
+                .thenReturn(List.of());
+        when(holdRepository.saveAndFlush(any(AppointmentHold.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        LocalDate date = LocalDate.of(2026, 8, 10);
+
+        service.create(ACCOUNT_ID.toString(), new CreateAppointmentHoldRequest("Nội tổng quát", "BS. An",
+                date, LocalTime.of(8, 30), null), "session-a");
+        service.create(ACCOUNT_ID.toString(), new CreateAppointmentHoldRequest("Nội tổng quát", "BS. Bình",
+                date, LocalTime.of(8, 30), null), "session-a");
+
+        ArgumentCaptor<AppointmentHold> holds = ArgumentCaptor.forClass(AppointmentHold.class);
+        verify(holdRepository, times(2)).saveAndFlush(holds.capture());
+        assertNotEquals(holds.getAllValues().get(0).getHoldKey(), holds.getAllValues().get(1).getHoldKey());
+    }
+
+    @Test
     void createsProfileAwareHoldKey() {
         PatientAccount account = account();
         UUID profileId = UUID.randomUUID();
