@@ -58,6 +58,25 @@ describe('Account', () => {
     expect(profileLink?.getAttribute('href')).toBe('/account');
   });
 
+  it('keeps districts for the latest selected province when responses arrive out of order', () => {
+    component['provinces'].set([
+      { code: '01', name: 'Province A' },
+      { code: '02', name: 'Province B' },
+    ]);
+    component['profileForm'].controls.provinceCode.setValue('01');
+    component['provinceChanged']();
+    const provinceA = http.expectOne('/api/v1/addresses/provinces/01/districts?page=1&limit=100');
+
+    component['profileForm'].controls.provinceCode.setValue('02');
+    component['provinceChanged']();
+    const provinceB = http.expectOne('/api/v1/addresses/provinces/02/districts?page=1&limit=100');
+
+    provinceB.flush([{ code: '0201', name: 'District B' }]);
+    provinceA.flush([{ code: '0101', name: 'District A' }]);
+
+    expect(component['districts']().map((item) => item.name)).toEqual(['District B']);
+  });
+
   it('sends the selected address parts as one display address', () => {
     component['profileForm'].patchValue({
       provinceCode: '72', provinceName: 'Tây Ninh',
