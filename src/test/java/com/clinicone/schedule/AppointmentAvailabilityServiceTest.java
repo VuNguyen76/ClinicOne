@@ -14,12 +14,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.DayOfWeek;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -172,6 +174,116 @@ class AppointmentAvailabilityServiceTest {
         assertEquals(1, slots.size());
         assertEquals(LocalTime.of(8, 0), slots.get(0).startTime());
         assertEquals("TQ-01", slots.get(0).roomCode());
+    }
+
+    @Test
+    void doesNotExposeWeeklyFallbackOnTemplateExceptionDate() {
+        ClinicServiceRepository serviceRepository = mock(ClinicServiceRepository.class);
+        GeneratedClinicSlotRepository slotRepository = mock(GeneratedClinicSlotRepository.class);
+        WorkScheduleTemplateRepository templateRepository = mock(WorkScheduleTemplateRepository.class);
+        DoctorProfileRepository profileRepository = mock(DoctorProfileRepository.class);
+        DoctorScheduleRepository scheduleRepository = mock(DoctorScheduleRepository.class);
+        ClinicService clinicService = mock(ClinicService.class);
+        LocalDate monday = LocalDate.of(2026, 8, 10);
+        UUID serviceId = UUID.randomUUID();
+        UUID doctorId = UUID.randomUUID();
+        UUID profileId = UUID.randomUUID();
+        DoctorProfile profile = mock(DoctorProfile.class);
+        StaffAccount staff = mock(StaffAccount.class);
+        ClinicRoom room = mock(ClinicRoom.class);
+        DoctorSchedule schedule = mock(DoctorSchedule.class);
+        WorkScheduleTemplate template = exceptionTemplate(profile, monday, monday);
+        when(serviceRepository.findById(serviceId)).thenReturn(Optional.of(clinicService));
+        when(clinicService.isActive()).thenReturn(true);
+        when(clinicService.getSpecialty()).thenReturn("Khám Tổng Quát");
+        when(clinicService.getDurationMinutes()).thenReturn(30);
+        when(templateRepository.findActiveByServiceAndDateRange(serviceId, monday, monday)).thenReturn(List.of(template));
+        when(slotRepository.findByClinicServiceIdAndAppointmentDateBetweenOrderByAppointmentDateAscStartTimeAsc(
+                serviceId, monday, monday)).thenReturn(List.of());
+        when(profile.getStaffAccount()).thenReturn(staff);
+        when(profile.getSpecialty()).thenReturn("Khám Tổng Quát");
+        when(profile.getRoom()).thenReturn(room);
+        when(staff.getId()).thenReturn(doctorId);
+        when(staff.getFullName()).thenReturn("Bác sĩ An");
+        when(room.getCode()).thenReturn("TQ-01");
+        when(schedule.getDoctorProfile()).thenReturn(profile);
+        when(schedule.getDayOfWeek()).thenReturn(DayOfWeek.MONDAY);
+        when(schedule.getStartTime()).thenReturn(LocalTime.of(8, 30));
+        when(schedule.getEndTime()).thenReturn(LocalTime.of(10, 0));
+        when(schedule.getSlotDurationMinutes()).thenReturn(30);
+        when(scheduleRepository.findActiveBySpecialtyIgnoreCase("Khám Tổng Quát")).thenReturn(List.of(schedule));
+        when(appointmentRepository.countBookedByDoctorsAndDateRangeAndStatusIn(
+                List.of(doctorId), monday, monday, List.of(AppointmentStatus.BOOKED, AppointmentStatus.CHECKED_IN)))
+                .thenReturn(List.of());
+
+        AppointmentAvailabilityService configuredService = new AppointmentAvailabilityService(
+                appointmentRepository, createSpecialtyCatalog(), profileRepository, scheduleRepository, null,
+                Clock.fixed(Instant.parse("2026-08-10T00:00:00Z"), ZoneOffset.UTC), serviceRepository,
+                slotRepository, templateRepository);
+
+        assertEquals(List.of(), configuredService.find("Khám Tổng Quát", monday, monday, serviceId));
+    }
+
+    @Test
+    void rejectsBookingOnTemplateExceptionDateInsteadOfFallingBackToWeeklySchedule() {
+        ClinicServiceRepository serviceRepository = mock(ClinicServiceRepository.class);
+        GeneratedClinicSlotRepository slotRepository = mock(GeneratedClinicSlotRepository.class);
+        WorkScheduleTemplateRepository templateRepository = mock(WorkScheduleTemplateRepository.class);
+        DoctorProfileRepository profileRepository = mock(DoctorProfileRepository.class);
+        DoctorScheduleRepository scheduleRepository = mock(DoctorScheduleRepository.class);
+        ClinicService clinicService = mock(ClinicService.class);
+        LocalDate monday = LocalDate.of(2026, 8, 10);
+        UUID serviceId = UUID.randomUUID();
+        UUID doctorId = UUID.randomUUID();
+        UUID profileId = UUID.randomUUID();
+        DoctorProfile profile = mock(DoctorProfile.class);
+        StaffAccount staff = mock(StaffAccount.class);
+        DoctorSchedule schedule = mock(DoctorSchedule.class);
+        WorkScheduleTemplate template = exceptionTemplate(profile, monday, monday);
+        when(serviceRepository.findById(serviceId)).thenReturn(Optional.of(clinicService));
+        when(clinicService.isActive()).thenReturn(true);
+        when(clinicService.getSpecialty()).thenReturn("Khám Tổng Quát");
+        when(clinicService.getDurationMinutes()).thenReturn(30);
+        when(templateRepository.findActiveByServiceAndDateRange(serviceId, monday, monday)).thenReturn(List.of(template));
+        when(slotRepository.findByClinicServiceIdAndDoctorStaffIdAndAppointmentDateAndStartTime(
+                serviceId, doctorId, monday, LocalTime.of(8, 30))).thenReturn(List.of());
+        when(slotRepository.findByClinicServiceIdAndDoctorStaffIdAndAppointmentDate(serviceId, doctorId, monday))
+                .thenReturn(List.of());
+        when(profileRepository.findByStaffAccount_IdForUpdate(doctorId)).thenReturn(Optional.of(profile));
+        when(profile.isActive()).thenReturn(true);
+        when(profile.getId()).thenReturn(profileId);
+        when(profile.getStaffAccount()).thenReturn(staff);
+        when(staff.getId()).thenReturn(doctorId);
+        when(profile.getSpecialty()).thenReturn("Khám Tổng Quát");
+        when(staff.getFullName()).thenReturn("Bác sĩ An");
+        when(schedule.getDoctorProfile()).thenReturn(profile);
+        when(schedule.getDayOfWeek()).thenReturn(DayOfWeek.MONDAY);
+        when(schedule.getStartTime()).thenReturn(LocalTime.of(8, 30));
+        when(schedule.getEndTime()).thenReturn(LocalTime.of(10, 0));
+        when(schedule.getSlotDurationMinutes()).thenReturn(30);
+        when(scheduleRepository.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(profileId, DayOfWeek.MONDAY))
+                .thenReturn(List.of(schedule));
+
+        AppointmentAvailabilityService configuredService = new AppointmentAvailabilityService(
+                appointmentRepository, createSpecialtyCatalog(), profileRepository, scheduleRepository, null,
+                Clock.fixed(Instant.parse("2026-08-10T00:00:00Z"), ZoneOffset.UTC), serviceRepository,
+                slotRepository, templateRepository);
+
+        AuthException exception = assertThrows(AuthException.class, () -> configuredService.ensureBookable(
+                "Khám Tổng Quát", "Bác sĩ An", doctorId, monday, LocalTime.of(8, 30), null, serviceId));
+
+        assertEquals("APPOINTMENT_SLOT_INVALID", exception.getCode());
+    }
+
+    private WorkScheduleTemplate exceptionTemplate(DoctorProfile profile, LocalDate from, LocalDate to) {
+        WorkScheduleTemplate template = mock(WorkScheduleTemplate.class);
+        when(template.isActive()).thenReturn(true);
+        when(template.getDoctorProfile()).thenReturn(profile);
+        when(template.getStartDate()).thenReturn(from);
+        when(template.getEndDate()).thenReturn(to);
+        when(template.getWeekdays()).thenReturn(Set.of(DayOfWeek.MONDAY));
+        when(template.getExceptionDates()).thenReturn(Set.of(from));
+        return template;
     }
 
     @Test
