@@ -101,6 +101,62 @@ class ScheduleTemplateServiceTest {
     }
 
     @Test
+    void localBootstrapSkipsOnlyOverlappingSlotsAndGeneratesTheRestOfThatDay() {
+        ClinicService clinicService = mock(ClinicService.class);
+        DoctorProfile doctor = mock(DoctorProfile.class);
+        StaffAccount staff = mock(StaffAccount.class);
+        ClinicRoom room = mock(ClinicRoom.class);
+        LocalDate monday = LocalDate.of(2026, 8, 10);
+        GeneratedClinicSlot existing = mock(GeneratedClinicSlot.class);
+        when(serviceRepository.findById(SERVICE_ID)).thenReturn(Optional.of(clinicService));
+        when(doctorRepository.findByStaffAccount_Id(DOCTOR_ID)).thenReturn(Optional.of(doctor));
+        when(roomRepository.findById(ROOM_ID)).thenReturn(Optional.of(room));
+        when(clinicService.isActive()).thenReturn(true);
+        when(clinicService.getId()).thenReturn(SERVICE_ID);
+        when(clinicService.getSpecialty()).thenReturn("Khám Tổng Quát");
+        when(clinicService.getName()).thenReturn("Khám tổng quát cơ bản");
+        when(clinicService.getVisitType()).thenReturn("Khám thường");
+        when(clinicService.getDurationMinutes()).thenReturn(30);
+        when(doctor.getId()).thenReturn(UUID.randomUUID());
+        when(doctor.getStaffAccount()).thenReturn(staff);
+        when(staff.getId()).thenReturn(DOCTOR_ID);
+        when(doctor.getSpecialty()).thenReturn("Khám Tổng Quát");
+        when(doctor.isActive()).thenReturn(true);
+        when(doctor.getRoom()).thenReturn(room);
+        when(room.getId()).thenReturn(ROOM_ID);
+        when(room.isActive()).thenReturn(true);
+        when(room.getSpecialty()).thenReturn("Khám Tổng Quát");
+        when(room.getCode()).thenReturn("TQ-01");
+        when(templateRepository.save(any(WorkScheduleTemplate.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(slotRepository.findByDoctorStaffIdAndAppointmentDateBetweenAndStatus(
+                DOCTOR_ID, monday, monday, GeneratedSlotStatus.OPEN)).thenReturn(List.of(existing));
+        when(slotRepository.findByRoomIdAndAppointmentDateBetweenAndStatus(
+                ROOM_ID, monday, monday, GeneratedSlotStatus.OPEN)).thenReturn(List.of());
+        when(existing.getAppointmentDate()).thenReturn(monday);
+        when(existing.getStartTime()).thenReturn(LocalTime.of(8, 30));
+        when(existing.getEndTime()).thenReturn(LocalTime.of(9, 0));
+        when(slotRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        CreateScheduleTemplateRequest request = new CreateScheduleTemplateRequest(
+                SERVICE_ID, DOCTOR_ID, ROOM_ID, monday, monday, Set.of(DayOfWeek.MONDAY),
+                LocalTime.of(8, 0), LocalTime.of(10, 0), 30, List.of(), Set.of());
+        ScheduleTemplateResponse response = service.createForLocalBootstrap(request);
+
+        assertEquals(3, response.generatedSlotCount());
+        AuthException conflict = assertThrows(AuthException.class, () -> service.create(request));
+        assertEquals("SCHEDULE_CONFLICT", conflict.getCode());
+
+        @SuppressWarnings("unchecked")
+        org.mockito.ArgumentCaptor<List<GeneratedClinicSlot>> slots =
+                (org.mockito.ArgumentCaptor<List<GeneratedClinicSlot>>) (org.mockito.ArgumentCaptor<?>)
+                        org.mockito.ArgumentCaptor.forClass(List.class);
+        verify(slotRepository).saveAll(slots.capture());
+        assertEquals(List.of(LocalTime.of(8, 0), LocalTime.of(9, 0), LocalTime.of(9, 30)),
+                slots.getValue().stream().map(GeneratedClinicSlot::getStartTime).toList());
+    }
+
+    @Test
     void generatedSlotCountIsBoundedWhenDayEndCrossesMidnight() {
         ClinicService clinicService = mock(ClinicService.class);
         DoctorProfile doctor = mock(DoctorProfile.class);

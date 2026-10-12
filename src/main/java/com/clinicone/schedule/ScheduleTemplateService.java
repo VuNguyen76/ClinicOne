@@ -46,12 +46,22 @@ public class ScheduleTemplateService {
 
     @Transactional
     public ScheduleTemplateResponse create(CreateScheduleTemplateRequest request) {
+        return create(request, false);
+    }
+
+    /** Local-only bootstrap path that preserves existing slots and fills other free times. */
+    @Transactional
+    public ScheduleTemplateResponse createForLocalBootstrap(CreateScheduleTemplateRequest request) {
+        return create(request, true);
+    }
+
+    private ScheduleTemplateResponse create(CreateScheduleTemplateRequest request, boolean skipExistingConflicts) {
         ValidatedInput input = validateAndResolve(request);
         WorkScheduleTemplate template = WorkScheduleTemplate.create(input.clinicService(), input.doctor(), input.room(),
                 request.startDate(), request.endDate(), request.dayStart(), request.dayEnd(), request.durationMinutes(),
                 request.weekdays(), toBreaks(request.breaks()), safeDates(request.exceptionDates()));
         WorkScheduleTemplate saved = templateRepository.save(template);
-        List<GeneratedClinicSlot> generated = generate(saved, false);
+        List<GeneratedClinicSlot> generated = generate(saved, false, skipExistingConflicts);
         upsertDoctorSchedules(saved);
         return toResponse(saved, generated.size());
     }
@@ -61,7 +71,7 @@ public class ScheduleTemplateService {
         WorkScheduleTemplate template = templateRepository.findById(templateId)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "SCHEDULE_TEMPLATE_NOT_FOUND",
                         "Không tìm thấy lịch làm việc."));
-        List<GeneratedClinicSlot> generated = generate(template, true);
+        List<GeneratedClinicSlot> generated = generate(template, true, false);
         upsertDoctorSchedules(template);
         return toResponse(template, generated.size());
     }
@@ -156,9 +166,18 @@ public class ScheduleTemplateService {
         }
     }
 
-    private List<GeneratedClinicSlot> generate(WorkScheduleTemplate template, boolean idempotent) {
+    private List<GeneratedClinicSlot> generate(WorkScheduleTemplate template, boolean idempotent,
+                                               boolean skipExistingConflicts) {
         List<SlotSeed> seeds = buildSeeds(template);
-        checkConflicts(template, seeds);
+        ExistingSlots existingSlots = findExistingSlots(template);
+        if (skipExistingConflicts) {
+            seeds = seeds.stream()
+                    .filter(seed -> !overlapsExisting(seed, existingSlots.doctorSlots(), template.getId())
+                            && !overlapsExisting(seed, existingSlots.roomSlots(), template.getId()))
+                    .toList();
+        } else {
+            checkConflicts(template, seeds, existingSlots);
+        }
         Set<String> existingKeys = idempotent
                 ? new HashSet<>(slotRepository.findByTemplateIdOrderByAppointmentDateAscStartTimeAsc(template.getId())
                 .stream().map(this::key).toList())
@@ -202,17 +221,21 @@ public class ScheduleTemplateService {
         return result;
     }
 
-    private void checkConflicts(WorkScheduleTemplate template, List<SlotSeed> seeds) {
+    private ExistingSlots findExistingSlots(WorkScheduleTemplate template) {
         List<GeneratedClinicSlot> doctorSlots = slotRepository.findByDoctorStaffIdAndAppointmentDateBetweenAndStatus(
                 template.getDoctorProfile().getStaffAccount().getId(), template.getStartDate(), template.getEndDate(),
                 GeneratedSlotStatus.OPEN);
         List<GeneratedClinicSlot> roomSlots = slotRepository.findByRoomIdAndAppointmentDateBetweenAndStatus(
                 template.getRoom().getId(), template.getStartDate(), template.getEndDate(), GeneratedSlotStatus.OPEN);
+        return new ExistingSlots(doctorSlots, roomSlots);
+    }
+
+    private void checkConflicts(WorkScheduleTemplate template, List<SlotSeed> seeds, ExistingSlots existingSlots) {
         UUID currentTemplateId = template.getId();
         List<String> conflicts = new ArrayList<>();
         for (SlotSeed seed : seeds) {
-            if (overlapsExisting(seed, doctorSlots, currentTemplateId)
-                    || overlapsExisting(seed, roomSlots, currentTemplateId)) {
+            if (overlapsExisting(seed, existingSlots.doctorSlots(), currentTemplateId)
+                    || overlapsExisting(seed, existingSlots.roomSlots(), currentTemplateId)) {
                 conflicts.add(seed.date() + " " + seed.start());
                 if (conflicts.size() == 100) break;
             }
@@ -365,5 +388,8 @@ public class ScheduleTemplateService {
 
     private record SlotSeed(LocalDate date, LocalTime start, LocalTime end) {
         String key() { return date + "|" + start; }
+    }
+
+    private record ExistingSlots(List<GeneratedClinicSlot> doctorSlots, List<GeneratedClinicSlot> roomSlots) {
     }
 }
