@@ -126,6 +126,17 @@ class AppointmentHoldServiceTest {
     }
 
     @Test
+    void releasesHoldsWhenProfileIsArchived() {
+        UUID profileId = UUID.randomUUID();
+        when(holdRepository.deleteAllByPatientProfileId(profileId)).thenReturn(2);
+
+        int released = service.releaseForProfile(profileId);
+
+        assertEquals(2, released);
+        verify(holdRepository).deleteAllByPatientProfileId(profileId);
+    }
+
+    @Test
     void separateLoginSessionsDoNotReuseTheSameHoldClaim() {
         when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account()));
         when(holdRepository.findByHoldKey(any())).thenReturn(Optional.empty());

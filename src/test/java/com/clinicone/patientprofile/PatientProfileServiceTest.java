@@ -5,6 +5,7 @@ import com.clinicone.auth.PatientAccount;
 import com.clinicone.auth.PatientAccountRepository;
 import com.clinicone.config.ClinicConfiguration;
 import com.clinicone.config.ClinicConfigurationService;
+import com.clinicone.schedule.AppointmentHoldService;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
@@ -95,6 +96,25 @@ class PatientProfileServiceTest {
                 new PatientProfileService(accountRepository, profileRepository).delete(ACCOUNT_ID.toString(), PROFILE_ID.toString()));
 
         assertEquals("PRIMARY_PROFILE_CANNOT_DELETE", exception.getCode());
+    }
+
+    @Test
+    void deletingDependentProfileReleasesItsActiveAppointmentHolds() {
+        PatientAccountRepository accountRepository = mock(PatientAccountRepository.class);
+        PatientProfileRepository profileRepository = mock(PatientProfileRepository.class);
+        AppointmentHoldService holdService = mock(AppointmentHoldService.class);
+        PatientAccount account = mock(PatientAccount.class);
+        PatientProfile profile = PatientProfile.forTest(PROFILE_ID, account, "Nguyễn An", "Con",
+                LocalDate.of(2015, 1, 1), "Nam", false);
+        when(profileRepository.findByIdAndOwnerIdAndActiveTrue(PROFILE_ID, ACCOUNT_ID)).thenReturn(Optional.of(profile));
+        when(profileRepository.save(any(PatientProfile.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        PatientProfileService service = new PatientProfileService(accountRepository, profileRepository, null, holdService);
+        service.delete(ACCOUNT_ID.toString(), PROFILE_ID.toString());
+
+        assertEquals(false, profile.isActive());
+        verify(holdService).releaseForProfile(PROFILE_ID);
+        verify(profileRepository).save(profile);
     }
 
     @Test

@@ -179,6 +179,11 @@ public class AppointmentHoldService {
         return expired.size();
     }
 
+    @Transactional
+    public int releaseForProfile(UUID profileId) {
+        return profileId == null ? 0 : holdRepository.deleteAllByPatientProfileId(profileId);
+    }
+
     private boolean sameSlot(AppointmentHold hold, CreateAppointmentRequest request) {
         return hold.getSpecialty().equalsIgnoreCase(request.specialty())
                 && (hold.getServiceId() == null ? request.serviceId() == null
