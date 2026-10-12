@@ -38,6 +38,68 @@ describe('ReceptionCheckIn', () => {
     expect(fixture.nativeElement.textContent).toContain('NOI-01');
   });
 
+  it('keeps the newest appointment search result when requests finish out of order', () => {
+    const component = fixture.componentInstance as any;
+    component.query.set('0911111111');
+    component.search();
+    const firstRequest = http.expectOne((item) => item.url === '/api/v1/reception/appointments'
+      && item.params.get('query') === '0911111111');
+
+    component.query.set('0922222222');
+    component.search();
+    const latestRequest = http.expectOne((item) => item.url === '/api/v1/reception/appointments'
+      && item.params.get('query') === '0922222222');
+    latestRequest.flush([{ ...appointment(), id: 'latest-search', patientPhone: '0922222222' }]);
+    firstRequest.flush([{ ...appointment(), id: 'old-search', patientPhone: '0911111111' }]);
+
+    expect(component.appointments().map((item: any) => item.id)).toEqual(['latest-search']);
+  });
+
+  it('keeps background refresh bound to the last submitted query', () => {
+    const component = fixture.componentInstance as any;
+    component.query.set('0911111111');
+    component.search();
+    http.expectOne((item) => item.url === '/api/v1/reception/appointments'
+      && item.params.get('query') === '0911111111').flush([appointment()]);
+
+    component.query.set('0922222222');
+    component.refreshSearch();
+    const refresh = http.expectOne((item) => item.url === '/api/v1/reception/appointments');
+
+    expect(refresh.request.params.get('query')).toBe('0911111111');
+    refresh.flush([appointment()]);
+  });
+
+  it('does not allow search results from a previous screen to replace the active queue', () => {
+    const component = fixture.componentInstance as any;
+    component.query.set('0911111111');
+    component.search();
+    const searchRequest = http.expectOne((item) => item.url === '/api/v1/reception/appointments');
+
+    component.selectTab('profiles');
+    component.selectTab('queue');
+    const queueRequest = http.expectOne((item) => item.url === '/api/v1/reception/worklist');
+    queueRequest.flush([{ ...appointment(), id: 'queue-result', status: 'CHECKED_IN', queueNumber: 2 }]);
+    searchRequest.flush([{ ...appointment(), id: 'stale-search-result' }]);
+
+    expect(component.appointments().map((item: any) => item.id)).toEqual(['queue-result']);
+  });
+
+  it('clears search results instead of showing them as queue data', () => {
+    const component = fixture.componentInstance as any;
+    component.query.set('0911111111');
+    component.search();
+    http.expectOne((item) => item.url === '/api/v1/reception/appointments').flush([
+      { ...appointment(), id: 'search-result' },
+    ]);
+
+    component.selectTab('queue');
+    expect(component.appointments()).toEqual([]);
+    const queueRequest = http.expectOne((item) => item.url === '/api/v1/reception/worklist');
+    queueRequest.flush([{ ...appointment(), id: 'queue-result', status: 'CHECKED_IN', queueNumber: 2 }]);
+    expect(component.appointments().map((item: any) => item.id)).toEqual(['queue-result']);
+  });
+
   it('renders one reception work screen without an additional in-page tab bar', () => {
     const component = fixture.componentInstance as any;
 
