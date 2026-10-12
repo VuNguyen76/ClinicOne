@@ -74,7 +74,7 @@ class ReceptionPatientServiceTest {
     }
 
     @Test
-    void createsPendingAccountWithTheConfiguredTemporaryPassword() {
+    void createsPendingAccountWithAnUnsharedRandomPasswordHash() {
         when(accountRepository.existsByPhone("0912345678")).thenReturn(false);
         when(passwordEncoder.encode(any(String.class))).thenReturn("encoded-pending");
         PatientAccount saved = new PatientAccount("0912345678", "encoded-pending", "Nguyễn An",
@@ -89,7 +89,8 @@ class ReceptionPatientServiceTest {
         assertThat(response.fullName()).isEqualTo("Nguyễn An");
         assertThat(response.mustChangePassword()).isTrue();
         verify(otpService).verifySmsOtp("0912345678", OtpPurpose.REGISTRATION, "123456");
-        verify(passwordEncoder).encode("123456");
+        verify(passwordEncoder).encode(argThat(password -> password != null
+                && password.length() >= 32 && !password.equals("123456")));
         verify(profileRepository).save(any());
     }
 }

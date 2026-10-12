@@ -34,6 +34,9 @@ public class ClinicConfiguration {
     @Column(name = "cancellation_threshold_hours", nullable = false)
     private int cancellationThresholdHours;
 
+    @Column(name = "max_over_capacity_appointments_per_doctor_per_day", nullable = false)
+    private int maxOverCapacityAppointmentsPerDoctorPerDay;
+
     @Column(name = "updated_by", nullable = false, length = 120)
     private String updatedBy;
 
@@ -47,24 +50,28 @@ public class ClinicConfiguration {
     }
 
     ClinicConfiguration(String unitName, String departmentName, int holdMinutes,
-                        int cancellationThresholdHours, String actor) {
+                        int cancellationThresholdHours, int maxOverCapacityAppointmentsPerDoctorPerDay,
+                        String actor) {
         this.unitName = unitName;
         this.departmentName = departmentName;
         this.holdMinutes = holdMinutes;
         this.cancellationThresholdHours = cancellationThresholdHours;
+        this.maxOverCapacityAppointmentsPerDoctorPerDay = maxOverCapacityAppointmentsPerDoctorPerDay;
         this.updatedBy = actor;
     }
 
     public static ClinicConfiguration defaults() {
-        return new ClinicConfiguration("ClinicOne", "Khám bệnh", 10, 12, "SYSTEM");
+        return new ClinicConfiguration("ClinicOne", "Khám bệnh", 10, 12, 3, "SYSTEM");
     }
 
     public void update(String unitName, String departmentName, int holdMinutes,
-                       int cancellationThresholdHours, String actor) {
+                       int cancellationThresholdHours, int maxOverCapacityAppointmentsPerDoctorPerDay,
+                       String actor) {
         this.unitName = unitName;
         this.departmentName = departmentName;
         this.holdMinutes = holdMinutes;
         this.cancellationThresholdHours = cancellationThresholdHours;
+        this.maxOverCapacityAppointmentsPerDoctorPerDay = maxOverCapacityAppointmentsPerDoctorPerDay;
         this.updatedBy = actor;
     }
 

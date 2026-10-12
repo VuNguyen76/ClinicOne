@@ -25,7 +25,7 @@
     }
 
     <!-- 1. Top 3 Metric Cards -->
-    <div class="grid gap-5 sm:grid-cols-3">
+    <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
       <!-- Card 1: Unit Name -->
       <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs flex items-center gap-4">
         <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#ecfdf5] text-[#059669]">
@@ -34,6 +34,16 @@
         <div class="min-w-0">
           <p class="text-xs font-semibold text-slate-500">Đơn vị chủ quản</p>
           <p class="text-base font-bold text-slate-900 mt-1 truncate" [title]="unitName() || 'ClinicOne'">{{ unitName() || 'ClinicOne' }}</p>
+        </div>
+      </div>
+
+      <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs flex items-center gap-4">
+        <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#f5f3ff] text-[#7c3aed]">
+          <mat-icon class="!h-6 !w-6 !text-[24px]">groups</mat-icon>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-slate-500">Ngoài công suất / bác sĩ / ngày</p>
+          <p class="text-2xl font-bold text-slate-900 mt-0.5">{{ maxOverCapacityAppointmentsPerDoctorPerDay() }} <span class="text-xs font-normal text-slate-500">lượt</span></p>
         </div>
       </div>
 
@@ -73,7 +83,7 @@
             <h3 class="text-base font-bold text-slate-900">Thông tin phòng khám</h3>
           </div>
 
-          <div class="grid gap-4 sm:grid-cols-2">
+          <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <label class="grid gap-1">
               <span class="erp-label">Tên phòng khám <span class="erp-label-required">*</span></span>
               <input
@@ -108,7 +118,7 @@
             <h3 class="text-base font-bold text-slate-900">Quy chuẩn thời gian & Đặt lịch hẹn</h3>
           </div>
 
-          <div class="grid gap-4 sm:grid-cols-2">
+          <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <label class="grid gap-1">
               <span class="erp-label">Thời gian giữ chỗ tạm thời (phút) <span class="erp-label-required">*</span></span>
               <input
@@ -137,6 +147,20 @@
                 class="erp-input font-mono"
               />
               <span class="text-[11px] text-slate-400 mt-0.5">Bệnh nhân không thể hủy lịch trực tuyến nếu thời gian đến giờ khám ít hơn ngưỡng này.</span>
+            </label>
+
+            <label class="grid gap-1">
+              <span class="erp-label">Lượt ngoài công suất tối đa / bác sĩ / ngày</span>
+              <input
+                type="number"
+                min="0"
+                max="20"
+                [ngModel]="maxOverCapacityAppointmentsPerDoctorPerDay()"
+                (ngModelChange)="setNumber('overCapacity', $event)"
+                name="maxOverCapacityAppointmentsPerDoctorPerDay"
+                required
+                class="erp-input font-mono"
+              />
             </label>
           </div>
 
