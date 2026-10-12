@@ -493,6 +493,54 @@ describe('ReceptionCheckIn', () => {
     expect(fixture.nativeElement.textContent).toContain('Đã tạo lịch và cấp số 08');
   });
 
+  it('uses a new idempotency key when retrying after the walk-in payload changes', () => {
+    const component = fixture.componentInstance as any;
+    component.walkInPhone.set('0912345678');
+    component.walkInSlots.set([
+      { specialty: 'Nội tổng quát', appointmentDate: component.walkInDate(), startTime: '09:00:00', endTime: '09:30:00', doctorName: 'BS. Nguyễn An', remainingCapacity: 1, doctorId: 'd-1', roomCode: 'NOI-01' },
+      { specialty: 'Nội tổng quát', appointmentDate: component.walkInDate(), startTime: '09:30:00', endTime: '10:00:00', doctorName: 'BS. Nguyễn An', remainingCapacity: 1, doctorId: 'd-1', roomCode: 'NOI-01' },
+    ]);
+    component.walkInStartTime.set('09:00:00');
+    component.walkInReason.set('Đau đầu từ sáng');
+    component.walkInExceptionReason.set('Người bệnh đến quầy không có lịch');
+
+    component.submitWalkIn();
+    const firstRequest = http.expectOne('/api/v1/reception/walk-in');
+    const firstKey = firstRequest.request.headers.get('Idempotency-Key');
+    firstRequest.flush({ code: 'SLOT_UNAVAILABLE', message: 'Khung giờ vừa được sử dụng.' },
+      { status: 409, statusText: 'Conflict' });
+
+    component.walkInStartTime.set('09:30:00');
+    component.submitWalkIn();
+    const retry = http.expectOne('/api/v1/reception/walk-in');
+
+    expect(retry.request.headers.get('Idempotency-Key')).not.toBe(firstKey);
+    retry.flush(appointment());
+  });
+
+  it('reuses the idempotency key when retrying the same walk-in payload', () => {
+    const component = fixture.componentInstance as any;
+    component.walkInPhone.set('0912345678');
+    component.walkInSlots.set([
+      { specialty: 'Nội tổng quát', appointmentDate: component.walkInDate(), startTime: '09:00:00', endTime: '09:30:00', doctorName: 'BS. Nguyễn An', remainingCapacity: 1, doctorId: 'd-1', roomCode: 'NOI-01' },
+    ]);
+    component.walkInStartTime.set('09:00:00');
+    component.walkInReason.set('Đau đầu từ sáng');
+    component.walkInExceptionReason.set('Người bệnh đến quầy không có lịch');
+
+    component.submitWalkIn();
+    const firstRequest = http.expectOne('/api/v1/reception/walk-in');
+    const firstKey = firstRequest.request.headers.get('Idempotency-Key');
+    firstRequest.flush({ code: 'NETWORK_FAILURE', message: 'Mạng không ổn định.' },
+      { status: 503, statusText: 'Service Unavailable' });
+
+    component.submitWalkIn();
+    const retry = http.expectOne('/api/v1/reception/walk-in');
+
+    expect(retry.request.headers.get('Idempotency-Key')).toBe(firstKey);
+    retry.flush(appointment());
+  });
+
   it('keeps a zero-capacity slot available for an authorized overflow reception', () => {
     const component = fixture.componentInstance as any;
     component.walkInSpecialty.set('Nội tổng quát');
