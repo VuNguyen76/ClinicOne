@@ -49,13 +49,25 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
     public ResponseEntity<Map<String, Object>> handle(ObjectOptimisticLockingFailureException exception,
                                                        HttpServletRequest request) {
-        String code = "MEDICAL_RECORD_VERSION_CONFLICT";
+        String code = optimisticLockErrorCode(exception.getPersistentClassName());
         String message = "Dữ liệu đã được cập nhật ở một cửa sổ khác. Hãy tải lại trang trước khi tiếp tục.";
         return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
                 "code", code,
                 "message", message,
                 "error", envelope(code, message, Map.of(), request)
         ));
+    }
+
+    private String optimisticLockErrorCode(String persistentClassName) {
+        if (persistentClassName == null) return "DATA_VERSION_CONFLICT";
+        String entityName = persistentClassName.substring(persistentClassName.lastIndexOf('.') + 1);
+        return switch (entityName) {
+            case "MedicalRecord" -> "MEDICAL_RECORD_VERSION_CONFLICT";
+            case "QueueTicket" -> "QUEUE_TICKET_VERSION_CONFLICT";
+            case "ExaminationSession" -> "EXAMINATION_SESSION_VERSION_CONFLICT";
+            case "MedicalRecordTemplate" -> "MEDICAL_RECORD_TEMPLATE_VERSION_CONFLICT";
+            default -> "DATA_VERSION_CONFLICT";
+        };
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
