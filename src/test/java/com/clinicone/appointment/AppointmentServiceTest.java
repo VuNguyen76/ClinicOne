@@ -511,11 +511,12 @@ class AppointmentServiceTest {
         setId(account, ACCOUNT_ID);
         Appointment appointment = Appointment.existing(account, "CL-20260810-AB12", "Nội khoa", "BS. Nguyễn An",
                 LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), "Đau đầu");
-        when(appointmentRepository.findByIdAndPatientId(any(), eq(ACCOUNT_ID))).thenReturn(Optional.of(appointment));
+        when(appointmentRepository.findByIdAndPatientIdForUpdate(any(), eq(ACCOUNT_ID))).thenReturn(Optional.of(appointment));
 
         service.cancel(ACCOUNT_ID.toString(), UUID.randomUUID().toString(), new CancelAppointmentRequest("Bận việc"));
 
         assertEquals(AppointmentStatus.CANCELLED, appointment.getStatus());
+        verify(appointmentRepository).findByIdAndPatientIdForUpdate(any(), eq(ACCOUNT_ID));
         verify(notificationService).notifyAppointmentCancelled(appointment);
     }
 
@@ -531,7 +532,7 @@ class AppointmentServiceTest {
         UUID appointmentId = UUID.randomUUID();
         setId(appointment, appointmentId);
         GeneratedClinicSlot oldSlot = mock(GeneratedClinicSlot.class);
-        when(appointmentRepository.findByIdAndPatientId(appointmentId, ACCOUNT_ID)).thenReturn(Optional.of(appointment));
+        when(appointmentRepository.findByIdAndPatientIdForUpdate(appointmentId, ACCOUNT_ID)).thenReturn(Optional.of(appointment));
         when(generatedSlotRepository.findFirstByClinicServiceIdAndDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
                 serviceId, doctorId, appointment.getAppointmentDate(), appointment.getStartTime(), GeneratedSlotStatus.OPEN))
                 .thenReturn(Optional.of(oldSlot));
@@ -555,7 +556,7 @@ class AppointmentServiceTest {
                 LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), "Đau đầu");
         UUID appointmentId = UUID.randomUUID();
         setId(appointment, appointmentId);
-        when(appointmentRepository.findByIdAndPatientId(appointmentId, ACCOUNT_ID)).thenReturn(Optional.of(appointment));
+        when(appointmentRepository.findByIdAndPatientIdForUpdate(appointmentId, ACCOUNT_ID)).thenReturn(Optional.of(appointment));
 
         service.cancel(ACCOUNT_ID.toString(), appointmentId.toString(), new CancelAppointmentRequest("Bận việc"),
                 "cancel-request-1");
@@ -574,7 +575,7 @@ class AppointmentServiceTest {
         setId(account, ACCOUNT_ID);
         Appointment appointment = Appointment.existing(account, "CL-20260810-AB12", "Nội khoa", "BS. Nguyễn An",
                 LocalDate.of(2026, 8, 10), LocalTime.of(13, 0), "Đau đầu");
-        when(appointmentRepository.findByIdAndPatientId(any(), eq(ACCOUNT_ID))).thenReturn(Optional.of(appointment));
+        when(appointmentRepository.findByIdAndPatientIdForUpdate(any(), eq(ACCOUNT_ID))).thenReturn(Optional.of(appointment));
         ClinicConfigurationService configuration = mock(ClinicConfigurationService.class);
         when(configuration.current()).thenReturn(com.clinicone.config.ClinicConfiguration.defaults());
         service = serviceBuilder()
@@ -595,7 +596,7 @@ class AppointmentServiceTest {
         setId(account, ACCOUNT_ID);
         Appointment appointment = Appointment.existing(account, "CL-20260810-AB12", "Nội khoa", "BS. Nguyễn An",
                 LocalDate.of(2026, 8, 20), LocalTime.of(13, 0), "Đau đầu");
-        when(appointmentRepository.findByIdAndPatientId(any(), eq(ACCOUNT_ID))).thenReturn(Optional.of(appointment));
+        when(appointmentRepository.findByIdAndPatientIdForUpdate(any(), eq(ACCOUNT_ID))).thenReturn(Optional.of(appointment));
         ReasonCatalog reason = ReasonCatalog.create(ReasonCatalogType.APPOINTMENT_CANCELLATION,
                 "SCHEDULE_CHANGE", "Thay đổi kế hoạch");
         when(reasonCatalogService.requireActive(ReasonCatalogType.APPOINTMENT_CANCELLATION, "SCHEDULE_CHANGE"))
@@ -619,7 +620,7 @@ class AppointmentServiceTest {
                 LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), "Đau đầu");
         UUID appointmentId = UUID.randomUUID();
         setId(appointment, appointmentId);
-        when(appointmentRepository.findByIdAndPatientId(appointmentId, ACCOUNT_ID)).thenReturn(Optional.of(appointment));
+        when(appointmentRepository.findByIdAndPatientIdForUpdate(appointmentId, ACCOUNT_ID)).thenReturn(Optional.of(appointment));
 
         AppointmentService lateService = serviceBuilder()
                 .clock(Clock.fixed(Instant.parse("2026-08-10T03:00:00Z"), ZoneOffset.UTC))

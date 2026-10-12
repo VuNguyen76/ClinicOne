@@ -401,7 +401,10 @@ public class AppointmentService {
     @Transactional
     public void cancel(String accountId, String appointmentId, CancelAppointmentRequest request,
                        String requestKey) {
-        Appointment appointment = findOwned(parseAppointmentId(appointmentId), AuthenticatedIds.patient(accountId));
+        UUID patientId = AuthenticatedIds.patient(accountId);
+        Appointment appointment = appointmentRepository
+                .findByIdAndPatientIdForUpdate(parseAppointmentId(appointmentId), patientId)
+                .orElseThrow(this::appointmentNotFound);
         String normalizedRequestKey = IdempotencyKeys.optional(requestKey);
         if (appointment.getStatus() == AppointmentStatus.CANCELLED
                 && normalizedRequestKey != null
