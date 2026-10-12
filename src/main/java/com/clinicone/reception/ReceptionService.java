@@ -70,6 +70,7 @@ public class ReceptionService {
     private final ClinicConfigurationService clinicConfigurationService;
     private final WorkScheduleTemplateRepository workScheduleTemplateRepository;
     private final GeneratedClinicSlotRepository generatedSlotRepository;
+    private final TemporaryProfileCreationLock temporaryProfileCreationLock;
 
     public ReceptionService(AppointmentRepository appointmentRepository,
                             DoctorProfileRepository doctorProfileRepository,
@@ -122,7 +123,6 @@ public class ReceptionService {
                 clinicConfigurationService, null, null);
     }
 
-    @Autowired
     public ReceptionService(AppointmentRepository appointmentRepository,
                             DoctorProfileRepository doctorProfileRepository,
                             DoctorScheduleRepository doctorScheduleRepository,
@@ -136,6 +136,26 @@ public class ReceptionService {
                             ClinicConfigurationService clinicConfigurationService,
                             WorkScheduleTemplateRepository workScheduleTemplateRepository,
                             GeneratedClinicSlotRepository generatedSlotRepository) {
+        this(appointmentRepository, doctorProfileRepository, doctorScheduleRepository, ticketRepository, queueService,
+                clock, patientAccountRepository, appointmentService, patientProfileRepository, businessLogService,
+                clinicConfigurationService, workScheduleTemplateRepository, generatedSlotRepository, null);
+    }
+
+    @Autowired
+    public ReceptionService(AppointmentRepository appointmentRepository,
+                            DoctorProfileRepository doctorProfileRepository,
+                            DoctorScheduleRepository doctorScheduleRepository,
+                            QueueTicketRepository ticketRepository,
+                            QueueService queueService,
+                            Clock clock,
+                            PatientAccountRepository patientAccountRepository,
+                            AppointmentService appointmentService,
+                            PatientProfileRepository patientProfileRepository,
+                            BusinessLogService businessLogService,
+                            ClinicConfigurationService clinicConfigurationService,
+                            WorkScheduleTemplateRepository workScheduleTemplateRepository,
+                            GeneratedClinicSlotRepository generatedSlotRepository,
+                            TemporaryProfileCreationLock temporaryProfileCreationLock) {
         this.appointmentRepository = appointmentRepository;
         this.doctorProfileRepository = doctorProfileRepository;
         this.doctorScheduleRepository = doctorScheduleRepository;
@@ -149,6 +169,7 @@ public class ReceptionService {
         this.clinicConfigurationService = clinicConfigurationService;
         this.workScheduleTemplateRepository = workScheduleTemplateRepository;
         this.generatedSlotRepository = generatedSlotRepository;
+        this.temporaryProfileCreationLock = temporaryProfileCreationLock;
     }
 
     @Transactional(readOnly = true)
@@ -340,6 +361,9 @@ public ReceptionAppointmentResponse checkIn(UUID appointmentId, ReceptionCheckIn
         if (!ALLOWED_GENDERS.contains(request.gender().trim())) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "GENDER_INVALID",
                     "Vui lòng chọn giới tính hợp lệ.");
+        }
+        if (temporaryProfileCreationLock != null) {
+            temporaryProfileCreationLock.lock(phone);
         }
         if (patientAccountRepository.findByPhone(phone).isPresent()) {
             throw new AuthException(HttpStatus.CONFLICT, "PHONE_ALREADY_USED",

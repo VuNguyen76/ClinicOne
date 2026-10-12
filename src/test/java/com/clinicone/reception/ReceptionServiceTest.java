@@ -24,6 +24,7 @@ import com.clinicone.schedule.WorkScheduleTemplate;
 import com.clinicone.schedule.WorkScheduleTemplateRepository;
 import com.clinicone.patientprofile.PatientProfileRepository;
 import com.clinicone.patientprofile.PatientProfile;
+import com.clinicone.reception.TemporaryProfileCreationLock;
 import com.clinicone.queue.ClinicRoom;
 import com.clinicone.queue.QueueService;
 import com.clinicone.queue.QueueTicket;
@@ -66,6 +67,7 @@ class ReceptionServiceTest {
     private QueueService queueService;
     private AppointmentService appointmentService;
     private PatientProfileRepository patientProfileRepository;
+    private TemporaryProfileCreationLock temporaryProfileCreationLock;
     private ClinicConfigurationService clinicConfigurationService;
     private ReceptionService service;
 
@@ -90,12 +92,13 @@ class ReceptionServiceTest {
         queueService = mock(QueueService.class);
         appointmentService = mock(AppointmentService.class);
         patientProfileRepository = mock(PatientProfileRepository.class);
+        temporaryProfileCreationLock = mock(TemporaryProfileCreationLock.class);
         clinicConfigurationService = mock(ClinicConfigurationService.class);
         when(clinicConfigurationService.current()).thenReturn(ClinicConfiguration.defaults());
         Clock clock = Clock.fixed(Instant.parse("2026-08-07T03:00:00Z"), ZoneOffset.UTC);
         service = new ReceptionService(appointmentRepository, doctorProfileRepository, null, ticketRepository,
                 queueService, clock, patientAccountRepository, appointmentService, patientProfileRepository,
-                null, clinicConfigurationService);
+                null, clinicConfigurationService, null, null, temporaryProfileCreationLock);
     }
 
     // 1. NHÓM TIẾP NHẬN BẰNG MÃ LỊCH HẸN / NGOẠI LỆ (FR-REC-01)
@@ -628,6 +631,12 @@ class ReceptionServiceTest {
         assertThat(response.accountStatus()).isNull();
         assertThat(response.mustChangePassword()).isFalse();
         verify(patientProfileRepository).save(any(PatientProfile.class));
+        org.mockito.InOrder order = inOrder(temporaryProfileCreationLock, patientAccountRepository,
+                patientProfileRepository);
+        order.verify(temporaryProfileCreationLock).lock("0912345678");
+        order.verify(patientAccountRepository).findByPhone("0912345678");
+        order.verify(patientProfileRepository)
+                .findFirstByTemporaryProfileTrueAndOwnerIsNullAndPhone("0912345678");
     }
 
     @Test
