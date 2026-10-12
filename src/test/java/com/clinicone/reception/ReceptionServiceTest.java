@@ -41,6 +41,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -524,6 +525,7 @@ class ReceptionServiceTest {
         when(patient.getStatus()).thenReturn(AccountStatus.ACTIVE);
         when(patient.getFullName()).thenReturn("Nguyễn Thanh Vũ");
         when(patientAccountRepository.findByPhone("0912345678")).thenReturn(Optional.of(patient));
+        when(patientAccountRepository.findByIdForUpdate(PATIENT_ID)).thenReturn(Optional.of(patient));
         StaffAccount staff = mock(StaffAccount.class);
         DoctorProfile doctor = mock(DoctorProfile.class);
         when(doctor.isActive()).thenReturn(true);
@@ -540,7 +542,9 @@ class ReceptionServiceTest {
                 .extracting("code").isEqualTo("WALK_IN_OVER_CAPACITY_LIMIT");
 
         verify(doctorProfileRepository).findByStaffAccount_Id(DOCTOR_ID);
-        verify(doctorProfileRepository).findByStaffAccount_IdForUpdate(DOCTOR_ID);
+        var lockOrder = inOrder(patientAccountRepository, doctorProfileRepository);
+        lockOrder.verify(patientAccountRepository).findByIdForUpdate(PATIENT_ID);
+        lockOrder.verify(doctorProfileRepository).findByStaffAccount_IdForUpdate(DOCTOR_ID);
         verifyNoInteractions(appointmentService, queueService);
     }
 
@@ -552,6 +556,7 @@ class ReceptionServiceTest {
         when(patient.getFullName()).thenReturn("Nguyen Thanh Vu");
         when(patient.getPhone()).thenReturn("0912345678");
         when(patientAccountRepository.findByPhone("0912345678")).thenReturn(Optional.of(patient));
+        when(patientAccountRepository.findByIdForUpdate(PATIENT_ID)).thenReturn(Optional.of(patient));
 
         StaffAccount staff = mock(StaffAccount.class);
         when(staff.getFullName()).thenReturn("BS. Nguyen An");
