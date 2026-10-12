@@ -18,6 +18,7 @@ import java.time.Instant;
 public class OtpService {
 
     static final long OTP_TTL_SECONDS = 5 * 60;
+    static final Duration REGISTRATION_ACTIVATION_WINDOW = Duration.ofMinutes(30);
     static final long RESEND_COOLDOWN_SECONDS = 60;
     static final long RATE_WINDOW_SECONDS = 15 * 60;
     static final int MAX_REQUESTS_PER_WINDOW = 5;
