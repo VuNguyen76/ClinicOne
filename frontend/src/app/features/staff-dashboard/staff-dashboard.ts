@@ -27,6 +27,7 @@ export class StaffDashboard implements OnInit, OnDestroy {
   private doctorQueueHealthTimer: ReturnType<typeof setInterval> | null = null;
   private lastSuccessfulDoctorQueueAt: number | null = null;
   private doctorQueueRequestInFlight = false;
+  private queueRequestId = 0;
   private readonly startRequestKeys = new Map<string, string>();
 
   protected readonly rooms = signal<ClinicRoomResponse[]>([]);
@@ -71,6 +72,7 @@ export class StaffDashboard implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.queueRequestId++;
     this.stopDoctorQueueAutoRefresh();
   }
 
@@ -99,19 +101,23 @@ export class StaffDashboard implements OnInit, OnDestroy {
       this.loadDoctorQueue();
       return;
     }
+    const requestId = ++this.queueRequestId;
     const roomCode = this.selectedRoomCode();
     if (!roomCode) {
       this.queue.set([]);
+      this.loadingQueue.set(false);
       return;
     }
     this.loadingQueue.set(true);
     this.error.set('');
     this.authApi.getRoomQueue(roomCode, this.selectedDate()).subscribe({
       next: (tickets) => {
+        if (requestId !== this.queueRequestId) return;
         this.queue.set(tickets);
         this.loadingQueue.set(false);
       },
       error: (response) => {
+        if (requestId !== this.queueRequestId) return;
         this.loadingQueue.set(false);
         this.handleError(response);
       },
