@@ -26,6 +26,8 @@ export class ReceptionCheckIn implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly addressApi = inject(VietnamAddressService);
   private readonly destroyRef = inject(DestroyRef);
+  private walkInProfileRequestId = 0;
+  private walkInSlotRequestId = 0;
 
   protected readonly query = signal('');
   protected readonly activeTab = signal<ReceptionTab>(receptionTab(this.route.snapshot.data['receptionView']));
@@ -584,11 +586,14 @@ export class ReceptionCheckIn implements OnInit {
   }
 
   protected openWalkIn(): void {
+    this.walkInProfileRequestId++;
+    this.walkInSlotRequestId++;
     this.walkInOpen.set(true);
     this.walkInRequestKey.set('');
     this.walkInPhone.set('');
     this.walkInDate.set(clinicTodayIso());
     this.walkInProfiles.set([]);
+    this.walkInProfilesLoading.set(false);
     this.walkInProfileId.set('');
     this.walkInSpecialty.set('');
     this.walkInSlots.set([]);
@@ -634,6 +639,10 @@ export class ReceptionCheckIn implements OnInit {
 
   protected closeWalkIn(): void {
     if (!this.walkInLoading()) {
+      this.walkInProfileRequestId++;
+      this.walkInSlotRequestId++;
+      this.walkInProfilesLoading.set(false);
+      this.walkInSlotsLoading.set(false);
       this.walkInRequestKey.set('');
       this.walkInOpen.set(false);
       this.notice.set('');
@@ -829,10 +838,12 @@ export class ReceptionCheckIn implements OnInit {
       this.error.set('Nhập số điện thoại gồm 10 chữ số để tìm hồ sơ.');
       return;
     }
+    const requestId = ++this.walkInProfileRequestId;
     this.walkInProfilesLoading.set(true);
     this.error.set('');
     this.authApi.getReceptionProfiles(phone).subscribe({
       next: (profiles) => {
+        if (requestId !== this.walkInProfileRequestId || this.walkInPhone().trim() !== phone) return;
         this.walkInProfiles.set(profiles);
         const selected = profiles.find((profile) => profile.primaryProfile) ?? profiles[0];
         const accountLocked = profiles.some((profile) => profile.accountStatus === 'LOCKED');
@@ -861,6 +872,7 @@ export class ReceptionCheckIn implements OnInit {
         this.walkInProfilesLoading.set(false);
       },
       error: (response) => {
+        if (requestId !== this.walkInProfileRequestId || this.walkInPhone().trim() !== phone) return;
         this.walkInProfilesLoading.set(false);
         if (response.status === 404) {
         this.walkInRegistration.set(true);
@@ -877,20 +889,47 @@ export class ReceptionCheckIn implements OnInit {
     });
   }
 
+  protected onWalkInPhoneChange(phone: string): void {
+    if (phone === this.walkInPhone()) return;
+    this.walkInPhone.set(phone);
+    this.walkInProfileRequestId++;
+    this.walkInProfilesLoading.set(false);
+    this.walkInProfiles.set([]);
+    this.walkInProfileId.set('');
+    this.walkInProfileNeedsCompletion.set(false);
+    this.completionProfile.set(null);
+    this.walkInAccountLocked.set(false);
+    this.walkInNeedsPasswordChange.set(false);
+    this.pendingAccountNeedsOtp.set(false);
+    this.activationOtpRequested.set(false);
+    this.activationOtpVerified.set(false);
+    this.registrationOtpSent.set(false);
+    this.walkInOtp.set('');
+    this.notice.set('');
+  }
+
   protected loadWalkInSlots(): void {
     const specialty = this.walkInSpecialty();
     const date = this.walkInDate();
+    const requestId = ++this.walkInSlotRequestId;
     if (!specialty || !date) {
       this.walkInSlots.set([]);
       this.walkInStartTime.set('');
       this.walkInAvailableDates.set([]);
+      this.walkInSlotsLoading.set(false);
       return;
     }
     this.walkInSlotsLoading.set(true);
+    this.walkInAvailableDates.set([]);
+    this.walkInSlots.set([]);
+    this.walkInStartTime.set('');
     const fromDate = date < clinicTodayIso() ? date : clinicTodayIso();
     const toDate = this.addDays(fromDate, 30);
     this.authApi.getAppointmentSlots(specialty, fromDate, toDate).subscribe({
       next: (slots) => {
+        if (requestId !== this.walkInSlotRequestId
+          || this.walkInSpecialty() !== specialty
+          || this.walkInDate() !== date) return;
         const today = clinicTodayIso();
         const dateMap = new Map<string, number>();
         for (const slot of slots) {
@@ -920,6 +959,9 @@ export class ReceptionCheckIn implements OnInit {
         this.walkInSlotsLoading.set(false);
       },
       error: (response) => {
+        if (requestId !== this.walkInSlotRequestId
+          || this.walkInSpecialty() !== specialty
+          || this.walkInDate() !== date) return;
         this.walkInSlotsLoading.set(false);
         this.handleError(response);
       },

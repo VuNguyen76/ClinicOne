@@ -75,6 +75,22 @@ describe('ReceptionCheckIn', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="open-profile-intake"]')).not.toBeNull();
   });
 
+  it('ignores a walk-in profile response after the phone number changes', () => {
+    const component = fixture.componentInstance as any;
+    component.walkInPhone.set('0912345678');
+    component.loadWalkInProfiles();
+    const oldPhoneRequest = http.expectOne('/api/v1/reception/profiles?phone=0912345678');
+
+    component.onWalkInPhoneChange('0987654321');
+    component.loadWalkInProfiles();
+    const currentPhoneRequest = http.expectOne('/api/v1/reception/profiles?phone=0987654321');
+    currentPhoneRequest.flush([{ id: 'p-2', fullName: 'Nguyễn Thị An', relationship: 'Bản thân', phone: '0987654321', primaryProfile: true }]);
+    oldPhoneRequest.flush([{ id: 'p-1', fullName: 'Nguyễn Thanh Vũ', relationship: 'Bản thân', phone: '0912345678', primaryProfile: true }]);
+
+    expect(component.walkInProfiles().map((profile: any) => profile.id)).toEqual(['p-2']);
+    expect(component.walkInProfileId()).toBe('p-2');
+  });
+
   it('keeps the walk-in dialog scrollable and removes redundant operational copy', () => {
     const component = fixture.componentInstance as any;
     component.walkInOpen.set(true);
@@ -262,6 +278,28 @@ describe('ReceptionCheckIn', () => {
 
     expect(component.walkInSlots()).toHaveLength(1);
     expect(component.walkInSlots()[0].remainingCapacity).toBe(0);
+  });
+
+  it('does not let an older slot search replace the selected specialty', () => {
+    const component = fixture.componentInstance as any;
+    component.walkInSpecialty.set('Nội tổng quát');
+    component.loadWalkInSlots();
+    const oldSearch = http.expectOne((item) => item.url === '/api/v1/appointment-slots');
+
+    component.walkInSpecialty.set('Nhi khoa');
+    component.loadWalkInSlots();
+    const currentSearch = http.expectOne((item) => item.url === '/api/v1/appointment-slots');
+    currentSearch.flush([{
+      specialty: 'Nhi khoa', appointmentDate: component.walkInDate(), startTime: '10:00:00', endTime: '10:30:00',
+      doctorName: 'BS. Nguyễn Bình', remainingCapacity: 2, doctorId: 'doctor-pediatrics', roomCode: 'NHI-01',
+    }]);
+    oldSearch.flush([{
+      specialty: 'Nội tổng quát', appointmentDate: component.walkInDate(), startTime: '09:00:00', endTime: '09:30:00',
+      doctorName: 'BS. Nguyễn An', remainingCapacity: 3, doctorId: 'doctor-general', roomCode: 'NOI-01',
+    }]);
+
+    expect(component.walkInSlots().map((slot: any) => slot.doctorId)).toEqual(['doctor-pediatrics']);
+    expect(component.walkInStartTime()).toBe('10:00:00');
   });
 
   it('confirms that a called patient has returned without issuing a second number', () => {
