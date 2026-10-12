@@ -37,6 +37,47 @@ describe('DoctorManagement', () => {
     expect(fixture.nativeElement.textContent).toContain('Chưa phân công');
   });
 
+  it('does not let a slower schedule response replace the currently selected doctor', () => {
+    const doctorA = doctor('doctor-1', true);
+    const doctorB = { ...doctor('doctor-2', true), fullName: 'Bác sĩ B' };
+    http.expectOne('/api/v1/admin/doctors').flush([doctorA, doctorB]);
+    http.expectOne('/api/v1/rooms').flush([room('NOI-01')]);
+    http.expectOne('/api/v1/specialties').flush([{ code: 'TQ', name: 'Khám Tổng Quát', description: '' }]);
+    const firstDoctorRequest = http.expectOne('/api/v1/admin/doctors/doctor-1/schedules');
+
+    const component = fixture.componentInstance;
+    component['selectDoctor'](doctorB as any);
+    const selectedDoctorRequest = http.expectOne('/api/v1/admin/doctors/doctor-2/schedules');
+    const doctorBSchedule = { id: 'schedule-b' } as any;
+    selectedDoctorRequest.flush([doctorBSchedule]);
+    firstDoctorRequest.flush([{ id: 'schedule-a' }]);
+
+    expect(component['selectedDoctor']()?.staffId).toBe('doctor-2');
+    expect(component['schedules']()).toEqual([doctorBSchedule]);
+  });
+
+  it('does not switch the drawer back when an assignment save finishes for another doctor', () => {
+    const doctorA = doctor('doctor-1', true);
+    const doctorB = { ...doctor('doctor-2', true), fullName: 'BÃ¡c sÄ© B' };
+    http.expectOne('/api/v1/admin/doctors').flush([doctorA, doctorB]);
+    http.expectOne('/api/v1/rooms').flush([room('NOI-01')]);
+    http.expectOne('/api/v1/specialties').flush([{ code: 'TQ', name: 'KhÃ¡m Tá»•ng QuÃ¡t', description: '' }]);
+    http.expectOne('/api/v1/admin/doctors/doctor-1/schedules').flush([]);
+
+    const component = fixture.componentInstance;
+    component['assignmentForm'].controls.roomId.setValue('room-1');
+    component['saveAssignment']();
+    const assignmentRequest = http.expectOne('/api/v1/admin/doctors/doctor-1/assignment');
+
+    component['selectDoctor'](doctorB as any);
+    http.expectOne('/api/v1/admin/doctors/doctor-2/schedules').flush([]);
+    assignmentRequest.flush({ ...doctorA, assigned: true, active: true, specialty: 'KhÃ¡m Tá»•ng QuÃ¡t', roomId: 'room-1',
+      roomCode: 'NOI-01', roomName: 'PhÃ²ng Ná»™i 01', avatarUrl: '' });
+
+    expect(component['selectedDoctor']()?.staffId).toBe('doctor-2');
+    expect(component['doctors']().find((item) => item.staffId === 'doctor-1')?.assigned).toBe(true);
+  });
+
   it('creates a doctor account when no doctor exists', () => {
     http.expectOne('/api/v1/admin/doctors').flush([]);
     http.expectOne('/api/v1/rooms').flush([room('NOI-01')]);

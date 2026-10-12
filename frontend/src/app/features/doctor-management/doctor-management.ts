@@ -42,6 +42,7 @@ export class DoctorManagement implements OnInit {
   protected readonly isDrawerOpen = signal(false);
   protected readonly selectedDoctorIds = signal<Set<string>>(new Set());
   private noticeTimer: ReturnType<typeof setTimeout> | null = null;
+  private scheduleRequestVersion = 0;
 
   protected readonly assignmentForm = this.fb.nonNullable.group({
     specialty: ['', [Validators.required]],
@@ -138,10 +139,7 @@ export class DoctorManagement implements OnInit {
       avatarUrl: doctor.avatarUrl ?? '',
     });
     this.isDrawerOpen.set(false);
-    this.authApi.getDoctorSchedules(doctor.staffId).subscribe({
-      next: (schedules) => this.schedules.set(schedules),
-      error: (response) => this.error.set(apiErrorMessage(response)),
-    });
+    this.loadDoctorSchedules(doctor);
   }
 
   protected totalDoctorsCount(): number {
@@ -168,9 +166,22 @@ export class DoctorManagement implements OnInit {
     this.schedules.set([]);
     this.notice.set('');
     this.error.set('');
+    this.loadDoctorSchedules(doctor);
+  }
+
+  private loadDoctorSchedules(doctor: DoctorAccountResponse): void {
+    const requestVersion = ++this.scheduleRequestVersion;
     this.authApi.getDoctorSchedules(doctor.staffId).subscribe({
-      next: (schedules) => this.schedules.set(schedules),
-      error: (response) => this.error.set(apiErrorMessage(response)),
+      next: (schedules) => {
+        if (requestVersion === this.scheduleRequestVersion && this.selectedDoctor()?.staffId === doctor.staffId) {
+          this.schedules.set(schedules);
+        }
+      },
+      error: (response) => {
+        if (requestVersion === this.scheduleRequestVersion && this.selectedDoctor()?.staffId === doctor.staffId) {
+          this.error.set(apiErrorMessage(response));
+        }
+      },
     });
   }
 
@@ -179,8 +190,10 @@ export class DoctorManagement implements OnInit {
   }
 
   protected closeDrawer(): void {
+    this.scheduleRequestVersion++;
     this.isDrawerOpen.set(false);
     this.selectedDoctor.set(null);
+    this.schedules.set([]);
     this.error.set('');
   }
 
@@ -269,11 +282,16 @@ export class DoctorManagement implements OnInit {
           avatarUrl: assigned.avatarUrl || avatarUrl,
         };
         this.doctors.update((items) => items.map((item) => item.staffId === doctor.staffId ? updated : item));
-        this.selectedDoctor.set(updated);
+        if (this.selectedDoctor()?.staffId === doctor.staffId) {
+          this.selectedDoctor.set(updated);
+        }
         this.saving.set(false);
         this.showNotice('Đã lưu phân công và cập nhật ảnh bác sĩ thành công.');
       },
-      error: (response) => { this.saving.set(false); this.error.set(apiErrorMessage(response)); },
+      error: (response) => {
+        this.saving.set(false);
+        if (this.selectedDoctor()?.staffId === doctor.staffId) this.error.set(apiErrorMessage(response));
+      },
     });
   }
 
@@ -284,11 +302,16 @@ export class DoctorManagement implements OnInit {
     this.error.set('');
     this.authApi.addDoctorSchedule(doctor.staffId, this.scheduleForm.getRawValue()).subscribe({
       next: (schedule) => {
-        this.schedules.update((items) => [...items, schedule].sort((a, b) => `${a.dayOfWeek}${a.startTime}`.localeCompare(`${b.dayOfWeek}${b.startTime}`)));
+        if (this.selectedDoctor()?.staffId === doctor.staffId) {
+          this.schedules.update((items) => [...items, schedule].sort((a, b) => `${a.dayOfWeek}${a.startTime}`.localeCompare(`${b.dayOfWeek}${b.startTime}`)));
+        }
         this.saving.set(false);
         this.showNotice('Đã thêm khung giờ làm việc.');
       },
-      error: (response) => { this.saving.set(false); this.error.set(apiErrorMessage(response)); },
+      error: (response) => {
+        this.saving.set(false);
+        if (this.selectedDoctor()?.staffId === doctor.staffId) this.error.set(apiErrorMessage(response));
+      },
     });
   }
 
@@ -297,10 +320,14 @@ export class DoctorManagement implements OnInit {
     if (!doctor) return;
     this.authApi.removeDoctorSchedule(doctor.staffId, schedule.id).subscribe({
       next: () => {
-        this.schedules.update((items) => items.filter((item) => item.id !== schedule.id));
+        if (this.selectedDoctor()?.staffId === doctor.staffId) {
+          this.schedules.update((items) => items.filter((item) => item.id !== schedule.id));
+        }
         this.showNotice('Đã xóa khung giờ làm việc.');
       },
-      error: (response) => this.error.set(apiErrorMessage(response)),
+      error: (response) => {
+        if (this.selectedDoctor()?.staffId === doctor.staffId) this.error.set(apiErrorMessage(response));
+      },
     });
   }
 
