@@ -72,6 +72,23 @@ describe('StaffManagement', () => {
     expect(fixture.nativeElement.textContent).toContain('A1b2C3d4E5f6');
   });
 
+  it('does not create the same staff account twice while the first request is pending', () => {
+    http.expectOne('/api/v1/admin/staff').flush([]);
+    const component = fixture.componentInstance as any;
+    component.newFullName.set('Bác sĩ An');
+    component.newEmployeeCode.set('NV001');
+    component.newUnitName.set('ClinicOne');
+    component.newDepartmentName.set('Khoa Nội');
+    component.newRoles.set(['DOCTOR']);
+
+    component.createAccount();
+    component.createAccount();
+
+    const requests = http.match((request) => request.url === '/api/v1/admin/staff' && request.method === 'POST');
+    expect(requests).toHaveLength(1);
+    requests[0].flush({ account: { ...account('ACTIVE'), username: 'NV001' }, initialPassword: 'A1b2C3d4E5f6' });
+  });
+
   it('updates the selected roles for an existing business account', () => {
     http.expectOne('/api/v1/admin/staff').flush([account('ACTIVE')]);
     fixture.detectChanges();
