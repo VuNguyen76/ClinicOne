@@ -140,6 +140,9 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
     List<Appointment> findByDoctorStaffIdAndAppointmentDateBetweenAndStatusOrderByAppointmentDateAscStartTimeAsc(
             UUID doctorStaffId, LocalDate from, LocalDate to, AppointmentStatus status);
 
+    List<Appointment> findByDoctorStaffIdAndAppointmentDateBetweenAndStatusIn(
+            UUID doctorStaffId, LocalDate from, LocalDate to, Collection<AppointmentStatus> statuses);
+
     @Query("""
             select a from Appointment a
             left join fetch a.patient p
