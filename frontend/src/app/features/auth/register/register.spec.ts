@@ -69,6 +69,66 @@ describe('Register', () => {
     requests[0].flush({ expiresInSeconds: 300, retryAfterSeconds: 60 });
   });
 
+  it('does not navigate away during OTP verification and then jump forward on the late response', () => {
+    component['phone'].set('0912345678');
+    component['step'].set('otp');
+    component.otpForm.controls.code.setValue('123456');
+    component['submitOtp']();
+    const request = http.expectOne('/api/v1/auth/verify-sms-otp');
+
+    component['backToPhone']();
+    expect(component['step']()).toBe('otp');
+    request.flush({ verified: true });
+
+    expect(component['step']()).toBe('profile');
+  });
+
+  it('does not apply districts from a province that is no longer selected', () => {
+    component['provinces'].set([{ code: '01', name: 'Province A' }, { code: '02', name: 'Province B' }]);
+    component.profileForm.controls.provinceCode.setValue('01');
+    component['provinceChanged']();
+    const firstRequest = http.expectOne('/api/v1/addresses/provinces/01/districts?page=1&limit=100');
+
+    component.profileForm.controls.provinceCode.setValue('02');
+    component['provinceChanged']();
+    const currentRequest = http.expectOne('/api/v1/addresses/provinces/02/districts?page=1&limit=100');
+    const currentDistrict = { code: '20', name: 'District B' };
+    firstRequest.flush([{ code: '10', name: 'District A' }]);
+    expect(component['addressLoading']()).toBe(true);
+    currentRequest.flush([currentDistrict]);
+
+    expect(component['districts']()).toEqual([currentDistrict]);
+  });
+
+  it('does not apply wards from a district that is no longer selected', () => {
+    component['districts'].set([{ code: '10', name: 'District A' }, { code: '20', name: 'District B' }]);
+    component.profileForm.controls.districtCode.setValue('10');
+    component['districtChanged']();
+    const firstRequest = http.expectOne('/api/v1/addresses/districts/10/wards?page=1&limit=100');
+
+    component.profileForm.controls.districtCode.setValue('20');
+    component['districtChanged']();
+    const currentRequest = http.expectOne('/api/v1/addresses/districts/20/wards?page=1&limit=100');
+    const currentWard = { code: '200', name: 'Ward B' };
+    currentRequest.flush([currentWard]);
+    firstRequest.flush([{ code: '100', name: 'Ward A' }]);
+
+    expect(component['wards']()).toEqual([currentWard]);
+  });
+
+  it('sends only one OTP verification for repeated submit events', () => {
+    component['phone'].set('0912345678');
+    component['step'].set('otp');
+    component.otpForm.controls.code.setValue('123456');
+
+    component['submitOtp']();
+    component['submitOtp']();
+
+    const requests = http.match('/api/v1/auth/verify-sms-otp');
+    expect(requests).toHaveLength(1);
+    requests[0].flush({ verified: true });
+  });
+
   it('blocks registration and shows prompt if phone already registered', () => {
     component.phoneForm.controls.phone.setValue('0912345678');
     component['submitPhone']();
