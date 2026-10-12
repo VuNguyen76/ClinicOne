@@ -62,6 +62,19 @@ describe('InvoiceLookup', () => {
     expect(fixture.nativeElement.textContent).toContain('Mã OTP');
   });
 
+  it('does not advance to OTP entry for a phone number changed while the request is pending', () => {
+    component.phone.set('0862764830');
+    component.requestOtp();
+    const request = http.expectOne('/api/v1/auth/request-sms-otp');
+
+    component.phone.set('0900000001');
+    request.flush({ expiresInSeconds: 300, retryAfterSeconds: 60 });
+
+    expect(component.step()).toBe('phone');
+    expect(component.phone()).toBe('0900000001');
+    expect(component.error()).toContain('thay đổi');
+  });
+
   it('verifies OTP then lets the user choose among profiles and view prescriptions', () => {
     component.phone.set('0862764830');
     component.requestOtp();
