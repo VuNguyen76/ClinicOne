@@ -20,7 +20,8 @@ import java.util.UUID;
 @Getter
 @Entity
 @Table(name = "otp_challenges", indexes = {
-        @Index(name = "idx_otp_destination_purpose_created", columnList = "destination,purpose,created_at")
+        @Index(name = "idx_otp_destination_purpose_created", columnList = "destination,purpose,created_at"),
+        @Index(name = "idx_otp_destination_created", columnList = "destination,created_at")
 })
 public class OtpChallenge {
 

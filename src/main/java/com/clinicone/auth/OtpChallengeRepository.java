@@ -22,5 +22,5 @@ public interface OtpChallengeRepository extends JpaRepository<OtpChallenge, UUID
     List<OtpChallenge> findLatestForUpdate(@Param("destination") String destination,
                                             @Param("purpose") OtpPurpose purpose, Pageable pageable);
 
-    long countByDestinationAndPurposeAndCreatedAtAfter(String destination, OtpPurpose purpose, Instant createdAfter);
+    long countByDestinationAndCreatedAtAfter(String destination, Instant createdAfter);
 }
