@@ -108,4 +108,8 @@ public interface AppointmentHoldRepository extends JpaRepository<AppointmentHold
                                          @Param("from") LocalDate from,
                                          @Param("to") LocalDate to,
                                          @Param("now") Instant now);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("delete from AppointmentHold h where h.patientProfileId = :profileId")
+    int deleteAllByPatientProfileId(@Param("profileId") UUID profileId);
 }

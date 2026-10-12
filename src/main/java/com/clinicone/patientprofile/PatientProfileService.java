@@ -6,6 +6,7 @@ import com.clinicone.auth.PatientAccount;
 import com.clinicone.auth.PatientAccountRepository;
 import com.clinicone.config.ClinicConfiguration;
 import com.clinicone.config.ClinicConfigurationService;
+import com.clinicone.schedule.AppointmentHoldService;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,17 +26,25 @@ public class PatientProfileService {
     private final PatientAccountRepository accountRepository;
     private final PatientProfileRepository profileRepository;
     private final ClinicConfigurationService clinicConfigurationService;
+    private final AppointmentHoldService appointmentHoldService;
 
     public PatientProfileService(PatientAccountRepository accountRepository, PatientProfileRepository profileRepository) {
         this(accountRepository, profileRepository, null);
     }
 
-    @Autowired
     public PatientProfileService(PatientAccountRepository accountRepository, PatientProfileRepository profileRepository,
                                  ClinicConfigurationService clinicConfigurationService) {
+        this(accountRepository, profileRepository, clinicConfigurationService, null);
+    }
+
+    @Autowired
+    public PatientProfileService(PatientAccountRepository accountRepository, PatientProfileRepository profileRepository,
+                                 ClinicConfigurationService clinicConfigurationService,
+                                 AppointmentHoldService appointmentHoldService) {
         this.accountRepository = accountRepository;
         this.profileRepository = profileRepository;
         this.clinicConfigurationService = clinicConfigurationService;
+        this.appointmentHoldService = appointmentHoldService;
     }
 
     @Transactional
@@ -162,6 +171,9 @@ public class PatientProfileService {
         if (profile.isPrimaryProfile()) {
             throw new AuthException(HttpStatus.CONFLICT, "PRIMARY_PROFILE_CANNOT_DELETE",
                     "Hồ sơ bản thân không thể xóa.");
+        }
+        if (appointmentHoldService != null) {
+            appointmentHoldService.releaseForProfile(profile.getId());
         }
         profile.archive();
         profileRepository.save(profile);
