@@ -731,6 +731,15 @@ export class DoctorExamination implements OnInit {
   protected removePrescriptionLine(index: number): void {
     if (this.isReadonly()) return;
     this.prescriptionLines.removeAt(index);
+    this.medicationSuggestions.update((current) => {
+      const reindexed: Record<number, MedicationSuggestionResponse[]> = {};
+      for (const [key, suggestions] of Object.entries(current)) {
+        const previousIndex = Number(key);
+        if (previousIndex < index) reindexed[previousIndex] = suggestions;
+        else if (previousIndex > index) reindexed[previousIndex - 1] = suggestions;
+      }
+      return reindexed;
+    });
     this.prescriptionEnabled.set(this.prescriptionLines.length > 0);
     this.prescriptionRevision.update((v) => v + 1);
   }
@@ -755,13 +764,15 @@ export class DoctorExamination implements OnInit {
     }
     this.authApi.getDoctorMedicationSuggestions(query).subscribe({
       next: (items) => {
-        if (this.prescriptionLines.at(index) === line && line.controls.medicationName.value?.trim() === query) {
-          this.setMedicationSuggestions(index, items);
+        const currentIndex = this.prescriptionLines.controls.indexOf(line);
+        if (currentIndex >= 0 && line.controls.medicationName.value?.trim() === query) {
+          this.setMedicationSuggestions(currentIndex, items);
         }
       },
       error: () => {
-        if (this.prescriptionLines.at(index) === line && line.controls.medicationName.value?.trim() === query) {
-          this.setMedicationSuggestions(index, []);
+        const currentIndex = this.prescriptionLines.controls.indexOf(line);
+        if (currentIndex >= 0 && line.controls.medicationName.value?.trim() === query) {
+          this.setMedicationSuggestions(currentIndex, []);
         }
       },
     });
