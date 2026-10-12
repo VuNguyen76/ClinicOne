@@ -35,6 +35,7 @@ export class InvoiceLookup {
   );
 
   requestOtp(): void {
+    if (this.requestingOtp()) return;
     this.error.set('');
     const phone = this.phone().trim();
     if (!phone) {
