@@ -54,6 +54,17 @@ export interface SpecialtyMedicationItem {
   unit?: string;
 }
 
+export type ExaminationPhase = 'exam' | 'diagnosis' | 'prescription' | 'preview';
+
+export interface ExaminationPhaseStep {
+  id: ExaminationPhase;
+  stepNumber: number;
+  title: string;
+  subtitle: string;
+  icon: string;
+  testid: string;
+}
+
 @Component({
   selector: 'app-doctor-examination',
   standalone: true,
@@ -100,11 +111,115 @@ export class DoctorExamination implements OnInit {
     !this.examination() || Boolean(this.examination()?.signedAt) || this.examination()?.status === 'COMPLETED'
   );
 
-  // Clinical Workspace Tabs
-  protected readonly activeTab = signal<'exam' | 'diagnosis' | 'prescription'>('exam');
-  protected selectTab(tab: 'exam' | 'diagnosis' | 'prescription'): void {
+  // Clinical Workspace Phases / Stepper Flow
+  protected readonly activeTab = signal<ExaminationPhase>('exam');
+  protected readonly phases: ExaminationPhaseStep[] = [
+    {
+      id: 'exam',
+      stepNumber: 1,
+      title: 'Khám & Sinh hiệu',
+      subtitle: 'Lý do khám, khám LS, sinh hiệu',
+      icon: 'monitor_heart',
+      testid: 'tab-exam',
+    },
+    {
+      id: 'diagnosis',
+      stepNumber: 2,
+      title: 'Chẩn đoán & Xử trí',
+      subtitle: 'Mã ICD-10, kết luận, phác đồ',
+      icon: 'clinical_notes',
+      testid: 'tab-diagnosis',
+    },
+    {
+      id: 'prescription',
+      stepNumber: 3,
+      title: 'Kê đơn & Dặn dò',
+      subtitle: 'Thuốc chuyên khoa, tái khám',
+      icon: 'medication',
+      testid: 'tab-prescription',
+    },
+    {
+      id: 'preview',
+      stepNumber: 4,
+      title: 'Tổng kết & Ký số',
+      subtitle: 'Mẫu TT 33 & ký số điện tử',
+      icon: 'verified',
+      testid: 'tab-preview',
+    },
+  ];
+
+  protected selectTab(tab: ExaminationPhase): void {
     this.activeTab.set(tab);
   }
+
+  protected goToNextPhase(): void {
+    const current = this.activeTab();
+    if (current === 'exam') {
+      if (!this.validateVitalsBeforeSaving()) return;
+      this.selectTab('diagnosis');
+    } else if (current === 'diagnosis') {
+      this.selectTab('prescription');
+    } else if (current === 'prescription') {
+      if (!this.validatePrescriptionLines()) return;
+      if (!this.validateFollowUpBeforeSigning()) return;
+      this.selectTab('preview');
+    }
+  }
+
+  protected goToPrevPhase(): void {
+    const current = this.activeTab();
+    if (current === 'preview') {
+      this.selectTab('prescription');
+    } else if (current === 'prescription') {
+      this.selectTab('diagnosis');
+    } else if (current === 'diagnosis') {
+      this.selectTab('exam');
+    }
+  }
+
+  protected readonly nextPhaseLabel = computed(() => {
+    switch (this.activeTab()) {
+      case 'exam':
+        return 'Chẩn đoán & Xử trí';
+      case 'diagnosis':
+        return 'Kê đơn & Dặn dò';
+      case 'prescription':
+        return 'Tổng kết & Ký số';
+      default:
+        return '';
+    }
+  });
+
+  protected readonly prevPhaseLabel = computed(() => {
+    switch (this.activeTab()) {
+      case 'preview':
+        return 'Kê đơn & Dặn dò';
+      case 'prescription':
+        return 'Chẩn đoán & Xử trí';
+      case 'diagnosis':
+        return 'Thăm khám & Sinh hiệu';
+      default:
+        return '';
+    }
+  });
+
+  protected readonly isExamComplete = computed(() => {
+    return Boolean(
+      this.form?.controls?.reason?.value?.trim() &&
+      this.form?.controls?.examinationNotes?.value?.trim()
+    );
+  });
+
+  protected readonly isDiagnosisComplete = computed(() => {
+    return Boolean(
+      this.form?.controls?.diagnosis?.value?.trim() &&
+      this.form?.controls?.conclusion?.value?.trim()
+    );
+  });
+
+  protected readonly isPrescriptionComplete = computed(() => {
+    return this.prescriptionLines.length > 0;
+  });
 
   // Clinical Safety Alerts (Cảnh báo an toàn lâm sàng)
   protected readonly prescriptionRevision = signal(0);
@@ -317,7 +432,10 @@ export class DoctorExamination implements OnInit {
         this.prescriptionEnabled.set(this.prescriptionLines.length > 0);
         this.prescriptionRevision.update((v) => v + 1);
         this.followUpEnabled.set(value.followUpDays != null || Boolean(value.followUpNote));
-        if (value.signedAt || value.status === 'COMPLETED') this.form.disable();
+        if (value.signedAt || value.status === 'COMPLETED') {
+          this.form.disable();
+          this.activeTab.set('preview');
+        }
         this.loading.set(false);
       },
       error: (response) => {

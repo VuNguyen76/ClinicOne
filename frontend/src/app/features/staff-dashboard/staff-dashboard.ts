@@ -132,7 +132,10 @@ export class StaffDashboard implements OnInit, OnDestroy {
         this.selectedRoomCode.set(workspace.roomCode);
         this.doctorRoomName.set(workspace.roomName);
         this.doctorShiftStatus.set(workspace.shiftStatus ?? 'ACTIVE');
-        this.queue.set(workspace.tickets);
+        const nextTickets = workspace.tickets ?? [];
+        if (!this.areTicketsEqual(this.queue(), nextTickets)) {
+          this.queue.set(nextTickets);
+        }
         this.lastSuccessfulDoctorQueueAt = Date.now();
         this.queueSyncWarning.set(false);
         if (showLoading) this.loadingQueue.set(false);
@@ -149,9 +152,28 @@ export class StaffDashboard implements OnInit, OnDestroy {
     });
   }
 
+  private areTicketsEqual(a: QueueTicketResponse[], b: QueueTicketResponse[]): boolean {
+    if (a === b) return true;
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+      if (
+        a[i].id !== b[i].id ||
+        a[i].status !== b[i].status ||
+        a[i].presenceStatus !== b[i].presenceStatus ||
+        a[i].queueNumber !== b[i].queueNumber
+      ) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   private startDoctorQueueAutoRefresh(): void {
     this.stopDoctorQueueAutoRefresh();
-    this.doctorQueueRefreshTimer = setInterval(() => this.loadDoctorQueue(false), 3_000);
+    this.doctorQueueRefreshTimer = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      this.loadDoctorQueue(false);
+    }, 3_000);
     this.doctorQueueHealthTimer = setInterval(() => this.refreshQueueSyncWarning(), 1_000);
   }
 
