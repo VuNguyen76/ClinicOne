@@ -21,6 +21,12 @@ import com.clinicone.patientprofile.PatientProfileRepository;
 import com.clinicone.queue.QueueService;
 import com.clinicone.queue.QueueTicketRepository;
 import com.clinicone.queue.QueueTicketResponse;
+import com.clinicone.schedule.GeneratedClinicSlot;
+import com.clinicone.schedule.GeneratedClinicSlotRepository;
+import com.clinicone.schedule.GeneratedSlotStatus;
+import com.clinicone.schedule.DoctorSlotBookingCount;
+import com.clinicone.schedule.WorkScheduleTemplate;
+import com.clinicone.schedule.WorkScheduleTemplateRepository;
 import com.clinicone.validation.IdempotencyKeys;
 import com.clinicone.validation.VietnamesePhoneNumbers;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,9 +42,13 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
@@ -58,6 +68,8 @@ public class ReceptionService {
     private final PatientProfileRepository patientProfileRepository;
     private final BusinessLogService businessLogService;
     private final ClinicConfigurationService clinicConfigurationService;
+    private final WorkScheduleTemplateRepository workScheduleTemplateRepository;
+    private final GeneratedClinicSlotRepository generatedSlotRepository;
 
     public ReceptionService(AppointmentRepository appointmentRepository,
                             DoctorProfileRepository doctorProfileRepository,
@@ -94,7 +106,6 @@ public class ReceptionService {
                 businessLogService, null);
     }
 
-    @Autowired
     public ReceptionService(AppointmentRepository appointmentRepository,
                             DoctorProfileRepository doctorProfileRepository,
                             DoctorScheduleRepository doctorScheduleRepository,
@@ -106,6 +117,25 @@ public class ReceptionService {
                             PatientProfileRepository patientProfileRepository,
                             BusinessLogService businessLogService,
                             ClinicConfigurationService clinicConfigurationService) {
+        this(appointmentRepository, doctorProfileRepository, doctorScheduleRepository, ticketRepository, queueService,
+                clock, patientAccountRepository, appointmentService, patientProfileRepository, businessLogService,
+                clinicConfigurationService, null, null);
+    }
+
+    @Autowired
+    public ReceptionService(AppointmentRepository appointmentRepository,
+                            DoctorProfileRepository doctorProfileRepository,
+                            DoctorScheduleRepository doctorScheduleRepository,
+                            QueueTicketRepository ticketRepository,
+                            QueueService queueService,
+                            Clock clock,
+                            PatientAccountRepository patientAccountRepository,
+                            AppointmentService appointmentService,
+                            PatientProfileRepository patientProfileRepository,
+                            BusinessLogService businessLogService,
+                            ClinicConfigurationService clinicConfigurationService,
+                            WorkScheduleTemplateRepository workScheduleTemplateRepository,
+                            GeneratedClinicSlotRepository generatedSlotRepository) {
         this.appointmentRepository = appointmentRepository;
         this.doctorProfileRepository = doctorProfileRepository;
         this.doctorScheduleRepository = doctorScheduleRepository;
@@ -117,6 +147,8 @@ public class ReceptionService {
         this.patientProfileRepository = patientProfileRepository;
         this.businessLogService = businessLogService;
         this.clinicConfigurationService = clinicConfigurationService;
+        this.workScheduleTemplateRepository = workScheduleTemplateRepository;
+        this.generatedSlotRepository = generatedSlotRepository;
     }
 
     @Transactional(readOnly = true)
@@ -333,16 +365,30 @@ public ReceptionAppointmentResponse checkIn(UUID appointmentId, ReceptionCheckIn
                 .map(profile -> {
                     String shiftStatus = computeShiftStatus(profile, targetDate);
                     int waitingCount = computeWaitingCount(profile, targetDate);
-                    java.util.List<ReceptionDoctorOptionResponse.SlotInfo> slots = computeSlots(profile, targetDate);
+                    List<ReceptionDoctorOptionResponse.SlotInfo> slots = computeSlots(profile, targetDate);
                     return ReceptionDoctorOptionResponse.from(profile, shiftStatus, waitingCount, slots);
                 })
                 .toList();
     }
 
     private String computeShiftStatus(DoctorProfile profile, LocalDate date) {
-        if (doctorScheduleRepository == null) return "ACTIVE";
         if (!date.equals(today())) return "NONE";
         var now = LocalTime.now(clock.withZone(CLINIC_ZONE));
+        if (workScheduleTemplateRepository != null) {
+            List<WorkScheduleTemplate> templates = workScheduleTemplateRepository
+                    .findByDoctorStaffIdAndDateRange(profile.getStaffAccount().getId(), date, date);
+            if (!templates.isEmpty()) {
+                long activeTemplates = templates.stream()
+                        .filter(WorkScheduleTemplate::isActive)
+                        .filter(template -> template.getWeekdays().contains(date.getDayOfWeek())
+                                && !template.getExceptionDates().contains(date))
+                        .filter(template -> isWithinTemplateShift(template, now))
+                        .count();
+                if (activeTemplates == 0) return "NONE";
+                return activeTemplates == 1 ? "ACTIVE" : "CONFLICT";
+            }
+        }
+        if (doctorScheduleRepository == null) return "ACTIVE";
         long active = doctorScheduleRepository.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(profile.getId(), date.getDayOfWeek()).stream()
                 .filter(s -> !now.isBefore(s.getStartTime()) && now.isBefore(s.getEndTime())).count();
         if (active == 0) return "NONE";
@@ -356,10 +402,32 @@ public ReceptionAppointmentResponse checkIn(UUID appointmentId, ReceptionCheckIn
         } catch (Exception e) { return 0; }
     }
 
-    private java.util.List<ReceptionDoctorOptionResponse.SlotInfo> computeSlots(DoctorProfile profile, LocalDate date) {
-        if (doctorScheduleRepository == null) return java.util.List.of();
+    private List<ReceptionDoctorOptionResponse.SlotInfo> computeSlots(DoctorProfile profile, LocalDate date) {
+        if (workScheduleTemplateRepository != null && generatedSlotRepository != null) {
+            List<WorkScheduleTemplate> templates = workScheduleTemplateRepository
+                    .findByDoctorStaffIdAndDateRange(profile.getStaffAccount().getId(), date, date);
+            if (!templates.isEmpty()) {
+                Set<UUID> scheduledTemplateIds = templates.stream()
+                        .filter(WorkScheduleTemplate::isActive)
+                        .filter(template -> template.getWeekdays().contains(date.getDayOfWeek())
+                                && !template.getExceptionDates().contains(date))
+                        .map(WorkScheduleTemplate::getId)
+                        .collect(Collectors.toSet());
+                LocalTime now = LocalTime.now(clock.withZone(CLINIC_ZONE));
+                Map<LocalTime, Long> bookedByStartTime = bookedByStartTime(profile, date);
+                return generatedSlotRepository.findByDoctorStaffIdAndAppointmentDateBetweenAndStatus(
+                                profile.getStaffAccount().getId(), date, date, GeneratedSlotStatus.OPEN).stream()
+                        .filter(slot -> scheduledTemplateIds.contains(slot.getTemplate().getId()))
+                        .filter(slot -> !date.equals(today()) || !slot.getStartTime().isBefore(now))
+                        .sorted(Comparator.comparing(GeneratedClinicSlot::getStartTime))
+                        .map(slot -> toSlotInfo(slot, bookedByStartTime))
+                        .toList();
+            }
+        }
+        if (doctorScheduleRepository == null) return List.of();
         var schedules = doctorScheduleRepository.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(profile.getId(), date.getDayOfWeek());
-        java.util.List<ReceptionDoctorOptionResponse.SlotInfo> result = new ArrayList<>();
+        List<ReceptionDoctorOptionResponse.SlotInfo> result = new ArrayList<>();
+        Map<LocalTime, Long> bookedByStartTime = bookedByStartTime(profile, date);
         LocalTime now = LocalTime.now(clock.withZone(CLINIC_ZONE));
         boolean isToday = date.equals(today());
         for (var schedule : schedules) {
@@ -380,20 +448,39 @@ public ReceptionAppointmentResponse checkIn(UUID appointmentId, ReceptionCheckIn
                     start = end;
                     continue;
                 }
-                long booked = appointmentRepository.countByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatusIn(
-                        profile.getStaffAccount().getId(), date, start,
-                        List.of(AppointmentStatus.BOOKED, AppointmentStatus.CHECKED_IN));
-                int remaining = booked == 0 ? 1 : 0;
+                int remaining = bookedByStartTime.getOrDefault(start, 0L) == 0 ? 1 : 0;
                 result.add(new ReceptionDoctorOptionResponse.SlotInfo(start, end, remaining));
                 start = end;
             }
         }
         // Dedup duplicate schedules (e.g. legacy 23:00 + new 21:30 both active) -> keep one per startTime
-        var seen = new java.util.HashSet<java.time.LocalTime>();
+        var seen = new HashSet<LocalTime>();
         var deduped = result.stream().filter(s -> seen.add(s.startTime())).toList();
-        deduped = new java.util.ArrayList<>(deduped);
+        deduped = new ArrayList<>(deduped);
         deduped.sort((a,b) -> a.startTime().compareTo(b.startTime()));
         return deduped;
+    }
+
+    private Map<LocalTime, Long> bookedByStartTime(DoctorProfile profile, LocalDate date) {
+        return appointmentRepository.countBookedByDoctorsAndDateRangeAndStatusIn(
+                        List.of(profile.getStaffAccount().getId()), date, date,
+                        List.of(AppointmentStatus.BOOKED, AppointmentStatus.CHECKED_IN)).stream()
+                .collect(Collectors.toMap(DoctorSlotBookingCount::startTime,
+                        DoctorSlotBookingCount::bookedCount, Long::sum));
+    }
+
+    private ReceptionDoctorOptionResponse.SlotInfo toSlotInfo(GeneratedClinicSlot slot,
+                                                               Map<LocalTime, Long> bookedByStartTime) {
+        int remaining = bookedByStartTime.getOrDefault(slot.getStartTime(), 0L) == 0 ? 1 : 0;
+        return new ReceptionDoctorOptionResponse.SlotInfo(slot.getStartTime(), slot.getEndTime(), remaining);
+    }
+
+    private boolean isWithinTemplateShift(WorkScheduleTemplate template, LocalTime time) {
+        return !time.isBefore(template.getDayStart())
+                && time.isBefore(template.getDayEnd())
+                && template.getBreaks().stream().noneMatch(scheduleBreak ->
+                        !time.isBefore(scheduleBreak.getStartTime())
+                                && time.isBefore(scheduleBreak.getEndTime()));
     }
 
     /** Tiếp nhận người bệnh đến quầy mà chưa có lịch trong ngày. */

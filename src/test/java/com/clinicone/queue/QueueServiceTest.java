@@ -10,11 +10,17 @@ import com.clinicone.auth.StaffAccount;
 import com.clinicone.auth.StaffRole;
 import com.clinicone.doctor.DoctorProfile;
 import com.clinicone.doctor.DoctorProfileRepository;
+import com.clinicone.doctor.DoctorSchedule;
 import com.clinicone.doctor.DoctorScheduleRepository;
 import com.clinicone.examination.ExaminationSession;
 import com.clinicone.examination.ExaminationSessionRepository;
 import com.clinicone.examination.ExaminationSessionStatus;
 import com.clinicone.patientprofile.PatientProfile;
+import com.clinicone.schedule.ClinicService;
+import com.clinicone.schedule.GeneratedClinicSlotRepository;
+import com.clinicone.schedule.GeneratedSlotStatus;
+import com.clinicone.schedule.WorkScheduleTemplate;
+import com.clinicone.schedule.WorkScheduleTemplateRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -527,6 +533,83 @@ class QueueServiceTest {
         assertEquals("BS. Nguyễn Bình", response.doctorName());
         assertEquals("Nội tổng quát", appointment.getSpecialty());
         assertEquals(AppointmentStatus.BOOKED, appointment.getStatus());
+    }
+
+    @Test
+    void receptionCannotMoveQueueTicketIntoTemplateExceptionDateSlot() {
+        UUID ticketId = UUID.randomUUID();
+        UUID targetDoctorId = UUID.randomUUID();
+        ClinicRoom targetRoom = ClinicRoom.create("NOI-02", "Phòng Nội tổng quát 02", "Nội tổng quát");
+        StaffAccount targetStaff = StaffAccount.create("doctor-target", "hash", "BS. Nguyễn Bình", StaffRole.DOCTOR);
+        setId(targetStaff, targetDoctorId);
+        DoctorProfile targetDoctor = DoctorProfile.create(targetStaff, "Nội tổng quát", targetRoom);
+        setId(targetDoctor, UUID.randomUUID());
+        ClinicService clinicService = ClinicService.create("Khám tổng quát", "Nội tổng quát", "Khám", 30, List.of(targetDoctor));
+        WorkScheduleTemplate template = WorkScheduleTemplate.create(clinicService, targetDoctor, targetRoom,
+                TODAY.minusDays(7), TODAY.plusDays(7), LocalTime.of(8, 0), LocalTime.of(17, 0), 30,
+                List.of(TODAY.getDayOfWeek()), List.of(), List.of(TODAY));
+        QueueTicket ticket = QueueTicket.create(appointment, room, TODAY, 5);
+        setId(ticket, ticketId);
+        GeneratedClinicSlotRepository generatedSlotRepository = mock(GeneratedClinicSlotRepository.class);
+        WorkScheduleTemplateRepository templateRepository = mock(WorkScheduleTemplateRepository.class);
+        DoctorScheduleRepository scheduleRepository = mock(DoctorScheduleRepository.class);
+        when(ticketRepository.findById(ticketId)).thenReturn(Optional.of(ticket));
+        when(doctorProfileRepository.findByStaffAccount_Id(targetDoctorId)).thenReturn(Optional.of(targetDoctor));
+        when(templateRepository.findByDoctorStaffIdAndDateRange(targetDoctorId, TODAY, TODAY))
+                .thenReturn(List.of(template));
+        when(generatedSlotRepository.findByDoctorStaffIdAndAppointmentDateBetweenAndStatus(
+                targetDoctorId, TODAY, TODAY, GeneratedSlotStatus.OPEN)).thenReturn(List.of());
+        QueueService templateAwareService = new QueueService(roomRepository, ticketRepository, appointmentRepository,
+                doctorProfileRepository, examinationSessionRepository, null, scheduleRepository,
+                generatedSlotRepository, templateRepository,
+                Clock.fixed(Instant.parse("2026-08-06T02:00:00Z"), ZoneId.of("Asia/Ho_Chi_Minh")));
+
+        AuthException exception = assertThrows(AuthException.class, () -> templateAwareService.adjust(ticketId,
+                new QueueAdjustmentRequest(QueueAdjustmentAction.MOVE, targetDoctorId, "NOI-02", "Nội tổng quát",
+                        "Chuyển sang khung giờ khác", "09:00:00"), "reception-1"));
+
+        assertEquals("QUEUE_TARGET_SLOT_INVALID", exception.getCode());
+        verify(ticketRepository, never()).save(any(QueueTicket.class));
+    }
+
+    @Test
+    void receptionCannotMoveQueueTicketToPausedTemplateDoctorWithoutSelectingSlot() {
+        UUID ticketId = UUID.randomUUID();
+        UUID targetDoctorId = UUID.randomUUID();
+        ClinicRoom targetRoom = ClinicRoom.create("NOI-02", "Phòng Nội tổng quát 02", "Nội tổng quát");
+        StaffAccount targetStaff = StaffAccount.create("doctor-target", "hash", "BS. Nguyễn Bình", StaffRole.DOCTOR);
+        setId(targetStaff, targetDoctorId);
+        DoctorProfile targetDoctor = DoctorProfile.create(targetStaff, "Nội tổng quát", targetRoom);
+        setId(targetDoctor, UUID.randomUUID());
+        ClinicService clinicService = ClinicService.create("Khám tổng quát", "Nội tổng quát", "Khám", 30,
+                List.of(targetDoctor));
+        WorkScheduleTemplate template = WorkScheduleTemplate.create(clinicService, targetDoctor, targetRoom,
+                TODAY.minusDays(7), TODAY.plusDays(7), LocalTime.of(8, 0), LocalTime.of(17, 0), 30,
+                List.of(TODAY.getDayOfWeek()), List.of(), List.of());
+        template.setActive(false);
+        QueueTicket ticket = QueueTicket.create(appointment, room, TODAY, 5);
+        setId(ticket, ticketId);
+        GeneratedClinicSlotRepository generatedSlotRepository = mock(GeneratedClinicSlotRepository.class);
+        WorkScheduleTemplateRepository templateRepository = mock(WorkScheduleTemplateRepository.class);
+        DoctorScheduleRepository scheduleRepository = mock(DoctorScheduleRepository.class);
+        when(ticketRepository.findById(ticketId)).thenReturn(Optional.of(ticket));
+        when(doctorProfileRepository.findByStaffAccount_Id(targetDoctorId)).thenReturn(Optional.of(targetDoctor));
+        when(templateRepository.findByDoctorStaffIdAndDateRange(targetDoctorId, TODAY, TODAY))
+                .thenReturn(List.of(template));
+        when(scheduleRepository.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(targetDoctor.getId(),
+                TODAY.getDayOfWeek())).thenReturn(List.of(DoctorSchedule.create(targetDoctor, TODAY.getDayOfWeek(),
+                LocalTime.of(8, 0), LocalTime.of(17, 0), 30)));
+        QueueService templateAwareService = new QueueService(roomRepository, ticketRepository, appointmentRepository,
+                doctorProfileRepository, examinationSessionRepository, null, scheduleRepository,
+                generatedSlotRepository, templateRepository,
+                Clock.fixed(Instant.parse("2026-08-06T02:00:00Z"), ZoneId.of("Asia/Ho_Chi_Minh")));
+
+        AuthException exception = assertThrows(AuthException.class, () -> templateAwareService.adjust(ticketId,
+                new QueueAdjustmentRequest(QueueAdjustmentAction.MOVE, targetDoctorId, "NOI-02", "Nội tổng quát",
+                        "Chuyển sang hàng đợi bác sĩ đang làm việc"), "reception-1"));
+
+        assertEquals("DOCTOR_SHIFT_INACTIVE", exception.getCode());
+        verify(ticketRepository, never()).save(any(QueueTicket.class));
     }
 
     @Test

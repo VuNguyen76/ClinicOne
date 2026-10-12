@@ -16,6 +16,8 @@ import com.clinicone.examination.ExaminationSessionRepository;
 import com.clinicone.schedule.GeneratedClinicSlot;
 import com.clinicone.schedule.GeneratedClinicSlotRepository;
 import com.clinicone.schedule.GeneratedSlotStatus;
+import com.clinicone.schedule.WorkScheduleTemplate;
+import com.clinicone.schedule.WorkScheduleTemplateRepository;
 import com.clinicone.validation.IdempotencyKeys;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -30,9 +32,9 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.Comparator;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -66,6 +68,7 @@ public class QueueService {
     private final DoctorScheduleRepository doctorScheduleRepository;
     private final BusinessLogService businessLogService;
     private final GeneratedClinicSlotRepository generatedSlotRepository;
+    private final WorkScheduleTemplateRepository workScheduleTemplateRepository;
     private final Clock clock;
 
     public QueueService(ClinicRoomRepository roomRepository, QueueTicketRepository ticketRepository,
@@ -99,12 +102,22 @@ public class QueueService {
                 examinationSessionRepository, businessLogService, null, null, clock);
     }
 
-    @Autowired
     public QueueService(ClinicRoomRepository roomRepository, QueueTicketRepository ticketRepository,
                         AppointmentRepository appointmentRepository, DoctorProfileRepository doctorProfileRepository,
                         ExaminationSessionRepository examinationSessionRepository, BusinessLogService businessLogService,
                         DoctorScheduleRepository doctorScheduleRepository, GeneratedClinicSlotRepository generatedSlotRepository,
                         Clock clock) {
+        this(roomRepository, ticketRepository, appointmentRepository, doctorProfileRepository,
+                examinationSessionRepository, businessLogService, doctorScheduleRepository,
+                generatedSlotRepository, null, clock);
+    }
+
+    @Autowired
+    public QueueService(ClinicRoomRepository roomRepository, QueueTicketRepository ticketRepository,
+                        AppointmentRepository appointmentRepository, DoctorProfileRepository doctorProfileRepository,
+                        ExaminationSessionRepository examinationSessionRepository, BusinessLogService businessLogService,
+                        DoctorScheduleRepository doctorScheduleRepository, GeneratedClinicSlotRepository generatedSlotRepository,
+                        WorkScheduleTemplateRepository workScheduleTemplateRepository, Clock clock) {
         this.roomRepository = roomRepository;
         this.ticketRepository = ticketRepository;
         this.appointmentRepository = appointmentRepository;
@@ -112,8 +125,9 @@ public class QueueService {
         this.examinationSessionRepository = examinationSessionRepository;
         this.businessLogService = businessLogService;
         this.doctorScheduleRepository = doctorScheduleRepository;
-        this.clock = clock;
         this.generatedSlotRepository = generatedSlotRepository;
+        this.workScheduleTemplateRepository = workScheduleTemplateRepository;
+        this.clock = clock;
     }
 
     @Transactional
@@ -588,15 +602,54 @@ public class QueueService {
                     "Phòng đích không khớp với phân công của bác sĩ.");
         }
         ClinicRoom targetRoom = targetDoctor.getRoom();
-        if (request.targetStartTime() != null && !request.targetStartTime().isBlank()) {
-            java.time.LocalTime newTime = java.time.LocalTime.parse(request.targetStartTime());
-            // validate slot is within target doctor's schedule and not taken (1 per slot)
-            boolean scheduled = doctorScheduleRepository != null && doctorScheduleRepository.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(targetDoctor.getId(), ticket.getQueueDate().getDayOfWeek()).stream()
-                    .anyMatch(s -> !newTime.isBefore(s.getStartTime()) && newTime.plusMinutes(s.getSlotDurationMinutes()).compareTo(s.getEndTime()) <= 0);
-            if (!scheduled) {
-                throw new AuthException(HttpStatus.CONFLICT, "QUEUE_TARGET_SLOT_INVALID", "Khung giờ không nằm trong ca trực của bác sĩ đích.");
+        LocalTime newTime = StringUtils.hasText(request.targetStartTime())
+                ? LocalTime.parse(request.targetStartTime()) : null;
+        if (newTime != null) {
+            UUID targetDoctorStaffId = targetDoctor.getStaffAccount().getId();
+            List<WorkScheduleTemplate> templates = workScheduleTemplateRepository == null
+                    ? List.of()
+                    : workScheduleTemplateRepository.findByDoctorStaffIdAndDateRange(
+                            targetDoctorStaffId, ticket.getQueueDate(), ticket.getQueueDate());
+            List<WorkScheduleTemplate> scheduledTemplates = templates.stream()
+                    .filter(WorkScheduleTemplate::isActive)
+                    .filter(template -> template.getWeekdays().contains(ticket.getQueueDate().getDayOfWeek())
+                            && !template.getExceptionDates().contains(ticket.getQueueDate()))
+                    .toList();
+            if (!templates.isEmpty()) {
+                boolean openGeneratedSlot = generatedSlotRepository != null
+                        && generatedSlotRepository.findByDoctorStaffIdAndAppointmentDateBetweenAndStatus(
+                                targetDoctorStaffId, ticket.getQueueDate(), ticket.getQueueDate(), GeneratedSlotStatus.OPEN)
+                        .stream()
+                        .filter(slot -> slot.getStartTime().equals(newTime)
+                                && slot.getSpecialty().equalsIgnoreCase(targetDoctor.getSpecialty())
+                                && slot.getRoomCode().equalsIgnoreCase(targetRoom.getCode()))
+                        .anyMatch(slot -> scheduledTemplates.stream()
+                                .anyMatch(template -> template.getId().equals(slot.getTemplate().getId())));
+                if (!openGeneratedSlot) {
+                    throw new AuthException(HttpStatus.CONFLICT, "QUEUE_TARGET_SLOT_INVALID",
+                            "Khung giờ đích không còn mở theo lịch làm việc của bác sĩ.");
+                }
+            } else {
+                // Legacy weekly schedules remain a fallback only when no template is configured for this date.
+                boolean scheduled = doctorScheduleRepository != null && doctorScheduleRepository
+                        .findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(targetDoctor.getId(),
+                                ticket.getQueueDate().getDayOfWeek()).stream()
+                        .anyMatch(s -> !newTime.isBefore(s.getStartTime())
+                                && newTime.plusMinutes(s.getSlotDurationMinutes()).compareTo(s.getEndTime()) <= 0);
+                if (!scheduled) {
+                    throw new AuthException(HttpStatus.CONFLICT, "QUEUE_TARGET_SLOT_INVALID",
+                            "Khung giờ không nằm trong ca trực của bác sĩ đích.");
+                }
             }
-            long booked = appointmentRepository.countByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatusIn(targetDoctor.getStaffAccount().getId(), ticket.getQueueDate(), newTime, java.util.List.of(com.clinicone.appointment.AppointmentStatus.BOOKED, com.clinicone.appointment.AppointmentStatus.CHECKED_IN));
+        } else if (workScheduleTemplateRepository != null && !hasActiveShift(targetDoctor, ticket.getQueueDate())) {
+            throw new AuthException(HttpStatus.CONFLICT, "DOCTOR_SHIFT_INACTIVE",
+                    "Bác sĩ đích không có ca làm việc đang hiệu lực để tiếp nhận lượt.");
+        }
+        if (newTime != null) {
+            UUID targetDoctorStaffId = targetDoctor.getStaffAccount().getId();
+            long booked = appointmentRepository.countByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatusIn(
+                    targetDoctorStaffId, ticket.getQueueDate(), newTime,
+                    List.of(AppointmentStatus.BOOKED, AppointmentStatus.CHECKED_IN));
             if (booked > 0) {
                 throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_SLOT_FULL", "Khung giờ đã có người đặt.");
             }
@@ -700,7 +753,8 @@ public class QueueService {
     private boolean doctorHasActiveShift(Appointment appointment, ClinicRoom room) {
         // Legacy/unit-test services may not wire schedules; the production bean
         // always has the repository and performs the real shift check.
-        if (doctorScheduleRepository == null || appointment.getDoctorStaffId() == null) {
+        if ((doctorScheduleRepository == null && workScheduleTemplateRepository == null)
+                || appointment.getDoctorStaffId() == null) {
             return true;
         }
         if (doctorProfileRepository == null) {
@@ -717,14 +771,35 @@ public class QueueService {
     }
 
     private boolean hasActiveShift(DoctorProfile profile, LocalDate date) {
+        if (!date.equals(today())) {
+            return false;
+        }
         return "ACTIVE".equals(doctorShiftStatus(profile, date));
     }
 
     private String doctorShiftStatus(DoctorProfile profile, LocalDate date) {
-        if (doctorScheduleRepository == null) {
+        if (workScheduleTemplateRepository == null && doctorScheduleRepository == null) {
             return "ACTIVE";
         }
         if (!date.equals(today())) {
+            return "NONE";
+        }
+        if (workScheduleTemplateRepository != null) {
+            List<WorkScheduleTemplate> templates = workScheduleTemplateRepository
+                    .findByDoctorStaffIdAndDateRange(profile.getStaffAccount().getId(), date, date);
+            if (!templates.isEmpty()) {
+                LocalTime now = LocalTime.now(clock.withZone(CLINIC_ZONE));
+                long activeTemplates = templates.stream()
+                        .filter(WorkScheduleTemplate::isActive)
+                        .filter(template -> template.getWeekdays().contains(date.getDayOfWeek())
+                                && !template.getExceptionDates().contains(date))
+                        .filter(template -> isWithinTemplateShift(template, now))
+                        .count();
+                if (activeTemplates == 0) return "NONE";
+                return activeTemplates == 1 ? "ACTIVE" : "CONFLICT";
+            }
+        }
+        if (doctorScheduleRepository == null) {
             return "NONE";
         }
         var now = LocalTime.now(clock.withZone(CLINIC_ZONE));
@@ -737,6 +812,14 @@ public class QueueService {
             return "NONE";
         }
         return activeSchedules == 1 ? "ACTIVE" : "CONFLICT";
+    }
+
+    private boolean isWithinTemplateShift(WorkScheduleTemplate template, LocalTime time) {
+        return !time.isBefore(template.getDayStart())
+                && time.isBefore(template.getDayEnd())
+                && template.getBreaks().stream().noneMatch(scheduleBreak ->
+                        !time.isBefore(scheduleBreak.getStartTime())
+                                && time.isBefore(scheduleBreak.getEndTime()));
     }
 
     private void recordTransition(UUID eventId, String entityType, UUID entityId, String previousStatus,
