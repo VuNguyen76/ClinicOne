@@ -143,6 +143,44 @@ describe('AppointmentDetail', () => {
     expect(fixture.nativeElement.textContent).toContain('Đã xác nhận khung giờ thay thế');
   });
 
+  it('does not submit a second replacement confirmation while the first request is pending', () => {
+    flushAppointment({
+      id: 'case-1', appointmentId: 'appointment-1', appointmentCode: 'CL-001', specialty: 'Nội tổng quát',
+      oldDoctorName: 'BS. An', oldDoctorId: 'doctor-1', oldAppointmentDate: '2026-08-10', oldStartTime: '08:30:00',
+      reason: 'Bác sĩ nghỉ', status: 'OPEN', newDoctorName: null, newDoctorId: null,
+      newAppointmentDate: null, newStartTime: null, createdAt: '2026-08-01T00:00:00Z', resolvedAt: null,
+    }, [{
+      specialty: 'Nội tổng quát', appointmentDate: '2026-08-11', startTime: '09:30:00', endTime: '10:00:00',
+      doctorName: 'BS. Bình', remainingCapacity: 1, doctorId: 'doctor-2', roomCode: 'NOI-01',
+    }]);
+    (component as any).chooseReplacement((component as any).replacementSlots()[0]);
+
+    (component as any).confirmPatientReschedule();
+    (component as any).confirmPatientReschedule();
+
+    const requests = http.match('/api/v1/patient/rescheduling/appointment-1/confirm');
+    expect(requests).toHaveLength(1);
+    requests[0].flush({
+      id: 'case-1', appointmentId: 'appointment-1', appointmentCode: 'CL-001', specialty: 'Nội tổng quát',
+      oldDoctorName: 'BS. An', oldDoctorId: 'doctor-1', oldAppointmentDate: '2026-08-10', oldStartTime: '08:30:00',
+      reason: 'Bác sĩ nghỉ', status: 'RESOLVED', newDoctorName: 'BS. Bình', newDoctorId: 'doctor-2',
+      newAppointmentDate: '2026-08-11', newStartTime: '09:30:00', createdAt: '2026-08-01T00:00:00Z',
+      resolvedAt: '2026-08-02T00:00:00Z',
+    });
+  });
+
+  it('does not submit cancellation twice while the first request is pending', () => {
+    flushAppointment(null);
+
+    (component as any).cancel();
+    (component as any).cancel();
+
+    const requests = http.match('/api/v1/appointments/appointment-1/cancel');
+    expect(requests).toHaveLength(1);
+    expect(requests[0].request.headers.get('Idempotency-Key')).toBeTruthy();
+    requests[0].flush({ message: 'Tạm thời không thể hủy lịch.' }, { status: 503, statusText: 'Service Unavailable' });
+  });
+
   it('distinguishes a replacement search failure from no available slots', () => {
     http.expectOne('/api/v1/appointments/appointment-1').flush(appointment);
     http.expectOne((request) => request.url === '/api/v1/reasons'
