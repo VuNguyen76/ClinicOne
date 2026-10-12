@@ -274,6 +274,21 @@ describe('StaffDashboard', () => {
     expect(component.operatingTicket()).toBeNull();
   });
 
+  it('does not submit the same operating action twice while the first request is pending', () => {
+    createDashboard('COORDINATOR');
+    http.expectOne('/api/v1/rooms').flush([room('NOI-01')]);
+    http.expectOne((request) => request.url.endsWith('/queue')).flush([ticket('ticket-1', 'WAITING')]);
+    const component = fixture.componentInstance as any;
+
+    component.openLeaveDialog(ticket('ticket-1', 'WAITING'));
+    component.submitOperatingAction();
+    component.submitOperatingAction();
+
+    const requests = http.match('/api/v1/queue/ticket-1/leave');
+    requests.forEach((request) => request.flush({ ...ticket('ticket-1', 'CANCELLED'), statusLabel: 'Đã hủy' }));
+    expect(requests).toHaveLength(1);
+  });
+
   it('displays priority badge and return required status badge appropriately', () => {
     createDashboard('DOCTOR');
     const priorityTicket = { ...ticket('ticket-1', 'WAITING'), priority: true };
