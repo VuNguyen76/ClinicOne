@@ -115,6 +115,7 @@ export class StaffManagement implements OnInit {
   }
 
   protected saveRoles(): void {
+    if (this.updatingId()) return;
     const account = this.editingAccount();
     const roles = this.editingRoles();
     if (!account || roles.length === 0 || roles.length > 3) {
@@ -143,6 +144,7 @@ export class StaffManagement implements OnInit {
   }
 
   protected createAccount(): void {
+    if (this.updatingId()) return;
     const request = {
       fullName: this.newFullName().trim(), employeeCode: this.newEmployeeCode().trim(),
       unitName: this.newUnitName().trim(), departmentName: this.newDepartmentName().trim(), roles: this.newRoles(),
@@ -170,6 +172,7 @@ export class StaffManagement implements OnInit {
   }
 
   protected updateStatus(account: StaffAccountResponse): void {
+    if (this.updatingId()) return;
     const action = account.status === 'LOCKED'
       ? this.authApi.unlockStaffAccount(account.staffId)
       : this.authApi.lockStaffAccount(account.staffId);
