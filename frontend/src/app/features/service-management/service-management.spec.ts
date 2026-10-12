@@ -66,6 +66,24 @@ describe('ServiceManagement', () => {
     expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
   });
 
+  it('does not create the same service twice while the first request is pending', () => {
+    http.expectOne('/api/v1/admin/services').flush([]);
+    http.expectOne('/api/v1/admin/doctors').flush([doctor('d-1')]);
+    http.expectOne('/api/v1/specialties').flush([{ code: 'TQ', name: 'Khám Tổng Quát', description: '' }]);
+    const component = fixture.componentInstance as any;
+    component.name.set('Khám tổng quát cơ bản');
+    component.specialty.set('Khám Tổng Quát');
+    component.visitType.set('Khám thường');
+    component.selectedDoctorIds.set(['d-1']);
+
+    component.submit();
+    component.submit();
+
+    const requests = http.match((request) => request.url === '/api/v1/admin/services' && request.method === 'POST');
+    expect(requests).toHaveLength(1);
+    requests[0].flush(service('s-1', true));
+  });
+
   it('shows the service catalog as read-only to an admin', () => {
     sessionStorage.setItem('clinicOneStaffRoles', JSON.stringify(['ADMIN']));
     http.expectOne('/api/v1/admin/services').flush([service('s-1', true)]);
