@@ -266,6 +266,7 @@
               class="erp-input"
               [ngModel]="walkInPhone()"
               (ngModelChange)="onWalkInPhoneChange($event)"
+              [disabled]="identityMutationLoading()"
               name="registrationPhone"
               inputmode="numeric"
               placeholder="0912345678"
@@ -519,7 +520,7 @@
           <div class="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
             <div>
               <label class="erp-label">Số điện thoại</label>
-              <input class="erp-input" [ngModel]="walkInPhone()" (ngModelChange)="onWalkInPhoneChange($event)" name="walkInPhone" inputmode="numeric" placeholder="0912345678" />
+              <input class="erp-input" [ngModel]="walkInPhone()" (ngModelChange)="onWalkInPhoneChange($event)" [disabled]="identityMutationLoading()" name="walkInPhone" inputmode="numeric" placeholder="0912345678" />
             </div>
             <button type="button" class="erp-btn-secondary" [disabled]="walkInProfilesLoading()" (click)="loadWalkInProfiles()">
               {{ walkInProfilesLoading() ? 'Đang tìm...' : 'Tìm hồ sơ' }}

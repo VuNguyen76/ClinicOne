@@ -28,6 +28,7 @@ export class ReceptionCheckIn implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private walkInProfileRequestId = 0;
   private walkInSlotRequestId = 0;
+  private walkInOtpRequestId = 0;
 
   protected readonly query = signal('');
   protected readonly activeTab = signal<ReceptionTab>(receptionTab(this.route.snapshot.data['receptionView']));
@@ -89,6 +90,7 @@ export class ReceptionCheckIn implements OnInit {
   protected readonly registrationAddressLoading = signal(false);
   protected readonly registrationOtpSent = signal(false);
   protected readonly registrationLoading = signal(false);
+  protected readonly identityMutationLoading = signal(false);
   protected readonly activationPassword = signal('');
   protected readonly activationConfirmPassword = signal('');
   protected readonly activationLoading = signal(false);
@@ -597,6 +599,7 @@ export class ReceptionCheckIn implements OnInit {
     this.walkInProfileId.set('');
     this.walkInSpecialty.set('');
     this.walkInSlots.set([]);
+    this.walkInSlotsLoading.set(false);
     this.walkInStartTime.set('');
     this.walkInReason.set('');
     this.walkInExceptionReason.set('');
@@ -610,6 +613,9 @@ export class ReceptionCheckIn implements OnInit {
     this.walkInProfileNeedsCompletion.set(false);
     this.completionProfile.set(null);
     this.walkInOtp.set('');
+    this.registrationLoading.set(false);
+    this.activationLoading.set(false);
+    this.identityMutationLoading.set(false);
     this.registrationFullName.set('');
     this.registrationDateOfBirth.set('');
     this.registrationGender.set('');
@@ -638,11 +644,13 @@ export class ReceptionCheckIn implements OnInit {
   }
 
   protected closeWalkIn(): void {
-    if (!this.walkInLoading()) {
+    if (!this.walkInLoading() && !this.identityMutationLoading()) {
       this.walkInProfileRequestId++;
       this.walkInSlotRequestId++;
+      this.walkInOtpRequestId++;
       this.walkInProfilesLoading.set(false);
       this.walkInSlotsLoading.set(false);
+      this.registrationLoading.set(false);
       this.walkInRequestKey.set('');
       this.walkInOpen.set(false);
       this.notice.set('');
@@ -663,15 +671,18 @@ export class ReceptionCheckIn implements OnInit {
       this.error.set('Nhập số điện thoại hợp lệ trước khi gửi OTP.');
       return;
     }
+    const requestId = ++this.walkInOtpRequestId;
     this.registrationLoading.set(true);
     this.error.set('');
     this.authApi.requestReceptionPatientOtp(phone).subscribe({
       next: () => {
+        if (requestId !== this.walkInOtpRequestId || this.walkInPhone().trim() !== phone) return;
         this.registrationLoading.set(false);
         this.registrationOtpSent.set(true);
         this.notice.set('Đã gửi OTP. Mã có hiệu lực trong 5 phút.');
       },
       error: (response) => {
+        if (requestId !== this.walkInOtpRequestId || this.walkInPhone().trim() !== phone) return;
         this.registrationLoading.set(false);
         this.handleError(response);
       },
@@ -684,10 +695,12 @@ export class ReceptionCheckIn implements OnInit {
       this.error.set('Nhập số điện thoại hợp lệ trước khi gửi OTP.');
       return;
     }
+    const requestId = ++this.walkInOtpRequestId;
     this.registrationLoading.set(true);
     this.error.set('');
     this.authApi.requestReceptionPatientOtp(phone).subscribe({
       next: () => {
+        if (requestId !== this.walkInOtpRequestId || this.walkInPhone().trim() !== phone) return;
         this.registrationLoading.set(false);
         this.activationOtpRequested.set(true);
         this.activationOtpVerified.set(false);
@@ -695,6 +708,7 @@ export class ReceptionCheckIn implements OnInit {
         this.notice.set('Đã gửi mã OTP. Nhập mã mới để xác minh tài khoản.');
       },
       error: (response) => {
+        if (requestId !== this.walkInOtpRequestId || this.walkInPhone().trim() !== phone) return;
         this.registrationLoading.set(false);
         this.handleError(response);
       },
@@ -708,15 +722,18 @@ export class ReceptionCheckIn implements OnInit {
       this.error.set('Gửi OTP và nhập mã xác minh gồm 6 chữ số.');
       return;
     }
+    const requestId = ++this.walkInOtpRequestId;
     this.registrationLoading.set(true);
     this.error.set('');
     this.authApi.verifySmsOtp(phone, 'REGISTRATION', code).subscribe({
       next: () => {
+        if (requestId !== this.walkInOtpRequestId || this.walkInPhone().trim() !== phone) return;
         this.registrationLoading.set(false);
         this.activationOtpVerified.set(true);
         this.notice.set('Số điện thoại đã được xác minh. Bạn có thể đặt mật khẩu mới.');
       },
       error: (response) => {
+        if (requestId !== this.walkInOtpRequestId || this.walkInPhone().trim() !== phone) return;
         this.registrationLoading.set(false);
         this.activationOtpVerified.set(false);
         this.handleError(response);
@@ -735,6 +752,7 @@ export class ReceptionCheckIn implements OnInit {
       return;
     }
     this.registrationLoading.set(true);
+    this.identityMutationLoading.set(true);
     this.error.set('');
     if (this.walkInTemporaryProfile()) {
       this.authApi.createReceptionTemporaryProfile({
@@ -749,6 +767,7 @@ export class ReceptionCheckIn implements OnInit {
       }).subscribe({
         next: (profile) => {
           this.registrationLoading.set(false);
+          this.identityMutationLoading.set(false);
           this.walkInRegistration.set(false);
           this.walkInTemporaryProfile.set(false);
           this.walkInProfiles.set([profile]);
@@ -757,6 +776,7 @@ export class ReceptionCheckIn implements OnInit {
         },
         error: (response) => {
           this.registrationLoading.set(false);
+          this.identityMutationLoading.set(false);
           this.handleError(response);
         },
       });
@@ -782,6 +802,7 @@ export class ReceptionCheckIn implements OnInit {
     }).subscribe({
       next: (response) => {
         this.registrationLoading.set(false);
+        this.identityMutationLoading.set(false);
         this.walkInRegistration.set(false);
         this.walkInNeedsPasswordChange.set(true);
         this.pendingAccountNeedsOtp.set(false);
@@ -791,6 +812,7 @@ export class ReceptionCheckIn implements OnInit {
       },
       error: (response) => {
         this.registrationLoading.set(false);
+        this.identityMutationLoading.set(false);
         this.handleError(response);
       },
     });
@@ -812,10 +834,12 @@ export class ReceptionCheckIn implements OnInit {
       return;
     }
     this.activationLoading.set(true);
+    this.identityMutationLoading.set(true);
     this.error.set('');
     this.authApi.activateReceptionPatientAccount(phone, password, this.activationConfirmPassword()).subscribe({
       next: () => {
         this.activationLoading.set(false);
+        this.identityMutationLoading.set(false);
         this.activationPassword.set('');
         this.activationConfirmPassword.set('');
         this.walkInNeedsPasswordChange.set(false);
@@ -824,6 +848,7 @@ export class ReceptionCheckIn implements OnInit {
       },
       error: (response) => {
         this.activationLoading.set(false);
+        this.identityMutationLoading.set(false);
         if (response?.error?.code === 'ACTIVATION_OTP_REQUIRED') {
           this.activationOtpVerified.set(false);
         }
@@ -890,10 +915,14 @@ export class ReceptionCheckIn implements OnInit {
   }
 
   protected onWalkInPhoneChange(phone: string): void {
-    if (phone === this.walkInPhone()) return;
+    if (phone === this.walkInPhone() || this.identityMutationLoading()) return;
     this.walkInPhone.set(phone);
     this.walkInProfileRequestId++;
+    this.walkInOtpRequestId++;
     this.walkInProfilesLoading.set(false);
+    this.registrationLoading.set(false);
+    this.walkInRegistration.set(false);
+    this.walkInTemporaryProfile.set(false);
     this.walkInProfiles.set([]);
     this.walkInProfileId.set('');
     this.walkInProfileNeedsCompletion.set(false);

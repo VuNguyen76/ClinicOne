@@ -91,6 +91,22 @@ describe('ReceptionCheckIn', () => {
     expect(component.walkInProfileId()).toBe('p-2');
   });
 
+  it('does not mark OTP as sent for a new phone when an older OTP request completes', () => {
+    const component = fixture.componentInstance as any;
+    component.walkInPhone.set('0912345678');
+    component.requestRegistrationOtp();
+    const oldPhoneRequest = http.expectOne('/api/v1/reception/patients/request-otp');
+
+    component.onWalkInPhoneChange('0987654321');
+    component.requestRegistrationOtp();
+    const currentPhoneRequest = http.expectOne('/api/v1/reception/patients/request-otp');
+    oldPhoneRequest.flush({ expiresInSeconds: 300, retryAfterSeconds: 60 });
+
+    expect(component.registrationOtpSent()).toBe(false);
+    currentPhoneRequest.flush({ expiresInSeconds: 300, retryAfterSeconds: 60 });
+    expect(component.registrationOtpSent()).toBe(true);
+  });
+
   it('keeps the walk-in dialog scrollable and removes redundant operational copy', () => {
     const component = fixture.componentInstance as any;
     component.walkInOpen.set(true);
