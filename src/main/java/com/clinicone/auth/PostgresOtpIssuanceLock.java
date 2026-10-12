@@ -12,8 +12,7 @@ public class PostgresOtpIssuanceLock implements OtpIssuanceLock {
     private final JdbcTemplate jdbcTemplate;
 
     @Override
-    public void lock(String destination, OtpPurpose purpose) {
-        String lockKey = purpose.name() + ":" + destination;
-        jdbcTemplate.query("select pg_advisory_xact_lock(hashtextextended(?, 0))", resultSet -> { }, lockKey);
+    public void lock(String destination) {
+        jdbcTemplate.query("select pg_advisory_xact_lock(hashtextextended(?, 0))", resultSet -> { }, destination);
     }
 }

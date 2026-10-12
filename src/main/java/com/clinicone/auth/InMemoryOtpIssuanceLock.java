@@ -14,9 +14,8 @@ public class InMemoryOtpIssuanceLock implements OtpIssuanceLock {
     private final ConcurrentHashMap<String, ReentrantLock> locks = new ConcurrentHashMap<>();
 
     @Override
-    public void lock(String destination, OtpPurpose purpose) {
-        String key = purpose.name() + ":" + destination;
-        ReentrantLock lock = locks.computeIfAbsent(key, ignored -> new ReentrantLock());
+    public void lock(String destination) {
+        ReentrantLock lock = locks.computeIfAbsent(destination, ignored -> new ReentrantLock());
         lock.lock();
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override

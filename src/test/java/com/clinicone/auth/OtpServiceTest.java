@@ -53,8 +53,7 @@ class OtpServiceTest {
 
     @Test
     void requestSmsOtpStoresOnlyHashAndSendsE164Phone() {
-        when(repository.countByDestinationAndPurposeAndCreatedAtAfter(eq("+84912345678"),
-                eq(OtpPurpose.REGISTRATION), any())).thenReturn(0L);
+        when(repository.countByDestinationAndCreatedAtAfter(eq("+84912345678"), any())).thenReturn(0L);
         when(repository.findTopByDestinationAndPurposeOrderByCreatedAtDesc("+84912345678", OtpPurpose.REGISTRATION))
                 .thenReturn(Optional.empty());
         when(generator.generate()).thenReturn("123456");
@@ -70,7 +69,7 @@ class OtpServiceTest {
     void requestSmsOtpRejectsResendDuringCooldown() {
         OtpChallenge previous = new OtpChallenge("+84912345678", OtpPurpose.REGISTRATION,
                 "hash", NOW.minusSeconds(30), NOW.plusSeconds(270));
-        when(repository.countByDestinationAndPurposeAndCreatedAtAfter(any(), any(), any())).thenReturn(1L);
+        when(repository.countByDestinationAndCreatedAtAfter(any(), any())).thenReturn(1L);
         when(repository.findTopByDestinationAndPurposeOrderByCreatedAtDesc("+84912345678", OtpPurpose.REGISTRATION))
                 .thenReturn(Optional.of(previous));
 
@@ -79,6 +78,20 @@ class OtpServiceTest {
 
         assertEquals(HttpStatus.TOO_MANY_REQUESTS, exception.getStatus());
         assertEquals("OTP_COOLDOWN", exception.getCode());
+        verify(sender, never()).send(any(), any(), any());
+    }
+
+    @Test
+    void requestSmsOtpEnforcesPhoneWideLimitAcrossPurposes() {
+        when(repository.countByDestinationAndCreatedAtAfter(eq("+84912345678"), any()))
+                .thenReturn((long) OtpService.MAX_REQUESTS_PER_WINDOW);
+
+        OtpException exception = assertThrows(OtpException.class,
+                () -> service.requestSmsOtp("0912345678", OtpPurpose.RECEIPT_LOOKUP));
+
+        assertEquals(HttpStatus.TOO_MANY_REQUESTS, exception.getStatus());
+        assertEquals("OTP_RATE_LIMITED", exception.getCode());
+        verify(issuanceLock).lock("+84912345678");
         verify(sender, never()).send(any(), any(), any());
     }
 

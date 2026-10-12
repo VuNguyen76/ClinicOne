@@ -99,13 +99,13 @@ public class OtpService {
     }
 
     private RequestOtpResponse issueOtp(String destination, OtpPurpose purpose) {
-        issuanceLock.lock(destination, purpose);
+        issuanceLock.lock(destination);
         Instant now = Instant.now(clock);
         Instant windowStart = now.minusSeconds(RATE_WINDOW_SECONDS);
-        if (repository.countByDestinationAndPurposeAndCreatedAtAfter(destination, purpose, windowStart)
+        if (repository.countByDestinationAndCreatedAtAfter(destination, windowStart)
                 >= MAX_REQUESTS_PER_WINDOW) {
             throw new OtpException(HttpStatus.TOO_MANY_REQUESTS, "OTP_RATE_LIMITED",
-                    "Bạn đã yêu cầu quá nhiều mã. Vui lòng thử lại sau.", RATE_WINDOW_SECONDS);
+                    "Số điện thoại đã yêu cầu quá nhiều mã. Vui lòng thử lại sau.", RATE_WINDOW_SECONDS);
         }
         var latest = repository.findTopByDestinationAndPurposeOrderByCreatedAtDesc(destination, purpose);
         if (latest.isPresent() && Duration.between(latest.get().getCreatedAt(), now).getSeconds() < RESEND_COOLDOWN_SECONDS) {
