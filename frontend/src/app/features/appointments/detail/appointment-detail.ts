@@ -151,7 +151,7 @@ export class AppointmentDetail implements OnInit {
 
   protected cancel(): void {
     const appointment = this.appointment();
-    if (!appointment || !this.canCancel()) return;
+    if (!appointment || this.busy() || !this.canCancel()) return;
     const requestId = ++this.mutationRequestId;
     this.busy.set(true);
     this.cancellationRequestKey ??= crypto.randomUUID();
@@ -178,6 +178,7 @@ export class AppointmentDetail implements OnInit {
   }
 
   protected confirmPatientReschedule(): void {
+    if (this.busy()) return;
     const appointment = this.appointment();
     const selected = this.selectedReplacement();
     if (!appointment || !this.canCancel() || !this.hasOpenReschedulingCase() || !selected) {
