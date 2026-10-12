@@ -831,10 +831,10 @@
                     type="button"
                     data-testid="mark-returned"
                     class="erp-btn-primary !min-h-7 !px-2.5 !py-1 !text-[11px]"
-                    [disabled]="busyId() === appointment.id"
+                    [disabled]="isAppointmentBusy(appointment.id)"
                     (click)="markReturned(appointment)"
                   >
-                    {{ busyId() === appointment.id ? 'Đang ghi...' : 'Đã quay lại' }}
+                    {{ isAppointmentBusy(appointment.id) ? 'Đang ghi...' : 'Đã quay lại' }}
                   </button>
                 } @else if (appointment.lateArrival && appointment.status === 'BOOKED') {
                   <button
@@ -850,10 +850,10 @@
                   type="button"
                   data-testid="check-in"
                   class="erp-btn-primary !min-h-7 !px-2.5 !py-1 !text-[11px]"
-                  [disabled]="!appointment.roomCode || !!appointment.queueStatus || busyId() === appointment.id"
+                  [disabled]="!appointment.roomCode || !!appointment.queueStatus || isAppointmentBusy(appointment.id)"
                   (click)="checkIn(appointment)"
                 >
-                  {{ busyId() === appointment.id ? 'Đang cấp...' : appointment.queueStatus ? 'Đã nhận' : 'Cấp số ngoại lệ' }}
+                  {{ isAppointmentBusy(appointment.id) ? 'Đang cấp...' : appointment.queueStatus ? 'Đã nhận' : 'Cấp số ngoại lệ' }}
                 </button>
                 }
                 @if (appointment.queueNumber && (appointment.queueStatus === 'WAITING' || appointment.status === 'CHECKED_IN')) {
@@ -880,10 +880,10 @@
                     type="button"
                     data-testid="leave-before-exam"
                     class="erp-btn-danger !min-h-7 !px-2.5 !py-1 !text-[11px]"
-                    [disabled]="busyId() === appointment.id || leaveReason().trim().length < 10"
+                    [disabled]="isAppointmentBusy(appointment.id) || leaveReason().trim().length < 10"
                     (click)="leaveBeforeExam(appointment)"
                   >
-                    {{ busyId() === appointment.id ? 'Đang ghi...' : 'Ghi nhận rời' }}
+                    {{ isAppointmentBusy(appointment.id) ? 'Đang ghi...' : 'Ghi nhận rời' }}
                   </button>
                 }
                 @if (canAdjustQueue() && appointment.queueTicketId && appointment.queueStatus !== 'COMPLETED') {
@@ -891,7 +891,7 @@
                     type="button"
                     data-testid="facility-unavailable"
                     class="erp-btn-danger !min-h-7 !px-2.5 !py-1 !text-[11px]"
-                    [disabled]="busyId() === appointment.id"
+                    [disabled]="isAppointmentBusy(appointment.id)"
                     (click)="markFacilityUnavailable(appointment)"
                   >
                     Phòng khám dừng phục vụ
