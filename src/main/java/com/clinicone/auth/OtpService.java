@@ -2,6 +2,7 @@ package com.clinicone.auth;
 
 import com.clinicone.validation.VietnamesePhoneNumbers;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -40,7 +41,9 @@ public class OtpService {
 
     private VerifyOtpResponse verifyForDestination(String destination, OtpPurpose purpose, String code) {
         Instant now = Instant.now(clock);
-        OtpChallenge challenge = repository.findTopByDestinationAndPurposeOrderByCreatedAtDesc(destination, purpose)
+        OtpChallenge challenge = repository.findLatestForUpdate(destination, purpose, PageRequest.of(0, 1))
+                .stream()
+                .findFirst()
                 .orElseThrow(this::invalidOtp);
 
         if (challenge.isExpired(now) || challenge.isVerified() || challenge.getFailedAttempts() >= MAX_FAILED_ATTEMPTS
