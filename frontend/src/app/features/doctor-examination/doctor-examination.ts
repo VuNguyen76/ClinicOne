@@ -754,8 +754,16 @@ export class DoctorExamination implements OnInit {
       return;
     }
     this.authApi.getDoctorMedicationSuggestions(query).subscribe({
-      next: (items) => this.setMedicationSuggestions(index, items),
-      error: () => this.setMedicationSuggestions(index, []),
+      next: (items) => {
+        if (this.prescriptionLines.at(index) === line && line.controls.medicationName.value?.trim() === query) {
+          this.setMedicationSuggestions(index, items);
+        }
+      },
+      error: () => {
+        if (this.prescriptionLines.at(index) === line && line.controls.medicationName.value?.trim() === query) {
+          this.setMedicationSuggestions(index, []);
+        }
+      },
     });
   }
 
@@ -767,8 +775,12 @@ export class DoctorExamination implements OnInit {
       return;
     }
     this.authApi.getDoctorDiagnosisSuggestions(query).subscribe({
-      next: (items) => this.diagnosisSuggestions.set(items),
-      error: () => this.diagnosisSuggestions.set([]),
+      next: (items) => {
+        if (this.form.controls.diagnosis.value?.trim() === query) this.diagnosisSuggestions.set(items);
+      },
+      error: () => {
+        if (this.form.controls.diagnosis.value?.trim() === query) this.diagnosisSuggestions.set([]);
+      },
     });
   }
 
