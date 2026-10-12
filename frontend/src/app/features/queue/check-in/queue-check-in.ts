@@ -1,7 +1,9 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { distinctUntilChanged, map } from 'rxjs';
 import { ApiErrorResponse, AppointmentResponse, AuthApiService, ClinicRoomCheckInResponse, QueueTicketResponse, apiErrorMessage } from '../../../core/auth/auth-api.service';
 import { PatientHeader } from '../../../shared/patient-header/patient-header';
 import { clinicTodayIso, formatClinicDate, formatClinicTime } from '../../../core/time/clinic-time';
@@ -23,6 +25,10 @@ export class QueueCheckIn implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly authApi = inject(AuthApiService);
+  private readonly destroyRef = inject(DestroyRef);
+  private roomRequestId = 0;
+  private appointmentsRequestId = 0;
+  private checkInRequestId = 0;
 
   protected readonly roomCode = signal('');
   protected readonly room = signal<ClinicRoomCheckInResponse | null>(null);
@@ -37,8 +43,11 @@ export class QueueCheckIn implements OnInit {
   private checkInRequestKey: string | null = null;
 
   ngOnInit(): void {
-    this.roomCode.set(this.route.snapshot.paramMap.get('roomCode') ?? '');
-    this.loadRoom();
+    this.route.paramMap.pipe(
+      map((params) => params.get('roomCode') ?? ''),
+      distinctUntilChanged(),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe((roomCode) => this.openRoom(roomCode));
   }
 
   protected todayAppointments(): AppointmentResponse[] {
@@ -114,6 +123,7 @@ export class QueueCheckIn implements OnInit {
     this.lateNotice.set('');
     this.error.set('');
     this.busy.set(true);
+    const requestId = ++this.checkInRequestId;
     this.checkInRequestKey ??= `checkin-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
     const clinicRoomCode = this.room()?.code;
     if (!clinicRoomCode) {
@@ -123,10 +133,12 @@ export class QueueCheckIn implements OnInit {
     }
     this.authApi.checkInToRoom(clinicRoomCode, appointment.id, this.checkInRequestKey).subscribe({
       next: (ticket) => {
+        if (requestId !== this.checkInRequestId) return;
         this.ticket.set(ticket);
         this.busy.set(false);
       },
       error: (response) => {
+        if (requestId !== this.checkInRequestId) return;
         this.busy.set(false);
         this.handleError(response);
       },
@@ -149,12 +161,13 @@ export class QueueCheckIn implements OnInit {
 
   protected retry(): void {
     this.error.set('');
-    this.loadRoom();
+    this.appointmentsRequestId++;
+    this.loadRoom(++this.roomRequestId);
   }
 
-  private loadAppointments(): void {
+  private loadAppointments(roomRequestId: number, roomCode: string): void {
+    const requestId = ++this.appointmentsRequestId;
     this.loading.set(true);
-    const roomCode = this.room()?.code;
     if (!roomCode) {
       this.loading.set(false);
       this.error.set('Không xác định được phòng khám từ mã QR.');
@@ -162,6 +175,7 @@ export class QueueCheckIn implements OnInit {
     }
     this.authApi.getRoomCheckInAppointments(roomCode).subscribe({
       next: (appointments) => {
+        if (roomRequestId !== this.roomRequestId || requestId !== this.appointmentsRequestId) return;
         this.appointments.set(appointments);
         const profiles = this.profileOptions();
         if (profiles.length === 1) {
@@ -171,19 +185,41 @@ export class QueueCheckIn implements OnInit {
         this.loading.set(false);
       },
       error: (response) => {
+        if (roomRequestId !== this.roomRequestId || requestId !== this.appointmentsRequestId) return;
         this.loading.set(false);
         this.handleError(response);
       },
     });
   }
 
-  private loadRoom(): void {
-    this.authApi.getRoomForCheckIn(this.roomCode()).subscribe({
+  private openRoom(roomKey: string): void {
+    this.roomCode.set(roomKey);
+    this.roomRequestId++;
+    this.appointmentsRequestId++;
+    this.checkInRequestId++;
+    this.room.set(null);
+    this.appointments.set([]);
+    this.selectedProfileKey.set('');
+    this.ticket.set(null);
+    this.busy.set(false);
+    this.error.set('');
+    this.lateNotice.set('');
+    this.checkInRequestKey = null;
+    this.loading.set(true);
+    this.loadRoom(this.roomRequestId);
+  }
+
+  private loadRoom(requestId = ++this.roomRequestId): void {
+    const roomKey = this.roomCode();
+    this.loading.set(true);
+    this.authApi.getRoomForCheckIn(roomKey).subscribe({
       next: (room) => {
+        if (requestId !== this.roomRequestId || roomKey !== this.roomCode()) return;
         this.room.set(room);
-        this.loadAppointments();
+        this.loadAppointments(requestId, room.code);
       },
       error: (response) => {
+        if (requestId !== this.roomRequestId || roomKey !== this.roomCode()) return;
         this.loading.set(false);
         this.handleError(response);
       },
