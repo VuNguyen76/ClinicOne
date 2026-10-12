@@ -15,6 +15,16 @@ public interface RescheduleCaseRepository extends JpaRepository<RescheduleCase, 
 
     Optional<RescheduleCase> findByAppointmentIdAndStatus(UUID appointmentId, RescheduleCaseStatus status);
 
+    @Query("""
+            select item from RescheduleCase item
+            where item.appointment.id = :appointmentId
+              and item.appointment.patient.id = :patientId
+              and item.status = :status
+            """)
+    Optional<RescheduleCase> findForPatientAndStatus(@Param("appointmentId") UUID appointmentId,
+                                                      @Param("patientId") UUID patientId,
+                                                      @Param("status") RescheduleCaseStatus status);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select item from RescheduleCase item where item.id = :id")
     Optional<RescheduleCase> findByIdForUpdate(@Param("id") UUID id);
