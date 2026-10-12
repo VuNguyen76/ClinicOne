@@ -46,6 +46,9 @@ import com.clinicone.rescheduling.RescheduleCaseRepository;
 import com.clinicone.schedule.ClinicService;
 import com.clinicone.schedule.ClinicServiceRepository;
 import com.clinicone.schedule.CreateScheduleTemplateRequest;
+import com.clinicone.schedule.GeneratedClinicSlot;
+import com.clinicone.schedule.GeneratedClinicSlotRepository;
+import com.clinicone.schedule.GeneratedSlotStatus;
 import com.clinicone.schedule.ScheduleBreakRequest;
 import com.clinicone.schedule.ScheduleTemplateService;
 import com.clinicone.schedule.SpecialtyCatalogEntry;
@@ -69,6 +72,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -128,6 +132,9 @@ public class LocalDataInitializer implements CommandLineRunner {
 
     @Autowired(required = false)
     private ScheduleTemplateService scheduleTemplateService;
+
+    @Autowired(required = false)
+    private GeneratedClinicSlotRepository generatedClinicSlotRepository;
 
     @Autowired(required = false)
     private DoctorTimeOffRepository doctorTimeOffRepository;
@@ -726,6 +733,20 @@ public class LocalDataInitializer implements CommandLineRunner {
         LocalDate startDate = LocalDate.now(CLINIC_ZONE);
         LocalDate endDate = startDate.plusDays(45);
         try {
+            Set<LocalDate> exceptionDates = Set.of();
+            if (generatedClinicSlotRepository != null) {
+                List<GeneratedClinicSlot> existingSlots = new ArrayList<>(
+                        generatedClinicSlotRepository.findByDoctorStaffIdAndAppointmentDateBetweenAndStatus(
+                                doctorProfile.getStaffAccount().getId(), startDate, endDate, GeneratedSlotStatus.OPEN));
+                existingSlots.addAll(generatedClinicSlotRepository.findByRoomIdAndAppointmentDateBetweenAndStatus(
+                        room.getId(), startDate, endDate, GeneratedSlotStatus.OPEN));
+                exceptionDates = findConflictingScheduleDates(existingSlots, startDate, endDate, weekdays,
+                        dayStart, dayEnd, 30, breaks);
+                if (!exceptionDates.isEmpty()) {
+                    log.warn("Local schedule seed will preserve existing slots and skip {} conflicting dates for doctor {}",
+                            exceptionDates.size(), doctorProfile.getStaffAccount().getFullName());
+                }
+            }
             scheduleTemplateService.create(new CreateScheduleTemplateRequest(
                     service.getId(),
                     doctorProfile.getStaffAccount().getId(),
@@ -737,11 +758,48 @@ public class LocalDataInitializer implements CommandLineRunner {
                     dayEnd,
                     30,
                     breaks,
-                    Set.of()
+                    exceptionDates
             ));
         } catch (Exception e) {
             log.warn("Could not create schedule template for doctor {}: {}", doctorProfile.getStaffAccount().getFullName(), e.getMessage());
         }
+    }
+
+    static Set<LocalDate> findConflictingScheduleDates(List<GeneratedClinicSlot> existingSlots,
+                                                        LocalDate startDate, LocalDate endDate,
+                                                        Set<DayOfWeek> weekdays, LocalTime dayStart,
+                                                        LocalTime dayEnd, int durationMinutes,
+                                                        List<ScheduleBreakRequest> breaks) {
+        Set<LocalDate> conflicts = new HashSet<>();
+        List<ScheduleBreakRequest> safeBreaks = breaks == null ? List.of() : breaks;
+        for (GeneratedClinicSlot existing : existingSlots) {
+            LocalDate date = existing.getAppointmentDate();
+            if (date.isBefore(startDate) || date.isAfter(endDate) || !weekdays.contains(date.getDayOfWeek())) {
+                continue;
+            }
+            LocalTime candidateStart = dayStart;
+            while (!candidateStart.plusMinutes(durationMinutes).isAfter(dayEnd)) {
+                LocalTime candidateEnd = candidateStart.plusMinutes(durationMinutes);
+                ScheduleBreakRequest overlappingBreak = null;
+                for (ScheduleBreakRequest item : safeBreaks) {
+                    if (candidateStart.isBefore(item.endTime()) && item.startTime().isBefore(candidateEnd)) {
+                        overlappingBreak = item;
+                        break;
+                    }
+                }
+                if (overlappingBreak != null) {
+                    candidateStart = overlappingBreak.endTime();
+                    continue;
+                }
+                if (candidateStart.isBefore(existing.getEndTime())
+                        && existing.getStartTime().isBefore(candidateEnd)) {
+                    conflicts.add(date);
+                    break;
+                }
+                candidateStart = candidateEnd;
+            }
+        }
+        return Set.copyOf(conflicts);
     }
 
     private PatientAccount ensurePatient(String phone, String fullName) {
