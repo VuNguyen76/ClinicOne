@@ -66,6 +66,7 @@ export class ReceptionCheckIn implements OnInit {
   protected readonly walkInExceptionReason = signal('');
   protected readonly walkInLoading = signal(false);
   protected readonly walkInRequestKey = signal('');
+  private walkInRequestFingerprint = '';
   protected readonly walkInProfilesLoading = signal(false);
   protected readonly walkInSlotsLoading = signal(false);
   protected readonly walkInRegistration = signal(false);
@@ -676,6 +677,7 @@ export class ReceptionCheckIn implements OnInit {
     this.walkInSlotRequestId++;
     this.walkInOpen.set(true);
     this.walkInRequestKey.set('');
+    this.walkInRequestFingerprint = '';
     this.walkInPhone.set('');
     this.walkInDate.set(clinicTodayIso());
     this.walkInProfiles.set([]);
@@ -1113,9 +1115,7 @@ export class ReceptionCheckIn implements OnInit {
     }
     this.walkInLoading.set(true);
     this.error.set('');
-    const requestKey = this.walkInRequestKey() || `walk-in-${crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`}`;
-    this.walkInRequestKey.set(requestKey);
-    this.authApi.createReceptionWalkIn({
+    const request = {
       phone,
       profileId: this.walkInProfileId() || null,
       doctorId: slot.doctorId,
@@ -1124,10 +1124,19 @@ export class ReceptionCheckIn implements OnInit {
       reason,
       exceptionReason,
       ...(overCapacity ? { overCapacity: true } : {}),
-    }, requestKey).subscribe({
+    };
+    const fingerprint = JSON.stringify(request);
+    let requestKey = this.walkInRequestKey();
+    if (!requestKey || this.walkInRequestFingerprint !== fingerprint) {
+      requestKey = `walk-in-${crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`}`;
+      this.walkInRequestKey.set(requestKey);
+      this.walkInRequestFingerprint = fingerprint;
+    }
+    this.authApi.createReceptionWalkIn(request, requestKey).subscribe({
       next: (appointment) => {
         this.walkInLoading.set(false);
         this.walkInRequestKey.set('');
+        this.walkInRequestFingerprint = '';
         this.walkInOpen.set(false);
         this.appointments.update((items) => [appointment, ...items]);
         this.notice.set(appointment.queueNumber == null
