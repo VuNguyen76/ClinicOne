@@ -25,6 +25,7 @@ import com.clinicone.rescheduling.RescheduleCaseRepository;
 import com.clinicone.rescheduling.RescheduleCaseStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -39,6 +40,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -65,11 +67,14 @@ class AppointmentServiceTest {
     private com.clinicone.schedule.GeneratedClinicSlotRepository generatedSlotRepository;
     private PatientProfileRepository profileRepository;
     private com.clinicone.queue.QueueTicketRepository queueTicketRepository;
+    private PatientProfile defaultPatientProfile;
     private AppointmentService service;
 
     @BeforeEach
     void setUp() {
         accountRepository = mock(PatientAccountRepository.class);
+        when(accountRepository.findByIdForUpdate(any()))
+                .thenAnswer(invocation -> accountRepository.findById(invocation.getArgument(0)));
         appointmentRepository = mock(AppointmentRepository.class);
         notificationService = mock(PatientNotificationService.class);
         availabilityService = mock(AppointmentAvailabilityService.class);
@@ -80,6 +85,10 @@ class AppointmentServiceTest {
         generatedSlotRepository = mock(GeneratedClinicSlotRepository.class);
         profileRepository = mock(PatientProfileRepository.class);
         queueTicketRepository = mock(com.clinicone.queue.QueueTicketRepository.class);
+        defaultPatientProfile = mock(PatientProfile.class);
+        when(defaultPatientProfile.getId()).thenReturn(UUID.randomUUID());
+        when(profileRepository.findByOwnerIdAndActiveTrueOrderByPrimaryProfileDescCreatedAtAsc(ACCOUNT_ID))
+                .thenReturn(List.of(defaultPatientProfile));
         service = serviceBuilder().build();
         when(appointmentRepository.save(any(Appointment.class))).thenAnswer(invocation -> invocation.getArgument(0));
     }
@@ -120,6 +129,40 @@ class AppointmentServiceTest {
         assertEquals("Đã đặt", response.statusLabel());
         verify(appointmentRepository).save(any(Appointment.class));
         verify(notificationService).notifyAppointmentCreated(any(Appointment.class));
+    }
+
+    @Test
+    void usesThePatientsPrimaryProfileWhenBookingRequestOmitsProfileId() {
+        PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
+        setId(account, ACCOUNT_ID);
+        PatientProfile primaryProfile = mock(PatientProfile.class);
+        when(primaryProfile.getId()).thenReturn(UUID.randomUUID());
+        when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
+        when(profileRepository.findByOwnerIdAndActiveTrueOrderByPrimaryProfileDescCreatedAtAsc(ACCOUNT_ID))
+                .thenReturn(List.of(primaryProfile));
+
+        service.create(ACCOUNT_ID.toString(), new CreateAppointmentRequest(
+                "Nội khoa", "BS. Nguyễn An", LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), "Đau đầu"));
+
+        ArgumentCaptor<Appointment> savedAppointment = ArgumentCaptor.forClass(Appointment.class);
+        verify(appointmentRepository).save(savedAppointment.capture());
+        assertSame(primaryProfile, savedAppointment.getValue().getPatientProfile());
+    }
+
+    @Test
+    void returnsClearConflictWhenPatientHasNoActiveProfile() {
+        PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
+        setId(account, ACCOUNT_ID);
+        when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
+        when(profileRepository.findByOwnerIdAndActiveTrueOrderByPrimaryProfileDescCreatedAtAsc(ACCOUNT_ID))
+                .thenReturn(List.of());
+
+        AuthException exception = assertThrows(AuthException.class, () -> service.create(ACCOUNT_ID.toString(),
+                new CreateAppointmentRequest("Nội khoa", "BS. Nguyễn An", LocalDate.of(2026, 8, 10),
+                        LocalTime.of(8, 30), "Đau đầu")));
+
+        assertEquals("PATIENT_PROFILE_REQUIRED", exception.getCode());
+        verify(appointmentRepository, never()).save(any(Appointment.class));
     }
 
     @Test
@@ -190,6 +233,9 @@ class AppointmentServiceTest {
 
     @Test
     void repeatedCreateWithSameIdempotencyKeyReturnsTheExistingAppointment() {
+        PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
+        setId(account, ACCOUNT_ID);
+        when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
         Appointment existing = Appointment.existing(
                 new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false),
                 "CL-20260810-AB12", "Nội khoa", "BS. Nguyễn An", LocalDate.of(2026, 8, 10),
@@ -204,13 +250,16 @@ class AppointmentServiceTest {
                 "Đau đầu kéo dài"), "booking-key-1");
 
         assertEquals(existingId, response.id());
-        verify(accountRepository, never()).findById(ACCOUNT_ID);
+        verify(accountRepository).findByIdForUpdate(ACCOUNT_ID);
         verify(appointmentRepository, never()).save(any(Appointment.class));
         verify(notificationService, never()).notifyAppointmentCreated(any(Appointment.class));
     }
 
     @Test
     void rejectsReusingCreateKeyForDifferentPayload() {
+        PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
+        setId(account, ACCOUNT_ID);
+        when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
         Appointment existing = Appointment.existing(
                 new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false),
                 "CL-20260810-AB12", "Nội khoa", "BS. Nguyễn An", LocalDate.of(2026, 8, 10),

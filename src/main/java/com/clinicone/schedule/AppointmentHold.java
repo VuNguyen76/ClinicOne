@@ -54,6 +54,9 @@ public class AppointmentHold {
     @Column(name = "clinic_service_id")
     private UUID serviceId;
 
+    @Column(name = "patient_profile_id")
+    private UUID patientProfileId;
+
     @Column(name = "appointment_date", nullable = false)
     private LocalDate appointmentDate;
 
@@ -77,12 +80,13 @@ public class AppointmentHold {
 
     private AppointmentHold(PatientAccount patient, String specialty, String doctorName, UUID doctorStaffId,
                              LocalDate appointmentDate, LocalTime startTime, String holdKey, Instant expiresAt,
-                             UUID serviceId, String sessionKey) {
+                             UUID serviceId, String sessionKey, UUID patientProfileId) {
         this.patient = patient;
         this.specialty = specialty;
         this.doctorName = doctorName;
         this.doctorStaffId = doctorStaffId;
         this.serviceId = serviceId;
+        this.patientProfileId = patientProfileId;
         this.appointmentDate = appointmentDate;
         this.startTime = startTime;
         this.holdKey = holdKey;
@@ -107,8 +111,16 @@ public class AppointmentHold {
     public static AppointmentHold create(PatientAccount patient, String specialty, String doctorName,
                                           UUID doctorStaffId, LocalDate appointmentDate, LocalTime startTime,
                                           String holdKey, Instant expiresAt, UUID serviceId, String sessionKey) {
+        return create(patient, specialty, doctorName, doctorStaffId, appointmentDate, startTime, holdKey, expiresAt,
+                serviceId, sessionKey, null);
+    }
+
+    public static AppointmentHold create(PatientAccount patient, String specialty, String doctorName,
+                                          UUID doctorStaffId, LocalDate appointmentDate, LocalTime startTime,
+                                          String holdKey, Instant expiresAt, UUID serviceId, String sessionKey,
+                                          UUID patientProfileId) {
         return new AppointmentHold(patient, specialty, doctorName, doctorStaffId, appointmentDate, startTime,
-                holdKey, expiresAt, serviceId, sessionKey);
+                holdKey, expiresAt, serviceId, sessionKey, patientProfileId);
     }
 
     @PrePersist

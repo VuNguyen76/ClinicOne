@@ -106,6 +106,7 @@ class AppointmentHoldServiceTest {
         verify(holdRepository).saveAndFlush(captor.capture());
         AppointmentHold savedHold = captor.getValue();
         assertTrue(savedHold.getHoldKey().matches("[0-9a-f]{64}"));
+        assertEquals(profileId, savedHold.getPatientProfileId());
     }
 
     @Test
@@ -274,6 +275,23 @@ class AppointmentHoldServiceTest {
                 "login-session-b"));
 
         assertEquals("APPOINTMENT_HOLD_SESSION_MISMATCH", exception.getCode());
+    }
+
+    @Test
+    void rejectsBookingWhenHoldWasCreatedForAnotherPatientProfile() throws Exception {
+        PatientAccount account = account();
+        UUID holdId = UUID.randomUUID();
+        AppointmentHold hold = AppointmentHold.create(account, "Nội tổng quát", "BS. An", DOCTOR_ID,
+                LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), "hold-key", NOW.plusSeconds(600));
+        setId(hold, holdId);
+        when(holdRepository.findByIdAndPatientId(holdId, ACCOUNT_ID)).thenReturn(Optional.of(hold));
+
+        AuthException exception = assertThrows(AuthException.class, () -> service.requireForBooking(
+                ACCOUNT_ID.toString(), holdId, new CreateAppointmentRequest("Nội tổng quát", "BS. An",
+                        LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), "Đau đầu", UUID.randomUUID(),
+                        DOCTOR_ID, holdId)));
+
+        assertEquals("APPOINTMENT_HOLD_MISMATCH", exception.getCode());
     }
 
     private PatientAccount account() {
