@@ -605,6 +605,7 @@ export class ReceptionCheckIn implements OnInit {
   }
 
   protected adjustQueue(action: 'MOVE' | 'SET_PRIORITY' | 'CLEAR_PRIORITY'): void {
+    if (this.adjustmentLoading()) return;
     if (!this.canAdjustQueue()) {
       this.error.set('Chỉ nhân viên tiếp nhận được điều chỉnh hàng đợi.');
       return;
