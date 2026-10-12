@@ -133,7 +133,8 @@ public class QueueService {
                                 "Khóa chống trùng đã được dùng cho một lượt check-in khác.");
                     });
         }
-        Appointment appointment = appointmentRepository.findByIdAndPatientId(appointmentId, patientId)
+        Appointment appointment = appointmentRepository.findByIdForUpdate(appointmentId)
+                .filter(item -> item.getPatient() != null && patientId.equals(item.getPatient().getId()))
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "APPOINTMENT_NOT_FOUND",
                         "Không tìm thấy lịch hẹn."));
         ensureQrCheckInNotLate(appointment);
@@ -194,7 +195,7 @@ public class QueueService {
     @Transactional
     public QueueTicketResponse checkInByStaff(String roomCode, UUID appointmentId, String exceptionReason,
                                               String actor, String requestKey) {
-        Appointment appointment = appointmentRepository.findById(appointmentId)
+        Appointment appointment = appointmentRepository.findByIdForUpdate(appointmentId)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "APPOINTMENT_NOT_FOUND",
                         "Không tìm thấy lịch hẹn."));
         // Reception must move a late appointment to another suitable slot first.
@@ -887,10 +888,8 @@ public class QueueService {
                 .orElse(null);
         boolean hasShift = effectiveProfile != null && hasActiveShift(effectiveProfile, today());
         if (!hasShift) {
-            if (!doctorHasActiveShift(ticket.getAppointment(), ticket.getRoom())) {
-                throw new AuthException(HttpStatus.CONFLICT, "DOCTOR_SHIFT_INACTIVE",
-                        "Bác sĩ không có ca làm việc đang hiệu lực để gọi bệnh nhân.");
-            }
+            throw new AuthException(HttpStatus.CONFLICT, "DOCTOR_SHIFT_INACTIVE",
+                    "Bác sĩ không có ca làm việc đang hiệu lực để gọi bệnh nhân.");
         }
     }
 

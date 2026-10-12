@@ -243,6 +243,17 @@ class DoctorExaminationServiceTest {
     }
 
     @Test
+    void openingACompletedSignedExaminationSucceedsInReadOnlyMode() {
+        service.sign(TICKET_ID, DOCTOR_ID.toString(), request(), "sign-visit-1");
+
+        DoctorExaminationResponse response = service.open(TICKET_ID, DOCTOR_ID.toString());
+
+        assertThat(response.status()).isEqualTo("COMPLETED");
+        assertThat(response.signedAt()).isNotNull();
+        assertThat(response.diagnosis()).isEqualTo("Đau đầu căng thẳng");
+    }
+
+    @Test
     void signingAConfiguredAppointmentMarksItsGeneratedSlotUnavailable() {
         appointment.applyServiceSnapshot(UUID.randomUUID(), "Khám nội tổng quát", "Khám mới", 30, true);
         GeneratedClinicSlot slot = mock(GeneratedClinicSlot.class);

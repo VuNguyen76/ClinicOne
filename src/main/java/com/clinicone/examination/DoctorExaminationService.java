@@ -132,7 +132,7 @@ public class DoctorExaminationService {
 
     @Transactional(readOnly = true)
     public DoctorExaminationResponse open(UUID ticketId, String staffId) {
-        Workspace workspace = workspace(ticketId, staffId);
+        Workspace workspace = workspace(ticketId, staffId, true);
         MedicalRecord record = workspace.appointment().requiresMedicalRecord()
                 ? recordRepository.findBySession_Id(workspace.session().getId()).orElse(null)
                 : null;
