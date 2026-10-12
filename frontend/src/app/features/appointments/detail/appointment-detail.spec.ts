@@ -1,8 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
+import { BehaviorSubject } from 'rxjs';
 import { clinicTodayIso } from '../../../core/time/clinic-time';
 import { AppointmentDetail } from './appointment-detail';
 
@@ -10,6 +11,7 @@ describe('AppointmentDetail', () => {
   let fixture: ComponentFixture<AppointmentDetail>;
   let component: AppointmentDetail;
   let http: HttpTestingController;
+  let routeParams: BehaviorSubject<ReturnType<typeof convertToParamMap>>;
 
   const appointment = {
     id: 'appointment-1', appointmentCode: 'CL-001', specialty: 'Nội tổng quát', doctorName: 'BS. An',
@@ -19,11 +21,15 @@ describe('AppointmentDetail', () => {
 
   beforeEach(async () => {
     sessionStorage.setItem('clinicOneAccessToken', 'patient-token');
+    routeParams = new BehaviorSubject(convertToParamMap({ id: 'appointment-1' }));
     await TestBed.configureTestingModule({
       imports: [AppointmentDetail],
       providers: [
         provideHttpClient(), provideHttpClientTesting(), provideRouter([]),
-        { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => 'appointment-1' } } } },
+        { provide: ActivatedRoute, useValue: {
+          snapshot: { paramMap: { get: () => 'appointment-1' } },
+          paramMap: routeParams.asObservable(),
+        } },
       ],
     }).compileComponents();
 
@@ -72,6 +78,38 @@ describe('AppointmentDetail', () => {
     expect(fixture.nativeElement.textContent).toContain('Bác sĩ nghỉ');
     expect(fixture.nativeElement.textContent).toContain('BS. Bình');
     expect((component as any).replacementSlots().length).toBe(1);
+  });
+
+  it('reloads when Angular reuses the detail route for a different appointment id', () => {
+    flushAppointment(null);
+    routeParams.next(convertToParamMap({ id: 'appointment-2' }));
+
+    const request = http.expectOne('/api/v1/appointments/appointment-2');
+    request.flush({ ...appointment, id: 'appointment-2', appointmentCode: 'CL-002' });
+    http.expectOne('/api/v1/patient/rescheduling/appointment-2').flush(
+      { message: 'Không tìm thấy lịch cần sắp xếp lại.' },
+      { status: 404, statusText: 'Not Found' });
+    fixture.detectChanges();
+
+    expect((component as any).appointment().id).toBe('appointment-2');
+    expect(fixture.nativeElement.textContent).toContain('CL-002');
+  });
+
+  it('does not let an earlier appointment response replace the appointment in the reused route', () => {
+    const firstRequest = http.expectOne('/api/v1/appointments/appointment-1');
+    http.expectOne((request) => request.url === '/api/v1/reasons'
+      && request.params.get('type') === 'APPOINTMENT_CANCELLATION').flush([]);
+    routeParams.next(convertToParamMap({ id: 'appointment-2' }));
+    http.expectOne('/api/v1/appointments/appointment-2').flush({
+      ...appointment, id: 'appointment-2', appointmentCode: 'CL-002',
+    });
+    http.expectOne('/api/v1/patient/rescheduling/appointment-2').flush(
+      { message: 'Không tìm thấy lịch cần sắp xếp lại.' },
+      { status: 404, statusText: 'Not Found' });
+    firstRequest.flush(appointment);
+
+    expect((component as any).appointment().id).toBe('appointment-2');
+    expect(http.match('/api/v1/patient/rescheduling/appointment-1')).toHaveLength(0);
   });
 
   it('confirms the selected replacement through the patient endpoint', () => {
