@@ -29,6 +29,7 @@ export class ReceptionCheckIn implements OnInit {
   private walkInProfileRequestId = 0;
   private walkInSlotRequestId = 0;
   private walkInOtpRequestId = 0;
+  private worklistRequestId = 0;
 
   protected readonly query = signal('');
   protected readonly activeTab = signal<ReceptionTab>(receptionTab(this.route.snapshot.data['receptionView']));
@@ -152,17 +153,31 @@ export class ReceptionCheckIn implements OnInit {
 
   protected loadWorkspace(silent = false): void {
     if (!['overview', 'queue', 'exceptions'].includes(this.activeTab())) return;
+    const requestId = ++this.worklistRequestId;
+    const date = this.selectedDate();
     if (!silent) this.loading.set(true);
-    this.authApi.getReceptionWorklist(this.selectedDate()).subscribe({
+    this.authApi.getReceptionWorklist(date).subscribe({
       next: (appointments) => {
+        if (requestId !== this.worklistRequestId || this.selectedDate() !== date) return;
         this.appointments.set(appointments);
         this.loading.set(false);
       },
       error: (response) => {
+        if (requestId !== this.worklistRequestId || this.selectedDate() !== date) return;
         this.loading.set(false);
         this.handleError(response);
       },
     });
+  }
+
+  protected onSelectedDateChange(date: string): void {
+    if (date === this.selectedDate()) return;
+    this.selectedDate.set(date);
+    if (['overview', 'queue', 'exceptions'].includes(this.activeTab())) {
+      this.loadWorkspace();
+    } else if (this.activeTab() === 'search' && this.searched()) {
+      this.search();
+    }
   }
 
   protected selectTab(tab: ReceptionTab | string): void {

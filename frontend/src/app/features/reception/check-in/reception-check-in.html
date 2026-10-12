@@ -729,7 +729,7 @@
           type="date"
           class="erp-input font-mono"
           [ngModel]="selectedDate()"
-          (ngModelChange)="selectedDate.set($event)"
+          (ngModelChange)="onSelectedDateChange($event)"
           name="date"
         />
       </div>

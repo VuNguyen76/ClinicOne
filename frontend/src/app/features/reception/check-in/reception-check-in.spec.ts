@@ -61,6 +61,21 @@ describe('ReceptionCheckIn', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="reception-queue-screen"]').textContent).toContain('Nguyễn Thanh Vũ');
   });
 
+  it('does not let a stale daily worklist replace a newer date selection', () => {
+    const component = fixture.componentInstance as any;
+    component.selectTab('queue');
+    component.selectedDate.set('2026-08-07');
+    component.loadWorkspace();
+    const oldDateRequest = http.expectOne('/api/v1/reception/worklist?date=2026-08-07');
+
+    component.onSelectedDateChange('2026-08-08');
+    const currentDateRequest = http.expectOne('/api/v1/reception/worklist?date=2026-08-08');
+    currentDateRequest.flush([{ ...appointment(), id: 'new-date', patientName: 'Nguyễn Thị An' }]);
+    oldDateRequest.flush([{ ...appointment(), id: 'old-date', patientName: 'Nguyễn Thanh Vũ' }]);
+
+    expect(component.appointments().map((item: any) => item.id)).toEqual(['new-date']);
+  });
+
   it('searches patient profiles from the dedicated reception screen', () => {
     const component = fixture.componentInstance as any;
     component.selectTab('profiles');
