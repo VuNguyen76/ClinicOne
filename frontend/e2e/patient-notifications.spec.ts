@@ -5,6 +5,14 @@ test('bệnh nhân mở thông báo phiếu khám và đánh dấu đã đọc',
     sessionStorage.setItem('clinicOneAccessToken', 'patient-e2e-token');
     sessionStorage.setItem('clinicOnePatientName', 'Nguyễn An');
   });
+  await page.route('**/api/v1/auth/me', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      accountId: 'account-e2e-1', phone: '0912345678', fullName: 'Nguyễn An',
+      dateOfBirth: '2000-01-01', gender: 'Nam', status: 'ACTIVE', mustChangePassword: false,
+    }),
+  }));
 
   await page.route('**/api/v1/notifications', (route) => route.fulfill({
     status: 200,

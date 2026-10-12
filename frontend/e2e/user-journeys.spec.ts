@@ -62,6 +62,7 @@ async function mockExistingAccount(page: Page): Promise<void> {
   await page.route('**/api/v1/auth/me', (route) => fulfillJson(route, profile));
   await page.route('**/api/v1/appointments', (route) => fulfillJson(route, []));
   await page.route('**/api/v1/patient/queue**', (route) => fulfillJson(route, []));
+  await page.route('**/api/v1/notifications/unread-count', (route) => fulfillJson(route, { count: 0 }));
 }
 
 test.describe('luồng người dùng ClinicOne', () => {
@@ -69,7 +70,7 @@ test.describe('luồng người dùng ClinicOne', () => {
     await page.goto('/dashboard');
 
     await expect(page).toHaveURL(/\/login(?:\?.*)?$/);
-    await expect(page.getByRole('heading', { name: 'Nhập số điện thoại' })).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Số điện thoại' })).toBeVisible();
   });
 
   test('tài khoản đã có đăng nhập bằng số điện thoại và mật khẩu', async ({ page }) => {
@@ -80,7 +81,7 @@ test.describe('luồng người dùng ClinicOne', () => {
     await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Nhập mật khẩu' })).toBeVisible();
 
-    await page.getByLabel('Mật khẩu').fill('correct-password');
+    await page.getByLabel('Mật khẩu', { exact: true }).fill('correct-password');
     await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
 
     await expect(page).toHaveURL(/\/dashboard$/);
@@ -105,19 +106,19 @@ test.describe('luồng người dùng ClinicOne', () => {
 
     await page.getByRole('button', { name: 'Nhận mã OTP' }).click();
     await expect(page.getByRole('heading', { name: 'Xác thực số điện thoại' })).toBeVisible();
-    await page.getByLabel('Mã OTP').fill('123456');
+    await page.getByLabel('Mã xác thực OTP', { exact: true }).fill('123456');
     await page.getByRole('button', { name: 'Tiếp tục' }).click();
 
-    await expect(page.getByRole('heading', { name: 'Hoàn tất tài khoản' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Hoàn tất thông tin cá nhân' })).toBeVisible();
     await page.getByLabel('Họ và tên').fill('Trần Bình');
     await page.getByLabel('Ngày sinh').fill('1995-05-05');
     await page.getByLabel('Giới tính').selectOption('Nam');
-    await page.getByLabel('Mật khẩu', { exact: true }).fill('correct-password');
+    await page.getByLabel(/Mật khẩu/).first().fill('correct-password');
     await page.getByLabel('Nhập lại mật khẩu').fill('correct-password');
     await page.getByRole('button', { name: 'Tạo tài khoản' }).click();
 
-    await expect(page.getByText('Tài khoản đã tạo.')).toBeVisible();
-    await page.getByRole('button', { name: 'Đăng nhập' }).click();
+    await expect(page.getByText('Tài khoản đã tạo thành công.')).toBeVisible();
+    await page.getByRole('button', { name: 'Đăng nhập ngay' }).click();
     await expect(page).toHaveURL(/\/login$/);
   });
 
@@ -129,6 +130,7 @@ test.describe('luồng người dùng ClinicOne', () => {
     await page.route('**/api/v1/specialties', (route) => fulfillJson(route, [
       { code: 'NOI', name: 'Nội tổng quát', description: 'Khám và tư vấn sức khỏe tổng quát.' },
     ]));
+    await page.route('**/api/v1/services', (route) => fulfillJson(route, []));
     await page.route('**/api/v1/patient-profiles', (route) => fulfillJson(route, [patientProfile]));
     await page.route('**/api/v1/appointment-slots**', (route) => fulfillJson(route, [
       {
@@ -156,16 +158,17 @@ test.describe('luồng người dùng ClinicOne', () => {
     await page.goto('/login');
     await page.getByLabel('Số điện thoại').fill(profile.phone);
     await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
-    await page.getByLabel('Mật khẩu').fill('correct-password');
+    await page.getByLabel('Mật khẩu', { exact: true }).fill('correct-password');
     await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
-    await page.getByRole('link', { name: 'Đặt lịch khám', exact: true }).click();
+    await expect(page).toHaveURL(/\/dashboard$/);
+    await page.getByRole('link', { name: /Đặt lịch khám ngay/ }).click();
 
     await page.getByRole('button', { name: /Nội tổng quát/ }).click();
-    await expect(page.getByText('Vui lòng chọn ngày và giờ khám', { exact: true })).toBeVisible();
-    await page.locator('[data-testid="calendar-date"]').filter({ hasText: day }).first().click();
+    await expect(page.getByRole('heading', { name: 'Bước 2: Chọn bác sĩ, ngày và khung giờ khám' })).toBeVisible();
+    await page.getByRole('button', { name: new RegExp(`^${day} Có lịch trống$`) }).click();
     await page.getByRole('button', { name: '08:30 - 09:30' }).click();
     await page.getByRole('button', { name: 'Tiếp tục' }).click();
-    await page.getByLabel('Lý do khám *').fill('Đau đầu nhẹ');
+    await page.locator('textarea[formcontrolname="reason"]').fill('Đau đầu nhẹ');
     await page.getByRole('button', { name: 'Xác nhận đặt lịch' }).click();
 
     await expect(page).toHaveURL(/\/dashboard$/);
@@ -179,6 +182,7 @@ test.describe('luồng người dùng ClinicOne', () => {
     await page.route(`**/api/v1/rooms/${qrToken}/check-in`, (route) => fulfillJson(route, {
       code: 'NOI-01', name: 'Phòng Nội tổng quát 01', specialty: 'Nội tổng quát',
     }));
+    await page.route('**/api/v1/rooms/NOI-01/check-in/appointments', (route) => fulfillJson(route, []));
     await page.route('**/api/v1/appointments', (route) => fulfillJson(route, [{
       id: 'appointment-1', appointmentCode: 'CL-E2E-001', specialty: 'Nội tổng quát',
       doctorName: 'BS. Nguyễn An', appointmentDate: todayIso, startTime: '09:00:00',
@@ -189,7 +193,7 @@ test.describe('luồng người dùng ClinicOne', () => {
     await expect(page).toHaveURL(new RegExp(`/login\\?returnUrl=${encodeURIComponent(`/queue/check-in/${qrToken}`)}`));
     await page.getByLabel('Số điện thoại').fill(profile.phone);
     await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
-    await page.getByLabel('Mật khẩu').fill('correct-password');
+    await page.getByLabel('Mật khẩu', { exact: true }).fill('correct-password');
     await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`/queue/check-in/${qrToken}$`));
     await expect(page.getByText('Phòng Nội tổng quát 01')).toBeVisible();
@@ -199,28 +203,33 @@ test.describe('luồng người dùng ClinicOne', () => {
     const today = new Date();
     const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     const qrToken = 'room-qr-token';
+    const appointmentTime = new Date(Date.now() + 10 * 60_000 + 7 * 60 * 60_000).toISOString().slice(11, 19);
     await page.addInitScript(() => {
       sessionStorage.setItem('clinicOneAccessToken', 'e2e-token');
       sessionStorage.setItem('clinicOnePatientName', 'Nguyễn An');
     });
+    await page.route('**/api/v1/auth/me', (route) => fulfillJson(route, profile));
+    await page.route('**/api/v1/notifications/unread-count', (route) => fulfillJson(route, { count: 0 }));
     await page.route('**/api/v1/appointments', (route) => fulfillJson(route, [{
       id: 'appointment-1', appointmentCode: 'CL-E2E-001', specialty: 'Nội tổng quát',
-      doctorName: 'BS. Nguyễn An', appointmentDate: todayIso, startTime: '09:00:00',
+      doctorName: 'BS. Nguyễn An', appointmentDate: todayIso, startTime: appointmentTime,
       reason: 'Đau đầu', status: 'BOOKED', statusLabel: 'Đã đặt',
     }]));
     await page.route(`**/api/v1/rooms/${qrToken}/check-in`, (route) => fulfillJson(route, {
       code: 'NOI-01', name: 'Phòng Nội tổng quát 01', specialty: 'Nội tổng quát',
     }));
-    await page.route(`**/api/v1/rooms/${qrToken}/queue/check-in`, (route) => fulfillJson(route, {
+    await page.route('**/api/v1/rooms/NOI-01/check-in/appointments', (route) => fulfillJson(route, [{
+      id: 'appointment-1', appointmentCode: 'CL-E2E-001', specialty: 'Nội tổng quát',
+      doctorName: 'BS. Nguyễn An', appointmentDate: todayIso, startTime: appointmentTime,
+      reason: 'Đau đầu', status: 'BOOKED', statusLabel: 'Đã đặt',
+    }]));
+    await page.route('**/api/v1/rooms/NOI-01/queue/check-in', (route) => fulfillJson(route, {
       id: 'ticket-1', queueNumber: 5, roomCode: 'NOI-01', roomName: 'Phòng Nội tổng quát 01',
       queueDate: todayIso, appointmentTime: '09:00:00', status: 'WAITING', statusLabel: 'Đang chờ',
       appointmentCode: 'CL-E2E-001', specialty: 'Nội tổng quát', doctorName: 'BS. Nguyễn An',
     }));
 
     await page.goto(`/queue/check-in/${qrToken}`);
-    await page.getByTestId('check-in-appointment').click();
-    await page.getByTestId('check-in-submit').click();
-
     await expect(page.getByTestId('queue-number')).toHaveText('05');
     await expect(page.getByTestId('queue-status')).toContainText('Đang chờ');
   });

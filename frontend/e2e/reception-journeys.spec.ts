@@ -53,7 +53,7 @@ async function mockReceptionApis(page: Page): Promise<void> {
 async function signInAsReceptionist(page: Page): Promise<void> {
   await page.goto('/staff/login');
   await page.getByLabel('Tên đăng nhập').fill('receptionist');
-  await page.getByLabel('Mật khẩu').fill('admin123');
+  await page.getByRole('textbox', { name: /Mật khẩu/ }).fill('admin123');
   await page.getByTestId('staff-login-submit').click();
   await expect(page).toHaveURL(/\/reception$/);
   await page.goto('/reception/walk-in');
@@ -221,6 +221,7 @@ test.describe('liên thông tiếp nhận và hàng đợi bác sĩ', () => {
       status: 'IN_PROGRESS', signedAt: null,
     };
     await page.route('**/api/v1/doctor/examinations/ticket-9', (route) => json(route, draft));
+    await page.route('**/api/v1/doctor/diagnoses/suggestions**', (route) => json(route, []));
     await page.route('**/api/v1/doctor/examinations/ticket-9/draft', (route) => json(route, {
       ...draft, reason: 'Đau đầu', examinationNotes: 'Mạch ổn', diagnosis: 'Đau đầu căng thẳng', conclusion: 'Theo dõi thêm',
     }));
@@ -232,11 +233,12 @@ test.describe('liên thông tiếp nhận và hàng đợi bác sĩ', () => {
     await page.goto('/doctor');
     await page.getByTestId('call-next').click();
     await expect(page.getByTestId('queue-row')).toContainText('Đã gọi');
-    await page.getByRole('button', { name: 'Vào khám' }).click();
+    await page.getByTestId('queue-row').getByRole('button', { name: 'Vào khám' }).click();
     await expect(page).toHaveURL(/\/doctor\/examinations\/ticket-9$/);
     const form = page.getByTestId('medical-form');
     await form.locator('textarea[formcontrolname="reason"]').fill('Đau đầu');
     await form.locator('textarea[formcontrolname="examinationNotes"]').fill('Mạch ổn');
+    await form.getByTestId('tab-diagnosis').click();
     await form.locator('textarea[formcontrolname="diagnosis"]').fill('Đau đầu căng thẳng');
     await form.locator('textarea[formcontrolname="conclusion"]').fill('Theo dõi thêm');
     await form.getByTestId('save-draft').click();

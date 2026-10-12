@@ -30,6 +30,16 @@ describe('StaffLogin', () => {
     http.verify();
   });
 
+  it('keeps the password toggle outside its explicitly associated label', () => {
+    const password = fixture.nativeElement.querySelector('[formcontrolname="password"]') as HTMLInputElement;
+    const label = fixture.nativeElement.querySelector('label[for="staff-password"]') as HTMLLabelElement | null;
+    const toggle = fixture.nativeElement.querySelector('button[aria-label="Hiện mật khẩu"]') as HTMLButtonElement;
+
+    expect(password.id).toBe('staff-password');
+    expect(label?.control).toBe(password);
+    expect(toggle.closest('label')).toBeNull();
+  });
+
   it('logs in a staff account and stores its role', () => {
     fixture.nativeElement.querySelector('[formcontrolname="username"]').value = 'admin';
     fixture.nativeElement.querySelector('[formcontrolname="password"]').value = 'password123';

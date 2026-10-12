@@ -54,10 +54,11 @@
               placeholder="Nhập tên đăng nhập"
             />
           </label>
-          <label class="grid gap-1">
-            <span class="erp-label">Mật khẩu <span class="erp-label-required">*</span></span>
+          <div class="grid gap-1">
+            <label class="erp-label" for="staff-password">Mật khẩu <span class="erp-label-required">*</span></label>
             <div class="relative">
               <input
+                id="staff-password"
                 formControlName="password"
                 [type]="showPassword() ? 'text' : 'password'"
                 autocomplete="current-password"
@@ -72,7 +73,7 @@
                 <mat-icon class="!h-5 !w-5 !text-[20px] flex items-center justify-center leading-none">{{ showPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
               </button>
             </div>
-          </label>
+          </div>
 
           @if (error()) {
             <div role="alert" class="rounded-md border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs font-semibold text-rose-700">

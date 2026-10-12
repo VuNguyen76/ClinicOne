@@ -10,7 +10,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 @Component
 @Profile("test")
-class TestOtpIssuanceLock implements OtpIssuanceLock {
+public class InMemoryOtpIssuanceLock implements OtpIssuanceLock {
     private final ConcurrentHashMap<String, ReentrantLock> locks = new ConcurrentHashMap<>();
 
     @Override

@@ -14,7 +14,7 @@ describe('QueueCheckIn', () => {
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
-        { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => 'NOI-01' } } } },
+        { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => 'room-qr-token' } } } },
       ],
     }).compileComponents();
 
@@ -27,7 +27,7 @@ describe('QueueCheckIn', () => {
 
   it('asks the patient to choose a profile when multiple matching profiles have appointments', () => {
     const today = localIsoDate();
-    http.expectOne('/api/v1/rooms/NOI-01/check-in').flush({ code: 'NOI-01', name: 'Phòng Nội tổng quát 01', specialty: 'Nội tổng quát' });
+    http.expectOne('/api/v1/rooms/room-qr-token/check-in').flush({ code: 'NOI-01', name: 'Phòng Nội tổng quát 01', specialty: 'Nội tổng quát' });
     http.expectOne('/api/v1/rooms/NOI-01/check-in/appointments').flush([
       appointment(today, 'BOOKED', 'Nội tổng quát', 'profile-1'),
       appointment(today, 'BOOKED', 'Nội tổng quát', 'profile-2'),
@@ -41,7 +41,7 @@ describe('QueueCheckIn', () => {
 
   it('checks in automatically when exactly one matching appointment exists', () => {
     const today = localIsoDate();
-    http.expectOne('/api/v1/rooms/NOI-01/check-in').flush({ code: 'NOI-01', name: 'Phòng Nội tổng quát 01', specialty: 'Nội tổng quát' });
+    http.expectOne('/api/v1/rooms/room-qr-token/check-in').flush({ code: 'NOI-01', name: 'Phòng Nội tổng quát 01', specialty: 'Nội tổng quát' });
     http.expectOne('/api/v1/rooms/NOI-01/check-in/appointments').flush([
       appointment(today, 'BOOKED', 'Nội tổng quát', 'profile-1'),
     ]);
@@ -59,7 +59,7 @@ describe('QueueCheckIn', () => {
 
   it('keeps a checked-in appointment available so a returning patient can scan again', () => {
     const today = localIsoDate();
-    http.expectOne('/api/v1/rooms/NOI-01/check-in').flush({ code: 'NOI-01', name: 'Phòng Nội tổng quát 01', specialty: 'Nội tổng quát' });
+    http.expectOne('/api/v1/rooms/room-qr-token/check-in').flush({ code: 'NOI-01', name: 'Phòng Nội tổng quát 01', specialty: 'Nội tổng quát' });
     http.expectOne('/api/v1/rooms/NOI-01/check-in/appointments').flush([
       appointment(today, 'CHECKED_IN', 'Nội tổng quát', 'profile-1'),
     ]);
@@ -73,7 +73,7 @@ describe('QueueCheckIn', () => {
 
   it('shows the existing queue result when the appointment is already completed', () => {
     const today = localIsoDate();
-    http.expectOne('/api/v1/rooms/NOI-01/check-in').flush({ code: 'NOI-01', name: 'Phòng Nội tổng quát 01', specialty: 'Nội tổng quát' });
+    http.expectOne('/api/v1/rooms/room-qr-token/check-in').flush({ code: 'NOI-01', name: 'Phòng Nội tổng quát 01', specialty: 'Nội tổng quát' });
     http.expectOne('/api/v1/rooms/NOI-01/check-in/appointments').flush([
       appointment(today, 'COMPLETED', 'Nội tổng quát', 'profile-1'),
     ]);

@@ -115,7 +115,13 @@ export class QueueCheckIn implements OnInit {
     this.error.set('');
     this.busy.set(true);
     this.checkInRequestKey ??= `checkin-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-    this.authApi.checkInToRoom(this.roomCode(), appointment.id, this.checkInRequestKey).subscribe({
+    const clinicRoomCode = this.room()?.code;
+    if (!clinicRoomCode) {
+      this.busy.set(false);
+      this.error.set('Không xác định được phòng khám từ mã QR.');
+      return;
+    }
+    this.authApi.checkInToRoom(clinicRoomCode, appointment.id, this.checkInRequestKey).subscribe({
       next: (ticket) => {
         this.ticket.set(ticket);
         this.busy.set(false);
