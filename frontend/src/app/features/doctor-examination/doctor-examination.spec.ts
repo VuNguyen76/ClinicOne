@@ -254,6 +254,23 @@ describe('DoctorExamination', () => {
     vi.useRealTimers();
   });
 
+  it('does not mark a loaded prescription as edited or autosave it without user changes', () => {
+    vi.useFakeTimers();
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush({
+      ...examination(),
+      prescriptionLines: [{
+        medicationName: 'Paracetamol 500 mg', dosage: '500 mg', quantity: 10,
+        unit: 'Viên', instructions: 'Uống sau ăn',
+      }],
+    });
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance['draftDirty']).toBe(false);
+    vi.advanceTimersByTime(10_000);
+    http.expectNone('/api/v1/doctor/examinations/ticket-1/draft');
+    vi.useRealTimers();
+  });
+
   it('persists edits made while an earlier draft save is in flight', () => {
     vi.useFakeTimers();
     http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());

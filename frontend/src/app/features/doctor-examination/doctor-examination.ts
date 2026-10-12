@@ -436,7 +436,7 @@ export class DoctorExamination implements OnInit {
         }, { emitEvent: false });
         this.vitalsWeight.set(value.weight ?? null);
         this.vitalsHeight.set(value.height ?? null);
-        value.prescriptionLines?.forEach((line) => this.prescriptionLines.push(this.createPrescriptionLine(line)));
+        value.prescriptionLines?.forEach((line) => this.prescriptionLines.push(this.createPrescriptionLine(line), { emitEvent: false }));
         this.prescriptionEnabled.set(this.prescriptionLines.length > 0);
         this.prescriptionRevision.update((v) => v + 1);
         this.followUpEnabled.set(value.followUpDays != null || Boolean(value.followUpNote));
