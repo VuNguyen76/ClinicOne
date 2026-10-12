@@ -108,6 +108,23 @@ describe('InvoiceLookup', () => {
     expect(component.selectedProfileId()).toBe('profile-1');
   });
 
+  it('ignores a lookup response after the user switches back to phone entry', () => {
+    component.phone.set('0862764830');
+    component.code.set('123456');
+    component.lookup();
+    const request = http.expectOne('/api/v1/public/patient-data/lookup');
+
+    component.changePhone();
+    component.phone.set('0900000001');
+    request.flush({ profiles: [
+      { profileId: 'old-profile', fullName: 'Nguyễn An', relationship: 'Bản thân', invoices: [], medicalRecords: [] },
+    ] });
+
+    expect(component.step()).toBe('phone');
+    expect(component.profiles()).toEqual([]);
+    expect(component.searching()).toBe(false);
+  });
+
   it('rejects a malformed OTP before calling the lookup endpoint', () => {
     component.phone.set('0862764830');
     component.code.set('123');
