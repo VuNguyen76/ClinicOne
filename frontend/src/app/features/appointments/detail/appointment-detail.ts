@@ -1,7 +1,8 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
-import { finalize } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { distinctUntilChanged, finalize, map } from 'rxjs';
 import {
   apiErrorMessage,
   ApiErrorResponse,
@@ -25,6 +26,11 @@ export class AppointmentDetail implements OnInit {
   private readonly authApi = inject(AuthApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
+  private appointmentRequestId = 0;
+  private reschedulingRequestId = 0;
+  private replacementRequestId = 0;
+  private mutationRequestId = 0;
 
   protected readonly appointment = signal<AppointmentResponse | null>(null);
   protected readonly loading = signal(true);
@@ -43,23 +49,53 @@ export class AppointmentDetail implements OnInit {
   private cancellationRequestKey: string | null = null;
 
   ngOnInit(): void {
-    const id = this.route.snapshot.paramMap.get('id');
+    this.route.paramMap.pipe(
+      map((params) => params.get('id')),
+      distinctUntilChanged(),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe((id) => this.loadAppointment(id));
+    this.authApi.getCancellationReasons().subscribe({
+      next: (reasons) => this.cancellationReasons.set(reasons),
+    });
+  }
+
+  private loadAppointment(id: string | null): void {
     if (!id) {
       void this.router.navigateByUrl('/dashboard');
       return;
     }
+    const requestId = ++this.appointmentRequestId;
+    this.reschedulingRequestId++;
+    this.replacementRequestId++;
+    this.mutationRequestId++;
+    this.appointment.set(null);
+    this.rescheduleCase.set(null);
+    this.replacementSlots.set([]);
+    this.selectedReplacement.set(null);
+    this.rescheduleCaseLoading.set(false);
+    this.replacementLoading.set(false);
+    this.replacementSearchFailed.set(false);
+    this.cancelOpen.set(false);
+    this.busy.set(false);
+    this.error.set('');
+    this.notice.set('');
+    this.cancellationRequestKey = null;
+    this.loading.set(true);
+
     this.authApi.getAppointment(id)
-      .pipe(finalize(() => this.loading.set(false)))
+      .pipe(finalize(() => {
+        if (requestId === this.appointmentRequestId) this.loading.set(false);
+      }))
       .subscribe({
         next: (appointment) => {
+          if (requestId !== this.appointmentRequestId) return;
           this.appointment.set(appointment);
           this.loadPatientReschedulingCase(appointment.id);
         },
-        error: (response) => this.handleError(response),
+        error: (response) => {
+          if (requestId === this.appointmentRequestId) this.handleError(response);
+        },
       });
-    this.authApi.getCancellationReasons().subscribe({
-      next: (reasons) => this.cancellationReasons.set(reasons),
-    });
   }
 
   protected formatDate(value: string): string {
@@ -116,14 +152,23 @@ export class AppointmentDetail implements OnInit {
   protected cancel(): void {
     const appointment = this.appointment();
     if (!appointment || !this.canCancel()) return;
+    const requestId = ++this.mutationRequestId;
     this.busy.set(true);
     this.cancellationRequestKey ??= crypto.randomUUID();
     this.authApi.cancelAppointment(appointment.id, this.selectedCancellationReason() || undefined,
       this.cancellationRequestKey)
-      .pipe(finalize(() => this.busy.set(false)))
+      .pipe(finalize(() => {
+        if (requestId === this.mutationRequestId) this.busy.set(false);
+      }))
       .subscribe({
-        next: () => void this.router.navigateByUrl('/dashboard'),
-        error: (response) => this.handleError(response),
+        next: () => {
+          if (requestId === this.mutationRequestId && this.appointment()?.id === appointment.id) {
+            void this.router.navigateByUrl('/dashboard');
+          }
+        },
+        error: (response) => {
+          if (requestId === this.mutationRequestId) this.handleError(response);
+        },
       });
   }
 
@@ -139,13 +184,17 @@ export class AppointmentDetail implements OnInit {
       if (!selected) this.error.set('Hãy chọn một khung giờ thay thế.');
       return;
     }
+    const requestId = ++this.mutationRequestId;
     this.busy.set(true);
     this.error.set('');
     this.authApi.confirmPatientRescheduling(appointment.id, selected.appointmentDate,
       selected.startTime.slice(0, 5), selected.doctorName, selected.doctorId)
-      .pipe(finalize(() => this.busy.set(false)))
+      .pipe(finalize(() => {
+        if (requestId === this.mutationRequestId) this.busy.set(false);
+      }))
       .subscribe({
         next: () => {
+          if (requestId !== this.mutationRequestId || this.appointment()?.id !== appointment.id) return;
           this.appointment.set({
             ...appointment,
             appointmentDate: selected.appointmentDate,
@@ -159,7 +208,9 @@ export class AppointmentDetail implements OnInit {
           this.notice.set('Đã xác nhận khung giờ thay thế thành công.');
           setTimeout(() => this.notice.set(''), 4000);
         },
-        error: (response) => this.handleError(response),
+        error: (response) => {
+          if (requestId === this.mutationRequestId) this.handleError(response);
+        },
       });
   }
 
@@ -169,14 +220,17 @@ export class AppointmentDetail implements OnInit {
   }
 
   private loadPatientReschedulingCase(appointmentId: string): void {
+    const requestId = ++this.reschedulingRequestId;
     this.rescheduleCaseLoading.set(true);
     this.authApi.getPatientReschedulingCase(appointmentId).subscribe({
       next: (item) => {
+        if (requestId !== this.reschedulingRequestId || this.appointment()?.id !== appointmentId) return;
         this.rescheduleCase.set(item);
         this.rescheduleCaseLoading.set(false);
         if (item.status === 'OPEN') this.loadReplacementSlots(appointmentId);
       },
       error: (response) => {
+        if (requestId !== this.reschedulingRequestId || this.appointment()?.id !== appointmentId) return;
         this.rescheduleCaseLoading.set(false);
         if (response.status === 404) {
           this.rescheduleCase.set(null);
@@ -188,14 +242,17 @@ export class AppointmentDetail implements OnInit {
   }
 
   private loadReplacementSlots(appointmentId: string): void {
+    const requestId = ++this.replacementRequestId;
     this.replacementLoading.set(true);
     this.replacementSearchFailed.set(false);
     this.authApi.getPatientReplacementSlots(appointmentId).subscribe({
       next: (slots) => {
+        if (requestId !== this.replacementRequestId || this.appointment()?.id !== appointmentId) return;
         this.replacementSlots.set(slots);
         this.replacementLoading.set(false);
       },
       error: (response) => {
+        if (requestId !== this.replacementRequestId || this.appointment()?.id !== appointmentId) return;
         this.replacementLoading.set(false);
         this.replacementSearchFailed.set(true);
         this.handleError(response);
