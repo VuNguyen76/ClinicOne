@@ -29,6 +29,7 @@ export class ReceptionCheckIn implements OnInit {
   private walkInProfileRequestId = 0;
   private walkInSlotRequestId = 0;
   private walkInOtpRequestId = 0;
+  private rebookSlotRequestId = 0;
   private registrationAddressRequestId = 0;
   private worklistRequestId = 0;
   private searchRequestId = 0;
@@ -446,16 +447,21 @@ export class ReceptionCheckIn implements OnInit {
   }
 
   protected closeRebook(): void {
-    if (!this.rebookLoading()) this.rebookTicket.set(null);
+    if (this.rebookLoading()) return;
+    this.rebookSlotRequestId++;
+    this.rebookSlotsLoading.set(false);
+    this.rebookTicket.set(null);
   }
 
   protected loadRebookSlots(): void {
+    const requestId = ++this.rebookSlotRequestId;
     const appointment = this.rebookTicket();
     const date = this.rebookDate();
     if (!appointment || !date) {
       this.rebookSlots.set([]);
       this.rebookStartTime.set('');
       this.rebookAvailableDates.set([]);
+      this.rebookSlotsLoading.set(false);
       return;
     }
     this.rebookSlotsLoading.set(true);
@@ -468,6 +474,7 @@ export class ReceptionCheckIn implements OnInit {
       }
       this.authApi.getReceptionDoctorsAvailability(today).subscribe({
         next: (doctors) => {
+          if (requestId !== this.rebookSlotRequestId) return;
           const relevant = doctors.filter((d) => d.specialty === appointment.specialty);
           const list: typeof this.rebookSlots extends import('@angular/core').Signal<infer T> ? T : never = [] as any;
           for (const d of relevant) {
@@ -493,6 +500,7 @@ export class ReceptionCheckIn implements OnInit {
           this.rebookSlotsLoading.set(false);
         },
         error: (response) => {
+          if (requestId !== this.rebookSlotRequestId) return;
           this.rebookSlotsLoading.set(false);
           this.handleError(response);
         },
@@ -503,6 +511,7 @@ export class ReceptionCheckIn implements OnInit {
     const toDate = this.addDays(fromDate, 30);
     this.authApi.getAppointmentSlots(appointment.specialty, fromDate, toDate).subscribe({
       next: (slots) => {
+        if (requestId !== this.rebookSlotRequestId) return;
         const today = clinicTodayIso();
         const dateMap = new Map<string, number>();
         for (const slot of slots) {
@@ -530,6 +539,7 @@ export class ReceptionCheckIn implements OnInit {
         this.rebookSlotsLoading.set(false);
       },
       error: (response) => {
+        if (requestId !== this.rebookSlotRequestId) return;
         this.rebookSlotsLoading.set(false);
         this.handleError(response);
       },

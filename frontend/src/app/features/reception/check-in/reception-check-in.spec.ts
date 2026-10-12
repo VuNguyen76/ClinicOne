@@ -701,6 +701,33 @@ describe('ReceptionCheckIn', () => {
     expect(slots[0].remainingCapacity).toBe(1);
     expect(c.rebookStartTime()).toBe('10:00:00');
   });
+
+  it('ignores rebook availability responses for an older selected date', () => {
+    const c = fixture.componentInstance as any;
+    const today = c.selectedDate();
+    const firstDate = c.addDays(today, 1);
+    const currentDate = c.addDays(today, 2);
+    c.rebookTicket.set({ ...appointment(), status: 'ABSENT' });
+    c.rebookMode.set('ABSENT');
+    c.rebookDate.set(firstDate);
+    c.loadRebookSlots();
+    c.rebookDate.set(currentDate);
+    c.loadRebookSlots();
+
+    const requests = http.match((request) => request.url === '/api/v1/appointment-slots');
+    expect(requests).toHaveLength(2);
+    requests[1].flush([{
+      appointmentDate: currentDate, startTime: '10:00:00', endTime: '10:30:00',
+      specialty: 'Nội tổng quát', doctorName: 'BS A', doctorId: 'doctor-1', remainingCapacity: 1,
+    }]);
+    requests[0].flush([{
+      appointmentDate: firstDate, startTime: '09:00:00', endTime: '09:30:00',
+      specialty: 'Nội tổng quát', doctorName: 'BS A', doctorId: 'doctor-1', remainingCapacity: 1,
+    }]);
+
+    expect(c.rebookSlots().map((slot: any) => slot.appointmentDate)).toEqual([currentDate]);
+    expect(c.rebookStartTime()).toBe('10:00:00');
+  });
 });
 
 function appointment() {
