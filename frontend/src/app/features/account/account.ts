@@ -67,6 +67,7 @@ export class Account implements OnInit {
     }
 
     this.busy.set(true);
+    this.profileForm.disable();
     const values = this.profileForm.getRawValue();
     const address = this.composeAddress(values.streetAddress, values.wardName, values.districtName,
       values.provinceName, values.address);
@@ -76,7 +77,10 @@ export class Account implements OnInit {
       values.provinceName, values.districtCode, values.districtName, values.wardCode, values.wardName,
       values.streetAddress.trim(),
     )
-      .pipe(finalize(() => this.busy.set(false)))
+      .pipe(finalize(() => {
+        this.busy.set(false);
+        this.profileForm.enable();
+      }))
       .subscribe({
         next: (profile) => {
           const normalizedProfile = this.withComposedAddress(profile);
@@ -186,6 +190,10 @@ export class Account implements OnInit {
   }
 
   private setProfileForm(profile: PatientProfileResponse): void {
+    const districtLoadVersion = ++this.districtLoadVersion;
+    const wardLoadVersion = ++this.wardLoadVersion;
+    this.districts.set([]);
+    this.wards.set([]);
     const address = this.composeAddress(profile.streetAddress, profile.wardName, profile.districtName,
       profile.provinceName, profile.address);
     this.profileForm.setValue({
@@ -205,10 +213,32 @@ export class Account implements OnInit {
       streetAddress: profile.streetAddress ?? '',
     });
     if (profile.provinceCode) {
-      this.addressApi.getDistricts(profile.provinceCode).subscribe((items) => this.districts.set(items));
+      const provinceCode = profile.provinceCode;
+      this.addressApi.getDistricts(provinceCode).subscribe({
+        next: (items) => {
+          if (districtLoadVersion === this.districtLoadVersion
+              && this.profileForm.controls.provinceCode.value === provinceCode) this.districts.set(items);
+        },
+        error: () => {
+          if (districtLoadVersion === this.districtLoadVersion) {
+            this.error.set('Không tải được danh sách quận/huyện. Vui lòng thử lại.');
+          }
+        },
+      });
     }
     if (profile.districtCode) {
-      this.addressApi.getWards(profile.districtCode).subscribe((items) => this.wards.set(items));
+      const districtCode = profile.districtCode;
+      this.addressApi.getWards(districtCode).subscribe({
+        next: (items) => {
+          if (wardLoadVersion === this.wardLoadVersion
+              && this.profileForm.controls.districtCode.value === districtCode) this.wards.set(items);
+        },
+        error: () => {
+          if (wardLoadVersion === this.wardLoadVersion) {
+            this.error.set('Không tải được danh sách xã/phường. Vui lòng thử lại.');
+          }
+        },
+      });
     }
   }
 
