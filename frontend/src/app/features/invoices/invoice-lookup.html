@@ -1,0 +1,263 @@
+<main class="min-h-screen bg-slate-50 text-slate-800 antialiased print:bg-white print:p-0 font-sans">
+  <app-patient-header [printHidden]="true" />
+
+  <div class="mx-auto max-w-[960px] px-4 py-8 sm:px-6 lg:py-10 print:max-w-full print:p-0">
+    <!-- Breadcrumb & Header Title -->
+    <div class="mb-6 print:hidden">
+      <nav class="flex items-center gap-2 text-xs font-medium text-slate-500 mb-3" aria-label="Đường dẫn">
+        <a routerLink="/home" class="transition hover:text-[#0284c7]">Trang chủ</a>
+        <mat-icon class="!h-3.5 !w-3.5 !text-[14px] text-slate-400">chevron_right</mat-icon>
+        <span class="font-semibold text-slate-800">Cổng thông tin Hóa đơn điện tử</span>
+      </nav>
+
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200/80 pb-5">
+        <div>
+          <div class="flex items-center gap-2 mb-1">
+            <span class="rounded bg-sky-100 px-2 py-0.5 font-mono text-[11px] font-bold text-[#0284c7]">
+              E-INVOICE PORTAL
+            </span>
+            <span class="text-xs text-slate-400">• Nghị định 123/2020 & Thông tư 78/2021</span>
+          </div>
+          <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
+            Tra cứu Hóa đơn điện tử
+          </h1>
+          <p class="mt-1 text-xs text-slate-500">
+            Hệ thống tra cứu hóa đơn bán hàng kiêm biên lai thu tiền viện phí chính thức của Phòng khám Đa khoa ClinicOne
+          </p>
+        </div>
+
+        @if (invoiceResult()) {
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              (click)="printInvoice()"
+              data-testid="invoice-lookup-print-btn"
+              class="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#0284c7] px-4 text-xs font-bold text-white shadow-xs transition hover:bg-[#0369a1] active:scale-[0.98] cursor-pointer"
+            >
+              <mat-icon class="!h-4 !w-4 !text-[18px]">print</mat-icon>
+              <span>In hóa đơn (A4)</span>
+            </button>
+            <button
+              type="button"
+              (click)="resetSearch()"
+              class="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 shadow-xs transition hover:bg-slate-50 cursor-pointer"
+            >
+              <mat-icon class="!h-4 !w-4 !text-[18px]">refresh</mat-icon>
+              <span>Tra cứu khác</span>
+            </button>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- KHUNG TRA CỨU HÓA ĐƠN (ẢN KHI ĐANG IN) -->
+    @if (!invoiceResult()) {
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 print:hidden">
+        <!-- Cột trái: Form tra cứu chính (2 tabs) -->
+        <div class="lg:col-span-2 space-y-6">
+          <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 sm:p-7 shadow-xs">
+            <!-- Tabs Lựa chọn hình thức tra cứu -->
+            <div class="flex rounded-xl bg-slate-100 p-1 mb-6">
+              <button
+                type="button"
+                (click)="setLookupType('lookupCode')"
+                class="flex-1 flex items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-bold transition cursor-pointer"
+                [class.bg-white]="lookupType() === 'lookupCode'"
+                [class.text-[#0284c7]]="lookupType() === 'lookupCode'"
+                [class.shadow-2xs]="lookupType() === 'lookupCode'"
+                [class.text-slate-600]="lookupType() !== 'lookupCode'"
+              >
+                <mat-icon class="!h-4 !w-4 !text-[16px]">qr_code</mat-icon>
+                <span>Mã tra cứu hóa đơn</span>
+              </button>
+              <button
+                type="button"
+                (click)="setLookupType('patientCode')"
+                class="flex-1 flex items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-bold transition cursor-pointer"
+                [class.bg-white]="lookupType() === 'patientCode'"
+                [class.text-[#0284c7]]="lookupType() === 'patientCode'"
+                [class.shadow-2xs]="lookupType() === 'patientCode'"
+                [class.text-slate-600]="lookupType() !== 'patientCode'"
+              >
+                <mat-icon class="!h-4 !w-4 !text-[16px]">badge</mat-icon>
+                <span>Mã bệnh nhân / Lịch hẹn</span>
+              </button>
+            </div>
+
+            <!-- Form Tab 1: Mã tra cứu -->
+            @if (lookupType() === 'lookupCode') {
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-xs font-bold text-slate-800 mb-1.5">
+                    Mã tra cứu hóa đơn <span class="text-rose-500">*</span>
+                  </label>
+                  <div class="relative">
+                    <input
+                      type="text"
+                      [ngModel]="lookupCodeInput()"
+                      (ngModelChange)="lookupCodeInput.set($event)"
+                      placeholder="Ví dụ: 220051896851388"
+                      class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 font-mono text-sm text-slate-900 outline-none transition focus:border-[#0284c7] focus:ring-3 focus:ring-sky-500/10"
+                    />
+                    <mat-icon class="absolute right-3 top-3 !h-5 !w-5 text-slate-400">confirmation_number</mat-icon>
+                  </div>
+                  <p class="mt-1 text-[11px] text-slate-500">
+                    Mã tra cứu được in ở chân biên lai thu tiền hoặc thông báo thanh toán viện phí của bạn.
+                  </p>
+                </div>
+              </div>
+            } @else {
+              <!-- Form Tab 2: Mã bệnh nhân -->
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-xs font-bold text-slate-800 mb-1.5">
+                    Mã bệnh nhân / Mã lịch hẹn <span class="text-rose-500">*</span>
+                  </label>
+                  <div class="relative">
+                    <input
+                      type="text"
+                      [ngModel]="patientCodeInput()"
+                      (ngModelChange)="patientCodeInput.set($event)"
+                      placeholder="Ví dụ: CL-YJTPP2AJYK5G"
+                      class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 font-mono text-sm text-slate-900 uppercase outline-none transition focus:border-[#0284c7] focus:ring-3 focus:ring-sky-500/10"
+                    />
+                    <mat-icon class="absolute right-3 top-3 !h-5 !w-5 text-slate-400">person</mat-icon>
+                  </div>
+                  <p class="mt-1 text-[11px] text-slate-500">
+                    Nhập mã số hồ sơ bệnh nhân hoặc mã lịch hẹn khám được gửi qua tin nhắn SMS/Zalo.
+                  </p>
+                </div>
+              </div>
+            }
+
+            <!-- Mã xác thực Captcha -->
+            <div class="mt-4 pt-4 border-t border-slate-100">
+              <label class="block text-xs font-bold text-slate-800 mb-1.5">
+                Mã xác thực bảo mật <span class="text-rose-500">*</span>
+              </label>
+              <div class="flex items-center gap-3">
+                <input
+                  type="text"
+                  [ngModel]="captchaInput()"
+                  (ngModelChange)="captchaInput.set($event)"
+                  placeholder="Nhập 4 ký tự"
+                  maxlength="4"
+                  class="h-11 w-36 rounded-xl border border-slate-200 bg-white px-3.5 font-mono text-sm uppercase tracking-widest text-slate-900 outline-none transition focus:border-[#0284c7] focus:ring-3 focus:ring-sky-500/10"
+                />
+
+                <div class="flex items-center gap-1.5 rounded-xl border border-slate-300 bg-slate-100 px-3.5 py-2 font-mono text-lg font-black tracking-widest text-[#0284c7] select-none shadow-2xs">
+                  <span>{{ currentCaptcha() }}</span>
+                </div>
+
+                <button
+                  type="button"
+                  (click)="refreshCaptcha()"
+                  class="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 active:scale-95 transition cursor-pointer"
+                  title="Đổi mã bảo mật khác"
+                >
+                  <mat-icon class="!h-5 !w-5 !text-[20px]">refresh</mat-icon>
+                </button>
+              </div>
+            </div>
+
+            <!-- Error Banner -->
+            @if (error()) {
+              <div class="mt-4 flex items-center gap-2 rounded-xl bg-rose-50 border border-rose-200 p-3 text-xs font-semibold text-rose-800" role="alert">
+                <mat-icon class="!h-4 !w-4 !text-[16px] text-rose-600">error_outline</mat-icon>
+                <span>{{ error() }}</span>
+              </div>
+            }
+
+            <!-- Nút Tra cứu Submit -->
+            <button
+              type="button"
+              (click)="search()"
+              [disabled]="searching()"
+              data-testid="search-invoice-btn"
+              class="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-[#0284c7] py-3 text-sm font-bold text-white shadow-xs transition hover:bg-[#0369a1] active:scale-[0.99] disabled:opacity-50 cursor-pointer"
+            >
+              @if (searching()) {
+                <span class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                <span>Đang tìm kiếm hóa đơn...</span>
+              } @else {
+                <mat-icon class="!h-5 !w-5 !text-[20px]">search</mat-icon>
+                <span>Tra cứu hóa đơn</span>
+              }
+            </button>
+          </div>
+        </div>
+
+        <!-- Cột phải: Hướng dẫn tra cứu & Hotline hỗ trợ (Phong cách Bệnh viện Ung Bướu) -->
+        <div class="space-y-4">
+          <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs text-xs space-y-3">
+            <div class="flex items-center gap-2 font-bold text-slate-900 border-b border-slate-100 pb-2">
+              <mat-icon class="text-[#0284c7] !h-5 !w-5 !text-[20px]">info</mat-icon>
+              <span>Lưu ý khi tra cứu hóa đơn</span>
+            </div>
+            <ul class="space-y-2 text-slate-600 leading-relaxed list-disc list-inside">
+              <li>Mỗi hóa đơn điện tử có một <strong>Mã tra cứu</strong> duy nhất in trên phiếu thu tiền viện phí.</li>
+              <li>Để việc xem và in hóa đơn được hiển thị chuẩn xác nhất, người bệnh nên sử dụng trình duyệt <strong>Google Chrome</strong> hoặc <strong>Cốc Cốc</strong>.</li>
+              <li>Hóa đơn được ký bằng <strong>Chữ ký số hợp lệ</strong> của Phòng khám Đa khoa ClinicOne theo quy định của Tổng cục Thuế.</li>
+            </ul>
+          </div>
+
+          <div class="rounded-2xl border border-sky-200 bg-sky-50/70 p-5 shadow-xs text-xs space-y-2.5">
+            <div class="flex items-center gap-2 font-bold text-[#0284c7]">
+              <mat-icon class="!h-5 !w-5 !text-[20px]">support_agent</mat-icon>
+              <span>Hỗ trợ tra cứu hóa đơn</span>
+            </div>
+            <p class="text-slate-600 leading-relaxed">
+              Nếu gặp khó khăn trong quá trình tra cứu hoặc cần cấp lại hóa đơn chuyển đổi, quý khách vui lòng liên hệ:
+            </p>
+            <div class="space-y-1 font-semibold text-slate-800">
+              <p>• Hotline Phòng khám: <strong class="text-[#0284c7]">1900 0000</strong></p>
+              <p>• Tổng đài Viện phí: <strong>(028) 38.433.021</strong></p>
+              <p>• Giờ làm việc: 7:00 - 17:00 (Thứ 2 - Thứ 7)</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- KẾT QUẢ HIỂN THỊ HÓA ĐƠN ĐIỆN TỬ -->
+    @if (invoiceResult(); as inv) {
+      <div class="space-y-6">
+        <!-- Thông báo tìm thấy kết quả -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/80 p-4 text-xs print:hidden shadow-xs">
+          <div class="flex items-center gap-2.5">
+            <mat-icon class="text-emerald-600">check_circle</mat-icon>
+            <div>
+              <strong class="text-emerald-900 text-sm">Đã tìm thấy hóa đơn điện tử gốc hợp lệ</strong>
+              <p class="text-emerald-800 mt-0.5">
+                Ký hiệu: <span class="font-mono font-bold">{{ inv.invoiceSerial }}</span> ·
+                Số HĐ: <span class="font-mono font-bold">{{ inv.invoiceNumber }}</span> ·
+                Mã tra cứu: <span class="font-mono font-bold text-[#0284c7]">{{ inv.lookupCode }}</span>
+              </p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              (click)="printInvoice()"
+              class="inline-flex items-center gap-1.5 rounded-lg bg-[#0284c7] px-3.5 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-[#0369a1] transition cursor-pointer"
+            >
+              <mat-icon class="!h-4 !w-4 !text-[16px]">print</mat-icon>
+              <span>In hóa đơn A4</span>
+            </button>
+            <button
+              type="button"
+              (click)="resetSearch()"
+              class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+            >
+              <span>Tra cứu mã khác</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Render Hóa đơn điện tử chuẩn Bệnh viện Ung Bướu -->
+        <app-electronic-invoice [invoice]="inv" [printOnly]="false" />
+      </div>
+    }
+  </div>
+</main>

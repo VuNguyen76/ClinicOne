@@ -5,7 +5,7 @@
       <span class="text-xl font-bold tracking-tight text-slate-900">Clinic<span class="text-[#0284c7]">One</span></span>
     </a>
 
-    <nav class="hidden items-center gap-7 text-sm font-medium text-slate-600 lg:flex" aria-label="Điều hướng chính">
+    <nav class="hidden items-center gap-5 xl:gap-7 text-sm font-medium text-slate-600 lg:flex" aria-label="Điều hướng chính">
       @for (link of publicLinks; track link.route) {
         <a
           [routerLink]="link.route"

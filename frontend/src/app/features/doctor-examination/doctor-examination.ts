@@ -21,6 +21,8 @@ import {
   parseMedicalRecordTemplateContent,
   TemplatePrescriptionLine,
 } from '../../core/examination/medical-record-template-content';
+import { ElectronicInvoiceComponent } from '../../shared/electronic-invoice/electronic-invoice.component';
+import { buildElectronicInvoice } from '../../core/invoice/vietnamese-currency';
 
 type PrescriptionLineForm = FormGroup<{
   medicationId: FormControl<string | null>;
@@ -68,7 +70,7 @@ export interface ExaminationPhaseStep {
 @Component({
   selector: 'app-doctor-examination',
   standalone: true,
-  imports: [ReactiveFormsModule, MatIconModule, StaffWorkspaceShell],
+  imports: [ReactiveFormsModule, MatIconModule, StaffWorkspaceShell, ElectronicInvoiceComponent],
   templateUrl: './doctor-examination.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -336,8 +338,32 @@ export class DoctorExamination implements OnInit {
     return items;
   });
 
-  // Print Mode ('full' = Phiếu khám bệnh ngoại trú, 'prescription' = Đơn thuốc điện tử)
-  protected readonly printMode = signal<'full' | 'prescription'>('full');
+  // Print Mode ('full' = Phiếu khám bệnh ngoại trú, 'prescription' = Đơn thuốc điện tử, 'invoice' = Hóa đơn điện tử)
+  protected readonly printMode = signal<'full' | 'prescription' | 'invoice'>('full');
+
+  protected readonly invoice = computed(() => {
+    const exam = this.examination();
+    if (!exam) return null;
+    const lines = this.prescriptionLines.getRawValue().map((line) => ({
+      medicationName: line.medicationName || '',
+      quantity: Number(line.quantity) || 1,
+      unit: line.unit,
+      dosage: line.dosage,
+    })).filter((line) => Boolean(line.medicationName));
+    return buildElectronicInvoice({
+      appointmentCode: exam.appointmentCode,
+      patientName: exam.patientName,
+      patientPhone: exam.patientPhone,
+      patientDateOfBirth: exam.patientDateOfBirth,
+      patientGender: exam.patientGender,
+      doctorName: exam.doctorName,
+      specialty: exam.specialty,
+      serviceName: exam.specialty ? `Khám chuyên khoa ${exam.specialty}` : 'Khám chuyên khoa',
+      signedAt: exam.signedAt,
+      appointmentDate: exam.appointmentDate,
+      prescriptionLines: lines.length > 0 ? lines : exam.prescriptionLines,
+    });
+  });
 
   protected readonly vitalsWeight = signal<number | null>(null);
   protected readonly vitalsHeight = signal<number | null>(null);
@@ -1181,6 +1207,11 @@ export class DoctorExamination implements OnInit {
       return;
     }
     this.printMode.set('prescription');
+    setTimeout(() => window.print(), 50);
+  }
+
+  protected printInvoice(): void {
+    this.printMode.set('invoice');
     setTimeout(() => window.print(), 50);
   }
 

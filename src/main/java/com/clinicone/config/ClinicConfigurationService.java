@@ -20,9 +20,10 @@ public class ClinicConfigurationService {
     private final int defaultHoldMinutes;
     private final int defaultCancellationThresholdHours;
     private final int defaultMaxOverCapacityAppointmentsPerDoctorPerDay;
+    private final int defaultMaxActivePatientProfiles;
 
     public ClinicConfigurationService(ClinicConfigurationRepository repository) {
-        this(repository, "ClinicOne", "Khám bệnh", 10, 12, 3);
+        this(repository, "ClinicOne", "Khám bệnh", 10, 12, 3, 10);
     }
 
     @Autowired
@@ -33,7 +34,8 @@ public class ClinicConfigurationService {
             @Value("${app.clinic.hold-minutes:10}") int defaultHoldMinutes,
             @Value("${app.clinic.cancellation-threshold-hours:12}") int defaultCancellationThresholdHours,
             @Value("${app.clinic.max-over-capacity-appointments-per-doctor-per-day:3}")
-            int defaultMaxOverCapacityAppointmentsPerDoctorPerDay
+            int defaultMaxOverCapacityAppointmentsPerDoctorPerDay,
+            @Value("${app.clinic.max-active-patient-profiles:10}") int defaultMaxActivePatientProfiles
     ) {
         this.repository = repository;
         this.defaultUnitName = defaultUnitName;
@@ -41,11 +43,13 @@ public class ClinicConfigurationService {
         this.defaultHoldMinutes = defaultHoldMinutes;
         this.defaultCancellationThresholdHours = defaultCancellationThresholdHours;
         this.defaultMaxOverCapacityAppointmentsPerDoctorPerDay = defaultMaxOverCapacityAppointmentsPerDoctorPerDay;
+        this.defaultMaxActivePatientProfiles = defaultMaxActivePatientProfiles;
     }
 
     public ClinicConfiguration defaultConfiguration() {
         return new ClinicConfiguration(defaultUnitName, defaultDepartmentName, defaultHoldMinutes,
-                defaultCancellationThresholdHours, defaultMaxOverCapacityAppointmentsPerDoctorPerDay, "SYSTEM");
+                defaultCancellationThresholdHours, defaultMaxOverCapacityAppointmentsPerDoctorPerDay,
+                defaultMaxActivePatientProfiles, "SYSTEM");
     }
 
     @Transactional
@@ -80,11 +84,15 @@ public class ClinicConfigurationService {
             throw new AuthException(HttpStatus.BAD_REQUEST, "OVER_CAPACITY_LIMIT_INVALID",
                     "Giới hạn lượt ngoài công suất phải từ 0 đến 20 lượt mỗi bác sĩ mỗi ngày.");
         }
+        if (request.maxActivePatientProfiles() < 1 || request.maxActivePatientProfiles() > 50) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "PATIENT_PROFILE_LIMIT_INVALID",
+                    "Giới hạn hồ sơ đang hoạt động phải từ 1 đến 50 hồ sơ mỗi tài khoản.");
+        }
         String updatedBy = StringUtils.hasText(actor) ? actor.trim() : "SYSTEM";
         ClinicConfiguration configuration = repository.findById(ClinicConfiguration.DEFAULT_ID)
                 .orElseGet(ClinicConfiguration::defaults);
         configuration.update(unit, department, request.holdMinutes(), request.cancellationThresholdHours(),
-                request.maxOverCapacityAppointmentsPerDoctorPerDay(), updatedBy);
+                request.maxOverCapacityAppointmentsPerDoctorPerDay(), request.maxActivePatientProfiles(), updatedBy);
         return ClinicConfigurationResponse.from(repository.save(configuration));
     }
 

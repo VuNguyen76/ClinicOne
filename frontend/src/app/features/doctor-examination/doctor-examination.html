@@ -44,6 +44,18 @@
       <span>In đơn thuốc</span>
     </button>
   }
+  @if (examination()?.status === 'COMPLETED' && invoice()) {
+    <button
+      workspace-actions
+      type="button"
+      class="erp-btn-secondary"
+      (click)="printInvoice()"
+      data-testid="print-invoice-action"
+    >
+      <mat-icon class="!h-4 !w-4 !text-[16px] text-amber-600">receipt_long</mat-icon>
+      <span>In hóa đơn điện tử</span>
+    </button>
+  }
 
   <div class="w-full space-y-4" data-testid="doctor-workspace">
     <!-- Loading skeleton -->
@@ -1193,6 +1205,17 @@
                   <mat-icon class="!h-4 !w-4 !text-[16px] text-[#0284c7]">print</mat-icon>
                   <span>In phiếu khám</span>
                 </button>
+                @if (examination()?.status === 'COMPLETED' && invoice()) {
+                  <button
+                    type="button"
+                    class="erp-btn-secondary !h-9 text-xs font-semibold cursor-pointer"
+                    (click)="printInvoice()"
+                    data-testid="print-invoice-bottom-btn"
+                  >
+                    <mat-icon class="!h-4 !w-4 !text-[16px] text-amber-600">receipt_long</mat-icon>
+                    <span>In hóa đơn</span>
+                  </button>
+                }
               }
             </div>
           </div>
@@ -1827,6 +1850,18 @@
           </div>
         </div>
       </div>
+
+      <!-- TEMPLATE 3: HÓA ĐƠN BÁN HÀNG / BIÊN LAI THU VIỆN PHÍ (HÓA ĐƠN ĐIỆN TỬ TT 78) -->
+      @if (invoice(); as inv) {
+        <div
+          id="print-invoice-section"
+          class="hidden print:p-6 print:text-slate-900 print:bg-white"
+          [class.!block]="printMode() === 'invoice'"
+          [class.!hidden]="printMode() !== 'invoice'"
+        >
+          <app-electronic-invoice [invoice]="inv" [printOnly]="true" />
+        </div>
+      }
     }
   </div>
 </app-staff-workspace-shell>

@@ -37,6 +37,9 @@ public class ClinicConfiguration {
     @Column(name = "max_over_capacity_appointments_per_doctor_per_day", nullable = false)
     private int maxOverCapacityAppointmentsPerDoctorPerDay;
 
+    @Column(name = "max_active_patient_profiles", nullable = false)
+    private int maxActivePatientProfiles;
+
     @Column(name = "updated_by", nullable = false, length = 120)
     private String updatedBy;
 
@@ -51,27 +54,29 @@ public class ClinicConfiguration {
 
     ClinicConfiguration(String unitName, String departmentName, int holdMinutes,
                         int cancellationThresholdHours, int maxOverCapacityAppointmentsPerDoctorPerDay,
-                        String actor) {
+                        int maxActivePatientProfiles, String actor) {
         this.unitName = unitName;
         this.departmentName = departmentName;
         this.holdMinutes = holdMinutes;
         this.cancellationThresholdHours = cancellationThresholdHours;
         this.maxOverCapacityAppointmentsPerDoctorPerDay = maxOverCapacityAppointmentsPerDoctorPerDay;
+        this.maxActivePatientProfiles = maxActivePatientProfiles;
         this.updatedBy = actor;
     }
 
     public static ClinicConfiguration defaults() {
-        return new ClinicConfiguration("ClinicOne", "Khám bệnh", 10, 12, 3, "SYSTEM");
+        return new ClinicConfiguration("ClinicOne", "Khám bệnh", 10, 12, 3, 10, "SYSTEM");
     }
 
     public void update(String unitName, String departmentName, int holdMinutes,
                        int cancellationThresholdHours, int maxOverCapacityAppointmentsPerDoctorPerDay,
-                       String actor) {
+                       int maxActivePatientProfiles, String actor) {
         this.unitName = unitName;
         this.departmentName = departmentName;
         this.holdMinutes = holdMinutes;
         this.cancellationThresholdHours = cancellationThresholdHours;
         this.maxOverCapacityAppointmentsPerDoctorPerDay = maxOverCapacityAppointmentsPerDoctorPerDay;
+        this.maxActivePatientProfiles = maxActivePatientProfiles;
         this.updatedBy = actor;
     }
 

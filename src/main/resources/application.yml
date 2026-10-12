@@ -41,3 +41,4 @@ app:
     hold-minutes: ${CLINIC_HOLD_MINUTES:10}
     cancellation-threshold-hours: ${CLINIC_CANCELLATION_THRESHOLD_HOURS:12}
     max-over-capacity-appointments-per-doctor-per-day: ${CLINIC_MAX_OVER_CAPACITY_APPOINTMENTS_PER_DOCTOR_PER_DAY:3}
+    max-active-patient-profiles: ${CLINIC_MAX_ACTIVE_PATIENT_PROFILES:10}

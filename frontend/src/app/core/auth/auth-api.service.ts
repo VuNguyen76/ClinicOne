@@ -223,6 +223,8 @@ export interface ClinicConfigurationResponse {
   departmentName: string;
   holdMinutes: number;
   cancellationThresholdHours: number;
+  maxOverCapacityAppointmentsPerDoctorPerDay: number;
+  maxActivePatientProfiles: number;
   updatedBy: string;
   updatedAt: string;
 }
@@ -1591,6 +1593,8 @@ export class AuthApiService {
     departmentName: string;
     holdMinutes: number;
     cancellationThresholdHours: number;
+    maxOverCapacityAppointmentsPerDoctorPerDay: number;
+    maxActivePatientProfiles: number;
   }): Observable<ClinicConfigurationResponse> {
     return this.http.put<ClinicConfigurationResponse>('/api/v1/admin/configuration', request);
   }

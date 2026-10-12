@@ -1,0 +1,263 @@
+<div
+  class="electronic-invoice-sheet mx-auto max-w-[840px] rounded-xl border border-slate-300 bg-white p-6 sm:p-8 text-slate-900 shadow-sm print:max-w-full print:border-none print:p-0 print:shadow-none font-sans"
+  [class.hidden]="printOnly()"
+  [class.!block]="printOnly()"
+>
+  <!-- TOP HEADER: Đơn vị phát hành & Quốc hiệu -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 border-b-2 border-slate-800 pb-4 text-xs leading-relaxed">
+    <!-- Cột trái: Đơn vị bán hàng -->
+    <div>
+      <div class="flex items-center gap-2 mb-1.5">
+        <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0284c7] font-bold text-white text-xs">
+          C1
+        </span>
+        <h2 class="text-sm font-bold uppercase tracking-wide text-slate-900">
+          PHÒNG KHÁM ĐA KHOA CLINICONE
+        </h2>
+      </div>
+      <p class="text-slate-700"><strong>Mã số thuế:</strong> <span class="font-mono font-bold text-slate-900">0317891234</span></p>
+      <p class="text-slate-600"><strong>Địa chỉ:</strong> 123 Nguyễn Văn Cừ, Phường 4, Quận 5, TP. Hồ Chí Minh</p>
+      <p class="text-slate-600"><strong>Hotline:</strong> 1900 0000 · <strong>CSKH:</strong> (028) 38.433.021</p>
+      <p class="text-slate-600"><strong>Số tài khoản:</strong> 0123456789 - Ngân hàng Vietcombank (CN TP.HCM)</p>
+    </div>
+
+    <!-- Cột phải: Quốc hiệu, Tiêu ngữ & Ký hiệu hóa đơn -->
+    <div class="flex flex-col justify-between md:items-end text-left md:text-right">
+      <div>
+        <p class="font-bold uppercase tracking-wider text-slate-900 text-[11px]">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</p>
+        <p class="italic text-slate-700 font-medium text-[11px]">Độc lập - Tự do - Hạnh phúc</p>
+      </div>
+
+      <div class="mt-2 rounded-lg border border-slate-300 bg-slate-50/80 p-2.5 text-[11px] font-mono leading-tight space-y-0.5 min-w-[200px] text-left">
+        <div class="flex justify-between">
+          <span class="text-slate-500 font-sans">Mẫu số (Form):</span>
+          <strong class="text-slate-800">{{ invoice().templateCode }}</strong>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-500 font-sans">Ký hiệu (Serial):</span>
+          <strong class="text-slate-800">{{ invoice().invoiceSerial }}</strong>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-500 font-sans">Số (No.):</span>
+          <strong class="text-rose-600 text-xs font-bold">{{ invoice().invoiceNumber }}</strong>
+        </div>
+        <div class="flex justify-between border-t border-slate-200 pt-0.5">
+          <span class="text-slate-400 font-sans text-[10px]">Mã CQT:</span>
+          <span class="text-slate-600 text-[10px]">{{ invoice().cqtCode }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TIÊU ĐỀ HÓA ĐƠN CHÍNH -->
+  <div class="my-4 text-center">
+    <h1 class="text-xl sm:text-2xl font-black uppercase tracking-wider text-slate-900">
+      HÓA ĐƠN BÁN HÀNG
+    </h1>
+    <p class="text-xs font-bold uppercase tracking-wide text-slate-700 mt-0.5">
+      (KIÊM BIÊN LAI THU VIỆN PHÍ & DỊCH VỤ KHÁM CHỮA BỆNH)
+    </p>
+    <p class="text-[11px] italic text-slate-500 mt-0.5">
+      (Bản thể hiện của hóa đơn điện tử - Khởi tạo từ hệ thống quản lý phòng khám theo Thông tư 78/2021/TT-BTC)
+    </p>
+    <p class="text-xs italic text-slate-700 mt-1">
+      Ngày {{ formattedDate().day }} tháng {{ formattedDate().month }} năm {{ formattedDate().year }}
+    </p>
+  </div>
+
+  <!-- THÔNG TIN NGƯỜI MUA HÀNG (BỆNH NHÂN) -->
+  <div class="rounded-lg border border-slate-200 bg-slate-50/50 p-3.5 text-xs leading-relaxed space-y-1.5 print:bg-transparent print:border-slate-300">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
+      <div>
+        <span class="text-slate-600">Họ tên người mua hàng (Bệnh nhân): </span>
+        <strong class="uppercase font-bold text-slate-900">{{ invoice().patientName }}</strong>
+      </div>
+      <div>
+        <span class="text-slate-600">Mã bệnh nhân / Mã y tế: </span>
+        <strong class="font-mono text-[#0284c7] font-bold">{{ invoice().appointmentCode }}</strong>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-x-6 gap-y-1">
+      <div>
+        <span class="text-slate-600">Năm sinh / Giới tính: </span>
+        <strong class="text-slate-800">{{ invoice().patientDateOfBirth || '2000' }} ({{ invoice().patientGender || 'Nam' }})</strong>
+      </div>
+      <div>
+        <span class="text-slate-600">Điện thoại: </span>
+        <strong class="text-slate-800">{{ invoice().patientPhone }}</strong>
+      </div>
+      <div>
+        <span class="text-slate-600">Bác sĩ khám: </span>
+        <strong class="text-slate-800">{{ invoice().doctorName }}</strong>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
+      <div>
+        <span class="text-slate-600">Địa chỉ: </span>
+        <span class="text-slate-800">{{ invoice().patientAddress }}</span>
+      </div>
+      <div>
+        <span class="text-slate-600">Chuyên khoa: </span>
+        <strong class="text-slate-800">{{ invoice().specialty }}</strong>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 border-t border-slate-200/80 pt-1.5 print:border-slate-300">
+      <div>
+        <span class="text-slate-600">Hình thức thanh toán: </span>
+        <strong class="text-slate-800">{{ invoice().paymentMethod }}</strong>
+      </div>
+      <div>
+        <span class="text-slate-600">Đồng tiền thanh toán: </span>
+        <strong class="text-slate-800">VNĐ</strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- BẢNG KÊ CHI TIẾT HÀNG HÓA, DỊCH VỤ VÀ THUỐC -->
+  <div class="my-4 overflow-x-auto">
+    <table class="w-full text-xs border-collapse border border-slate-300">
+      <thead>
+        <tr class="bg-slate-100 text-slate-800 font-bold uppercase text-[10px] print:bg-slate-200">
+          <th class="border border-slate-300 p-2 text-center w-10">STT</th>
+          <th class="border border-slate-300 p-2 text-left">Tên hàng hóa, dịch vụ</th>
+          <th class="border border-slate-300 p-2 text-center w-16">ĐVT</th>
+          <th class="border border-slate-300 p-2 text-center w-16">Số lượng</th>
+          <th class="border border-slate-300 p-2 text-right w-24">Đơn giá (đ)</th>
+          <th class="border border-slate-300 p-2 text-right w-28">Thành tiền (đ)</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of invoice().items; track item.stt) {
+          <tr class="hover:bg-slate-50/50 print:hover:bg-transparent">
+            <td class="border border-slate-300 p-2 text-center font-bold text-slate-500">{{ item.stt }}</td>
+            <td class="border border-slate-300 p-2">
+              <span class="font-semibold text-slate-900">{{ item.name }}</span>
+              @if (item.category === 'SERVICE') {
+                <span class="ml-1.5 rounded bg-sky-50 text-[#0284c7] px-1.5 py-0.5 text-[9px] font-bold border border-sky-200 print:hidden">Dịch vụ khám</span>
+              } @else {
+                <span class="ml-1.5 rounded bg-emerald-50 text-emerald-700 px-1.5 py-0.5 text-[9px] font-bold border border-emerald-200 print:hidden">Thuốc điều trị</span>
+              }
+            </td>
+            <td class="border border-slate-300 p-2 text-center text-slate-700">{{ item.unit }}</td>
+            <td class="border border-slate-300 p-2 text-center font-bold text-slate-900">{{ item.quantity }}</td>
+            <td class="border border-slate-300 p-2 text-right font-mono text-slate-800">{{ formatCurrency(item.unitPrice) }}</td>
+            <td class="border border-slate-300 p-2 text-right font-mono font-bold text-slate-900">{{ formatCurrency(item.amount) }}</td>
+          </tr>
+        }
+      </tbody>
+      <tfoot>
+        <!-- Cộng tiền hàng hóa, dịch vụ -->
+        <tr class="border-t-2 border-slate-300 bg-slate-50 font-medium">
+          <td colspan="5" class="border border-slate-300 p-2 text-right text-slate-700">
+            Cộng tiền hàng hóa, dịch vụ:
+          </td>
+          <td class="border border-slate-300 p-2 text-right font-mono font-bold text-slate-900">
+            {{ formatCurrency(invoice().subtotal) }}
+          </td>
+        </tr>
+        <!-- Thuế GTGT -->
+        <tr class="bg-slate-50">
+          <td colspan="4" class="border border-slate-300 p-2 text-left text-slate-600 text-[11px]">
+            Thuế suất thuế GTGT: <strong class="text-slate-800 font-mono">{{ invoice().vatRate }}</strong> (Không chịu thuế theo quy định dịch vụ y tế)
+          </td>
+          <td class="border border-slate-300 p-2 text-right text-slate-700 font-medium">
+            Tiền thuế GTGT:
+          </td>
+          <td class="border border-slate-300 p-2 text-right font-mono font-bold text-slate-900">
+            {{ formatCurrency(invoice().vatAmount) }}
+          </td>
+        </tr>
+        <!-- Tổng cộng tiền thanh toán -->
+        <tr class="bg-slate-100 font-bold text-xs print:bg-slate-200">
+          <td colspan="5" class="border border-slate-300 p-2.5 text-right uppercase tracking-wider text-slate-900">
+            Tổng cộng tiền thanh toán:
+          </td>
+          <td class="border border-slate-300 p-2.5 text-right font-mono text-sm font-black text-[#0284c7]">
+            {{ formatCurrency(invoice().total) }} đ
+          </td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <!-- SỐ TIỀN BẰNG CHỮ -->
+  <div class="my-3 rounded-lg border border-slate-200 bg-slate-50/80 p-3 text-xs leading-relaxed print:border-slate-300 print:bg-transparent">
+    <p class="text-slate-800">
+      <strong>Số tiền viết bằng chữ: </strong>
+      <span class="italic font-semibold text-slate-900">{{ invoice().amountInWords }}</span>
+    </p>
+  </div>
+
+  <!-- PHẦN CHỮ KÝ VÀ CHỨNG THỰC ĐIỆN TỬ -->
+  <div class="my-6 grid grid-cols-1 sm:grid-cols-3 gap-4 text-center text-xs leading-relaxed">
+    <!-- Cột 1: Người mua hàng -->
+    <div class="space-y-1">
+      <p class="font-bold uppercase text-slate-900">NGƯỜI MUA HÀNG</p>
+      <p class="text-[11px] italic text-slate-500">(Ký, ghi rõ họ tên)</p>
+      <div class="h-20 flex items-end justify-center">
+        <p class="font-semibold text-slate-700">{{ invoice().patientName }}</p>
+      </div>
+    </div>
+
+    <!-- Cột 2: Người chuyển đổi -->
+    <div class="space-y-1">
+      <p class="font-bold uppercase text-slate-900">NGƯỜI CHUYỂN ĐỔI</p>
+      <p class="text-[11px] italic text-slate-500">(Kế toán viện phí / Thủ quỹ)</p>
+      <div class="h-20 flex flex-col items-center justify-end">
+        <span class="text-[10px] text-slate-400">Ký bởi: Thủ quỹ ClinicOne</span>
+        <span class="text-[10px] text-slate-400">Ngày: {{ formattedDate().day }}/{{ formattedDate().month }}/{{ formattedDate().year }}</span>
+      </div>
+    </div>
+
+    <!-- Cột 3: Người bán hàng (Chữ ký số điện tử) -->
+    <div class="space-y-1">
+      <p class="font-bold uppercase text-slate-900">NGƯỜI BÁN HÀNG</p>
+      <p class="text-[11px] italic text-slate-500">(Chữ ký điện tử của cơ sở y tế)</p>
+
+      <!-- Con dấu điện tử chuẩn Signature Valid -->
+      <div class="mt-2 mx-auto max-w-[210px] rounded-lg border-2 border-dashed border-[#0284c7] bg-sky-50/70 p-2 text-left shadow-2xs">
+        <div class="flex items-center gap-1.5 text-xs font-bold text-[#0284c7]">
+          <mat-icon class="!h-4 !w-4 !text-[16px] text-emerald-600">verified</mat-icon>
+          <span>SIGNATURE VALID</span>
+        </div>
+        <p class="text-[10px] text-slate-800 font-semibold mt-1">
+          Ký bởi: PHÒNG KHÁM ĐA KHOA CLINICONE
+        </p>
+        <p class="text-[9px] text-slate-500">MST: 0317891234</p>
+        <p class="text-[9px] text-slate-500">
+          Ngày ký: {{ formattedDate().day }}/{{ formattedDate().month }}/{{ formattedDate().year }} 08:30:00
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- PHẦN TRA CỨU HÓA ĐƠN ĐIỆN TỬ VÀ MÃ QR -->
+  <div class="border-t-2 border-slate-300 pt-3 text-[11px] text-slate-600 flex flex-col sm:flex-row items-center justify-between gap-3">
+    <div class="space-y-1 text-center sm:text-left">
+      <p class="italic text-slate-500">
+        (Cần kiểm tra, đối chiếu khi lập, giao nhận hóa đơn)
+      </p>
+      <p>
+        Tra cứu hóa đơn điện tử tại: <strong class="text-[#0284c7] font-mono">{{ invoice().lookupUrl }}</strong>
+      </p>
+      <p>
+        Mã tra cứu hóa đơn: <strong class="font-mono text-sm text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">{{ invoice().lookupCode }}</strong>
+      </p>
+    </div>
+
+    <!-- QR Code mô phỏng chuẩn xác -->
+    <div class="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2">
+      <div class="h-14 w-14 border border-slate-300 bg-white grid place-items-center rounded">
+        <mat-icon class="!h-10 !w-10 !text-[40px] text-slate-800">qr_code_2</mat-icon>
+      </div>
+      <div class="text-[10px] text-slate-500 leading-tight">
+        <p class="font-bold text-slate-700">Mã QR tra cứu</p>
+        <p>Quét để xác thực</p>
+        <p>hóa đơn gốc</p>
+      </div>
+    </div>
+  </div>
+</div>
