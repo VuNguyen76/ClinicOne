@@ -18,6 +18,7 @@ export type LookupTab = 'invoices' | 'prescriptions';
 })
 export class InvoiceLookup {
   private readonly authApi = inject(AuthApiService);
+  private lookupAttempt = 0;
 
   readonly step = signal<LookupStep>('phone');
   readonly phone = signal('');
@@ -60,6 +61,8 @@ export class InvoiceLookup {
   }
 
   lookup(): void {
+    if (this.searching()) return;
+
     this.error.set('');
     const phone = this.phone().trim();
     const code = this.code().trim();
@@ -69,8 +72,10 @@ export class InvoiceLookup {
     }
 
     this.searching.set(true);
+    const attempt = ++this.lookupAttempt;
     this.authApi.lookupPatientData(phone, code).subscribe({
       next: (response) => {
+        if (attempt !== this.lookupAttempt) return;
         this.searching.set(false);
         this.profiles.set(response.profiles);
         this.selectedProfileId.set(response.profiles.length === 1 ? response.profiles[0].profileId : null);
@@ -79,6 +84,7 @@ export class InvoiceLookup {
         this.step.set('results');
       },
       error: (response) => {
+        if (attempt !== this.lookupAttempt) return;
         this.searching.set(false);
         this.error.set(apiErrorMessage(response));
       },
@@ -104,6 +110,8 @@ export class InvoiceLookup {
   }
 
   changePhone(): void {
+    this.lookupAttempt++;
+    this.searching.set(false);
     this.step.set('phone');
     this.code.set('');
     this.error.set('');
