@@ -1,15 +1,17 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { finalize } from 'rxjs';
 import { apiErrorMessage, AuthApiService, MedicalRecordResponse } from '../../core/auth/auth-api.service';
 import { PatientHeader } from '../../shared/patient-header/patient-header';
 import { formatClinicDate, formatClinicMediumDateTime } from '../../core/time/clinic-time';
+import { ElectronicInvoiceComponent } from '../../shared/electronic-invoice/electronic-invoice.component';
+import { buildElectronicInvoice } from '../../core/invoice/vietnamese-currency';
 
 @Component({
   selector: 'app-medical-record-detail',
   standalone: true,
-  imports: [RouterLink, MatIconModule, PatientHeader],
+  imports: [RouterLink, MatIconModule, PatientHeader, ElectronicInvoiceComponent],
   templateUrl: './medical-record-detail.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -21,6 +23,25 @@ export class MedicalRecordDetail implements OnInit {
   protected readonly record = signal<MedicalRecordResponse | null>(null);
   protected readonly loading = signal(true);
   protected readonly error = signal('');
+  protected readonly viewInvoiceModal = signal(false);
+
+  protected readonly invoice = computed(() => {
+    const item = this.record();
+    if (!item) return null;
+    return buildElectronicInvoice({
+      appointmentCode: item.appointmentCode,
+      patientName: item.patientName,
+      patientPhone: item.patientPhone,
+      patientDateOfBirth: item.patientDateOfBirth,
+      patientGender: item.patientGender,
+      doctorName: item.doctorName,
+      specialty: item.specialty,
+      serviceName: item.specialty ? `Khám chuyên khoa ${item.specialty}` : 'Khám chuyên khoa ngoại trú',
+      signedAt: item.signedAt,
+      appointmentDate: item.appointmentDate,
+      prescriptionLines: item.prescriptionLines,
+    });
+  });
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
@@ -54,7 +75,7 @@ export class MedicalRecordDetail implements OnInit {
     return formatClinicMediumDateTime(value) || 'Không có';
   }
 
-  protected readonly printMode = signal<'full' | 'prescription'>('full');
+  protected readonly printMode = signal<'full' | 'prescription' | 'invoice'>('full');
 
   protected printFullRecord(): void {
     this.printMode.set('full');
@@ -64,6 +85,19 @@ export class MedicalRecordDetail implements OnInit {
   protected printPrescription(): void {
     this.printMode.set('prescription');
     setTimeout(() => window.print(), 50);
+  }
+
+  protected printInvoice(): void {
+    this.printMode.set('invoice');
+    setTimeout(() => window.print(), 50);
+  }
+
+  protected openInvoiceModal(): void {
+    this.viewInvoiceModal.set(true);
+  }
+
+  protected closeInvoiceModal(): void {
+    this.viewInvoiceModal.set(false);
   }
 
   protected printRecord(): void {

@@ -4,9 +4,11 @@ import com.clinicone.auth.AuthenticatedIds;
 import com.clinicone.auth.AuthException;
 import com.clinicone.auth.PatientAccount;
 import com.clinicone.auth.PatientAccountRepository;
+import com.clinicone.config.ClinicConfiguration;
+import com.clinicone.config.ClinicConfigurationService;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
@@ -19,12 +21,22 @@ import java.util.stream.Stream;
 
 @Service
 @Transactional(readOnly = true)
-@RequiredArgsConstructor
 public class PatientProfileService {
-    private static final int MAX_ACTIVE_PROFILES = 10;
-
     private final PatientAccountRepository accountRepository;
     private final PatientProfileRepository profileRepository;
+    private final ClinicConfigurationService clinicConfigurationService;
+
+    public PatientProfileService(PatientAccountRepository accountRepository, PatientProfileRepository profileRepository) {
+        this(accountRepository, profileRepository, null);
+    }
+
+    @Autowired
+    public PatientProfileService(PatientAccountRepository accountRepository, PatientProfileRepository profileRepository,
+                                 ClinicConfigurationService clinicConfigurationService) {
+        this.accountRepository = accountRepository;
+        this.profileRepository = profileRepository;
+        this.clinicConfigurationService = clinicConfigurationService;
+    }
 
     @Transactional
     public List<PatientProfileResponse> list(String accountId) {
@@ -45,10 +57,11 @@ public class PatientProfileService {
     @Transactional
     public PatientProfileResponse create(String accountId, CreatePatientProfileRequest request) {
         UUID ownerId = AuthenticatedIds.patient(accountId);
-        PatientAccount owner = findOwner(ownerId);
-        if (profileRepository.countByOwnerIdAndActiveTrue(ownerId) >= MAX_ACTIVE_PROFILES) {
+        PatientAccount owner = accountRepository.findByIdForUpdate(ownerId).orElseThrow(this::authenticationRequired);
+        int maxActiveProfiles = maxActiveProfiles();
+        if (profileRepository.countByOwnerIdAndActiveTrue(ownerId) >= maxActiveProfiles) {
             throw new AuthException(HttpStatus.CONFLICT, "PATIENT_PROFILE_LIMIT",
-                    "Mỗi tài khoản chỉ được quản lý tối đa 10 hồ sơ.");
+                    "Mỗi tài khoản chỉ được quản lý tối đa " + maxActiveProfiles + " hồ sơ.");
         }
         PatientProfile profile = PatientProfile.create(owner, normalize(request.fullName()), normalize(request.relationship()),
                 request.dateOfBirth(), normalize(request.gender()), normalize(request.phone()), normalize(request.identityNumber()),
@@ -185,6 +198,12 @@ public class PatientProfileService {
 
     private AuthException authenticationRequired() {
         return new AuthException(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_REQUIRED", "Phiên đăng nhập không hợp lệ.");
+    }
+
+    private int maxActiveProfiles() {
+        return clinicConfigurationService == null
+                ? ClinicConfiguration.defaults().getMaxActivePatientProfiles()
+                : clinicConfigurationService.current().getMaxActivePatientProfiles();
     }
 
     private AuthException profileNotFound() {

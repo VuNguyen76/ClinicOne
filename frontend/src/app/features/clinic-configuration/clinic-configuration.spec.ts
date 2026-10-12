@@ -15,12 +15,12 @@ describe('ClinicConfiguration', () => {
   beforeEach(async () => {
     vi.mocked(api.getClinicConfiguration).mockReturnValue(of({
       id: 'config', unitName: 'ClinicOne', departmentName: 'Khám bệnh', holdMinutes: 10,
-      cancellationThresholdHours: 12, maxOverCapacityAppointmentsPerDoctorPerDay: 3,
+      cancellationThresholdHours: 12, maxOverCapacityAppointmentsPerDoctorPerDay: 3, maxActivePatientProfiles: 10,
       updatedBy: 'SYSTEM', updatedAt: '2026-08-10T01:00:00Z',
     }));
     vi.mocked(api.updateClinicConfiguration).mockReturnValue(of({
       id: 'config', unitName: 'ClinicOne', departmentName: 'Khám bệnh', holdMinutes: 10,
-      cancellationThresholdHours: 12, maxOverCapacityAppointmentsPerDoctorPerDay: 3,
+      cancellationThresholdHours: 12, maxOverCapacityAppointmentsPerDoctorPerDay: 3, maxActivePatientProfiles: 10,
       updatedBy: 'SYSTEM', updatedAt: '2026-08-10T01:00:00Z',
     }));
     await TestBed.configureTestingModule({
@@ -43,6 +43,7 @@ describe('ClinicConfiguration', () => {
     expect(api.updateClinicConfiguration).toHaveBeenCalledWith({
       unitName: 'ClinicOne', departmentName: 'Khám bệnh', holdMinutes: 10, cancellationThresholdHours: 12,
       maxOverCapacityAppointmentsPerDoctorPerDay: 3,
+      maxActivePatientProfiles: 10,
     });
   });
 });

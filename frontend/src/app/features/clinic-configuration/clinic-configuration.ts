@@ -19,6 +19,7 @@ export class ClinicConfiguration implements OnInit {
   protected readonly holdMinutes = signal(10);
   protected readonly cancellationThresholdHours = signal(12);
   protected readonly maxOverCapacityAppointmentsPerDoctorPerDay = signal(3);
+  protected readonly maxActivePatientProfiles = signal(10);
   protected readonly updatedAt = signal('');
   protected readonly loading = signal(true);
   protected readonly saving = signal(false);
@@ -42,17 +43,19 @@ export class ClinicConfiguration implements OnInit {
       holdMinutes: Number(this.holdMinutes()),
       cancellationThresholdHours: Number(this.cancellationThresholdHours()),
       maxOverCapacityAppointmentsPerDoctorPerDay: Number(this.maxOverCapacityAppointmentsPerDoctorPerDay()),
+      maxActivePatientProfiles: Number(this.maxActivePatientProfiles()),
     }).subscribe({
       next: (configuration) => { this.apply(configuration); this.message.set('Đã lưu cấu hình.'); this.saving.set(false); },
       error: (response: ApiErrorResponse) => { this.error.set(apiErrorMessage(response)); this.saving.set(false); },
     });
   }
 
-  protected setNumber(target: 'hold' | 'cancel' | 'overCapacity', value: string): void {
+  protected setNumber(target: 'hold' | 'cancel' | 'overCapacity' | 'profiles', value: string): void {
     const parsed = Number(value);
     if (target === 'hold') this.holdMinutes.set(Number.isFinite(parsed) ? parsed : 10);
     else if (target === 'cancel') this.cancellationThresholdHours.set(Number.isFinite(parsed) ? parsed : 12);
-    else this.maxOverCapacityAppointmentsPerDoctorPerDay.set(Number.isFinite(parsed) ? parsed : 3);
+    else if (target === 'overCapacity') this.maxOverCapacityAppointmentsPerDoctorPerDay.set(Number.isFinite(parsed) ? parsed : 3);
+    else this.maxActivePatientProfiles.set(Number.isFinite(parsed) ? parsed : 10);
   }
 
   private apply(configuration: ClinicConfigurationResponse): void {
@@ -61,6 +64,7 @@ export class ClinicConfiguration implements OnInit {
     this.holdMinutes.set(configuration.holdMinutes);
     this.cancellationThresholdHours.set(configuration.cancellationThresholdHours);
     this.maxOverCapacityAppointmentsPerDoctorPerDay.set(configuration.maxOverCapacityAppointmentsPerDoctorPerDay);
+    this.maxActivePatientProfiles.set(configuration.maxActivePatientProfiles);
     this.updatedAt.set(configuration.updatedAt);
     this.loading.set(false);
   }

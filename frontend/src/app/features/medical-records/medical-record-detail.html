@@ -10,11 +10,11 @@
         <span class="font-semibold text-[#0284c7]">Chi tiết phiếu</span>
       </div>
       @if (record()) {
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
           <button
             type="button"
             (click)="printFullRecord()"
-            class="inline-flex min-h-9 items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 text-xs font-semibold text-slate-700 shadow-xs transition hover:border-slate-400 hover:bg-slate-50 active:scale-[0.98] cursor-pointer"
+            class="inline-flex min-h-9 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 sm:px-4 text-xs font-semibold text-slate-700 shadow-xs transition hover:border-slate-400 hover:bg-slate-50 active:scale-[0.98] cursor-pointer"
           >
             <mat-icon class="!h-4 !w-4 !text-[17px] text-[#0284c7]">print</mat-icon>
             <span>In phiếu khám (A4)</span>
@@ -23,10 +23,30 @@
             <button
               type="button"
               (click)="printPrescription()"
-              class="inline-flex min-h-9 items-center gap-2 rounded-lg border border-emerald-300 bg-white px-4 text-xs font-semibold text-emerald-800 shadow-xs transition hover:border-emerald-400 hover:bg-emerald-50 active:scale-[0.98] cursor-pointer"
+              class="inline-flex min-h-9 items-center gap-2 rounded-lg border border-emerald-300 bg-white px-3 sm:px-4 text-xs font-semibold text-emerald-800 shadow-xs transition hover:border-emerald-400 hover:bg-emerald-50 active:scale-[0.98] cursor-pointer"
             >
               <mat-icon class="!h-4 !w-4 !text-[17px] text-emerald-600">medication</mat-icon>
               <span>In đơn thuốc</span>
+            </button>
+          }
+          @if (invoice()) {
+            <button
+              type="button"
+              (click)="printInvoice()"
+              data-testid="print-invoice-btn"
+              class="inline-flex min-h-9 items-center gap-2 rounded-lg border border-amber-300 bg-amber-50/70 px-3 sm:px-4 text-xs font-semibold text-amber-900 shadow-xs transition hover:border-amber-400 hover:bg-amber-100 active:scale-[0.98] cursor-pointer"
+            >
+              <mat-icon class="!h-4 !w-4 !text-[17px] text-amber-700">receipt_long</mat-icon>
+              <span>In hóa đơn điện tử</span>
+            </button>
+            <button
+              type="button"
+              (click)="openInvoiceModal()"
+              data-testid="view-invoice-btn"
+              class="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 shadow-xs transition hover:border-slate-400 hover:bg-slate-50 active:scale-[0.98] cursor-pointer"
+            >
+              <mat-icon class="!h-4 !w-4 !text-[17px] text-slate-600">visibility</mat-icon>
+              <span>Xem hóa đơn</span>
             </button>
           }
         </div>
@@ -296,6 +316,59 @@
         </div>
       }
 
+      <!-- Official Electronic Invoice Print Layout (Nghị định 123/2020 & Thông tư 78/2021) -->
+      @if (invoice(); as inv) {
+        <div
+          id="print-invoice-section"
+          class="hidden print:p-6 print:text-slate-900 print:bg-white"
+          [class.!block]="printMode() === 'invoice'"
+          [class.!hidden]="printMode() !== 'invoice'"
+        >
+          <app-electronic-invoice [invoice]="inv" [printOnly]="true" />
+        </div>
+      }
+
+      <!-- Screen Preview Card for Electronic Invoice -->
+      @if (invoice(); as inv) {
+        <section class="mt-5 overflow-hidden rounded-xl border border-amber-200 bg-amber-50/40 p-5 print:hidden">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div class="flex items-start gap-3">
+              <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-100 text-amber-700">
+                <mat-icon>receipt_long</mat-icon>
+              </span>
+              <div>
+                <div class="flex items-center gap-2">
+                  <h3 class="text-sm font-bold text-slate-900">Hóa đơn điện tử viện phí</h3>
+                  <span class="rounded bg-amber-100 px-2 py-0.5 font-mono text-[10px] font-bold text-amber-900">Mẫu 1/001 - 2K26TVP</span>
+                </div>
+                <p class="mt-0.5 text-xs text-slate-600">
+                  Tổng tiền: <strong class="font-mono text-slate-900 font-bold">{{ inv.total.toLocaleString('vi-VN') }} đ</strong>
+                  (Thuế GTGT KCT) · Mã tra cứu: <span class="font-mono font-bold text-[#0284c7]">{{ inv.lookupCode }}</span>
+                </p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                (click)="openInvoiceModal()"
+                class="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 cursor-pointer"
+              >
+                <mat-icon class="!h-4 !w-4 !text-[16px]">visibility</mat-icon>
+                <span>Xem chi tiết</span>
+              </button>
+              <button
+                type="button"
+                (click)="printInvoice()"
+                class="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-[#0284c7] px-3.5 text-xs font-semibold text-white shadow-2xs hover:bg-[#0369a1] cursor-pointer"
+              >
+                <mat-icon class="!h-4 !w-4 !text-[16px]">print</mat-icon>
+                <span>In hóa đơn</span>
+              </button>
+            </div>
+          </div>
+        </section>
+      }
+
       @if (item.followUpDays) {
         <section class="mt-4 rounded-xl border border-sky-200 bg-sky-50/70 px-5 py-4 print:hidden">
           <p class="text-xs font-bold uppercase tracking-wide text-[#0284c7]">Kế hoạch tái khám</p>
@@ -311,6 +384,50 @@
       </div>
     }
   </div>
+
+  <!-- Modal xem Hóa đơn điện tử -->
+  @if (viewInvoiceModal() && invoice(); as inv) {
+    <div
+      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-xs overflow-y-auto"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Xem hóa đơn điện tử"
+    >
+      <div class="my-6 max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+          <div class="flex items-center gap-2">
+            <mat-icon class="text-amber-600">receipt_long</mat-icon>
+            <div>
+              <h2 class="text-base font-bold text-slate-900">Hóa đơn điện tử viện phí</h2>
+              <p class="text-xs text-slate-500">Mẫu chuẩn Bộ Tài chính (Nghị định 123/2020 & Thông tư 78/2021/TT-BTC)</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              (click)="printInvoice()"
+              class="inline-flex min-h-8 items-center gap-1.5 rounded-lg bg-[#0284c7] px-3 text-xs font-bold text-white transition hover:bg-[#0369a1] cursor-pointer"
+            >
+              <mat-icon class="!h-4 !w-4 !text-[16px]">print</mat-icon>
+              <span>In hóa đơn</span>
+            </button>
+            <button
+              type="button"
+              (click)="closeInvoiceModal()"
+              class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 cursor-pointer"
+              title="Đóng"
+            >
+              <mat-icon class="!h-5 !w-5">close</mat-icon>
+            </button>
+          </div>
+        </div>
+
+        <div class="p-1">
+          <app-electronic-invoice [invoice]="inv" [printOnly]="false" />
+        </div>
+      </div>
+    </div>
+  }
 
   @if (error() && record()) {
     <p class="fixed bottom-5 left-1/2 z-40 -translate-x-1/2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-lg print:hidden" role="alert">

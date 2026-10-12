@@ -95,4 +95,29 @@ describe('MedicalRecordDetail', () => {
     expect(fixture.nativeElement.textContent).toContain('Không tìm thấy phiếu khám đã ký');
     expect(fixture.nativeElement.textContent).not.toContain('Phiếu khám đã ký');
   });
+
+  it('renders electronic invoice action buttons and opens the preview modal', () => {
+    http.expectOne('/api/v1/medical-records/record-1').flush({
+      id: 'record-1', examinationId: 'exam-1', appointmentCode: 'CL-20260807-0009', doctorName: 'Bác sĩ Nguyễn An',
+      specialty: 'Khám Tổng Quát',
+      reason: 'Đau đầu', examinationNotes: 'Mạch ổn', diagnosis: 'Đau đầu căng thẳng', conclusion: 'Theo dõi thêm',
+      treatmentPlan: 'Nghỉ ngơi', prescription: null, prescriptionLines: [{
+        medicationId: 'medicine-1', medicationName: 'Paracetamol', dosage: '500 mg', quantity: 10, unit: 'Viên', instructions: 'Uống sau ăn',
+      }], followUpDate: null, signedAt: '2026-08-07T09:30:00Z',
+    });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('button[data-testid="print-invoice-btn"]')).toBeTruthy();
+    expect(fixture.nativeElement.textContent).toContain('In hóa đơn điện tử');
+    expect(fixture.nativeElement.textContent).toContain('Hóa đơn điện tử viện phí');
+
+    const viewBtn = fixture.nativeElement.querySelector('button[data-testid="view-invoice-btn"]') as HTMLButtonElement;
+    expect(viewBtn).toBeTruthy();
+    viewBtn.click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('HÓA ĐƠN BÁN HÀNG');
+    expect(fixture.nativeElement.textContent).toContain('2K26TVP');
+    expect(fixture.nativeElement.textContent).toContain('SIGNATURE VALID');
+  });
 });

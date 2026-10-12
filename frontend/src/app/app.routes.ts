@@ -28,6 +28,8 @@ export const routes: Routes = [
   { path: 'reception/check-in', pathMatch: 'full', redirectTo: 'reception/appointments' },
   { path: 'medical-records', loadComponent: () => import('./features/medical-records/medical-records').then((m) => m.MedicalRecords), canActivate: [patientGuard] },
   { path: 'medical-records/:id', loadComponent: () => import('./features/medical-records/medical-record-detail').then((m) => m.MedicalRecordDetail), canActivate: [patientGuard] },
+  { path: 'invoices', loadComponent: () => import('./features/invoices/invoice-lookup').then((m) => m.InvoiceLookup) },
+  { path: 'invoice-lookup', pathMatch: 'full', redirectTo: 'invoices' },
   { path: 'patient-profiles', loadComponent: () => import('./features/patient-profiles/patient-profiles').then((m) => m.PatientProfiles), canActivate: [patientGuard] },
   { path: 'notifications', loadComponent: () => import('./features/notifications/notifications').then((m) => m.Notifications), canActivate: [patientGuard] },
   { path: 'admin/queues', loadComponent: () => import('./features/staff-dashboard/staff-dashboard').then((m) => m.StaffDashboard), canActivate: [queueSupervisorGuard] },

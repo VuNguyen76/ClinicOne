@@ -3,6 +3,8 @@ package com.clinicone.patientprofile;
 import com.clinicone.auth.AuthException;
 import com.clinicone.auth.PatientAccount;
 import com.clinicone.auth.PatientAccountRepository;
+import com.clinicone.config.ClinicConfiguration;
+import com.clinicone.config.ClinicConfigurationService;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
@@ -16,6 +18,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.mock;
 import static org.mockito.ArgumentMatchers.any;
 
 class PatientProfileServiceTest {
@@ -45,7 +48,7 @@ class PatientProfileServiceTest {
     void rejectsCreatingAnEleventhActiveProfile() {
         PatientAccountRepository accountRepository = mock(PatientAccountRepository.class);
         PatientProfileRepository profileRepository = mock(PatientProfileRepository.class);
-        when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(mock(PatientAccount.class)));
+        when(accountRepository.findByIdForUpdate(ACCOUNT_ID)).thenReturn(Optional.of(mock(PatientAccount.class)));
         when(profileRepository.countByOwnerIdAndActiveTrue(ACCOUNT_ID)).thenReturn(10L);
 
         AuthException exception = assertThrows(AuthException.class, () ->
@@ -54,6 +57,29 @@ class PatientProfileServiceTest {
                                 null, null, null, null, null)));
 
         assertEquals("PATIENT_PROFILE_LIMIT", exception.getCode());
+    }
+
+    @Test
+    void usesClinicConfigurationForActiveProfileLimit() {
+        PatientAccountRepository accountRepository = mock(PatientAccountRepository.class);
+        PatientProfileRepository profileRepository = mock(PatientProfileRepository.class);
+        ClinicConfigurationService configurationService = mock(ClinicConfigurationService.class);
+        PatientAccount account = mock(PatientAccount.class);
+        ClinicConfiguration configuration = mock(ClinicConfiguration.class);
+        when(configuration.getMaxActivePatientProfiles()).thenReturn(11);
+        when(configurationService.current()).thenReturn(configuration);
+        when(accountRepository.findByIdForUpdate(ACCOUNT_ID)).thenReturn(Optional.of(account));
+        when(profileRepository.countByOwnerIdAndActiveTrue(ACCOUNT_ID)).thenReturn(10L);
+        when(profileRepository.save(any(PatientProfile.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        PatientProfileService service = new PatientProfileService(accountRepository, profileRepository, configurationService);
+        PatientProfileResponse response = service.create(ACCOUNT_ID.toString(),
+                new CreatePatientProfileRequest("Nguyễn B", "Con", LocalDate.of(2015, 2, 1), "Nữ",
+                        null, null, null, null, null));
+
+        assertEquals("Nguyễn B", response.fullName());
+        verify(profileRepository).save(any(PatientProfile.class));
+        verify(accountRepository).findByIdForUpdate(ACCOUNT_ID);
     }
 
     @Test

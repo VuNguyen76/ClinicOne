@@ -644,6 +644,9 @@ describe('DoctorExamination', () => {
 
     fixture.componentInstance['printFullRecord']();
     expect(fixture.componentInstance['printMode']()).toBe('full');
+
+    fixture.componentInstance['printInvoice']();
+    expect(fixture.componentInstance['printMode']()).toBe('invoice');
   });
 
   it('blocks saveDraft and displays error when prescription line has invalid quantity or empty dosage', () => {
