@@ -19,9 +19,12 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -51,6 +54,7 @@ public class AppointmentAvailabilityService {
     private final Clock clock;
     private final ClinicServiceRepository clinicServiceRepository;
     private final GeneratedClinicSlotRepository generatedSlotRepository;
+    private final WorkScheduleTemplateRepository templateRepository;
 
     public AppointmentAvailabilityService(AppointmentRepository appointmentRepository,
                                           SpecialtyCatalogService specialtyCatalog) {
@@ -86,7 +90,6 @@ public class AppointmentAvailabilityService {
                 holdRepository, clock, clinicServiceRepository, null);
     }
 
-    @Autowired
     public AppointmentAvailabilityService(AppointmentRepository appointmentRepository,
                                           SpecialtyCatalogService specialtyCatalog,
                                           DoctorProfileRepository doctorProfileRepository,
@@ -95,6 +98,20 @@ public class AppointmentAvailabilityService {
                                           Clock clock,
                                           ClinicServiceRepository clinicServiceRepository,
                                           GeneratedClinicSlotRepository generatedSlotRepository) {
+        this(appointmentRepository, specialtyCatalog, doctorProfileRepository, doctorScheduleRepository,
+                holdRepository, clock, clinicServiceRepository, generatedSlotRepository, null);
+    }
+
+    @Autowired
+    public AppointmentAvailabilityService(AppointmentRepository appointmentRepository,
+                                          SpecialtyCatalogService specialtyCatalog,
+                                          DoctorProfileRepository doctorProfileRepository,
+                                          DoctorScheduleRepository doctorScheduleRepository,
+                                          AppointmentHoldRepository holdRepository,
+                                          Clock clock,
+                                          ClinicServiceRepository clinicServiceRepository,
+                                          GeneratedClinicSlotRepository generatedSlotRepository,
+                                          WorkScheduleTemplateRepository templateRepository) {
         this.appointmentRepository = appointmentRepository;
         this.specialtyCatalog = specialtyCatalog;
         this.doctorProfileRepository = doctorProfileRepository;
@@ -103,6 +120,7 @@ public class AppointmentAvailabilityService {
         this.clock = clock;
         this.clinicServiceRepository = clinicServiceRepository;
         this.generatedSlotRepository = generatedSlotRepository;
+        this.templateRepository = templateRepository;
     }
 
     @Transactional(readOnly = true)
@@ -123,12 +141,36 @@ public class AppointmentAvailabilityService {
             List<GeneratedClinicSlot> openSlots = generatedSlots.stream()
                     .filter(slot -> slot.getStatus() == GeneratedSlotStatus.OPEN)
                     .toList();
-            if (!openSlots.isEmpty()) {
-                return findGenerated(openSlots, from, to);
-            }
-            if (!generatedSlots.isEmpty()) {
-                // All slots are CANCELLED/CLOSED -> no availability, don't fallback to weekly
-                return List.of();
+            if (templateRepository == null) {
+                if (!openSlots.isEmpty()) {
+                    return findGenerated(openSlots, from, to);
+                }
+                if (!generatedSlots.isEmpty()) {
+                    // Legacy compatibility: generated slots remain authoritative when template metadata is unavailable.
+                    return List.of();
+                }
+            } else {
+                List<WorkScheduleTemplate> templates = templateRepository
+                        .findActiveByServiceAndDateRange(serviceId, from, to);
+                Set<DoctorDateKey> governedDates = governedDates(generatedSlots, templates, from, to);
+                if (!openSlots.isEmpty() || !governedDates.isEmpty()) {
+                    List<AvailableSlotResponse> result = new ArrayList<>();
+                    if (!openSlots.isEmpty()) {
+                        result.addAll(findGenerated(openSlots, from, to));
+                    }
+                    if (doctorProfileRepository != null && doctorScheduleRepository != null) {
+                        findConfigured(specialty, from, to, service).stream()
+                                .filter(slot -> slot.doctorId() == null
+                                        || !governedDates.contains(new DoctorDateKey(slot.doctorId(), slot.appointmentDate())))
+                                .forEach(result::add);
+                    }
+                    return result.stream()
+                            .sorted(Comparator.comparing(AvailableSlotResponse::appointmentDate)
+                                    .thenComparing(AvailableSlotResponse::startTime)
+                                    .thenComparing(AvailableSlotResponse::doctorName,
+                                            Comparator.nullsLast(String::compareToIgnoreCase)))
+                            .toList();
+                }
             }
         }
         if (doctorProfileRepository != null) {
@@ -232,6 +274,12 @@ public class AppointmentAvailabilityService {
             // older weekly schedule for a time that was not generated.
             if (!generatedSlotRepository.findByClinicServiceIdAndDoctorStaffIdAndAppointmentDate(
                     serviceId, doctorId, appointmentDate).isEmpty()) {
+                throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_SLOT_INVALID",
+                        "Khung giờ này không nằm trong các khung giờ đang mở.");
+            }
+            if (templateRepository != null && templateRepository
+                    .findActiveByServiceAndDateRange(serviceId, appointmentDate, appointmentDate).stream()
+                    .anyMatch(template -> governsDate(template, doctorId, appointmentDate))) {
                 throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_SLOT_INVALID",
                         "Khung giờ này không nằm trong các khung giờ đang mở.");
             }
@@ -361,6 +409,36 @@ public class AppointmentAvailabilityService {
                 .filter(slot -> isFutureSlot(slot.appointmentDate(), slot.startTime()))
                 .filter(slot -> slot.remainingCapacity() > 0)
                 .toList();
+    }
+
+    private Set<DoctorDateKey> governedDates(List<GeneratedClinicSlot> generatedSlots,
+                                             List<WorkScheduleTemplate> templates,
+                                             LocalDate from, LocalDate to) {
+        Set<DoctorDateKey> result = new HashSet<>();
+        generatedSlots.stream()
+                .map(slot -> new DoctorDateKey(slot.getDoctorStaffId(), slot.getAppointmentDate()))
+                .forEach(result::add);
+        for (WorkScheduleTemplate template : templates) {
+            UUID doctorId = template.getDoctorProfile() == null || template.getDoctorProfile().getStaffAccount() == null
+                    ? null : template.getDoctorProfile().getStaffAccount().getId();
+            if (doctorId == null) continue;
+            LocalDate start = template.getStartDate().isAfter(from) ? template.getStartDate() : from;
+            LocalDate end = template.getEndDate().isBefore(to) ? template.getEndDate() : to;
+            start.datesUntil(end.plusDays(1))
+                    .filter(date -> governsDate(template, doctorId, date))
+                    .map(date -> new DoctorDateKey(doctorId, date))
+                    .forEach(result::add);
+        }
+        return result;
+    }
+
+    private boolean governsDate(WorkScheduleTemplate template, UUID doctorId, LocalDate date) {
+        if (template.getDoctorProfile() == null || template.getDoctorProfile().getStaffAccount() == null
+                || !doctorId.equals(template.getDoctorProfile().getStaffAccount().getId())
+                || date.isBefore(template.getStartDate()) || date.isAfter(template.getEndDate())) {
+            return false;
+        }
+        return template.getWeekdays().contains(date.getDayOfWeek()) || template.getExceptionDates().contains(date);
     }
 
     private void ensureGeneratedSlotBookable(GeneratedClinicSlot slot, String doctorName, UUID excludedHoldId) {
@@ -523,6 +601,9 @@ public class AppointmentAvailabilityService {
     }
 
     private record DoctorSlotKey(UUID doctorStaffId, LocalDate date, LocalTime startTime) {
+    }
+
+    private record DoctorDateKey(UUID doctorStaffId, LocalDate date) {
     }
 
     private List<SlotBookingCount> countSpecialtyBookings(String specialty, LocalDate from, LocalDate to) {
