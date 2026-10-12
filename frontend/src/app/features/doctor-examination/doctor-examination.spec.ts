@@ -388,6 +388,47 @@ describe('DoctorExamination', () => {
     expect(component['medicationSuggestions']()[0]).toEqual([currentSuggestion]);
   });
 
+  it('keeps medication suggestions attached to their prescription row after deleting an earlier row', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    const component = fixture.componentInstance;
+    component['addPrescriptionLine']();
+    component['addPrescriptionLine']();
+    const secondLine = component['prescriptionLines'].at(1);
+    secondLine.controls.medicationName.setValue('para');
+    component['findMedicationSuggestions'](1);
+    const suggestion = {
+      id: 'med-para', code: 'PARA', name: 'Paracetamol', category: 'Giảm đau', unit: 'Viên',
+      defaultDosage: '1 viên', defaultInstructions: 'Uống sau ăn', specialties: '',
+    };
+    http.expectOne((request) => request.url === '/api/v1/doctor/medications/suggestions'
+      && request.params.get('query') === 'para').flush([suggestion]);
+
+    component['removePrescriptionLine'](0);
+
+    expect(component['medicationSuggestions']()[0]).toEqual([suggestion]);
+  });
+
+  it('applies an in-flight medication suggestion to the row after that row shifts upward', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    const component = fixture.componentInstance;
+    component['addPrescriptionLine']();
+    component['addPrescriptionLine']();
+    const secondLine = component['prescriptionLines'].at(1);
+    secondLine.controls.medicationName.setValue('para');
+    component['findMedicationSuggestions'](1);
+    const request = http.expectOne((candidate) => candidate.url === '/api/v1/doctor/medications/suggestions'
+      && candidate.params.get('query') === 'para');
+    component['removePrescriptionLine'](0);
+    const suggestion = {
+      id: 'med-para', code: 'PARA', name: 'Paracetamol', category: 'Giảm đau', unit: 'Viên',
+      defaultDosage: '1 viên', defaultInstructions: 'Uống sau ăn', specialties: '',
+    };
+
+    request.flush([suggestion]);
+
+    expect(component['medicationSuggestions']()[0]).toEqual([suggestion]);
+  });
+
   it('keeps the valid clinical text and names the field when its limit is exceeded', () => {
     http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
     fixture.detectChanges();
