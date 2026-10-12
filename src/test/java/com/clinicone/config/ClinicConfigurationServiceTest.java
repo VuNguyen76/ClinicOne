@@ -26,6 +26,7 @@ class ClinicConfigurationServiceTest {
         assertEquals("ClinicOne", response.unitName());
         assertEquals(10, response.holdMinutes());
         assertEquals(12, response.cancellationThresholdHours());
+        assertEquals(3, response.maxOverCapacityAppointmentsPerDoctorPerDay());
         verify(repository).save(any(ClinicConfiguration.class));
     }
 
@@ -36,18 +37,19 @@ class ClinicConfigurationServiceTest {
         when(repository.save(configuration)).thenReturn(configuration);
 
         ClinicConfigurationResponse response = service.update(
-                new UpdateClinicConfigurationRequest("Bệnh viện ClinicOne", "Khoa khám bệnh", 30, 72), "admin");
+                new UpdateClinicConfigurationRequest("Bệnh viện ClinicOne", "Khoa khám bệnh", 30, 72, 7), "admin");
 
         assertEquals("Bệnh viện ClinicOne", response.unitName());
         assertEquals(30, response.holdMinutes());
         assertEquals(72, response.cancellationThresholdHours());
+        assertEquals(7, response.maxOverCapacityAppointmentsPerDoctorPerDay());
         assertEquals("admin", response.updatedBy());
     }
 
     @Test
     void rejectsHoldDurationOutsideFiveToThirtyMinutes() {
         AuthException exception = assertThrows(AuthException.class, () -> service.update(
-                new UpdateClinicConfigurationRequest("ClinicOne", "Khám bệnh", 31, 12), "admin"));
+                new UpdateClinicConfigurationRequest("ClinicOne", "Khám bệnh", 31, 12, 3), "admin"));
 
         assertEquals("HOLD_MINUTES_INVALID", exception.getCode());
     }
@@ -55,8 +57,16 @@ class ClinicConfigurationServiceTest {
     @Test
     void rejectsCancellationThresholdOutsideZeroToSeventyTwoHours() {
         AuthException exception = assertThrows(AuthException.class, () -> service.update(
-                new UpdateClinicConfigurationRequest("ClinicOne", "Khám bệnh", 10, 73), "admin"));
+                new UpdateClinicConfigurationRequest("ClinicOne", "Khám bệnh", 10, 73, 3), "admin"));
 
         assertEquals("CANCELLATION_THRESHOLD_INVALID", exception.getCode());
+    }
+
+    @Test
+    void rejectsOverCapacityLimitAboveTwenty() {
+        AuthException exception = assertThrows(AuthException.class, () -> service.update(
+                new UpdateClinicConfigurationRequest("ClinicOne", "Khám bệnh", 10, 12, 21), "admin"));
+
+        assertEquals("OVER_CAPACITY_LIMIT_INVALID", exception.getCode());
     }
 }

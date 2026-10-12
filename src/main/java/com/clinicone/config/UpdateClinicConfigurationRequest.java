@@ -9,6 +9,7 @@ public record UpdateClinicConfigurationRequest(
         @NotBlank @Size(max = 160) String unitName,
         @NotBlank @Size(max = 160) String departmentName,
         @Min(5) @Max(30) int holdMinutes,
-        @Min(0) @Max(72) int cancellationThresholdHours
+        @Min(0) @Max(72) int cancellationThresholdHours,
+        @Min(0) @Max(20) int maxOverCapacityAppointmentsPerDoctorPerDay
 ) {
 }

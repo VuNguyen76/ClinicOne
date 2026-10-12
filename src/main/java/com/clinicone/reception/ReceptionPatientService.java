@@ -18,12 +18,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Set;
+import java.util.UUID;
 
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class ReceptionPatientService {
-    private static final String TEMPORARY_PASSWORD = "123456";
     private static final Set<String> ALLOWED_GENDERS = Set.of("Nam", "Nữ", "Khác");
 
     private final PatientAccountRepository accountRepository;
@@ -50,7 +50,9 @@ public class ReceptionPatientService {
         validateGender(request.gender());
         otpService.verifySmsOtp(phone, OtpPurpose.REGISTRATION, request.otpCode());
 
-        PatientAccount account = new PatientAccount(phone, passwordEncoder.encode(TEMPORARY_PASSWORD),
+        // The account must be activated through the verified phone flow. Store only
+        // an unshared random hash so no known default password can access every account.
+        PatientAccount account = new PatientAccount(phone, passwordEncoder.encode(UUID.randomUUID().toString()),
                 request.fullName().trim(), AccountStatus.ACTIVE, true);
         account.updateProfile(request.fullName().trim(), request.dateOfBirth(), request.gender().trim(),
                 normalize(request.address()));

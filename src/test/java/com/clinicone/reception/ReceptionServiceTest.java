@@ -11,6 +11,8 @@ import com.clinicone.auth.AuthException;
 import com.clinicone.auth.PatientAccount;
 import com.clinicone.auth.PatientAccountRepository;
 import com.clinicone.auth.StaffAccount;
+import com.clinicone.config.ClinicConfiguration;
+import com.clinicone.config.ClinicConfigurationService;
 import com.clinicone.doctor.DoctorProfile;
 import com.clinicone.doctor.DoctorProfileRepository;
 import com.clinicone.patientprofile.PatientProfileRepository;
@@ -56,6 +58,7 @@ class ReceptionServiceTest {
     private QueueService queueService;
     private AppointmentService appointmentService;
     private PatientProfileRepository patientProfileRepository;
+    private ClinicConfigurationService clinicConfigurationService;
     private ReceptionService service;
 
     @BeforeEach
@@ -67,9 +70,12 @@ class ReceptionServiceTest {
         queueService = mock(QueueService.class);
         appointmentService = mock(AppointmentService.class);
         patientProfileRepository = mock(PatientProfileRepository.class);
+        clinicConfigurationService = mock(ClinicConfigurationService.class);
+        when(clinicConfigurationService.current()).thenReturn(ClinicConfiguration.defaults());
         Clock clock = Clock.fixed(Instant.parse("2026-08-07T03:00:00Z"), ZoneOffset.UTC);
-        service = new ReceptionService(appointmentRepository, doctorProfileRepository, ticketRepository,
-                queueService, clock, patientAccountRepository, appointmentService, patientProfileRepository);
+        service = new ReceptionService(appointmentRepository, doctorProfileRepository, null, ticketRepository,
+                queueService, clock, patientAccountRepository, appointmentService, patientProfileRepository,
+                null, clinicConfigurationService);
     }
 
     // 1. NHÓM TIẾP NHẬN BẰNG MÃ LỊCH HẸN / NGOẠI LỆ (FR-REC-01)
@@ -497,7 +503,10 @@ class ReceptionServiceTest {
     }
 
     @Test
-    void rejectsTheFourthOverCapacityWalkInForTheSameDoctorAndDay() {
+    void appliesTheConfiguredDailyOverCapacityWalkInLimit() {
+        ClinicConfiguration configuration = mock(ClinicConfiguration.class);
+        when(configuration.getMaxOverCapacityAppointmentsPerDoctorPerDay()).thenReturn(2);
+        when(clinicConfigurationService.current()).thenReturn(configuration);
         PatientAccount patient = mock(PatientAccount.class);
         when(patient.getId()).thenReturn(PATIENT_ID);
         when(patient.getStatus()).thenReturn(AccountStatus.ACTIVE);
@@ -510,7 +519,7 @@ class ReceptionServiceTest {
         when(doctorProfileRepository.findByStaffAccount_Id(DOCTOR_ID)).thenReturn(Optional.of(doctor));
         when(doctorProfileRepository.findByStaffAccount_IdForUpdate(DOCTOR_ID)).thenReturn(Optional.of(doctor));
         when(appointmentRepository.countByDoctorStaffIdAndAppointmentDateAndOverCapacityTrueAndStatusNot(
-                DOCTOR_ID, TODAY, AppointmentStatus.CANCELLED)).thenReturn(3L);
+                DOCTOR_ID, TODAY, AppointmentStatus.CANCELLED)).thenReturn(2L);
 
         assertThatThrownBy(() -> service.createWalkIn(new ReceptionWalkInRequest(
                 "0912345678", null, DOCTOR_ID, TODAY, LocalTime.of(9, 0), "Đau đầu kéo dài",
@@ -521,6 +530,63 @@ class ReceptionServiceTest {
         verify(doctorProfileRepository).findByStaffAccount_Id(DOCTOR_ID);
         verify(doctorProfileRepository).findByStaffAccount_IdForUpdate(DOCTOR_ID);
         verifyNoInteractions(appointmentService, queueService);
+    }
+
+    @Test
+    void replaysExistingOverCapacityWalkInBeforeApplyingDailyLimit() {
+        PatientAccount patient = mock(PatientAccount.class);
+        when(patient.getId()).thenReturn(PATIENT_ID);
+        when(patient.getStatus()).thenReturn(AccountStatus.ACTIVE);
+        when(patient.getFullName()).thenReturn("Nguyen Thanh Vu");
+        when(patient.getPhone()).thenReturn("0912345678");
+        when(patientAccountRepository.findByPhone("0912345678")).thenReturn(Optional.of(patient));
+
+        StaffAccount staff = mock(StaffAccount.class);
+        when(staff.getFullName()).thenReturn("BS. Nguyen An");
+        ClinicRoom room = ClinicRoom.create("NOI-01", "Phong Noi 01", "Noi tong quat");
+        DoctorProfile doctor = mock(DoctorProfile.class);
+        when(doctor.isActive()).thenReturn(true);
+        when(doctor.getSpecialty()).thenReturn("Noi tong quat");
+        when(doctor.getStaffAccount()).thenReturn(staff);
+        when(doctor.getRoom()).thenReturn(room);
+        when(doctorProfileRepository.findByStaffAccount_Id(DOCTOR_ID)).thenReturn(Optional.of(doctor));
+        when(doctorProfileRepository.findByStaffAccount_IdForUpdate(DOCTOR_ID)).thenReturn(Optional.of(doctor));
+        when(appointmentRepository.countByDoctorStaffIdAndAppointmentDateAndOverCapacityTrueAndStatusNot(
+                DOCTOR_ID, TODAY, AppointmentStatus.CANCELLED)).thenReturn(3L);
+
+        Appointment existing = mock(Appointment.class);
+        when(appointmentRepository.findByPatientIdAndCreationRequestKey(PATIENT_ID, "walkin-request-1"))
+                .thenReturn(Optional.of(existing));
+        AppointmentResponse replay = new AppointmentResponse(APPOINTMENT_ID, "CL-20260807-1234",
+                "Noi tong quat", "BS. Nguyen An", TODAY, LocalTime.of(9, 0), "Dau dau",
+                "BOOKED", "Da dat", null, null, DOCTOR_ID);
+        when(appointmentService.createReception(eq(PATIENT_ID.toString()), any(), eq("walkin-request-1")))
+                .thenReturn(replay);
+
+        Appointment appointment = mock(Appointment.class);
+        when(appointment.getId()).thenReturn(APPOINTMENT_ID);
+        when(appointment.getAppointmentCode()).thenReturn("CL-20260807-1234");
+        when(appointment.getAppointmentDate()).thenReturn(TODAY);
+        when(appointment.getStartTime()).thenReturn(LocalTime.of(9, 0));
+        when(appointment.getSpecialty()).thenReturn("Noi tong quat");
+        when(appointment.getDoctorName()).thenReturn("BS. Nguyen An");
+        when(appointment.getDoctorStaffId()).thenReturn(DOCTOR_ID);
+        when(appointment.getPatient()).thenReturn(patient);
+        when(appointment.getStatus()).thenReturn(AppointmentStatus.CHECKED_IN);
+        when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
+        QueueTicketResponse ticket = new QueueTicketResponse(UUID.randomUUID(), 8, "NOI-01", "Phong Noi 01",
+                TODAY, LocalTime.of(9, 0), "WAITING", "Dang cho", "CL-20260807-1234", "Noi tong quat",
+                "BS. Nguyen An");
+        when(queueService.checkInByStaff("NOI-01", APPOINTMENT_ID, "Bac si qua tai", "staff-1"))
+                .thenReturn(ticket);
+
+        ReceptionAppointmentResponse response = service.createWalkIn(new ReceptionWalkInRequest(
+                "0912345678", null, DOCTOR_ID, TODAY, LocalTime.of(9, 0), "Dau dau",
+                "Bac si qua tai", true), "staff-1", "walkin-request-1");
+
+        assertThat(response.id()).isEqualTo(APPOINTMENT_ID);
+        assertThat(response.queueNumber()).isEqualTo(8);
+        verify(appointmentService).createReception(eq(PATIENT_ID.toString()), any(), eq("walkin-request-1"));
     }
 
     @Test

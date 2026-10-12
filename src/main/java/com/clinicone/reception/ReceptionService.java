@@ -11,6 +11,8 @@ import com.clinicone.auth.AccountStatus;
 import com.clinicone.auth.PatientAccount;
 import com.clinicone.auth.PatientAccountRepository;
 import com.clinicone.audit.BusinessLogService;
+import com.clinicone.config.ClinicConfiguration;
+import com.clinicone.config.ClinicConfigurationService;
 import com.clinicone.doctor.DoctorProfile;
 import com.clinicone.doctor.DoctorProfileRepository;
 import com.clinicone.doctor.DoctorScheduleRepository;
@@ -55,6 +57,7 @@ public class ReceptionService {
     private final AppointmentService appointmentService;
     private final PatientProfileRepository patientProfileRepository;
     private final BusinessLogService businessLogService;
+    private final ClinicConfigurationService clinicConfigurationService;
 
     public ReceptionService(AppointmentRepository appointmentRepository,
                             DoctorProfileRepository doctorProfileRepository,
@@ -76,7 +79,6 @@ public class ReceptionService {
                 patientAccountRepository, appointmentService, patientProfileRepository, null);
     }
 
-    @Autowired
     public ReceptionService(AppointmentRepository appointmentRepository,
                             DoctorProfileRepository doctorProfileRepository,
                             DoctorScheduleRepository doctorScheduleRepository,
@@ -87,6 +89,23 @@ public class ReceptionService {
                             AppointmentService appointmentService,
                             PatientProfileRepository patientProfileRepository,
                             BusinessLogService businessLogService) {
+        this(appointmentRepository, doctorProfileRepository, doctorScheduleRepository, ticketRepository,
+                queueService, clock, patientAccountRepository, appointmentService, patientProfileRepository,
+                businessLogService, null);
+    }
+
+    @Autowired
+    public ReceptionService(AppointmentRepository appointmentRepository,
+                            DoctorProfileRepository doctorProfileRepository,
+                            DoctorScheduleRepository doctorScheduleRepository,
+                            QueueTicketRepository ticketRepository,
+                            QueueService queueService,
+                            Clock clock,
+                            PatientAccountRepository patientAccountRepository,
+                            AppointmentService appointmentService,
+                            PatientProfileRepository patientProfileRepository,
+                            BusinessLogService businessLogService,
+                            ClinicConfigurationService clinicConfigurationService) {
         this.appointmentRepository = appointmentRepository;
         this.doctorProfileRepository = doctorProfileRepository;
         this.doctorScheduleRepository = doctorScheduleRepository;
@@ -97,6 +116,7 @@ public class ReceptionService {
         this.appointmentService = appointmentService;
         this.patientProfileRepository = patientProfileRepository;
         this.businessLogService = businessLogService;
+        this.clinicConfigurationService = clinicConfigurationService;
     }
 
     @Transactional(readOnly = true)
@@ -434,6 +454,11 @@ public ReceptionAppointmentResponse checkIn(UUID appointmentId, ReceptionCheckIn
             throw new AuthException(HttpStatus.CONFLICT, "FUTURE_OVER_CAPACITY_NOT_ALLOWED",
                     "Chỉ được tiếp nhận ngoài công suất cho ngày hiện tại.");
         }
+        String normalizedRequestKey = IdempotencyKeys.optional(requestKey);
+        CreateAppointmentRequest appointmentRequest = new CreateAppointmentRequest(
+                doctor.getSpecialty(), doctor.getStaffAccount().getFullName(), appointmentDate,
+                request.startTime(), request.reason(), request.profileId(), request.doctorId());
+        AppointmentResponse replayedAppointment = null;
         if (Boolean.TRUE.equals(request.overCapacity())) {
             // Serialize exception admissions per doctor so the check-and-insert
             // cannot allow a fourth admission under concurrent reception users.
@@ -441,21 +466,34 @@ public ReceptionAppointmentResponse checkIn(UUID appointmentId, ReceptionCheckIn
                     .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "DOCTOR_ASSIGNMENT_NOT_FOUND",
                             "Không tìm thấy bác sĩ đang được phân công."));
             validateOverCapacityReason(request.exceptionReason());
-            long existingOverCapacity = appointmentRepository
-                    .countByDoctorStaffIdAndAppointmentDateAndOverCapacityTrueAndStatusNot(
-                            request.doctorId(), appointmentDate, AppointmentStatus.CANCELLED);
-            if (existingOverCapacity >= 3) {
-                throw new AuthException(HttpStatus.CONFLICT, "WALK_IN_OVER_CAPACITY_LIMIT",
-                        "Bác sĩ đã đủ 3 lượt tiếp nhận ngoài công suất trong ngày.");
+            if (normalizedRequestKey != null) {
+                boolean existingRequest = patient != null
+                        ? appointmentRepository.findByPatientIdAndCreationRequestKey(patient.getId(), normalizedRequestKey)
+                                .isPresent()
+                        : appointmentRepository.findByPatientProfileIdAndCreationRequestKey(
+                                temporaryProfile.getId(), normalizedRequestKey).isPresent();
+                if (existingRequest) {
+                    // Let AppointmentService validate that the same key carries the same payload
+                    // and return the original appointment before enforcing today's capacity limit.
+                    replayedAppointment = patient == null
+                            ? appointmentService.createTemporaryReception(temporaryProfile, appointmentRequest,
+                                    normalizedRequestKey)
+                            : appointmentService.createReception(patient.getId().toString(), appointmentRequest,
+                                    normalizedRequestKey);
+                }
+            }
+            if (replayedAppointment == null) {
+                long existingOverCapacity = appointmentRepository
+                        .countByDoctorStaffIdAndAppointmentDateAndOverCapacityTrueAndStatusNot(
+                                request.doctorId(), appointmentDate, AppointmentStatus.CANCELLED);
+                if (existingOverCapacity >= maxOverCapacityAppointmentsPerDoctorPerDay()) {
+                    throw new AuthException(HttpStatus.CONFLICT, "WALK_IN_OVER_CAPACITY_LIMIT",
+                            "Bác sĩ đã đạt giới hạn tiếp nhận ngoài công suất trong ngày.");
+                }
             }
         }
-        String normalizedRequestKey = IdempotencyKeys.optional(requestKey);
-
-        CreateAppointmentRequest appointmentRequest = new CreateAppointmentRequest(
-                doctor.getSpecialty(), doctor.getStaffAccount().getFullName(), appointmentDate,
-                request.startTime(), request.reason(), request.profileId(), request.doctorId());
-        AppointmentResponse created;
-        if (patient == null) {
+        AppointmentResponse created = replayedAppointment;
+        if (created == null && patient == null) {
             if (Boolean.TRUE.equals(request.overCapacity())) {
                 created = normalizedRequestKey == null
                         ? appointmentService.createTemporaryReception(temporaryProfile, appointmentRequest)
@@ -465,11 +503,11 @@ public ReceptionAppointmentResponse checkIn(UUID appointmentId, ReceptionCheckIn
                         ? appointmentService.createTemporary(temporaryProfile, appointmentRequest)
                         : appointmentService.createTemporary(temporaryProfile, appointmentRequest, normalizedRequestKey);
             }
-        } else if (Boolean.TRUE.equals(request.overCapacity())) {
+        } else if (created == null && Boolean.TRUE.equals(request.overCapacity())) {
             created = normalizedRequestKey == null
                     ? appointmentService.createReception(patient.getId().toString(), appointmentRequest)
                     : appointmentService.createReception(patient.getId().toString(), appointmentRequest, normalizedRequestKey);
-        } else {
+        } else if (created == null) {
             created = normalizedRequestKey == null
                     ? appointmentService.create(patient.getId().toString(), appointmentRequest)
                     : appointmentService.create(patient.getId().toString(), appointmentRequest, normalizedRequestKey);
@@ -512,6 +550,12 @@ public ReceptionAppointmentResponse checkIn(UUID appointmentId, ReceptionCheckIn
         Instant now = Instant.now(clock);
         return !now.isBefore(scheduledEnd.plus(Duration.ofMinutes(15)))
                 && now.isBefore(scheduledEnd.plus(Duration.ofHours(24)));
+    }
+
+    private int maxOverCapacityAppointmentsPerDoctorPerDay() {
+        return clinicConfigurationService == null
+                ? ClinicConfiguration.defaults().getMaxOverCapacityAppointmentsPerDoctorPerDay()
+                : clinicConfigurationService.current().getMaxOverCapacityAppointmentsPerDoctorPerDay();
     }
 
     private String normalizeQuery(String query) {
