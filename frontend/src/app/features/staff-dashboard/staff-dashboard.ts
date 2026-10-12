@@ -343,7 +343,7 @@ export class StaffDashboard implements OnInit, OnDestroy {
     const ticket = this.operatingTicket();
     const action = this.operatingAction();
     const reason = this.operatingReason().trim();
-    if (!ticket || !action) return;
+    if (!ticket || !action || this.operatingBusy()) return;
     if (reason.length < 3) {
       this.error.set('Vui lòng nhập lý do tối thiểu 3 ký tự.');
       return;
