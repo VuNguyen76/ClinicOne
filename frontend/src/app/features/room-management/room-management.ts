@@ -60,6 +60,7 @@ export class RoomManagement implements OnInit {
   }
 
   protected submit(): void {
+    if (this.saving()) return;
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;

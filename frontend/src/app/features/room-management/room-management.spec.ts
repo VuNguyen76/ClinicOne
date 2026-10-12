@@ -57,6 +57,20 @@ describe('RoomManagement', () => {
     expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
   });
 
+  it('does not create the same room twice while the first save is pending', () => {
+    http.expectOne('/api/v1/specialties').flush([{ code: 'NOI', name: 'Nội tổng quát', description: '' }]);
+    http.expectOne('/api/v1/rooms').flush([]);
+    const component = fixture.componentInstance as any;
+    component.form.setValue({ code: 'NOI-01', name: 'Phòng Nội 01', specialty: 'Nội tổng quát' });
+
+    component.submit();
+    component.submit();
+
+    const requests = http.match((request) => request.url === '/api/v1/rooms' && request.method === 'POST');
+    expect(requests).toHaveLength(1);
+    requests[0].flush(room('NOI-01', true));
+  });
+
   it('uses the preloaded specialty catalog in the room form', () => {
     http.expectOne('/api/v1/specialties').flush([
       { code: 'NOI', name: 'Nội tổng quát', description: 'Khám tổng quát' },
