@@ -392,6 +392,29 @@ describe('ReceptionCheckIn', () => {
     expect(fixture.nativeElement.textContent).toContain('BS. Nguyễn Bình');
   });
 
+  it('does not let an older queue-adjustment doctor list replace the selected ticket availability', () => {
+    const component = fixture.componentInstance as any;
+    const firstTicket = { ...appointment(), queueStatus: 'WAITING', queueTicketId: 'ticket-1' };
+    const selectedTicket = { ...appointment(), id: 'a-2', queueStatus: 'WAITING', queueTicketId: 'ticket-2' };
+
+    component.openAdjustment(firstTicket);
+    const firstAvailability = http.expectOne((request) => request.url === '/api/v1/reception/doctors');
+    component.openAdjustment(selectedTicket);
+    const selectedAvailability = http.expectOne((request) => request.url === '/api/v1/reception/doctors');
+
+    selectedAvailability.flush([{
+      staffId: 'doctor-2', fullName: 'BS. Äang chá»n', specialty: 'Nhi khoa', roomCode: 'NHI-01',
+      shiftStatus: 'ACTIVE', waitingCount: 0, slots: [],
+    }]);
+    firstAvailability.flush([{
+      staffId: 'doctor-1', fullName: 'BS. Cá»§', specialty: 'Ná»™i khoa', roomCode: 'NOI-01',
+      shiftStatus: 'ACTIVE', waitingCount: 0, slots: [],
+    }]);
+
+    expect(component.adjustmentTicket().queueTicketId).toBe('ticket-2');
+    expect(component.doctors().map((doctor: any) => doctor.staffId)).toEqual(['doctor-2']);
+  });
+
   it('opens the walk-in form and creates an appointment from a selected slot', () => {
     const component = fixture.componentInstance as any;
     component.activeTab.set('intake');

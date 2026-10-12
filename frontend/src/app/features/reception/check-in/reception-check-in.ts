@@ -30,6 +30,7 @@ export class ReceptionCheckIn implements OnInit {
   private walkInSlotRequestId = 0;
   private walkInOtpRequestId = 0;
   private rebookSlotRequestId = 0;
+  private adjustmentDoctorRequestId = 0;
   private registrationAddressRequestId = 0;
   private worklistRequestId = 0;
   private searchRequestId = 0;
@@ -422,16 +423,22 @@ export class ReceptionCheckIn implements OnInit {
 
   protected openAdjustment(appointment: ReceptionAppointmentResponse): void {
     if (appointment.queueStatus !== 'WAITING' || !appointment.queueTicketId) return;
+    const requestId = ++this.adjustmentDoctorRequestId;
     this.adjustmentTicket.set(appointment);
     this.adjustmentDoctorId.set('');
+    this.doctors.set([]);
     this.adjustmentReason.set('');
     this.adjustmentShowDifferentSpecialty.set(false);
     this.adjustmentSelectedSlot.set(appointment.startTime?.slice(0,5) ?? '');
     this.error.set('');
     const date = appointment.appointmentDate ?? clinicTodayIso();
     this.authApi.getReceptionDoctorsAvailability(date).subscribe({
-      next: (doctors) => this.doctors.set(doctors),
-      error: (response) => this.handleError(response),
+      next: (doctors) => {
+        if (requestId === this.adjustmentDoctorRequestId) this.doctors.set(doctors);
+      },
+      error: (response) => {
+        if (requestId === this.adjustmentDoctorRequestId) this.handleError(response);
+      },
     });
   }
 
@@ -576,7 +583,11 @@ export class ReceptionCheckIn implements OnInit {
   }
 
   protected closeAdjustment(): void {
-    if (!this.adjustmentLoading()) this.adjustmentTicket.set(null);
+    if (!this.adjustmentLoading()) {
+      this.adjustmentDoctorRequestId++;
+      this.adjustmentTicket.set(null);
+      this.doctors.set([]);
+    }
   }
 
   protected adjustQueue(action: 'MOVE' | 'SET_PRIORITY' | 'CLEAR_PRIORITY'): void {
