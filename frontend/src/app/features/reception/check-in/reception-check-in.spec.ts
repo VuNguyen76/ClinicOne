@@ -584,6 +584,18 @@ describe('ReceptionCheckIn', () => {
     profilesAfterActivation.flush([]);
   });
 
+  it('does not request a second registration OTP while the first request is pending', () => {
+    const component = fixture.componentInstance as any;
+    component.walkInPhone.set('0912345678');
+
+    component.requestRegistrationOtp();
+    component.requestRegistrationOtp();
+
+    const requests = http.match('/api/v1/reception/patients/request-otp');
+    expect(requests).toHaveLength(1);
+    requests[0].flush({ expiresInSeconds: 300, retryAfterSeconds: 60 });
+  });
+
   it('lets an existing pending account request and submit a fresh activation OTP', () => {
     const component = fixture.componentInstance as any;
     component.activeTab.set('intake');

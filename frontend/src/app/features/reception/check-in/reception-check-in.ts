@@ -750,6 +750,7 @@ export class ReceptionCheckIn implements OnInit {
   }
 
   protected requestRegistrationOtp(): void {
+    if (this.registrationLoading() || this.registrationOtpSent()) return;
     const phone = this.walkInPhone().trim();
     if (!/^0\d{9}$/.test(phone)) {
       this.error.set('Nhập số điện thoại hợp lệ trước khi gửi OTP.');
@@ -774,6 +775,7 @@ export class ReceptionCheckIn implements OnInit {
   }
 
   protected requestPendingActivationOtp(): void {
+    if (this.registrationLoading()) return;
     const phone = this.walkInPhone().trim();
     if (!/^0\d{9}$/.test(phone)) {
       this.error.set('Nhập số điện thoại hợp lệ trước khi gửi OTP.');
@@ -800,6 +802,7 @@ export class ReceptionCheckIn implements OnInit {
   }
 
   protected verifyPendingActivationOtp(): void {
+    if (this.registrationLoading()) return;
     const phone = this.walkInPhone().trim();
     const code = this.walkInOtp().trim();
     if (!this.activationOtpRequested() || !/^\d{6}$/.test(code)) {
@@ -826,6 +829,7 @@ export class ReceptionCheckIn implements OnInit {
   }
 
   protected submitRegistration(): void {
+    if (this.registrationLoading() || this.identityMutationLoading()) return;
     const phone = this.walkInPhone().trim();
     if (!/^0\d{9}$/.test(phone) || (!this.walkInTemporaryProfile() && !/^\d{6}$/.test(this.walkInOtp()))
       || this.registrationFullName().trim().length < 2 || !this.registrationDateOfBirth()
@@ -903,6 +907,7 @@ export class ReceptionCheckIn implements OnInit {
   }
 
   protected activatePendingAccount(): void {
+    if (this.activationLoading() || this.identityMutationLoading()) return;
     const phone = this.walkInPhone().trim();
     const password = this.activationPassword();
     if (!/^0\d{9}$/.test(phone) || password.length < 8 || password.length > 64) {
@@ -1174,6 +1179,7 @@ export class ReceptionCheckIn implements OnInit {
   }
 
   protected submitProfileCompletion(): void {
+    if (this.registrationLoading()) return;
     const profileId = this.walkInProfileId();
     if (!profileId) return;
     if (this.registrationFullName().trim().length < 2 || !this.registrationDateOfBirth() || !this.registrationGender()) {
