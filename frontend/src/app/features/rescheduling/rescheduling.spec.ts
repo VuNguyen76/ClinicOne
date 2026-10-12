@@ -41,6 +41,32 @@ describe('Rescheduling', () => {
     expect(fixture.nativeElement.textContent).toContain('Khung giờ đang trống');
   });
 
+  it('does not apply replacement slots from a case that is no longer selected', () => {
+    http.expectOne('/api/v1/admin/rescheduling').flush([
+      rescheduleCase(),
+      { ...rescheduleCase(), id: 'case-2', appointmentCode: 'CL-0002' },
+    ]);
+    const firstCaseSlots = http.expectOne('/api/v1/admin/rescheduling/case-1/alternatives');
+    const component = fixture.componentInstance as any;
+    component.selectCase({ ...rescheduleCase(), id: 'case-2', appointmentCode: 'CL-0002' });
+    const selectedCaseSlots = http.expectOne('/api/v1/admin/rescheduling/case-2/alternatives');
+
+    selectedCaseSlots.flush([{
+      specialty: 'Nội tổng quát', appointmentDate: '2026-08-13', startTime: '10:00:00',
+      endTime: '11:00:00', doctorName: 'Bác sĩ Bình', remainingCapacity: 10,
+      doctorId: 'doctor-2', roomCode: 'NOI-02',
+    }]);
+    firstCaseSlots.flush([{
+      specialty: 'Nội tổng quát', appointmentDate: '2026-08-12', startTime: '09:00:00',
+      endTime: '10:00:00', doctorName: 'Bác sĩ An', remainingCapacity: 10,
+      doctorId: 'doctor-1', roomCode: 'NOI-01',
+    }]);
+
+    expect(component.selectedCase().id).toBe('case-2');
+    expect(component.alternatives().map((slot: any) => slot.doctorId)).toEqual(['doctor-2']);
+    expect(component.selectedSlot().doctorId).toBe('doctor-2');
+  });
+
   it('resolves a selected replacement slot', () => {
     http.expectOne('/api/v1/admin/rescheduling').flush([rescheduleCase()]);
     http.expectOne('/api/v1/admin/rescheduling/case-1/alternatives').flush([]);
