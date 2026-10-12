@@ -330,6 +330,47 @@ describe('DoctorExamination', () => {
     expect(diagnosis.disabled).toBe(false);
   });
 
+  it('ignores stale diagnosis suggestions when a newer query responds first', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    const component = fixture.componentInstance;
+    component['form'].controls.diagnosis.setValue('head');
+    component['findDiagnosisSuggestions']();
+    const firstRequest = http.expectOne((request) => request.url === '/api/v1/doctor/diagnoses/suggestions'
+      && request.params.get('query') === 'head');
+
+    component['form'].controls.diagnosis.setValue('headache');
+    component['findDiagnosisSuggestions']();
+    const latestRequest = http.expectOne((request) => request.url === '/api/v1/doctor/diagnoses/suggestions'
+      && request.params.get('query') === 'headache');
+    const currentSuggestion = { id: 'new', code: 'HEADACHE', name: 'Headache', active: true };
+    latestRequest.flush([currentSuggestion]);
+    firstRequest.flush([{ id: 'old', code: 'HEAD', name: 'Head injury', active: true }]);
+
+    expect(component['diagnosisSuggestions']()).toEqual([currentSuggestion]);
+  });
+
+  it('ignores stale medication suggestions when the medication text changes', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    const component = fixture.componentInstance;
+    component['addPrescriptionLine']();
+    const medicationName = component['prescriptionLines'].at(0).controls.medicationName;
+    medicationName.setValue('para');
+    component['findMedicationSuggestions'](0);
+    const firstRequest = http.expectOne((request) => request.url === '/api/v1/doctor/medications/suggestions'
+      && request.params.get('query') === 'para');
+
+    medicationName.setValue('paracetamol');
+    component['findMedicationSuggestions'](0);
+    const latestRequest = http.expectOne((request) => request.url === '/api/v1/doctor/medications/suggestions'
+      && request.params.get('query') === 'paracetamol');
+    const currentSuggestion = { id: 'new', code: 'PARA', name: 'Paracetamol', category: 'Pain', unit: 'Tablet',
+      defaultDosage: '1 tablet', defaultInstructions: 'As directed', specialties: '' };
+    latestRequest.flush([currentSuggestion]);
+    firstRequest.flush([{ ...currentSuggestion, id: 'old', name: 'Paracetamol old result' }]);
+
+    expect(component['medicationSuggestions']()[0]).toEqual([currentSuggestion]);
+  });
+
   it('keeps the valid clinical text and names the field when its limit is exceeded', () => {
     http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
     fixture.detectChanges();
