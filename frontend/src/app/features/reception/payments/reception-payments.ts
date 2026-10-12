@@ -25,6 +25,7 @@ export class ReceptionPayments {
   protected readonly notice = signal('');
 
   protected createReceipt(): void {
+    if (this.loading()) return;
     const code = this.appointmentCode().trim();
     this.error.set('');
     this.notice.set('');
@@ -38,7 +39,7 @@ export class ReceptionPayments {
     this.authApi.createPaymentReceiptForAppointment(code).subscribe({
       next: (receipt) => {
         this.receipt.set(receipt);
-        this.appointmentCode.set(receipt.appointmentCode);
+        if (this.appointmentCode().trim() === code) this.appointmentCode.set(receipt.appointmentCode);
         this.loading.set(false);
       },
       error: (response) => {
