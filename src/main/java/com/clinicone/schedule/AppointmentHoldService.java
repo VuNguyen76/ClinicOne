@@ -163,7 +163,8 @@ public class AppointmentHoldService {
         return hold.getSpecialty().equalsIgnoreCase(request.specialty())
                 && (hold.getServiceId() == null ? request.serviceId() == null
                 : hold.getServiceId().equals(request.serviceId()))
-                && (hold.getDoctorStaffId() == null ? request.doctorId() == null
+                && (hold.getDoctorStaffId() == null
+                ? request.doctorId() == null && hold.getDoctorName().equalsIgnoreCase(request.doctorName().trim())
                 : hold.getDoctorStaffId().equals(request.doctorId()))
                 && java.util.Objects.equals(hold.getPatientProfileId(), request.profileId())
                 && hold.getAppointmentDate().equals(request.appointmentDate())
