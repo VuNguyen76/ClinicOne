@@ -69,6 +69,23 @@ class AppointmentHoldServiceTest {
     }
 
     @Test
+    void rejectsHoldCreationForAccountThatMustChangePasswordBeforeReservingCapacity() {
+        PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A",
+                AccountStatus.ACTIVE, true);
+        setAccountId(account, ACCOUNT_ID);
+        when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
+
+        AuthException exception = assertThrows(AuthException.class, () -> service.create(ACCOUNT_ID.toString(),
+                new CreateAppointmentHoldRequest("Nội tổng quát", "BS. An",
+                        LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), DOCTOR_ID)));
+
+        assertEquals("ACCOUNT_ACTIVATION_REQUIRED", exception.getCode());
+        verify(availabilityService, never()).ensureBookable(any(), any(), any(), any(), any());
+        verify(holdRepository, never()).findByHoldKey(any());
+        verify(holdRepository, never()).saveAndFlush(any(AppointmentHold.class));
+    }
+
+    @Test
     void separateLoginSessionsDoNotReuseTheSameHoldClaim() {
         when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account()));
         when(holdRepository.findByHoldKey(any())).thenReturn(Optional.empty());
