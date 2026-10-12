@@ -12,6 +12,7 @@ import { AuthApiService } from '../../core/auth/auth-api.service';
 })
 export class AccountMenu {
   readonly compact = input(false);
+  readonly responsiveCompact = input(false);
   protected readonly loggedIn = signal(false);
   protected readonly menuOpen = signal(false);
   protected readonly staffRole = signal<string | null>(null);

@@ -12,7 +12,11 @@
     aria-controls="account-menu-panel" (click)="toggleMenu()">
     <mat-icon class="!h-5 !w-5 !text-[20px] text-[#0284c7]">account_circle</mat-icon>
     @if (!compact()) {
+      @if (responsiveCompact()) {
+        <span class="hidden truncate sm:inline">{{ fullName() }}</span>
+      } @else {
       <span class="truncate">{{ fullName() }}</span>
+      }
       <mat-icon class="!h-4 !w-4 !text-[17px] text-slate-400">expand_more</mat-icon>
     }
   </button>
