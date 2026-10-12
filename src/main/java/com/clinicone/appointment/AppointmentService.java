@@ -410,43 +410,8 @@ public class AppointmentService {
 
     @Transactional
     public AppointmentResponse reschedule(String accountId, String appointmentId, RescheduleAppointmentRequest request) {
-        UUID patientId = AuthenticatedIds.patient(accountId);
-        Appointment appointment = findOwned(parseAppointmentId(appointmentId), patientId);
-        ensureBookable(appointment);
-        if (rescheduleCaseRepository != null
-                && rescheduleCaseRepository.findByAppointmentIdAndStatus(appointment.getId(), RescheduleCaseStatus.OPEN)
-                .isPresent()) {
-            throw new AuthException(HttpStatus.CONFLICT, "RESCHEDULE_CASE_PENDING",
-                    "Lịch hẹn đang chờ xác nhận khung giờ thay thế.");
-        }
-        boolean sameSlot = appointment.getAppointmentDate().equals(request.appointmentDate())
-                && appointment.getStartTime().equals(request.startTime());
-        if (availabilityService != null && !sameSlot) {
-            if (appointment.getServiceId() == null) {
-                availabilityService.ensureBookable(appointment.getSpecialty(), appointment.getDoctorName(),
-                        appointment.getDoctorStaffId(), request.appointmentDate(), request.startTime());
-            } else {
-                availabilityService.ensureBookable(appointment.getSpecialty(), appointment.getDoctorName(),
-                        appointment.getDoctorStaffId(), request.appointmentDate(), request.startTime(), null,
-                        appointment.getServiceId());
-            }
-        }
-        PatientProfile currentProfile = appointment.getPatientProfile();
-        if (!sameSlot && currentProfile != null && hasActiveAppointmentForProfile(currentProfile.getId(), request.appointmentDate(), request.startTime())) {
-            throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_DUPLICATE",
-                    "Hồ sơ này đã có lịch hẹn tại khung giờ này.");
-        }
-        if (!sameSlot) {
-            markPreviousGeneratedSlotUnavailable(appointment);
-        }
-        String previousDate = appointment.getAppointmentDate().toString();
-        String previousTime = appointment.getStartTime().toString();
-        appointment.reschedule(request.appointmentDate(), request.startTime());
-        Appointment saved = appointmentRepository.save(appointment);
-        if (notificationService != null && !sameSlot) {
-            notificationService.notifyAppointmentRescheduled(saved, previousDate, previousTime);
-        }
-        return AppointmentResponse.from(saved);
+        throw new AuthException(HttpStatus.GONE, "PATIENT_RESCHEDULE_NOT_SUPPORTED",
+                "Người bệnh chỉ xác nhận lịch thay thế do phòng khám đề xuất; vui lòng liên hệ quầy nếu cần đổi lịch.");
     }
 
     /**

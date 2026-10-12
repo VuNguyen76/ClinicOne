@@ -15,26 +15,12 @@
         <div class="relative">
           <p class="text-[10px] font-bold uppercase tracking-widest text-cyan-100">Check-in tự phục vụ</p>
           <h1 class="mt-2 text-2xl font-bold tracking-tight text-white sm:text-3xl">Lấy số khám</h1>
-          <p class="mt-2 text-xs leading-5 text-white/80">
-            Phòng khám <span data-testid="room-code" class="font-bold text-cyan-200">{{ room()?.name || roomCode() }}</span>. Chọn lịch hẹn trong ngày để cấp số.
+          <p class="mt-2 text-sm leading-6 text-white/85">
+            <span data-testid="room-code" class="font-bold text-white">{{ room()?.name || roomCode() }}</span>
           </p>
-
-          <div class="mt-6 border-t border-white/15 pt-5" data-testid="qr-check-in-guide">
-            <p class="text-[11px] font-bold uppercase tracking-wider text-cyan-200">Hướng dẫn nhanh</p>
-            <ol class="mt-3 grid gap-2.5 text-xs leading-5 text-white/80">
-              <li class="flex gap-2.5">
-                <span class="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-white/20 font-mono text-[10px] font-bold text-white">1</span>
-                <span>Quét mã QR trước cửa phòng khám.</span>
-              </li>
-              <li class="flex gap-2.5">
-                <span class="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-white/20 font-mono text-[10px] font-bold text-white">2</span>
-                <span>Chọn lịch hẹn khám hôm nay.</span>
-              </li>
-              <li class="flex gap-2.5">
-                <span class="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-white/20 font-mono text-[10px] font-bold text-white">3</span>
-                <span>Nhận số thứ tự và theo dõi màn hình TV phòng khám.</span>
-              </li>
-            </ol>
+          <div class="mt-8 inline-flex items-center gap-3 rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm font-semibold">
+            <mat-icon>qr_code_scanner</mat-icon>
+            <span>Quét mã tại đúng phòng khám</span>
           </div>
         </div>
       </div>
@@ -96,50 +82,74 @@
             <div>
               <mat-icon class="!h-10 !w-10 !text-[40px] text-slate-300">event_busy</mat-icon>
               <h2 class="mt-3 text-sm font-bold text-slate-900">Không có lịch hẹn hôm nay</h2>
-              <p class="mt-1 text-xs leading-5 text-slate-500">
-                Bạn cần có lịch hẹn đúng ngày hôm nay và đúng chuyên khoa của phòng này để lấy số.
-              </p>
+              <p class="mt-1 text-sm leading-5 text-slate-500">Không tìm thấy lịch phù hợp với bác sĩ tại phòng này.</p>
               <a routerLink="/appointments/new" class="erp-btn-primary mt-4 inline-flex !bg-[#0284c7] hover:!bg-[#0369a1]">
                 Đặt lịch khám mới
               </a>
             </div>
           </div>
+        } @else if (needsProfileSelection()) {
+          <div>
+            <p class="text-xs font-bold uppercase tracking-wider text-[#0284c7]">Check-in</p>
+            <h2 class="mt-1 text-xl font-bold text-slate-900">Chọn hồ sơ người đi khám</h2>
+            <div class="mt-5 grid gap-3">
+              @for (profile of profileOptions(); track profile.key) {
+                <button
+                  data-testid="check-in-profile"
+                  type="button"
+                  class="flex w-full items-center justify-between gap-4 rounded-xl border border-slate-200 p-4 text-left transition hover:border-[#0284c7] hover:bg-sky-50"
+                  (click)="chooseProfile(profile)"
+                >
+                  <div>
+                    <p class="font-semibold text-slate-900">{{ profile.name }}</p>
+                    <p class="mt-1 text-sm text-slate-500">{{ profile.appointments.length }} lịch phù hợp</p>
+                  </div>
+                  <mat-icon class="text-slate-400">chevron_right</mat-icon>
+                </button>
+              }
+            </div>
+          </div>
         } @else {
           <div>
-            <p class="text-[10px] font-bold uppercase tracking-wider text-[#0284c7]">Lịch hẹn hôm nay</p>
-            <h2 class="mt-1 text-base font-bold text-slate-900">Chọn lịch hẹn để check-in</h2>
-            <p class="mt-0.5 text-xs text-slate-500">Mỗi lịch hẹn chỉ được cấp một số thứ tự trong ngày.</p>
-
-            <div class="mt-4 grid gap-2.5">
-              @for (appointment of todayAppointments(); track appointment.id) {
-                <button
-                  data-testid="check-in-appointment"
-                  type="button"
-                  class="group flex w-full items-center justify-between gap-3 rounded-lg border border-slate-200 p-3.5 text-left transition hover:border-[#0284c7] hover:bg-sky-50"
-                  [class.border-[#0284c7]]="selectedAppointment()?.id === appointment.id"
-                  [class.bg-sky-50]="selectedAppointment()?.id === appointment.id"
-                  (click)="chooseAppointment(appointment)"
-                >
-                  <div class="min-w-0">
-                    <p class="truncate font-semibold text-slate-900 text-xs">{{ appointment.specialty }}</p>
-                    <p class="mt-0.5 text-[11px] text-slate-500">
-                      <span class="font-mono font-medium text-slate-700">{{ formatTime(appointment.startTime) }}</span> · {{ appointment.doctorName }}
-                    </p>
-                  </div>
-                  <mat-icon class="shrink-0 !h-4 !w-4 !text-[18px] text-slate-300 transition group-hover:text-[#0284c7]">chevron_right</mat-icon>
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <p class="text-xs font-bold uppercase tracking-wider text-[#0284c7]">{{ selectedProfileKey() ? 'Hồ sơ đã chọn' : 'Check-in' }}</p>
+                <h2 class="mt-1 text-xl font-bold text-slate-900">
+                  {{ selectedProfileName() }}
+                </h2>
+              </div>
+              @if (profileOptions().length > 1) {
+                <button type="button" class="text-sm font-semibold text-[#0284c7] hover:underline" (click)="resetProfileSelection()">
+                  Đổi hồ sơ
                 </button>
               }
             </div>
 
-            <button
-              data-testid="check-in-submit"
-              type="button"
-              class="erp-btn-primary mt-5 w-full !min-h-10 text-sm !bg-[#0284c7] hover:!bg-[#0369a1]"
-              [disabled]="!selectedAppointment() || busy()"
-              (click)="checkIn()"
-            >
-              {{ busy() ? 'Đang xử lý...' : submitLabel() }}
-            </button>
+            @if (lateNotice()) {
+              <div class="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-900" role="alert">{{ lateNotice() }}</div>
+            }
+            @if (busy()) {
+              <div class="grid min-h-48 place-items-center text-sm text-slate-500">Đang xác nhận check-in...</div>
+            } @else if (visibleProfileAppointments().length > 1) {
+              <p class="mt-1 text-sm text-slate-500">Chọn lịch hẹn tại phòng này.</p>
+              <div class="mt-5 grid gap-3">
+                @for (appointment of visibleProfileAppointments(); track appointment.id) {
+                  <button
+                    data-testid="check-in-appointment"
+                    type="button"
+                    class="flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 p-4 text-left transition hover:border-[#0284c7] hover:bg-sky-50"
+                    [disabled]="busy()"
+                    (click)="chooseAppointment(appointment)"
+                  >
+                    <span>
+                      <strong class="block text-slate-900">{{ appointment.specialty }}</strong>
+                      <span class="mt-1 block text-sm text-slate-500">{{ formatTime(appointment.startTime) }} · {{ appointment.doctorName }}</span>
+                    </span>
+                    <mat-icon class="text-[#0284c7]">arrow_forward</mat-icon>
+                  </button>
+                }
+              </div>
+            }
           </div>
         }
       </div>

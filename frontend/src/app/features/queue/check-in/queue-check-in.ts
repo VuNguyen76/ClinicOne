@@ -6,6 +6,12 @@ import { ApiErrorResponse, AppointmentResponse, AuthApiService, ClinicRoomCheckI
 import { PatientHeader } from '../../../shared/patient-header/patient-header';
 import { clinicTodayIso, formatClinicDate, formatClinicTime } from '../../../core/time/clinic-time';
 
+interface CheckInProfileOption {
+  key: string;
+  name: string;
+  appointments: AppointmentResponse[];
+}
+
 @Component({
   selector: 'app-queue-check-in',
   standalone: true,
@@ -21,11 +27,12 @@ export class QueueCheckIn implements OnInit {
   protected readonly roomCode = signal('');
   protected readonly room = signal<ClinicRoomCheckInResponse | null>(null);
   protected readonly appointments = signal<AppointmentResponse[]>([]);
-  protected readonly selectedAppointment = signal<AppointmentResponse | null>(null);
+  protected readonly selectedProfileKey = signal('');
   protected readonly ticket = signal<QueueTicketResponse | null>(null);
   protected readonly loading = signal(true);
   protected readonly busy = signal(false);
   protected readonly error = signal('');
+  protected readonly lateNotice = signal('');
   protected readonly today = clinicTodayIso();
   private checkInRequestKey: string | null = null;
 
@@ -35,32 +42,76 @@ export class QueueCheckIn implements OnInit {
   }
 
   protected todayAppointments(): AppointmentResponse[] {
-    const specialty = this.room()?.specialty.toLowerCase();
-    return this.appointments().filter((appointment) => appointment.appointmentDate === this.today
-      && ['BOOKED', 'CHECKED_IN', 'COMPLETED', 'NOT_PERFORMED'].includes(appointment.status)
-      && (!specialty || appointment.specialty.toLowerCase() === specialty));
+    return this.appointments();
+  }
+
+  protected profileOptions(): CheckInProfileOption[] {
+    const groups = new Map<string, CheckInProfileOption>();
+    for (const appointment of this.todayAppointments()) {
+      const key = appointment.profileId || 'profile:unlinked';
+      const group = groups.get(key) ?? {
+        key,
+        name: appointment.profileName || 'Hồ sơ người đi khám',
+        appointments: [],
+      };
+      group.appointments.push(appointment);
+      groups.set(key, group);
+    }
+    return [...groups.values()];
+  }
+
+  protected needsProfileSelection(): boolean {
+    return this.profileOptions().length > 1 && !this.selectedProfileKey();
+  }
+
+  protected visibleProfileAppointments(): AppointmentResponse[] {
+    const groups = this.profileOptions();
+    const selected = groups.find((group) => group.key === this.selectedProfileKey());
+    if (selected) return selected.appointments;
+    return groups.length === 1 ? groups[0].appointments : [];
+  }
+
+  protected selectedProfileName(): string {
+    const profiles = this.profileOptions();
+    return profiles.find((profile) => profile.key === this.selectedProfileKey())?.name
+      || (profiles.length === 1 ? profiles[0].name : 'Lịch hẹn hôm nay');
+  }
+
+  protected chooseProfile(profile: CheckInProfileOption): void {
+    this.selectedProfileKey.set(profile.key);
+    this.checkInRequestKey = null;
+    this.error.set('');
+    this.lateNotice.set('');
+    if (profile.appointments.length === 1) this.beginCheckIn(profile.appointments[0]);
+  }
+
+  protected resetProfileSelection(): void {
+    this.selectedProfileKey.set('');
+    this.checkInRequestKey = null;
+    this.error.set('');
+    this.lateNotice.set('');
   }
 
   protected chooseAppointment(appointment: AppointmentResponse): void {
     this.error.set('');
-    this.selectedAppointment.set(appointment);
     this.checkInRequestKey = null;
+    this.beginCheckIn(appointment);
   }
 
-  protected submitLabel(): string {
-    const status = this.selectedAppointment()?.status;
-    if (status === 'COMPLETED' || status === 'NOT_PERFORMED') {
-      return 'Xem kết quả đã có';
-    }
-    return status === 'CHECKED_IN' ? 'Báo đã quay lại' : 'Nhận số thứ tự';
+  protected isLate(appointment: AppointmentResponse): boolean {
+    if (appointment.status !== 'BOOKED' || appointment.appointmentDate !== this.today) return false;
+    const duration = appointment.serviceDurationMinutes || 60;
+    const scheduledStart = Date.parse(`${appointment.appointmentDate}T${appointment.startTime.slice(0, 5)}:00+07:00`);
+    return Date.now() >= scheduledStart + (duration + 15) * 60_000;
   }
 
-  protected checkIn(): void {
-    const appointment = this.selectedAppointment();
-    if (!appointment) {
-      this.error.set('Vui lòng chọn lịch hẹn để lấy số.');
+  private beginCheckIn(appointment: AppointmentResponse): void {
+    if (this.busy() || this.ticket()) return;
+    if (this.isLate(appointment)) {
+      this.lateNotice.set('Lịch đã quá giờ check-in. Vui lòng đến quầy để được hỗ trợ.');
       return;
     }
+    this.lateNotice.set('');
     this.error.set('');
     this.busy.set(true);
     this.checkInRequestKey ??= `checkin-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -97,9 +148,20 @@ export class QueueCheckIn implements OnInit {
 
   private loadAppointments(): void {
     this.loading.set(true);
-    this.authApi.getAppointments().subscribe({
+    const roomCode = this.room()?.code;
+    if (!roomCode) {
+      this.loading.set(false);
+      this.error.set('Không xác định được phòng khám từ mã QR.');
+      return;
+    }
+    this.authApi.getRoomCheckInAppointments(roomCode).subscribe({
       next: (appointments) => {
         this.appointments.set(appointments);
+        const profiles = this.profileOptions();
+        if (profiles.length === 1) {
+          this.selectedProfileKey.set(profiles[0].key);
+          if (profiles[0].appointments.length === 1) this.beginCheckIn(profiles[0].appointments[0]);
+        }
         this.loading.set(false);
       },
       error: (response) => {
@@ -133,7 +195,4 @@ export class QueueCheckIn implements OnInit {
     this.error.set(apiErrorMessage(response));
   }
 
-  private toIsoDate(date: Date): string {
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-  }
 }

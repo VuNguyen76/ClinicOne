@@ -139,8 +139,8 @@ class QueueServiceTest {
     }
 
     @Test
-    void refusesToIssueAThousandthQueueNumber() {
-        when(ticketRepository.findMaxQueueNumberByRoomCodeAndQueueDate("NOI-01", TODAY)).thenReturn(999);
+    void refusesToIssueQueueNumberBeyondConfiguredLimit() {
+        when(ticketRepository.findMaxQueueNumberByRoomCodeAndQueueDate("NOI-01", TODAY)).thenReturn(9999);
 
         AuthException exception = assertThrows(AuthException.class,
                 () -> service.checkIn(ACCOUNT_ID.toString(), "NOI-01", APPOINTMENT_ID));

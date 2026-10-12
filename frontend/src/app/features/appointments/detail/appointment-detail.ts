@@ -6,14 +6,13 @@ import {
   apiErrorMessage,
   ApiErrorResponse,
   AppointmentResponse,
-  AppointmentSlotResponse,
   AuthApiService,
   AvailableReplacementSlot,
   ReasonCatalogResponse,
   RescheduleCaseResponse,
 } from '../../../core/auth/auth-api.service';
 import { PatientHeader } from '../../../shared/patient-header/patient-header';
-import { clinicTodayDate, clinicTodayIso, formatClinicDate, formatClinicTime } from '../../../core/time/clinic-time';
+import { clinicTodayIso, formatClinicDate, formatClinicTime } from '../../../core/time/clinic-time';
 
 @Component({
   selector: 'app-appointment-detail',
@@ -31,7 +30,6 @@ export class AppointmentDetail implements OnInit {
   protected readonly loading = signal(true);
   protected readonly busy = signal(false);
   protected readonly cancelOpen = signal(false);
-  protected readonly rescheduleOpen = signal(false);
   protected readonly notice = signal('');
   protected readonly error = signal('');
   protected readonly cancellationReasons = signal<ReasonCatalogResponse[]>([]);
@@ -42,10 +40,6 @@ export class AppointmentDetail implements OnInit {
   protected readonly replacementSearchFailed = signal(false);
   protected readonly rescheduleCaseLoading = signal(false);
   protected readonly selectedReplacement = signal<AvailableReplacementSlot | null>(null);
-  protected readonly availableSlots = signal<AppointmentSlotResponse[]>([]);
-  protected readonly availableSlotsLoading = signal(false);
-  protected readonly availableSlotsFailed = signal(false);
-  protected readonly selectedSlot = signal<AppointmentSlotResponse | null>(null);
   private cancellationRequestKey: string | null = null;
 
   ngOnInit(): void {
@@ -87,37 +81,30 @@ export class AppointmentDetail implements OnInit {
     const duration = app.serviceDurationMinutes || 60;
     const [year, month, day] = app.appointmentDate.split('-').map(Number);
     const [hour, minute] = app.startTime.split(':').map(Number);
-    const appointmentTime = new Date(year, month - 1, day, hour, minute);
-    const lateThresholdTime = new Date(appointmentTime.getTime() + (duration + 15) * 60 * 1000);
-    return Date.now() >= lateThresholdTime.getTime();
+    const scheduledStart = Date.parse(
+      `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00+07:00`,
+    );
+    return Date.now() >= scheduledStart + (duration + 15) * 60_000;
   }
 
-  protected canEdit(): boolean {
-    return this.appointment()?.status === 'BOOKED' && !this.isLate();
+  protected canCancel(): boolean {
+    return this.appointment()?.status === 'BOOKED';
+  }
+
+  protected canCheckIn(): boolean {
+    const appointment = this.appointment();
+    return appointment?.status === 'BOOKED'
+      && appointment.appointmentDate === clinicTodayIso()
+      && !this.isLate();
   }
 
   protected hasOpenReschedulingCase(): boolean {
     return this.rescheduleCase()?.status === 'OPEN';
   }
 
-  protected openReschedule(): void {
-    if (!this.canEdit() || this.hasOpenReschedulingCase()) return;
-    this.rescheduleOpen.set(true);
-    this.cancelOpen.set(false);
-    this.error.set('');
-    if (this.availableSlots().length === 0) this.loadAvailableSlots();
-  }
-
-  protected closeReschedule(): void {
-    if (this.busy()) return;
-    this.rescheduleOpen.set(false);
-    this.selectedSlot.set(null);
-  }
-
   protected openCancel(): void {
-    if (!this.canEdit()) return;
+    if (!this.canCancel()) return;
     this.cancelOpen.set(true);
-    this.rescheduleOpen.set(false);
     this.error.set('');
   }
 
@@ -128,7 +115,7 @@ export class AppointmentDetail implements OnInit {
 
   protected cancel(): void {
     const appointment = this.appointment();
-    if (!appointment || !this.canEdit()) return;
+    if (!appointment || !this.canCancel()) return;
     this.busy.set(true);
     this.cancellationRequestKey ??= crypto.randomUUID();
     this.authApi.cancelAppointment(appointment.id, this.selectedCancellationReason() || undefined,
@@ -136,34 +123,6 @@ export class AppointmentDetail implements OnInit {
       .pipe(finalize(() => this.busy.set(false)))
       .subscribe({
         next: () => void this.router.navigateByUrl('/dashboard'),
-        error: (response) => this.handleError(response),
-      });
-  }
-
-  protected chooseSlot(slot: AppointmentSlotResponse): void {
-    this.selectedSlot.set(slot);
-    this.error.set('');
-  }
-
-  protected reschedule(): void {
-    const appointment = this.appointment();
-    const slot = this.selectedSlot();
-    if (!appointment || !slot || !this.canEdit() || this.hasOpenReschedulingCase()) {
-      if (!slot) this.error.set('Vui lòng chọn một khung giờ còn trống.');
-      return;
-    }
-    this.busy.set(true);
-    this.authApi.rescheduleAppointment(appointment.id, slot.appointmentDate, slot.startTime.slice(0, 5))
-      .pipe(finalize(() => this.busy.set(false)))
-      .subscribe({
-        next: (updated) => {
-          this.appointment.set(updated);
-          this.rescheduleOpen.set(false);
-          this.selectedSlot.set(null);
-          this.availableSlots.set([]);
-          this.notice.set('Đã đổi lịch hẹn sang khung giờ mới thành công.');
-          setTimeout(() => this.notice.set(''), 4000);
-        },
         error: (response) => this.handleError(response),
       });
   }
@@ -176,7 +135,7 @@ export class AppointmentDetail implements OnInit {
   protected confirmPatientReschedule(): void {
     const appointment = this.appointment();
     const selected = this.selectedReplacement();
-    if (!appointment || !this.canEdit() || !this.hasOpenReschedulingCase() || !selected) {
+    if (!appointment || !this.canCancel() || !this.hasOpenReschedulingCase() || !selected) {
       if (!selected) this.error.set('Hãy chọn một khung giờ thay thế.');
       return;
     }
@@ -204,45 +163,9 @@ export class AppointmentDetail implements OnInit {
       });
   }
 
-  protected retryAvailableSlots(): void {
-    this.loadAvailableSlots();
-  }
-
   protected retryReplacementSearch(): void {
     const appointment = this.appointment();
     if (appointment && this.hasOpenReschedulingCase()) this.loadReplacementSlots(appointment.id);
-  }
-
-  private loadAvailableSlots(): void {
-    const appointment = this.appointment();
-    if (!appointment) return;
-    const from = clinicTodayIso();
-    const end = clinicTodayDate();
-    end.setDate(end.getDate() + 30);
-    const to = this.toIsoDate(end);
-    this.availableSlotsLoading.set(true);
-    this.availableSlotsFailed.set(false);
-    this.authApi.getAppointmentSlots(appointment.specialty, from, to, appointment.serviceId ?? undefined)
-      .pipe(finalize(() => this.availableSlotsLoading.set(false)))
-      .subscribe({
-        next: (slots) => {
-          this.availableSlots.set(slots
-            .filter((slot) => this.belongsToCurrentDoctor(slot, appointment))
-            .filter((slot) => slot.remainingCapacity > 0)
-            .filter((slot) => slot.appointmentDate !== appointment.appointmentDate
-              || slot.startTime.slice(0, 5) !== appointment.startTime.slice(0, 5))
-            .sort((left, right) => `${left.appointmentDate}${left.startTime}`.localeCompare(`${right.appointmentDate}${right.startTime}`))
-            .slice(0, 24));
-        },
-        error: (response) => {
-          this.availableSlotsFailed.set(true);
-          this.handleError(response);
-        },
-      });
-  }
-
-  private belongsToCurrentDoctor(slot: AppointmentSlotResponse, appointment: AppointmentResponse): boolean {
-    return appointment.doctorId ? slot.doctorId === appointment.doctorId : slot.doctorName === appointment.doctorName;
   }
 
   private loadPatientReschedulingCase(appointmentId: string): void {
@@ -323,7 +246,4 @@ export class AppointmentDetail implements OnInit {
     return 'bg-[#0284c7]';
   }
 
-  private toIsoDate(date: Date): string {
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-  }
 }

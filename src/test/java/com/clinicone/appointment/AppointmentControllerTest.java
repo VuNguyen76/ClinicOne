@@ -123,19 +123,18 @@ class AppointmentControllerTest {
     }
 
     @Test
-    void reschedulesAppointment() throws Exception {
+    void rejectsPatientInitiatedAppointmentRescheduling() throws Exception {
         UUID appointmentId = UUID.randomUUID();
-        when(appointmentService.reschedule(eq(ACCOUNT_ID.toString()), eq(appointmentId.toString()), any())).thenReturn(new AppointmentResponse(
-                appointmentId, "CL-20260810-1234", "Nội khoa", "BS. Nguyễn An",
-                LocalDate.of(2099, 1, 2), LocalTime.of(10, 0), "Đau đầu", "BOOKED", "Đã đặt"));
 
         mockMvc.perform(post("/api/v1/appointments/" + appointmentId + "/reschedule")
                         .with(authentication(UsernamePasswordAuthenticationToken.authenticated(
                                 ACCOUNT_ID.toString(), null, List.of(new SimpleGrantedAuthority("ROLE_PATIENT")))))
                         .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"appointmentDate\":\"2099-01-02\",\"startTime\":\"10:00\"}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.appointmentDate").value("2099-01-02"));
+                .andExpect(status().isGone())
+                .andExpect(jsonPath("$.code").value("PATIENT_RESCHEDULE_NOT_SUPPORTED"));
+
+        org.mockito.Mockito.verifyNoInteractions(appointmentService);
     }
 
     @Test

@@ -2,19 +2,21 @@ package com.clinicone.appointment;
 
 import lombok.RequiredArgsConstructor;
 
+import com.clinicone.auth.AuthException;
 import com.clinicone.validation.IdempotencyKey;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.validation.annotation.Validated;
 
 import java.util.List;
 import java.util.UUID;
@@ -63,6 +65,8 @@ public class AppointmentController {
     public ResponseEntity<AppointmentResponse> reschedule(Authentication authentication,
                                                            @PathVariable UUID appointmentId,
                                                            @Valid @RequestBody RescheduleAppointmentRequest request) {
-        return ResponseEntity.ok(appointmentService.reschedule(authentication.getName(), appointmentId.toString(), request));
+        throw new AuthException(HttpStatus.GONE,
+                "PATIENT_RESCHEDULE_NOT_SUPPORTED",
+                "Người bệnh chỉ xác nhận lịch thay thế do phòng khám đề xuất; vui lòng liên hệ quầy nếu cần đổi lịch.");
     }
 }
