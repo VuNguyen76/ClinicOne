@@ -50,12 +50,16 @@ export class InvoiceLookup {
     this.authApi.requestSmsOtp(phone, 'RECEIPT_LOOKUP').subscribe({
       next: () => {
         this.requestingOtp.set(false);
+        if (this.phone().trim() !== phone) {
+          this.error.set('Số điện thoại đã thay đổi. Vui lòng gửi lại OTP cho số mới.');
+          return;
+        }
         this.code.set('');
         this.step.set('otp');
       },
       error: (response) => {
         this.requestingOtp.set(false);
-        this.error.set(apiErrorMessage(response));
+        if (this.phone().trim() === phone) this.error.set(apiErrorMessage(response));
       },
     });
   }
