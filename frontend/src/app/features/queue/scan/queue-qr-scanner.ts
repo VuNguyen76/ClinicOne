@@ -28,6 +28,7 @@ export class QueueQrScanner implements OnDestroy {
   private readonly router = inject(Router);
   private stream: MediaStream | null = null;
   private animationFrame: number | null = null;
+  private scanSessionId = 0;
   protected readonly starting = signal(false);
   protected readonly scanning = signal(false);
   protected readonly error = signal('');
@@ -51,7 +52,7 @@ export class QueueQrScanner implements OnDestroy {
       video.srcObject = this.stream;
       await video.play();
       this.scanning.set(true);
-      this.scanFrames(new Detector({ formats: ['qr_code'] }), video);
+      this.scanFrames(new Detector({ formats: ['qr_code'] }), video, ++this.scanSessionId);
     } catch {
       this.stopCamera();
       this.error.set('Không thể mở camera. Vui lòng cho phép quyền camera rồi thử lại.');
@@ -61,6 +62,7 @@ export class QueueQrScanner implements OnDestroy {
   }
 
   protected stopCamera(): void {
+    this.scanSessionId++;
     if (this.animationFrame !== null) cancelAnimationFrame(this.animationFrame);
     this.animationFrame = null;
     this.stream?.getTracks().forEach((track) => track.stop());
@@ -87,11 +89,12 @@ export class QueueQrScanner implements OnDestroy {
     this.stopCamera();
   }
 
-  private scanFrames(detector: BarcodeDetectorInstance, video: HTMLVideoElement): void {
+  private scanFrames(detector: BarcodeDetectorInstance, video: HTMLVideoElement, sessionId = this.scanSessionId): void {
     const scan = async (): Promise<void> => {
-      if (!this.scanning()) return;
+      if (!this.scanning() || sessionId !== this.scanSessionId) return;
       try {
         const results = await detector.detect(video);
+        if (!this.scanning() || sessionId !== this.scanSessionId) return;
         if (results[0]?.rawValue) {
           this.acceptScannedValue(results[0].rawValue);
           return;
