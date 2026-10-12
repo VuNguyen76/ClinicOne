@@ -34,6 +34,8 @@ class OtpConcurrentVerificationIntegrationTest {
     void cleanUp() {
         repository.findTopByDestinationAndPurposeOrderByCreatedAtDesc("+84900000001", OtpPurpose.RECEIPT_LOOKUP)
                 .ifPresent(repository::delete);
+        repository.findTopByDestinationAndPurposeOrderByCreatedAtDesc("+84900000001", OtpPurpose.REGISTRATION)
+                .ifPresent(repository::delete);
     }
 
     @Test
@@ -66,6 +68,39 @@ class OtpConcurrentVerificationIntegrationTest {
             assertEquals(1, results.stream().filter(Boolean::booleanValue).count());
             assertTrue(repository.findTopByDestinationAndPurposeOrderByCreatedAtDesc(
                     "+84900000001", OtpPurpose.RECEIPT_LOOKUP).orElseThrow().isVerified());
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    void onlyOneConcurrentRequestCanIssueOtpDuringTheResendCooldown() throws Exception {
+        var executor = Executors.newFixedThreadPool(2);
+        CountDownLatch ready = new CountDownLatch(2);
+        CountDownLatch start = new CountDownLatch(1);
+        try {
+            var attempt = (java.util.concurrent.Callable<Boolean>) () -> {
+                ready.countDown();
+                assertTrue(start.await(5, TimeUnit.SECONDS));
+                try {
+                    otpService.requestSmsOtp(PHONE, OtpPurpose.REGISTRATION);
+                    return true;
+                } catch (OtpException exception) {
+                    return false;
+                }
+            };
+            var first = executor.submit(attempt);
+            var second = executor.submit(attempt);
+            assertTrue(ready.await(5, TimeUnit.SECONDS));
+            start.countDown();
+
+            List<Boolean> results = List.of(first.get(10, TimeUnit.SECONDS), second.get(10, TimeUnit.SECONDS));
+
+            assertEquals(1, results.stream().filter(Boolean::booleanValue).count());
+            assertEquals(1, repository.findAll().stream()
+                    .filter(challenge -> challenge.getDestination().equals("+84900000001")
+                            && challenge.getPurpose() == OtpPurpose.REGISTRATION)
+                    .count());
         } finally {
             executor.shutdownNow();
         }

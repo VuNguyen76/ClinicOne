@@ -33,6 +33,7 @@ class OtpServiceTest {
     private static final Instant NOW = Instant.parse("2026-08-03T12:00:00Z");
 
     private OtpChallengeRepository repository;
+    private OtpIssuanceLock issuanceLock;
     private OtpSender sender;
     private OtpCodeGenerator generator;
     private PasswordEncoder passwordEncoder;
@@ -41,10 +42,11 @@ class OtpServiceTest {
     @BeforeEach
     void setUp() {
         repository = mock(OtpChallengeRepository.class);
+        issuanceLock = mock(OtpIssuanceLock.class);
         sender = mock(OtpSender.class);
         generator = mock(OtpCodeGenerator.class);
         passwordEncoder = new BCryptPasswordEncoder();
-        service = new OtpService(repository, sender, passwordEncoder, generator,
+        service = new OtpService(repository, issuanceLock, sender, passwordEncoder, generator,
                 Clock.fixed(NOW, ZoneOffset.UTC));
         when(repository.save(any(OtpChallenge.class))).thenAnswer(invocation -> invocation.getArgument(0));
     }
