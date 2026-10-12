@@ -532,6 +532,7 @@ export class ReceptionCheckIn implements OnInit {
   }
 
   protected submitRebook(): void {
+    if (this.rebookLoading()) return;
     const appointment = this.rebookTicket();
     const slot = this.rebookSlots().find((item) => item.startTime === this.rebookStartTime());
     const reason = this.rebookReason().trim();

@@ -735,6 +735,28 @@ describe('ReceptionCheckIn', () => {
     expect(request.request.params.get('serviceId')).toBe(serviceId);
     request.flush([]);
   });
+
+  it('does not submit duplicate absent rebooking requests while one is pending', () => {
+    const c = fixture.componentInstance as any;
+    const date = c.addDays(c.selectedDate(), 1);
+    const currentAppointment = { ...appointment(), status: 'ABSENT' };
+    c.rebookTicket.set(currentAppointment);
+    c.rebookMode.set('ABSENT');
+    c.rebookDate.set(date);
+    c.rebookSlots.set([{
+      appointmentDate: date, startTime: '10:00:00', endTime: '10:30:00',
+      specialty: 'Nội tổng quát', doctorName: 'BS A', doctorId: 'doctor-1', remainingCapacity: 1,
+    }]);
+    c.rebookStartTime.set('10:00:00');
+    c.rebookReason.set('Người bệnh xin đặt lại lịch khám');
+
+    c.submitRebook();
+    c.submitRebook();
+
+    const requests = http.match((request) => request.url === '/api/v1/reception/appointments/a-1/rebook');
+    expect(requests).toHaveLength(1);
+    requests[0].flush({ ...currentAppointment, id: 'a-2', status: 'BOOKED', appointmentCode: 'CL-NEW-001' });
+  });
 });
 
 function appointment() {
