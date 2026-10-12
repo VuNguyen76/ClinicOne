@@ -793,6 +793,7 @@ export interface ReceptionAppointmentResponse {
   queueClosureOutcome?: string | null;
   queueClosureOutcomeLabel?: string | null;
   lateArrival?: boolean;
+  serviceId?: string | null;
 }
 
 export interface ReceptionDoctorOption {
