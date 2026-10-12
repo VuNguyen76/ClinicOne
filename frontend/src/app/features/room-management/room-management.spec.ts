@@ -5,6 +5,9 @@ import { provideRouter } from '@angular/router';
 import { vi } from 'vitest';
 import { RoomManagement } from './room-management';
 
+const { toDataURLMock } = vi.hoisted(() => ({ toDataURLMock: vi.fn() }));
+vi.mock('qrcode', () => ({ toDataURL: toDataURLMock }));
+
 describe('RoomManagement', () => {
   let fixture: ComponentFixture<RoomManagement>;
   let http: HttpTestingController;
@@ -22,7 +25,7 @@ describe('RoomManagement', () => {
     fixture.detectChanges();
   });
 
-  afterEach(() => { http.verify(); sessionStorage.clear(); });
+  afterEach(() => { http.verify(); sessionStorage.clear(); toDataURLMock.mockReset(); });
 
   it('loads rooms ordered by the backend', () => {
     http.expectOne('/api/v1/specialties').flush([{ code: 'NOI', name: 'Nội tổng quát', description: 'Khám tổng quát' }]);
@@ -123,6 +126,30 @@ describe('RoomManagement', () => {
       expect(printWindow.opener).toBeNull();
     } finally {
       open.mockRestore();
+    }
+  });
+
+  it('keeps the latest room QR open when an older generation fails', async () => {
+    http.expectOne('/api/v1/specialties').flush([]);
+    http.expectOne('/api/v1/rooms').flush([]);
+    let rejectFirst!: (reason?: unknown) => void;
+    const firstRequest = new Promise<string>((_resolve, reject) => { rejectFirst = reject; });
+    const secondRequest = new Promise<string>(() => undefined);
+    toDataURLMock.mockImplementationOnce(() => firstRequest).mockImplementationOnce(() => secondRequest);
+    const component = fixture.componentInstance as any;
+
+    try {
+      component.openQr({ ...room('NOI-01', true), qrToken: 'first-token' });
+      component.openQr({ ...room('NHI-01', true), qrToken: 'second-token' });
+      rejectFirst(new Error('stale QR generation failed'));
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(component.qrRoom()?.code).toBe('NHI-01');
+      expect(component.qrLoading()).toBe(true);
+      expect(component.error()).toBe('');
+    } finally {
+      component.closeQr();
     }
   });
 });
