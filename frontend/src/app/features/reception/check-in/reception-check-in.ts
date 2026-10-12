@@ -30,6 +30,9 @@ export class ReceptionCheckIn implements OnInit {
   private walkInSlotRequestId = 0;
   private walkInOtpRequestId = 0;
   private worklistRequestId = 0;
+  private searchRequestId = 0;
+  private submittedSearchQuery = '';
+  private submittedSearchDate = '';
 
   protected readonly query = signal('');
   protected readonly activeTab = signal<ReceptionTab>(receptionTab(this.route.snapshot.data['receptionView']));
@@ -182,8 +185,26 @@ export class ReceptionCheckIn implements OnInit {
 
   protected selectTab(tab: ReceptionTab | string): void {
     if (!['overview', 'search', 'intake', 'queue', 'exceptions', 'profiles'].includes(tab)) return;
+    const previousTab = this.activeTab();
+    if (tab !== previousTab) {
+      const worklistTabs: ReceptionTab[] = ['overview', 'queue', 'exceptions'];
+      const wasWorklist = worklistTabs.includes(previousTab);
+      const isWorklist = worklistTabs.includes(tab as ReceptionTab);
+      if (wasWorklist && !isWorklist) this.worklistRequestId++;
+      if (previousTab === 'search' && tab !== 'search') this.searchRequestId++;
+      if (!wasWorklist && isWorklist) this.searchRequestId++;
+      if (tab === 'search' || previousTab === 'search' || wasWorklist !== isWorklist) {
+        this.appointments.set([]);
+        this.searched.set(false);
+      }
+      this.loading.set(false);
+    }
     this.activeTab.set(tab as ReceptionTab);
     this.error.set('');
+    if (!['overview', 'queue', 'exceptions'].includes(previousTab)
+      && ['overview', 'queue', 'exceptions'].includes(tab)) {
+      this.loadWorkspace();
+    }
   }
 
   protected searchProfiles(): void {
@@ -222,19 +243,29 @@ export class ReceptionCheckIn implements OnInit {
   protected search(): void {
     if (this.activeTab() === 'overview') {
       this.activeTab.set('search');
+      this.worklistRequestId++;
     }
     const value = this.query().trim();
     if (value.length < 3) {
+      this.searchRequestId++;
+      this.submittedSearchQuery = '';
+      this.loading.set(false);
       this.error.set('Nhập ít nhất 3 ký tự của mã lịch hẹn hoặc số điện thoại.');
       return;
     }
+    const date = this.selectedDate();
+    const requestId = ++this.searchRequestId;
+    this.worklistRequestId++;
+    this.submittedSearchQuery = value;
+    this.submittedSearchDate = date;
     this.loading.set(true);
     this.searched.set(true);
     this.error.set('');
     this.notice.set('');
     this.leaveReason.set('');
-    this.authApi.searchReceptionAppointments(value, this.selectedDate()).subscribe({
+    this.authApi.searchReceptionAppointments(value, date).subscribe({
       next: (appointments) => {
+        if (requestId !== this.searchRequestId) return;
         this.appointments.set(appointments);
         this.loading.set(false);
         if (appointments.length === 1 && appointments[0].status === 'ABSENT') {
@@ -243,6 +274,7 @@ export class ReceptionCheckIn implements OnInit {
         if (appointments.length === 0) this.notice.set('Không tìm thấy lịch hẹn phù hợp trong ngày đã chọn.');
       },
       error: (response) => {
+        if (requestId !== this.searchRequestId) return;
         this.loading.set(false);
         this.handleError(response);
       },
@@ -250,11 +282,16 @@ export class ReceptionCheckIn implements OnInit {
   }
 
   private refreshSearch(): void {
-    const value = this.query().trim();
-    if (!this.searched() || value.length < 3 || this.loading() || this.walkInOpen()) return;
-    this.authApi.searchReceptionAppointments(value, this.selectedDate()).subscribe({
-      next: (appointments) => this.appointments.set(appointments),
-      error: (response) => this.handleError(response),
+    if (!['search'].includes(this.activeTab()) || !this.searched()
+      || this.submittedSearchQuery.length < 3 || this.loading() || this.walkInOpen()) return;
+    const requestId = ++this.searchRequestId;
+    this.authApi.searchReceptionAppointments(this.submittedSearchQuery, this.submittedSearchDate).subscribe({
+      next: (appointments) => {
+        if (requestId === this.searchRequestId) this.appointments.set(appointments);
+      },
+      error: (response) => {
+        if (requestId === this.searchRequestId) this.handleError(response);
+      },
     });
   }
 
