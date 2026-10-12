@@ -3,5 +3,6 @@ package com.clinicone.auth;
 public enum OtpPurpose {
     REGISTRATION,
     LOGIN,
-    RECOVERY
+    RECOVERY,
+    RECEIPT_LOOKUP
 }

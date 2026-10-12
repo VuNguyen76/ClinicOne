@@ -12,8 +12,6 @@ describe('InvoiceLookup', () => {
   let http: HttpTestingController;
 
   beforeEach(async () => {
-    sessionStorage.setItem('clinicOneSessionType', 'PATIENT');
-    sessionStorage.setItem('clinicOneAccessToken', 'test-token');
     await TestBed.configureTestingModule({
       imports: [InvoiceLookup],
       providers: [
@@ -22,13 +20,7 @@ describe('InvoiceLookup', () => {
         provideRouter([]),
         {
           provide: ActivatedRoute,
-          useValue: {
-            snapshot: {
-              queryParamMap: {
-                get: () => null,
-              },
-            },
-          },
+          useValue: { snapshot: { queryParamMap: { get: () => null } } },
         },
       ],
     }).compileComponents();
@@ -37,109 +29,82 @@ describe('InvoiceLookup', () => {
     component = fixture.componentInstance;
     http = TestBed.inject(HttpTestingController);
     fixture.detectChanges();
-    http.expectOne('/api/v1/invoices').flush([]);
-    fixture.detectChanges();
   });
 
-  afterEach(() => {
-    http.verify();
-    sessionStorage.clear();
-  });
+  afterEach(() => http.verify());
 
-  it('renders a patient invoice lookup form', () => {
+  it('starts with phone lookup and no invoice list or receipt-code input', () => {
     const text = fixture.nativeElement.textContent;
-    expect(text).toContain('Phiếu TT');
-    expect(text).toContain('Mã phiếu');
-    expect(text).toContain('Mã lịch hẹn');
-    expect(text).toContain('Tra cứu bằng mã phiếu.');
-    expect(text).not.toContain('Chỉ hiển thị phiếu');
-    expect(text).not.toContain('SIGNATURE VALID');
-  });
-
-  it('looks up a public receipt by code', () => {
-    component.invoiceCodeInput.set('INV-0123456789ABCDEF0123456789ABCDEF');
-    component.search();
-    http.expectOne({ method: 'POST', url: '/api/v1/public/invoices/lookup' }).flush({
-      invoiceCode: 'INV-0123456789ABCDEF0123456789ABCDEF', patientName: 'Patient A',
-      doctorName: 'Doctor A', specialty: 'Nội tổng quát', totalAmount: 250000, paidAmount: 250000,
-      status: 'PAID', createdAt: '2026-10-12T02:00:00Z', items: [],
-    });
-    fixture.detectChanges();
-
-    expect(component.invoiceResult()?.invoiceCode).toBe('INV-0123456789ABCDEF0123456789ABCDEF');
-  });
-
-  it('does not load a private invoice list for anonymous visitors', () => {
-    fixture.destroy();
-    sessionStorage.clear();
-    fixture = TestBed.createComponent(InvoiceLookup);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
-
+    expect(text).toContain('Tra cứu PTT & đơn thuốc');
+    expect(text).toContain('Số điện thoại');
+    expect(text).not.toContain('Mã phiếu');
+    expect(text).not.toContain('Liên hệ');
     expect(http.match('/api/v1/invoices')).toHaveLength(0);
-    expect(fixture.nativeElement.textContent).not.toContain('Mã lịch hẹn');
-    expect(fixture.nativeElement.textContent).not.toContain('Phiếu TT của tôi');
   });
 
-  it('switches between lookup by invoice code and appointment code', () => {
-    component.setLookupType('appointmentCode');
+  it('requests a purpose-specific OTP for the entered phone', () => {
+    component.phone.set('0862764830');
+    component.requestOtp();
+    const request = http.expectOne('/api/v1/auth/request-sms-otp');
+    expect(request.request.body).toEqual({ phone: '0862764830', purpose: 'RECEIPT_LOOKUP' });
+    request.flush({ expiresInSeconds: 300, retryAfterSeconds: 60 });
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('Mã lịch hẹn');
 
-    component.setLookupType('invoiceCode');
-    fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('Mã phiếu');
+    expect(fixture.nativeElement.textContent).toContain('Mã OTP');
   });
 
-  it('renders only the persisted receipt returned by the backend', () => {
-    component.invoiceCodeInput.set('INV-0123456789ABCDEF0123456789ABCDEF');
-    component.search();
-    http.expectOne({ method: 'POST', url: '/api/v1/public/invoices/lookup' }).flush({
-      invoiceCode: 'INV-0123456789ABCDEF0123456789ABCDEF',
-      patientName: 'Patient A', doctorName: 'Doctor A', specialty: 'Nội tổng quát',
-      totalAmount: 250000, paidAmount: 0, status: 'PENDING', createdAt: '2026-10-12T02:00:00Z',
-      items: [{ itemName: 'Khám nội tổng quát', unit: 'Lượt', quantity: 1,
-        unitPrice: 250000, totalPrice: 250000 }],
-    });
+  it('verifies OTP then lets the user choose among profiles and view prescriptions', () => {
+    component.phone.set('0862764830');
+    component.requestOtp();
+    http.expectOne('/api/v1/auth/request-sms-otp').flush({ expiresInSeconds: 300, retryAfterSeconds: 60 });
+    component.code.set('123456');
+    component.lookup();
+
+    const request = http.expectOne('/api/v1/public/patient-data/lookup');
+    expect(request.request.body).toEqual({ phone: '0862764830', code: '123456' });
+    request.flush({ profiles: [
+      { profileId: 'profile-1', fullName: 'Nguyễn An', relationship: 'Con', invoices: [], medicalRecords: [
+        { id: 'record-1', signedAt: '2026-10-12T02:00:00Z', doctorName: 'Bác sĩ A', specialty: 'Nhi khoa',
+          diagnosis: 'Cảm cúm', prescription: null, prescriptionLines: [
+            { medicationName: 'Thuốc A', dosage: '1 viên', quantity: 5, unit: 'viên', instructions: 'Ngày 2 lần' },
+          ] },
+      ] },
+      { profileId: 'profile-2', fullName: 'Nguyễn Bình', relationship: 'Bản thân', invoices: [], medicalRecords: [] },
+    ] });
     fixture.detectChanges();
 
-    expect(component.error()).toBe('');
-    const text = fixture.nativeElement.textContent;
-    expect(text).toContain('INV-0123456789ABCDEF0123456789ABCDEF');
-    expect(text).toContain('Patient A');
-    expect(text).toContain('250,000 đ');
-    expect(text).not.toContain('NGUYỄN THANH VŨ');
-    expect(text).not.toContain('SIGNATURE VALID');
+    expect(component.selectedProfileId()).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Nguyễn An');
+    const profileButton: HTMLButtonElement = fixture.nativeElement.querySelector('[data-testid="select-profile-profile-1"]');
+    profileButton.click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('PTT');
+
+    (fixture.nativeElement.querySelector('[data-testid="prescription-tab"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Thuốc A');
+    expect(fixture.nativeElement.textContent).toContain('Ngày 2 lần');
   });
 
-  it('loads the authenticated patient receipt list from the backend', () => {
-    component.loadReceipts();
-    http.expectOne('/api/v1/invoices').flush([{
-      id: 'invoice-2', invoiceCode: 'INV-REAL-2', appointmentCode: 'APT-002',
-      patientName: 'Patient B', patientPhone: '0912345678', doctorName: 'Doctor B', specialty: 'Tim mạch',
-      examFee: 300000, labFee: 0, medicationFee: 0, discountAmount: 0, totalAmount: 300000, paidAmount: 300000,
-      paymentMethod: 'CASH', status: 'PAID', cashierName: 'staff-1', createdAt: '2026-10-12T02:00:00Z',
-      paidAt: '2026-10-12T02:30:00Z', items: [],
-    }]);
-    fixture.detectChanges();
+  it('auto-selects the only matching profile', () => {
+    component.phone.set('0862764830');
+    component.requestOtp();
+    http.expectOne('/api/v1/auth/request-sms-otp').flush({ expiresInSeconds: 300, retryAfterSeconds: 60 });
+    component.code.set('123456');
+    component.lookup();
+    http.expectOne('/api/v1/public/patient-data/lookup').flush({ profiles: [
+      { profileId: 'profile-1', fullName: 'Nguyễn An', relationship: 'Bản thân', invoices: [], medicalRecords: [] },
+    ] });
 
-    expect(fixture.nativeElement.textContent).toContain('INV-REAL-2');
-    expect(fixture.nativeElement.textContent).toContain('Đã thanh toán');
+    expect(component.selectedProfileId()).toBe('profile-1');
   });
 
-  it('looks up a patient receipt by appointment code using the matching endpoint', () => {
-    component.setLookupType('appointmentCode');
-    component.appointmentCodeInput.set('APT-003');
-    component.search();
-    http.expectOne('/api/v1/invoices/appointments/APT-003').flush({
-      id: 'invoice-3', invoiceCode: 'INV-REAL-3', appointmentCode: 'APT-003',
-      patientName: 'Patient C', patientPhone: null, doctorName: 'Doctor C', specialty: 'Nội tổng quát',
-      examFee: 250000, labFee: 0, medicationFee: 0, discountAmount: 0, totalAmount: 250000, paidAmount: 0,
-      paymentMethod: null, status: 'PENDING', cashierName: 'staff-1', createdAt: '2026-10-12T02:00:00Z',
-      paidAt: null, items: [],
-    });
-    fixture.detectChanges();
+  it('rejects a malformed OTP before calling the lookup endpoint', () => {
+    component.phone.set('0862764830');
+    component.code.set('123');
+    component.lookup();
 
-    expect(component.invoiceResult()?.invoiceCode).toBe('INV-REAL-3');
+    expect(component.error()).toContain('6 chữ số');
+    expect(http.match('/api/v1/public/patient-data/lookup')).toHaveLength(0);
   });
 });

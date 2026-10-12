@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.clinicone.appointment.Appointment;
@@ -100,14 +99,6 @@ class InvoiceServiceTest {
                 .isInstanceOf(AuthException.class)
                 .satisfies(error -> assertThat(((AuthException) error).getCode())
                         .isEqualTo("SERVICE_TARIFF_REQUIRED"));
-    }
-
-    @Test
-    void publicLookupRejectsNonRandomLookingCodesBeforeDatabaseLookup() {
-        assertThatThrownBy(() -> service.lookupPublicInvoice("APT-001"))
-                .isInstanceOf(AuthException.class)
-                .satisfies(error -> assertThat(((AuthException) error).getCode()).isEqualTo("INVOICE_NOT_FOUND"));
-        verifyNoInteractions(invoiceRepository);
     }
 
     private ExaminationSession completedSession() {

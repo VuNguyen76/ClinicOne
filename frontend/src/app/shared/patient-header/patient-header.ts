@@ -18,10 +18,9 @@ export class PatientHeader {
     { label: 'Trang chủ', route: '/home' },
     { label: 'Giới thiệu', route: '/about' },
     { label: 'Quy trình', route: '/process' },
-    { label: 'Phiếu TT', route: '/invoices' },
+    { label: 'Tra cứu PTT & đơn thuốc', route: '/invoices' },
     { label: 'Hướng dẫn', route: '/common-issues' },
     { label: 'Thắc mắc', route: '/support' },
-    { label: 'Liên hệ', route: '/contact' },
   ];
 
   toggleMenu(): void {
