@@ -6,6 +6,7 @@ import com.clinicone.auth.AuthException;
 import com.clinicone.auth.PatientAccount;
 import com.clinicone.auth.PatientAccountRepository;
 import com.clinicone.config.ClinicConfigurationService;
+import com.clinicone.patientprofile.PatientProfileRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -35,6 +36,7 @@ public class AppointmentHoldService {
     private final Clock clock;
     private final ClinicServiceRepository clinicServiceRepository;
     private final ClinicConfigurationService configurationService;
+    private final PatientProfileRepository profileRepository;
 
     public AppointmentHoldService(PatientAccountRepository accountRepository,
                                   AppointmentHoldRepository holdRepository,
@@ -51,19 +53,31 @@ public class AppointmentHoldService {
         this(accountRepository, holdRepository, availabilityService, clock, clinicServiceRepository, null);
     }
 
-    @Autowired
     public AppointmentHoldService(PatientAccountRepository accountRepository,
                                   AppointmentHoldRepository holdRepository,
                                   AppointmentAvailabilityService availabilityService,
                                   Clock clock,
                                   ClinicServiceRepository clinicServiceRepository,
                                   ClinicConfigurationService configurationService) {
+        this(accountRepository, holdRepository, availabilityService, clock, clinicServiceRepository,
+                configurationService, null);
+    }
+
+    @Autowired
+    public AppointmentHoldService(PatientAccountRepository accountRepository,
+                                  AppointmentHoldRepository holdRepository,
+                                  AppointmentAvailabilityService availabilityService,
+                                  Clock clock,
+                                  ClinicServiceRepository clinicServiceRepository,
+                                  ClinicConfigurationService configurationService,
+                                  PatientProfileRepository profileRepository) {
         this.accountRepository = accountRepository;
         this.holdRepository = holdRepository;
         this.availabilityService = availabilityService;
         this.clock = clock;
         this.clinicServiceRepository = clinicServiceRepository;
         this.configurationService = configurationService;
+        this.profileRepository = profileRepository;
     }
 
     @Transactional
@@ -80,6 +94,7 @@ public class AppointmentHoldService {
             throw new AuthException(HttpStatus.FORBIDDEN, "ACCOUNT_ACTIVATION_REQUIRED",
                     "Tài khoản chưa được kích hoạt. Vui lòng kích hoạt tài khoản trước khi đặt lịch.");
         }
+        validatePatientProfile(patientId, request.profileId());
         validateService(request);
         Instant now = Instant.now(clock);
         boolean legacySession = sessionKey == null || sessionKey.isBlank();
@@ -215,6 +230,22 @@ public class AppointmentHoldService {
             throw new AuthException(HttpStatus.CONFLICT, "CLINIC_SERVICE_DOCTOR_NOT_ELIGIBLE",
                     "Bác sĩ đã chọn không thực hiện dịch vụ này.");
         }
+    }
+
+    private void validatePatientProfile(UUID patientId, UUID profileId) {
+        if (profileRepository == null) return;
+        if (profileId == null) {
+            boolean hasActiveProfile = !profileRepository
+                    .findByOwnerIdAndActiveTrueOrderByPrimaryProfileDescCreatedAtAsc(patientId).isEmpty();
+            if (!hasActiveProfile) {
+                throw new AuthException(HttpStatus.CONFLICT, "PATIENT_PROFILE_REQUIRED",
+                        "Vui lòng tạo hồ sơ bệnh nhân trước khi đặt lịch.");
+            }
+            return;
+        }
+        profileRepository.findByIdAndOwnerIdAndActiveTrue(profileId, patientId)
+                .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "PATIENT_PROFILE_NOT_FOUND",
+                        "Không tìm thấy hồ sơ được chọn."));
     }
 
     private Duration holdDuration() {

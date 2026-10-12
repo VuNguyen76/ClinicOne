@@ -5,6 +5,7 @@ import com.clinicone.auth.AuthException;
 import com.clinicone.auth.PatientAccount;
 import com.clinicone.auth.PatientAccountRepository;
 import com.clinicone.appointment.CreateAppointmentRequest;
+import com.clinicone.patientprofile.PatientProfileRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -80,6 +81,45 @@ class AppointmentHoldServiceTest {
                         LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), DOCTOR_ID)));
 
         assertEquals("ACCOUNT_ACTIVATION_REQUIRED", exception.getCode());
+        verify(availabilityService, never()).ensureBookable(any(), any(), any(), any(), any());
+        verify(holdRepository, never()).findByHoldKey(any());
+        verify(holdRepository, never()).saveAndFlush(any(AppointmentHold.class));
+    }
+
+    @Test
+    void rejectsHoldForProfileNotOwnedByPatientBeforeReservingCapacity() {
+        PatientProfileRepository profileRepository = mock(PatientProfileRepository.class);
+        AppointmentHoldService profileAwareService = new AppointmentHoldService(accountRepository, holdRepository,
+                availabilityService, Clock.fixed(NOW, ZoneOffset.UTC), null, null, profileRepository);
+        UUID foreignProfileId = UUID.randomUUID();
+        when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account()));
+        when(profileRepository.findByIdAndOwnerIdAndActiveTrue(foreignProfileId, ACCOUNT_ID))
+                .thenReturn(Optional.empty());
+
+        AuthException exception = assertThrows(AuthException.class, () -> profileAwareService.create(
+                ACCOUNT_ID.toString(), new CreateAppointmentHoldRequest("Nội tổng quát", "BS. An",
+                        LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), DOCTOR_ID, null, foreignProfileId)));
+
+        assertEquals("PATIENT_PROFILE_NOT_FOUND", exception.getCode());
+        verify(availabilityService, never()).ensureBookable(any(), any(), any(), any(), any());
+        verify(holdRepository, never()).findByHoldKey(any());
+        verify(holdRepository, never()).saveAndFlush(any(AppointmentHold.class));
+    }
+
+    @Test
+    void rejectsHoldWithoutDefaultProfileBeforeReservingCapacity() {
+        PatientProfileRepository profileRepository = mock(PatientProfileRepository.class);
+        AppointmentHoldService profileAwareService = new AppointmentHoldService(accountRepository, holdRepository,
+                availabilityService, Clock.fixed(NOW, ZoneOffset.UTC), null, null, profileRepository);
+        when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account()));
+        when(profileRepository.findByOwnerIdAndActiveTrueOrderByPrimaryProfileDescCreatedAtAsc(ACCOUNT_ID))
+                .thenReturn(List.of());
+
+        AuthException exception = assertThrows(AuthException.class, () -> profileAwareService.create(
+                ACCOUNT_ID.toString(), new CreateAppointmentHoldRequest("Nội tổng quát", "BS. An",
+                        LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), DOCTOR_ID)));
+
+        assertEquals("PATIENT_PROFILE_REQUIRED", exception.getCode());
         verify(availabilityService, never()).ensureBookable(any(), any(), any(), any(), any());
         verify(holdRepository, never()).findByHoldKey(any());
         verify(holdRepository, never()).saveAndFlush(any(AppointmentHold.class));
