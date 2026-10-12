@@ -1,15 +1,20 @@
 package com.clinicone.auth;
 
+import jakarta.persistence.LockModeType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.lang.reflect.Method;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -79,8 +84,9 @@ class OtpServiceTest {
     void verifySmsOtpMarksLatestChallengeAsVerified() {
         OtpChallenge challenge = new OtpChallenge("+84912345678", OtpPurpose.LOGIN,
                 passwordEncoder.encode("123456"), NOW.minusSeconds(10), NOW.plusSeconds(290));
-        when(repository.findTopByDestinationAndPurposeOrderByCreatedAtDesc("+84912345678", OtpPurpose.LOGIN))
-                .thenReturn(Optional.of(challenge));
+        when(repository.findLatestForUpdate(eq("+84912345678"), eq(OtpPurpose.LOGIN),
+                any(Pageable.class)))
+                .thenReturn(List.of(challenge));
 
         VerifyOtpResponse response = service.verifySmsOtp("0912345678", OtpPurpose.LOGIN, "123456");
 
@@ -93,8 +99,9 @@ class OtpServiceTest {
     void verifySmsOtpCountsWrongCodeAndReturnsGenericError() {
         OtpChallenge challenge = new OtpChallenge("+84912345678", OtpPurpose.LOGIN,
                 passwordEncoder.encode("123456"), NOW.minusSeconds(10), NOW.plusSeconds(290));
-        when(repository.findTopByDestinationAndPurposeOrderByCreatedAtDesc("+84912345678", OtpPurpose.LOGIN))
-                .thenReturn(Optional.of(challenge));
+        when(repository.findLatestForUpdate(eq("+84912345678"), eq(OtpPurpose.LOGIN),
+                any(Pageable.class)))
+                .thenReturn(List.of(challenge));
 
         OtpException exception = assertThrows(OtpException.class,
                 () -> service.verifySmsOtp("0912345678", OtpPurpose.LOGIN, "000000"));
@@ -112,5 +119,13 @@ class OtpServiceTest {
                 .getAnnotation(Transactional.class);
 
         assertTrue(java.util.Arrays.asList(transactional.noRollbackFor()).contains(OtpException.class));
+    }
+
+    @Test
+    void latestChallengeLookupLocksRowToPreventConcurrentOtpReplay() throws Exception {
+        Method lookup = OtpChallengeRepository.class.getMethod(
+                "findLatestForUpdate", String.class, OtpPurpose.class, Pageable.class);
+
+        assertEquals(LockModeType.PESSIMISTIC_WRITE, lookup.getAnnotation(Lock.class).value());
     }
 }
