@@ -1,7 +1,9 @@
 package com.clinicone.config;
 
 import com.clinicone.notification.PatientNotificationType;
+import com.clinicone.appointment.Appointment;
 import com.clinicone.queue.QueueTicketStatus;
+import jakarta.persistence.Table;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -132,5 +134,21 @@ class FlywayBaselineResourceTest {
 
         assertThat(sql).contains("CREATE TABLE IF NOT EXISTS public.wrong_profile_incidents");
         assertThat(sql).contains("prescription_snapshot");
+    }
+
+    @Test
+    void cancelledAppointmentsReleaseTheirPatientProfileSlot() throws IOException {
+        String sql;
+        try (InputStream input = getClass().getResourceAsStream(
+                "/db/migration/V28__release_cancelled_appointment_slots.sql")) {
+            assertThat(input).as("appointment slot migration resource").isNotNull();
+            sql = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+        }
+
+        assertThat(sql).contains("DROP CONSTRAINT IF EXISTS uk_appointments_patient_profile_slot");
+        assertThat(sql).contains("CREATE UNIQUE INDEX IF NOT EXISTS uk_appointments_patient_profile_slot");
+        assertThat(sql).contains("WHERE status IN ('BOOKED', 'CHECKED_IN')");
+        assertThat(Appointment.class.getAnnotation(Table.class).uniqueConstraints())
+                .noneMatch(constraint -> constraint.name().equals("uk_appointments_patient_profile_slot"));
     }
 }
