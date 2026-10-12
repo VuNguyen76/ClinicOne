@@ -88,6 +88,7 @@ export class Booking implements OnInit {
   protected busy = false;
   protected error = '';
   private createRequestKey: string | null = null;
+  private createRequestFingerprint: string | null = null;
   private availabilityRequestId = 0;
 
   protected readonly patientProfiles = signal<PatientProfileItem[]>([]);
@@ -141,6 +142,10 @@ export class Booking implements OnInit {
     const value = (event.target as HTMLSelectElement).value;
     this.profileIdValue.set(value);
     this.form.controls.profileId.setValue(value);
+    if (this.holdId() && this.holdProfileId() !== (value || null)) {
+      this.clearHold();
+      this.continueToDetails();
+    }
   }
 
   protected filteredSpecialties(): SpecialtyOption[] {
@@ -200,12 +205,14 @@ export class Booking implements OnInit {
   }
 
   protected previousMonth(): void {
+    if (this.holdBusy()) return;
     if (this.isPreviousMonthDisabled()) return;
     const month = this.calendarMonth();
     this.setCalendarMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1));
   }
 
   protected nextMonth(): void {
+    if (this.holdBusy()) return;
     if (this.isNextMonthDisabled()) return;
     const month = this.calendarMonth();
     this.setCalendarMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1));
@@ -216,6 +223,7 @@ export class Booking implements OnInit {
   }
 
   protected chooseDoctor(doctorId: string): void {
+    if (this.holdBusy()) return;
     if (this.selectedDoctorId() === doctorId) return;
     this.clearError();
     this.clearHold();
@@ -229,8 +237,10 @@ export class Booking implements OnInit {
   }
 
   protected chooseDate(date: DateOption): void {
+    if (this.holdBusy()) return;
     if (!date.inCurrentMonth || date.iso < this.today || date.iso > this.toIsoDate(this.bookingWindowEnd())) return;
     this.clearError();
+    if (this.selectedDate() !== date.iso) this.clearHold();
     this.selectedDate.set(date.iso);
     this.selectedSlot.set('');
     this.availableSlots.set([]);
@@ -242,6 +252,7 @@ export class Booking implements OnInit {
   }
 
   protected chooseSlot(slot: TimeSlot): void {
+    if (this.holdBusy()) return;
     this.clearError();
     if (this.selectedSlot() !== slot.key) {
       this.clearHold();
@@ -270,6 +281,7 @@ export class Booking implements OnInit {
   }
 
   protected continueToDetails(): void {
+    if (this.holdBusy()) return;
     this.clearError();
     if (!this.selectedDate() || !this.selectedSlot()) {
       this.error = 'Vui lòng chọn ngày và khung giờ khám.';
@@ -312,6 +324,7 @@ export class Booking implements OnInit {
   }
 
   protected back(): void {
+    if (this.holdBusy()) return;
     this.clearError();
     if (this.step() === 1) {
       void this.router.navigateByUrl('/dashboard');
@@ -321,6 +334,7 @@ export class Booking implements OnInit {
   }
 
   protected submit(): void {
+    if (this.busy || this.holdBusy()) return;
     this.clearError();
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -330,9 +344,15 @@ export class Booking implements OnInit {
 
     this.busy = true;
     const value = this.form.getRawValue();
+    const request = { ...value, profileId: value.profileId || undefined,
+      holdId: this.holdId() ?? undefined, serviceId: this.selectedClinicService()?.id };
+    const fingerprint = JSON.stringify(request);
+    if (fingerprint !== this.createRequestFingerprint) {
+      this.createRequestFingerprint = fingerprint;
+      this.createRequestKey = null;
+    }
     this.createRequestKey ??= `booking-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-    this.authApi.createAppointment({ ...value, profileId: value.profileId || undefined,
-      holdId: this.holdId() ?? undefined, serviceId: this.selectedClinicService()?.id }, this.createRequestKey).subscribe({
+    this.authApi.createAppointment(request, this.createRequestKey).subscribe({
       next: () => void this.router.navigateByUrl('/dashboard'),
       error: (response) => {
         this.busy = false;

@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
+import { vi } from 'vitest';
 import { Booking } from './booking';
 
 describe('Booking calendar', () => {
@@ -174,6 +175,120 @@ describe('Booking calendar', () => {
       id: 'hold-profile', specialty: 'Nội tổng quát', doctorName: 'Bác sĩ chuyên khoa',
       appointmentDate: date!.iso, startTime: '08:30:00', expiresAt: '2026-08-10T01:05:00Z',
     });
+  });
+
+  it('re-holds the selected slot when the patient changes profile on the details step', () => {
+    const profile1Id = 'profile-primary';
+    const profile2Id = 'profile-sub-change';
+    component['patientProfiles'].set([
+      { id: profile1Id, fullName: 'Bản thân', primaryProfile: true, active: true } as any,
+      { id: profile2Id, fullName: 'Con', primaryProfile: false, active: true } as any,
+    ]);
+    component['form'].controls.profileId.setValue(profile1Id);
+
+    component['chooseSpecialty']({ code: 'NOI', name: 'Nội tổng quát', description: 'Khám tổng quát' });
+    const slotsRequest = http.expectOne((item) => item.url === '/api/v1/appointment-slots');
+    const date = component['dates']().find((item) => item.inCurrentMonth && item.iso >= component['today']);
+    slotsRequest.flush([{
+      specialty: 'Nội tổng quát', appointmentDate: date!.iso, startTime: '08:30:00', endTime: '09:30:00',
+      doctorName: 'Bác sĩ An', remainingCapacity: 1, doctorId: 'doctor-1', roomCode: 'NOI-01',
+    }]);
+    component['chooseDate'](date!);
+    component['chooseSlot'](component['availableSlots']()[0]);
+    component['continueToDetails']();
+
+    http.expectOne('/api/v1/appointment-holds').flush({
+      id: 'hold-profile-1', specialty: 'Nội tổng quát', doctorName: 'Bác sĩ An',
+      appointmentDate: date!.iso, startTime: '08:30:00', expiresAt: '2026-08-10T01:05:00Z',
+    });
+    component['form'].controls.reason.setValue('Đau đầu');
+
+    component['onProfileChange']({ target: { value: profile2Id } } as unknown as Event);
+    const replacementHold = http.expectOne('/api/v1/appointment-holds');
+    expect(replacementHold.request.body.profileId).toBe(profile2Id);
+    replacementHold.flush({
+      id: 'hold-profile-2', specialty: 'Nội tổng quát', doctorName: 'Bác sĩ An',
+      appointmentDate: date!.iso, startTime: '08:30:00', expiresAt: '2026-08-10T01:05:00Z',
+    });
+
+    vi.spyOn(component['router'], 'navigateByUrl').mockResolvedValue(true);
+    component['submit']();
+    const createRequest = http.expectOne('/api/v1/appointments');
+    expect(createRequest.request.body.profileId).toBe(profile2Id);
+    expect(createRequest.request.body.holdId).toBe('hold-profile-2');
+    createRequest.flush({});
+  });
+
+  it('reuses an idempotency key for an identical retry and creates a new key when the booking payload changes', () => {
+    component['chooseSpecialty']({ code: 'NOI', name: 'Nội tổng quát', description: 'Khám tổng quát' });
+    const slotsRequest = http.expectOne((item) => item.url === '/api/v1/appointment-slots');
+    const date = component['dates']().find((item) => item.inCurrentMonth && item.iso >= component['today']);
+    slotsRequest.flush([{
+      specialty: 'Nội tổng quát', appointmentDate: date!.iso, startTime: '08:30:00', endTime: '09:30:00',
+      doctorName: 'Bác sĩ An', remainingCapacity: 1, doctorId: 'doctor-1', roomCode: 'NOI-01',
+    }]);
+    component['chooseDate'](date!);
+    component['chooseSlot'](component['availableSlots']()[0]);
+    component['continueToDetails']();
+    http.expectOne('/api/v1/appointment-holds').flush({
+      id: 'hold-1', specialty: 'Nội tổng quát', doctorName: 'Bác sĩ An',
+      appointmentDate: date!.iso, startTime: '08:30:00', expiresAt: '2026-08-10T01:05:00Z',
+    });
+    component['form'].controls.reason.setValue('Đau đầu');
+
+    component['submit']();
+    const firstRequest = http.expectOne('/api/v1/appointments');
+    const firstKey = firstRequest.request.headers.get('Idempotency-Key');
+    expect(firstKey).toBeTruthy();
+    component['submit']();
+    http.expectNone('/api/v1/appointments');
+    firstRequest.flush({ message: 'Tạm thời không thể lưu' }, { status: 503, statusText: 'Service Unavailable' });
+
+    component['submit']();
+    const identicalRetry = http.expectOne('/api/v1/appointments');
+    expect(identicalRetry.request.headers.get('Idempotency-Key')).toBe(firstKey);
+    identicalRetry.flush({ message: 'Tạm thời không thể lưu' }, { status: 503, statusText: 'Service Unavailable' });
+
+    component['form'].controls.reason.setValue('Đau đầu kéo dài');
+    component['submit']();
+    const changedRequest = http.expectOne('/api/v1/appointments');
+    expect(changedRequest.request.headers.get('Idempotency-Key')).not.toBe(firstKey);
+    vi.spyOn(component['router'], 'navigateByUrl').mockResolvedValue(true);
+    changedRequest.flush({});
+  });
+
+  it('keeps the selected slot stable while its hold request is pending', () => {
+    component['chooseSpecialty']({ code: 'NOI', name: 'Nội tổng quát', description: 'Khám tổng quát' });
+    const slotsRequest = http.expectOne((item) => item.url === '/api/v1/appointment-slots');
+    const date = component['dates']().find((item) => item.inCurrentMonth && item.iso >= component['today']);
+    slotsRequest.flush([
+      {
+        specialty: 'Nội tổng quát', appointmentDate: date!.iso, startTime: '08:30:00', endTime: '09:30:00',
+        doctorName: 'Bác sĩ An', remainingCapacity: 1, doctorId: 'doctor-1', roomCode: 'NOI-01',
+      },
+      {
+        specialty: 'Nội tổng quát', appointmentDate: date!.iso, startTime: '09:30:00', endTime: '10:30:00',
+        doctorName: 'Bác sĩ An', remainingCapacity: 1, doctorId: 'doctor-1', roomCode: 'NOI-01',
+      },
+    ]);
+    component['chooseDate'](date!);
+    component['chooseSlot'](component['availableSlots']()[0]);
+    component['continueToDetails']();
+    const obsoleteHold = http.expectOne('/api/v1/appointment-holds');
+
+    component['chooseSlot'](component['availableSlots']()[1]);
+    expect(component['selectedSlot']()).toBe('doctor-1|08:30');
+    expect(component['form'].controls.startTime.value).toBe('08:30');
+    obsoleteHold.flush({
+      id: 'hold-1', specialty: 'Nội tổng quát', doctorName: 'Bác sĩ An',
+      appointmentDate: date!.iso, startTime: '08:30:00', expiresAt: '2026-08-10T01:05:00Z',
+    });
+
+    expect(component['selectedSlot']()).toBe('doctor-1|08:30');
+    expect(component['form'].controls.startTime.value).toBe('08:30');
+    expect(component['holdId']()).toBe('hold-1');
+    expect(component['holdBusy']()).toBe(false);
+    expect(component['step']()).toBe(3);
   });
 
   it('allows booking same slot for different profile', () => {
