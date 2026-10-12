@@ -22,6 +22,9 @@ export class Account implements OnInit {
   private readonly authApi = inject(AuthApiService);
   private readonly router = inject(Router);
   private readonly addressApi = inject(VietnamAddressService);
+  private districtLoadVersion = 0;
+  private wardLoadVersion = 0;
+  private pendingAddressLoads = 0;
 
   protected readonly profile = signal<PatientProfileResponse | null>(null);
   protected readonly loading = signal(true);
@@ -96,30 +99,47 @@ export class Account implements OnInit {
   }
 
   protected provinceChanged(): void {
+    const loadVersion = ++this.districtLoadVersion;
+    this.wardLoadVersion++;
     const provinceCode = this.profileForm.controls.provinceCode.value;
     const province = this.provinces().find((item) => String(item.code) === provinceCode);
     this.profileForm.patchValue({ provinceName: province?.name ?? '', districtCode: '', districtName: '', wardCode: '', wardName: '' });
     this.districts.set([]);
     this.wards.set([]);
     if (provinceCode) {
-      this.addressLoading.set(true);
-      this.addressApi.getDistricts(provinceCode).pipe(finalize(() => this.addressLoading.set(false))).subscribe({
-        next: (items) => this.districts.set(items),
-        error: () => this.error.set('Không tải được danh sách quận/huyện. Vui lòng thử lại.'),
+      this.beginAddressLoad();
+      this.addressApi.getDistricts(provinceCode).pipe(finalize(() => this.endAddressLoad())).subscribe({
+        next: (items) => {
+          if (loadVersion === this.districtLoadVersion
+              && this.profileForm.controls.provinceCode.value === provinceCode) this.districts.set(items);
+        },
+        error: () => {
+          if (loadVersion === this.districtLoadVersion) {
+            this.error.set('Không tải được danh sách quận/huyện. Vui lòng thử lại.');
+          }
+        },
       });
     }
   }
 
   protected districtChanged(): void {
+    const loadVersion = ++this.wardLoadVersion;
     const districtCode = this.profileForm.controls.districtCode.value;
     const district = this.districts().find((item) => String(item.code) === districtCode);
     this.profileForm.patchValue({ districtName: district?.name ?? '', wardCode: '', wardName: '' });
     this.wards.set([]);
     if (districtCode) {
-      this.addressLoading.set(true);
-      this.addressApi.getWards(districtCode).pipe(finalize(() => this.addressLoading.set(false))).subscribe({
-        next: (items) => this.wards.set(items),
-        error: () => this.error.set('Không tải được danh sách xã/phường. Vui lòng thử lại.'),
+      this.beginAddressLoad();
+      this.addressApi.getWards(districtCode).pipe(finalize(() => this.endAddressLoad())).subscribe({
+        next: (items) => {
+          if (loadVersion === this.wardLoadVersion
+              && this.profileForm.controls.districtCode.value === districtCode) this.wards.set(items);
+        },
+        error: () => {
+          if (loadVersion === this.wardLoadVersion) {
+            this.error.set('Không tải được danh sách xã/phường. Vui lòng thử lại.');
+          }
+        },
       });
     }
   }
@@ -148,6 +168,16 @@ export class Account implements OnInit {
       next: (items) => this.provinces.set(items),
       error: () => this.error.set('Không tải được danh sách tỉnh/thành. Bạn vẫn có thể cập nhật thông tin khác.'),
     });
+  }
+
+  private beginAddressLoad(): void {
+    this.pendingAddressLoads++;
+    this.addressLoading.set(true);
+  }
+
+  private endAddressLoad(): void {
+    this.pendingAddressLoads = Math.max(0, this.pendingAddressLoads - 1);
+    this.addressLoading.set(this.pendingAddressLoads > 0);
   }
 
   private clearMessages(): void {
