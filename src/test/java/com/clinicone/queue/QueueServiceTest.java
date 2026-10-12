@@ -847,6 +847,7 @@ class QueueServiceTest {
         var schedule = com.clinicone.doctor.DoctorSchedule.create(targetProfile, TODAY.getDayOfWeek(), LocalTime.of(8,0), LocalTime.of(17,0), 30);
         when(scheduleRepo.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(targetProfile.getId(), TODAY.getDayOfWeek())).thenReturn(List.of(schedule));
         when(doctorProfileRepository.findByStaffAccount_Id(targetDoctorId)).thenReturn(Optional.of(targetProfile));
+        when(doctorProfileRepository.findByStaffAccount_IdForUpdate(targetDoctorId)).thenReturn(Optional.of(targetProfile));
         when(roomRepository.findByCodeAndActiveTrueForUpdate(targetRoom.getCode())).thenReturn(Optional.of(targetRoom));
         when(ticketRepository.findMaxQueueNumberByRoomCodeAndQueueDate(targetRoom.getCode(), TODAY)).thenReturn(5);
         PatientAccount patient = new PatientAccount("0912345678","hash","A", AccountStatus.ACTIVE,false);
@@ -864,6 +865,10 @@ class QueueServiceTest {
         QueueTicketResponse resp = svc.adjust(ticket.getId(), new QueueAdjustmentRequest(QueueAdjustmentAction.MOVE, targetDoctorId, targetRoom.getCode(), "Noi tong quat", "Ly do chuyen hop le 12345", "10:00"), "reception-1");
         assertEquals("10:00", appt.getStartTime().toString());
         assertEquals(QueueTicketStatus.WAITING.name(), resp.status());
+        org.mockito.InOrder order = inOrder(doctorProfileRepository, appointmentRepository);
+        order.verify(doctorProfileRepository).findByStaffAccount_IdForUpdate(targetDoctorId);
+        order.verify(appointmentRepository).countByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatusIn(
+                eq(targetDoctorId), eq(TODAY), eq(LocalTime.of(10, 0)), any());
     }
 
     @Test
@@ -877,6 +882,7 @@ class QueueServiceTest {
         var schedule = com.clinicone.doctor.DoctorSchedule.create(targetProfile, TODAY.getDayOfWeek(), LocalTime.of(8,0), LocalTime.of(12,0), 30);
         when(scheduleRepo.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(targetProfile.getId(), TODAY.getDayOfWeek())).thenReturn(List.of(schedule));
         when(doctorProfileRepository.findByStaffAccount_Id(targetDoctorId)).thenReturn(Optional.of(targetProfile));
+        when(doctorProfileRepository.findByStaffAccount_IdForUpdate(targetDoctorId)).thenReturn(Optional.of(targetProfile));
         PatientAccount patient = new PatientAccount("0912345678","hash","A", AccountStatus.ACTIVE,false);
         Appointment appt = Appointment.create(patient, UUID.randomUUID(), "CL-SLOT-02", "Noi tong quat", "BS A", TODAY, LocalTime.of(9,0), "r");
         setId(appt, UUID.randomUUID());
@@ -967,6 +973,7 @@ class QueueServiceTest {
         var schedule = com.clinicone.doctor.DoctorSchedule.create(targetProfile, TODAY.getDayOfWeek(), LocalTime.of(8,0), LocalTime.of(17,0), 30);
         when(scheduleRepo.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(targetProfile.getId(), TODAY.getDayOfWeek())).thenReturn(List.of(schedule));
         when(doctorProfileRepository.findByStaffAccount_Id(targetDoctorId)).thenReturn(Optional.of(targetProfile));
+        when(doctorProfileRepository.findByStaffAccount_IdForUpdate(targetDoctorId)).thenReturn(Optional.of(targetProfile));
         when(roomRepository.findByCodeAndActiveTrueForUpdate(targetRoom.getCode())).thenReturn(Optional.of(targetRoom));
         when(ticketRepository.findMaxQueueNumberByRoomCodeAndQueueDate(targetRoom.getCode(), TODAY)).thenReturn(5);
         PatientAccount patient = new PatientAccount("0912345678","hash","A", AccountStatus.ACTIVE,false);
@@ -1019,6 +1026,7 @@ class QueueServiceTest {
         var schedule = com.clinicone.doctor.DoctorSchedule.create(targetProfile, TODAY.getDayOfWeek(), LocalTime.of(8,0), LocalTime.of(17,0), 30);
         when(scheduleRepo.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(targetProfile.getId(), TODAY.getDayOfWeek())).thenReturn(List.of(schedule));
         when(doctorProfileRepository.findByStaffAccount_Id(targetDoctorId)).thenReturn(Optional.of(targetProfile));
+        when(doctorProfileRepository.findByStaffAccount_IdForUpdate(targetDoctorId)).thenReturn(Optional.of(targetProfile));
         when(roomRepository.findByCodeAndActiveTrueForUpdate(targetRoom.getCode())).thenReturn(Optional.of(targetRoom));
         PatientAccount patient = new PatientAccount("0912345678","hash","A", AccountStatus.ACTIVE,false);
         Appointment appt = Appointment.create(patient, UUID.randomUUID(), "CL-SAME-01", "Noi tong quat", "BS A", TODAY, LocalTime.of(9,0), "r");

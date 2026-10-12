@@ -647,6 +647,13 @@ public class QueueService {
         }
         if (newTime != null) {
             UUID targetDoctorStaffId = targetDoctor.getStaffAccount().getId();
+            if (doctorProfileRepository != null) {
+                doctorProfileRepository.findByStaffAccount_IdForUpdate(targetDoctorStaffId)
+                        .filter(DoctorProfile::isActive)
+                        .orElseThrow(() -> new AuthException(HttpStatus.CONFLICT,
+                                "QUEUE_TARGET_DOCTOR_INVALID",
+                                "Bác sĩ đích không còn hoạt động để nhận lượt khám."));
+            }
             long booked = appointmentRepository.countByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatusIn(
                     targetDoctorStaffId, ticket.getQueueDate(), newTime,
                     List.of(AppointmentStatus.BOOKED, AppointmentStatus.CHECKED_IN));
