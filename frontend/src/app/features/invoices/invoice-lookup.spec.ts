@@ -3,7 +3,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
 import { ActivatedRoute } from '@angular/router';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { InvoiceLookup } from './invoice-lookup';
 
 describe('InvoiceLookup', () => {
@@ -60,6 +60,29 @@ describe('InvoiceLookup', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Mã OTP');
+  });
+
+  it('shows a resend countdown and allows requesting a new OTP after it expires', () => {
+    vi.useFakeTimers();
+    component.phone.set('0862764830');
+    component.requestOtp();
+    http.expectOne('/api/v1/auth/request-sms-otp').flush({ expiresInSeconds: 300, retryAfterSeconds: 2 });
+    fixture.detectChanges();
+
+    const resendButton = (): HTMLButtonElement => fixture.nativeElement.querySelector('[data-testid="resend-otp"]');
+    expect(component.resendSeconds()).toBe(2);
+    expect(resendButton().disabled).toBe(true);
+    expect(resendButton().textContent).toContain('2 giây');
+
+    vi.advanceTimersByTime(2000);
+    fixture.detectChanges();
+    expect(resendButton().disabled).toBe(false);
+    expect(resendButton().textContent).toContain('Gửi lại mã OTP');
+
+    resendButton().click();
+    const resendRequest = http.expectOne('/api/v1/auth/request-sms-otp');
+    expect(resendRequest.request.body).toEqual({ phone: '0862764830', purpose: 'RECEIPT_LOOKUP' });
+    resendRequest.flush({ expiresInSeconds: 300, retryAfterSeconds: 60 });
   });
 
   it('does not send duplicate OTP requests while the first request is pending', () => {
