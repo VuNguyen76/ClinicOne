@@ -21,6 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
+import java.util.Locale;
 import java.util.UUID;
 
 @Service
@@ -174,7 +175,8 @@ public class AppointmentHoldService {
     private String holdKey(UUID patientId, CreateAppointmentHoldRequest request, String normalizedSessionKey) {
         String material = String.join(":", patientId.toString(), normalizedSessionKey,
                 request.profileId() == null ? "" : request.profileId().toString(),
-                request.doctorId() == null ? "" : request.doctorId().toString(),
+                request.doctorId() == null ? request.doctorName().trim().toLowerCase(Locale.ROOT)
+                        : request.doctorId().toString(),
                 request.serviceId() == null ? "" : request.serviceId().toString(),
                 request.specialty().trim().toLowerCase(), request.appointmentDate().toString(),
                 request.startTime().toString());
