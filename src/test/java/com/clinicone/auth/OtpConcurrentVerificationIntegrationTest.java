@@ -8,6 +8,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.Instant;
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
@@ -26,6 +27,9 @@ class OtpConcurrentVerificationIntegrationTest {
 
     @Autowired
     private OtpService otpService;
+
+    @Autowired
+    private OtpChallengeRetentionJob retentionJob;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -104,5 +108,26 @@ class OtpConcurrentVerificationIntegrationTest {
         } finally {
             executor.shutdownNow();
         }
+    }
+
+    @Test
+    void rateLimitCountsRequestsAcrossPurposesAndRetentionPurgesOnlyOldChallenges() {
+        Instant now = Instant.now();
+        OtpChallenge oldChallenge = new OtpChallenge("+84900000001", OtpPurpose.REGISTRATION,
+                passwordEncoder.encode("111111"), now.minus(Duration.ofMinutes(36)),
+                now.minus(Duration.ofMinutes(31)));
+        OtpChallenge recentRegistration = new OtpChallenge("+84900000001", OtpPurpose.REGISTRATION,
+                passwordEncoder.encode("222222"), now, now.plusSeconds(300));
+        OtpChallenge recentReceiptLookup = new OtpChallenge("+84900000001", OtpPurpose.RECEIPT_LOOKUP,
+                passwordEncoder.encode("333333"), now, now.plusSeconds(300));
+        repository.saveAllAndFlush(List.of(oldChallenge, recentRegistration, recentReceiptLookup));
+
+        assertEquals(2, repository.countByDestinationAndCreatedAtAfter("+84900000001", now.minusSeconds(1)));
+
+        retentionJob.purgeExpiredChallenges();
+
+        assertTrue(repository.findById(oldChallenge.getId()).isEmpty());
+        assertTrue(repository.findById(recentRegistration.getId()).isPresent());
+        assertTrue(repository.findById(recentReceiptLookup.getId()).isPresent());
     }
 }

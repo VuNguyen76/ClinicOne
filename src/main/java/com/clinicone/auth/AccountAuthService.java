@@ -191,7 +191,8 @@ public class AccountAuthService {
         }
         if (request.otpCode() != null && !request.otpCode().isBlank()) {
             otpService.verifySmsOtp(phone, OtpPurpose.REGISTRATION, request.otpCode());
-        } else if (!otpService.isPhoneVerifiedWithin(phone, OtpPurpose.REGISTRATION, Duration.ofMinutes(30))) {
+        } else if (!otpService.isPhoneVerifiedWithin(phone, OtpPurpose.REGISTRATION,
+                OtpService.REGISTRATION_ACTIVATION_WINDOW)) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "ACTIVATION_OTP_REQUIRED",
                     "Mã xác thực kích hoạt đã hết thời gian. Vui lòng xác thực lại số điện thoại.");
         }
