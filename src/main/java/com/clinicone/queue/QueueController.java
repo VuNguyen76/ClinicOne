@@ -6,6 +6,7 @@ import com.clinicone.validation.IdempotencyKey;
 import jakarta.validation.Valid;
 import com.clinicone.auth.AuthException;
 import com.clinicone.auth.StaffRole;
+import com.clinicone.appointment.AppointmentResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -44,6 +45,13 @@ public class QueueController {
         return ResponseEntity.ok(requestKey == null || requestKey.isBlank()
                 ? queueService.checkIn(authentication.getName(), roomCode, request.appointmentId())
                 : queueService.checkIn(authentication.getName(), roomCode, request.appointmentId(), requestKey));
+    }
+
+    @GetMapping("/rooms/{roomCode}/check-in/appointments")
+    @PreAuthorize("hasRole('PATIENT')")
+    public ResponseEntity<List<AppointmentResponse>> checkInAppointments(Authentication authentication,
+                                                                          @PathVariable String roomCode) {
+        return ResponseEntity.ok(queueService.listPatientCheckInCandidates(authentication.getName(), roomCode));
     }
 
     @GetMapping("/patient/queue")

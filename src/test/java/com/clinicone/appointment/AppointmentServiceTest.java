@@ -581,51 +581,23 @@ class AppointmentServiceTest {
     }
 
     @Test
-    void reschedulesBookedAppointmentWhenNewSlotIsFree() {
-        PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
-        setId(account, ACCOUNT_ID);
-        Appointment appointment = Appointment.existing(account, "CL-20260810-AB12", "Nội khoa", "BS. Nguyễn An",
-                LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), "Đau đầu");
-        when(appointmentRepository.findByIdAndPatientId(any(), eq(ACCOUNT_ID))).thenReturn(Optional.of(appointment));
-        when(appointmentRepository.findByPatientIdAndAppointmentDateAndStartTimeAndStatus(
-                ACCOUNT_ID, LocalDate.of(2026, 8, 11), LocalTime.of(10, 0), AppointmentStatus.BOOKED)).thenReturn(Optional.empty());
+    void rejectsPatientInitiatedRescheduling() {
+        AuthException exception = assertThrows(AuthException.class, () -> service.reschedule(
+                ACCOUNT_ID.toString(), UUID.randomUUID().toString(),
+                new RescheduleAppointmentRequest(LocalDate.of(2026, 8, 11), LocalTime.of(10, 0))));
 
-        AppointmentResponse response = service.reschedule(ACCOUNT_ID.toString(), UUID.randomUUID().toString(),
-                new RescheduleAppointmentRequest(LocalDate.of(2026, 8, 11), LocalTime.of(10, 0)));
-
-        assertEquals(LocalDate.of(2026, 8, 11), response.appointmentDate());
-        assertEquals(LocalTime.of(10, 0), response.startTime());
-        verify(notificationService).notifyAppointmentRescheduled(appointment, "2026-08-10", "08:30");
+        assertEquals("PATIENT_RESCHEDULE_NOT_SUPPORTED", exception.getCode());
+        verify(appointmentRepository, never()).save(any(Appointment.class));
     }
 
     @Test
     void reschedulingAConfiguredAppointmentClosesItsPreviousGeneratedSlot() {
-        PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
-        setId(account, ACCOUNT_ID);
-        UUID doctorId = UUID.randomUUID();
-        Appointment appointment = Appointment.create(account, doctorId, "CL-20260810-AB12", "Ná»™i khoa",
-                "BS. Nguyá»…n An", LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), "Äau Ä‘áº§u");
-        UUID serviceId = UUID.randomUUID();
-        appointment.applyServiceSnapshot(serviceId, "KhÃ¡m tá»•ng quÃ¡t", "KhÃ¡m", 30, true);
-        when(appointmentRepository.findByIdAndPatientId(any(), eq(ACCOUNT_ID))).thenReturn(Optional.of(appointment));
-        when(appointmentRepository.findByPatientIdAndAppointmentDateAndStartTimeAndStatus(
-                ACCOUNT_ID, LocalDate.of(2026, 8, 11), LocalTime.of(10, 0), AppointmentStatus.BOOKED))
-                .thenReturn(Optional.empty());
-        GeneratedClinicSlot oldSlot = mock(GeneratedClinicSlot.class);
-        when(generatedSlotRepository.findFirstByClinicServiceIdAndDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
-                serviceId, doctorId, LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), GeneratedSlotStatus.OPEN))
-                .thenReturn(Optional.of(oldSlot));
-        AppointmentService configuredService = serviceBuilder()
-                .reasonCatalogService(reasonCatalogService)
-                .rescheduleCaseRepository(rescheduleCaseRepository)
-                .generatedSlotRepository(generatedSlotRepository)
-                .build();
+        AuthException exception = assertThrows(AuthException.class, () -> service.reschedule(
+                ACCOUNT_ID.toString(), UUID.randomUUID().toString(),
+                new RescheduleAppointmentRequest(LocalDate.of(2026, 8, 11), LocalTime.of(10, 0))));
 
-        configuredService.reschedule(ACCOUNT_ID.toString(), UUID.randomUUID().toString(),
-                new RescheduleAppointmentRequest(LocalDate.of(2026, 8, 11), LocalTime.of(10, 0)));
-
-        verify(oldSlot).cancel();
-        verify(generatedSlotRepository).save(oldSlot);
+        assertEquals("PATIENT_RESCHEDULE_NOT_SUPPORTED", exception.getCode());
+        verify(generatedSlotRepository, never()).save(any(GeneratedClinicSlot.class));
     }
 
     @Test
@@ -649,28 +621,19 @@ class AppointmentServiceTest {
                 ACCOUNT_ID.toString(), appointmentId.toString(),
                 new RescheduleAppointmentRequest(LocalDate.of(2026, 8, 11), LocalTime.of(10, 0))));
 
-        assertEquals("RESCHEDULE_CASE_PENDING", exception.getCode());
+        assertEquals("PATIENT_RESCHEDULE_NOT_SUPPORTED", exception.getCode());
         verify(appointmentRepository, never()).save(any(Appointment.class));
         verify(availabilityService, never()).ensureBookable(any(), any(), any(), any(), any());
     }
 
     @Test
-    void keepsSelectedClinicServiceWhenRescheduling() {
-        PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
-        setId(account, ACCOUNT_ID);
-        UUID serviceId = UUID.randomUUID();
-        Appointment appointment = Appointment.existing(account, "CL-20260810-AB12", "Nội khoa", "BS. Nguyễn An",
-                LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), "Đau đầu");
-        appointment.applyServiceSnapshot(serviceId, "Khám tổng quát", "Khám thường", 30);
-        when(appointmentRepository.findByIdAndPatientId(any(), eq(ACCOUNT_ID))).thenReturn(Optional.of(appointment));
-        when(appointmentRepository.findByPatientProfileIdAndAppointmentDateAndStartTimeAndStatusIn(
-                any(), eq(LocalDate.of(2026, 8, 11)), eq(LocalTime.of(10, 0)), any())).thenReturn(Optional.empty());
+    void doesNotCheckAvailabilityForUnsupportedPatientRescheduling() {
+        AuthException exception = assertThrows(AuthException.class, () -> service.reschedule(
+                ACCOUNT_ID.toString(), UUID.randomUUID().toString(),
+                new RescheduleAppointmentRequest(LocalDate.of(2026, 8, 11), LocalTime.of(10, 0))));
 
-        service.reschedule(ACCOUNT_ID.toString(), UUID.randomUUID().toString(),
-                new RescheduleAppointmentRequest(LocalDate.of(2026, 8, 11), LocalTime.of(10, 0)));
-
-        verify(availabilityService).ensureBookable("Nội khoa", "BS. Nguyễn An", null,
-                LocalDate.of(2026, 8, 11), LocalTime.of(10, 0), null, serviceId);
+        assertEquals("PATIENT_RESCHEDULE_NOT_SUPPORTED", exception.getCode());
+        verify(availabilityService, never()).ensureBookable(any(), any(), any(), any(), any());
     }
 
     @Test

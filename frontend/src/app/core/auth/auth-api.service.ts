@@ -1012,10 +1012,6 @@ export class AuthApiService {
     });
   }
 
-  rescheduleAppointment(id: string, appointmentDate: string, startTime: string): Observable<AppointmentResponse> {
-    return this.http.post<AppointmentResponse>(`${this.appointmentsRoot}/${id}/reschedule`, { appointmentDate, startTime });
-  }
-
   getPatientReschedulingCase(appointmentId: string): Observable<RescheduleCaseResponse> {
     return this.http.get<RescheduleCaseResponse>(`/api/v1/patient/rescheduling/${appointmentId}`);
   }
@@ -1140,6 +1136,12 @@ export class AuthApiService {
 
   getRoomForCheckIn(roomKey: string): Observable<ClinicRoomCheckInResponse> {
     return this.http.get<ClinicRoomCheckInResponse>(`/api/v1/rooms/${encodeURIComponent(roomKey)}/check-in`);
+  }
+
+  getRoomCheckInAppointments(roomCode: string): Observable<AppointmentResponse[]> {
+    return this.http.get<AppointmentResponse[]>(
+      `/api/v1/rooms/${encodeURIComponent(roomCode)}/check-in/appointments`,
+    );
   }
 
   getRoomQueue(roomCode: string, date: string): Observable<QueueTicketResponse[]> {

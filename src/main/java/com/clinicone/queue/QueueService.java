@@ -1,9 +1,11 @@
 package com.clinicone.queue;
 
-import com.clinicone.auth.AuthenticatedIds;
 import com.clinicone.appointment.Appointment;
 import com.clinicone.appointment.AppointmentRepository;
+import com.clinicone.appointment.AppointmentResponse;
 import com.clinicone.appointment.AppointmentStatus;
+import com.clinicone.audit.BusinessLogService;
+import com.clinicone.auth.AuthenticatedIds;
 import com.clinicone.auth.AuthException;
 import com.clinicone.auth.StaffRole;
 import com.clinicone.doctor.DoctorProfile;
@@ -11,7 +13,6 @@ import com.clinicone.doctor.DoctorProfileRepository;
 import com.clinicone.doctor.DoctorScheduleRepository;
 import com.clinicone.examination.ExaminationSession;
 import com.clinicone.examination.ExaminationSessionRepository;
-import com.clinicone.audit.BusinessLogService;
 import com.clinicone.schedule.GeneratedClinicSlot;
 import com.clinicone.schedule.GeneratedClinicSlotRepository;
 import com.clinicone.schedule.GeneratedSlotStatus;
@@ -29,13 +30,15 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
@@ -135,6 +138,46 @@ public class QueueService {
                         "Không tìm thấy lịch hẹn."));
         ensureQrCheckInNotLate(appointment);
         return checkInAppointment(roomCode, appointment, null, accountId, normalizedRequestKey);
+    }
+
+    @Transactional(readOnly = true)
+    public List<AppointmentResponse> listPatientCheckInCandidates(String accountId, String roomKey) {
+        UUID patientId = AuthenticatedIds.patient(accountId);
+        ClinicRoom room = findRoom(roomKey);
+        LocalDate queueDate = today();
+
+        Map<UUID, QueueTicket> existingTickets = ticketRepository
+                .findByAppointment_Patient_IdAndQueueDateOrderByQueueNumberAsc(patientId, queueDate).stream()
+                .filter(ticket -> ticket.getRoom() != null
+                        && ticket.getRoom().getCode().equalsIgnoreCase(room.getCode()))
+                .collect(Collectors.toMap(ticket -> ticket.getAppointment().getId(), ticket -> ticket,
+                        (first, ignored) -> first, LinkedHashMap::new));
+
+        List<Appointment> appointments = appointmentRepository
+                .findByPatientIdOrderByAppointmentDateAscStartTimeAsc(patientId).stream()
+                .filter(appointment -> queueDate.equals(appointment.getAppointmentDate()))
+                .filter(appointment -> appointment.getStatus() == AppointmentStatus.BOOKED
+                        || existingTickets.containsKey(appointment.getId()))
+                .toList();
+
+        Set<UUID> scheduledDoctorIds = appointments.stream()
+                .map(Appointment::getDoctorStaffId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Set<UUID> doctorsAssignedToRoom = doctorProfileRepository == null || scheduledDoctorIds.isEmpty()
+                ? Set.of()
+                : doctorProfileRepository.findAllByStaffAccount_IdInAndActiveTrue(scheduledDoctorIds).stream()
+                        .filter(profile -> profile.getRoom() != null
+                                && profile.getRoom().getCode().equalsIgnoreCase(room.getCode()))
+                        .map(profile -> profile.getStaffAccount().getId())
+                        .collect(Collectors.toSet());
+
+        return appointments.stream()
+                .filter(appointment -> existingTickets.containsKey(appointment.getId())
+                        || doctorsAssignedToRoom.contains(appointment.getDoctorStaffId()))
+                .sorted(Comparator.comparing(Appointment::getStartTime))
+                .map(appointment -> AppointmentResponse.from(appointment, existingTickets.get(appointment.getId())))
+                .toList();
     }
 
     @Transactional
@@ -518,7 +561,7 @@ public class QueueService {
         }
         if (currentMax >= QueueTicket.MAX_QUEUE_NUMBER) {
             throw new AuthException(HttpStatus.CONFLICT, "QUEUE_NUMBER_LIMIT_REACHED",
-                    "Hàng đợi đã đủ 999 số trong ngày; vui lòng liên hệ quầy để được hỗ trợ.");
+                    "Hàng đợi đã đạt giới hạn 9999 số trong ngày; vui lòng liên hệ quầy để được hỗ trợ.");
         }
         return currentMax + 1;
     }
@@ -794,7 +837,11 @@ public class QueueService {
     }
 
     private void ensureDoctorRoom(Appointment appointment, ClinicRoom room) {
-        if (doctorProfileRepository == null || appointment.getDoctorStaffId() == null || room == null) return;
+        if (appointment.getDoctorStaffId() == null || room == null) {
+            throw new AuthException(HttpStatus.CONFLICT, "QUEUE_ROOM_MISMATCH",
+                    "Lịch hẹn chưa được gắn bác sĩ và phòng khám hợp lệ.");
+        }
+        if (doctorProfileRepository == null) return;
         doctorProfileRepository.findByStaffAccount_Id(appointment.getDoctorStaffId())
                 .filter(profile -> profile.isActive()
                         && profile.getRoom() != null

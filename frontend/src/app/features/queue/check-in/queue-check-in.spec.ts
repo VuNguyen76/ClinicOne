@@ -25,36 +25,31 @@ describe('QueueCheckIn', () => {
 
   afterEach(() => http.verify());
 
-  it('shows only today booked appointments from the room QR entry point', () => {
+  it('asks the patient to choose a profile when multiple matching profiles have appointments', () => {
     const today = localIsoDate();
     http.expectOne('/api/v1/rooms/NOI-01/check-in').flush({ code: 'NOI-01', name: 'Phòng Nội tổng quát 01', specialty: 'Nội tổng quát' });
-    http.expectOne('/api/v1/appointments').flush([
-      appointment(today, 'BOOKED', 'Nội tổng quát'),
-      appointment(today, 'CANCELLED', 'Nội tổng quát'),
-      appointment(today, 'BOOKED', 'Nhi khoa'),
+    http.expectOne('/api/v1/rooms/NOI-01/check-in/appointments').flush([
+      appointment(today, 'BOOKED', 'Nội tổng quát', 'profile-1'),
+      appointment(today, 'BOOKED', 'Nội tổng quát', 'profile-2'),
     ]);
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelectorAll('[data-testid="check-in-appointment"]').length).toBe(1);
-    expect(fixture.nativeElement.querySelector('[data-testid="qr-check-in-guide"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelectorAll('[data-testid="check-in-profile"]').length).toBe(2);
+    http.expectNone('/api/v1/rooms/NOI-01/queue/check-in');
     expect(fixture.nativeElement.querySelector('[data-testid="room-code"]').textContent).toContain('Phòng Nội');
   });
 
-  it('returns the existing queue number after a successful check-in', () => {
+  it('checks in automatically when exactly one matching appointment exists', () => {
     const today = localIsoDate();
     http.expectOne('/api/v1/rooms/NOI-01/check-in').flush({ code: 'NOI-01', name: 'Phòng Nội tổng quát 01', specialty: 'Nội tổng quát' });
-    http.expectOne('/api/v1/appointments').flush([appointment(today, 'BOOKED', 'Nội tổng quát')]);
-    fixture.detectChanges();
-
-    const appointmentButton = fixture.nativeElement.querySelector('[data-testid="check-in-appointment"]') as HTMLButtonElement;
-    appointmentButton.click();
-    fixture.detectChanges();
-    (fixture.nativeElement.querySelector('[data-testid="check-in-submit"]') as HTMLButtonElement).click();
+    http.expectOne('/api/v1/rooms/NOI-01/check-in/appointments').flush([
+      appointment(today, 'BOOKED', 'Nội tổng quát', 'profile-1'),
+    ]);
 
     const request = http.expectOne('/api/v1/rooms/NOI-01/queue/check-in');
     expect(request.request.headers.get('Idempotency-Key')).toMatch(/^checkin-/);
     expect(request.request.method).toBe('POST');
-    expect(request.request.body.appointmentId).toBe('appointment-1');
+    expect(request.request.body.appointmentId).toBe('appointment-profile-1');
     request.flush(queueTicket());
     fixture.detectChanges();
 
@@ -65,14 +60,9 @@ describe('QueueCheckIn', () => {
   it('keeps a checked-in appointment available so a returning patient can scan again', () => {
     const today = localIsoDate();
     http.expectOne('/api/v1/rooms/NOI-01/check-in').flush({ code: 'NOI-01', name: 'Phòng Nội tổng quát 01', specialty: 'Nội tổng quát' });
-    http.expectOne('/api/v1/appointments').flush([appointment(today, 'CHECKED_IN', 'Nội tổng quát')]);
-    fixture.detectChanges();
-
-    const appointmentButton = fixture.nativeElement.querySelector('[data-testid="check-in-appointment"]') as HTMLButtonElement;
-    expect(appointmentButton).not.toBeNull();
-    appointmentButton.click();
-    fixture.detectChanges();
-    (fixture.nativeElement.querySelector('[data-testid="check-in-submit"]') as HTMLButtonElement).click();
+    http.expectOne('/api/v1/rooms/NOI-01/check-in/appointments').flush([
+      appointment(today, 'CHECKED_IN', 'Nội tổng quát', 'profile-1'),
+    ]);
 
     const request = http.expectOne('/api/v1/rooms/NOI-01/queue/check-in');
     request.flush({ ...queueTicket(), presenceStatus: 'RETURN_REQUIRED', presenceLabel: 'Chờ quay lại' });
@@ -84,16 +74,9 @@ describe('QueueCheckIn', () => {
   it('shows the existing queue result when the appointment is already completed', () => {
     const today = localIsoDate();
     http.expectOne('/api/v1/rooms/NOI-01/check-in').flush({ code: 'NOI-01', name: 'Phòng Nội tổng quát 01', specialty: 'Nội tổng quát' });
-    http.expectOne('/api/v1/appointments').flush([appointment(today, 'COMPLETED', 'Nội tổng quát')]);
-    fixture.detectChanges();
-
-    const appointmentButton = fixture.nativeElement.querySelector('[data-testid="check-in-appointment"]') as HTMLButtonElement;
-    expect(appointmentButton).not.toBeNull();
-    appointmentButton.click();
-    fixture.detectChanges();
-    const submitButton = fixture.nativeElement.querySelector('[data-testid="check-in-submit"]') as HTMLButtonElement;
-    expect(submitButton.textContent).toContain('Xem kết quả đã có');
-    submitButton.click();
+    http.expectOne('/api/v1/rooms/NOI-01/check-in/appointments').flush([
+      appointment(today, 'COMPLETED', 'Nội tổng quát', 'profile-1'),
+    ]);
 
     const request = http.expectOne('/api/v1/rooms/NOI-01/queue/check-in');
     request.flush({ ...queueTicket(), status: 'COMPLETED', statusLabel: 'Đã hoàn tất' });
@@ -104,11 +87,12 @@ describe('QueueCheckIn', () => {
   });
 });
 
-function appointment(date: string, status: string, specialty: string) {
+function appointment(date: string, status: string, specialty: string, profileId: string) {
   return {
-    id: status === 'BOOKED' && specialty === 'Nội tổng quát' ? 'appointment-1' : `${status}-${specialty}`,
+    id: `appointment-${profileId}`,
     appointmentCode: 'CL-20260806-1234', specialty, doctorName: 'BS. Nguyễn An', appointmentDate: date,
-    startTime: '09:00:00', reason: 'Đau đầu', status, statusLabel: status === 'BOOKED' ? 'Đã đặt' : status === 'CHECKED_IN' ? 'Đã check-in' : 'Đã hủy',
+    startTime: '23:59:00', reason: 'Đau đầu', status, profileId, profileName: `Hồ sơ ${profileId}`,
+    statusLabel: status === 'BOOKED' ? 'Đã đặt' : status === 'CHECKED_IN' ? 'Đã check-in' : 'Đã hoàn tất',
   };
 }
 
