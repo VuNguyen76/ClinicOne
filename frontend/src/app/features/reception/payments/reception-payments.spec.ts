@@ -32,6 +32,28 @@ describe('ReceptionPayments', () => {
     http.expectNone('/api/v1/invoices/appointments/');
   });
 
+  it('preserves a new appointment code typed while the previous lookup is pending', () => {
+    component.appointmentCode.set('APT-001');
+    component.createReceipt();
+    const lookup = http.expectOne({ method: 'POST', url: '/api/v1/invoices/appointments/APT-001' });
+
+    component.appointmentCode.set('APT-002');
+    lookup.flush(receipt());
+
+    expect(component.appointmentCode()).toBe('APT-002');
+    expect(component.receipt()?.appointmentCode).toBe('APT-001');
+  });
+
+  it('does not send duplicate receipt lookups while the first lookup is pending', () => {
+    component.appointmentCode.set('APT-001');
+    component.createReceipt();
+    component.createReceipt();
+
+    const requests = http.match('/api/v1/invoices/appointments/APT-001');
+    expect(requests).toHaveLength(1);
+    requests[0].flush(receipt());
+  });
+
   it('creates a server-priced receipt and records payment through the API', () => {
     component.appointmentCode.set('APT-001');
     component.createReceipt();
