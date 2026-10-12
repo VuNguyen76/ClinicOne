@@ -41,6 +41,7 @@ export class Register implements OnInit {
   protected readonly addressLoading = signal(false);
   protected readonly today = clinicTodayIso();
   protected readonly returnUrl = this.safeReturnUrl();
+  private addressRequestId = 0;
 
   readonly phoneForm = this.formBuilder.nonNullable.group({
     phone: [this.route.snapshot.queryParamMap.get('phone') ?? '', [Validators.required, Validators.pattern(/^0\d{9}$/)]],
@@ -145,6 +146,7 @@ export class Register implements OnInit {
   }
 
   protected submitOtp(): void {
+    if (this.busy()) return;
     this.clearMessages();
     if (this.otpForm.invalid) {
       this.otpForm.markAllAsTouched();
@@ -166,6 +168,7 @@ export class Register implements OnInit {
   }
 
   protected submitProfile(): void {
+    if (this.busy()) return;
     this.clearMessages();
     if (this.profileForm.invalid) {
       this.profileForm.markAllAsTouched();
@@ -191,6 +194,7 @@ export class Register implements OnInit {
   }
 
   protected backToPhone(): void {
+    if (this.busy()) return;
     this.step.set('phone');
     this.existingAccount.set(false);
     this.accountPendingActivation.set(false);
@@ -200,11 +204,14 @@ export class Register implements OnInit {
   }
 
   protected backToOtp(): void {
+    if (this.busy()) return;
     this.step.set('otp');
     this.clearMessages();
   }
 
   protected provinceChanged(): void {
+    const requestId = ++this.addressRequestId;
+    this.addressLoading.set(false);
     const provinceCode = this.profileForm.controls.provinceCode.value;
     const province = this.provinces().find((item) => String(item.code) === provinceCode);
     this.profileForm.patchValue({ provinceName: province?.name ?? '', districtCode: '', districtName: '', wardCode: '', wardName: '' });
@@ -212,23 +219,45 @@ export class Register implements OnInit {
     this.wards.set([]);
     if (provinceCode) {
       this.addressLoading.set(true);
-      this.addressApi.getDistricts(provinceCode).pipe(finalize(() => this.addressLoading.set(false))).subscribe({
-        next: (items) => this.districts.set(items),
-        error: () => this.error.set('Không tải được danh sách quận/huyện. Vui lòng thử lại.'),
+      this.addressApi.getDistricts(provinceCode).pipe(finalize(() => {
+        if (requestId === this.addressRequestId) this.addressLoading.set(false);
+      })).subscribe({
+        next: (items) => {
+          if (requestId === this.addressRequestId && this.profileForm.controls.provinceCode.value === provinceCode) {
+            this.districts.set(items);
+          }
+        },
+        error: () => {
+          if (requestId === this.addressRequestId && this.profileForm.controls.provinceCode.value === provinceCode) {
+            this.error.set('Không tải được danh sách quận/huyện. Vui lòng thử lại.');
+          }
+        },
       });
     }
   }
 
   protected districtChanged(): void {
+    const requestId = ++this.addressRequestId;
+    this.addressLoading.set(false);
     const districtCode = this.profileForm.controls.districtCode.value;
     const district = this.districts().find((item) => String(item.code) === districtCode);
     this.profileForm.patchValue({ districtName: district?.name ?? '', wardCode: '', wardName: '' });
     this.wards.set([]);
     if (districtCode) {
       this.addressLoading.set(true);
-      this.addressApi.getWards(districtCode).pipe(finalize(() => this.addressLoading.set(false))).subscribe({
-        next: (items) => this.wards.set(items),
-        error: () => this.error.set('Không tải được danh sách xã/phường. Vui lòng thử lại.'),
+      this.addressApi.getWards(districtCode).pipe(finalize(() => {
+        if (requestId === this.addressRequestId) this.addressLoading.set(false);
+      })).subscribe({
+        next: (items) => {
+          if (requestId === this.addressRequestId && this.profileForm.controls.districtCode.value === districtCode) {
+            this.wards.set(items);
+          }
+        },
+        error: () => {
+          if (requestId === this.addressRequestId && this.profileForm.controls.districtCode.value === districtCode) {
+            this.error.set('Không tải được danh sách xã/phường. Vui lòng thử lại.');
+          }
+        },
       });
     }
   }
