@@ -156,6 +156,7 @@ export class ServiceManagement implements OnInit {
   }
 
   protected submit(): void {
+    if (this.saving()) return;
     if (!this.canManageServices()) {
       this.error.set('Chỉ điều phối viên được lưu dịch vụ khám.');
       return;
