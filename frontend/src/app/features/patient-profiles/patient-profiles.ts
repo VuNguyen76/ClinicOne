@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@ang
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
+import { forkJoin, of } from 'rxjs';
 import { ApiErrorResponse, AuthApiService, apiErrorMessage, PatientProfileItem, PatientProfileRequest } from '../../core/auth/auth-api.service';
 import { PatientHeader } from '../../shared/patient-header/patient-header';
 import { AccountNav } from '../../shared/account-nav/account-nav';
@@ -20,6 +21,7 @@ export class PatientProfiles implements OnInit {
   private readonly authApi = inject(AuthApiService);
   private readonly router = inject(Router);
   private readonly addressApi = inject(VietnamAddressService);
+  private addressRequestId = 0;
 
   protected readonly profiles = signal<PatientProfileItem[]>([]);
   protected readonly loading = signal(true);
@@ -83,6 +85,8 @@ export class PatientProfiles implements OnInit {
   }
 
   protected startAdd(): void {
+    this.addressRequestId++;
+    this.addressLoading.set(false);
     this.editingId.set(null);
     this.form.reset({ fullName: '', relationship: 'Người thân', dateOfBirth: '', gender: '', phone: '', identityNumber: '', nationality: 'Việt Nam', ethnicity: 'Kinh', address: '', provinceCode: '', provinceName: '', districtCode: '', districtName: '', wardCode: '', wardName: '', streetAddress: '' });
     this.districts.set([]);
@@ -92,15 +96,37 @@ export class PatientProfiles implements OnInit {
   }
 
   protected edit(profile: PatientProfileItem): void {
+    const requestId = ++this.addressRequestId;
+    this.districts.set([]);
+    this.wards.set([]);
+    this.addressLoading.set(Boolean(profile.provinceCode || profile.districtCode));
     this.editingId.set(profile.id);
     this.form.reset({ fullName: profile.fullName, relationship: profile.relationship, dateOfBirth: profile.dateOfBirth, gender: profile.gender, phone: profile.phone ?? '', identityNumber: profile.identityNumber ?? '', nationality: profile.nationality ?? '', ethnicity: profile.ethnicity ?? '', address: profile.address ?? '', provinceCode: profile.provinceCode ?? '', provinceName: profile.provinceName ?? '', districtCode: profile.districtCode ?? '', districtName: profile.districtName ?? '', wardCode: profile.wardCode ?? '', wardName: profile.wardName ?? '', streetAddress: profile.streetAddress ?? '' });
-    if (profile.provinceCode) this.addressApi.getDistricts(profile.provinceCode).subscribe((items) => this.districts.set(items));
-    if (profile.districtCode) this.addressApi.getWards(profile.districtCode).subscribe((items) => this.wards.set(items));
+    if (profile.provinceCode || profile.districtCode) {
+      forkJoin({
+        districts: profile.provinceCode ? this.addressApi.getDistricts(profile.provinceCode) : of([]),
+        wards: profile.districtCode ? this.addressApi.getWards(profile.districtCode) : of([]),
+      }).subscribe({
+        next: ({ districts, wards }) => {
+          if (requestId !== this.addressRequestId) return;
+          this.districts.set(districts);
+          this.wards.set(wards);
+          this.addressLoading.set(false);
+        },
+        error: () => {
+          if (requestId !== this.addressRequestId) return;
+          this.addressLoading.set(false);
+          this.error.set('Không tải được danh sách địa chỉ.');
+        },
+      });
+    }
     this.formOpen.set(true);
     this.error.set('');
   }
 
   protected cancelEdit(): void {
+    this.addressRequestId++;
+    this.addressLoading.set(false);
     this.formOpen.set(false);
     this.editingId.set(null);
   }
@@ -150,6 +176,7 @@ export class PatientProfiles implements OnInit {
   }
 
   protected provinceChanged(): void {
+    const requestId = ++this.addressRequestId;
     const provinceCode = this.form.controls.provinceCode.value;
     const province = this.provinces().find((item) => String(item.code) === provinceCode);
     this.form.patchValue({ provinceName: province?.name ?? '', districtCode: '', districtName: '', wardCode: '', wardName: '' });
@@ -158,14 +185,23 @@ export class PatientProfiles implements OnInit {
     if (provinceCode) {
       this.addressLoading.set(true);
       this.addressApi.getDistricts(provinceCode).subscribe({
-        next: (items) => this.districts.set(items),
-        complete: () => this.addressLoading.set(false),
-        error: () => { this.addressLoading.set(false); this.error.set('Không tải được danh sách quận/huyện.'); },
+        next: (items) => {
+          if (requestId === this.addressRequestId) this.districts.set(items);
+        },
+        complete: () => {
+          if (requestId === this.addressRequestId) this.addressLoading.set(false);
+        },
+        error: () => {
+          if (requestId !== this.addressRequestId) return;
+          this.addressLoading.set(false);
+          this.error.set('Không tải được danh sách quận/huyện.');
+        },
       });
     }
   }
 
   protected districtChanged(): void {
+    const requestId = ++this.addressRequestId;
     const districtCode = this.form.controls.districtCode.value;
     const district = this.districts().find((item) => String(item.code) === districtCode);
     this.form.patchValue({ districtName: district?.name ?? '', wardCode: '', wardName: '' });
@@ -173,9 +209,17 @@ export class PatientProfiles implements OnInit {
     if (districtCode) {
       this.addressLoading.set(true);
       this.addressApi.getWards(districtCode).subscribe({
-        next: (items) => this.wards.set(items),
-        complete: () => this.addressLoading.set(false),
-        error: () => { this.addressLoading.set(false); this.error.set('Không tải được danh sách xã/phường.'); },
+        next: (items) => {
+          if (requestId === this.addressRequestId) this.wards.set(items);
+        },
+        complete: () => {
+          if (requestId === this.addressRequestId) this.addressLoading.set(false);
+        },
+        error: () => {
+          if (requestId !== this.addressRequestId) return;
+          this.addressLoading.set(false);
+          this.error.set('Không tải được danh sách xã/phường.');
+        },
       });
     }
   }

@@ -60,4 +60,46 @@ describe('PatientProfiles', () => {
     });
     http.expectOne('/api/v1/patient-profiles').flush([]);
   });
+
+  it('does not let address data from a previous profile edit replace the current profile options', () => {
+    const profile = (id: string, provinceCode: string, districtCode: string) => ({
+      id, fullName: id, relationship: 'Người thân', dateOfBirth: '2000-01-01', gender: 'Nam',
+      primaryProfile: false, phone: null, identityNumber: null, nationality: 'Việt Nam', ethnicity: 'Kinh',
+      provinceCode, provinceName: `Tỉnh ${provinceCode}`,
+      districtCode, districtName: `Huyện ${districtCode}`, wardCode: '', wardName: '',
+      streetAddress: '', address: '',
+    });
+    component['edit'](profile('profile-old', '72', '718'));
+    const oldDistricts = http.expectOne('/api/v1/addresses/provinces/72/districts?page=1&limit=100');
+    const oldWards = http.expectOne('/api/v1/addresses/districts/718/wards?page=1&limit=100');
+
+    component['edit'](profile('profile-current', '79', '719'));
+    const currentDistricts = http.expectOne('/api/v1/addresses/provinces/79/districts?page=1&limit=100');
+    const currentWards = http.expectOne('/api/v1/addresses/districts/719/wards?page=1&limit=100');
+    currentDistricts.flush([{ code: '719', name: 'Huyện hiện tại' }]);
+    currentWards.flush([{ code: '25774', name: 'Phường hiện tại' }]);
+    oldDistricts.flush([{ code: '718', name: 'Huyện cũ' }]);
+    oldWards.flush([{ code: '25771', name: 'Phường cũ' }]);
+
+    expect(component['editingId']()).toBe('profile-current');
+    expect(component['districts']().map((item: any) => item.name)).toEqual(['Huyện hiện tại']);
+    expect(component['wards']().map((item: any) => item.name)).toEqual(['Phường hiện tại']);
+  });
+
+  it('keeps district options tied to the latest province selection', () => {
+    component['startAdd']();
+    component['form'].controls.provinceCode.setValue('72');
+    component['provinceChanged']();
+    const oldRequest = http.expectOne('/api/v1/addresses/provinces/72/districts?page=1&limit=100');
+
+    component['form'].controls.provinceCode.setValue('79');
+    component['provinceChanged']();
+    const currentRequest = http.expectOne('/api/v1/addresses/provinces/79/districts?page=1&limit=100');
+    currentRequest.flush([{ code: '769', name: 'Quận hiện tại' }]);
+    oldRequest.flush([{ code: '718', name: 'Huyện cũ' }]);
+
+    expect(component['districts']().map((item: any) => item.code)).toEqual(['769']);
+    expect(component['wards']()).toEqual([]);
+    expect(component['addressLoading']()).toBe(false);
+  });
 });
