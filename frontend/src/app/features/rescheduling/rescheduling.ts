@@ -73,7 +73,18 @@ export class Rescheduling implements OnInit {
       next: (items) => {
         this.cases.set(items);
         this.loading.set(false);
-        if (items[0]) this.selectCase(items[0]);
+        const selectedId = this.selectedCase()?.id;
+        const selected = items.find((item) => item.id === selectedId) ?? items[0];
+        if (selected) {
+          this.selectCase(selected);
+        } else {
+          this.alternativesRequestId++;
+          this.selectedCase.set(null);
+          this.selectedSlot.set(null);
+          this.alternatives.set([]);
+          this.alternativesLoading.set(false);
+          this.form.reset({ appointmentDate: '', startTime: '', doctorName: '', doctorId: '' });
+        }
       },
       error: (response) => {
         this.loading.set(false);
