@@ -76,6 +76,10 @@ public class AppointmentHoldService {
         UUID patientId = AuthenticatedIds.patient(accountId);
         PatientAccount patient = accountRepository.findById(patientId)
                 .orElseThrow(() -> authRequired());
+        if (patient.isMustChangePassword()) {
+            throw new AuthException(HttpStatus.FORBIDDEN, "ACCOUNT_ACTIVATION_REQUIRED",
+                    "Tài khoản chưa được kích hoạt. Vui lòng kích hoạt tài khoản trước khi đặt lịch.");
+        }
         validateService(request);
         Instant now = Instant.now(clock);
         boolean legacySession = sessionKey == null || sessionKey.isBlank();
