@@ -5,17 +5,18 @@
     <nav class="mb-3 flex items-center gap-2 text-sm text-slate-500 print:hidden" aria-label="Đường dẫn">
       <a routerLink="/home" class="hover:text-sky-700">Trang chủ</a>
       <mat-icon class="!h-4 !w-4 !text-base">chevron_right</mat-icon>
-      <span class="font-medium text-slate-800">Phiếu thanh toán</span>
+      <span class="font-medium text-slate-800">Phiếu TT</span>
     </nav>
 
     <header class="mb-6 border-b border-slate-200 pb-5 print:hidden">
-      <h1 class="text-2xl font-bold text-slate-900">Phiếu thanh toán</h1>
-      <p class="mt-1 text-sm text-slate-600">Tra cứu phiếu thanh toán của tài khoản đang đăng nhập.</p>
+      <h1 class="text-2xl font-bold text-slate-900">Phiếu TT</h1>
+      <p class="mt-1 text-sm text-slate-600">Tra cứu bằng mã phiếu.</p>
     </header>
 
-    <div class="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(250px,1fr)] print:hidden">
+    <div class="print:hidden">
       <section class="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
-        <div class="mb-5 flex rounded-lg bg-slate-100 p-1">
+        @if (isPatientSession()) {
+        <div class="mb-5 flex max-w-lg rounded-lg bg-slate-100 p-1">
           <button
             type="button"
             (click)="setLookupType('invoiceCode')"
@@ -25,7 +26,7 @@
             [class.shadow-sm]="lookupType() === 'invoiceCode'"
           >
             <mat-icon class="!h-5 !w-5 !text-xl">qr_code</mat-icon>
-            Mã phiếu thanh toán
+            Mã phiếu
           </button>
           <button
             type="button"
@@ -39,14 +40,16 @@
             Mã lịch hẹn
           </button>
         </div>
+        }
 
         @if (lookupType() === 'invoiceCode') {
           <label class="block text-sm font-semibold text-slate-800">
-            Mã phiếu thanh toán
+            Mã phiếu
             <input
               type="text"
               [ngModel]="invoiceCodeInput()"
               (ngModelChange)="invoiceCodeInput.set($event)"
+              maxlength="36"
               class="mt-2 h-11 w-full rounded-lg border border-slate-300 px-3 text-base outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-100"
               autocomplete="off"
             />
@@ -78,25 +81,16 @@
           class="mt-5 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-sky-600 px-4 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-60"
         >
           <mat-icon class="!h-5 !w-5 !text-xl">search</mat-icon>
-          {{ searching() ? 'Đang tra cứu…' : 'Tra cứu phiếu' }}
+          {{ searching() ? 'Đang tra cứu…' : 'Tra cứu' }}
         </button>
       </section>
-
-      <aside class="h-fit rounded-xl border border-amber-200 bg-amber-50 p-5">
-        <div class="flex items-center gap-2 font-semibold text-amber-950">
-          <mat-icon class="!h-5 !w-5 !text-xl">info</mat-icon>
-          Phiếu thanh toán
-        </div>
-        <p class="mt-2 text-sm leading-6 text-amber-900">
-          Chỉ hiển thị phiếu đã được quầy tiếp nhận lập. Hóa đơn điện tử có chữ ký số sẽ được tích hợp riêng khi có nhà cung cấp ký số.
-        </p>
-      </aside>
     </div>
 
+    @if (isPatientSession()) {
     <section class="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm print:hidden" aria-labelledby="patient-receipts-title">
       <header class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
         <div>
-          <h2 id="patient-receipts-title" class="text-lg font-bold text-slate-900">Phiếu thanh toán của tôi</h2>
+          <h2 id="patient-receipts-title" class="text-lg font-bold text-slate-900">Phiếu TT của tôi</h2>
           <p class="mt-0.5 text-sm text-slate-500">{{ patientReceipts().length }} phiếu</p>
         </div>
         <button type="button" (click)="loadReceipts()" [disabled]="loadingReceipts()"
@@ -131,14 +125,17 @@
         </div>
       }
     </section>
+    }
 
     @if (invoiceResult(); as receipt) {
       <section class="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm print:mt-0 print:border-0 print:shadow-none">
         <div class="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 p-5">
           <div>
-            <p class="text-xs font-semibold uppercase tracking-wide text-sky-700">ClinicOne · Phiếu thanh toán</p>
+            <p class="text-xs font-semibold uppercase tracking-wide text-sky-700">ClinicOne · Phiếu TT</p>
             <h2 class="mt-1 text-xl font-bold text-slate-900">{{ receipt.invoiceCode }}</h2>
-            <p class="mt-1 text-sm text-slate-600">Lịch hẹn {{ receipt.appointmentCode }}</p>
+            @if (receiptAppointmentCode(receipt); as appointmentCode) {
+              <p class="mt-1 text-sm text-slate-600">Lịch hẹn {{ appointmentCode }}</p>
+            }
           </div>
           <div class="flex items-center gap-2 print:hidden">
             <span class="rounded-full px-3 py-1.5 text-sm font-semibold"
@@ -157,7 +154,9 @@
 
         <div class="grid gap-4 border-b border-slate-100 p-5 sm:grid-cols-2">
           <p><span class="text-slate-500">Người bệnh</span><br /><strong>{{ receipt.patientName }}</strong></p>
-          <p><span class="text-slate-500">Số điện thoại</span><br /><strong>{{ receipt.patientPhone || '—' }}</strong></p>
+          @if (receiptPatientPhone(receipt); as patientPhone) {
+            <p><span class="text-slate-500">Số điện thoại</span><br /><strong>{{ patientPhone }}</strong></p>
+          }
           <p><span class="text-slate-500">Bác sĩ</span><br /><strong>{{ receipt.doctorName }}</strong></p>
           <p><span class="text-slate-500">Chuyên khoa</span><br /><strong>{{ receipt.specialty }}</strong></p>
         </div>
@@ -168,7 +167,7 @@
               <tr><th class="px-5 py-3">Nội dung</th><th class="px-5 py-3 text-right">Số lượng</th><th class="px-5 py-3 text-right">Thành tiền</th></tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
-              @for (item of receipt.items; track item.id) {
+              @for (item of receipt.items; track $index) {
                 <tr>
                   <td class="px-5 py-3 font-medium text-slate-800">{{ item.itemName }}</td>
                   <td class="px-5 py-3 text-right">{{ item.quantity }} {{ item.unit || '' }}</td>
@@ -182,7 +181,6 @@
             </tfoot>
           </table>
         </div>
-        <p class="border-t border-slate-100 px-5 py-3 text-xs text-slate-500">Phiếu thanh toán nội bộ; không thay thế hóa đơn điện tử có mã/chữ ký số.</p>
       </section>
     }
   </div>

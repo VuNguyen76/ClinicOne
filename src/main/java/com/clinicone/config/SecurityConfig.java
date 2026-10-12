@@ -40,6 +40,7 @@ public class SecurityConfig {
                                 "/api/v1/specialties",
                                 "/api/v1/specialties/**"
                         ).permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/public/invoices/lookup").permitAll()
                         .requestMatchers(
                                 "/api/v1/auth/check-phone",
                                 "/api/v1/auth/request-sms-otp",

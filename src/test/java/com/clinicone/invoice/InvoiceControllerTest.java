@@ -25,7 +25,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(InvoiceController.class)
+@WebMvcTest({InvoiceController.class, PublicInvoiceController.class})
 @org.springframework.context.annotation.Import({SecurityConfig.class, InvoiceControllerTest.MockBeans.class})
 class InvoiceControllerTest {
     @Autowired private MockMvc mockMvc;
@@ -39,6 +39,32 @@ class InvoiceControllerTest {
                         .with(SecurityMockMvcRequestPostProcessors.authentication(authenticated("patient-1", "ROLE_PATIENT"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].invoiceCode").value("INV-1"));
+    }
+
+    @Test
+    void anyoneCanLookupAReceiptUsingItsUnpredictableCodeWithoutExposingPrivateIdentifiers() throws Exception {
+        String code = "INV-0123456789ABCDEF0123456789ABCDEF";
+        when(service.lookupPublicInvoice(code)).thenReturn(new PublicInvoiceResponse(
+                code, "Patient A", "Doctor A", "Nội tổng quát", 250_000, 0,
+                InvoiceStatus.PAID, Instant.parse("2026-10-12T02:00:00Z"), List.of()));
+
+        mockMvc.perform(post("/api/v1/public/invoices/lookup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"invoiceCode\":\"" + code + "\"}"))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                        .string("Cache-Control", org.hamcrest.Matchers.containsString("no-store")))
+                .andExpect(jsonPath("$.invoiceCode").value(code))
+                .andExpect(jsonPath("$.patientName").value("Patient A"))
+                .andExpect(jsonPath("$.patientPhone").doesNotExist())
+                .andExpect(jsonPath("$.appointmentCode").doesNotExist())
+                .andExpect(jsonPath("$.cashierName").doesNotExist());
+    }
+
+    @Test
+    void publicReceiptRouteDoesNotAllowAppointmentCodeLookup() throws Exception {
+        mockMvc.perform(get("/api/v1/invoices/appointments/APT-1"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

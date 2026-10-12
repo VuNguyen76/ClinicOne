@@ -162,6 +162,26 @@ export interface InvoiceResponse {
   items: InvoiceItemResponse[];
 }
 
+export interface PublicInvoiceItemResponse {
+  itemName: string;
+  unit: string | null;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+}
+
+export interface PublicInvoiceResponse {
+  invoiceCode: string;
+  patientName: string;
+  doctorName: string;
+  specialty: string;
+  totalAmount: number;
+  paidAmount: number;
+  status: InvoiceStatus;
+  createdAt: string;
+  items: PublicInvoiceItemResponse[];
+}
+
 export interface PrescriptionLineResponse {
   medicationId: string | null;
   medicationName: string;
@@ -1097,6 +1117,10 @@ export class AuthApiService {
 
   getInvoice(invoiceCode: string): Observable<InvoiceResponse> {
     return this.http.get<InvoiceResponse>(`/api/v1/invoices/${encodeURIComponent(invoiceCode)}`);
+  }
+
+  lookupPublicInvoice(invoiceCode: string): Observable<PublicInvoiceResponse> {
+    return this.http.post<PublicInvoiceResponse>('/api/v1/public/invoices/lookup', { invoiceCode });
   }
 
   getInvoiceByAppointmentCode(appointmentCode: string): Observable<InvoiceResponse> {
