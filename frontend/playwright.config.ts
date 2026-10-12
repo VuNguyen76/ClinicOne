@@ -5,6 +5,8 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
+  // E2E journeys share one in-memory backend/database; keep them isolated.
+  workers: 1,
   reporter: 'list',
   use: {
     baseURL: process.env.BASE_URL ?? 'http://localhost:4300',
