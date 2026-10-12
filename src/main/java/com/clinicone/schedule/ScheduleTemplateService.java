@@ -3,10 +3,13 @@ package com.clinicone.schedule;
 import lombok.RequiredArgsConstructor;
 
 import com.clinicone.auth.AuthException;
+import com.clinicone.appointment.Appointment;
+import com.clinicone.appointment.AppointmentStatus;
 import com.clinicone.doctor.DoctorProfile;
 import com.clinicone.doctor.DoctorProfileRepository;
 import com.clinicone.doctor.DoctorSchedule;
 import com.clinicone.doctor.DoctorScheduleRepository;
+import com.clinicone.appointment.AppointmentRepository;
 import com.clinicone.queue.ClinicRoom;
 import com.clinicone.queue.ClinicRoomRepository;
 import org.springframework.http.HttpStatus;
@@ -36,6 +39,7 @@ public class ScheduleTemplateService {
     private final DoctorProfileRepository doctorProfileRepository;
     private final ClinicRoomRepository roomRepository;
     private final DoctorScheduleRepository doctorScheduleRepository;
+    private final AppointmentRepository appointmentRepository;
 
     @Transactional(readOnly = true)
     public List<ScheduleTemplateResponse> list() {
@@ -99,6 +103,7 @@ public class ScheduleTemplateService {
                         "Ngày được chọn không thuộc mẫu lịch làm việc này.");
             }
             if (template.getWeekdays().size() > 1) {
+                ensureNoActiveAppointments(template, Set.of(dow));
                 Set<DayOfWeek> updatedWeekdays = new HashSet<>(template.getWeekdays());
                 updatedWeekdays.remove(dow);
                 template.setWeekdays(updatedWeekdays);
@@ -118,6 +123,7 @@ public class ScheduleTemplateService {
             }
         }
 
+        ensureNoActiveAppointments(template, template.getWeekdays());
         template.setActive(false);
         templateRepository.save(template);
         slotRepository.deleteByTemplateIdAndStatus(templateId, GeneratedSlotStatus.OPEN);
@@ -166,6 +172,22 @@ public class ScheduleTemplateService {
         for (DoctorSchedule schedule : matching) {
             schedule.setActive(false);
             doctorScheduleRepository.save(schedule);
+        }
+    }
+
+    private void ensureNoActiveAppointments(WorkScheduleTemplate template, Collection<DayOfWeek> affectedDays) {
+        UUID doctorStaffId = template.getDoctorProfile().getStaffAccount().getId();
+        List<Appointment> activeAppointments = appointmentRepository
+                .findByDoctorStaffIdAndAppointmentDateBetweenAndStatusIn(doctorStaffId,
+                        template.getStartDate(), template.getEndDate(),
+                        List.of(AppointmentStatus.BOOKED, AppointmentStatus.CHECKED_IN));
+        boolean hasAffectedAppointment = activeAppointments.stream().anyMatch(appointment ->
+                affectedDays.contains(appointment.getAppointmentDate().getDayOfWeek())
+                        && !appointment.getStartTime().isBefore(template.getDayStart())
+                        && appointment.getStartTime().isBefore(template.getDayEnd()));
+        if (hasAffectedAppointment) {
+            throw conflict("SCHEDULE_HAS_ACTIVE_APPOINTMENTS",
+                    "Không thể xóa ca vì còn lịch bệnh nhân đã đặt hoặc đã check-in trong ca này.");
         }
     }
 
