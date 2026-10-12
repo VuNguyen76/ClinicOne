@@ -23,6 +23,18 @@ public interface WorkScheduleTemplateRepository extends JpaRepository<WorkSchedu
                                                                 @Param("from") LocalDate from,
                                                                 @Param("to") LocalDate to);
 
+    @EntityGraph(attributePaths = {"clinicService", "doctorProfile", "doctorProfile.staffAccount", "room",
+            "weekdays", "breaks", "exceptionDates"})
+    @Query("""
+            select distinct template from WorkScheduleTemplate template
+            where template.doctorProfile.staffAccount.id = :doctorStaffId
+              and template.startDate <= :to
+              and template.endDate >= :from
+            """)
+    List<WorkScheduleTemplate> findByDoctorStaffIdAndDateRange(@Param("doctorStaffId") UUID doctorStaffId,
+                                                                @Param("from") LocalDate from,
+                                                                @Param("to") LocalDate to);
+
     @EntityGraph(attributePaths = {"clinicService", "doctorProfile", "doctorProfile.staffAccount", "room", "weekdays", "breaks", "exceptionDates"})
     List<WorkScheduleTemplate> findByActiveTrueOrderByStartDateAsc();
 

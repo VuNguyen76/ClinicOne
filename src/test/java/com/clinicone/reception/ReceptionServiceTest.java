@@ -15,6 +15,13 @@ import com.clinicone.config.ClinicConfiguration;
 import com.clinicone.config.ClinicConfigurationService;
 import com.clinicone.doctor.DoctorProfile;
 import com.clinicone.doctor.DoctorProfileRepository;
+import com.clinicone.doctor.DoctorScheduleRepository;
+import com.clinicone.schedule.ClinicService;
+import com.clinicone.schedule.GeneratedClinicSlotRepository;
+import com.clinicone.schedule.GeneratedClinicSlot;
+import com.clinicone.schedule.DoctorSlotBookingCount;
+import com.clinicone.schedule.WorkScheduleTemplate;
+import com.clinicone.schedule.WorkScheduleTemplateRepository;
 import com.clinicone.patientprofile.PatientProfileRepository;
 import com.clinicone.patientprofile.PatientProfile;
 import com.clinicone.queue.ClinicRoom;
@@ -903,6 +910,114 @@ class ReceptionServiceTest {
     }
 
     @Test
+    void doctorsAvailabilityHonorsTemplateExceptionInsteadOfLegacyWeeklySchedule() {
+        Clock clock = Clock.fixed(Instant.parse("2026-08-07T03:00:00Z"), java.time.ZoneId.of("Asia/Ho_Chi_Minh"));
+        DoctorScheduleRepository scheduleRepo = mock(DoctorScheduleRepository.class);
+        WorkScheduleTemplateRepository templateRepo = mock(WorkScheduleTemplateRepository.class);
+        GeneratedClinicSlotRepository slotRepo = mock(GeneratedClinicSlotRepository.class);
+        var room = com.clinicone.queue.ClinicRoom.create("MAT-01", "Phòng Mắt 01", "Khám Mắt");
+        var staff = com.clinicone.auth.StaffAccount.create("doctor01", "hash", "BS A",
+                com.clinicone.auth.StaffRole.DOCTOR);
+        setId(staff, DOCTOR_ID);
+        var profile = DoctorProfile.create(staff, "Khám Mắt", room);
+        var clinicService = ClinicService.create("Khám mắt", "Khám Mắt", "Khám", 30, List.of(profile));
+        var template = WorkScheduleTemplate.create(clinicService, profile, room, TODAY.minusDays(7), TODAY.plusDays(7),
+                LocalTime.of(8, 0), LocalTime.of(17, 0), 30, List.of(TODAY.getDayOfWeek()), List.of(), List.of(TODAY));
+        when(doctorProfileRepository.findAllByOrderByCreatedAtDesc()).thenReturn(List.of(profile));
+        when(scheduleRepo.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(profile.getId(), TODAY.getDayOfWeek()))
+                .thenReturn(List.of(com.clinicone.doctor.DoctorSchedule.create(profile, TODAY.getDayOfWeek(),
+                        LocalTime.of(8, 0), LocalTime.of(17, 0), 30)));
+        when(templateRepo.findByDoctorStaffIdAndDateRange(DOCTOR_ID, TODAY, TODAY))
+                .thenReturn(List.of(template));
+        when(slotRepo.findByDoctorStaffIdAndAppointmentDateBetweenAndStatus(DOCTOR_ID, TODAY, TODAY,
+                com.clinicone.schedule.GeneratedSlotStatus.OPEN)).thenReturn(List.of());
+        when(ticketRepository.findByRoomCodeAndQueueDateOrderByQueueNumberAsc("MAT-01", TODAY)).thenReturn(List.of());
+        ReceptionService templateAwareService = new ReceptionService(appointmentRepository, doctorProfileRepository,
+                scheduleRepo, ticketRepository, queueService, clock, patientAccountRepository, appointmentService,
+                patientProfileRepository, null, clinicConfigurationService, templateRepo, slotRepo);
+
+        var result = templateAwareService.doctors(TODAY);
+
+        assertThat(result).singleElement().satisfies(doctor -> {
+            assertThat(doctor.shiftStatus()).isEqualTo("NONE");
+            assertThat(doctor.slots()).isEmpty();
+        });
+    }
+
+    @Test
+    void pausedTemplatePreventsFallbackToStillActiveLegacyWeeklySchedule() {
+        Clock clock = Clock.fixed(Instant.parse("2026-08-07T03:00:00Z"), java.time.ZoneId.of("Asia/Ho_Chi_Minh"));
+        DoctorScheduleRepository scheduleRepo = mock(DoctorScheduleRepository.class);
+        WorkScheduleTemplateRepository templateRepo = mock(WorkScheduleTemplateRepository.class);
+        GeneratedClinicSlotRepository slotRepo = mock(GeneratedClinicSlotRepository.class);
+        var room = com.clinicone.queue.ClinicRoom.create("MAT-01", "Phòng Mắt 01", "Khám Mắt");
+        var staff = com.clinicone.auth.StaffAccount.create("doctor01", "hash", "BS A",
+                com.clinicone.auth.StaffRole.DOCTOR);
+        setId(staff, DOCTOR_ID);
+        var profile = DoctorProfile.create(staff, "Khám Mắt", room);
+        var clinicService = ClinicService.create("Khám mắt", "Khám Mắt", "Khám", 30, List.of(profile));
+        var pausedTemplate = WorkScheduleTemplate.create(clinicService, profile, room, TODAY.minusDays(7),
+                TODAY.plusDays(7), LocalTime.of(8, 0), LocalTime.of(17, 0), 30,
+                List.of(TODAY.getDayOfWeek()), List.of(), List.of());
+        pausedTemplate.setActive(false);
+        when(doctorProfileRepository.findAllByOrderByCreatedAtDesc()).thenReturn(List.of(profile));
+        when(scheduleRepo.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(profile.getId(), TODAY.getDayOfWeek()))
+                .thenReturn(List.of(com.clinicone.doctor.DoctorSchedule.create(profile, TODAY.getDayOfWeek(),
+                        LocalTime.of(8, 0), LocalTime.of(17, 0), 30)));
+        when(templateRepo.findByDoctorStaffIdAndDateRange(DOCTOR_ID, TODAY, TODAY))
+                .thenReturn(List.of(pausedTemplate));
+        when(ticketRepository.findByRoomCodeAndQueueDateOrderByQueueNumberAsc("MAT-01", TODAY)).thenReturn(List.of());
+        ReceptionService templateAwareService = new ReceptionService(appointmentRepository, doctorProfileRepository,
+                scheduleRepo, ticketRepository, queueService, clock, patientAccountRepository, appointmentService,
+                patientProfileRepository, null, clinicConfigurationService, templateRepo, slotRepo);
+
+        var result = templateAwareService.doctors(TODAY).get(0);
+
+        assertThat(result.shiftStatus()).isEqualTo("NONE");
+        assertThat(result.slots()).isEmpty();
+    }
+
+    @Test
+    void doctorsAvailabilityUsesGeneratedTemplateSlotsAndCurrentBookingCount() {
+        Clock clock = Clock.fixed(Instant.parse("2026-08-07T03:00:00Z"), java.time.ZoneId.of("Asia/Ho_Chi_Minh"));
+        DoctorScheduleRepository scheduleRepo = mock(DoctorScheduleRepository.class);
+        WorkScheduleTemplateRepository templateRepo = mock(WorkScheduleTemplateRepository.class);
+        GeneratedClinicSlotRepository slotRepo = mock(GeneratedClinicSlotRepository.class);
+        var room = com.clinicone.queue.ClinicRoom.create("MAT-01", "Phòng Mắt 01", "Khám Mắt");
+        var staff = com.clinicone.auth.StaffAccount.create("doctor01", "hash", "BS A",
+                com.clinicone.auth.StaffRole.DOCTOR);
+        setId(staff, DOCTOR_ID);
+        var profile = DoctorProfile.create(staff, "Khám Mắt", room);
+        var clinicService = ClinicService.create("Khám mắt", "Khám Mắt", "Khám", 30, List.of(profile));
+        var template = WorkScheduleTemplate.create(clinicService, profile, room, TODAY.minusDays(7), TODAY.plusDays(7),
+                LocalTime.of(8, 0), LocalTime.of(17, 0), 30, List.of(TODAY.getDayOfWeek()), List.of(), List.of());
+        setId(template, UUID.randomUUID());
+        List<GeneratedClinicSlot> slots = List.of(
+                GeneratedClinicSlot.create(template, TODAY, LocalTime.of(10, 0), LocalTime.of(10, 30)),
+                GeneratedClinicSlot.create(template, TODAY, LocalTime.of(10, 30), LocalTime.of(11, 0)));
+        when(doctorProfileRepository.findAllByOrderByCreatedAtDesc()).thenReturn(List.of(profile));
+        when(templateRepo.findByDoctorStaffIdAndDateRange(DOCTOR_ID, TODAY, TODAY)).thenReturn(List.of(template));
+        when(slotRepo.findByDoctorStaffIdAndAppointmentDateBetweenAndStatus(DOCTOR_ID, TODAY, TODAY,
+                com.clinicone.schedule.GeneratedSlotStatus.OPEN)).thenReturn(slots);
+        when(ticketRepository.findByRoomCodeAndQueueDateOrderByQueueNumberAsc("MAT-01", TODAY)).thenReturn(List.of());
+        when(appointmentRepository.countBookedByDoctorsAndDateRangeAndStatusIn(eq(List.of(DOCTOR_ID)),
+                eq(TODAY), eq(TODAY), eq(List.of(AppointmentStatus.BOOKED, AppointmentStatus.CHECKED_IN))))
+                .thenReturn(List.of(new DoctorSlotBookingCount(DOCTOR_ID, TODAY, LocalTime.of(10, 30), 1)));
+        ReceptionService templateAwareService = new ReceptionService(appointmentRepository, doctorProfileRepository,
+                scheduleRepo, ticketRepository, queueService, clock, patientAccountRepository, appointmentService,
+                patientProfileRepository, null, clinicConfigurationService, templateRepo, slotRepo);
+
+        var result = templateAwareService.doctors(TODAY).get(0);
+
+        assertThat(result.shiftStatus()).isEqualTo("ACTIVE");
+        assertThat(result.slots()).containsExactly(
+                new ReceptionDoctorOptionResponse.SlotInfo(LocalTime.of(10, 0), LocalTime.of(10, 30), 1),
+                new ReceptionDoctorOptionResponse.SlotInfo(LocalTime.of(10, 30), LocalTime.of(11, 0), 0));
+        verify(appointmentRepository).countBookedByDoctorsAndDateRangeAndStatusIn(eq(List.of(DOCTOR_ID)),
+                eq(TODAY), eq(TODAY), eq(List.of(AppointmentStatus.BOOKED, AppointmentStatus.CHECKED_IN)));
+    }
+
+    @Test
     void doctors_waitingCountCountsOnlyWaitingAndEffectiveDoctor() {
         Clock clock = Clock.fixed(Instant.parse("2026-08-07T03:00:00Z"), java.time.ZoneId.of("Asia/Ho_Chi_Minh"));
         var scheduleRepo = mock(com.clinicone.doctor.DoctorScheduleRepository.class);
@@ -940,8 +1055,9 @@ class ReceptionServiceTest {
         var schedule = com.clinicone.doctor.DoctorSchedule.create(profile, TODAY.getDayOfWeek(), LocalTime.of(8,0), LocalTime.of(9,0), 30);
         when(scheduleRepo.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(profile.getId(), TODAY.getDayOfWeek())).thenReturn(List.of(schedule));
         when(ticketRepository.findByRoomCodeAndQueueDateOrderByQueueNumberAsc("MAT-01", TODAY)).thenReturn(List.of());
-        when(appointmentRepository.countByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatusIn(eq(DOCTOR_ID), eq(TODAY), eq(LocalTime.of(8,0)), any())).thenReturn(1L);
-        when(appointmentRepository.countByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatusIn(eq(DOCTOR_ID), eq(TODAY), eq(LocalTime.of(8,30)), any())).thenReturn(0L);
+        when(appointmentRepository.countBookedByDoctorsAndDateRangeAndStatusIn(eq(List.of(DOCTOR_ID)),
+                eq(TODAY), eq(TODAY), eq(List.of(AppointmentStatus.BOOKED, AppointmentStatus.CHECKED_IN))))
+                .thenReturn(List.of(new DoctorSlotBookingCount(DOCTOR_ID, TODAY, LocalTime.of(8, 0), 1)));
         var result = svc.doctors(TODAY);
         var slots = result.get(0).slots();
         assertThat(slots).anySatisfy(s -> { if (s.startTime().equals(LocalTime.of(8,0))) assertThat(s.remaining()).isEqualTo(0); });
