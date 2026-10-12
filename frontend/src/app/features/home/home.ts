@@ -115,7 +115,6 @@ export class Home {
     { label: 'Quy trình', route: '/process' },
     { label: 'Hướng dẫn', route: '/common-issues' },
     { label: 'Thắc mắc', route: '/support' },
-    { label: 'Liên hệ', route: '/contact' },
   ];
 
   constructor() {

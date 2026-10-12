@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 
-export type OtpPurpose = 'LOGIN' | 'REGISTRATION' | 'RECOVERY';
+export type OtpPurpose = 'LOGIN' | 'REGISTRATION' | 'RECOVERY' | 'RECEIPT_LOOKUP';
 
 export interface OtpResponse {
   expiresInSeconds: number;
@@ -180,6 +180,36 @@ export interface PublicInvoiceResponse {
   status: InvoiceStatus;
   createdAt: string;
   items: PublicInvoiceItemResponse[];
+}
+
+export interface PublicPatientPrescriptionResponse {
+  medicationName: string;
+  dosage: string;
+  quantity: number;
+  unit: string | null;
+  instructions: string;
+}
+
+export interface PublicPatientMedicalRecordResponse {
+  id: string;
+  signedAt: string;
+  doctorName: string;
+  specialty: string | null;
+  diagnosis: string | null;
+  prescription: string | null;
+  prescriptionLines: PublicPatientPrescriptionResponse[];
+}
+
+export interface PublicPatientProfileDataResponse {
+  profileId: string;
+  fullName: string;
+  relationship: string;
+  invoices: PublicInvoiceResponse[];
+  medicalRecords: PublicPatientMedicalRecordResponse[];
+}
+
+export interface PublicPatientDataLookupResponse {
+  profiles: PublicPatientProfileDataResponse[];
 }
 
 export interface PrescriptionLineResponse {
@@ -975,6 +1005,10 @@ export class AuthApiService {
     return this.http.post<{ verified: boolean }>(`${this.apiRoot}/verify-sms-otp`, { phone, purpose, code });
   }
 
+  lookupPatientData(phone: string, code: string): Observable<PublicPatientDataLookupResponse> {
+    return this.http.post<PublicPatientDataLookupResponse>('/api/v1/public/patient-data/lookup', { phone, code });
+  }
+
   register(phone: string, fullName: string, password: string, dateOfBirth: string, gender: string, address: string,
            provinceCode = '', provinceName = '', districtCode = '', districtName = '', wardCode = '', wardName = '', streetAddress = ''): Observable<RegistrationResponse> {
     return this.http.post<RegistrationResponse>(`${this.apiRoot}/register`, {
@@ -1117,10 +1151,6 @@ export class AuthApiService {
 
   getInvoice(invoiceCode: string): Observable<InvoiceResponse> {
     return this.http.get<InvoiceResponse>(`/api/v1/invoices/${encodeURIComponent(invoiceCode)}`);
-  }
-
-  lookupPublicInvoice(invoiceCode: string): Observable<PublicInvoiceResponse> {
-    return this.http.post<PublicInvoiceResponse>('/api/v1/public/invoices/lookup', { invoiceCode });
   }
 
   getInvoiceByAppointmentCode(appointmentCode: string): Observable<InvoiceResponse> {

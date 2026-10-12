@@ -67,6 +67,7 @@ public class TextBeeOtpSender implements OtpSender, SmsSender {
             case REGISTRATION -> "đăng ký tài khoản";
             case LOGIN -> "đăng nhập";
             case RECOVERY -> "khôi phục tài khoản";
+            case RECEIPT_LOOKUP -> "tra cứu phiếu khám và đơn thuốc";
         };
     }
 

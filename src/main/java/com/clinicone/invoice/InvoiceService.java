@@ -17,14 +17,11 @@ import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.regex.Pattern;
 
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class InvoiceService {
-    private static final Pattern PUBLIC_INVOICE_CODE = Pattern.compile("^INV-[0-9A-F]{32}$");
-
     private final InvoiceRepository invoiceRepository;
     private final ExaminationSessionRepository sessionRepository;
     private final MedicalRecordRepository medicalRecordRepository;
@@ -94,17 +91,6 @@ public class InvoiceService {
         return invoiceRepository.findByAppointment_AppointmentCodeAndAppointment_Patient_Id(
                         normalizeCode(appointmentCode), patientId)
                 .map(InvoiceResponse::from)
-                .orElseThrow(this::invoiceNotFound);
-    }
-
-    @Transactional(readOnly = true)
-    public PublicInvoiceResponse lookupPublicInvoice(String invoiceCode) {
-        String code = normalizeCode(invoiceCode);
-        if (!PUBLIC_INVOICE_CODE.matcher(code).matches()) {
-            throw invoiceNotFound();
-        }
-        return invoiceRepository.findByInvoiceCode(code)
-                .map(PublicInvoiceResponse::from)
                 .orElseThrow(this::invoiceNotFound);
     }
 

@@ -5,182 +5,148 @@
     <nav class="mb-3 flex items-center gap-2 text-sm text-slate-500 print:hidden" aria-label="Đường dẫn">
       <a routerLink="/home" class="hover:text-sky-700">Trang chủ</a>
       <mat-icon class="!h-4 !w-4 !text-base">chevron_right</mat-icon>
-      <span class="font-medium text-slate-800">Phiếu TT</span>
+      <span class="font-medium text-slate-800">Tra cứu PTT &amp; đơn thuốc</span>
     </nav>
 
     <header class="mb-6 border-b border-slate-200 pb-5 print:hidden">
-      <h1 class="text-2xl font-bold text-slate-900">Phiếu TT</h1>
-      <p class="mt-1 text-sm text-slate-600">Tra cứu bằng mã phiếu.</p>
+      <h1 class="text-2xl font-bold text-slate-900">Tra cứu PTT &amp; đơn thuốc</h1>
     </header>
 
-    <div class="print:hidden">
-      <section class="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
-        @if (isPatientSession()) {
-        <div class="mb-5 flex max-w-lg rounded-lg bg-slate-100 p-1">
-          <button
-            type="button"
-            (click)="setLookupType('invoiceCode')"
-            class="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5 text-sm font-semibold"
-            [class.bg-white]="lookupType() === 'invoiceCode'"
-            [class.text-sky-700]="lookupType() === 'invoiceCode'"
-            [class.shadow-sm]="lookupType() === 'invoiceCode'"
-          >
-            <mat-icon class="!h-5 !w-5 !text-xl">qr_code</mat-icon>
-            Mã phiếu
-          </button>
-          <button
-            type="button"
-            (click)="setLookupType('appointmentCode')"
-            class="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5 text-sm font-semibold"
-            [class.bg-white]="lookupType() === 'appointmentCode'"
-            [class.text-sky-700]="lookupType() === 'appointmentCode'"
-            [class.shadow-sm]="lookupType() === 'appointmentCode'"
-          >
-            <mat-icon class="!h-5 !w-5 !text-xl">badge</mat-icon>
-            Mã lịch hẹn
-          </button>
-        </div>
-        }
-
-        @if (lookupType() === 'invoiceCode') {
-          <label class="block text-sm font-semibold text-slate-800">
-            Mã phiếu
-            <input
-              type="text"
-              [ngModel]="invoiceCodeInput()"
-              (ngModelChange)="invoiceCodeInput.set($event)"
-              maxlength="36"
-              class="mt-2 h-11 w-full rounded-lg border border-slate-300 px-3 text-base outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-100"
-              autocomplete="off"
-            />
-          </label>
+    @if (step() !== 'results') {
+      <section class="mx-auto max-w-2xl rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7 print:hidden">
+        @if (step() === 'phone') {
+          <form (ngSubmit)="requestOtp()">
+            <label for="lookup-phone" class="block text-sm font-semibold text-slate-800">Số điện thoại</label>
+            <input id="lookup-phone" name="phone" type="tel" inputmode="numeric" autocomplete="tel"
+              maxlength="10" [ngModel]="phone()" (ngModelChange)="phone.set($event)"
+              class="mt-2 h-12 w-full rounded-lg border border-slate-300 px-3 text-base outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-100" />
+            <button type="submit" [disabled]="requestingOtp()"
+              class="mt-5 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-sky-600 px-4 font-semibold text-white hover:bg-sky-700 disabled:opacity-60">
+              <mat-icon class="!h-5 !w-5 !text-xl">sms</mat-icon>
+              {{ requestingOtp() ? 'Đang gửi…' : 'Nhận OTP' }}
+            </button>
+          </form>
         } @else {
-          <label class="block text-sm font-semibold text-slate-800">
-            Mã lịch hẹn
-            <input
-              type="text"
-              [ngModel]="appointmentCodeInput()"
-              (ngModelChange)="appointmentCodeInput.set($event)"
-              class="mt-2 h-11 w-full rounded-lg border border-slate-300 px-3 text-base outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-100"
-              autocomplete="off"
-            />
-          </label>
+          <form (ngSubmit)="lookup()">
+            <label for="lookup-otp" class="block text-sm font-semibold text-slate-800">Mã OTP</label>
+            <input id="lookup-otp" name="otp" type="text" inputmode="numeric" autocomplete="one-time-code"
+              maxlength="6" [ngModel]="code()" (ngModelChange)="code.set($event)"
+              class="mt-2 h-12 w-full rounded-lg border border-slate-300 px-3 text-center font-mono text-xl tracking-[0.35em] outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-100" />
+            <div class="mt-5 grid gap-3 sm:grid-cols-2">
+              <button type="button" (click)="changePhone()"
+                class="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-300 px-4 font-semibold text-slate-700 hover:bg-slate-50">Đổi SĐT</button>
+              <button type="submit" [disabled]="searching()"
+                class="inline-flex min-h-11 items-center justify-center rounded-lg bg-sky-600 px-4 font-semibold text-white hover:bg-sky-700 disabled:opacity-60">
+                {{ searching() ? 'Đang tra cứu…' : 'Tra cứu' }}
+              </button>
+            </div>
+          </form>
         }
 
         @if (error()) {
-          <p class="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="alert">
-            {{ error() }}
-          </p>
+          <p class="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700" role="alert">{{ error() }}</p>
         }
-
-        <button
-          type="button"
-          (click)="search()"
-          [disabled]="searching()"
-          data-testid="search-invoice-btn"
-          class="mt-5 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-sky-600 px-4 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-60"
-        >
-          <mat-icon class="!h-5 !w-5 !text-xl">search</mat-icon>
-          {{ searching() ? 'Đang tra cứu…' : 'Tra cứu' }}
-        </button>
       </section>
-    </div>
-
-    @if (isPatientSession()) {
-    <section class="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm print:hidden" aria-labelledby="patient-receipts-title">
-      <header class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-        <div>
-          <h2 id="patient-receipts-title" class="text-lg font-bold text-slate-900">Phiếu TT của tôi</h2>
-          <p class="mt-0.5 text-sm text-slate-500">{{ patientReceipts().length }} phiếu</p>
-        </div>
-        <button type="button" (click)="loadReceipts()" [disabled]="loadingReceipts()"
-          class="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-300 px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60">
-          <mat-icon class="!h-4 !w-4 !text-base">refresh</mat-icon> Làm mới
-        </button>
-      </header>
-
-      @if (receiptsError()) {
-        <p class="m-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700" role="alert">{{ receiptsError() }}</p>
-      } @else if (loadingReceipts() && patientReceipts().length === 0) {
-        <p class="px-5 py-8 text-center text-sm text-slate-500">Đang tải phiếu thanh toán…</p>
-      } @else if (patientReceipts().length === 0) {
-        <p class="px-5 py-10 text-center text-sm text-slate-500">Chưa có phiếu thanh toán.</p>
-      } @else {
-        <div class="overflow-x-auto">
-          <table class="w-full min-w-[620px] text-left text-sm">
-            <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-5 py-3">Mã phiếu</th><th class="px-5 py-3">Lịch hẹn</th><th class="px-5 py-3">Ngày lập</th><th class="px-5 py-3 text-right">Tổng tiền</th><th class="px-5 py-3">Trạng thái</th><th class="px-5 py-3"></th></tr></thead>
-            <tbody class="divide-y divide-slate-100">
-              @for (receipt of patientReceipts(); track receipt.id) {
-                <tr class="hover:bg-sky-50/40">
-                  <td class="px-5 py-3 font-semibold text-slate-900">{{ receipt.invoiceCode }}</td>
-                  <td class="px-5 py-3 text-slate-600">{{ receipt.appointmentCode }}</td>
-                  <td class="px-5 py-3 text-slate-600">{{ receipt.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
-                  <td class="px-5 py-3 text-right font-mono font-semibold">{{ receipt.totalAmount | number:'1.0-0' }} đ</td>
-                  <td class="px-5 py-3"><span class="rounded-full px-2.5 py-1 text-xs font-semibold" [class.bg-emerald-50]="receipt.status === 'PAID'" [class.text-emerald-700]="receipt.status === 'PAID'" [class.bg-amber-50]="receipt.status === 'PENDING'" [class.text-amber-800]="receipt.status === 'PENDING'" [class.bg-slate-100]="receipt.status === 'CANCELLED'" [class.text-slate-600]="receipt.status === 'CANCELLED'">{{ receipt.status === 'PAID' ? 'Đã thanh toán' : receipt.status === 'PENDING' ? 'Chờ thanh toán' : 'Đã hủy' }}</span></td>
-                  <td class="px-5 py-3 text-right"><button type="button" (click)="showReceipt(receipt)" class="rounded-lg px-3 py-1.5 font-semibold text-sky-700 hover:bg-sky-100">Chi tiết</button></td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      }
-    </section>
-    }
-
-    @if (invoiceResult(); as receipt) {
-      <section class="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm print:mt-0 print:border-0 print:shadow-none">
-        <div class="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 p-5">
-          <div>
-            <p class="text-xs font-semibold uppercase tracking-wide text-sky-700">ClinicOne · Phiếu TT</p>
-            <h2 class="mt-1 text-xl font-bold text-slate-900">{{ receipt.invoiceCode }}</h2>
-            @if (receiptAppointmentCode(receipt); as appointmentCode) {
-              <p class="mt-1 text-sm text-slate-600">Lịch hẹn {{ appointmentCode }}</p>
+    } @else if (profiles().length === 0) {
+      <section class="rounded-xl border border-slate-200 bg-white px-5 py-12 text-center print:hidden">
+        <mat-icon class="!h-9 !w-9 !text-4xl text-slate-400">folder_open</mat-icon>
+        <p class="mt-3 font-semibold text-slate-800">Chưa có phiếu khám hoặc đơn thuốc</p>
+        <button type="button" (click)="changePhone()" class="mt-5 rounded-lg border border-slate-300 px-4 py-2 font-semibold text-slate-700 hover:bg-slate-50">Tra cứu lại</button>
+      </section>
+    } @else {
+      @if (profiles().length > 1) {
+        <section class="mb-5 rounded-xl border border-slate-200 bg-white p-5 print:hidden">
+          <h2 class="mb-3 font-semibold text-slate-900">Chọn hồ sơ</h2>
+          <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            @for (profile of profiles(); track profile.profileId) {
+              <button type="button" (click)="selectProfile(profile.profileId)"
+                [attr.data-testid]="'select-profile-' + profile.profileId"
+                class="flex min-h-16 items-center justify-between gap-3 rounded-lg border px-4 py-3 text-left transition"
+                [class.border-sky-500]="selectedProfileId() === profile.profileId"
+                [class.bg-sky-50]="selectedProfileId() === profile.profileId"
+                [class.border-slate-200]="selectedProfileId() !== profile.profileId"
+                [class.hover:bg-slate-50]="selectedProfileId() !== profile.profileId">
+                <span><strong class="block text-slate-900">{{ profile.fullName }}</strong><span class="text-sm text-slate-500">{{ profile.relationship }}</span></span>
+                <span class="text-sm font-semibold text-sky-700">Xem</span>
+              </button>
             }
           </div>
-          <div class="flex items-center gap-2 print:hidden">
-            <span class="rounded-full px-3 py-1.5 text-sm font-semibold"
-              [class.bg-emerald-50]="receipt.status === 'PAID'"
-              [class.text-emerald-700]="receipt.status === 'PAID'"
-              [class.bg-amber-50]="receipt.status === 'PENDING'"
-              [class.text-amber-800]="receipt.status === 'PENDING'"
-              [class.bg-slate-100]="receipt.status === 'CANCELLED'"
-              [class.text-slate-600]="receipt.status === 'CANCELLED'">
-              {{ receipt.status === 'PAID' ? 'Đã thanh toán' : receipt.status === 'PENDING' ? 'Chờ thanh toán' : 'Đã hủy' }}
-            </span>
-            <button type="button" (click)="printInvoice()" class="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold hover:bg-slate-50">In phiếu</button>
-            <button type="button" (click)="resetSearch()" class="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold hover:bg-slate-50">Tra cứu khác</button>
+        </section>
+      }
+
+      @if (selectedProfile(); as profile) {
+        <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm print:border-0 print:shadow-none">
+          <header class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
+            <div><h2 class="text-lg font-bold text-slate-900">{{ profile.fullName }}</h2><p class="text-sm text-slate-500">{{ profile.relationship }}</p></div>
+            <button type="button" (click)="changePhone()" class="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 print:hidden">Tra cứu lại</button>
+          </header>
+
+          <div class="flex gap-2 border-b border-slate-200 px-5 print:hidden" role="tablist" aria-label="Loại hồ sơ">
+            <button type="button" role="tab" data-testid="invoice-tab" (click)="setTab('invoices')"
+              [attr.aria-selected]="selectedTab() === 'invoices'"
+              class="border-b-2 px-3 py-3 font-semibold"
+              [class.border-sky-600]="selectedTab() === 'invoices'" [class.text-sky-700]="selectedTab() === 'invoices'"
+              [class.border-transparent]="selectedTab() !== 'invoices'" [class.text-slate-600]="selectedTab() !== 'invoices'">PTT</button>
+            <button type="button" role="tab" data-testid="prescription-tab" (click)="setTab('prescriptions')"
+              [attr.aria-selected]="selectedTab() === 'prescriptions'"
+              class="border-b-2 px-3 py-3 font-semibold"
+              [class.border-sky-600]="selectedTab() === 'prescriptions'" [class.text-sky-700]="selectedTab() === 'prescriptions'"
+              [class.border-transparent]="selectedTab() !== 'prescriptions'" [class.text-slate-600]="selectedTab() !== 'prescriptions'">Đơn thuốc</button>
           </div>
-        </div>
 
-        <div class="grid gap-4 border-b border-slate-100 p-5 sm:grid-cols-2">
-          <p><span class="text-slate-500">Người bệnh</span><br /><strong>{{ receipt.patientName }}</strong></p>
-          @if (receiptPatientPhone(receipt); as patientPhone) {
-            <p><span class="text-slate-500">Số điện thoại</span><br /><strong>{{ patientPhone }}</strong></p>
+          @if (selectedTab() === 'invoices') {
+            @if (profile.invoices.length === 0) {
+              <p class="px-5 py-10 text-center text-slate-500">Chưa có phiếu thanh toán.</p>
+            } @else {
+              <div class="overflow-x-auto print:hidden">
+                <table class="w-full min-w-[600px] text-left text-sm">
+                  <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-5 py-3">Mã phiếu</th><th class="px-5 py-3">Ngày lập</th><th class="px-5 py-3 text-right">Tổng tiền</th><th class="px-5 py-3">Trạng thái</th><th class="px-5 py-3"></th></tr></thead>
+                  <tbody class="divide-y divide-slate-100">
+                    @for (invoice of profile.invoices; track $index) {
+                      <tr><td class="px-5 py-3 font-semibold">{{ invoice.invoiceCode }}</td><td class="px-5 py-3">{{ invoice.createdAt | date:'dd/MM/yyyy HH:mm' }}</td><td class="px-5 py-3 text-right font-semibold">{{ invoice.totalAmount | number:'1.0-0' }} đ</td><td class="px-5 py-3">{{ invoice.status === 'PAID' ? 'Đã TT' : invoice.status === 'PENDING' ? 'Chờ TT' : 'Đã hủy' }}</td><td class="px-5 py-3 text-right"><button type="button" (click)="showInvoice(invoice)" class="font-semibold text-sky-700 hover:underline">Chi tiết</button></td></tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          } @else {
+            @if (profile.medicalRecords.length === 0) {
+              <p class="px-5 py-10 text-center text-slate-500">Chưa có đơn thuốc.</p>
+            } @else {
+              <div class="divide-y divide-slate-100">
+                @for (record of profile.medicalRecords; track record.id) {
+                  <article class="px-5 py-5">
+                    <div class="flex flex-wrap items-start justify-between gap-2"><div><h3 class="font-semibold text-slate-900">{{ record.diagnosis || 'Phiếu khám' }}</h3><p class="mt-1 text-sm text-slate-600">{{ record.doctorName }} · {{ record.specialty || 'Phòng khám' }}</p></div><time class="text-sm text-slate-500">{{ record.signedAt | date:'dd/MM/yyyy HH:mm' }}</time></div>
+                    @if (record.prescription) { <p class="mt-3 whitespace-pre-line text-sm text-slate-700">{{ record.prescription }}</p> }
+                    @if (record.prescriptionLines.length > 0) {
+                      <div class="mt-3 divide-y divide-slate-100 rounded-lg border border-slate-200">
+                        @for (line of record.prescriptionLines; track $index) {
+                          <div class="grid gap-1 px-4 py-3 sm:grid-cols-[1fr_auto]"><div><strong>{{ line.medicationName }}</strong><p class="text-sm text-slate-600">{{ line.dosage }} · {{ line.instructions }}</p></div><span class="text-sm text-slate-600">{{ line.quantity }} {{ line.unit }}</span></div>
+                        }
+                      </div>
+                    }
+                  </article>
+                }
+              </div>
+            }
           }
-          <p><span class="text-slate-500">Bác sĩ</span><br /><strong>{{ receipt.doctorName }}</strong></p>
-          <p><span class="text-slate-500">Chuyên khoa</span><br /><strong>{{ receipt.specialty }}</strong></p>
-        </div>
+        </section>
+      }
+    }
 
-        <div class="overflow-x-auto">
-          <table class="w-full min-w-[520px] text-left text-sm">
-            <thead class="bg-slate-50 text-xs uppercase text-slate-500">
-              <tr><th class="px-5 py-3">Nội dung</th><th class="px-5 py-3 text-right">Số lượng</th><th class="px-5 py-3 text-right">Thành tiền</th></tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100">
-              @for (item of receipt.items; track $index) {
-                <tr>
-                  <td class="px-5 py-3 font-medium text-slate-800">{{ item.itemName }}</td>
-                  <td class="px-5 py-3 text-right">{{ item.quantity }} {{ item.unit || '' }}</td>
-                  <td class="px-5 py-3 text-right font-mono">{{ item.totalPrice | number:'1.0-0' }} đ</td>
-                </tr>
-              }
-            </tbody>
-            <tfoot class="border-t border-slate-200">
-              <tr><th colspan="2" class="px-5 py-2 text-right font-medium text-slate-600">Đã thanh toán</th><td class="px-5 py-2 text-right font-mono">{{ receipt.paidAmount | number:'1.0-0' }} đ</td></tr>
-              <tr><th colspan="2" class="px-5 py-3 text-right text-base font-bold text-slate-900">Tổng cộng</th><td class="px-5 py-3 text-right font-mono text-lg font-bold text-sky-700">{{ receipt.totalAmount | number:'1.0-0' }} đ</td></tr>
-            </tfoot>
-          </table>
+    @if (selectedInvoice(); as invoice) {
+      <section class="mt-5 overflow-hidden rounded-xl border border-slate-200 bg-white print:mt-0 print:border-0">
+        <header class="flex items-center justify-between border-b border-slate-200 p-5">
+          <div><p class="text-sm font-semibold text-sky-700">ClinicOne · PTT</p><h2 class="mt-1 text-xl font-bold">{{ invoice.invoiceCode }}</h2></div>
+          <div class="flex gap-2 print:hidden"><button type="button" (click)="printInvoice()" class="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold hover:bg-slate-50">In phiếu</button><button type="button" (click)="clearInvoice()" class="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold hover:bg-slate-50">Đóng</button></div>
+        </header>
+        <div class="grid gap-3 border-b border-slate-100 p-5 sm:grid-cols-2"><p><span class="text-slate-500">Người bệnh</span><br /><strong>{{ invoice.patientName }}</strong></p><p><span class="text-slate-500">Bác sĩ</span><br /><strong>{{ invoice.doctorName }}</strong></p><p><span class="text-slate-500">Chuyên khoa</span><br /><strong>{{ invoice.specialty }}</strong></p><p><span class="text-slate-500">Trạng thái</span><br /><strong>{{ invoice.status === 'PAID' ? 'Đã thanh toán' : invoice.status === 'PENDING' ? 'Chờ thanh toán' : 'Đã hủy' }}</strong></p></div>
+        <div class="divide-y divide-slate-100">
+          @for (item of invoice.items; track $index) {
+            <div class="flex justify-between gap-4 px-5 py-3"><span>{{ item.itemName }} · {{ item.quantity }} {{ item.unit || '' }}</span><strong>{{ item.totalPrice | number:'1.0-0' }} đ</strong></div>
+          }
         </div>
+        <div class="flex justify-end gap-10 border-t border-slate-200 px-5 py-4"><span>Đã thanh toán: <strong>{{ invoice.paidAmount | number:'1.0-0' }} đ</strong></span><span>Tổng: <strong>{{ invoice.totalAmount | number:'1.0-0' }} đ</strong></span></div>
       </section>
     }
   </div>

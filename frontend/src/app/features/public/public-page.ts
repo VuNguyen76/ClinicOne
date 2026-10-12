@@ -30,7 +30,6 @@ export class PublicPage {
     { label: 'Quy trình', route: '/process' },
     { label: 'Hướng dẫn', route: '/common-issues' },
     { label: 'Thắc mắc', route: '/support' },
-    { label: 'Liên hệ', route: '/contact' },
   ];
 
   readonly pageContent: Record<PublicPageKey, { eyebrow: string; title: string; description: string; image: string }> = {

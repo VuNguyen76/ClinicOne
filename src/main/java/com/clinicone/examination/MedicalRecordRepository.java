@@ -13,8 +13,10 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface MedicalRecordRepository extends JpaRepository<MedicalRecord, UUID> {
+    @EntityGraph(attributePaths = {"session", "session.appointment", "prescriptionLines"})
     List<MedicalRecord> findTop10BySession_Appointment_Patient_IdAndSignedAtIsNotNullOrderBySignedAtDesc(UUID patientId);
 
+    @EntityGraph(attributePaths = {"session", "session.appointment", "prescriptionLines"})
     List<MedicalRecord> findTop10BySession_Appointment_PatientProfile_IdAndSignedAtIsNotNullOrderBySignedAtDesc(
             UUID patientProfileId);
 
