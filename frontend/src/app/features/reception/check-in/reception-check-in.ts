@@ -60,6 +60,10 @@ export class ReceptionCheckIn implements OnInit {
   protected readonly walkInRegistration = signal(false);
   protected readonly walkInTemporaryProfile = signal(false);
   protected readonly walkInNeedsPasswordChange = signal(false);
+  protected readonly walkInAccountLocked = signal(false);
+  protected readonly pendingAccountNeedsOtp = signal(false);
+  protected readonly activationOtpRequested = signal(false);
+  protected readonly activationOtpVerified = signal(false);
   protected readonly walkInProfileNeedsCompletion = signal(false);
   protected readonly completionProfile = signal<ReceptionPatientProfile | null>(null);
   protected readonly walkInOtp = signal('');
@@ -594,6 +598,10 @@ export class ReceptionCheckIn implements OnInit {
     this.walkInRegistration.set(false);
     this.walkInTemporaryProfile.set(false);
     this.walkInNeedsPasswordChange.set(false);
+    this.walkInAccountLocked.set(false);
+    this.pendingAccountNeedsOtp.set(false);
+    this.activationOtpRequested.set(false);
+    this.activationOtpVerified.set(false);
     this.walkInProfileNeedsCompletion.set(false);
     this.completionProfile.set(null);
     this.walkInOtp.set('');
@@ -661,6 +669,52 @@ export class ReceptionCheckIn implements OnInit {
     });
   }
 
+  protected requestPendingActivationOtp(): void {
+    const phone = this.walkInPhone().trim();
+    if (!/^0\d{9}$/.test(phone)) {
+      this.error.set('Nhập số điện thoại hợp lệ trước khi gửi OTP.');
+      return;
+    }
+    this.registrationLoading.set(true);
+    this.error.set('');
+    this.authApi.requestReceptionPatientOtp(phone).subscribe({
+      next: () => {
+        this.registrationLoading.set(false);
+        this.activationOtpRequested.set(true);
+        this.activationOtpVerified.set(false);
+        this.walkInOtp.set('');
+        this.notice.set('Đã gửi mã OTP. Nhập mã mới để xác minh tài khoản.');
+      },
+      error: (response) => {
+        this.registrationLoading.set(false);
+        this.handleError(response);
+      },
+    });
+  }
+
+  protected verifyPendingActivationOtp(): void {
+    const phone = this.walkInPhone().trim();
+    const code = this.walkInOtp().trim();
+    if (!this.activationOtpRequested() || !/^\d{6}$/.test(code)) {
+      this.error.set('Gửi OTP và nhập mã xác minh gồm 6 chữ số.');
+      return;
+    }
+    this.registrationLoading.set(true);
+    this.error.set('');
+    this.authApi.verifySmsOtp(phone, 'REGISTRATION', code).subscribe({
+      next: () => {
+        this.registrationLoading.set(false);
+        this.activationOtpVerified.set(true);
+        this.notice.set('Số điện thoại đã được xác minh. Bạn có thể đặt mật khẩu mới.');
+      },
+      error: (response) => {
+        this.registrationLoading.set(false);
+        this.activationOtpVerified.set(false);
+        this.handleError(response);
+      },
+    });
+  }
+
   protected submitRegistration(): void {
     const phone = this.walkInPhone().trim();
     if (!/^0\d{9}$/.test(phone) || (!this.walkInTemporaryProfile() && !/^\d{6}$/.test(this.walkInOtp()))
@@ -721,6 +775,9 @@ export class ReceptionCheckIn implements OnInit {
         this.registrationLoading.set(false);
         this.walkInRegistration.set(false);
         this.walkInNeedsPasswordChange.set(true);
+        this.pendingAccountNeedsOtp.set(false);
+        this.activationOtpRequested.set(true);
+        this.activationOtpVerified.set(true);
         this.notice.set(`Đã tạo tài khoản cho ${response.fullName}.`);
       },
       error: (response) => {
@@ -741,6 +798,10 @@ export class ReceptionCheckIn implements OnInit {
       this.error.set('Hai lần nhập mật khẩu mới không giống nhau.');
       return;
     }
+    if (this.pendingAccountNeedsOtp() && !this.activationOtpVerified()) {
+      this.error.set('Gửi và xác minh OTP mới trước khi đặt mật khẩu.');
+      return;
+    }
     this.activationLoading.set(true);
     this.error.set('');
     this.authApi.activateReceptionPatientAccount(phone, password, this.activationConfirmPassword()).subscribe({
@@ -754,6 +815,9 @@ export class ReceptionCheckIn implements OnInit {
       },
       error: (response) => {
         this.activationLoading.set(false);
+        if (response?.error?.code === 'ACTIVATION_OTP_REQUIRED') {
+          this.activationOtpVerified.set(false);
+        }
         this.handleError(response);
       },
     });
@@ -771,15 +835,28 @@ export class ReceptionCheckIn implements OnInit {
       next: (profiles) => {
         this.walkInProfiles.set(profiles);
         const selected = profiles.find((profile) => profile.primaryProfile) ?? profiles[0];
+        const accountLocked = profiles.some((profile) => profile.accountStatus === 'LOCKED');
+        const passwordChangeRequired = profiles.some((profile) => profile.mustChangePassword);
+        this.walkInAccountLocked.set(accountLocked);
         this.walkInProfileId.set(selected?.id ?? '');
         this.prepareProfileCompletion(selected);
-        if (profiles.some((profile) => profile.mustChangePassword || profile.accountStatus === 'LOCKED')) {
+        if (accountLocked) {
+          this.walkInNeedsPasswordChange.set(false);
+          this.pendingAccountNeedsOtp.set(false);
+          this.activationOtpRequested.set(false);
+          this.activationOtpVerified.set(false);
+          this.notice.set('Tài khoản đang bị khóa; cần mở khóa trước khi tiếp nhận.');
+        } else if (passwordChangeRequired) {
           this.walkInNeedsPasswordChange.set(true);
-          this.notice.set(profiles.some((profile) => profile.accountStatus === 'LOCKED')
-            ? 'Tài khoản đang bị khóa. Cần xử lý tài khoản trước khi tiếp nhận.'
-            : 'Người bệnh chưa kích hoạt tài khoản. Hãy đặt mật khẩu mới trước khi tiếp tục.');
+          this.pendingAccountNeedsOtp.set(true);
+          this.activationOtpRequested.set(false);
+          this.activationOtpVerified.set(false);
+          this.notice.set('Người bệnh chưa kích hoạt tài khoản. Hãy đặt mật khẩu mới trước khi tiếp tục.');
         } else {
           this.walkInNeedsPasswordChange.set(false);
+          this.pendingAccountNeedsOtp.set(false);
+          this.activationOtpRequested.set(false);
+          this.activationOtpVerified.set(false);
         }
         this.walkInProfilesLoading.set(false);
       },
@@ -788,6 +865,10 @@ export class ReceptionCheckIn implements OnInit {
         if (response.status === 404) {
         this.walkInRegistration.set(true);
           this.walkInTemporaryProfile.set(false);
+          this.walkInAccountLocked.set(false);
+          this.pendingAccountNeedsOtp.set(false);
+          this.activationOtpRequested.set(false);
+          this.activationOtpVerified.set(false);
           this.error.set('');
           return;
         }

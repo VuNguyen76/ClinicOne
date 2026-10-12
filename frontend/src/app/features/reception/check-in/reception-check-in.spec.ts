@@ -321,6 +321,67 @@ describe('ReceptionCheckIn', () => {
     profilesAfterActivation.flush([]);
   });
 
+  it('lets an existing pending account request and submit a fresh activation OTP', () => {
+    const component = fixture.componentInstance as any;
+    component.activeTab.set('intake');
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('[data-testid="open-walk-in"]') as HTMLButtonElement).click();
+    http.expectOne((item) => item.url === '/api/v1/specialties').flush([]);
+    component.walkInPhone.set('0912345678');
+    component.loadWalkInProfiles();
+    http.expectOne('/api/v1/reception/profiles?phone=0912345678').flush([{
+      id: 'p-pending', fullName: 'Nguyễn An', phone: '0912345678', primaryProfile: true,
+      accountStatus: 'ACTIVE', mustChangePassword: true,
+    }]);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[data-testid="pending-account-otp"]')).not.toBeNull();
+    component.activationPassword.set('new-password');
+    component.activationConfirmPassword.set('new-password');
+    component.activatePendingAccount();
+    http.expectNone('/api/v1/auth/activate');
+    expect(component.error()).toContain('xác minh OTP');
+
+    component.requestPendingActivationOtp();
+    http.expectOne('/api/v1/reception/patients/request-otp').flush({ expiresInSeconds: 300, retryAfterSeconds: 60 });
+    fixture.detectChanges();
+
+    const otpInput = fixture.nativeElement.querySelector('[data-testid="pending-account-otp-input"]') as HTMLInputElement;
+    expect(otpInput).not.toBeNull();
+    component.walkInOtp.set('123456');
+    component.verifyPendingActivationOtp();
+    const verificationRequest = http.expectOne('/api/v1/auth/verify-sms-otp');
+    expect(verificationRequest.request.body).toEqual({ phone: '0912345678', purpose: 'REGISTRATION', code: '123456' });
+    verificationRequest.flush({ verified: true });
+    component.activatePendingAccount();
+
+    const activationRequest = http.expectOne('/api/v1/auth/activate');
+    expect(activationRequest.request.body).toEqual({
+      phone: '0912345678', otpCode: null, newPassword: 'new-password', confirmPassword: 'new-password',
+    });
+    activationRequest.flush(null);
+    http.expectOne('/api/v1/reception/profiles?phone=0912345678').flush([]);
+  });
+
+  it('blocks reception for a locked account instead of showing an unusable activation form', () => {
+    const component = fixture.componentInstance as any;
+    component.activeTab.set('intake');
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('[data-testid="open-walk-in"]') as HTMLButtonElement).click();
+    http.expectOne((item) => item.url === '/api/v1/specialties').flush([]);
+    component.walkInPhone.set('0912345678');
+    component.loadWalkInProfiles();
+    http.expectOne('/api/v1/reception/profiles?phone=0912345678').flush([{
+      id: 'p-locked', fullName: 'Nguyễn An', phone: '0912345678', primaryProfile: true,
+      accountStatus: 'LOCKED', mustChangePassword: false,
+    }]);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[data-testid="locked-account-message"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('[name="activationPassword"]')).toBeNull();
+    expect(component.walkInNeedsPasswordChange()).toBe(false);
+  });
+
   it('creates a temporary profile when the phone cannot be verified', () => {
     const component = fixture.componentInstance as any;
     component.activeTab.set('intake');

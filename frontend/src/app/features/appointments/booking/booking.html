@@ -187,6 +187,7 @@
                   class="flex min-h-14 items-center gap-3 rounded-xl border border-slate-200/90 px-3.5 py-3 text-left transition hover:border-[#0284c7] hover:bg-sky-50/40"
                   [class.border-[#0284c7]]="selectedDoctorId() === ''"
                   [class.bg-sky-50/60]="selectedDoctorId() === ''"
+                  [disabled]="holdBusy()"
                   (click)="chooseDoctor('')"
                 >
                   <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-sky-100 text-[#0284c7]">
@@ -204,6 +205,7 @@
                     class="flex min-h-14 items-center gap-3 rounded-xl border border-slate-200/90 px-3.5 py-3 text-left transition hover:border-[#0284c7] hover:bg-sky-50/40"
                     [class.border-[#0284c7]]="selectedDoctorId() === doctor.id"
                     [class.bg-sky-50/60]="selectedDoctorId() === doctor.id"
+                    [disabled]="holdBusy()"
                     (click)="chooseDoctor(doctor.id)"
                   >
                     <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-sky-100 text-[#0284c7]">
@@ -231,7 +233,7 @@
                   type="button"
                   class="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600 transition hover:border-[#0284c7] hover:bg-slate-50 hover:text-[#0284c7] disabled:cursor-not-allowed disabled:opacity-30"
                   aria-label="Tháng trước"
-                  [disabled]="isPreviousMonthDisabled()"
+                  [disabled]="isPreviousMonthDisabled() || holdBusy()"
                   (click)="previousMonth()"
                 >
                   <mat-icon class="!h-5 !w-5 !text-[20px]">chevron_left</mat-icon>
@@ -240,7 +242,7 @@
                   type="button"
                   class="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600 transition hover:border-[#0284c7] hover:bg-slate-50 hover:text-[#0284c7] disabled:cursor-not-allowed disabled:opacity-30"
                   aria-label="Tháng sau"
-                  [disabled]="isNextMonthDisabled()"
+                  [disabled]="isNextMonthDisabled() || holdBusy()"
                   (click)="nextMonth()"
                 >
                   <mat-icon class="!h-5 !w-5 !text-[20px]">chevron_right</mat-icon>
@@ -263,7 +265,7 @@
                   [class.border-[#0284c7]]="selectedDate() === date.iso"
                   [class.bg-sky-50]="selectedDate() === date.iso"
                   [class.text-slate-400]="!date.inCurrentMonth"
-                  [disabled]="!date.inCurrentMonth || date.iso < today || date.iso > bookingWindowEndIso() || slotsLoading()"
+                  [disabled]="!date.inCurrentMonth || date.iso < today || date.iso > bookingWindowEndIso() || slotsLoading() || holdBusy()"
                   (click)="chooseDate(date)"
                 >
                   <span class="block text-xs sm:text-sm font-bold" [class.text-slate-900]="date.inCurrentMonth">{{ date.day }}</span>
@@ -305,6 +307,7 @@
                         [class.border-[#0284c7]]="selectedSlot() === slot.key"
                         [class.bg-sky-50]="selectedSlot() === slot.key"
                         [class.text-[#0284c7]]="selectedSlot() === slot.key"
+                        [disabled]="holdBusy()"
                         (click)="chooseSlot(slot)"
                       >
                         <span class="block text-sm font-bold text-slate-900 group-hover:text-[#0284c7]">{{ slot.label }}</span>
@@ -324,6 +327,7 @@
             <button
               type="button"
               class="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 active:scale-[0.98]"
+              [disabled]="holdBusy()"
               (click)="back()"
             >
               Quay lại
@@ -392,6 +396,7 @@
             <select
               class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-medium text-slate-800 outline-none transition focus:border-[#0284c7] focus:ring-3 focus:ring-sky-500/10"
               formControlName="profileId"
+              [disabled]="holdBusy()"
               (change)="onProfileChange($event)"
             >
               @if (primaryProfile(); as primary) {
@@ -460,6 +465,7 @@
             <button
               type="button"
               class="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 active:scale-[0.98]"
+              [disabled]="holdBusy()"
               (click)="back()"
             >
               Quay lại
@@ -467,9 +473,9 @@
             <button
               type="submit"
               class="inline-flex min-h-10 items-center justify-center rounded-xl bg-[#0284c7] px-6 text-sm font-semibold text-white transition hover:bg-[#0369a1] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-              [disabled]="busy"
+              [disabled]="busy || holdBusy()"
             >
-              {{ busy ? 'Đang lưu...' : 'Xác nhận đặt lịch' }}
+              {{ holdBusy() ? 'Đang giữ chỗ...' : busy ? 'Đang lưu...' : 'Xác nhận đặt lịch' }}
             </button>
           </div>
         </form>
