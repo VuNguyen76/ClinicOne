@@ -170,8 +170,9 @@ export class RoomManagement implements OnInit {
     const room = this.qrRoom();
     const image = this.qrImage();
     if (!room || !image) return;
-    const printWindow = window.open('', '_blank', 'noopener,noreferrer,width=640,height=760');
+    const printWindow = window.open('', '_blank', 'width=640,height=760');
     if (!printWindow) return;
+    printWindow.opener = null;
     const title = printWindow.document.createElement('h1');
     title.textContent = `Phòng ${room.name}`;
     const subtitle = printWindow.document.createElement('p');

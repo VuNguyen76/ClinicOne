@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
+import { vi } from 'vitest';
 import { RoomManagement } from './room-management';
 
 describe('RoomManagement', () => {
@@ -96,6 +97,33 @@ describe('RoomManagement', () => {
 
     expect(fixture.nativeElement.querySelector('[role="dialog"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('[data-testid="room-form-title"]').textContent).toContain('Sửa thông tin phòng');
+  });
+
+  it('prints the room QR instead of losing the popup handle to noopener', () => {
+    http.expectOne('/api/v1/specialties').flush([]);
+    http.expectOne('/api/v1/rooms').flush([]);
+    const createElement = vi.fn((tag: string) => ({ tag, textContent: '', src: '', alt: '', width: 0 }));
+    const printWindow = {
+      document: { createElement, head: { appendChild: vi.fn() }, body: { append: vi.fn() } },
+      opener: window,
+      focus: vi.fn(),
+      print: vi.fn(),
+    } as unknown as Window;
+    const open = vi.spyOn(window, 'open').mockImplementation((_url, _target, features) =>
+      features?.includes('noopener') ? null : printWindow,
+    );
+    const component = fixture.componentInstance as any;
+    component.qrRoom.set({ ...room('NOI-01', true), qrToken: 'room-token' });
+    component.qrImage.set('data:image/png;base64,qr');
+
+    try {
+      component.printQr();
+
+      expect(printWindow.print).toHaveBeenCalledOnce();
+      expect(printWindow.opener).toBeNull();
+    } finally {
+      open.mockRestore();
+    }
   });
 });
 
