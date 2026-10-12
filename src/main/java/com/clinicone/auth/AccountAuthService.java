@@ -89,7 +89,7 @@ public class AccountAuthService {
         return new RegistrationResponse(saved.getId(), saved.getPhone(), saved.getFullName());
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = {AuthException.class, OtpException.class})
     public LoginResponse loginBySmsOtp(SmsLoginRequest request) {
         otpService.verifySmsOtp(request.phone(), OtpPurpose.LOGIN, request.code());
         PatientAccount account = accountRepository.findByPhone(request.phone().trim())
@@ -97,7 +97,7 @@ public class AccountAuthService {
         return authenticateWithPassword(account, request.password());
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = AuthException.class)
     public LoginResponse login(PasswordLoginRequest request) {
         PatientAccount account = accountRepository.findByPhone(request.phone().trim())
                 .orElseThrow(this::invalidCredentials);

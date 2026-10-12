@@ -183,19 +183,19 @@ public class AppointmentAvailabilityService {
         }
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public void ensureBookable(String specialty, String doctorName, UUID doctorId, LocalDate appointmentDate,
                                 LocalTime startTime) {
         ensureBookable(specialty, doctorName, doctorId, appointmentDate, startTime, null, null);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public void ensureBookable(String specialty, String doctorName, UUID doctorId, LocalDate appointmentDate,
                                LocalTime startTime, UUID excludedHoldId) {
         ensureBookable(specialty, doctorName, doctorId, appointmentDate, startTime, excludedHoldId, null);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public void ensureBookable(String specialty, String doctorName, UUID doctorId, LocalDate appointmentDate,
                                LocalTime startTime, UUID excludedHoldId, UUID serviceId) {
         specialtyCatalog.require(specialty);
@@ -206,6 +206,13 @@ public class AppointmentAvailabilityService {
         if (appointmentDate.equals(clinicToday)
                 && (startTime == null || !startTime.isAfter(LocalTime.now(clock.withZone(CLINIC_ZONE))))) {
             throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_SLOT_INVALID", "Khung gio nay da qua.");
+        }
+        DoctorProfile lockedProfile = null;
+        if (doctorProfileRepository != null && doctorId != null) {
+            lockedProfile = doctorProfileRepository.findByStaffAccount_IdForUpdate(doctorId)
+                    .filter(DoctorProfile::isActive)
+                    .orElseThrow(() -> new AuthException(HttpStatus.CONFLICT, "DOCTOR_NOT_AVAILABLE",
+                            "Bác sĩ không còn lịch làm phù hợp."));
         }
         if (serviceId != null && generatedSlotRepository != null && doctorId != null) {
             List<GeneratedClinicSlot> generatedSlots = generatedSlotRepository
@@ -237,10 +244,7 @@ public class AppointmentAvailabilityService {
             throw new AuthException(HttpStatus.CONFLICT, "DOCTOR_REQUIRED",
                     "Vui lòng chọn bác sĩ từ một khung giờ đang mở.");
         }
-        DoctorProfile profile = doctorProfileRepository.findByStaffAccount_Id(doctorId)
-                .filter(DoctorProfile::isActive)
-                .orElseThrow(() -> new AuthException(HttpStatus.CONFLICT, "DOCTOR_NOT_AVAILABLE",
-                        "Bác sĩ không còn lịch làm phù hợp."));
+        DoctorProfile profile = lockedProfile;
         if (!profile.getSpecialty().equalsIgnoreCase(specialty)
                 || (doctorName != null && !profile.getStaffAccount().getFullName().equalsIgnoreCase(doctorName))) {
             throw new AuthException(HttpStatus.CONFLICT, "DOCTOR_SLOT_INVALID",

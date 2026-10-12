@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -102,5 +103,14 @@ class OtpServiceTest {
         assertEquals(1, challenge.getFailedAttempts());
         assertFalse(challenge.isVerified());
         verify(repository).save(challenge);
+    }
+
+    @Test
+    void verificationTransactionCommitsFailedAttemptBeforeReturningError() throws Exception {
+        Transactional transactional = OtpService.class
+                .getMethod("verifySmsOtp", String.class, OtpPurpose.class, String.class)
+                .getAnnotation(Transactional.class);
+
+        assertTrue(java.util.Arrays.asList(transactional.noRollbackFor()).contains(OtpException.class));
     }
 }

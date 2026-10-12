@@ -33,7 +33,7 @@ public class OtpService {
         return issueOtp(VietnamesePhoneNumbers.smsDestination(phone), purpose);
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = OtpException.class)
     public VerifyOtpResponse verifySmsOtp(String phone, OtpPurpose purpose, String code) {
         return verifyForDestination(VietnamesePhoneNumbers.smsDestination(phone), purpose, code);
     }

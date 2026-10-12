@@ -20,9 +20,11 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -67,6 +69,27 @@ class AppointmentHoldServiceTest {
     }
 
     @Test
+    void separateLoginSessionsDoNotReuseTheSameHoldClaim() {
+        when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account()));
+        when(holdRepository.findByHoldKey(any())).thenReturn(Optional.empty());
+        when(holdRepository.findByPatientIdAndSessionKeyAndExpiresAtAfter(eq(ACCOUNT_ID), any(), any()))
+                .thenReturn(List.of());
+        when(holdRepository.saveAndFlush(any(AppointmentHold.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        CreateAppointmentHoldRequest request = new CreateAppointmentHoldRequest("Nội tổng quát", "BS. An",
+                LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), DOCTOR_ID);
+
+        service.create(ACCOUNT_ID.toString(), request, "login-session-a");
+        service.create(ACCOUNT_ID.toString(), request, "login-session-b");
+
+        ArgumentCaptor<AppointmentHold> holds = ArgumentCaptor.forClass(AppointmentHold.class);
+        verify(holdRepository, times(2)).saveAndFlush(holds.capture());
+        assertNotEquals(holds.getAllValues().get(0).getHoldKey(), holds.getAllValues().get(1).getHoldKey());
+        assertEquals("login-session-a", holds.getAllValues().get(0).getSessionKey());
+        assertEquals("login-session-b", holds.getAllValues().get(1).getSessionKey());
+    }
+
+    @Test
     void createsProfileAwareHoldKey() {
         PatientAccount account = account();
         UUID profileId = UUID.randomUUID();
@@ -82,7 +105,7 @@ class AppointmentHoldServiceTest {
         ArgumentCaptor<AppointmentHold> captor = ArgumentCaptor.forClass(AppointmentHold.class);
         verify(holdRepository).saveAndFlush(captor.capture());
         AppointmentHold savedHold = captor.getValue();
-        assertTrue(savedHold.getHoldKey().contains(":PROFILE:" + profileId.toString()));
+        assertTrue(savedHold.getHoldKey().matches("[0-9a-f]{64}"));
     }
 
     @Test
@@ -233,6 +256,24 @@ class AppointmentHoldServiceTest {
 
         assertEquals("APPOINTMENT_HOLD_EXPIRED", exception.getCode());
         verify(holdRepository).delete(hold);
+    }
+
+    @Test
+    void rejectsBookingWithHoldFromDifferentLoginSession() throws Exception {
+        PatientAccount account = account();
+        UUID holdId = UUID.randomUUID();
+        AppointmentHold hold = AppointmentHold.create(account, "Ná»™i tá»•ng quÃ¡t", "BS. An", DOCTOR_ID,
+                LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), "hold-key", NOW.plusSeconds(600), null,
+                "login-session-a");
+        setId(hold, holdId);
+        when(holdRepository.findByIdAndPatientId(holdId, ACCOUNT_ID)).thenReturn(Optional.of(hold));
+
+        AuthException exception = assertThrows(AuthException.class, () -> service.requireForBooking(
+                ACCOUNT_ID.toString(), holdId, new CreateAppointmentRequest("Ná»™i tá»•ng quÃ¡t", "BS. An",
+                        LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), "Äau Ä‘áº§u", null, DOCTOR_ID, holdId),
+                "login-session-b"));
+
+        assertEquals("APPOINTMENT_HOLD_SESSION_MISMATCH", exception.getCode());
     }
 
     private PatientAccount account() {

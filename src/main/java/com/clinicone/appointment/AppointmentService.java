@@ -127,12 +127,18 @@ public class AppointmentService {
 
     @Transactional
     public AppointmentResponse create(String accountId, CreateAppointmentRequest request) {
-        return createInternal(accountId, request, null, false);
+        return createInternal(accountId, request, null, false, null);
     }
 
     @Transactional
     public AppointmentResponse create(String accountId, CreateAppointmentRequest request, String requestKey) {
-        return createInternal(accountId, request, requestKey, false);
+        return createInternal(accountId, request, requestKey, false, null);
+    }
+
+    @Transactional
+    public AppointmentResponse create(String accountId, CreateAppointmentRequest request, String requestKey,
+                                      String sessionKey) {
+        return createInternal(accountId, request, requestKey, false, sessionKey);
     }
 
     @Transactional
@@ -142,11 +148,11 @@ public class AppointmentService {
 
     @Transactional
     public AppointmentResponse createReception(String accountId, CreateAppointmentRequest request, String requestKey) {
-        return createInternal(accountId, request, requestKey, true);
+        return createInternal(accountId, request, requestKey, true, null);
     }
 
     private AppointmentResponse createInternal(String accountId, CreateAppointmentRequest request, String requestKey,
-                                               boolean allowOverCapacity) {
+                                               boolean allowOverCapacity, String sessionKey) {
         UUID patientId = AuthenticatedIds.patient(accountId);
         String normalizedRequestKey = IdempotencyKeys.optional(requestKey);
         if (normalizedRequestKey != null) {
@@ -178,7 +184,7 @@ public class AppointmentService {
                 throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_HOLD_UNAVAILABLE",
                         "Không thể xác nhận giữ chỗ lúc này. Vui lòng chọn lại khung giờ.");
             }
-            hold = holdService.requireForBooking(accountId, request.holdId(), request);
+            hold = holdService.requireForBooking(accountId, request.holdId(), request, sessionKey);
         }
         if (availabilityService != null && !allowOverCapacity) {
             if (hold == null) {

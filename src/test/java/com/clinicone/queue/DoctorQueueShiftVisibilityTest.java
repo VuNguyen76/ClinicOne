@@ -80,6 +80,12 @@ class DoctorQueueShiftVisibilityTest {
         when(roomRepository.findByCodeAndActiveTrueForUpdate("NOI-01")).thenReturn(Optional.of(room));
         when(roomRepository.findByQrTokenAndActiveTrue(anyString())).thenReturn(Optional.empty());
         when(doctorProfileRepository.findByStaffAccount_Id(DOCTOR_ID)).thenReturn(Optional.of(profile));
+        when(appointmentRepository.findByIdForUpdate(any(UUID.class))).thenAnswer(invocation -> {
+            UUID appointmentId = invocation.getArgument(0);
+            Optional<Appointment> staffAppointment = appointmentRepository.findById(appointmentId);
+            return staffAppointment.isPresent() ? staffAppointment
+                    : appointmentRepository.findByIdAndPatientId(appointmentId, PATIENT_ID);
+        });
         when(ticketRepository.findByAppointmentId(any(UUID.class))).thenReturn(Optional.empty());
         when(ticketRepository.findMaxQueueNumberByRoomCodeAndQueueDate("NOI-01", TODAY)).thenReturn(null);
         when(ticketRepository.save(any(QueueTicket.class))).thenAnswer(inv -> inv.getArgument(0));

@@ -43,6 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -378,7 +379,8 @@ class AppointmentServiceTest {
         when(appointmentRepository.findByPatientIdAndAppointmentDateAndStartTimeAndStatus(
                 ACCOUNT_ID, LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), AppointmentStatus.BOOKED))
                 .thenReturn(Optional.empty());
-        when(holdService.requireForBooking(eq(ACCOUNT_ID.toString()), eq(holdId), any())).thenReturn(hold);
+        when(holdService.requireForBooking(eq(ACCOUNT_ID.toString()), eq(holdId), any(), nullable(String.class)))
+                .thenReturn(hold);
 
         service.create(ACCOUNT_ID.toString(), new CreateAppointmentRequest("Nội khoa", "BS. Nguyễn An",
                 LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), "Đau đầu", null, null, holdId));

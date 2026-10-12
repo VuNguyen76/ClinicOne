@@ -10,6 +10,7 @@ import com.clinicone.doctor.DoctorSchedule;
 import com.clinicone.doctor.DoctorScheduleRepository;
 import com.clinicone.queue.ClinicRoom;
 import org.junit.jupiter.api.Test;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -346,6 +347,7 @@ class AppointmentAvailabilityServiceTest {
         DoctorProfile profile = mock(DoctorProfile.class);
         DoctorSchedule schedule = mock(DoctorSchedule.class);
         when(profile.getStaffAccount()).thenReturn(staff);
+        when(profile.isActive()).thenReturn(true);
         when(profile.getSpecialty()).thenReturn("Khám Tổng Quát");
         when(profile.getRoom()).thenReturn(room);
         when(staff.getId()).thenReturn(doctorStaffId);
@@ -387,6 +389,40 @@ class AppointmentAvailabilityServiceTest {
                         LocalTime.of(7, 30)));
 
         assertEquals("APPOINTMENT_SLOT_INVALID", exception.getCode());
+    }
+
+    @Test
+    void locksDoctorProfileBeforeCountingSlotCapacity() {
+        DoctorProfileRepository profileRepository = mock(DoctorProfileRepository.class);
+        DoctorScheduleRepository scheduleRepository = mock(DoctorScheduleRepository.class);
+        AppointmentAvailabilityService configuredService = new AppointmentAvailabilityService(
+                appointmentRepository, createSpecialtyCatalog(), profileRepository, scheduleRepository,
+                null, Clock.fixed(Instant.parse("2026-08-10T00:00:00Z"), ZoneOffset.UTC));
+        UUID doctorStaffId = UUID.randomUUID();
+        UUID profileId = UUID.randomUUID();
+        LocalDate appointmentDate = LocalDate.of(2026, 8, 10);
+        StaffAccount staff = mock(StaffAccount.class);
+        DoctorProfile profile = mock(DoctorProfile.class);
+        DoctorSchedule schedule = mock(DoctorSchedule.class);
+        when(profile.getStaffAccount()).thenReturn(staff);
+        when(profile.getSpecialty()).thenReturn("Khám Tổng Quát");
+        when(profile.getId()).thenReturn(profileId);
+        when(staff.getId()).thenReturn(doctorStaffId);
+        when(staff.getFullName()).thenReturn("Bác sĩ An");
+        when(profileRepository.findByStaffAccount_IdForUpdate(doctorStaffId)).thenReturn(Optional.of(profile));
+        when(profile.isActive()).thenReturn(true);
+        when(schedule.getDoctorProfile()).thenReturn(profile);
+        when(schedule.getDayOfWeek()).thenReturn(appointmentDate.getDayOfWeek());
+        when(schedule.getStartTime()).thenReturn(LocalTime.of(8, 30));
+        when(schedule.getEndTime()).thenReturn(LocalTime.of(9, 30));
+        when(schedule.getSlotDurationMinutes()).thenReturn(60);
+        when(scheduleRepository.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(profileId,
+                appointmentDate.getDayOfWeek())).thenReturn(List.of(schedule));
+
+        configuredService.ensureBookable("Khám Tổng Quát", "Bác sĩ An", doctorStaffId,
+                appointmentDate, LocalTime.of(8, 30));
+
+        verify(profileRepository).findByStaffAccount_IdForUpdate(doctorStaffId);
     }
 
     @Test

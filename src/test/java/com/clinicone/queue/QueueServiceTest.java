@@ -36,6 +36,7 @@ import static org.mockito.Mockito.*;
 class QueueServiceTest {
     private static final UUID ACCOUNT_ID = UUID.fromString("7d9e3fb4-1045-4ca4-86d2-7d1fca4c1a13");
     private static final UUID APPOINTMENT_ID = UUID.fromString("ad9e3fb4-1045-4ca4-86d2-7d1fca4c1a13");
+    private static final UUID DEFAULT_DOCTOR_ID = UUID.fromString("cccccccc-cccc-4ccc-8ccc-cccccccccccc");
     private static final LocalDate TODAY = LocalDate.of(2026, 8, 6);
 
     private ClinicRoomRepository roomRepository;
@@ -61,10 +62,16 @@ class QueueServiceTest {
         room = ClinicRoom.create("NOI-01", "Phòng Nội tổng quát 01", "Nội tổng quát");
         appointment = appointment("Nội tổng quát", TODAY);
         setId(appointment, APPOINTMENT_ID);
+        StaffAccount assignedDoctor = StaffAccount.create("default-doctor", "hash", appointment.getDoctorName(), StaffRole.DOCTOR);
+        setId(assignedDoctor, DEFAULT_DOCTOR_ID);
+        DoctorProfile assignedProfile = DoctorProfile.create(assignedDoctor, appointment.getSpecialty(), room);
+        setField(appointment, "doctorStaffId", DEFAULT_DOCTOR_ID);
+        when(doctorProfileRepository.findByStaffAccount_Id(DEFAULT_DOCTOR_ID)).thenReturn(Optional.of(assignedProfile));
         when(roomRepository.findByCodeAndActiveTrue("NOI-01")).thenReturn(Optional.of(room));
         when(roomRepository.findByCodeAndActiveTrueForUpdate("NOI-01")).thenReturn(Optional.of(room));
         when(appointmentRepository.findByIdAndPatientId(APPOINTMENT_ID, ACCOUNT_ID)).thenReturn(Optional.of(appointment));
         when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
+        when(appointmentRepository.findByIdForUpdate(APPOINTMENT_ID)).thenAnswer(invocation -> Optional.of(appointment));
         when(ticketRepository.findByAppointmentId(APPOINTMENT_ID)).thenReturn(Optional.empty());
         when(ticketRepository.findMaxQueueNumberByRoomCodeAndQueueDate("NOI-01", TODAY)).thenReturn(4);
         when(ticketRepository.save(any(QueueTicket.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -83,6 +90,7 @@ class QueueServiceTest {
         setId(appointment, APPOINTMENT_ID);
         when(appointmentRepository.findByIdAndPatientId(APPOINTMENT_ID, ACCOUNT_ID))
                 .thenReturn(Optional.of(appointment));
+        when(appointmentRepository.findByIdForUpdate(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
 
         AuthException exception = assertThrows(AuthException.class,
                 () -> service.checkIn(ACCOUNT_ID.toString(), "NOI-01", APPOINTMENT_ID));
@@ -103,6 +111,7 @@ class QueueServiceTest {
         var sessionCaptor = org.mockito.ArgumentCaptor.forClass(ExaminationSession.class);
         verify(examinationSessionRepository).save(sessionCaptor.capture());
         assertEquals(ExaminationSessionStatus.SCHEDULED, sessionCaptor.getValue().getStatus());
+        verify(appointmentRepository).findByIdForUpdate(APPOINTMENT_ID);
     }
 
     @Test
@@ -350,7 +359,7 @@ class QueueServiceTest {
     @Test
     void rejectsCheckInForAnotherSpecialty() {
         Appointment otherSpecialty = appointment("Nhi khoa", TODAY);
-        when(appointmentRepository.findByIdAndPatientId(APPOINTMENT_ID, ACCOUNT_ID)).thenReturn(Optional.of(otherSpecialty));
+        when(appointmentRepository.findByIdForUpdate(APPOINTMENT_ID)).thenReturn(Optional.of(otherSpecialty));
 
         AuthException exception = assertThrows(AuthException.class,
                 () -> service.checkIn(ACCOUNT_ID.toString(), "NOI-01", APPOINTMENT_ID));
@@ -362,7 +371,7 @@ class QueueServiceTest {
     @Test
     void rejectsCheckInOutsideAppointmentDate() {
         Appointment tomorrow = appointment("Nội tổng quát", TODAY.plusDays(1));
-        when(appointmentRepository.findByIdAndPatientId(APPOINTMENT_ID, ACCOUNT_ID)).thenReturn(Optional.of(tomorrow));
+        when(appointmentRepository.findByIdForUpdate(APPOINTMENT_ID)).thenReturn(Optional.of(tomorrow));
 
         AuthException exception = assertThrows(AuthException.class,
                 () -> service.checkIn(ACCOUNT_ID.toString(), "NOI-01", APPOINTMENT_ID));
@@ -378,6 +387,7 @@ class QueueServiceTest {
         setField(late, "serviceDurationMinutes", 60);
         when(appointmentRepository.findByIdAndPatientId(APPOINTMENT_ID, ACCOUNT_ID))
                 .thenReturn(Optional.of(late));
+        when(appointmentRepository.findByIdForUpdate(APPOINTMENT_ID)).thenReturn(Optional.of(late));
         QueueService lateService = new QueueService(roomRepository, ticketRepository, appointmentRepository,
                 doctorProfileRepository, examinationSessionRepository,
                 Clock.fixed(Instant.parse("2026-08-06T03:15:00Z"), ZoneId.of("Asia/Ho_Chi_Minh")));
@@ -677,6 +687,20 @@ class QueueServiceTest {
         DoctorScheduleRepository scheduleRepository = mock(DoctorScheduleRepository.class);
         when(scheduleRepository.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(targetProfile.getId(), TODAY.getDayOfWeek())).thenReturn(List.of());
         when(doctorProfileRepository.findByStaffAccount_Id(targetDoctorId)).thenReturn(Optional.of(targetProfile));
+        StaffAccount sourceStaff = StaffAccount.create("doctor-source-active", "hash", "BS. Nguyen An", StaffRole.DOCTOR);
+        setId(sourceStaff, sourceDoctorId);
+        DoctorProfile sourceProfile = DoctorProfile.create(sourceStaff, "Nội tổng quát", targetRoom);
+        var sourceSchedule = com.clinicone.doctor.DoctorSchedule.create(sourceProfile, TODAY.getDayOfWeek(),
+                LocalTime.of(8, 0), LocalTime.of(17, 0), 60);
+        when(doctorProfileRepository.findByStaffAccount_Id(sourceDoctorId)).thenReturn(Optional.of(sourceProfile));
+        when(scheduleRepository.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(sourceProfile.getId(), TODAY.getDayOfWeek()))
+                .thenReturn(List.of(sourceSchedule));
+        setId(targetProfile, UUID.randomUUID());
+        setId(sourceProfile, UUID.randomUUID());
+        when(scheduleRepository.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(targetProfile.getId(), TODAY.getDayOfWeek()))
+                .thenReturn(List.of());
+        when(scheduleRepository.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(sourceProfile.getId(), TODAY.getDayOfWeek()))
+                .thenReturn(List.of(sourceSchedule));
         PatientAccount patient = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
         setId(patient, UUID.randomUUID());
         Appointment movedAppointment = Appointment.create(patient, sourceDoctorId, "CL-MOVED-002", "Nội tổng quát", "BS. Nguyễn An", TODAY, LocalTime.of(9, 0), "Đau đầu");
@@ -684,10 +708,13 @@ class QueueServiceTest {
         QueueTicket ticket = QueueTicket.create(movedAppointment, targetRoom, TODAY, 1);
         setId(ticket, UUID.randomUUID());
         setField(ticket, "routingDoctorStaffId", targetDoctorId);
+        assertEquals(targetDoctorId, ticket.getEffectiveDoctorStaffId());
         when(ticketRepository.findByRoomCodeAndQueueDateAndAppointment_DoctorStaffIdOrderByQueueNumberAsc(targetRoom.getCode(), TODAY, targetDoctorId)).thenReturn(List.of());
         when(ticketRepository.findByRoomCodeAndQueueDateAndRoutingDoctorStaffIdOrderByQueueNumberAsc(targetRoom.getCode(), TODAY, targetDoctorId)).thenReturn(List.of(ticket));
+        when(ticketRepository.findById(ticket.getId())).thenReturn(Optional.of(ticket));
         QueueService routedService = new QueueService(roomRepository, ticketRepository, appointmentRepository, doctorProfileRepository, examinationSessionRepository, null, scheduleRepository, null, Clock.fixed(Instant.parse("2026-08-06T02:00:00Z"), ZoneId.of("Asia/Ho_Chi_Minh")));
-        AuthException ex = assertThrows(AuthException.class, () -> routedService.callNext(targetDoctorId.toString(), TODAY));
+        AuthException ex = assertThrows(AuthException.class,
+                () -> routedService.call(ticket.getId(), targetDoctorId.toString()));
         assertEquals("DOCTOR_SHIFT_INACTIVE", ex.getCode());
     }
 
@@ -716,6 +743,7 @@ class QueueServiceTest {
         // ticket now WAITING RETURN_REQUIRED and routed to target
         when(ticketRepository.findByAppointmentId(appointment.getId())).thenReturn(Optional.of(ticket));
         when(appointmentRepository.findByIdAndPatientId(any(UUID.class), any(UUID.class))).thenReturn(Optional.of(appointment));
+        when(appointmentRepository.findByIdForUpdate(appointment.getId())).thenReturn(Optional.of(appointment));
         when(appointmentRepository.findById(appointment.getId())).thenReturn(Optional.of(appointment));
         when(roomRepository.findByCodeAndActiveTrue(targetRoom.getCode())).thenReturn(Optional.of(targetRoom));
         when(ticketRepository.save(any(QueueTicket.class))).thenAnswer(inv -> inv.getArgument(0));
