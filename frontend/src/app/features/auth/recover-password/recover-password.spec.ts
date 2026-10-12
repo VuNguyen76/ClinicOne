@@ -56,4 +56,19 @@ describe('RecoverPassword', () => {
     expect(requests).toHaveLength(1);
     requests[0].flush({ expiresInSeconds: 300, retryAfterSeconds: 60 });
   });
+
+  it('does not move back during OTP verification and then advance on a late response', () => {
+    component.phoneForm.controls.phone.setValue('0912345678');
+    component['requestOtp']();
+    http.expectOne('/api/v1/auth/request-sms-otp').flush({ expiresInSeconds: 300, retryAfterSeconds: 60 });
+    component.otpForm.controls.code.setValue('123456');
+    component['verifyOtp']();
+    const verification = http.expectOne('/api/v1/auth/verify-sms-otp');
+
+    component['back']('phone');
+    expect(component['step']()).toBe('otp');
+    verification.flush({ verified: true });
+
+    expect(component['step']()).toBe('password');
+  });
 });

@@ -111,6 +111,7 @@ export class RecoverPassword {
   }
 
   protected back(step: RecoveryStep): void {
+    if (this.busy()) return;
     this.clearMessages();
     this.step.set(step);
   }
