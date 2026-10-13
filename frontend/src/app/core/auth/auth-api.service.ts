@@ -1086,6 +1086,16 @@ export class AuthApiService {
     return this.http.get<MedicationDosageOption[]>('/api/v1/medication-dosages', { params });
   }
 
+  createMedicationUnit(request: { code: string; name: string; description: string; sortOrder: number }): Observable<MedicationUnitOption> {
+    return this.http.post<MedicationUnitOption>('/api/v1/medication-units', request);
+  }
+
+  createMedicationDosage(request: {
+    code: string; unitName: string; dosageFormat: string; description: string; sortOrder: number;
+  }): Observable<MedicationDosageOption> {
+    return this.http.post<MedicationDosageOption>('/api/v1/medication-dosages', request);
+  }
+
   logoutPatient(): Observable<void> {
     return this.http.post<void>(`${this.apiRoot}/logout`, {});
   }

@@ -353,6 +353,7 @@ describe('DoctorExamination', () => {
     setValue('name', 'Paracetamol 500 mg');
     setValue('dosage', '500 mg');
     setValue('quantity', '10');
+    setValue('unit', 'Viên');
     setValue('instructions', 'Uống sau ăn');
     fixture.detectChanges();
     http.expectOne('/api/v1/doctor/medications/suggestions?query=Paracetamol%20500%20mg').flush([]);
@@ -806,6 +807,24 @@ describe('DoctorExamination', () => {
     expect(line.unit).toBe('Gói');
     expect(line.quantity).toBe(1);
     expect(line.instructions).toBe('Pha với nước ấm uống sau ăn');
+  });
+
+  it('does not invent a default dose or unit when the medication catalog has none', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('[data-testid="add-prescription-line"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    fixture.componentInstance['selectMedication'](0, {
+      id: 'med-no-prescription-default',
+      code: 'MED-NEW',
+      name: 'Thuốc mới trong danh mục',
+      active: true,
+    });
+    const line = fixture.componentInstance['prescriptionLines'].at(0).value;
+
+    expect(line.dosage).toBe('');
+    expect(line.unit).toBe('');
   });
 
   it('triggers clinical safety warnings for duplicate medications and patient allergies', () => {

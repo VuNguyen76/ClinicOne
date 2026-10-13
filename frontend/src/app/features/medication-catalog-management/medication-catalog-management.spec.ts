@@ -21,6 +21,8 @@ describe('MedicationCatalogManagement', () => {
       { code: 'DOS-GOI-2X', unitName: 'Gói', dosageFormat: '1 gói/lần x 2 lần/ngày (Sáng 1, Tối 1)', active: true, sortOrder: 1 },
       { code: 'DOS-VIEN-2X', unitName: 'Viên', dosageFormat: '1 viên/lần x 2 lần/ngày (Sáng 1, Tối 1)', active: true, sortOrder: 2 },
     ])),
+    createMedicationUnit: vi.fn().mockReturnValue(of({ code: 'UNIT-CAP', name: 'Viên nang', description: '', active: true, sortOrder: 3 })),
+    createMedicationDosage: vi.fn().mockReturnValue(of({ code: 'DOS-VIEN-1X', unitName: 'Viên', dosageFormat: '1 viên/lần/ngày', active: true, sortOrder: 3 })),
   };
 
   beforeEach(async () => {
@@ -33,6 +35,14 @@ describe('MedicationCatalogManagement', () => {
     api.createMedication.mockReturnValue(of({ id: 'med-3', code: 'AMOX500', name: 'Amoxicillin 500 mg', active: true, unitPrice: 0 }));
     api.updateMedication.mockReturnValue(of({ id: 'med-1', code: 'PCM500', name: 'Paracetamol 500 mg', active: true }));
     api.setMedicationActive.mockReturnValue(of({ id: 'med-1', code: 'PCM500', name: 'Paracetamol 500 mg', active: false }));
+    api.getMedicationUnits.mockReturnValue(of([
+      { code: 'UNIT-VIEN', name: 'Viên', description: 'Dạng rắn: viên nén, viên nang', active: true, sortOrder: 1 },
+      { code: 'UNIT-GOI', name: 'Gói', description: 'Dạng bột hoặc cốm pha', active: true, sortOrder: 2 },
+    ]));
+    api.getMedicationDosages.mockReturnValue(of([
+      { code: 'DOS-GOI-2X', unitName: 'Gói', dosageFormat: '1 gói/lần x 2 lần/ngày (Sáng 1, Tối 1)', active: true, sortOrder: 1 },
+      { code: 'DOS-VIEN-2X', unitName: 'Viên', dosageFormat: '1 viên/lần x 2 lần/ngày (Sáng 1, Tối 1)', active: true, sortOrder: 2 },
+    ]));
     await TestBed.configureTestingModule({
       imports: [MedicationCatalogManagement],
       providers: [provideRouter([]), { provide: AuthApiService, useValue: api }],
@@ -69,6 +79,59 @@ describe('MedicationCatalogManagement', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('[data-testid="dosages-table-container"]')).toBeTruthy();
     expect(fixture.nativeElement.textContent).toContain('DOS-GOI-2X');
+  });
+
+  it('does not show client-side catalog defaults when the database lists are empty', () => {
+    api.getMedicationUnits.mockReturnValue(of([]));
+    api.getMedicationDosages.mockReturnValue(of([]));
+    const emptyFixture = TestBed.createComponent(MedicationCatalogManagement);
+    emptyFixture.detectChanges();
+    (emptyFixture.nativeElement.querySelector('[data-testid="tab-units"]') as HTMLButtonElement).click();
+    emptyFixture.detectChanges();
+    (emptyFixture.nativeElement.querySelector('[data-testid="tab-dosages"]') as HTMLButtonElement).click();
+    emptyFixture.detectChanges();
+    const component = emptyFixture.componentInstance as unknown as {
+      medicationUnits: () => unknown[];
+      medicationDosages: () => unknown[];
+    };
+
+    expect(component.medicationUnits()).toEqual([]);
+    expect(component.medicationDosages()).toEqual([]);
+    emptyFixture.destroy();
+  });
+
+  it('offers create actions for medication units and dosage presets to catalog managers', () => {
+    (fixture.nativeElement.querySelector('[data-testid="tab-units"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-testid="open-create-medication-unit"]')).toBeTruthy();
+
+    (fixture.nativeElement.querySelector('[data-testid="tab-dosages"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-testid="open-create-medication-dosage"]')).toBeTruthy();
+  });
+
+  it('creates medication metadata through the database-backed API', () => {
+    (fixture.nativeElement.querySelector('[data-testid="tab-units"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('[data-testid="open-create-medication-unit"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const component = fixture.componentInstance;
+    component['metadataCode'].set('UNIT-CAP');
+    component['metadataName'].set('Viên nang');
+    component['saveMetadata']();
+    expect(api.createMedicationUnit).toHaveBeenCalledWith({ code: 'UNIT-CAP', name: 'Viên nang', description: '', sortOrder: 3 });
+
+    (fixture.nativeElement.querySelector('[data-testid="tab-dosages"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('[data-testid="open-create-medication-dosage"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    component['metadataCode'].set('DOS-VIEN-1X');
+    component['metadataUnitName'].set('Viên');
+    component['metadataFormat'].set('1 viên/lần/ngày');
+    component['saveMetadata']();
+    expect(api.createMedicationDosage).toHaveBeenCalledWith({
+      code: 'DOS-VIEN-1X', unitName: 'Viên', dosageFormat: '1 viên/lần/ngày', description: '', sortOrder: 3,
+    });
   });
 
   it('creates a medicine from the modal form without suggestion chips', () => {
@@ -164,5 +227,11 @@ describe('MedicationCatalogManagement', () => {
       defaultInstructions: undefined,
       unitPrice: 0,
     });
+  });
+
+  it('does not offer a dosage preset belonging to a different unit', () => {
+    const component = fixture.componentInstance;
+    component['selectUnit']('Chai');
+    expect(component['standardDosageFormats']()).toEqual([]);
   });
 });

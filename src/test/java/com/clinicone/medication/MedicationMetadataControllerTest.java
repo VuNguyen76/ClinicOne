@@ -10,13 +10,17 @@ import org.springframework.context.annotation.Import;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.http.MediaType;
 
 import java.util.List;
 
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doAnswer;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -67,6 +71,49 @@ class MedicationMetadataControllerTest {
                 .andExpect(jsonPath("$[0].code").value("DOS-VIEN-1X"))
                 .andExpect(jsonPath("$[1].code").value("DOS-VIEN-2X-OLD"))
                 .andExpect(jsonPath("$[1].active").value(false));
+    }
+
+    @Test
+    void coordinatorCanCreateMedicationUnitAndDosageMetadata() throws Exception {
+        when(unitRepository.existsByCodeIgnoreCase("UNIT-CAP")).thenReturn(false);
+        when(unitRepository.existsByNameIgnoreCase("Capsule")).thenReturn(false);
+        when(unitRepository.findByNameIgnoreCase("Viên"))
+                .thenReturn(java.util.Optional.of(new MedicationUnit("UNIT-VIEN", "Viên", "", 1)));
+        when(dosageRepository.existsByCodeIgnoreCase("DOS-CAP-1X")).thenReturn(false);
+        doAnswer(invocation -> invocation.getArgument(0)).when(unitRepository).save(org.mockito.ArgumentMatchers.any(MedicationUnit.class));
+        doAnswer(invocation -> invocation.getArgument(0)).when(dosageRepository).save(org.mockito.ArgumentMatchers.any(MedicationDosage.class));
+
+        mockMvc.perform(post("/api/v1/medication-units")
+                        .with(authentication(authenticated("ROLE_COORDINATOR")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"code":"UNIT-CAP","name":"Capsule","description":"Viên nang","sortOrder":20}
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.code").value("UNIT-CAP"));
+
+        mockMvc.perform(post("/api/v1/medication-dosages")
+                        .with(authentication(authenticated("ROLE_COORDINATOR")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"code":"DOS-CAP-1X","unitName":"Viên","dosageFormat":"1 viên/lần mỗi ngày","description":"","sortOrder":20}
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.code").value("DOS-CAP-1X"));
+
+        verify(unitRepository).save(org.mockito.ArgumentMatchers.any(MedicationUnit.class));
+        verify(dosageRepository).save(org.mockito.ArgumentMatchers.any(MedicationDosage.class));
+    }
+
+    @Test
+    void doctorCannotCreateMedicationMetadata() throws Exception {
+        mockMvc.perform(post("/api/v1/medication-units")
+                        .with(authentication(authenticated("ROLE_DOCTOR")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"code":"UNIT-CAP","name":"Capsule","description":"","sortOrder":20}
+                                """))
+                .andExpect(status().isForbidden());
     }
 
     private UsernamePasswordAuthenticationToken authenticated(String role) {

@@ -291,26 +291,8 @@ export class DoctorExamination implements OnInit {
     meds.forEach((m) => {
       if (m.category && m.category.trim()) categoriesSet.add(m.category.trim());
     });
-    const standardOrder = [
-      'Hạ sốt & Giảm đau',
-      'Kháng sinh',
-      'Tim mạch',
-      'Hô hấp',
-      'Tiêu hóa',
-      'Nhi khoa',
-      'Mắt & TMH',
-      'Vitamin & Khoáng chất',
-    ];
-    const ordered: string[] = [];
-    standardOrder.forEach((cat) => {
-      if (categoriesSet.has(cat)) {
-        ordered.push(cat);
-        categoriesSet.delete(cat);
-      }
-    });
-    categoriesSet.forEach((cat) => ordered.push(cat));
-
-    return [label, ...(ordered.length > 0 ? ordered : standardOrder), 'Tất cả'];
+    const categories = [...categoriesSet].sort((a, b) => a.localeCompare(b, 'vi'));
+    return [label, ...categories, 'Tất cả'];
   });
 
   protected readonly filteredCatalogMedications = computed(() => {
@@ -848,10 +830,10 @@ export class DoctorExamination implements OnInit {
     line.patchValue({
       medicationId: medication.id,
       medicationName: medication.name,
-      dosage: curDosage || medication.defaultDosage || '1 viên / lần',
-      unit: medication.unit || curUnit || 'Viên',
+      dosage: curDosage || medication.defaultDosage || '',
+      unit: medication.unit || curUnit || '',
       quantity: (curQty && curQty > 0) ? curQty : 1,
-      instructions: curInstructions || medication.defaultInstructions || 'Dùng theo chỉ định của bác sĩ',
+      instructions: curInstructions || medication.defaultInstructions || '',
     });
     this.setMedicationSuggestions(index, []);
     this.prescriptionRevision.update((v) => v + 1);
@@ -957,7 +939,7 @@ export class DoctorExamination implements OnInit {
           medicationName: [line.medicationName, [Validators.required, Validators.maxLength(200)]],
           dosage: [line.dosage, [Validators.required, Validators.maxLength(100)]],
           quantity: [line.quantity, [Validators.required, Validators.min(1), Validators.max(999), Validators.pattern(/^[1-9]\d*$/)]],
-          unit: [line.unit || 'Viên', [Validators.required, Validators.maxLength(50)]],
+          unit: [line.unit || '', [Validators.required, Validators.maxLength(50)]],
           instructions: [line.instructions, [Validators.required, Validators.maxLength(500)]],
         }) as PrescriptionLineForm);
       });
@@ -986,7 +968,7 @@ export class DoctorExamination implements OnInit {
       medicationName: [line?.medicationName ?? '', [Validators.required, Validators.maxLength(200)]],
       dosage: [line?.dosage ?? '', [Validators.required, Validators.maxLength(100)]],
       quantity: [line?.quantity ?? 1, [Validators.required, Validators.min(1), Validators.max(999), Validators.pattern(/^[1-9]\d*$/)]],
-      unit: [line?.unit ?? 'Viên', [Validators.required, Validators.maxLength(50)]],
+      unit: [line?.unit ?? '', [Validators.required, Validators.maxLength(50)]],
       instructions: [line?.instructions ?? '', [Validators.required, Validators.maxLength(500)]],
     }) as PrescriptionLineForm;
   }
@@ -1142,10 +1124,10 @@ export class DoctorExamination implements OnInit {
     const line = this.fb.group({
       medicationId: [item.id ?? null],
       medicationName: [item.name, [Validators.required, Validators.maxLength(200)]],
-      dosage: [item.dosage || '1 viên / lần', [Validators.required, Validators.maxLength(100)]],
+      dosage: [item.dosage || '', [Validators.required, Validators.maxLength(100)]],
       quantity: [1, [Validators.required, Validators.min(1), Validators.max(999), Validators.pattern(/^[1-9]\d*$/)]],
-      unit: [item.unit || 'Viên', [Validators.required, Validators.maxLength(50)]],
-      instructions: [item.instructions || 'Dùng theo chỉ định của bác sĩ', [Validators.required, Validators.maxLength(500)]],
+      unit: [item.unit || '', [Validators.required, Validators.maxLength(50)]],
+      instructions: [item.instructions || '', [Validators.required, Validators.maxLength(500)]],
     }) as PrescriptionLineForm;
     this.prescriptionLines.push(line);
     this.prescriptionRevision.update((v) => v + 1);
@@ -1167,10 +1149,10 @@ export class DoctorExamination implements OnInit {
             code: med.code,
             name: med.name,
             category: med.category || 'Khác',
-            dosage: med.defaultDosage || '1 viên / lần',
-            instructions: med.defaultInstructions || 'Dùng theo chỉ định của bác sĩ',
+            dosage: med.defaultDosage || '',
+            instructions: med.defaultInstructions || '',
             specialties: rawSpecs,
-            unit: med.unit || 'Viên',
+            unit: med.unit || '',
           };
         });
         this.specialtyMedications.set(items);
