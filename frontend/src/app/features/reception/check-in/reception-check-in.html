@@ -660,12 +660,6 @@
 
     @if (activeTab() === 'overview') {
       <section class="space-y-4" data-testid="reception-overview-screen">
-        <div class="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p class="text-xs font-bold uppercase tracking-[0.16em] text-[#0284c7]">Ca làm việc</p>
-            <h2 class="mt-1 text-xl font-bold tracking-tight text-slate-900">Tổng quan tiếp nhận</h2>
-          </div>
-        </div>
         <div data-testid="reception-metrics" class="grid grid-cols-2 overflow-hidden rounded-xl border border-slate-200 bg-white sm:grid-cols-4" aria-label="Tóm tắt tiếp nhận">
           <div class="flex min-h-14 items-center justify-between gap-3 border-b border-r border-slate-100 px-4 py-3 sm:border-b-0">
             <span class="text-sm font-medium text-slate-700 sm:text-base">Tổng lịch trong ngày</span>
@@ -684,56 +678,64 @@
             <span class="font-mono text-lg font-bold text-rose-700 sm:text-xl">{{ dashboardCounts().exceptions }}</span>
           </div>
         </div>
-        <div class="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+        <div>
           <section class="erp-card overflow-hidden" aria-label="Tất cả lịch trong ngày">
             <div class="erp-toolbar flex-wrap gap-3">
-              <div class="min-w-0">
-                <h3 class="text-sm font-bold text-slate-900">Tất cả lịch trong ngày</h3>
-                <p class="mt-0.5 text-xs text-slate-500">{{ overviewAppointments().length }} / {{ appointments().length }} lịch · tìm theo tên, SĐT, mã lịch, bác sĩ</p>
-              </div>
-              <label class="min-w-40 sm:w-44">
-                <span class="erp-label !mb-1">Ngày khám</span>
-                <input
-                  data-testid="overview-date"
-                  type="date"
-                  class="erp-input font-mono !min-h-9 !text-sm"
-                  [ngModel]="selectedDate()"
-                  (ngModelChange)="onSelectedDateChange($event)"
-                  name="overviewDate"
-                />
-              </label>
-              <label class="relative min-w-56 flex-1 sm:max-w-sm">
-                <span class="sr-only">Tìm trong lịch tiếp nhận</span>
-                <mat-icon class="pointer-events-none absolute left-3 top-1/2 !h-4 !w-4 -translate-y-1/2 !text-[16px] text-slate-400">search</mat-icon>
-                <input
-                  data-testid="overview-search"
-                  class="erp-input !min-h-9 !pl-9 !text-sm"
-                  type="search"
-                  [ngModel]="overviewQuery()"
-                  (ngModelChange)="overviewQuery.set($event)"
-                  name="overviewQuery"
-                  autocomplete="off"
-                  placeholder="Tìm nhanh trong ca..."
-                />
-              </label>
-              <mat-icon class="hidden !h-5 !w-5 !text-[20px] text-[#0284c7] sm:block">event_note</mat-icon>
+              <h2 class="mr-auto text-sm font-bold text-slate-900">Lịch hẹn trong ngày</h2>
+              <form class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center" (ngSubmit)="$event.preventDefault(); searchOverviewAppointments()" aria-label="Tìm lịch trong tổng quan">
+                <label class="min-w-40 sm:w-44">
+                  <span class="sr-only">Ngày khám</span>
+                  <input
+                    data-testid="overview-date"
+                    type="date"
+                    aria-label="Ngày khám"
+                    class="erp-input font-mono !min-h-9 !text-sm"
+                    [ngModel]="selectedDate()"
+                    (ngModelChange)="onSelectedDateChange($event)"
+                    name="overviewDate"
+                  />
+                </label>
+                <label class="relative min-w-56 flex-1 sm:w-72">
+                  <span class="sr-only">Tìm theo tên, số điện thoại, mã lịch hoặc bác sĩ</span>
+                  <mat-icon class="pointer-events-none absolute left-3 top-1/2 !h-4 !w-4 -translate-y-1/2 !text-[16px] text-slate-400">search</mat-icon>
+                  <input
+                    data-testid="overview-search"
+                    class="erp-input !min-h-9 !pl-9 !text-sm"
+                    type="search"
+                    [ngModel]="overviewQuery()"
+                    (ngModelChange)="onOverviewQueryChange($event)"
+                    name="overviewQuery"
+                    autocomplete="off"
+                    placeholder="Tên, SĐT, mã lịch, bác sĩ..."
+                  />
+                </label>
+                <button
+                  type="submit"
+                  data-testid="overview-search-submit"
+                  class="erp-btn-secondary !min-h-9 justify-center !px-3 !py-1.5 !text-xs"
+                  [disabled]="overviewSearching() || overviewQuery().trim().length < 3"
+                >
+                  <mat-icon class="!h-4 !w-4 !text-[16px]">{{ overviewSearching() ? 'progress_activity' : 'search' }}</mat-icon>
+                  {{ overviewSearching() ? 'Đang tìm' : 'Tra cứu' }}
+                </button>
+              </form>
             </div>
-            @if (loading() && appointments().length === 0) {
+            @if ((loading() && appointments().length === 0) || (overviewSearching() && overviewAppointments().length === 0)) {
               <div class="grid min-h-36 place-items-center p-5 text-center text-sm text-slate-500" role="status">Đang tải lịch trong ngày...</div>
-            } @else if (appointments().length === 0) {
+            } @else if (overviewAppointments().length === 0 && !overviewQuery().trim()) {
               <div class="grid min-h-36 place-items-center p-5 text-center text-sm text-slate-500">
                 <div>
                   <mat-icon class="!h-8 !w-8 !text-[32px] text-slate-300">event_busy</mat-icon>
                   <p class="mt-2 font-semibold text-slate-700">Chưa có lịch cần tiếp nhận trong ngày này</p>
-                  <p class="mt-1">Đổi ngày ở bộ lọc ca làm việc hoặc tra cứu lịch khác.</p>
+                  <p class="mt-1">Chọn ngày khám hoặc tìm theo tên, số điện thoại, mã lịch hay bác sĩ.</p>
                 </div>
               </div>
             } @else if (overviewAppointments().length === 0) {
               <div class="grid min-h-36 place-items-center p-5 text-center text-sm text-slate-500">
                 <div>
                   <mat-icon class="!h-8 !w-8 !text-[32px] text-slate-300">search_off</mat-icon>
-                  <p class="mt-2">Không tìm thấy lịch phù hợp trong ca này.</p>
-                  <button type="button" class="erp-btn-secondary mt-3 !min-h-8 !px-3 !py-1.5 !text-xs" (click)="overviewQuery.set('')">Xóa tìm kiếm</button>
+                  <p class="mt-2">Không tìm thấy lịch phù hợp trong ngày đã chọn.</p>
+                  <button type="button" class="erp-btn-secondary mt-3 !min-h-8 !px-3 !py-1.5 !text-xs" (click)="onOverviewQueryChange('')">Xóa tìm kiếm</button>
                 </div>
               </div>
             } @else {
@@ -757,7 +759,6 @@
               </div>
             }
           </section>
-          <section class="erp-card p-5"><h3 class="text-sm font-bold text-slate-900">Tác vụ nhanh</h3><div class="mt-4 grid gap-2"><a routerLink="/reception/walk-in" class="erp-btn-primary justify-start"><mat-icon class="!h-4 !w-4 !text-[16px]">person_add</mat-icon>Tiếp nhận không có lịch</a><a routerLink="/reception/profiles" class="erp-btn-secondary justify-start"><mat-icon class="!h-4 !w-4 !text-[16px]">folder_shared</mat-icon>Tra hồ sơ người bệnh</a><a routerLink="/reception/exceptions" class="erp-btn-secondary justify-start"><mat-icon class="!h-4 !w-4 !text-[16px]">rule</mat-icon>Xử lý ngoại lệ</a></div></section>
         </div>
       </section>
     }
@@ -770,7 +771,7 @@
 
     @if (activeTab() === 'queue') {
       <section class="erp-card overflow-hidden" data-testid="reception-queue-screen">
-        <div class="erp-toolbar"><div><h2 class="text-sm font-bold text-slate-900">Hàng đợi tiếp nhận</h2></div><a routerLink="/reception/appointments" class="erp-btn-secondary !min-h-8 !px-3 !py-1.5 !text-xs">Tra cứu lịch</a></div>
+        <div class="erp-toolbar"><div><h2 class="text-sm font-bold text-slate-900">Hàng đợi tiếp nhận</h2></div><a routerLink="/reception" class="erp-btn-secondary !min-h-8 !px-3 !py-1.5 !text-xs">Tổng quan lịch hẹn</a></div>
         @if (queueAppointments().length === 0) {<div class="grid min-h-48 place-items-center p-6 text-center text-sm text-slate-500"><div><mat-icon class="!h-9 !w-9 !text-[36px] text-slate-300">format_list_numbered</mat-icon><p class="mt-2">Chưa có người trong hàng đợi.</p></div></div>} @else {<div class="divide-y divide-slate-100">@for (appointment of queueAppointments(); track appointment.id) {<div class="grid gap-2 px-4 py-3 sm:grid-cols-[5rem_1fr_auto] sm:items-center"><span class="font-mono text-lg font-bold text-[#0284c7]">{{ appointment.queueNumber ? ('#' + appointment.queueNumber) : '—' }}</span><div><p class="text-sm font-semibold text-slate-900">{{ appointment.patientName }}</p><p class="text-xs text-slate-500">{{ appointment.roomCode || 'Chưa gán phòng' }} · {{ appointment.doctorName }}</p></div><span class="erp-badge" [class]="queueClass(appointment)">{{ queueLabel(appointment) }}</span></div>}</div>}
       </section>
     }

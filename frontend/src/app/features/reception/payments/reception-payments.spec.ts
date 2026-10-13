@@ -26,6 +26,16 @@ describe('ReceptionPayments', () => {
 
   afterEach(() => http.verify());
 
+  it('uses one page title and keeps the internal receipt distinction', () => {
+    fixture.detectChanges();
+    const text = fixture.nativeElement.textContent as string;
+
+    expect(fixture.nativeElement.querySelectorAll('h1')).toHaveLength(1);
+    expect(text).toContain('Thu phí khám bệnh');
+    expect(text).toContain('Phiếu thu nội bộ');
+    expect(text).not.toContain('Tiếp nhận · Thanh toán');
+  });
+
   it('requires an appointment code before creating a receipt', () => {
     component.createReceipt();
     expect(component.error()).toContain('mã lịch hẹn');

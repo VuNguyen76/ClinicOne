@@ -34,6 +34,7 @@ export class ReceptionCheckIn implements OnInit {
   private registrationAddressRequestId = 0;
   private worklistRequestId = 0;
   private searchRequestId = 0;
+  private overviewSearchRequestId = 0;
   private profileSearchRequestId = 0;
   private submittedSearchQuery = '';
   private submittedSearchDate = '';
@@ -49,6 +50,8 @@ export class ReceptionCheckIn implements OnInit {
   protected readonly leaveReason = signal('');
   protected readonly appointments = signal<ReceptionAppointmentResponse[]>([]);
   protected readonly overviewQuery = signal('');
+  protected readonly overviewSearchResults = signal<ReceptionAppointmentResponse[] | null>(null);
+  protected readonly overviewSearching = signal(false);
   protected readonly loading = signal(false);
   protected readonly searched = signal(false);
   protected readonly busyAppointmentIds = signal<ReadonlySet<string>>(new Set());
@@ -139,9 +142,12 @@ export class ReceptionCheckIn implements OnInit {
   });
   protected readonly overviewAppointments = computed(() => {
     const query = normalizeReceptionSearch(this.overviewQuery());
-    const appointments = this.appointments();
-    if (!query) return appointments;
-    return appointments.filter((appointment) => normalizeReceptionSearch([
+    const appointments = new Map<string, ReceptionAppointmentResponse>();
+    for (const appointment of [...this.appointments(), ...(this.overviewSearchResults() ?? [])]) {
+      appointments.set(appointment.id, appointment);
+    }
+    if (!query) return [...appointments.values()];
+    return [...appointments.values()].filter((appointment) => normalizeReceptionSearch([
       appointment.patientName,
       appointment.patientPhone,
       appointment.appointmentCode,
@@ -200,6 +206,9 @@ export class ReceptionCheckIn implements OnInit {
   protected onSelectedDateChange(date: string): void {
     if (date === this.selectedDate()) return;
     this.selectedDate.set(date);
+    this.overviewSearchRequestId++;
+    this.overviewSearchResults.set(null);
+    this.overviewSearching.set(false);
     if (['overview', 'queue', 'exceptions'].includes(this.activeTab())) {
       this.loadWorkspace();
     } else if (this.activeTab() === 'search' && this.searched()) {
@@ -307,6 +316,45 @@ export class ReceptionCheckIn implements OnInit {
       error: (response) => {
         if (requestId !== this.searchRequestId) return;
         this.loading.set(false);
+        this.handleError(response);
+      },
+    });
+  }
+
+  protected onOverviewQueryChange(query: string): void {
+    this.overviewQuery.set(query);
+    this.overviewSearchRequestId++;
+    this.overviewSearchResults.set(null);
+    this.overviewSearching.set(false);
+    this.error.set('');
+    this.notice.set('');
+  }
+
+  protected searchOverviewAppointments(): void {
+    const query = this.overviewQuery().trim();
+    if (query.length < 3) {
+      this.error.set('Nhập ít nhất 3 ký tự để tra cứu lịch theo tên, số điện thoại hoặc mã lịch.');
+      return;
+    }
+    const date = this.selectedDate();
+    const requestId = ++this.overviewSearchRequestId;
+    this.overviewSearching.set(true);
+    this.overviewSearchResults.set(null);
+    this.error.set('');
+    this.notice.set('');
+    this.authApi.searchReceptionAppointments(query, date).subscribe({
+      next: (appointments) => {
+        if (requestId !== this.overviewSearchRequestId
+          || this.selectedDate() !== date
+          || this.overviewQuery().trim() !== query) return;
+        this.overviewSearchResults.set(appointments);
+        this.overviewSearching.set(false);
+      },
+      error: (response) => {
+        if (requestId !== this.overviewSearchRequestId
+          || this.selectedDate() !== date
+          || this.overviewQuery().trim() !== query) return;
+        this.overviewSearching.set(false);
         this.handleError(response);
       },
     });
