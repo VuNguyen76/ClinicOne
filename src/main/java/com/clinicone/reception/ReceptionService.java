@@ -185,8 +185,7 @@ public class ReceptionService {
     public List<ReceptionAppointmentResponse> worklist(LocalDate date) {
         LocalDate workDate = date == null ? today() : date;
         return appointmentRepository.findByAppointmentDateAndStatusInOrderByStartTimeAsc(workDate,
-                        List.of(AppointmentStatus.BOOKED, AppointmentStatus.CHECKED_IN,
-                                AppointmentStatus.ABSENT, AppointmentStatus.NOT_PERFORMED))
+                        List.of(AppointmentStatus.values()))
                 .stream().map(this::toResponse).toList();
     }
 
