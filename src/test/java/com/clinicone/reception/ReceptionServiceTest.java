@@ -476,6 +476,8 @@ class ReceptionServiceTest {
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).appointmentCode()).isEqualTo("CL-20260807-1234");
+        verify(appointmentRepository).findByAppointmentDateAndStatusInOrderByStartTimeAsc(
+                TODAY, List.of(AppointmentStatus.values()));
     }
 
     @Test

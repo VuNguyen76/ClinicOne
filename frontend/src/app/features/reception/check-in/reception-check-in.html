@@ -666,19 +666,95 @@
             <h2 class="mt-1 text-xl font-bold tracking-tight text-slate-900">Tổng quan tiếp nhận</h2>
           </div>
         </div>
-        <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <div class="erp-card border-l-4 border-l-[#0284c7] p-4"><p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Lịch đã nạp</p><p class="mt-2 text-3xl font-bold text-slate-900">{{ dashboardCounts().total }}</p></div>
-          <div class="erp-card border-l-4 border-l-amber-400 p-4"><p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Đang chờ</p><p class="mt-2 text-3xl font-bold text-amber-600">{{ dashboardCounts().waiting }}</p></div>
-          <div class="erp-card border-l-4 border-l-emerald-500 p-4"><p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Đã tiếp nhận</p><p class="mt-2 text-3xl font-bold text-emerald-600">{{ dashboardCounts().checkedIn }}</p></div>
-          <div class="erp-card border-l-4 border-l-rose-400 p-4"><p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Ngoại lệ</p><p class="mt-2 text-3xl font-bold text-rose-600">{{ dashboardCounts().exceptions }}</p></div>
+        <div data-testid="reception-metrics" class="grid grid-cols-2 overflow-hidden rounded-xl border border-slate-200 bg-white sm:grid-cols-4" aria-label="Tóm tắt tiếp nhận">
+          <div class="flex min-h-14 items-center justify-between gap-3 border-b border-r border-slate-100 px-4 py-3 sm:border-b-0">
+            <span class="text-sm font-medium text-slate-700 sm:text-base">Tổng lịch trong ngày</span>
+            <span class="font-mono text-lg font-bold text-slate-800 sm:text-xl">{{ dashboardCounts().total }}</span>
+          </div>
+          <div class="flex min-h-14 items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 sm:border-b-0 sm:border-r">
+            <span class="text-sm font-medium text-slate-700 sm:text-base">Đang chờ</span>
+            <span class="font-mono text-lg font-bold text-amber-700 sm:text-xl">{{ dashboardCounts().waiting }}</span>
+          </div>
+          <div class="flex min-h-14 items-center justify-between gap-3 border-r border-slate-100 px-4 py-3">
+            <span class="text-sm font-medium text-slate-700 sm:text-base">Đã tiếp nhận</span>
+            <span class="font-mono text-lg font-bold text-emerald-700 sm:text-xl">{{ dashboardCounts().checkedIn }}</span>
+          </div>
+          <div class="flex min-h-14 items-center justify-between gap-3 px-4 py-3">
+            <span class="text-sm font-medium text-slate-700 sm:text-base">Ngoại lệ</span>
+            <span class="font-mono text-lg font-bold text-rose-700 sm:text-xl">{{ dashboardCounts().exceptions }}</span>
+          </div>
         </div>
         <div class="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-          <section class="erp-card overflow-hidden">
-            <div class="erp-toolbar"><h3 class="text-sm font-bold text-slate-900">Lịch đang theo dõi</h3><mat-icon class="!h-5 !w-5 !text-[20px] text-[#0284c7]">event_note</mat-icon></div>
-            @if (appointments().length === 0) {
-              <div class="grid min-h-36 place-items-center p-5 text-center text-sm text-slate-500"><div><mat-icon class="!h-8 !w-8 !text-[32px] text-slate-300">search</mat-icon><p class="mt-2">Chưa có dữ liệu. Mở Tra cứu lịch để bắt đầu.</p></div></div>
+          <section class="erp-card overflow-hidden" aria-label="Tất cả lịch trong ngày">
+            <div class="erp-toolbar flex-wrap gap-3">
+              <div class="min-w-0">
+                <h3 class="text-sm font-bold text-slate-900">Tất cả lịch trong ngày</h3>
+                <p class="mt-0.5 text-xs text-slate-500">{{ overviewAppointments().length }} / {{ appointments().length }} lịch · tìm theo tên, SĐT, mã lịch, bác sĩ</p>
+              </div>
+              <label class="min-w-40 sm:w-44">
+                <span class="erp-label !mb-1">Ngày khám</span>
+                <input
+                  data-testid="overview-date"
+                  type="date"
+                  class="erp-input font-mono !min-h-9 !text-sm"
+                  [ngModel]="selectedDate()"
+                  (ngModelChange)="onSelectedDateChange($event)"
+                  name="overviewDate"
+                />
+              </label>
+              <label class="relative min-w-56 flex-1 sm:max-w-sm">
+                <span class="sr-only">Tìm trong lịch tiếp nhận</span>
+                <mat-icon class="pointer-events-none absolute left-3 top-1/2 !h-4 !w-4 -translate-y-1/2 !text-[16px] text-slate-400">search</mat-icon>
+                <input
+                  data-testid="overview-search"
+                  class="erp-input !min-h-9 !pl-9 !text-sm"
+                  type="search"
+                  [ngModel]="overviewQuery()"
+                  (ngModelChange)="overviewQuery.set($event)"
+                  name="overviewQuery"
+                  autocomplete="off"
+                  placeholder="Tìm nhanh trong ca..."
+                />
+              </label>
+              <mat-icon class="hidden !h-5 !w-5 !text-[20px] text-[#0284c7] sm:block">event_note</mat-icon>
+            </div>
+            @if (loading() && appointments().length === 0) {
+              <div class="grid min-h-36 place-items-center p-5 text-center text-sm text-slate-500" role="status">Đang tải lịch trong ngày...</div>
+            } @else if (appointments().length === 0) {
+              <div class="grid min-h-36 place-items-center p-5 text-center text-sm text-slate-500">
+                <div>
+                  <mat-icon class="!h-8 !w-8 !text-[32px] text-slate-300">event_busy</mat-icon>
+                  <p class="mt-2 font-semibold text-slate-700">Chưa có lịch cần tiếp nhận trong ngày này</p>
+                  <p class="mt-1">Đổi ngày ở bộ lọc ca làm việc hoặc tra cứu lịch khác.</p>
+                </div>
+              </div>
+            } @else if (overviewAppointments().length === 0) {
+              <div class="grid min-h-36 place-items-center p-5 text-center text-sm text-slate-500">
+                <div>
+                  <mat-icon class="!h-8 !w-8 !text-[32px] text-slate-300">search_off</mat-icon>
+                  <p class="mt-2">Không tìm thấy lịch phù hợp trong ca này.</p>
+                  <button type="button" class="erp-btn-secondary mt-3 !min-h-8 !px-3 !py-1.5 !text-xs" (click)="overviewQuery.set('')">Xóa tìm kiếm</button>
+                </div>
+              </div>
             } @else {
-              <div class="divide-y divide-slate-100">@for (appointment of appointments().slice(0, 5); track appointment.id) {<div class="flex items-center justify-between gap-3 px-4 py-3"><div><p class="text-sm font-semibold text-slate-900">{{ appointment.patientName }}</p><p class="text-xs text-slate-500">{{ appointment.appointmentCode }} · {{ appointment.specialty }}</p></div><span class="erp-badge" [class]="queueClass(appointment)">{{ queueLabel(appointment) }}</span></div>}</div>
+              <div class="max-h-[34rem] overflow-auto">
+                <div class="divide-y divide-slate-100">
+                  @for (appointment of overviewAppointments(); track appointment.id) {
+                    <article data-testid="overview-appointment" class="grid gap-2 px-4 py-3 sm:grid-cols-[4.5rem_minmax(0,1.1fr)_minmax(0,1fr)_auto] sm:items-center">
+                      <time class="font-mono text-sm font-bold text-slate-700">{{ formatTime(appointment.startTime) }}</time>
+                      <div class="min-w-0">
+                        <p class="truncate text-sm font-semibold text-slate-900">{{ appointment.patientName }}</p>
+                        <p class="text-xs text-slate-500">{{ appointment.patientPhone || 'Chưa có SĐT' }} · {{ appointment.appointmentCode }}</p>
+                      </div>
+                      <div class="min-w-0">
+                        <p class="truncate text-sm text-slate-700">{{ appointment.specialty }}</p>
+                        <p class="truncate text-xs text-slate-500">{{ appointment.doctorName }} · {{ appointment.roomCode || 'Chưa phân phòng' }}</p>
+                      </div>
+                      <span class="erp-badge whitespace-nowrap" [class]="queueClass(appointment)">{{ overviewStatusLabel(appointment) }}</span>
+                    </article>
+                  }
+                </div>
+              </div>
             }
           </section>
           <section class="erp-card p-5"><h3 class="text-sm font-bold text-slate-900">Tác vụ nhanh</h3><div class="mt-4 grid gap-2"><a routerLink="/reception/walk-in" class="erp-btn-primary justify-start"><mat-icon class="!h-4 !w-4 !text-[16px]">person_add</mat-icon>Tiếp nhận không có lịch</a><a routerLink="/reception/profiles" class="erp-btn-secondary justify-start"><mat-icon class="!h-4 !w-4 !text-[16px]">folder_shared</mat-icon>Tra hồ sơ người bệnh</a><a routerLink="/reception/exceptions" class="erp-btn-secondary justify-start"><mat-icon class="!h-4 !w-4 !text-[16px]">rule</mat-icon>Xử lý ngoại lệ</a></div></section>

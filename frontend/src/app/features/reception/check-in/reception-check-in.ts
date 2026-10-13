@@ -48,6 +48,7 @@ export class ReceptionCheckIn implements OnInit {
   protected readonly exceptionReason = signal('');
   protected readonly leaveReason = signal('');
   protected readonly appointments = signal<ReceptionAppointmentResponse[]>([]);
+  protected readonly overviewQuery = signal('');
   protected readonly loading = signal(false);
   protected readonly searched = signal(false);
   protected readonly busyAppointmentIds = signal<ReadonlySet<string>>(new Set());
@@ -131,9 +132,25 @@ export class ReceptionCheckIn implements OnInit {
   protected readonly visibleAppointments = computed(() => {
     if (this.activeTab() !== 'exceptions') return this.appointments();
     return this.appointments().filter((appointment) => appointment.status === 'ABSENT'
+      || appointment.status === 'NOT_PERFORMED'
       || appointment.queuePresenceStatus === 'RETURN_REQUIRED'
       || appointment.queueClosureOutcome === 'FACILITY_UNAVAILABLE'
       || appointment.lateArrival);
+  });
+  protected readonly overviewAppointments = computed(() => {
+    const query = normalizeReceptionSearch(this.overviewQuery());
+    const appointments = this.appointments();
+    if (!query) return appointments;
+    return appointments.filter((appointment) => normalizeReceptionSearch([
+      appointment.patientName,
+      appointment.patientPhone,
+      appointment.appointmentCode,
+      appointment.specialty,
+      appointment.doctorName,
+      appointment.roomCode,
+      appointment.roomName,
+      appointment.queueStatusLabel,
+    ].filter(Boolean).join(' ')).includes(query));
   });
   protected readonly queueAppointments = computed(() => this.appointments().filter((appointment) =>
     appointment.queueStatus === 'WAITING' || appointment.queueStatus === 'CALLED'));
@@ -142,8 +159,10 @@ export class ReceptionCheckIn implements OnInit {
     return {
       total: items.length,
       waiting: items.filter((item) => item.queueStatus === 'WAITING').length,
-      checkedIn: items.filter((item) => item.queueStatus && item.queueStatus !== 'COMPLETED').length,
+      checkedIn: items.filter((item) => item.status === 'CHECKED_IN'
+        || ['WAITING', 'CALLED', 'IN_SERVICE'].includes(item.queueStatus ?? '')).length,
       exceptions: items.filter((item) => item.status === 'ABSENT'
+        || item.status === 'NOT_PERFORMED'
         || item.queuePresenceStatus === 'RETURN_REQUIRED'
         || item.queueClosureOutcome === 'FACILITY_UNAVAILABLE'
         || item.lateArrival).length,
@@ -1300,6 +1319,18 @@ export class ReceptionCheckIn implements OnInit {
     return appointment.queueNumber == null ? 'Chưa lấy số' : `Số ${String(appointment.queueNumber).padStart(2, '0')} · ${appointment.queueStatusLabel}`;
   }
 
+  protected overviewStatusLabel(appointment: ReceptionAppointmentResponse): string {
+    switch (appointment.status) {
+      case 'BOOKED': return 'Chờ tiếp nhận';
+      case 'CHECKED_IN': return appointment.queueNumber == null ? 'Đã tiếp nhận' : this.queueLabel(appointment);
+      case 'CANCELLED': return 'Đã hủy';
+      case 'ABSENT': return appointment.queuePresenceLabel || 'Vắng mặt';
+      case 'COMPLETED': return 'Đã khám';
+      case 'NOT_PERFORMED': return appointment.queueClosureOutcomeLabel || 'Không thực hiện';
+      default: return this.queueLabel(appointment);
+    }
+  }
+
   protected queueClass(appointment: ReceptionAppointmentResponse): string {
     if (appointment.status === 'CANCELLED') {
       return 'erp-badge-danger';
@@ -1423,4 +1454,14 @@ function receptionPageTitle(tab: ReceptionTab): string {
     case 'profiles': return 'Hồ sơ người bệnh';
     default: return 'Tổng quan tiếp nhận';
   }
+}
+
+function normalizeReceptionSearch(value: string | null | undefined): string {
+  return (value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'd')
+    .toLocaleLowerCase('vi-VN')
+    .trim();
 }

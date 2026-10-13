@@ -38,6 +38,49 @@ describe('ReceptionCheckIn', () => {
     expect(fixture.nativeElement.textContent).toContain('NOI-01');
   });
 
+  it('shows all appointments in the workday overview and filters them without changing totals', () => {
+    const component = fixture.componentInstance as any;
+    const worklist = Array.from({ length: 7 }, (_, index) => ({
+      ...appointment(),
+      id: `workday-${index + 1}`,
+      appointmentCode: `CL-WORKDAY-${index + 1}`,
+      patientName: `Người bệnh ${index + 1}`,
+      patientPhone: `09123456${String(index + 10).slice(-2)}`,
+    }));
+    component.appointments.set(worklist);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelectorAll('[data-testid="overview-appointment"]').length).toBe(7);
+    expect(component.dashboardCounts().total).toBe(7);
+
+    const search = fixture.nativeElement.querySelector('[data-testid="overview-search"]') as HTMLInputElement;
+    expect(search).not.toBeNull();
+    search.value = 'nguoi benh 7';
+    search.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelectorAll('[data-testid="overview-appointment"]').length).toBe(1);
+    expect(fixture.nativeElement.textContent).toContain('Người bệnh 7');
+    expect(fixture.nativeElement.textContent).not.toContain('Người bệnh 6');
+    expect(component.dashboardCounts().total).toBe(7);
+  });
+
+  it('counts only active queue states as received and includes unperformed appointments in exceptions', () => {
+    const component = fixture.componentInstance as any;
+    component.appointments.set([
+      { ...appointment(), id: 'booked', status: 'BOOKED', queueStatus: null },
+      { ...appointment(), id: 'waiting', status: 'CHECKED_IN', queueStatus: 'WAITING' },
+      { ...appointment(), id: 'in-service', status: 'CHECKED_IN', queueStatus: 'IN_SERVICE' },
+      { ...appointment(), id: 'completed', status: 'COMPLETED', queueStatus: 'COMPLETED' },
+      { ...appointment(), id: 'not-performed', status: 'NOT_PERFORMED', queueStatus: 'SKIPPED' },
+      { ...appointment(), id: 'cancelled', status: 'CANCELLED', queueStatus: null },
+    ]);
+    component.activeTab.set('exceptions');
+
+    expect(component.dashboardCounts()).toEqual({ total: 6, waiting: 1, checkedIn: 2, exceptions: 1 });
+    expect(component.visibleAppointments().map((item: any) => item.id)).toContain('not-performed');
+  });
+
   it('keeps the newest appointment search result when requests finish out of order', () => {
     const component = fixture.componentInstance as any;
     component.query.set('0911111111');
