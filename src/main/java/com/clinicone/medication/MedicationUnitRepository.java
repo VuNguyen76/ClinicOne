@@ -15,6 +15,8 @@ public interface MedicationUnitRepository extends JpaRepository<MedicationUnit, 
 
     Optional<MedicationUnit> findByCodeIgnoreCase(String code);
 
+    Optional<MedicationUnit> findByNameIgnoreCase(String name);
+
     boolean existsByCodeIgnoreCase(String code);
 
     boolean existsByNameIgnoreCase(String name);

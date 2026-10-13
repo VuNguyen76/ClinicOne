@@ -111,15 +111,15 @@
       </div>
 
       <div class="flex items-center gap-2">
-        @if (activeTab() === 'medications' && canManage()) {
+        @if (canManage()) {
           <button
-            data-testid="open-create-medication"
+            [attr.data-testid]="activeTab() === 'medications' ? 'open-create-medication' : (activeTab() === 'units' ? 'open-create-medication-unit' : 'open-create-medication-dosage')"
             type="button"
             class="erp-btn-primary cursor-pointer"
-            (click)="openCreate()"
+            (click)="activeTab() === 'medications' ? openCreate() : openMetadataCreate(activeTab() === 'units' ? 'unit' : 'dosage')"
           >
             <mat-icon class="!h-4 !w-4 !text-[18px]">add</mat-icon>
-            <span>Thêm thuốc</span>
+            <span>{{ activeTab() === 'medications' ? 'Thêm thuốc' : (activeTab() === 'units' ? 'Thêm đơn vị tính' : 'Thêm liều dùng') }}</span>
           </button>
         }
         <button
@@ -185,9 +185,7 @@
                     </td>
                     <td class="px-4 py-3 text-center whitespace-nowrap">
                       @if (item.active) {
-                        <span class="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[11px] font-medium text-emerald-800">
-                          Đang dùng
-                        </span>
+                        <span class="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[11px] font-medium text-emerald-800">Đang dùng</span>
                       } @else {
                         <span class="inline-flex items-center rounded-full bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-[11px] font-medium text-slate-600">
                           Tạm ngưng
@@ -274,9 +272,11 @@
                     {{ unitItem.description || '—' }}
                   </td>
                   <td class="px-4 py-3 text-center whitespace-nowrap">
-                    <span class="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[11px] font-medium text-emerald-800">
-                      Đang dùng
-                    </span>
+                    @if (unitItem.active !== false) {
+                      <span class="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[11px] font-medium text-emerald-800">Đang dùng</span>
+                    } @else {
+                      <span class="inline-flex items-center rounded-full bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-[11px] font-medium text-slate-600">Tạm ngưng</span>
+                    }
                   </td>
                 </tr>
               } @empty {
@@ -322,9 +322,11 @@
                     {{ dosageItem.description || '—' }}
                   </td>
                   <td class="px-4 py-3 text-center whitespace-nowrap">
-                    <span class="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[11px] font-medium text-emerald-800">
-                      Đang dùng
-                    </span>
+                    @if (dosageItem.active !== false) {
+                      <span class="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[11px] font-medium text-emerald-800">Đang dùng</span>
+                    } @else {
+                      <span class="inline-flex items-center rounded-full bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-[11px] font-medium text-slate-600">Tạm ngưng</span>
+                    }
                   </td>
                 </tr>
               } @empty {
@@ -438,7 +440,7 @@
               <div class="grid gap-1 self-start">
                 <div class="flex items-center justify-between">
                   <span class="erp-label">Chuyên khoa</span>
-                  <span class="text-[11px] text-sky-600 font-medium">Bắt buộc chọn</span>
+                  <span class="text-[11px] text-slate-500">Để trống nếu dùng chung</span>
                 </div>
                 <select
                   data-testid="medication-specialty-select"
@@ -448,8 +450,7 @@
                   [disabled]="!canManage()"
                   name="specialties"
                 >
-                  <option value="">-- Chọn chuyên khoa --</option>
-                  <option value="Dùng chung (Đa khoa)">Dùng chung (Đa khoa)</option>
+                  <option value="">-- Dùng chung hoặc chọn chuyên khoa --</option>
                   @if (specialties() && !isKnownSpecialty(specialties())) {
                     <option [value]="specialties()">{{ specialties() }} (hiện tại)</option>
                   }
@@ -485,7 +486,7 @@
                   (ngModelChange)="defaultDosage.set($event)"
                   [disabled]="!canManage()"
                   name="defaultDosage"
-                  placeholder="Nhập hoặc chọn liều dùng chuẩn..."
+                  placeholder="Nhập liều dùng theo chỉ định hoặc chọn mẫu phù hợp..."
                 />
                 <datalist id="standard-dosages-list">
                   @for (fmt of standardDosageFormats(); track fmt) {
@@ -524,6 +525,66 @@
                 {{ saving() ? 'Đang lưu...' : editingId() ? 'Lưu cập nhật' : 'Thêm thuốc' }}
               </button>
             }
+          </div>
+        </form>
+      </section>
+    </div>
+  }
+
+  @if (metadataModal(); as type) {
+    <div class="erp-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="medication-metadata-dialog-title" (click)="closeMetadataModal()">
+      <section class="erp-modal-container max-w-xl" (click)="$event.stopPropagation()">
+        <div class="erp-modal-header">
+          <h2 id="medication-metadata-dialog-title" class="text-sm font-bold text-slate-900">
+            {{ type === 'unit' ? 'Thêm đơn vị tính' : 'Thêm liều dùng chuẩn' }}
+          </h2>
+          <button type="button" class="erp-btn-icon cursor-pointer" aria-label="Đóng" (click)="closeMetadataModal()">
+            <mat-icon class="!h-4 !w-4 !text-[18px]">close</mat-icon>
+          </button>
+        </div>
+        <form (ngSubmit)="$event.preventDefault(); saveMetadata()">
+          <div class="erp-modal-body grid gap-3">
+            <label class="grid gap-1">
+              <span class="erp-label">Mã {{ type === 'unit' ? 'đơn vị tính' : 'liều dùng' }} <span class="erp-label-required">*</span></span>
+              <input data-testid="medication-metadata-code" class="erp-input font-mono uppercase" [ngModel]="metadataCode()" (ngModelChange)="metadataCode.set($event)" name="metadataCode" placeholder="UNIT-VIEN" maxlength="50" />
+            </label>
+            @if (type === 'unit') {
+              <label class="grid gap-1">
+                <span class="erp-label">Tên đơn vị tính <span class="erp-label-required">*</span></span>
+                <input data-testid="medication-metadata-name" class="erp-input" [ngModel]="metadataName()" (ngModelChange)="metadataName.set($event)" name="metadataName" maxlength="100" placeholder="Viên, Gói, Chai..." />
+              </label>
+            } @else {
+              <label class="grid gap-1">
+                <span class="erp-label">Đơn vị áp dụng <span class="erp-label-required">*</span></span>
+                <select class="erp-select" data-testid="medication-metadata-unit" [ngModel]="metadataUnitName()" (ngModelChange)="metadataUnitName.set($event)" name="metadataUnitName">
+                  <option value="">-- Chọn đơn vị tính --</option>
+                  @for (item of medicationUnits(); track item.code) {
+                    @if (item.active !== false) { <option [value]="item.name">{{ item.name }}</option> }
+                  }
+                </select>
+              </label>
+              <label class="grid gap-1">
+                <span class="erp-label">Định dạng liều dùng <span class="erp-label-required">*</span></span>
+                <input data-testid="medication-metadata-format" class="erp-input" [ngModel]="metadataFormat()" (ngModelChange)="metadataFormat.set($event)" name="metadataFormat" maxlength="200" placeholder="1 viên/lần x 2 lần/ngày" />
+              </label>
+            }
+            <label class="grid gap-1">
+              <span class="erp-label">Mô tả / Hướng dẫn</span>
+              <textarea class="erp-input resize-y py-2" rows="2" [ngModel]="metadataDescription()" (ngModelChange)="metadataDescription.set($event)" name="metadataDescription" maxlength="255"></textarea>
+            </label>
+            <label class="grid gap-1">
+              <span class="erp-label">Thứ tự hiển thị</span>
+              <input class="erp-input" type="number" min="0" step="1" [ngModel]="metadataSortOrder()" (ngModelChange)="metadataSortOrder.set($event)" name="metadataSortOrder" />
+            </label>
+            @if (error()) {
+              <div class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700" role="alert">{{ error() }}</div>
+            }
+          </div>
+          <div class="erp-modal-footer">
+            <button type="button" class="erp-btn-secondary cursor-pointer" (click)="closeMetadataModal()">Hủy</button>
+            <button type="submit" class="erp-btn-primary cursor-pointer" [disabled]="saving()">
+              {{ saving() ? 'Đang lưu...' : 'Thêm vào danh mục' }}
+            </button>
           </div>
         </form>
       </section>
