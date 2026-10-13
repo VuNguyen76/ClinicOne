@@ -1,5 +1,5 @@
 import { routes } from './app.routes';
-import { adminGuard, clinicalStaffGuard, roomManagerGuard } from './core/auth/auth.guard';
+import { adminGuard, clinicalStaffGuard, doctorGuard, roomManagerGuard } from './core/auth/auth.guard';
 
 describe('ClinicOne route-to-API role contracts', () => {
   it('restricts schedule-template management to roles allowed to load the doctor directory', () => {
@@ -12,6 +12,14 @@ describe('ClinicOne route-to-API role contracts', () => {
     const route = routes.find((item) => item.path === 'admin/doctor-time-off');
 
     expect(route?.canActivate).toContain(clinicalStaffGuard);
+  });
+
+  it('exposes a doctor-only appointment agenda page', async () => {
+    const route = routes.find((item) => item.path === 'doctor/appointments');
+
+    expect(route?.canActivate).toContain(doctorGuard);
+    const component = await route?.loadComponent?.();
+    expect((component as { name?: string } | undefined)?.name).toContain('DoctorAppointments');
   });
 
   it('loads the reason catalog page instead of redirecting users to diagnoses', async () => {

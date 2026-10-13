@@ -38,6 +38,10 @@ public interface WorkScheduleTemplateRepository extends JpaRepository<WorkSchedu
     @EntityGraph(attributePaths = {"clinicService", "doctorProfile", "doctorProfile.staffAccount", "room", "weekdays", "breaks", "exceptionDates"})
     List<WorkScheduleTemplate> findByActiveTrueOrderByStartDateAsc();
 
+    @EntityGraph(attributePaths = {"clinicService", "doctorProfile", "doctorProfile.staffAccount", "room",
+            "weekdays", "breaks", "exceptionDates"})
+    List<WorkScheduleTemplate> findByDoctorProfile_StaffAccount_IdOrderByStartDateAsc(UUID doctorStaffId);
+
     @Override
     @EntityGraph(attributePaths = {"clinicService", "doctorProfile", "doctorProfile.staffAccount", "room", "weekdays", "breaks", "exceptionDates"})
     Optional<WorkScheduleTemplate> findById(UUID id);

@@ -20,6 +20,10 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
     @EntityGraph(attributePaths = {"patient", "patientProfile"})
     List<Appointment> findByPatientIdOrderByAppointmentDateAscStartTimeAsc(UUID patientId);
 
+    @EntityGraph(attributePaths = {"patient", "patientProfile"})
+    List<Appointment> findByDoctorStaffIdAndAppointmentDateBetweenOrderByAppointmentDateAscStartTimeAsc(
+            UUID doctorStaffId, LocalDate from, LocalDate to);
+
     Optional<Appointment> findByPatientIdAndAppointmentDateAndStartTimeAndStatus(UUID patientId, LocalDate appointmentDate,
                                                                                    LocalTime startTime, AppointmentStatus status);
 

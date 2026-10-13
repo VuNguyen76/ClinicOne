@@ -61,6 +61,17 @@ class ScheduleTemplateServiceTest {
     }
 
     @Test
+    void listsOnlyTheAuthenticatedDoctorsScheduleTemplates() {
+        when(templateRepository.findByDoctorProfile_StaffAccount_IdOrderByStartDateAsc(DOCTOR_ID))
+                .thenReturn(List.of());
+
+        assertEquals(List.of(), service.listForDoctor(DOCTOR_ID));
+
+        verify(templateRepository).findByDoctorProfile_StaffAccount_IdOrderByStartDateAsc(DOCTOR_ID);
+        verify(templateRepository, never()).findByActiveTrueOrderByStartDateAsc();
+    }
+
+    @Test
     void createsTemplateAndGeneratesSlotsSkippingBreaksAndExceptions() {
         ClinicService clinicService = mock(ClinicService.class);
         DoctorProfile doctor = mock(DoctorProfile.class);
