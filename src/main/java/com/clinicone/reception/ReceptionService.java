@@ -46,6 +46,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -176,17 +177,17 @@ public class ReceptionService {
     public List<ReceptionAppointmentResponse> search(String query, LocalDate date) {
         String normalized = normalizeQuery(query);
         LocalDate appointmentDate = date == null ? today() : date;
-        return appointmentRepository.findReceptionCandidatesByStatuses(normalized, appointmentDate,
-                        List.of(AppointmentStatus.BOOKED, AppointmentStatus.CHECKED_IN, AppointmentStatus.ABSENT))
-                .stream().map(this::toResponse).toList();
+        List<Appointment> appointments = appointmentRepository.findReceptionCandidatesByStatuses(normalized, appointmentDate,
+                        List.of(AppointmentStatus.BOOKED, AppointmentStatus.CHECKED_IN, AppointmentStatus.ABSENT));
+        return toResponsesBatch(appointments);
     }
 
     @Transactional(readOnly = true)
     public List<ReceptionAppointmentResponse> worklist(LocalDate date) {
         LocalDate workDate = date == null ? today() : date;
-        return appointmentRepository.findByAppointmentDateAndStatusInOrderByStartTimeAsc(workDate,
-                        List.of(AppointmentStatus.values()))
-                .stream().map(this::toResponse).toList();
+        List<Appointment> appointments = appointmentRepository.findByAppointmentDateAndStatusInOrderByStartTimeAsc(workDate,
+                        List.of(AppointmentStatus.values()));
+        return toResponsesBatch(appointments);
     }
 
     @Transactional
@@ -648,6 +649,31 @@ public ReceptionAppointmentResponse checkIn(UUID appointmentId, ReceptionCheckIn
                 ? queueService.checkInByStaff(doctor.getRoom().getCode(), created.id(), request.exceptionReason())
                 : queueService.checkInByStaff(doctor.getRoom().getCode(), created.id(), request.exceptionReason(), actor);
         return toResponse(appointment, ticket);
+    }
+
+    private List<ReceptionAppointmentResponse> toResponsesBatch(List<Appointment> appointments) {
+        if (appointments.isEmpty()) {
+            return List.of();
+        }
+        List<UUID> appointmentIds = appointments.stream().map(Appointment::getId).filter(Objects::nonNull).toList();
+        Map<UUID, QueueTicketResponse> ticketMap = ticketRepository == null || appointmentIds.isEmpty()
+                ? Map.of()
+                : ticketRepository.findByAppointmentIdIn(appointmentIds).stream()
+                .collect(Collectors.toMap(t -> t.getAppointment().getId(), QueueTicketResponse::from, (a, b) -> a));
+
+        Set<UUID> doctorStaffIds = appointments.stream().map(Appointment::getDoctorStaffId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<UUID, DoctorProfile> doctorMap = doctorProfileRepository == null || doctorStaffIds.isEmpty()
+                ? Map.of()
+                : doctorProfileRepository.findAllByStaffAccount_IdInAndActiveTrue(doctorStaffIds).stream()
+                .collect(Collectors.toMap(p -> p.getStaffAccount().getId(), p -> p, (a, b) -> a));
+
+        return appointments.stream().map(appointment -> {
+            QueueTicketResponse ticket = ticketMap.get(appointment.getId());
+            DoctorProfile profile = appointment.getDoctorStaffId() == null ? null : doctorMap.get(appointment.getDoctorStaffId());
+            String effectiveRoomCode = ticket != null && ticket.roomCode() != null ? ticket.roomCode() : (profile == null ? null : profile.getRoom().getCode());
+            String effectiveRoomName = ticket != null && ticket.roomName() != null ? ticket.roomName() : (profile == null ? null : profile.getRoom().getName());
+            return ReceptionAppointmentResponse.from(appointment, effectiveRoomCode, effectiveRoomName, ticket, isLateArrival(appointment));
+        }).toList();
     }
 
     private ReceptionAppointmentResponse toResponse(Appointment appointment) {

@@ -1,3 +1,49 @@
+@if (reasonDialog(); as reasonAction) {
+  <div class="erp-modal-overlay" role="presentation" (click)="closeReasonDialog()">
+    <section class="erp-modal-container max-w-lg" role="dialog" aria-modal="true" aria-labelledby="reason-action-title" (click)="$event.stopPropagation()">
+      <div class="erp-modal-header">
+        <div>
+          <span class="erp-badge erp-badge-warning">{{ reasonAction.appointment.appointmentCode }}</span>
+          <h2 id="reason-action-title" class="mt-1 text-base font-bold text-slate-900 sm:text-lg">
+            {{ reasonAction.type === 'FACILITY_UNAVAILABLE' ? 'Xác nhận phòng khám dừng phục vụ' : reasonAction.type === 'LEAVE_BEFORE_EXAM' ? 'Ghi nhận người bệnh rời trước khám' : 'Cấp số tiếp nhận ngoại lệ' }}
+          </h2>
+          <p class="mt-1 text-sm text-slate-600">{{ reasonAction.appointment.patientName }} · {{ reasonAction.appointment.roomCode || 'Chưa gán phòng' }}</p>
+        </div>
+        <button type="button" aria-label="Đóng" class="erp-btn-icon" [disabled]="isAppointmentBusy(reasonAction.appointment.id)" (click)="closeReasonDialog()">
+          <mat-icon class="!h-4 !w-4 !text-[18px]">close</mat-icon>
+        </button>
+      </div>
+      <div class="erp-modal-body space-y-3">
+        <p class="text-sm text-slate-600">Vui lòng ghi rõ lý do để lưu cùng lịch sử xử lý.</p>
+        <div>
+          <label class="erp-label" for="reception-action-reason">Lý do <span class="font-normal text-slate-500">(ít nhất {{ reasonAction.type === 'CHECK_IN' ? 3 : 10 }} ký tự)</span></label>
+          <textarea
+            id="reception-action-reason"
+            data-testid="reason-dialog-input"
+            class="erp-textarea"
+            rows="3"
+            maxlength="500"
+            [ngModel]="reasonDraft()"
+            (ngModelChange)="reasonDraft.set($event)"
+            name="reasonDraft"
+            placeholder="Nhập lý do xử lý..."
+            [disabled]="isAppointmentBusy(reasonAction.appointment.id)"
+          ></textarea>
+          @if (error()) {
+            <p class="mt-2 text-sm text-rose-700" role="alert">{{ error() }}</p>
+          }
+        </div>
+      </div>
+      <div class="erp-modal-footer">
+        <button type="button" data-testid="cancel-reason-action" class="erp-btn-secondary" [disabled]="isAppointmentBusy(reasonAction.appointment.id)" (click)="closeReasonDialog()">Hủy</button>
+        <button type="button" data-testid="confirm-reason-action" [class]="reasonAction.type === 'CHECK_IN' ? 'erp-btn-primary' : 'erp-btn-danger'" [disabled]="isAppointmentBusy(reasonAction.appointment.id)" (click)="confirmReasonAction()">
+          {{ isAppointmentBusy(reasonAction.appointment.id) ? 'Đang xử lý...' : reasonAction.type === 'FACILITY_UNAVAILABLE' ? 'Xác nhận dừng phục vụ' : reasonAction.type === 'LEAVE_BEFORE_EXAM' ? 'Xác nhận rời trước khám' : 'Xác nhận cấp số' }}
+        </button>
+      </div>
+    </section>
+  </div>
+}
+
 @if (rebookTicket(); as rebook) {
   <div class="erp-modal-overlay" role="presentation" (click)="closeRebook()">
     <section class="erp-modal-container max-w-lg" role="dialog" aria-modal="true" aria-labelledby="rebook-title" (click)="$event.stopPropagation()">
@@ -216,30 +262,31 @@
   </div>
 }
 
+<ng-template #walkInContent>
 @if (walkInOpen()) {
-  <div class="erp-modal-overlay overflow-y-auto overscroll-contain" role="presentation" (click)="closeWalkIn()">
-    <section data-testid="walk-in-dialog" class="erp-modal-container flex max-h-[calc(100dvh-2rem)] max-w-2xl flex-col overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="walk-in-title" (click)="$event.stopPropagation()">
-      <div class="erp-modal-header shrink-0">
+    <section data-testid="walk-in-workspace" class="erp-card overflow-hidden" aria-labelledby="walk-in-title">
+      <div class="erp-toolbar flex items-center justify-between gap-3">
         <div>
           <span class="erp-badge erp-badge-info">Tiếp nhận tại quầy</span>
-          <h2 id="walk-in-title" class="mt-1 text-base font-bold text-slate-900 sm:text-lg">Tạo lịch và cấp số</h2>
+          <h2 id="walk-in-title" class="mt-1 text-base font-bold text-slate-900 sm:text-lg">Tra cứu người bệnh bằng số điện thoại</h2>
+          <p class="mt-1 text-xs text-slate-500">Tìm đúng hồ sơ trước; thông tin đặt lịch sẽ hiện sau khi tìm thấy.</p>
         </div>
-        <button type="button" aria-label="Đóng" class="erp-btn-icon" (click)="closeWalkIn()">
-          <mat-icon class="!h-4 !w-4 !text-[18px]">close</mat-icon>
+        <button type="button" aria-label="Bắt đầu lượt tiếp nhận khác" class="erp-btn-secondary shrink-0" (click)="closeWalkIn()">
+          <mat-icon class="!h-4 !w-4 !text-[18px]">restart_alt</mat-icon><span>Làm mới</span>
         </button>
       </div>
 
       @if (walkInAccountLocked()) {
-        <div class="erp-modal-body flex-1 space-y-4" data-testid="locked-account-message" role="alert">
+        <div class="space-y-4 p-4 sm:p-5" data-testid="locked-account-message" role="alert">
           <div class="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800">
             Tài khoản người bệnh đang bị khóa. Cần mở khóa trước khi tiếp nhận.
           </div>
-          <div class="erp-modal-footer !px-0 !pb-0">
+          <div class="flex justify-end">
             <button type="button" class="erp-btn-secondary" (click)="closeWalkIn()">Đóng</button>
           </div>
         </div>
       } @else if (walkInRegistration()) {
-        <form data-testid="walk-in-scroll-body" class="erp-modal-body min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain" (ngSubmit)="$event.preventDefault(); submitRegistration()">
+        <form data-testid="walk-in-scroll-body" class="space-y-4 p-4 sm:p-5" (ngSubmit)="$event.preventDefault(); submitRegistration()">
           @if (error()) {
             <div class="flex items-center justify-between gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700" role="alert">
               <div class="flex items-center gap-2">
@@ -375,7 +422,7 @@
               />
             </div>
           </div>
-          <div class="erp-modal-footer !px-0 !pb-0">
+          <div class="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
             <button type="button" class="erp-btn-secondary" (click)="closeWalkIn()">Hủy</button>
             <button
               type="submit"
@@ -387,7 +434,7 @@
           </div>
         </form>
       } @else if (walkInProfileNeedsCompletion()) {
-        <form data-testid="walk-in-scroll-body" class="erp-modal-body min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain" (ngSubmit)="$event.preventDefault(); submitProfileCompletion()">
+        <form data-testid="walk-in-scroll-body" class="space-y-4 p-4 sm:p-5" (ngSubmit)="$event.preventDefault(); submitProfileCompletion()">
           @if (error()) {
             <div class="flex items-center justify-between gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700" role="alert">
               <div class="flex items-center gap-2">
@@ -429,13 +476,13 @@
             </div>
           </div>
           }
-          <div class="erp-modal-footer !px-0 !pb-0">
+          <div class="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
             <button type="button" class="erp-btn-secondary" (click)="closeWalkIn()">Đóng</button>
             <button type="submit" class="erp-btn-primary" [disabled]="registrationLoading()">{{ registrationLoading() ? 'Đang lưu...' : 'Lưu hồ sơ' }}</button>
           </div>
         </form>
       } @else if (walkInNeedsPasswordChange()) {
-        <form data-testid="walk-in-scroll-body" class="erp-modal-body min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain" (ngSubmit)="$event.preventDefault(); activatePendingAccount()">
+        <form data-testid="walk-in-scroll-body" class="space-y-4 p-4 sm:p-5" (ngSubmit)="$event.preventDefault(); activatePendingAccount()">
           @if (error()) {
             <div class="flex items-center justify-between gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700" role="alert">
               <div class="flex items-center gap-2">
@@ -499,13 +546,13 @@
             <label class="erp-label">Nhập lại mật khẩu</label>
             <input type="password" autocomplete="new-password" minlength="8" maxlength="64" class="erp-input" [ngModel]="activationConfirmPassword()" (ngModelChange)="activationConfirmPassword.set($event)" name="activationConfirmPassword" />
           </div>
-          <div class="erp-modal-footer !px-0 !pb-0">
+          <div class="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
             <button type="button" class="erp-btn-secondary" (click)="closeWalkIn()">Đóng</button>
             <button type="submit" class="erp-btn-primary" [disabled]="activationLoading()">{{ activationLoading() ? 'Đang kích hoạt...' : 'Đặt mật khẩu và tiếp tục' }}</button>
           </div>
         </form>
       } @else {
-        <form data-testid="walk-in-scroll-body" class="erp-modal-body min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain" (ngSubmit)="$event.preventDefault(); submitWalkIn()">
+        <form data-testid="walk-in-scroll-body" class="space-y-4 p-4 sm:p-5" (ngSubmit)="$event.preventDefault(); submitWalkIn()">
           @if (error()) {
             <div class="flex items-center justify-between gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700" role="alert">
               <div class="flex items-center gap-2">
@@ -520,21 +567,37 @@
           <div class="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
             <div>
               <label class="erp-label">Số điện thoại</label>
-              <input class="erp-input" [ngModel]="walkInPhone()" (ngModelChange)="onWalkInPhoneChange($event)" [disabled]="identityMutationLoading()" name="walkInPhone" inputmode="numeric" placeholder="0912345678" />
+              <input data-testid="walk-in-phone" class="erp-input" [ngModel]="walkInPhone()" (ngModelChange)="onWalkInPhoneChange($event)" (keydown.enter)="$event.preventDefault(); loadWalkInProfiles()" [disabled]="identityMutationLoading()" name="walkInPhone" type="tel" autocomplete="tel" inputmode="numeric" maxlength="10" placeholder="0912345678" />
             </div>
             <button type="button" class="erp-btn-secondary" [disabled]="walkInProfilesLoading()" (click)="loadWalkInProfiles()">
-              {{ walkInProfilesLoading() ? 'Đang tìm...' : 'Tìm hồ sơ' }}
+              {{ walkInProfilesLoading() ? 'Đang tìm...' : 'Tra cứu số điện thoại' }}
             </button>
           </div>
-          @if (walkInProfiles().length > 0) {
+          @if (walkInProfiles().length > 1) {
             <div>
               <label class="erp-label">Hồ sơ người đi khám</label>
-              <select class="erp-select" [ngModel]="walkInProfileId()" (ngModelChange)="selectWalkInProfile($event)" name="walkInProfileId">
+              <select data-testid="walk-in-profile-select" class="erp-select" [ngModel]="walkInProfileId()" (ngModelChange)="selectWalkInProfile($event)" name="walkInProfileId">
                 <option value="">Dùng thông tin tài khoản</option>
                 @for (profile of walkInProfiles(); track profile.id) {
                   <option [value]="profile.id">{{ profile.fullName }} · {{ profile.relationship }}</option>
                 }
               </select>
+            </div>
+          }
+          @if (walkInProfiles().length > 0) {
+          @if (walkInProfiles().find(profile => profile.id === walkInProfileId()); as selectedProfile) {
+            <div class="rounded-lg border border-sky-200 bg-sky-50/70 p-4" data-testid="walk-in-selected-patient">
+              <div class="flex items-start gap-3">
+                <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white text-sky-700"><mat-icon>person</mat-icon></span>
+                <div class="min-w-0 flex-1">
+                  <p class="font-semibold text-slate-900">{{ selectedProfile.fullName }}</p>
+                  <p class="text-xs text-slate-600">{{ selectedProfile.relationship }} · {{ selectedProfile.phone || walkInPhone() }}</p>
+                  <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600">
+                    <span>Ngày sinh: {{ selectedProfile.dateOfBirth || 'Chưa cập nhật' }}</span>
+                    <span>Giới tính: {{ selectedProfile.gender || 'Chưa cập nhật' }}</span>
+                  </div>
+                </div>
+              </div>
             </div>
           }
           <div class="grid gap-3 sm:grid-cols-2">
@@ -611,27 +674,24 @@
             <label class="erp-label">{{ temporaryProfileSelected() ? 'Lý do không thể xác thực (10-500 ký tự)' : 'Lý do tiếp nhận ngoại lệ' }}</label>
             <input class="erp-input" [ngModel]="walkInExceptionReason()" (ngModelChange)="walkInExceptionReason.set($event)" name="walkInExceptionReason" maxlength="500" [placeholder]="temporaryProfileSelected() ? 'Lý do không thể nhận OTP' : 'Người bệnh đến quầy chưa đặt lịch'" />
           </div>
-          <div class="erp-modal-footer !px-0 !pb-0">
-            <button type="button" class="erp-btn-secondary" (click)="closeWalkIn()">Hủy</button>
+          <div class="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
+            <button type="button" class="erp-btn-secondary" (click)="closeWalkIn()">Làm mới</button>
             <button type="submit" class="erp-btn-primary" [disabled]="walkInLoading()">{{ walkInLoading() ? 'Đang tạo...' : walkInIsToday() ? 'Tạo lịch và cấp số' : 'Đặt lịch' }}</button>
           </div>
+          } @else {
+            <div class="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-center" data-testid="walk-in-search-hint">
+              <mat-icon class="!h-7 !w-7 !text-[28px] text-slate-400">manage_search</mat-icon>
+              <p class="mt-2 text-sm font-semibold text-slate-700">Tra cứu bằng số điện thoại để bắt đầu</p>
+              <p class="mt-1 text-xs text-slate-500">Thông tin người bệnh, chuyên khoa và lịch khám sẽ hiện sau khi tìm thấy hồ sơ.</p>
+            </div>
+          }
         </form>
       }
     </section>
-  </div>
 }
+</ng-template>
 
 <app-staff-workspace-shell moduleTitle="Tiếp nhận" [pageTitle]="pageTitle()">
-
-  <!-- Workspace Action Slot -->
-  <div workspace-actions class="flex items-center gap-2">
-    @if (activeTab() === 'intake') {
-      <button type="button" data-testid="open-walk-in" class="erp-btn-primary" (click)="openWalkIn()">
-        <mat-icon class="!h-4 !w-4 !text-[16px]">person_add</mat-icon>
-        <span>Mở phiếu tiếp nhận</span>
-      </button>
-    }
-  </div>
 
   <div class="mx-auto max-w-[1440px] space-y-4">
     <!-- Alerts & Notices -->
@@ -739,10 +799,13 @@
                 </div>
               </div>
             } @else {
+              <div class="hidden border-t border-slate-100 bg-slate-50/70 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 lg:grid lg:grid-cols-[4.5rem_minmax(0,1.1fr)_minmax(0,1fr)_7rem] lg:items-center lg:gap-2">
+                <span>Giờ</span><span>Người bệnh</span><span>Khám &amp; bác sĩ</span><span class="text-right">Trạng thái</span>
+              </div>
               <div class="max-h-[34rem] overflow-auto">
                 <div class="divide-y divide-slate-100">
                   @for (appointment of overviewAppointments(); track appointment.id) {
-                    <article data-testid="overview-appointment" class="grid gap-2 px-4 py-3 sm:grid-cols-[4.5rem_minmax(0,1.1fr)_minmax(0,1fr)_auto] sm:items-center">
+                    <article data-testid="overview-appointment" class="grid gap-2 px-4 py-3 lg:grid-cols-[4.5rem_minmax(0,1.1fr)_minmax(0,1fr)_7rem] lg:items-center">
                       <time class="font-mono text-sm font-bold text-slate-700">{{ formatTime(appointment.startTime) }}</time>
                       <div class="min-w-0">
                         <p class="truncate text-sm font-semibold text-slate-900">{{ appointment.patientName }}</p>
@@ -752,7 +815,7 @@
                         <p class="truncate text-sm text-slate-700">{{ appointment.specialty }}</p>
                         <p class="truncate text-xs text-slate-500">{{ appointment.doctorName }} · {{ appointment.roomCode || 'Chưa phân phòng' }}</p>
                       </div>
-                      <span class="erp-badge whitespace-nowrap" [class]="queueClass(appointment)">{{ overviewStatusLabel(appointment) }}</span>
+                      <span class="erp-badge w-fit whitespace-nowrap lg:justify-self-end" [class]="queueClass(appointment)">{{ overviewStatusLabel(appointment) }}</span>
                     </article>
                   }
                 </div>
@@ -764,8 +827,8 @@
     }
 
     @if (activeTab() === 'intake') {
-      <section class="grid min-h-64 place-items-center" data-testid="reception-intake-screen">
-        <div class="erp-card max-w-xl p-8 text-center"><div class="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-sky-50 text-[#0284c7]"><mat-icon class="!h-8 !w-8 !text-[30px]">person_add</mat-icon></div><h2 class="mt-4 text-xl font-bold text-slate-900">Tiếp nhận tại quầy</h2><button type="button" class="erp-btn-primary mt-5" (click)="openWalkIn()"><mat-icon class="!h-4 !w-4 !text-[16px]">add</mat-icon>Mở phiếu tiếp nhận</button></div>
+      <section class="space-y-4" data-testid="reception-intake-screen">
+        <ng-container *ngTemplateOutlet="walkInContent"></ng-container>
       </section>
     }
 
@@ -842,37 +905,10 @@
     @else if (appointments().length > 0) {
       <section class="erp-card overflow-hidden" aria-label="Lịch hẹn cần hỗ trợ">
         <div class="erp-toolbar">
-          <div class="flex items-center gap-2">
+          <div>
             <h2 class="text-xs font-bold uppercase tracking-wider text-slate-800">Lịch hẹn cần hỗ trợ</h2>
-            <span class="rounded-full bg-slate-100 px-2 py-0.5 font-mono text-[11px] font-semibold text-slate-600">
-              {{ appointments().length }} lịch
-            </span>
           </div>
           <mat-icon class="!h-5 !w-5 !text-[20px] text-[#0284c7]">fact_check</mat-icon>
-        </div>
-
-        <div class="grid gap-3 border-b border-slate-200 bg-slate-50/50 p-3 sm:grid-cols-2">
-          <div>
-            <label class="erp-label">Lý do hỗ trợ tại quầy</label>
-            <input
-              class="erp-input"
-              [ngModel]="exceptionReason()"
-              (ngModelChange)="exceptionReason.set($event)"
-              name="exceptionReason"
-              placeholder="QR phòng bị lỗi"
-            />
-          </div>
-          <div>
-            <label class="erp-label">Lý do rời trước khám</label>
-            <input
-              class="erp-input"
-              [ngModel]="leaveReason()"
-              (ngModelChange)="leaveReason.set($event)"
-              name="leaveReason"
-              maxlength="500"
-              placeholder="Người bệnh bận việc đột xuất"
-            />
-          </div>
         </div>
 
         <div class="divide-y divide-slate-100">
@@ -928,7 +964,7 @@
                   data-testid="check-in"
                   class="erp-btn-primary !min-h-7 !px-2.5 !py-1 !text-[11px]"
                   [disabled]="!appointment.roomCode || !!appointment.queueStatus || isAppointmentBusy(appointment.id)"
-                  (click)="checkIn(appointment)"
+                  (click)="openReasonDialog('CHECK_IN', appointment)"
                 >
                   {{ isAppointmentBusy(appointment.id) ? 'Đang cấp...' : appointment.queueStatus ? 'Đã nhận' : 'Cấp số ngoại lệ' }}
                 </button>
@@ -957,8 +993,8 @@
                     type="button"
                     data-testid="leave-before-exam"
                     class="erp-btn-danger !min-h-7 !px-2.5 !py-1 !text-[11px]"
-                    [disabled]="isAppointmentBusy(appointment.id) || leaveReason().trim().length < 10"
-                    (click)="leaveBeforeExam(appointment)"
+                    [disabled]="isAppointmentBusy(appointment.id)"
+                    (click)="openReasonDialog('LEAVE_BEFORE_EXAM', appointment)"
                   >
                     {{ isAppointmentBusy(appointment.id) ? 'Đang ghi...' : 'Ghi nhận rời' }}
                   </button>
@@ -969,7 +1005,7 @@
                     data-testid="facility-unavailable"
                     class="erp-btn-danger !min-h-7 !px-2.5 !py-1 !text-[11px]"
                     [disabled]="isAppointmentBusy(appointment.id)"
-                    (click)="markFacilityUnavailable(appointment)"
+                    (click)="openReasonDialog('FACILITY_UNAVAILABLE', appointment)"
                   >
                     Phòng khám dừng phục vụ
                   </button>

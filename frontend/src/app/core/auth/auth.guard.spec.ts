@@ -1,13 +1,16 @@
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
-import { adminGuard, authGuard, doctorGuard, homeGuard, operationalStaffGuard, patientGuard, queueBoardGuard, queueSupervisorGuard, receptionGuard, roomManagerGuard, staffGuard, staffLandingRedirect } from './auth.guard';
+import { adminGuard, authGuard, coordinatorRouteGuard, doctorGuard, homeGuard, operationalStaffGuard, patientGuard, queueBoardGuard, queueSupervisorGuard, receptionGuard, roomManagerGuard, staffGuard, staffLandingRedirect } from './auth.guard';
 
 describe('ClinicOne route guards', () => {
-  let router: { createUrlTree: ReturnType<typeof vi.fn> };
+  let router: { createUrlTree: ReturnType<typeof vi.fn>; parseUrl: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     sessionStorage.clear();
-    router = { createUrlTree: vi.fn((commands: unknown[]) => ({ commands })) };
+    router = {
+      createUrlTree: vi.fn((commands: unknown[]) => ({ commands })),
+      parseUrl: vi.fn((url: string) => ({ url })),
+    };
     TestBed.configureTestingModule({ providers: [{ provide: Router, useValue: router }] });
   });
 
@@ -139,8 +142,16 @@ describe('ClinicOne route guards', () => {
     sessionStorage.setItem('clinicOneSessionType', 'STAFF');
     sessionStorage.setItem('clinicOneStaffRole', 'COORDINATOR');
 
-    expect(TestBed.runInInjectionContext(() => queueSupervisorGuard(null as never, { url: '/admin/queues' } as never))).toBe(true);
-    expect(staffLandingRedirect(null as never)).toBe('/admin/queues');
+    expect(TestBed.runInInjectionContext(() => queueSupervisorGuard(null as never, { url: '/coordinator' } as never))).toBe(true);
+    expect(staffLandingRedirect(null as never)).toBe('/coordinator');
+  });
+
+  it('keeps coordinator sessions inside the coordinator URL namespace when opening an old admin URL', () => {
+    sessionStorage.setItem('clinicOneAccessToken', 'staff-token');
+    sessionStorage.setItem('clinicOneSessionType', 'STAFF');
+    sessionStorage.setItem('clinicOneStaffRole', 'COORDINATOR');
+    expect(TestBed.runInInjectionContext(() => coordinatorRouteGuard(null as never, { url: '/admin/schedule-templates?tab=week' } as never)))
+      .toEqual({ url: '/coordinator/schedule-templates?tab=week' });
   });
 
   it('redirects admin from queue supervisor route to rooms workspace', () => {

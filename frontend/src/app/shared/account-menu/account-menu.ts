@@ -57,6 +57,12 @@ export class AccountMenu {
     });
   }
 
+  protected staffRoute(url: string): string {
+    return this.staffRoles().includes('COORDINATOR')
+      ? url.replace(/^\/admin\//, '/coordinator/')
+      : url;
+  }
+
   protected readonly isStaff = computed(() => Boolean(this.staffRole()) || this.staffRoles().length > 0);
   protected readonly isDoctor = computed(() => this.staffRoles().includes('DOCTOR'));
   protected readonly canManageRooms = computed(() =>

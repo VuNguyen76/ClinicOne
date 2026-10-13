@@ -46,7 +46,9 @@ describe('DoctorMedicalRecords', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="record-diagnosis"]')?.textContent)
       .toContain('Tăng huyết áp');
     expect((fixture.nativeElement.querySelector('[data-testid="prescription-dialog"]') as HTMLDialogElement).open).toBe(false);
-    (fixture.nativeElement.querySelector('[data-testid="prescription-open"]') as HTMLButtonElement).click();
+    const prescriptionOpen = fixture.nativeElement.querySelector('[data-testid="prescription-open"]') as HTMLButtonElement;
+    expect(prescriptionOpen.classList.contains('min-h-11')).toBe(false);
+    prescriptionOpen.click();
     fixture.detectChanges();
 
     expect((fixture.nativeElement.querySelector('[data-testid="prescription-dialog"]') as HTMLDialogElement).open).toBe(true);
@@ -80,6 +82,22 @@ describe('DoctorMedicalRecords', () => {
       && candidate.params.get('from') === '2026-10-01'
       && candidate.params.get('to') === '2026-10-13');
     request.flush({ items: [], page: 0, size: 20, totalElements: 0, totalPages: 0 });
+  });
+
+  it('uses the shared compact sizing for the medical record filters', () => {
+    http.expectOne((request) => request.url === '/api/v1/doctor/medical-records').flush({
+      items: [], page: 0, size: 20, totalElements: 0, totalPages: 0,
+    });
+    fixture.detectChanges();
+    const search = fixture.nativeElement.querySelector('[data-testid="record-search"]') as HTMLInputElement;
+    const from = fixture.nativeElement.querySelector('[data-testid="record-from"]') as HTMLInputElement;
+    const submit = fixture.nativeElement.querySelector('[data-testid="record-search-submit"]') as HTMLButtonElement;
+
+    expect(search.classList.contains('erp-input')).toBe(true);
+    expect(search.classList.contains('text-base')).toBe(false);
+    expect(from.classList.contains('erp-input')).toBe(true);
+    expect(from.classList.contains('min-h-11')).toBe(false);
+    expect(submit.classList.contains('!min-h-11')).toBe(false);
   });
 });
 

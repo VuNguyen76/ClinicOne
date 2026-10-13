@@ -42,6 +42,19 @@ describe('DoctorAppointments', () => {
     expect(fixture.nativeElement.textContent).toContain('Đã đặt');
   });
 
+  it('uses the shared compact sizing for the appointment filters', () => {
+    http.expectOne((req) => req.url === '/api/v1/doctor/appointments').flush([]);
+    fixture.detectChanges();
+    const from = fixture.nativeElement.querySelector('[data-testid="appointments-from"]') as HTMLInputElement;
+    const search = fixture.nativeElement.querySelector('[data-testid="appointments-search"]') as HTMLButtonElement;
+
+    expect(from.classList.contains('erp-input')).toBe(true);
+    expect(from.classList.contains('min-h-11')).toBe(false);
+    expect(from.classList.contains('text-base')).toBe(false);
+    expect(search.classList.contains('erp-btn-primary')).toBe(true);
+    expect(search.classList.contains('!min-h-11')).toBe(false);
+  });
+
   it('does not request appointments when the selected date range is reversed', () => {
     http.expectOne((req) => req.url === '/api/v1/doctor/appointments').flush([]);
     fixture.detectChanges();
