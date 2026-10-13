@@ -149,23 +149,35 @@ public class PatientNotificationService {
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void notifyQueueTicketCalled(UUID patientId, UUID ticketId, int queueNumber,
+                                        String roomName, String doctorName, int callCount) {
+        if (patientId == null || ticketId == null || callCount < 1) return;
+        saveOnce(PatientNotification.queueTicketCalled(patientId, ticketId, queueNumber,
+                roomName, doctorName, callCount), false);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void notifyAccountSecurityLocked(UUID patientId, Instant lockedUntil) {
         if (patientId == null || lockedUntil == null) return;
         saveOnce(PatientNotification.accountSecurityLocked(patientId, lockedUntil));
     }
 
     private void saveOnce(PatientNotification notification) {
+        saveOnce(notification, true);
+    }
+
+    private void saveOnce(PatientNotification notification, boolean sendSms) {
         Optional<PatientNotification> existing = repository.findByEventKey(notification.getEventKey());
         if (existing.isPresent()) {
             // The outbox may still need to be created after a previous transaction committed
             // the in-app notification, but the legacy direct sender must never resend it.
-            if (smsDeliveryService != null) {
+            if (sendSms && smsDeliveryService != null) {
                 enqueueSms(existing.get());
             }
             return;
         }
         PatientNotification saved = repository.save(notification);
-        enqueueSms(saved);
+        if (sendSms) enqueueSms(saved);
     }
 
     private void enqueueSms(PatientNotification notification) {

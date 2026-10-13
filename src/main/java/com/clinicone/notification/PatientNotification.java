@@ -148,6 +148,20 @@ public class PatientNotification {
                 "APPOINTMENT_ABSENT:" + appointmentId);
     }
 
+    public static PatientNotification queueTicketCalled(UUID patientAccountId, UUID ticketId,
+                                                         int queueNumber, String roomName, String doctorName,
+                                                         int callCount) {
+        String roomLabel = roomName == null || roomName.isBlank() ? "phòng khám" : roomName;
+        String doctorLabel = doctorName == null || doctorName.isBlank() ? "Bác sĩ phụ trách" : doctorName;
+        String displayNumber = String.format("%02d", queueNumber);
+        return new PatientNotification(patientAccountId, PatientNotificationType.QUEUE_TICKET_CALLED,
+                "Đến lượt khám của bạn",
+                "Số thứ tự " + displayNumber + " đã được " + doctorLabel + " gọi tại " + roomLabel
+                        + ". Vui lòng đến phòng khám ngay.",
+                "/home",
+                "QUEUE_TICKET_CALLED:" + ticketId + ":" + callCount);
+    }
+
     public static PatientNotification accountSecurityLocked(UUID patientAccountId, Instant lockedUntil) {
         return new PatientNotification(patientAccountId, PatientNotificationType.ACCOUNT_SECURITY_LOCKED,
                 "Tài khoản tạm thời bị khóa",

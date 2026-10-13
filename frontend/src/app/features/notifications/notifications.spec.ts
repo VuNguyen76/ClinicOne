@@ -47,6 +47,19 @@ describe('Notifications', () => {
     request.flush(null);
   });
 
+  it('renders a doctor-called queue notification with a call icon', () => {
+    http.expectOne('/api/v1/notifications').flush([{
+      id: 'notification-queue-1', type: 'QUEUE_TICKET_CALLED', title: 'Đến lượt khám của bạn',
+      message: 'Số thứ tự 05 đã được bác sĩ gọi tại Phòng Nội tổng quát 01.', targetUrl: '/home',
+      read: false, createdAt: '2026-10-13T09:30:00Z',
+    }]);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Đến lượt khám của bạn');
+    expect(fixture.nativeElement.querySelector('[data-testid="notification-item"] mat-icon')?.textContent.trim())
+      .toBe('record_voice_over');
+  });
+
   it('marks all notifications read when mark-all-read is clicked', () => {
     http.expectOne('/api/v1/notifications').flush([{
       id: 'notification-1', type: 'MEDICAL_RECORD_SIGNED', title: 'Phiếu khám đã có kết quả',
