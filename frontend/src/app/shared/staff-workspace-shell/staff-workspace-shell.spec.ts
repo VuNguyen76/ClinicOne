@@ -135,7 +135,6 @@ describe('StaffWorkspaceShell', () => {
     const links = Array.from(fixture.nativeElement.querySelectorAll('[data-testid="staff-module-nav"] a')) as HTMLAnchorElement[];
     expect(links.map((link) => link.getAttribute('href'))).toEqual([
       '/reception',
-      '/reception/appointments',
       '/reception/walk-in',
       '/reception/queue',
       '/reception/exceptions',

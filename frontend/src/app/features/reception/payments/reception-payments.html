@@ -1,17 +1,13 @@
-<app-staff-workspace-shell moduleTitle="Tiếp nhận" pageTitle="Thu phí" [printMode]="printing()">
+<app-staff-workspace-shell moduleTitle="Tiếp nhận" pageTitle="Thu phí khám bệnh" [printMode]="printing()">
   <main class="mx-auto w-full max-w-[1440px] space-y-5 p-4 sm:p-6" data-testid="reception-payments-screen">
-    <header class="flex flex-wrap items-center justify-between gap-3 print:hidden">
-      <div>
-        <p class="text-xs font-bold uppercase tracking-[0.14em] text-sky-700">Tiếp nhận · Thanh toán</p>
-        <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900">Thu phí khám bệnh</h1>
-      </div>
-      <div class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600">
-        <mat-icon class="!h-5 !w-5 !text-[20px] text-sky-700">receipt_long</mat-icon>
-        Phiếu thu nội bộ
-      </div>
-    </header>
-
     <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 print:hidden">
+      <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <h2 class="text-sm font-semibold text-slate-800">Tra cứu lịch để lập phiếu thu</h2>
+        <span class="inline-flex items-center gap-1.5 rounded-md bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
+          <mat-icon class="!h-4 !w-4 !text-[16px] text-sky-700">receipt_long</mat-icon>
+          Phiếu thu nội bộ
+        </span>
+      </div>
       <form class="flex flex-col gap-3 sm:flex-row sm:items-end" (ngSubmit)="createReceipt()">
         <label class="min-w-0 flex-1 text-sm font-semibold text-slate-700">
           Mã lịch hẹn

@@ -41,4 +41,12 @@ describe('ClinicOne route-to-API role contracts', () => {
     const component = await route?.loadComponent?.();
     expect((component as { name?: string } | undefined)?.name).toContain('ClinicConfiguration');
   });
+
+  it('folds the legacy reception appointments route into the daily overview', async () => {
+    const route = routes.find((item) => item.path === 'reception/appointments');
+
+    expect(route?.data?.['receptionView']).toBe('overview');
+    const component = await route?.loadComponent?.();
+    expect((component as { name?: string } | undefined)?.name).toContain('ReceptionCheckIn');
+  });
 });

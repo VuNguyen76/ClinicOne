@@ -198,15 +198,9 @@ describe('Milestone 1 Empirical Challenger Verification Suite', () => {
       const overviewScreen = compiled.querySelector('[data-testid="reception-overview-screen"]');
       expect(overviewScreen).not.toBeNull();
 
-      // Check header area of overview screen
-      const header = overviewScreen?.querySelector('.flex.flex-wrap.items-end.justify-between');
-      expect(header).not.toBeNull();
-      expect(header?.textContent).toContain('Tổng quan tiếp nhận');
-
-      // Redundant button with text "Tra lịch hôm nay" must NOT exist in the header
-      const headerButtons = header?.querySelectorAll('a, button');
-      expect(headerButtons?.length).toBe(0);
-      expect(header?.textContent).not.toContain('Tra lịch hôm nay');
+      const pageTitle = compiled.querySelector('[data-testid="staff-window-title"]');
+      expect(pageTitle?.textContent).toContain('Tổng quan tiếp nhận');
+      expect(overviewScreen?.textContent).not.toContain('Tra lịch hôm nay');
     });
 
     it('EMPIRICAL: reception overview retains all essential operational action links', () => {
@@ -214,14 +208,15 @@ describe('Milestone 1 Empirical Challenger Verification Suite', () => {
       fixture.detectChanges();
 
       const compiled = fixture.nativeElement as HTMLElement;
-      const walkInLink = compiled.querySelector('a[routerLink="/reception/walk-in"]');
-      const profilesLink = compiled.querySelector('a[routerLink="/reception/profiles"]');
-      const exceptionsLink = compiled.querySelector('a[routerLink="/reception/exceptions"]');
+      const navigation = compiled.querySelector('[data-testid="staff-module-nav"]');
+      const walkInLink = navigation?.querySelector('a[href="/reception/walk-in"]');
+      const profilesLink = navigation?.querySelector('a[href="/reception/profiles"]');
+      const exceptionsLink = navigation?.querySelector('a[href="/reception/exceptions"]');
 
       expect(walkInLink).not.toBeNull();
-      expect(walkInLink?.textContent).toContain('Tiếp nhận không có lịch');
+      expect(walkInLink?.textContent).toContain('Đón tiếp tại quầy');
       expect(profilesLink).not.toBeNull();
-      expect(profilesLink?.textContent).toContain('Tra hồ sơ người bệnh');
+      expect(profilesLink?.textContent).toContain('Hồ sơ bệnh nhân');
       expect(exceptionsLink).not.toBeNull();
       expect(exceptionsLink?.textContent).toContain('Xử lý ngoại lệ');
     });

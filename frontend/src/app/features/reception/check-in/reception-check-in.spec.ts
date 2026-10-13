@@ -65,6 +65,28 @@ describe('ReceptionCheckIn', () => {
     expect(component.dashboardCounts().total).toBe(7);
   });
 
+  it('keeps appointment lookup inside the overview and removes the redundant count helper', () => {
+    const component = fixture.componentInstance as any;
+    const current = { ...appointment(), id: 'worklist-1', patientName: 'Nguyễn Thanh Vũ' };
+    component.appointments.set([current]);
+    component.overviewQuery.set('CL-LOOKUP-01');
+    fixture.detectChanges();
+
+    const searchButton = fixture.nativeElement.querySelector('[data-testid="overview-search-submit"]') as HTMLButtonElement;
+    expect(searchButton).not.toBeNull();
+    searchButton.click();
+    const request = http.expectOne((item) => item.url === '/api/v1/reception/appointments');
+    expect(request.request.params.get('query')).toBe('CL-LOOKUP-01');
+    expect(request.request.params.get('date')).toBe(component.selectedDate());
+    request.flush([{ ...current, id: 'external-match', appointmentCode: 'CL-LOOKUP-01' }]);
+    fixture.detectChanges();
+
+    expect(component.activeTab()).toBe('overview');
+    expect(component.dashboardCounts().total).toBe(1);
+    expect(fixture.nativeElement.textContent).toContain('CL-LOOKUP-01');
+    expect(fixture.nativeElement.textContent).not.toContain('1 / 1 lịch · tìm theo');
+  });
+
   it('counts only active queue states as received and includes unperformed appointments in exceptions', () => {
     const component = fixture.componentInstance as any;
     component.appointments.set([

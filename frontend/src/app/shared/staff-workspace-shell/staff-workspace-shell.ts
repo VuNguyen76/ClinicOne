@@ -23,7 +23,6 @@ const NAVIGATION: StaffNavigationGroup[] = [
     label: 'Tiếp nhận',
     items: [
       { label: 'Tổng quan', route: '/reception', icon: 'space_dashboard', roles: ['RECEPTIONIST'], exact: true },
-      { label: 'Lịch hẹn', route: '/reception/appointments', icon: 'event_available', roles: ['RECEPTIONIST'] },
       { label: 'Đón tiếp tại quầy', route: '/reception/walk-in', icon: 'how_to_reg', roles: ['RECEPTIONIST'] },
       { label: 'Hàng đợi quầy', route: '/reception/queue', icon: 'confirmation_number', roles: ['RECEPTIONIST'] },
       { label: 'Xử lý ngoại lệ', route: '/reception/exceptions', icon: 'warning_amber', roles: ['RECEPTIONIST'] },
