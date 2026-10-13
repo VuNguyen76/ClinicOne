@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink, Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
@@ -12,11 +13,12 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { interval } from 'rxjs';
 
 type ReceptionTab = 'overview' | 'search' | 'intake' | 'queue' | 'exceptions' | 'profiles';
+type ReceptionReasonActionType = 'CHECK_IN' | 'LEAVE_BEFORE_EXAM' | 'FACILITY_UNAVAILABLE';
 
 @Component({
   selector: 'app-reception-check-in',
   standalone: true,
-  imports: [FormsModule, MatIconModule, RouterLink, StaffWorkspaceShell],
+  imports: [FormsModule, NgTemplateOutlet, MatIconModule, RouterLink, StaffWorkspaceShell],
   templateUrl: './reception-check-in.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -48,6 +50,8 @@ export class ReceptionCheckIn implements OnInit {
   protected readonly selectedDate = signal(clinicTodayIso());
   protected readonly exceptionReason = signal('');
   protected readonly leaveReason = signal('');
+  protected readonly reasonDraft = signal('');
+  protected readonly reasonDialog = signal<{ type: ReceptionReasonActionType; appointment: ReceptionAppointmentResponse } | null>(null);
   protected readonly appointments = signal<ReceptionAppointmentResponse[]>([]);
   protected readonly overviewQuery = signal('');
   protected readonly overviewSearchResults = signal<ReceptionAppointmentResponse[] | null>(null);
@@ -177,6 +181,7 @@ export class ReceptionCheckIn implements OnInit {
 
   ngOnInit(): void {
     this.query.set('');
+    if (this.activeTab() === 'intake') this.openWalkIn();
     this.loadWorkspace();
     interval(3000).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       if (['overview', 'queue', 'exceptions'].includes(this.activeTab())) this.loadWorkspace(true);
@@ -234,6 +239,8 @@ export class ReceptionCheckIn implements OnInit {
     }
     this.activeTab.set(tab as ReceptionTab);
     this.error.set('');
+    if (tab === 'intake' && previousTab !== 'intake') this.openWalkIn();
+    if (previousTab === 'intake' && tab !== 'intake') this.walkInOpen.set(false);
     if (!['overview', 'queue', 'exceptions'].includes(previousTab)
       && ['overview', 'queue', 'exceptions'].includes(tab)) {
       this.loadWorkspace();
@@ -274,7 +281,7 @@ export class ReceptionCheckIn implements OnInit {
   }
 
   protected openIntakeForProfile(profile: ReceptionPatientProfile): void {
-    this.openWalkIn();
+    this.selectTab('intake');
     this.walkInPhone.set(profile.phone || this.profileQuery());
     this.walkInProfileId.set(profile.id);
     this.walkInProfiles.set([profile]);
@@ -382,6 +389,57 @@ export class ReceptionCheckIn implements OnInit {
     return this.busyAppointmentIds().has(appointmentId);
   }
 
+  protected openReasonDialog(type: ReceptionReasonActionType, appointment: ReceptionAppointmentResponse): void {
+    if (this.isAppointmentBusy(appointment.id)) return;
+    if (type === 'CHECK_IN' && (appointment.status !== 'BOOKED' || !appointment.roomCode || appointment.queueStatus)) return;
+    if (type === 'LEAVE_BEFORE_EXAM' && (!this.canAdjustQueue() || appointment.queueStatus !== 'WAITING')) return;
+    if (type === 'FACILITY_UNAVAILABLE' && (!this.canAdjustQueue() || !appointment.queueTicketId || appointment.queueStatus === 'COMPLETED')) return;
+    this.reasonDraft.set('');
+    this.error.set('');
+    this.notice.set('');
+    this.reasonDialog.set({ type, appointment });
+  }
+
+  protected closeReasonDialog(): void {
+    if (this.reasonDialog() && this.isAppointmentBusy(this.reasonDialog()!.appointment.id)) return;
+    this.reasonDialog.set(null);
+    this.reasonDraft.set('');
+    this.exceptionReason.set('');
+    this.leaveReason.set('');
+    this.error.set('');
+  }
+
+  protected confirmReasonAction(): void {
+    const action = this.reasonDialog();
+    if (!action || this.isAppointmentBusy(action.appointment.id)) return;
+    const reason = this.reasonDraft().trim();
+    const minimum = action.type === 'CHECK_IN' ? 3 : 10;
+    if (reason.length < minimum) {
+      this.error.set(`Lý do cần có ít nhất ${minimum} ký tự.`);
+      return;
+    }
+
+    this.error.set('');
+    if (action.type === 'CHECK_IN') {
+      this.exceptionReason.set(reason);
+      this.checkIn(action.appointment);
+    } else if (action.type === 'LEAVE_BEFORE_EXAM') {
+      this.leaveReason.set(reason);
+      this.leaveBeforeExam(action.appointment);
+    } else {
+      this.exceptionReason.set(reason);
+      this.markFacilityUnavailable(action.appointment);
+    }
+  }
+
+  private finishReasonAction(appointment: ReceptionAppointmentResponse): void {
+    if (this.reasonDialog()?.appointment.id !== appointment.id) return;
+    this.reasonDialog.set(null);
+    this.reasonDraft.set('');
+    this.exceptionReason.set('');
+    this.leaveReason.set('');
+  }
+
   private setAppointmentBusy(appointmentId: string, busy: boolean): void {
     this.busyAppointmentIds.update((current) => {
       const next = new Set(current);
@@ -406,6 +464,7 @@ export class ReceptionCheckIn implements OnInit {
       next: (updated) => {
         this.appointments.update((items) => items.map((item) => item.id === updated.id ? updated : item));
         this.setAppointmentBusy(appointment.id, false);
+        this.finishReasonAction(appointment);
         this.notice.set(`Đã cấp số ${String(updated.queueNumber).padStart(2, '0')} cho ${updated.patientName}.`);
       },
       error: (response) => {
@@ -471,6 +530,7 @@ export class ReceptionCheckIn implements OnInit {
         this.appointments.update((items) => items.map((item) => item.id === updated.id ? updated : item));
         this.setAppointmentBusy(appointment.id, false);
         this.leaveReason.set('');
+        this.finishReasonAction(appointment);
         this.notice.set(`Đã ghi nhận ${updated.patientName} rời trước khám.`);
       },
       error: (response) => {
@@ -494,6 +554,7 @@ export class ReceptionCheckIn implements OnInit {
       next: (updated) => {
         this.appointments.update((items) => items.map((item) => item.id === updated.id ? updated : item));
         this.setAppointmentBusy(appointment.id, false);
+        this.finishReasonAction(appointment);
         this.notice.set(`Đã ghi nhận phòng khám tạm dừng phục vụ cho ${updated.patientName}.`);
       },
       error: (response) => {
@@ -739,7 +800,7 @@ export class ReceptionCheckIn implements OnInit {
     });
   }
 
-  protected openWalkIn(): void {
+  protected openWalkIn(loadSpecialties = true): void {
     this.walkInProfileRequestId++;
     this.walkInSlotRequestId++;
     this.walkInOpen.set(true);
@@ -788,7 +849,7 @@ export class ReceptionCheckIn implements OnInit {
     this.activationConfirmPassword.set('');
     this.error.set('');
     this.notice.set('');
-    if (this.walkInSpecialties().length === 0) {
+    if (loadSpecialties && this.walkInSpecialties().length === 0) {
       this.authApi.getSpecialties().subscribe({
         next: (specialties) => this.walkInSpecialties.set(specialties),
         error: (response) => this.handleError(response),
@@ -805,8 +866,7 @@ export class ReceptionCheckIn implements OnInit {
       this.walkInSlotsLoading.set(false);
       this.registrationLoading.set(false);
       this.walkInRequestKey.set('');
-      this.walkInOpen.set(false);
-      this.notice.set('');
+      this.openWalkIn();
     }
   }
 
@@ -1077,12 +1137,22 @@ export class ReceptionCheckIn implements OnInit {
     this.walkInPhone.set(phone);
     this.walkInProfileRequestId++;
     this.walkInOtpRequestId++;
+    this.walkInSlotRequestId++;
     this.walkInProfilesLoading.set(false);
+    this.walkInSlotsLoading.set(false);
     this.registrationLoading.set(false);
     this.walkInRegistration.set(false);
     this.walkInTemporaryProfile.set(false);
     this.walkInProfiles.set([]);
     this.walkInProfileId.set('');
+    this.walkInSpecialty.set('');
+    this.walkInSlots.set([]);
+    this.walkInAvailableDates.set([]);
+    this.walkInStartTime.set('');
+    this.walkInReason.set('');
+    this.walkInExceptionReason.set('');
+    this.walkInRequestKey.set('');
+    this.walkInRequestFingerprint = '';
     this.walkInProfileNeedsCompletion.set(false);
     this.completionProfile.set(null);
     this.walkInAccountLocked.set(false);
@@ -1202,10 +1272,8 @@ export class ReceptionCheckIn implements OnInit {
     this.authApi.createReceptionWalkIn(request, requestKey).subscribe({
       next: (appointment) => {
         this.walkInLoading.set(false);
-        this.walkInRequestKey.set('');
-        this.walkInRequestFingerprint = '';
-        this.walkInOpen.set(false);
         this.appointments.update((items) => [appointment, ...items]);
+        this.openWalkIn(false);
         this.notice.set(appointment.queueNumber == null
           ? `Đã tạo lịch ${appointment.appointmentCode} cho ${appointment.patientName}.`
           : `Đã tạo lịch và cấp số ${String(appointment.queueNumber).padStart(2, '0')} cho ${appointment.patientName}.`);

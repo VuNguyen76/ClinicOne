@@ -35,6 +35,7 @@ describe('StaffDashboard', () => {
 
     expect(fixture.nativeElement.querySelectorAll('[data-testid="queue-row"]').length).toBe(1);
     expect(fixture.nativeElement.querySelector('[data-testid="waiting-count"]').textContent).toContain('1');
+    expect(fixture.nativeElement.querySelector('.erp-filter-bar')?.children.length).toBe(2);
   });
 
   it('does not replace the selected room queue with a slower response from the previous room', () => {

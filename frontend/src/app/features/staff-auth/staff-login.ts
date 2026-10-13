@@ -39,7 +39,7 @@ export class StaffLogin {
         const destination = roles.includes('DOCTOR')
           ? '/doctor'
           : roles.includes('COORDINATOR')
-            ? '/admin/queues'
+            ? '/coordinator'
             : roles.includes('ADMIN')
               ? '/admin/rooms'
               : session.role === 'RECEPTIONIST'

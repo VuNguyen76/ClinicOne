@@ -49,7 +49,7 @@ const NAVIGATION: StaffNavigationGroup[] = [
   {
     label: 'Vận hành',
     items: [
-      { label: 'Điều phối hàng đợi', route: '/admin/queues', icon: 'alt_route', roles: ['COORDINATOR'] },
+      { label: 'Điều phối hàng đợi', route: '/coordinator', icon: 'alt_route', roles: ['COORDINATOR'], exact: true },
       { label: 'Phòng khám', route: '/admin/rooms', icon: 'meeting_room', roles: ['ADMIN', 'COORDINATOR'] },
       { label: 'Bác sĩ', route: '/admin/doctors', icon: 'medical_services', roles: ['ADMIN', 'COORDINATOR'] },
       { label: 'Điều chuyển lịch hẹn', route: '/admin/rescheduling', icon: 'edit_calendar', roles: ['ADMIN', 'COORDINATOR'] },
@@ -102,13 +102,18 @@ export class StaffWorkspaceShell {
   protected readonly navigationOpen = signal(false);
   protected readonly functionQuery = signal('');
   private readonly roles = readStaffRoles();
+  protected readonly compactOperations = this.roles.some((role) => role === 'ADMIN' || role === 'COORDINATOR');
   protected readonly roleLabel = roleLabel(this.roles[0]);
   protected readonly landingRoute = staffLandingRoute(this.roles);
   protected readonly visibleNavigation = computed(() => {
     const query = this.functionQuery().trim().toLocaleLowerCase('vi-VN');
     return NAVIGATION.map((group) => ({
       ...group,
-      items: group.items.filter((item) => item.roles.some((role) => this.roles.includes(role)))
+      items: group.items
+        .filter((item) => item.roles.some((role) => this.roles.includes(role)))
+        .map((item) => this.roles.includes('COORDINATOR')
+          ? { ...item, route: item.route.replace(/^\/admin\//, '/coordinator/') }
+          : item)
         .filter((item) => !query || item.label.toLocaleLowerCase('vi-VN').includes(query)),
     })).filter((group) => group.items.length > 0);
   });
@@ -165,7 +170,7 @@ function roleLabel(role: StaffRole | undefined): string {
 
 function staffLandingRoute(roles: StaffRole[]): string {
   if (roles.includes('DOCTOR')) return '/doctor';
-  if (roles.includes('COORDINATOR')) return '/admin/queues';
+  if (roles.includes('COORDINATOR')) return '/coordinator';
   if (roles.includes('ADMIN')) return '/admin/rooms';
   return '/reception';
 }

@@ -13,29 +13,29 @@
       </div>
     }
 
-    <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm" aria-label="Tìm bệnh nhân đã khám">
-      <div class="grid gap-3 md:grid-cols-[minmax(220px,1fr)_170px_170px_auto_auto] md:items-end">
-        <label class="grid gap-1.5 text-sm font-semibold text-slate-700">
+    <section class="erp-filter-bar" aria-label="Tìm bệnh nhân đã khám">
+      <div class="grid gap-3 md:grid-cols-[minmax(220px,1fr)_160px_160px_auto_auto] md:items-end">
+        <label class="erp-label">
           Bệnh nhân / mã lịch hẹn
-          <span class="flex min-h-11 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 focus-within:border-sky-600 focus-within:ring-2 focus-within:ring-sky-100">
-            <mat-icon class="!h-5 !w-5 !text-[19px] text-slate-400">search</mat-icon>
-            <input data-testid="record-search" type="search" class="min-w-0 flex-1 text-base font-normal outline-none placeholder:text-slate-400"
+          <span class="relative mt-1 block">
+            <mat-icon class="pointer-events-none absolute left-3 top-1/2 !h-4 !w-4 -translate-y-1/2 !text-[16px] text-slate-400">search</mat-icon>
+            <input data-testid="record-search" type="search" class="erp-input pl-9 font-normal"
               placeholder="Tên hoặc mã lịch hẹn" [ngModel]="search()" (ngModelChange)="search.set($event)"
               (keydown.enter)="searchRecords()" />
           </span>
         </label>
-        <label class="grid gap-1.5 text-sm font-semibold text-slate-700">Từ ngày
-          <input data-testid="record-from" type="date" class="min-h-11 rounded-lg border border-slate-300 bg-white px-3 text-base font-normal outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-100"
+        <label class="erp-label">Từ ngày
+          <input data-testid="record-from" type="date" class="erp-input font-mono"
             [ngModel]="from()" (ngModelChange)="from.set($event)" />
         </label>
-        <label class="grid gap-1.5 text-sm font-semibold text-slate-700">Đến ngày
-          <input data-testid="record-to" type="date" class="min-h-11 rounded-lg border border-slate-300 bg-white px-3 text-base font-normal outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-100"
+        <label class="erp-label">Đến ngày
+          <input data-testid="record-to" type="date" class="erp-input font-mono"
             [ngModel]="to()" (ngModelChange)="to.set($event)" />
         </label>
-        <button data-testid="record-search-submit" type="button" class="erp-btn-primary !min-h-11 !px-4" (click)="searchRecords()" [disabled]="loading()">
-          <mat-icon class="!h-5 !w-5 !text-[19px]">search</mat-icon><span>Tìm</span>
+        <button data-testid="record-search-submit" type="button" class="erp-btn-primary" (click)="searchRecords()" [disabled]="loading()">
+          <mat-icon class="!h-4 !w-4 !text-[16px]">search</mat-icon><span>Tìm</span>
         </button>
-        <button type="button" class="erp-btn-secondary !min-h-11 !px-4" (click)="clearFilters()" [disabled]="loading()">Xóa lọc</button>
+        <button type="button" class="erp-btn-secondary" (click)="clearFilters()" [disabled]="loading()">Xóa lọc</button>
       </div>
     </section>
 
@@ -128,7 +128,7 @@
               </div>
             </section>
 
-            <button data-testid="prescription-open" type="button" class="erp-btn-secondary inline-flex min-h-11 items-center gap-2 !px-4"
+            <button data-testid="prescription-open" type="button" class="erp-btn-secondary inline-flex items-center gap-2"
               (click)="openPrescription()" aria-haspopup="dialog">
               <mat-icon class="!h-5 !w-5 !text-[20px] text-sky-700">medication</mat-icon>
               <span class="font-semibold">Đơn thuốc</span>

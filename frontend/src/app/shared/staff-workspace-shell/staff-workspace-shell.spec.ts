@@ -31,6 +31,8 @@ describe('StaffWorkspaceShell', () => {
         { path: 'doctor/schedule', component: HostComponent },
         { path: 'doctor/appointments', component: HostComponent },
         { path: 'doctor/patients/history', component: HostComponent },
+        { path: 'coordinator', component: HostComponent },
+        { path: 'coordinator/rooms', component: HostComponent },
       ])],
     }).compileComponents();
     fixture = TestBed.createComponent(HostComponent);
@@ -79,6 +81,19 @@ describe('StaffWorkspaceShell', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="workspace-tabs"]')?.textContent).toContain('Thiết lập');
   });
 
+  it('applies compact density to administrator and coordinator shells only', () => {
+    const shell = fixture.nativeElement.querySelector('[data-testid="staff-workspace-shell"]') as HTMLElement;
+    expect(shell.classList.contains('operations-compact')).toBe(false);
+
+    fixture.destroy();
+    sessionStorage.setItem('clinicOneStaffRole', 'ADMIN');
+    sessionStorage.setItem('clinicOneStaffRoles', JSON.stringify(['ADMIN']));
+    fixture = TestBed.createComponent(HostComponent);
+    fixture.detectChanges();
+    expect((fixture.nativeElement.querySelector('[data-testid="staff-workspace-shell"]') as HTMLElement)
+      .classList.contains('operations-compact')).toBe(true);
+  });
+
   it('shows the parent module once instead of repeating the page title in the breadcrumb', () => {
     const breadcrumb = fixture.nativeElement.querySelector('[data-testid="staff-breadcrumb"]') as HTMLElement;
     expect(breadcrumb.textContent).toContain('Khám bệnh');
@@ -99,6 +114,23 @@ describe('StaffWorkspaceShell', () => {
     const links = Array.from(fixture.nativeElement.querySelectorAll('[data-testid="staff-module-nav"] a')) as HTMLAnchorElement[];
     const activeLinks = links.filter((link) => link.classList.contains('bg-sky-50'));
     expect(activeLinks.map((link) => link.getAttribute('href'))).toEqual(['/doctor/patients/history']);
+  });
+
+  it('does not highlight the coordinator queue landing page on its nested workspaces', async () => {
+    fixture.destroy();
+    sessionStorage.setItem('clinicOneStaffRole', 'COORDINATOR');
+    sessionStorage.setItem('clinicOneStaffRoles', JSON.stringify(['COORDINATOR']));
+    fixture = TestBed.createComponent(HostComponent);
+
+    const router = TestBed.inject(Router);
+    await router.navigateByUrl('/coordinator/rooms');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const links = Array.from(fixture.nativeElement.querySelectorAll('[data-testid="staff-module-nav"] a')) as HTMLAnchorElement[];
+    const activeLinks = links.filter((link) => link.classList.contains('bg-sky-50'));
+    expect(activeLinks.map((link) => link.getAttribute('href'))).toEqual(['/coordinator/rooms']);
   });
 
   it('clears pointer focus from a clicked module link without affecting keyboard navigation', () => {
@@ -154,7 +186,7 @@ describe('StaffWorkspaceShell', () => {
     const hrefs = links.map((link) => link.getAttribute('href'));
     expect(hrefs).toContain('/admin/diagnoses');
     expect(hrefs).not.toContain('/admin/reason-catalog');
-    expect(hrefs).not.toContain('/admin/queues');
+    expect(hrefs).not.toContain('/coordinator');
   });
 
   it('shows operational queue supervision and management links for coordinator', () => {
@@ -166,10 +198,11 @@ describe('StaffWorkspaceShell', () => {
 
     const links = Array.from(fixture.nativeElement.querySelectorAll('[data-testid="staff-module-nav"] a')) as HTMLAnchorElement[];
     const hrefs = links.map((link) => link.getAttribute('href'));
-    expect(hrefs).toContain('/admin/queues');
-    expect(hrefs).toContain('/admin/schedule-templates');
-    expect(hrefs).toContain('/admin/doctor-time-off');
+    expect(hrefs).toContain('/coordinator');
+    expect(hrefs.some((href) => href?.startsWith('/admin/'))).toBe(false);
+    expect(hrefs).toContain('/coordinator/schedule-templates');
+    expect(hrefs).toContain('/coordinator/doctor-time-off');
     expect(hrefs).not.toContain('/doctor/schedule');
-    expect(hrefs).toContain('/admin/rescheduling');
+    expect(hrefs).toContain('/coordinator/rescheduling');
   });
 });

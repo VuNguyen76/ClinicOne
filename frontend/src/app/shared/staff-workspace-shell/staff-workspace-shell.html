@@ -1,6 +1,6 @@
-<main class="min-h-[100dvh] bg-[#f8fafc] text-slate-800" data-testid="staff-workspace-shell">
+<main class="min-h-[100dvh] bg-[#f8fafc] text-slate-800" [class.operations-compact]="compactOperations" data-testid="staff-workspace-shell">
   <!-- Top Navigation Header -->
-  <header class="sticky top-0 z-40 h-14 border-b border-slate-200/80 bg-white/95 backdrop-blur-xs shadow-2xs" [class.print:hidden]="printMode()">
+  <header class="staff-shell-header sticky top-0 z-40 h-14 border-b border-slate-200/80 bg-white/95 backdrop-blur-xs shadow-2xs" [class.print:hidden]="printMode()">
     <div class="flex h-full items-center">
       <!-- Mobile menu toggle -->
       <button
@@ -16,7 +16,7 @@
       <!-- Brand Logo -->
       <a
         [routerLink]="landingRoute"
-        class="flex h-full w-[224px] shrink-0 items-center gap-2.5 border-r border-slate-200/80 bg-white px-4 transition hover:bg-slate-50/80 lg:w-[256px]"
+        class="staff-brand-link flex h-full w-[224px] shrink-0 items-center gap-2.5 border-r border-slate-200/80 bg-white px-4 transition hover:bg-slate-50/80 lg:w-[256px]"
         aria-label="ClinicOne"
       >
         <img class="h-8 w-8 object-contain" src="clinicone-mark-small.png" alt="" aria-hidden="true" />
@@ -71,7 +71,7 @@
       [class.-translate-x-full]="!navigationOpen()"
       data-testid="staff-module-nav"
     >
-      <nav class="py-3 px-2" aria-label="Danh mục chức năng">
+      <nav class="staff-module-navigation py-3 px-2" aria-label="Danh mục chức năng">
         @for (group of visibleNavigation(); track group.label) {
           <section class="mb-4">
             <h2 class="px-3 pb-1.5 pt-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">{{ group.label }}</h2>
@@ -81,7 +81,7 @@
                   [routerLink]="item.route"
                   routerLinkActive="bg-sky-50 text-[#0284c7] font-bold shadow-[inset_3px_0_0_#0284c7]"
                   [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
-                  class="group flex h-10 items-center gap-3 rounded-xl px-3 text-sm font-semibold text-slate-600 transition-all duration-150 hover:bg-slate-50 hover:text-slate-900"
+                  class="staff-module-link group flex h-10 items-center gap-3 rounded-xl px-3 text-sm font-semibold text-slate-600 transition-all duration-150 hover:bg-slate-50 hover:text-slate-900"
                   (click)="handleNavigationClick($event)"
                 >
                   <mat-icon class="!h-5 !w-5 !text-[20px] text-slate-400 transition-colors group-hover:text-slate-700 [.bg-sky-50_&]:text-[#0284c7]">{{ item.icon }}</mat-icon>
@@ -97,7 +97,7 @@
     <!-- Work Area Window -->
     <section class="min-w-0">
       <!-- Window Header -->
-      <header class="flex min-h-14 flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 bg-white px-4 py-2.5 lg:px-6" [class.print:hidden]="printMode()">
+      <header class="staff-window-header flex min-h-14 flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 bg-white px-4 py-2.5 lg:px-6" [class.print:hidden]="printMode()">
         <div class="min-w-0">
           <div class="flex items-center text-xs text-slate-400" aria-label="Breadcrumb" data-testid="staff-breadcrumb">
             <span>{{ moduleTitle() }}</span>

@@ -1,23 +1,16 @@
 <app-staff-workspace-shell moduleTitle="Tiếp nhận" pageTitle="Thu phí khám bệnh" [printMode]="printing()">
-  <main class="mx-auto w-full max-w-[1440px] space-y-5 p-4 sm:p-6" data-testid="reception-payments-screen">
-    <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 print:hidden">
-      <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 class="text-sm font-semibold text-slate-800">Tra cứu lịch để lập phiếu thu</h2>
-        <span class="inline-flex items-center gap-1.5 rounded-md bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
-          <mat-icon class="!h-4 !w-4 !text-[16px] text-sky-700">receipt_long</mat-icon>
-          Phiếu thu nội bộ
-        </span>
-      </div>
+  <main class="mx-auto w-full max-w-[1440px] space-y-4 p-4 sm:p-6" data-testid="reception-payments-screen">
+    <section class="erp-filter-bar print:hidden" data-testid="payment-search-card">
       <form class="flex flex-col gap-3 sm:flex-row sm:items-end" (ngSubmit)="createReceipt()">
-        <label class="min-w-0 flex-1 text-sm font-semibold text-slate-700">
+        <label class="erp-label min-w-0 flex-1">
           Mã lịch hẹn
-          <input class="mt-1.5 h-11 w-full rounded-lg border border-slate-300 px-3 text-base font-normal text-slate-900 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+          <input class="erp-input font-mono"
             name="appointmentCode" autocomplete="off" [ngModel]="appointmentCode()"
             (ngModelChange)="appointmentCode.set($event)" placeholder="Nhập mã lịch hẹn" />
         </label>
-        <button class="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
+        <button class="erp-btn-primary"
           type="submit" [disabled]="loading()">
-          <mat-icon class="!h-5 !w-5 !text-[20px]">{{ loading() ? 'progress_activity' : 'search' }}</mat-icon>
+          <mat-icon class="!h-4 !w-4 !text-[16px]">{{ loading() ? 'progress_activity' : 'search' }}</mat-icon>
           {{ loading() ? 'Đang tra cứu' : 'Lập phiếu thu' }}
         </button>
       </form>
@@ -67,16 +60,22 @@
         </div>
 
         @if (current.status === 'PENDING') {
-          <form class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50/70 p-5 sm:flex-row sm:items-end sm:justify-end" (ngSubmit)="markPaid()">
+          <form class="flex flex-col gap-4 border-t border-slate-200 bg-slate-50/70 p-5 sm:flex-row sm:items-end sm:justify-between" (ngSubmit)="markPaid()">
+            <div class="text-sm">
+              <p class="font-semibold text-slate-800">Thu đủ {{ formatAmount(current.totalAmount) }} đ theo phiếu</p>
+              <p class="mt-1 text-xs text-slate-500">Hiện không hỗ trợ ghi nhận thanh toán một phần.</p>
+            </div>
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
             <label class="text-sm font-semibold text-slate-700">Phương thức thanh toán
-              <select class="mt-1.5 h-11 min-w-56 rounded-lg border border-slate-300 bg-white px-3 text-sm font-normal outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+              <select class="mt-1.5 h-11 w-full min-w-56 rounded-lg border border-slate-300 bg-white px-3 text-sm font-normal outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
                 name="paymentMethod" [ngModel]="paymentMethod()" (ngModelChange)="paymentMethod.set($event)">
                 <option value="CASH">Tiền mặt</option><option value="BANK_TRANSFER">Chuyển khoản</option><option value="CARD">Thẻ</option>
               </select>
             </label>
             <button class="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60" type="submit" [disabled]="saving()">
-              <mat-icon class="!h-5 !w-5 !text-[20px]">check_circle</mat-icon>{{ saving() ? 'Đang ghi nhận' : 'Xác nhận đã thu' }}
+              <mat-icon class="!h-5 !w-5 !text-[20px]">check_circle</mat-icon>{{ saving() ? 'Đang ghi nhận' : 'Xác nhận đã thu ' + formatAmount(current.totalAmount) + ' đ' }}
             </button>
+            </div>
           </form>
         } @else if (current.status === 'PAID') {
           <p class="border-t border-slate-200 px-5 py-4 text-sm text-slate-600">Thanh toán: {{ paymentMethodLabel(current.paymentMethod) }} · Thu ngân: {{ current.cashierName || '—' }}</p>

@@ -102,7 +102,7 @@ describe('StaffLogin', () => {
       staffId: 'staff-coord', fullName: 'Điều phối viên', role: 'COORDINATOR', roles: ['COORDINATOR'],
     });
 
-    expect(navigateSpy).toHaveBeenCalledWith('/admin/queues');
+    expect(navigateSpy).toHaveBeenCalledWith('/coordinator');
   });
 
   it('sends doctor staff to the doctor workspace after login', () => {

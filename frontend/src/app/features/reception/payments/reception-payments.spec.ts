@@ -26,14 +26,29 @@ describe('ReceptionPayments', () => {
 
   afterEach(() => http.verify());
 
-  it('uses one page title and keeps the internal receipt distinction', () => {
+  it('uses one page title without the redundant receipt heading or icon', () => {
     fixture.detectChanges();
     const text = fixture.nativeElement.textContent as string;
 
     expect(fixture.nativeElement.querySelectorAll('h1')).toHaveLength(1);
     expect(text).toContain('Thu phí khám bệnh');
-    expect(text).toContain('Phiếu thu nội bộ');
+    expect(text).not.toContain('Tra cứu lịch để lập phiếu thu');
+    expect(text).not.toContain('Phiếu thu nội bộ');
+    expect(text).not.toContain('receipt_long');
     expect(text).not.toContain('Tiếp nhận · Thanh toán');
+  });
+
+  it('matches the compact reception profile search field sizing', () => {
+    const searchCard = fixture.nativeElement.querySelector('[data-testid="payment-search-card"]') as HTMLElement;
+    const appointmentCode = fixture.nativeElement.querySelector('input[name="appointmentCode"]') as HTMLInputElement;
+    const submit = searchCard.querySelector('button[type="submit"]') as HTMLButtonElement;
+
+    expect(searchCard.classList.contains('erp-filter-bar')).toBe(true);
+    expect(appointmentCode.classList.contains('erp-input')).toBe(true);
+    expect(appointmentCode.classList.contains('h-11')).toBe(false);
+    expect(appointmentCode.classList.contains('text-base')).toBe(false);
+    expect(submit.classList.contains('erp-btn-primary')).toBe(true);
+    expect(submit.classList.contains('h-11')).toBe(false);
   });
 
   it('requires an appointment code before creating a receipt', () => {
@@ -64,6 +79,18 @@ describe('ReceptionPayments', () => {
     requests[0].flush(receipt());
   });
 
+  it('shows the server business reason when a receipt is not eligible yet', () => {
+    component.appointmentCode.set('APT-001');
+    component.createReceipt();
+    http.expectOne({ method: 'POST', url: '/api/v1/invoices/appointments/APT-001' }).flush(
+      { code: 'SIGNED_RECORD_REQUIRED', message: 'Lượt khám chưa có phiếu khám đã ký.' },
+      { status: 409, statusText: 'Conflict' },
+    );
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[role="alert"]')?.textContent).toContain('Lượt khám chưa có phiếu khám đã ký.');
+  });
+
   it('creates a server-priced receipt and records payment through the API', () => {
     component.appointmentCode.set('APT-001');
     component.createReceipt();
@@ -83,6 +110,29 @@ describe('ReceptionPayments', () => {
 
     expect(component.receipt()?.status).toBe('PAID');
     expect(fixture.nativeElement.textContent).toContain('Đã thanh toán');
+  });
+
+  it('explains that reception records the full invoice amount, not a partial payment', () => {
+    component.appointmentCode.set('APT-001');
+    component.createReceipt();
+    http.expectOne({ method: 'POST', url: '/api/v1/invoices/appointments/APT-001' }).flush(receipt());
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('không hỗ trợ ghi nhận thanh toán một phần');
+    expect(fixture.nativeElement.textContent).toContain('Xác nhận đã thu 250.000 đ');
+  });
+
+  it('does not submit the same payment twice while the first request is pending', () => {
+    component.appointmentCode.set('APT-001');
+    component.createReceipt();
+    http.expectOne({ method: 'POST', url: '/api/v1/invoices/appointments/APT-001' }).flush(receipt());
+
+    component.markPaid();
+    component.markPaid();
+
+    const paymentRequests = http.match('/api/v1/invoices/INV-001/payment');
+    expect(paymentRequests).toHaveLength(1);
+    paymentRequests[0].flush({ ...receipt(), status: 'PAID', paidAmount: 250000, paymentMethod: 'CASH' });
   });
 });
 

@@ -236,6 +236,10 @@ describe('ReceptionCheckIn', () => {
   it('ignores a walk-in profile response after the phone number changes', () => {
     const component = fixture.componentInstance as any;
     component.walkInPhone.set('0912345678');
+    component.walkInSpecialty.set('Nội tổng quát');
+    component.walkInSlots.set([{ specialty: 'Nội tổng quát', appointmentDate: component.walkInDate(), startTime: '09:00:00', endTime: '09:30:00', doctorName: 'BS A', doctorId: 'd-1', roomCode: 'NOI-01', remainingCapacity: 1 }]);
+    component.walkInStartTime.set('09:00:00');
+    component.walkInReason.set('Đau đầu');
     component.loadWalkInProfiles();
     const oldPhoneRequest = http.expectOne('/api/v1/reception/profiles?phone=0912345678');
 
@@ -247,6 +251,10 @@ describe('ReceptionCheckIn', () => {
 
     expect(component.walkInProfiles().map((profile: any) => profile.id)).toEqual(['p-2']);
     expect(component.walkInProfileId()).toBe('p-2');
+    expect(component.walkInSpecialty()).toBe('');
+    expect(component.walkInSlots()).toEqual([]);
+    expect(component.walkInStartTime()).toBe('');
+    expect(component.walkInReason()).toBe('');
   });
 
   it('does not mark OTP as sent for a new phone when an older OTP request completes', () => {
@@ -265,17 +273,48 @@ describe('ReceptionCheckIn', () => {
     expect(component.registrationOtpSent()).toBe(true);
   });
 
-  it('keeps the walk-in dialog scrollable and removes redundant operational copy', () => {
+  it('starts walk-in reception inline with phone lookup and reveals booking details after a profile is found', () => {
     const component = fixture.componentInstance as any;
-    component.walkInOpen.set(true);
-    component.walkInProfileNeedsCompletion.set(true);
+    component.walkInSpecialties.set([{ code: 'GEN', name: 'Khám Tổng Quát' }]);
+    component.selectTab('intake');
     fixture.detectChanges();
 
-    const dialog = fixture.nativeElement.querySelector('[data-testid="walk-in-dialog"]') as HTMLElement;
-    const body = fixture.nativeElement.querySelector('[data-testid="walk-in-scroll-body"]') as HTMLElement;
-    expect(dialog.classList.contains('flex')).toBe(true);
-    expect(body.classList.contains('overflow-y-auto')).toBe(true);
-    expect(dialog.textContent).not.toContain('Chỉ áp dụng cho ngày hôm nay');
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="walk-in-phone"]')).not.toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('Chuyên khoa');
+
+    component.walkInPhone.set('0912345678');
+    component.loadWalkInProfiles();
+    http.expectOne('/api/v1/reception/profiles?phone=0912345678').flush([
+      { id: 'p-1', fullName: 'Nguyễn Thanh Vũ', relationship: 'Bản thân', phone: '0912345678', dateOfBirth: '2000-01-01', gender: 'Nam', primaryProfile: true, accountStatus: 'ACTIVE' },
+    ]);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[data-testid="walk-in-selected-patient"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="walk-in-profile-select"]')).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Chuyên khoa');
+  });
+
+  it('asks the receptionist to select a profile when the phone matches more than one person', () => {
+    const component = fixture.componentInstance as any;
+    component.walkInSpecialties.set([{ code: 'GEN', name: 'Khám Tổng Quát' }]);
+    component.selectTab('intake');
+    component.walkInPhone.set('0912345678');
+    component.loadWalkInProfiles();
+    http.expectOne('/api/v1/reception/profiles?phone=0912345678').flush([
+      { id: 'p-1', fullName: 'Nguyễn Thanh Vũ', relationship: 'Bản thân', phone: '0912345678', dateOfBirth: '2000-01-01', gender: 'Nam', primaryProfile: true, accountStatus: 'ACTIVE' },
+      { id: 'p-2', fullName: 'Nguyễn Thị An', relationship: 'Con', phone: '0912345678', dateOfBirth: '2010-04-03', gender: 'Nữ', primaryProfile: false, accountStatus: 'ACTIVE' },
+    ]);
+    fixture.detectChanges();
+
+    const profileSelect = fixture.nativeElement.querySelector('[data-testid="walk-in-profile-select"]') as HTMLSelectElement;
+    expect(profileSelect).not.toBeNull();
+    expect(profileSelect.options).toHaveLength(3);
+    expect(fixture.nativeElement.querySelector('[data-testid="walk-in-selected-patient"]').textContent).toContain('Nguyễn Thanh Vũ');
+
+    component.selectWalkInProfile('p-2');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-testid="walk-in-selected-patient"]').textContent).toContain('Nguyễn Thị An');
   });
 
   it('does not leave a stale global notice after completing a profile inside the intake flow', () => {
@@ -372,12 +411,16 @@ describe('ReceptionCheckIn', () => {
   it('confirms arrival and updates the queue number', () => {
     const component = fixture.componentInstance as any;
     component.query.set('CL-20260807-1234');
-    component.exceptionReason.set('QR phòng bị lỗi');
     component.search();
     http.expectOne((item) => item.url === '/api/v1/reception/appointments').flush([appointment()]);
     fixture.detectChanges();
 
     (fixture.nativeElement.querySelector('button[data-testid="check-in"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).not.toBeNull();
+    component.reasonDraft.set('QR phòng bị lỗi');
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('[data-testid="confirm-reason-action"]') as HTMLButtonElement).click();
     const request = http.expectOne('/api/v1/reception/appointments/a-1/check-in');
     expect(request.request.method).toBe('POST');
     expect(request.request.body).toEqual({ roomCode: 'NOI-01', reason: 'QR phòng bị lỗi' });
@@ -385,6 +428,65 @@ describe('ReceptionCheckIn', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Số 05');
+  });
+
+  it('removes the appointment count and inline reason fields from the support list', () => {
+    const component = fixture.componentInstance as any;
+    component.activeTab.set('search');
+    component.searched.set(true);
+    component.appointments.set([{ ...appointment(), status: 'CHECKED_IN', queueNumber: 5,
+      queueStatus: 'WAITING', queueStatusLabel: 'Đang chờ', queueTicketId: 'ticket-1' }]);
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.textContent as string;
+    expect(text).not.toContain('3 lịch');
+    expect(text).not.toContain('Lý do hỗ trợ tại quầy');
+    expect(text).not.toContain('Lý do rời trước khám');
+    expect(fixture.nativeElement.querySelector('[data-testid="reason-dialog-input"]')).toBeNull();
+  });
+
+  it('requires reason and explicit confirmation before marking a clinic unavailable', () => {
+    const component = fixture.componentInstance as any;
+    const checkedIn = { ...appointment(), status: 'CHECKED_IN', queueNumber: 5,
+      queueStatus: 'WAITING', queueStatusLabel: 'Đang chờ', queueTicketId: 'ticket-1' };
+    component.activeTab.set('search');
+    component.searched.set(true);
+    component.appointments.set([checkedIn]);
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('[data-testid="facility-unavailable"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).not.toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Xác nhận phòng khám dừng phục vụ');
+    http.expectNone('/api/v1/reception/appointments/a-1/facility-unavailable');
+
+    component.reasonDraft.set('Phòng tạm dừng do thiết bị hỏng');
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('[data-testid="confirm-reason-action"]') as HTMLButtonElement).click();
+    const request = http.expectOne('/api/v1/reception/appointments/a-1/facility-unavailable');
+    expect(request.request.body).toEqual({ reason: 'Phòng tạm dừng do thiết bị hỏng' });
+    request.flush({ ...checkedIn, status: 'NOT_PERFORMED', queueStatus: 'COMPLETED', queueStatusLabel: 'Đã hoàn tất' });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
+  });
+
+  it('does not send a facility outage request when the reason dialog is cancelled', () => {
+    const component = fixture.componentInstance as any;
+    const checkedIn = { ...appointment(), status: 'CHECKED_IN', queueNumber: 5,
+      queueStatus: 'WAITING', queueStatusLabel: 'Đang chờ', queueTicketId: 'ticket-1' };
+    component.activeTab.set('search');
+    component.searched.set(true);
+    component.appointments.set([checkedIn]);
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('[data-testid="facility-unavailable"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('[data-testid="cancel-reason-action"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
+    http.expectNone('/api/v1/reception/appointments/a-1/facility-unavailable');
   });
 
   it('records a checked-in patient leaving before examination', () => {
@@ -395,10 +497,11 @@ describe('ReceptionCheckIn', () => {
       { ...appointment(), status: 'CHECKED_IN', queueNumber: 5, queueStatus: 'WAITING', queueStatusLabel: 'Đang chờ' },
     ]);
     fixture.detectChanges();
-    component.leaveReason.set('Người bệnh bận việc đột xuất');
-    fixture.detectChanges();
-
     (fixture.nativeElement.querySelector('[data-testid="leave-before-exam"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    component.reasonDraft.set('Người bệnh bận việc đột xuất');
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('[data-testid="confirm-reason-action"]') as HTMLButtonElement).click();
     const request = http.expectOne('/api/v1/reception/appointments/a-1/leave');
     expect(request.request.body).toEqual({ reason: 'Người bệnh bận việc đột xuất' });
     request.flush({ ...appointment(), status: 'NOT_PERFORMED', queueNumber: 5, queueStatus: 'LEFT_BEFORE_EXAM', queueStatusLabel: 'Rời trước khám' });
@@ -522,10 +625,7 @@ describe('ReceptionCheckIn', () => {
 
   it('opens the walk-in form and creates an appointment from a selected slot', () => {
     const component = fixture.componentInstance as any;
-    component.activeTab.set('intake');
-    fixture.detectChanges();
-    const openButton = fixture.nativeElement.querySelector('[data-testid="open-walk-in"]') as HTMLButtonElement;
-    openButton.click();
+    component.selectTab('intake');
     fixture.detectChanges();
     http.expectOne((item) => item.url === '/api/v1/specialties').flush([
       { code: 'NOI', name: 'Nội tổng quát', description: '' },
@@ -556,6 +656,8 @@ describe('ReceptionCheckIn', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Đã tạo lịch và cấp số 08');
+    expect(fixture.nativeElement.querySelector('[data-testid="walk-in-phone"]')).not.toBeNull();
+    expect(component.walkInPhone()).toBe('');
   });
 
   it('uses a new idempotency key when retrying after the walk-in payload changes', () => {
@@ -659,10 +761,8 @@ describe('ReceptionCheckIn', () => {
 
   it('starts OTP registration when the phone has no account', () => {
     const component = fixture.componentInstance as any;
-    component.activeTab.set('intake');
+    component.selectTab('intake');
     fixture.detectChanges();
-    const openButton = fixture.nativeElement.querySelector('[data-testid="open-walk-in"]') as HTMLButtonElement;
-    openButton.click();
     http.expectOne((item) => item.url === '/api/v1/specialties').flush([]);
     component.walkInPhone.set('0912345678');
     component.loadWalkInProfiles();
@@ -711,9 +811,8 @@ describe('ReceptionCheckIn', () => {
 
   it('lets an existing pending account request and submit a fresh activation OTP', () => {
     const component = fixture.componentInstance as any;
-    component.activeTab.set('intake');
+    component.selectTab('intake');
     fixture.detectChanges();
-    (fixture.nativeElement.querySelector('[data-testid="open-walk-in"]') as HTMLButtonElement).click();
     http.expectOne((item) => item.url === '/api/v1/specialties').flush([]);
     component.walkInPhone.set('0912345678');
     component.loadWalkInProfiles();
@@ -753,9 +852,8 @@ describe('ReceptionCheckIn', () => {
 
   it('blocks reception for a locked account instead of showing an unusable activation form', () => {
     const component = fixture.componentInstance as any;
-    component.activeTab.set('intake');
+    component.selectTab('intake');
     fixture.detectChanges();
-    (fixture.nativeElement.querySelector('[data-testid="open-walk-in"]') as HTMLButtonElement).click();
     http.expectOne((item) => item.url === '/api/v1/specialties').flush([]);
     component.walkInPhone.set('0912345678');
     component.loadWalkInProfiles();
@@ -772,9 +870,8 @@ describe('ReceptionCheckIn', () => {
 
   it('creates a temporary profile when the phone cannot be verified', () => {
     const component = fixture.componentInstance as any;
-    component.activeTab.set('intake');
+    component.selectTab('intake');
     fixture.detectChanges();
-    (fixture.nativeElement.querySelector('[data-testid="open-walk-in"]') as HTMLButtonElement).click();
     http.expectOne((item) => item.url === '/api/v1/specialties').flush([]);
     component.walkInPhone.set('0912345678');
     component.loadWalkInProfiles();
@@ -824,7 +921,8 @@ describe('ReceptionCheckIn', () => {
 
   it('shows the regular exception prompt for an existing patient profile', () => {
     const component = fixture.componentInstance as any;
-    component.walkInOpen.set(true);
+    component.walkInSpecialties.set([{ code: 'GEN', name: 'Khám Tổng Quát' }]);
+    component.selectTab('intake');
     component.walkInProfiles.set([{
       id: 'patient-1', fullName: 'Nguyễn Thanh Vũ', relationship: 'Bản thân',
       accountStatus: 'ACTIVE', mustChangePassword: false,

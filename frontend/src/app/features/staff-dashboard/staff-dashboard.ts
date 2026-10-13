@@ -377,7 +377,8 @@ export class StaffDashboard implements OnInit, OnDestroy {
   }
 
   protected navigateToReschedule(ticket: QueueTicketResponse): void {
-    void this.router.navigate(['/admin/rescheduling'], {
+    const route = this.role() === 'COORDINATOR' ? '/coordinator/rescheduling' : '/admin/rescheduling';
+    void this.router.navigate([route], {
       queryParams: { q: ticket.appointmentCode },
     });
   }

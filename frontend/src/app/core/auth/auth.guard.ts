@@ -81,7 +81,7 @@ export const homeGuard: CanActivateFn = () => {
     return router.createUrlTree(['/doctor']);
   }
   if (roles.includes('COORDINATOR')) {
-    return router.createUrlTree(['/admin/queues']);
+    return router.createUrlTree(['/coordinator']);
   }
   if (roles.includes('ADMIN')) {
     return router.createUrlTree(['/admin/rooms']);
@@ -96,7 +96,7 @@ export const staffLandingRedirect: RedirectFunction = () => {
   const roles = staffRoles();
   if (!sessionToken() || !isStaffSession() || !roles.length) return '/staff/login';
   if (roles.includes('DOCTOR')) return '/doctor';
-  if (roles.includes('COORDINATOR')) return '/admin/queues';
+  if (roles.includes('COORDINATOR')) return '/coordinator';
   if (roles.includes('ADMIN')) return '/admin/rooms';
   if (roles.includes('RECEPTIONIST')) return '/reception';
   return '/staff/login';
@@ -150,6 +150,14 @@ export const queueSupervisorGuard: CanActivateFn = (_route, state) => {
     : router.createUrlTree(['/admin/rooms']);
 };
 
+/** Keeps coordinator navigation in its own URL namespace when an old admin URL is opened. */
+export const coordinatorRouteGuard: CanActivateFn = (_route, state) => {
+  const roles = staffRoles();
+  if (!roles.includes('COORDINATOR') || !state.url.startsWith('/admin/')) return true;
+  const router = inject(Router);
+  return router.parseUrl(state.url.replace(/^\/admin(?=\/)/, '/coordinator'));
+};
+
 export const adminGuard: CanActivateFn = (_route, state) => {
   const router = inject(Router);
   const token = sessionToken();
@@ -158,7 +166,8 @@ export const adminGuard: CanActivateFn = (_route, state) => {
   if (!token || !isStaffSession() || !roles.length) {
     return router.createUrlTree(['/staff/login'], { queryParams: { returnUrl: state.url } });
   }
-  return roles.includes('ADMIN') ? true : router.createUrlTree(['/admin/rooms']);
+  if (roles.includes('ADMIN')) return true;
+  return router.createUrlTree([roles.includes('COORDINATOR') ? '/coordinator' : '/admin/rooms']);
 };
 
 function sessionToken(): string | null {
