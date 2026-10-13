@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -55,5 +56,5 @@ public interface QueueTicketRepository extends JpaRepository<QueueTicket, UUID> 
     long countInServiceForDoctorExcludingTicket(@Param("doctorId") UUID doctorId, @Param("ticketId") UUID ticketId,
                                                 @Param("queueDate") LocalDate queueDate);
 
-    List<QueueTicket> findByStatusInAndQueueDateBefore(Collection<QueueTicketStatus> statuses, LocalDate date);
+    List<QueueTicket> findByStatusInAndCheckedInAtBefore(Collection<QueueTicketStatus> statuses, Instant cutoff);
 }

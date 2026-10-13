@@ -68,23 +68,27 @@ class ReceptionControllerTest {
     }
 
     @Test
-    void profilesResponseDoesNotContainSensitiveFields() throws Exception {
+    void profilesResponseIncludesIdentityAndStructuredAddressFieldsNeededForIntake() throws Exception {
         when(service.profiles("0912345678")).thenReturn(List.of(new ReceptionPatientProfileResponse(
                 UUID.randomUUID(), "Nguyễn Thanh Vũ", "Bản thân", LocalDate.of(2005, 6, 7), true,
-                com.clinicone.auth.AccountStatus.ACTIVE, false, "Nam", "0912345678")));
+                com.clinicone.auth.AccountStatus.ACTIVE, false, "Nam", "0912345678", "079199000001",
+                "Việt Nam", "Kinh", "12 Lê Lợi, Bến Nghé, Quận 1, TP. Hồ Chí Minh", "79", "TP. Hồ Chí Minh",
+                "760", "Quận 1", "26734", "Bến Nghé", "12 Lê Lợi")));
 
         mockMvc.perform(get("/api/v1/reception/profiles?phone=0912345678")
                         .with(authentication(authenticated("ROLE_RECEPTIONIST"))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].identityNumber").doesNotExist())
-                .andExpect(jsonPath("$[0].address").doesNotExist())
-                .andExpect(jsonPath("$[0].streetAddress").doesNotExist())
-                .andExpect(jsonPath("$[0].provinceCode").doesNotExist())
-                .andExpect(jsonPath("$[0].provinceName").doesNotExist())
-                .andExpect(jsonPath("$[0].districtCode").doesNotExist())
-                .andExpect(jsonPath("$[0].districtName").doesNotExist())
-                .andExpect(jsonPath("$[0].wardCode").doesNotExist())
-                .andExpect(jsonPath("$[0].wardName").doesNotExist());
+                .andExpect(jsonPath("$[0].identityNumber").value("079199000001"))
+                .andExpect(jsonPath("$[0].nationality").value("Việt Nam"))
+                .andExpect(jsonPath("$[0].ethnicity").value("Kinh"))
+                .andExpect(jsonPath("$[0].address").value("12 Lê Lợi, Bến Nghé, Quận 1, TP. Hồ Chí Minh"))
+                .andExpect(jsonPath("$[0].streetAddress").value("12 Lê Lợi"))
+                .andExpect(jsonPath("$[0].provinceCode").value("79"))
+                .andExpect(jsonPath("$[0].provinceName").value("TP. Hồ Chí Minh"))
+                .andExpect(jsonPath("$[0].districtCode").value("760"))
+                .andExpect(jsonPath("$[0].districtName").value("Quận 1"))
+                .andExpect(jsonPath("$[0].wardCode").value("26734"))
+                .andExpect(jsonPath("$[0].wardName").value("Bến Nghé"));
     }
 
     @Test

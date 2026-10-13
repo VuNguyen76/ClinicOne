@@ -2,6 +2,7 @@ package com.clinicone.audit;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
@@ -23,5 +24,6 @@ public interface AccessAuditRepository extends JpaRepository<AccessAuditEvent, U
                                         @Param("toTime") Instant toTime,
                                         @Param("actor") String actor,
                                         @Param("outcome") String outcome,
-                                        @Param("eventType") String eventType);
+                                        @Param("eventType") String eventType,
+                                        Pageable pageable);
 }

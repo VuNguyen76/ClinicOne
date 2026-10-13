@@ -84,7 +84,8 @@ class PublicPatientDataLookupServiceTest {
         when(prescriptionLine.getInstructions()).thenReturn("Ngày 2 lần");
         when(appointment.getSpecialty()).thenReturn("Nhi khoa");
         when(medicalRecordRepository
-                .findTop10BySession_Appointment_PatientProfile_IdAndSignedAtIsNotNullOrderBySignedAtDesc(profileId))
+                .findTop10BySession_Appointment_PatientProfile_IdAndSignedAtIsNotNullOrderBySignedAtDescIdDesc(
+                        profileId))
                 .thenReturn(List.of(record));
 
         PublicPatientDataLookupResponse response = service.lookup(phone, "123456");
@@ -127,5 +128,51 @@ class PublicPatientDataLookupServiceTest {
                 .isInstanceOf(OtpException.class);
 
         verifyNoInteractions(accountRepository, profileRepository, invoiceRepository, medicalRecordRepository);
+    }
+
+    @Test
+    void includesLegacyAccountLevelMedicalRecordsUnderThePrimaryProfile() {
+        String phone = "0862764830";
+        UUID accountId = UUID.randomUUID();
+        UUID primaryProfileId = UUID.randomUUID();
+        PatientAccount account = org.mockito.Mockito.mock(PatientAccount.class);
+        PatientProfile primaryProfile = org.mockito.Mockito.mock(PatientProfile.class);
+        MedicalRecord legacyRecord = org.mockito.Mockito.mock(MedicalRecord.class);
+        ExaminationSession session = org.mockito.Mockito.mock(ExaminationSession.class);
+        var legacyAppointment = org.mockito.Mockito.mock(com.clinicone.appointment.Appointment.class);
+
+        when(accountRepository.findByPhone(phone)).thenReturn(Optional.of(account));
+        when(account.getId()).thenReturn(accountId);
+        when(profileRepository.findByOwnerIdAndActiveTrueOrderByPrimaryProfileDescCreatedAtAsc(accountId))
+                .thenReturn(List.of(primaryProfile));
+        when(primaryProfile.getId()).thenReturn(primaryProfileId);
+        when(primaryProfile.getFullName()).thenReturn("Nguyễn An");
+        when(primaryProfile.getRelationship()).thenReturn("Bản thân");
+        when(primaryProfile.isPrimaryProfile()).thenReturn(true);
+        when(invoiceRepository.findByAppointment_Patient_IdOrderByCreatedAtDesc(accountId)).thenReturn(List.of());
+        when(legacyRecord.getId()).thenReturn(UUID.randomUUID());
+        when(legacyRecord.getSession()).thenReturn(session);
+        when(legacyRecord.getSignedAt()).thenReturn(Instant.parse("2025-06-10T02:00:00Z"));
+        when(legacyRecord.getDoctorName()).thenReturn("Bác sĩ A");
+        when(legacyRecord.getDiagnosis()).thenReturn("Chẩn đoán cũ");
+        when(legacyRecord.getPrescriptionLines()).thenReturn(List.of());
+        when(session.getAppointment()).thenReturn(legacyAppointment);
+        when(legacyAppointment.getSpecialty()).thenReturn("Nội tổng quát");
+        when(medicalRecordRepository
+                .findTop10BySession_Appointment_Patient_IdAndSession_Appointment_PatientProfileIsNullAndSignedAtIsNotNullOrderBySignedAtDescIdDesc(
+                        accountId))
+                .thenReturn(List.of(legacyRecord));
+        when(medicalRecordRepository
+                .findTop10BySession_Appointment_PatientProfile_IdAndSignedAtIsNotNullOrderBySignedAtDescIdDesc(
+                        primaryProfileId))
+                .thenReturn(List.of());
+
+        PublicPatientDataLookupResponse response = service.lookup(phone, "123456");
+
+        assertThat(response.profiles()).singleElement().satisfies(result -> {
+            assertThat(result.profileId()).isEqualTo(primaryProfileId);
+            assertThat(result.medicalRecords()).singleElement()
+                    .satisfies(record -> assertThat(record.diagnosis()).isEqualTo("Chẩn đoán cũ"));
+        });
     }
 }

@@ -156,7 +156,11 @@ public class AppointmentAvailabilityService {
             List<GeneratedClinicSlot> generatedSlots = generatedSlotRepository
                     .findByClinicServiceIdAndAppointmentDateBetweenOrderByAppointmentDateAscStartTimeAsc(
                             serviceId, from, to);
-            List<GeneratedClinicSlot> openSlots = generatedSlots.stream()
+            List<GeneratedClinicSlot> availabilitySlots = templateRepository == null ? generatedSlots
+                    : generatedSlotRepository
+                            .findByClinicServiceIdAndAppointmentDateBetweenAndTemplate_ActiveTrueOrderByAppointmentDateAscStartTimeAsc(
+                                    serviceId, from, to);
+            List<GeneratedClinicSlot> openSlots = availabilitySlots.stream()
                     .filter(slot -> slot.getStatus() == GeneratedSlotStatus.OPEN)
                     .toList();
             if (templateRepository == null) {
@@ -281,7 +285,11 @@ public class AppointmentAvailabilityService {
                     .findByClinicServiceIdAndDoctorStaffIdAndAppointmentDateAndStartTime(
                             serviceId, doctorId, appointmentDate, startTime);
             if (!generatedSlots.isEmpty()) {
-                GeneratedClinicSlot openSlot = generatedSlots.stream()
+                List<GeneratedClinicSlot> bookableSlots = templateRepository == null ? generatedSlots
+                        : generatedSlotRepository
+                                .findByClinicServiceIdAndDoctorStaffIdAndAppointmentDateAndStartTimeAndTemplate_ActiveTrue(
+                                        serviceId, doctorId, appointmentDate, startTime);
+                GeneratedClinicSlot openSlot = bookableSlots.stream()
                         .filter(slot -> slot.getStatus() == GeneratedSlotStatus.OPEN)
                         .findFirst()
                         .orElseThrow(() -> new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_SLOT_INVALID",

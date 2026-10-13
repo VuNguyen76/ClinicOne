@@ -151,4 +151,31 @@ class FlywayBaselineResourceTest {
         assertThat(Appointment.class.getAnnotation(Table.class).uniqueConstraints())
                 .noneMatch(constraint -> constraint.name().equals("uk_appointments_patient_profile_slot"));
     }
+
+    @Test
+    void accessAuditSearchMigrationAddsIndexForItsTimeOrderedQuery() throws IOException {
+        String sql;
+        try (InputStream input = getClass().getResourceAsStream(
+                "/db/migration/V35__index_access_audit_event_search.sql")) {
+            assertThat(input).as("access audit search index migration").isNotNull();
+            sql = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+        }
+
+        assertThat(sql).contains("CREATE INDEX IF NOT EXISTS idx_access_audit_events_occurred_id_desc");
+        assertThat(sql).contains("ON public.access_audit_events (occurred_at DESC, id DESC)");
+    }
+
+    @Test
+    void inactiveScheduleMigrationClosesUnoccupiedOpenSlotsWithoutChangingBookedVisits() throws IOException {
+        String sql;
+        try (InputStream input = getClass().getResourceAsStream(
+                "/db/migration/V36__close_slots_from_inactive_schedule_templates.sql")) {
+            assertThat(input).as("inactive schedule slot cleanup migration").isNotNull();
+            sql = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+        }
+
+        assertThat(sql).contains("UPDATE public.generated_clinic_slots", "SET status = 'CANCELLED'",
+                "template.active = false", "slot.status = 'OPEN'", "NOT EXISTS",
+                "public.appointments", "public.appointment_holds");
+    }
 }

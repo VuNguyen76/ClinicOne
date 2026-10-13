@@ -58,7 +58,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -93,11 +92,12 @@ public class LocalDataInitializer implements CommandLineRunner {
     private final PatientProfileRepository patientProfileRepository;
     private final AppointmentRepository appointmentRepository;
     private final ClinicServiceRepository clinicServiceRepository;
-    private final JdbcTemplate jdbcTemplate;
     private final String adminPassword;
     private final String receptionistPassword;
     private final String doctorPassword;
     private final String patientPassword;
+    private final boolean localDataInitializerEnabled;
+    private final String datasourceUrl;
 
     @Autowired(required = false)
     private QueueTicketRepository queueTicketRepository;
@@ -150,11 +150,12 @@ public class LocalDataInitializer implements CommandLineRunner {
                                 PatientProfileRepository patientProfileRepository,
                                 AppointmentRepository appointmentRepository,
                                 ClinicServiceRepository clinicServiceRepository,
-                                JdbcTemplate jdbcTemplate,
                                 @Value("${LOCAL_ADMIN_PASSWORD}") String adminPassword,
                                 @Value("${LOCAL_RECEPTION_PASSWORD}") String receptionistPassword,
                                 @Value("${LOCAL_DOCTOR_PASSWORD}") String doctorPassword,
-                                @Value("${LOCAL_PATIENT_PASSWORD}") String patientPassword) {
+                                @Value("${LOCAL_PATIENT_PASSWORD}") String patientPassword,
+                                @Value("${LOCAL_DATA_INITIALIZER_ENABLED:false}") boolean localDataInitializerEnabled,
+                                @Value("${spring.datasource.url:}") String datasourceUrl) {
         this.staffRepository = staffRepository;
         this.roomRepository = roomRepository;
         this.profileRepository = profileRepository;
@@ -164,17 +165,20 @@ public class LocalDataInitializer implements CommandLineRunner {
         this.patientProfileRepository = patientProfileRepository;
         this.appointmentRepository = appointmentRepository;
         this.clinicServiceRepository = clinicServiceRepository;
-        this.jdbcTemplate = jdbcTemplate;
         this.adminPassword = adminPassword;
         this.receptionistPassword = receptionistPassword;
         this.doctorPassword = doctorPassword;
         this.patientPassword = patientPassword;
+        this.localDataInitializerEnabled = localDataInitializerEnabled;
+        this.datasourceUrl = datasourceUrl;
     }
 
     @Override
     public void run(String... args) {
-        ensureAppointmentStatusConstraint();
-
+        if (!LocalDataSafetyPolicy.shouldRun(localDataInitializerEnabled, datasourceUrl)) {
+            log.info("Local fixture initializer is disabled; no sample data or schema changes were applied.");
+            return;
+        }
         // 1. Staff Accounts & Operational Roles
         StaffAccount admin = ensureStaff("admin", adminPassword, "Quản trị viên Hệ thống", StaffRole.ADMIN);
         StaffAccount coordinator = ensureStaff("coordinator", adminPassword, "Điều phối viên Trần Hoàng", StaffRole.COORDINATOR);
@@ -610,25 +614,6 @@ public class LocalDataInitializer implements CommandLineRunner {
             existing.update(existing.getName(), existing.getSpecialty(), existing.getClinicServiceId(), existing.getDescription(), fieldDef.trim());
             medicalRecordTemplateRepository.save(existing);
         }
-    }
-
-    private void ensureAppointmentStatusConstraint() {
-        jdbcTemplate.execute("""
-                DO $$
-                BEGIN
-                    IF EXISTS (
-                        SELECT 1
-                        FROM pg_constraint
-                        WHERE conname = 'appointments_status_check'
-                          AND conrelid = 'appointments'::regclass
-                    ) THEN
-                        ALTER TABLE appointments DROP CONSTRAINT appointments_status_check;
-                    END IF;
-                    ALTER TABLE appointments
-                        ADD CONSTRAINT appointments_status_check
-                        CHECK (status IN ('BOOKED', 'CHECKED_IN', 'CANCELLED', 'ABSENT', 'COMPLETED', 'NOT_PERFORMED'));
-                END $$;
-                """);
     }
 
     private StaffAccount ensureStaff(String username, String password, String fullName, StaffRole role) {

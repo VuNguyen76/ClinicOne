@@ -36,8 +36,7 @@ public class PublicPatientDataLookupService {
 
         PatientAccount account = accountRepository.findByPhone(normalizedPhone).orElse(null);
         if (account == null) {
-            otpService.consumeOtp(normalizedPhone, OtpPurpose.RECEIPT_LOOKUP);
-            return new PublicPatientDataLookupResponse(List.of());
+            return lookupTemporaryProfiles(normalizedPhone);
         }
 
         Map<UUID, ProfileData> profiles = new LinkedHashMap<>();
@@ -68,14 +67,57 @@ public class PublicPatientDataLookupService {
 
         if (registeredProfiles.isEmpty()) {
             profiles.get(fallbackProfileId).medicalRecords.addAll(medicalRecordRepository
-                    .findTop10BySession_Appointment_Patient_IdAndSignedAtIsNotNullOrderBySignedAtDesc(account.getId())
+                    .findTop10BySession_Appointment_Patient_IdAndSignedAtIsNotNullOrderBySignedAtDescIdDesc(
+                            account.getId())
                     .stream().map(PublicPatientMedicalRecordResponse::from).toList());
         } else {
             for (PatientProfile profile : registeredProfiles) {
                 profiles.get(profile.getId()).medicalRecords.addAll(medicalRecordRepository
-                        .findTop10BySession_Appointment_PatientProfile_IdAndSignedAtIsNotNullOrderBySignedAtDesc(profile.getId())
+                        .findTop10BySession_Appointment_PatientProfile_IdAndSignedAtIsNotNullOrderBySignedAtDescIdDesc(
+                                profile.getId())
                         .stream().map(PublicPatientMedicalRecordResponse::from).toList());
             }
+            List<PublicPatientMedicalRecordResponse> legacyRecords = medicalRecordRepository
+                    .findTop10BySession_Appointment_Patient_IdAndSession_Appointment_PatientProfileIsNullAndSignedAtIsNotNullOrderBySignedAtDescIdDesc(
+                            account.getId())
+                    .stream().map(PublicPatientMedicalRecordResponse::from).toList();
+            if (!legacyRecords.isEmpty()) {
+                ProfileData fallbackProfile = profiles.computeIfAbsent(fallbackProfileId,
+                        id -> new ProfileData(id, account.getFullName(), "Bản thân"));
+                fallbackProfile.medicalRecords.addAll(legacyRecords);
+            }
+        }
+
+        List<PublicPatientProfileDataResponse> results = profiles.values().stream()
+                .filter(profile -> !profile.invoices.isEmpty() || !profile.medicalRecords.isEmpty())
+                .map(ProfileData::toResponse)
+                .toList();
+        otpService.consumeOtp(normalizedPhone, OtpPurpose.RECEIPT_LOOKUP);
+        return new PublicPatientDataLookupResponse(results);
+    }
+
+    private PublicPatientDataLookupResponse lookupTemporaryProfiles(String normalizedPhone) {
+        List<PatientProfile> temporaryProfiles = profileRepository
+                .findByPhoneAndTemporaryProfileTrueAndOwnerIsNullAndActiveTrueOrderByCreatedAtAsc(normalizedPhone);
+        if (temporaryProfiles.isEmpty()) {
+            otpService.consumeOtp(normalizedPhone, OtpPurpose.RECEIPT_LOOKUP);
+            return new PublicPatientDataLookupResponse(List.of());
+        }
+
+        Map<UUID, ProfileData> profiles = new LinkedHashMap<>();
+        for (PatientProfile profile : temporaryProfiles) {
+            profiles.put(profile.getId(), new ProfileData(profile.getId(), profile.getFullName(), profile.getRelationship()));
+        }
+
+        for (PatientProfile profile : temporaryProfiles) {
+            ProfileData profileData = profiles.get(profile.getId());
+            profileData.invoices.addAll(invoiceRepository
+                    .findByAppointment_PatientProfile_IdOrderByCreatedAtDesc(profile.getId())
+                    .stream().map(PublicInvoiceResponse::from).toList());
+            profileData.medicalRecords.addAll(medicalRecordRepository
+                    .findTop10BySession_Appointment_PatientProfile_IdAndSignedAtIsNotNullOrderBySignedAtDescIdDesc(
+                            profile.getId())
+                    .stream().map(PublicPatientMedicalRecordResponse::from).toList());
         }
 
         List<PublicPatientProfileDataResponse> results = profiles.values().stream()

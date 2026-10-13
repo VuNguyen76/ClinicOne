@@ -19,7 +19,6 @@ import org.mockito.Mock;
 import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
@@ -27,9 +26,11 @@ import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @ExtendWith(MockitoExtension.class)
 class LocalDataInitializerTest {
@@ -42,9 +43,37 @@ class LocalDataInitializerTest {
     @Mock com.clinicone.patientprofile.PatientProfileRepository patientProfileRepository;
     @Mock AppointmentRepository appointmentRepository;
     @Mock ClinicServiceRepository clinicServiceRepository;
-    @Mock JdbcTemplate jdbcTemplate;
     @Mock WorkScheduleTemplateRepository workScheduleTemplateRepository;
     @Mock ScheduleTemplateService scheduleTemplateService;
+
+    @Test
+    void skipsAllFixtureWritesWhenInitializerIsNotExplicitlyEnabled() {
+        LocalDataInitializer initializer = new LocalDataInitializer(staffRepository, roomRepository, profileRepository,
+                scheduleRepository, passwordEncoder, patientRepository, patientProfileRepository,
+                appointmentRepository, clinicServiceRepository,
+                "test-admin-password", "test-reception-password", "test-doctor-password", "test-patient-password",
+                false, "jdbc:postgresql://pg-chuyensaigon-prod-10930.postgres.database.azure.com:5432/clinicone");
+
+        initializer.run();
+
+        verifyNoInteractions(staffRepository, roomRepository, profileRepository, scheduleRepository, passwordEncoder,
+                patientRepository, patientProfileRepository, appointmentRepository, clinicServiceRepository);
+    }
+
+    @Test
+    void refusesFixtureWritesWhenExplicitlyEnabledAgainstRemoteDatabase() {
+        LocalDataInitializer initializer = new LocalDataInitializer(staffRepository, roomRepository, profileRepository,
+                scheduleRepository, passwordEncoder, patientRepository, patientProfileRepository,
+                appointmentRepository, clinicServiceRepository,
+                "test-admin-password", "test-reception-password", "test-doctor-password", "test-patient-password",
+                true, "jdbc:postgresql://pg-chuyensaigon-prod-10930.postgres.database.azure.com:5432/clinicone");
+
+        assertThatThrownBy(initializer::run)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("non-local database");
+        verifyNoInteractions(staffRepository, roomRepository, profileRepository, scheduleRepository, passwordEncoder,
+                patientRepository, patientProfileRepository, appointmentRepository, clinicServiceRepository);
+    }
 
     @Test
     void createsLocalStaffRoomProfileAndWeekdaySchedules() {
@@ -69,8 +98,9 @@ class LocalDataInitializerTest {
 
         LocalDataInitializer initializer = new LocalDataInitializer(staffRepository, roomRepository, profileRepository, scheduleRepository,
                 passwordEncoder, patientRepository, patientProfileRepository, appointmentRepository,
-                clinicServiceRepository, jdbcTemplate,
-                "test-admin-password", "test-reception-password", "test-doctor-password", "test-patient-password");
+                clinicServiceRepository,
+                "test-admin-password", "test-reception-password", "test-doctor-password", "test-patient-password",
+                true, "jdbc:postgresql://localhost:5432/clinicone-test");
         ReflectionTestUtils.setField(initializer, "workScheduleTemplateRepository", workScheduleTemplateRepository);
         ReflectionTestUtils.setField(initializer, "scheduleTemplateService", scheduleTemplateService);
         initializer.run();
@@ -90,7 +120,6 @@ class LocalDataInitializerTest {
         verify(passwordEncoder, org.mockito.Mockito.times(14)).encode(passwordCaptor.capture());
         assertThat(passwordCaptor.getAllValues()).contains(
                 "test-admin-password", "test-reception-password", "test-doctor-password", "test-patient-password");
-        verify(jdbcTemplate, org.mockito.Mockito.atLeastOnce()).execute(org.mockito.ArgumentMatchers.anyString());
         verifyNoMoreInteractions(passwordEncoder);
     }
 }

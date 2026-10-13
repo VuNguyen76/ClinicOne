@@ -12,4 +12,6 @@ public interface PatientProfileRepository extends JpaRepository<PatientProfile, 
     long countByOwnerIdAndActiveTrue(UUID ownerId);
     Optional<PatientProfile> findFirstByTemporaryProfileTrueAndOwnerIsNullAndPhone(String phone);
     List<PatientProfile> findByTemporaryProfileTrueAndOwnerIsNullAndPhone(String phone);
+    List<PatientProfile> findByPhoneAndTemporaryProfileTrueAndOwnerIsNullAndActiveTrueOrderByCreatedAtAsc(
+            String phone);
 }
