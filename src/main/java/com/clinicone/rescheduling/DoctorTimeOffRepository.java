@@ -11,6 +11,19 @@ import java.util.UUID;
 public interface DoctorTimeOffRepository extends JpaRepository<DoctorTimeOff, UUID> {
     List<DoctorTimeOff> findByActiveTrueOrderByStartDateAsc();
 
+    @Query("""
+            select new com.clinicone.rescheduling.DoctorTimeOffWindow(
+                timeOff.doctorProfile.staffAccount.id, timeOff.startDate, timeOff.endDate)
+            from DoctorTimeOff timeOff
+            where timeOff.active = true
+              and timeOff.doctorProfile.staffAccount.id in :doctorIds
+              and timeOff.startDate <= :to
+              and timeOff.endDate >= :from
+            """)
+    List<DoctorTimeOffWindow> findActiveWindows(@Param("doctorIds") List<UUID> doctorIds,
+                                                 @Param("from") LocalDate from,
+                                                 @Param("to") LocalDate to);
+
     @Query("select count(t) > 0 from DoctorTimeOff t "
             + "where t.doctorProfile.id = :profileId and t.active = true "
             + "and t.startDate <= :endDate and t.endDate >= :startDate")

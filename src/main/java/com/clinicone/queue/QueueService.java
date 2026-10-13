@@ -18,6 +18,7 @@ import com.clinicone.schedule.GeneratedClinicSlotRepository;
 import com.clinicone.schedule.GeneratedSlotStatus;
 import com.clinicone.schedule.WorkScheduleTemplate;
 import com.clinicone.schedule.WorkScheduleTemplateRepository;
+import com.clinicone.rescheduling.DoctorTimeOffRepository;
 import com.clinicone.validation.IdempotencyKeys;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -69,6 +70,7 @@ public class QueueService {
     private final BusinessLogService businessLogService;
     private final GeneratedClinicSlotRepository generatedSlotRepository;
     private final WorkScheduleTemplateRepository workScheduleTemplateRepository;
+    private final DoctorTimeOffRepository doctorTimeOffRepository;
     private final Clock clock;
 
     public QueueService(ClinicRoomRepository roomRepository, QueueTicketRepository ticketRepository,
@@ -112,12 +114,23 @@ public class QueueService {
                 generatedSlotRepository, null, clock);
     }
 
-    @Autowired
     public QueueService(ClinicRoomRepository roomRepository, QueueTicketRepository ticketRepository,
                         AppointmentRepository appointmentRepository, DoctorProfileRepository doctorProfileRepository,
                         ExaminationSessionRepository examinationSessionRepository, BusinessLogService businessLogService,
                         DoctorScheduleRepository doctorScheduleRepository, GeneratedClinicSlotRepository generatedSlotRepository,
                         WorkScheduleTemplateRepository workScheduleTemplateRepository, Clock clock) {
+        this(roomRepository, ticketRepository, appointmentRepository, doctorProfileRepository,
+                examinationSessionRepository, businessLogService, doctorScheduleRepository,
+                generatedSlotRepository, workScheduleTemplateRepository, clock, null);
+    }
+
+    @Autowired
+    public QueueService(ClinicRoomRepository roomRepository, QueueTicketRepository ticketRepository,
+                        AppointmentRepository appointmentRepository, DoctorProfileRepository doctorProfileRepository,
+                        ExaminationSessionRepository examinationSessionRepository, BusinessLogService businessLogService,
+                        DoctorScheduleRepository doctorScheduleRepository, GeneratedClinicSlotRepository generatedSlotRepository,
+                        WorkScheduleTemplateRepository workScheduleTemplateRepository, Clock clock,
+                        DoctorTimeOffRepository doctorTimeOffRepository) {
         this.roomRepository = roomRepository;
         this.ticketRepository = ticketRepository;
         this.appointmentRepository = appointmentRepository;
@@ -128,6 +141,7 @@ public class QueueService {
         this.generatedSlotRepository = generatedSlotRepository;
         this.workScheduleTemplateRepository = workScheduleTemplateRepository;
         this.clock = clock;
+        this.doctorTimeOffRepository = doctorTimeOffRepository;
     }
 
     @Transactional
@@ -645,15 +659,19 @@ public class QueueService {
             throw new AuthException(HttpStatus.CONFLICT, "DOCTOR_SHIFT_INACTIVE",
                     "Bác sĩ đích không có ca làm việc đang hiệu lực để tiếp nhận lượt.");
         }
-        if (newTime != null) {
-            UUID targetDoctorStaffId = targetDoctor.getStaffAccount().getId();
-            if (doctorProfileRepository != null) {
-                doctorProfileRepository.findByStaffAccount_IdForUpdate(targetDoctorStaffId)
-                        .filter(DoctorProfile::isActive)
-                        .orElseThrow(() -> new AuthException(HttpStatus.CONFLICT,
-                                "QUEUE_TARGET_DOCTOR_INVALID",
-                                "Bác sĩ đích không còn hoạt động để nhận lượt khám."));
+        UUID targetDoctorStaffId = targetDoctor.getStaffAccount().getId();
+        if (doctorProfileRepository != null && (newTime != null || doctorTimeOffRepository != null)) {
+            DoctorProfile lockedTargetDoctor = doctorProfileRepository.findByStaffAccount_IdForUpdate(targetDoctorStaffId)
+                    .filter(DoctorProfile::isActive)
+                    .orElseThrow(() -> new AuthException(HttpStatus.CONFLICT, "QUEUE_TARGET_DOCTOR_INVALID",
+                            "Bác sĩ đích không còn hoạt động để nhận lượt khám."));
+            if (doctorTimeOffRepository != null && doctorTimeOffRepository.existsOverlapping(
+                    lockedTargetDoctor.getId(), ticket.getQueueDate(), ticket.getQueueDate())) {
+                throw new AuthException(HttpStatus.CONFLICT, "DOCTOR_ON_LEAVE",
+                        "Bác sĩ đang nghỉ trong ngày đã chọn.");
             }
+        }
+        if (newTime != null) {
             long booked = appointmentRepository.countByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatusIn(
                     targetDoctorStaffId, ticket.getQueueDate(), newTime,
                     List.of(AppointmentStatus.BOOKED, AppointmentStatus.CHECKED_IN));
@@ -897,7 +915,7 @@ public class QueueService {
     }
 
     private QueueTicket findTicket(UUID ticketId) {
-        return ticketRepository.findById(ticketId)
+        return ticketRepository.findByIdForUpdate(ticketId)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "QUEUE_TICKET_NOT_FOUND",
                         "Không tìm thấy lượt trong hàng đợi."));
     }

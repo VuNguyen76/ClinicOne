@@ -1,8 +1,11 @@
 package com.clinicone.queue;
 
+import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
@@ -12,6 +15,11 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface QueueTicketRepository extends JpaRepository<QueueTicket, UUID> {
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @EntityGraph(attributePaths = {"appointment", "appointment.patient", "appointment.patientProfile", "room"})
+    @Query("select ticket from QueueTicket ticket where ticket.id = :ticketId")
+    Optional<QueueTicket> findByIdForUpdate(@Param("ticketId") UUID ticketId);
+
     @EntityGraph(attributePaths = {"appointment", "appointment.patient", "appointment.patientProfile", "room"})
     Optional<QueueTicket> findByAppointmentId(UUID appointmentId);
 
