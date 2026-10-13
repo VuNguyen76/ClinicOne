@@ -29,38 +29,38 @@ describe('Milestone 2 Unified Design System Challenger Suite', () => {
   });
 
   describe('Suite 2: ERP Buttons & Cards Standardization', () => {
-    it('EMPIRICAL: .erp-btn-primary has #0284c7 bg, rounded-xl, shadow-xs, and min-h 2.25rem', () => {
+    it('EMPIRICAL: .erp-btn-primary has #0284c7 bg, compact corners, shadow-xs, and min-h 2.125rem', () => {
       const btnPrimaryMatch = stylesContent.match(/\.erp-btn-primary\s*\{([^}]+)\}/);
       expect(btnPrimaryMatch).not.toBeNull();
       const body = btnPrimaryMatch![1];
       expect(body).toContain('#0284c7');
-      expect(body).toMatch(/border-radius:\s*0\.75rem/);
-      expect(body).toMatch(/min-height:\s*2\.25rem/);
+      expect(body).toMatch(/border-radius:\s*0\.625rem/);
+      expect(body).toMatch(/min-height:\s*2\.125rem/);
       expect(body).toMatch(/box-shadow:\s*0 1px 2px 0 rgba\(0, 0, 0, 0\.05\)/);
     });
 
-    it('EMPIRICAL: .erp-btn-secondary has rounded-xl and min-h 2.25rem', () => {
+    it('EMPIRICAL: .erp-btn-secondary has compact corners and min-h 2.125rem', () => {
       const match = stylesContent.match(/\.erp-btn-secondary\s*\{([^}]+)\}/);
       expect(match).not.toBeNull();
       const body = match![1];
-      expect(body).toMatch(/border-radius:\s*0\.75rem/);
-      expect(body).toMatch(/min-height:\s*2\.25rem/);
+      expect(body).toMatch(/border-radius:\s*0\.625rem/);
+      expect(body).toMatch(/min-height:\s*2\.125rem/);
     });
 
-    it('EMPIRICAL: .erp-btn-outline has rounded-xl and min-h 2.25rem', () => {
+    it('EMPIRICAL: .erp-btn-outline has compact corners and min-h 2.125rem', () => {
       const match = stylesContent.match(/\.erp-btn-outline\s*\{([^}]+)\}/);
       expect(match).not.toBeNull();
       const body = match![1];
-      expect(body).toMatch(/border-radius:\s*0\.75rem/);
-      expect(body).toMatch(/min-height:\s*2\.25rem/);
+      expect(body).toMatch(/border-radius:\s*0\.625rem/);
+      expect(body).toMatch(/min-height:\s*2\.125rem/);
     });
 
-    it('EMPIRICAL: .erp-btn-danger has rounded-xl and min-h 2.25rem', () => {
+    it('EMPIRICAL: .erp-btn-danger has compact corners and min-h 2.125rem', () => {
       const match = stylesContent.match(/\.erp-btn-danger\s*\{([^}]+)\}/);
       expect(match).not.toBeNull();
       const body = match![1];
-      expect(body).toMatch(/border-radius:\s*0\.75rem/);
-      expect(body).toMatch(/min-height:\s*2\.25rem/);
+      expect(body).toMatch(/border-radius:\s*0\.625rem/);
+      expect(body).toMatch(/min-height:\s*2\.125rem/);
     });
 
     it('EMPIRICAL: .erp-card has rounded-xl, border-slate-200, bg-white, and shadow-xs', () => {

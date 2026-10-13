@@ -31,7 +31,7 @@
               }
             ],
             "styles": ["src/tailwind.css", "src/styles.css"],
-            "allowedCommonJsDependencies": ["qrcode"]
+            "allowedCommonJsDependencies": ["qrcode", "html2pdf.js", "html2canvas"]
           },
           "configurations": {
             "production": {

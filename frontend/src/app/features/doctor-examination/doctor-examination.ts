@@ -62,7 +62,6 @@ export interface ExaminationPhaseStep {
   id: ExaminationPhase;
   stepNumber: number;
   title: string;
-  subtitle: string;
   icon: string;
   testid: string;
 }
@@ -72,6 +71,7 @@ export interface ExaminationPhaseStep {
   standalone: true,
   imports: [ReactiveFormsModule, MatIconModule, StaffWorkspaceShell, ElectronicInvoiceComponent],
   templateUrl: './doctor-examination.html',
+  styleUrl: './doctor-examination.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DoctorExamination implements OnInit {
@@ -121,7 +121,6 @@ export class DoctorExamination implements OnInit {
       id: 'exam',
       stepNumber: 1,
       title: 'Khám & Sinh hiệu',
-      subtitle: 'Lý do khám, khám LS, sinh hiệu',
       icon: 'monitor_heart',
       testid: 'tab-exam',
     },
@@ -129,7 +128,6 @@ export class DoctorExamination implements OnInit {
       id: 'diagnosis',
       stepNumber: 2,
       title: 'Chẩn đoán & Xử trí',
-      subtitle: 'Mã ICD-10, kết luận, phác đồ',
       icon: 'clinical_notes',
       testid: 'tab-diagnosis',
     },
@@ -137,7 +135,6 @@ export class DoctorExamination implements OnInit {
       id: 'prescription',
       stepNumber: 3,
       title: 'Kê đơn & Dặn dò',
-      subtitle: 'Thuốc chuyên khoa, tái khám',
       icon: 'medication',
       testid: 'tab-prescription',
     },
@@ -145,13 +142,13 @@ export class DoctorExamination implements OnInit {
       id: 'preview',
       stepNumber: 4,
       title: 'Tổng kết & Ký số',
-      subtitle: 'Mẫu TT 33 & ký số điện tử',
       icon: 'verified',
       testid: 'tab-preview',
     },
   ];
 
   protected selectTab(tab: ExaminationPhase): void {
+    if (tab !== 'diagnosis') this.closeMedicalTemplates();
     this.activeTab.set(tab);
   }
 
@@ -340,6 +337,7 @@ export class DoctorExamination implements OnInit {
 
   // Print Mode ('full' = Phiếu khám bệnh ngoại trú, 'prescription' = Đơn thuốc điện tử, 'invoice' = Hóa đơn điện tử)
   protected readonly printMode = signal<'full' | 'prescription' | 'invoice'>('full');
+  protected readonly pdfGenerating = signal(false);
 
   protected readonly invoice = computed((): ElectronicInvoiceData | null => {
     // Invoice issuance is not implemented by BE; never synthesize invoice data in FE.
@@ -458,7 +456,7 @@ export class DoctorExamination implements OnInit {
   }
 
   protected openMedicalTemplates(): void {
-    if (this.isReadonly()) return;
+    if (this.isReadonly() || this.activeTab() !== 'diagnosis') return;
     this.templatesOpen.set(true);
     if (this.templatesLoaded() || this.templatesLoading()) return;
     this.templatesLoading.set(true);
@@ -935,7 +933,8 @@ export class DoctorExamination implements OnInit {
       const current = this.form.controls[key].value?.trim() ?? '';
       return Boolean(current && current !== incoming);
     }) || Boolean(content.followUpDays && this.form.controls.followUpDays.value
-      && this.form.controls.followUpDays.value !== content.followUpDays);
+      && this.form.controls.followUpDays.value !== content.followUpDays)
+      || Boolean(content.prescriptionLines?.length && this.prescriptionLines.length);
   }
 
   private applyMedicalTemplate(content: MedicalRecordTemplateContent): void {
@@ -951,22 +950,20 @@ export class DoctorExamination implements OnInit {
     this.form.patchValue(patch);
 
     if (content.prescriptionLines && content.prescriptionLines.length > 0) {
-      const availableSlots = 20 - this.prescriptionLines.length;
-      if (availableSlots > 0) {
-        const linesToAdd = content.prescriptionLines.slice(0, availableSlots);
-        linesToAdd.forEach((line) => {
-          this.prescriptionLines.push(this.fb.group({
-            medicationId: [null],
-            medicationName: [line.medicationName, [Validators.required, Validators.maxLength(200)]],
-            dosage: [line.dosage, [Validators.required, Validators.maxLength(100)]],
-            quantity: [line.quantity, [Validators.required, Validators.min(1), Validators.max(999), Validators.pattern(/^[1-9]\d*$/)]],
-            unit: [line.unit || 'Viên', [Validators.required, Validators.maxLength(50)]],
-            instructions: [line.instructions, [Validators.required, Validators.maxLength(500)]],
-          }) as PrescriptionLineForm);
-        });
-        this.prescriptionEnabled.set(true);
-        this.prescriptionRevision.update((v) => v + 1);
-      }
+      this.prescriptionLines.clear();
+      content.prescriptionLines.forEach((line) => {
+        this.prescriptionLines.push(this.fb.group({
+          medicationId: [null],
+          medicationName: [line.medicationName, [Validators.required, Validators.maxLength(200)]],
+          dosage: [line.dosage, [Validators.required, Validators.maxLength(100)]],
+          quantity: [line.quantity, [Validators.required, Validators.min(1), Validators.max(999), Validators.pattern(/^[1-9]\d*$/)]],
+          unit: [line.unit || 'Viên', [Validators.required, Validators.maxLength(50)]],
+          instructions: [line.instructions, [Validators.required, Validators.maxLength(500)]],
+        }) as PrescriptionLineForm);
+      });
+      this.prescriptionEnabled.set(true);
+      this.prescriptionRevision.update((v) => v + 1);
+      this.selectTab('prescription');
     }
 
     this.confirmingTemplateOverwrite.set(false);
@@ -1199,9 +1196,99 @@ export class DoctorExamination implements OnInit {
   }
 
   // Print Handlers
-  protected printFullRecord(): void {
+  protected async printFullRecord(): Promise<void> {
+    const exam = this.examination();
+    const printSource = document.getElementById('print-full-record-section');
+    if (!exam || !printSource || this.pdfGenerating()) return;
+
     this.printMode.set('full');
-    setTimeout(() => window.print(), 50);
+    this.pdfGenerating.set(true);
+    this.error.set('');
+    this.notice.set('Đang tạo phiếu khám PDF khổ A4…');
+
+    const exportHost = document.createElement('div');
+    exportHost.className = 'doctor-record-pdf-host';
+    exportHost.setAttribute('aria-hidden', 'true');
+    const exportNode = printSource.cloneNode(true) as HTMLElement;
+    exportNode.removeAttribute('id');
+    exportNode.classList.remove('hidden', '!hidden', 'print-output-active');
+    exportNode.classList.add('pdf-export-active');
+    exportNode.setAttribute('data-pdf-export-root', '');
+    const exportElements = [exportNode, ...exportNode.querySelectorAll<HTMLElement>('*')];
+    for (const element of exportElements) {
+      const computed = getComputedStyle(element);
+      for (let index = 0; index < computed.length; index += 1) {
+        const property = computed.item(index);
+        const value = computed.getPropertyValue(property);
+        if (property.startsWith('--') && element !== exportNode) continue;
+        if (!value.includes('oklch(')) continue;
+        element.style.setProperty(property, value.replace(
+          /oklch\(\s*([\d.]+)(%)?[^)]*\)/gi,
+          (_match, lightness: string, percent: string | undefined) => {
+            const normalizedLightness = Number(lightness) * (percent ? 1 : 100);
+            const channel = Math.max(0, Math.min(255, Math.round(normalizedLightness * 2.55)));
+            return `#${channel.toString(16).padStart(2, '0').repeat(3)}`;
+          },
+        ));
+      }
+    }
+    exportHost.append(exportNode);
+    document.body.append(exportHost);
+
+    try {
+      const { default: html2pdf } = await import('html2pdf.js');
+      const filenameCode = exam.appointmentCode.replace(/[^a-z0-9_-]/gi, '-');
+      const pdfOptions = {
+        margin: [8, 8, 8, 8],
+        filename: `ClinicOne-Phieu-kham-${filenameCode}.pdf`,
+        image: { type: 'png' as const },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          scrollX: 0,
+          scrollY: 0,
+          onclone: (clonedDocument: Document) => {
+            const clonedView = clonedDocument.defaultView;
+            if (!clonedView) return;
+            for (const element of clonedDocument.querySelectorAll<HTMLElement>('*')) {
+              const computed = clonedView.getComputedStyle(element);
+              for (let index = 0; index < computed.length; index += 1) {
+                const property = computed.item(index);
+                const value = computed.getPropertyValue(property);
+                if (!value.includes('oklch(')) continue;
+                element.style.setProperty(property, value.replace(
+                  /oklch\(\s*([\d.]+)(%)?[^)]*\)/gi,
+                  (_match, lightness: string, percent: string | undefined) => {
+                    const normalizedLightness = Number(lightness) * (percent ? 1 : 100);
+                    const channel = Math.max(0, Math.min(255, Math.round(normalizedLightness * 2.55)));
+                    return `#${channel.toString(16).padStart(2, '0').repeat(3)}`;
+                  },
+                ));
+              }
+            }
+          },
+        },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
+        pagebreak: {
+          mode: ['css', 'legacy'],
+          avoid: ['.print-record-header', '.print-record-demographics', '.print-record-footer', '.print-record-clinical > div', 'tr'],
+        },
+      };
+      await html2pdf()
+        .set(pdfOptions as unknown as Parameters<InstanceType<typeof html2pdf.Worker>['set']>[0])
+        .from(exportNode)
+        .save();
+      this.notice.set('Đã tải phiếu khám PDF khổ A4.');
+      setTimeout(() => this.notice.set(''), 4000);
+    } catch (error) {
+      console.error('Failed to generate the examination PDF.', error);
+      this.notice.set('');
+      this.error.set('Không thể tạo PDF phiếu khám. Vui lòng thử lại.');
+    } finally {
+      exportHost.remove();
+      this.pdfGenerating.set(false);
+    }
   }
 
   protected printPrescription(): void {
