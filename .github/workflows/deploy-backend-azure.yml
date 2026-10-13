@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   build-and-deploy:
-    name: Build & Deploy Spring Boot
+    name: Build and Deploy Spring Boot
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
