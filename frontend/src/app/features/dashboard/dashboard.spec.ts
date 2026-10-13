@@ -31,6 +31,7 @@ describe('Dashboard', () => {
     expect(header).not.toBeNull();
     expect(header.querySelector('[data-testid="appointments-actions"]')).not.toBeNull();
     expect(header.querySelector('[routerlink="/appointments"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="queue-qr-scan-link"]')?.getAttribute('routerlink')).toBe('/queue/scan');
   });
 
   it('shows the patient queue number after QR check-in', () => {

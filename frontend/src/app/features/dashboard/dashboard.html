@@ -15,10 +15,16 @@
           </div>
           <h1 class="mt-2 text-2xl font-bold tracking-tight text-white sm:text-3xl">Xin chào, {{ profile()?.fullName || 'bạn' }}</h1>
         </div>
-        <a routerLink="/appointments/new" class="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-[#0284c7] px-5 text-sm font-semibold text-white shadow-xs transition hover:bg-[#0369a1] hover:shadow-md">
-          <mat-icon class="!text-[20px]">add</mat-icon>
-          <span>Đặt lịch khám ngay</span>
-        </a>
+        <div class="flex flex-wrap gap-2">
+          <a routerLink="/appointments/new" class="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-[#0284c7] px-5 text-sm font-semibold text-white shadow-xs transition hover:bg-[#0369a1] hover:shadow-md">
+            <mat-icon class="!text-[20px]">add</mat-icon>
+            <span>Đặt lịch khám ngay</span>
+          </a>
+          <a data-testid="queue-qr-scan-link" routerLink="/queue/scan" class="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-white/50 bg-white/10 px-4 text-sm font-semibold text-white transition hover:bg-white/20">
+            <mat-icon class="!text-[20px]">qr_code_scanner</mat-icon>
+            <span>Quét QR nhận số</span>
+          </a>
+        </div>
       </div>
     </section>
 
