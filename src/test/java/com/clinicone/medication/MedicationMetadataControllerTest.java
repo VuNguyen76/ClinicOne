@@ -51,6 +51,24 @@ class MedicationMetadataControllerTest {
                 .andExpect(jsonPath("$[0].dosageFormat").value("1 viên/lần x 2 lần/ngày"));
     }
 
+    @Test
+    void inactiveDosagesCanBeListedForSelectedUnitWhenRequested() throws Exception {
+        MedicationDosage active = new MedicationDosage("DOS-VIEN-1X", "Viên", "1 viên/lần", "Đang dùng", 1);
+        MedicationDosage inactive = new MedicationDosage("DOS-VIEN-2X-OLD", "Viên", "1 viên/lần x 2 lần/ngày", "Ngừng dùng", 2);
+        inactive.setActive(false);
+        when(dosageRepository.findAllByUnitNameIgnoreCaseOrderBySortOrderAsc("Viên"))
+                .thenReturn(List.of(active, inactive));
+
+        mockMvc.perform(get("/api/v1/medication-dosages")
+                        .param("unit", "Viên")
+                        .param("activeOnly", "false")
+                        .with(authentication(authenticated("ROLE_ADMIN"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].code").value("DOS-VIEN-1X"))
+                .andExpect(jsonPath("$[1].code").value("DOS-VIEN-2X-OLD"))
+                .andExpect(jsonPath("$[1].active").value(false));
+    }
+
     private UsernamePasswordAuthenticationToken authenticated(String role) {
         return new UsernamePasswordAuthenticationToken("staff", "n/a", List.of(new SimpleGrantedAuthority(role)));
     }

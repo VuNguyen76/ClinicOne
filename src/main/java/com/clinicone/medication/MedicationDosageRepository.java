@@ -13,6 +13,8 @@ public interface MedicationDosageRepository extends JpaRepository<MedicationDosa
 
     List<MedicationDosage> findByActiveTrueAndUnitNameIgnoreCaseOrderBySortOrderAsc(String unitName);
 
+    List<MedicationDosage> findAllByUnitNameIgnoreCaseOrderBySortOrderAsc(String unitName);
+
     List<MedicationDosage> findAllByOrderBySortOrderAsc();
 
     Optional<MedicationDosage> findByCodeIgnoreCase(String code);
