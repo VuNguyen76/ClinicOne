@@ -34,12 +34,15 @@ const NAVIGATION: StaffNavigationGroup[] = [
   {
     label: 'Khám bệnh',
     items: [
-      { label: 'Phòng khám của tôi', route: '/doctor', icon: 'stethoscope', roles: ['DOCTOR'] },
+      { label: 'Phòng khám của tôi', route: '/doctor', icon: 'stethoscope', roles: ['DOCTOR'], exact: true },
+      { label: 'Lịch hẹn của tôi', route: '/doctor/appointments', icon: 'event_note', roles: ['DOCTOR'] },
+      { label: 'Bệnh nhân đã khám', route: '/doctor/patients/history', icon: 'clinical_notes', roles: ['DOCTOR'] },
     ],
   },
   {
     label: 'Lịch làm việc',
     items: [
+      { label: 'Thời khóa biểu của tôi', route: '/doctor/schedule', icon: 'calendar_month', roles: ['DOCTOR'] },
       { label: 'Thời khóa biểu', route: '/admin/schedule-templates', icon: 'calendar_month', roles: ['ADMIN', 'COORDINATOR'] },
       { label: 'Báo vắng & Nghỉ phép', route: '/admin/doctor-time-off', icon: 'event_busy', roles: ['ADMIN', 'COORDINATOR', 'DOCTOR'] },
     ],

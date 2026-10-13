@@ -124,6 +124,10 @@ export class StaffDashboard implements OnInit, OnDestroy {
     });
   }
 
+  protected refreshWorkspace(): void {
+    this.loadQueue();
+  }
+
   private loadDoctorQueue(showLoading = true): void {
     if (this.doctorQueueRequestInFlight) return;
     this.doctorQueueRequestInFlight = true;
@@ -302,6 +306,10 @@ export class StaffDashboard implements OnInit, OnDestroy {
 
   protected callTicket(ticket: QueueTicketResponse): void {
     if (this.busyTicketId()) return;
+    if (!/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(ticket.id)) {
+      this.error.set('Mã lượt khám không hợp lệ. Vui lòng tải lại hàng đợi.');
+      return;
+    }
     if (!this.canCallTicket(ticket)) return;
     this.busyTicketId.set(ticket.id);
     this.error.set('');

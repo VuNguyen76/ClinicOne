@@ -24,41 +24,21 @@
       </div>
     }
 
-    <!-- 1. Top 3 Metric Cards -->
-    <div class="grid gap-5 sm:grid-cols-3">
-      <!-- Card 1: Total Records -->
-      <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs flex items-center gap-4">
-        <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#ecfdf5] text-[#059669]">
-          <mat-icon class="!h-6 !w-6 !text-[24px]">event_busy</mat-icon>
-        </div>
-        <div>
-          <p class="text-xs font-semibold text-slate-500">{{ isDoctorRole() ? 'Lịch nghỉ của tôi' : 'Tổng số Lịch nghỉ' }}</p>
-          <p class="text-2xl font-bold text-slate-900 mt-0.5">{{ totalRecordsCount() }}</p>
-        </div>
+    <!-- 1. Compact summary strip, matching the queue dashboard -->
+    <section data-testid="doctor-time-off-summary" class="clinic-summary-strip grid grid-cols-1 overflow-hidden rounded-xl border border-slate-200 bg-white sm:grid-cols-3" aria-label="Tóm tắt lịch nghỉ">
+      <div data-testid="doctor-time-off-stat" [attr.aria-label]="(isDoctorRole() ? 'Lịch nghỉ của tôi' : 'Tổng số lịch nghỉ') + ': ' + totalRecordsCount()" class="clinic-summary-cell flex min-h-14 items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0">
+        <span class="text-sm font-medium text-slate-700 sm:text-base">{{ isDoctorRole() ? 'Lịch nghỉ của tôi' : 'Tổng số lịch nghỉ' }}</span>
+        <span class="font-mono text-lg font-bold text-sky-700 sm:text-xl">{{ totalRecordsCount() }}</span>
       </div>
-
-      <!-- Card 2: Affected Doctors -->
-      <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs flex items-center gap-4">
-        <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#eff6ff] text-[#2563eb]">
-          <mat-icon class="!h-6 !w-6 !text-[24px]">person_outline</mat-icon>
-        </div>
-        <div>
-          <p class="text-xs font-semibold text-slate-500">{{ isDoctorRole() ? 'Bác sĩ phụ trách' : 'Bác sĩ xin nghỉ' }}</p>
-          <p class="text-2xl font-bold text-slate-900 mt-0.5">{{ affectedDoctorsCount() }}</p>
-        </div>
+      <div data-testid="doctor-time-off-stat" [attr.aria-label]="(isDoctorRole() ? 'Bác sĩ phụ trách' : 'Bác sĩ xin nghỉ') + ': ' + affectedDoctorsCount()" class="clinic-summary-cell flex min-h-14 items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0">
+        <span class="text-sm font-medium text-slate-700 sm:text-base">{{ isDoctorRole() ? 'Bác sĩ phụ trách' : 'Bác sĩ xin nghỉ' }}</span>
+        <span class="font-mono text-lg font-bold text-sky-700 sm:text-xl">{{ affectedDoctorsCount() }}</span>
       </div>
-
-      <!-- Card 3: Affected Appointments -->
-      <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs flex items-center gap-4">
-        <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#fffbeb] text-[#d97706]">
-          <mat-icon class="!h-6 !w-6 !text-[24px]">notification_important</mat-icon>
-        </div>
-        <div>
-          <p class="text-xs font-semibold text-slate-500">{{ isDoctorRole() ? 'Lịch cần sắp xếp lại' : 'Lịch hẹn bị ảnh hưởng' }}</p>
-          <p class="text-2xl font-bold text-slate-900 mt-0.5">{{ cancelledSlotsTotal() }}</p>
-        </div>
+      <div data-testid="doctor-time-off-stat" [attr.aria-label]="(isDoctorRole() ? 'Lịch cần sắp xếp lại' : 'Lịch hẹn bị ảnh hưởng') + ': ' + cancelledSlotsTotal()" class="clinic-summary-cell flex min-h-14 items-center justify-between gap-3 px-4 py-3">
+        <span class="text-sm font-medium text-slate-700 sm:text-base">{{ isDoctorRole() ? 'Lịch cần sắp xếp lại' : 'Lịch hẹn bị ảnh hưởng' }}</span>
+        <span class="font-mono text-lg font-bold text-amber-700 sm:text-xl">{{ cancelledSlotsTotal() }}</span>
       </div>
-    </div>
+    </section>
 
     <!-- 2. Search Bar + Add Button Header -->
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { StaffWorkspaceShell } from './staff-workspace-shell';
 
 @Component({
@@ -26,7 +26,12 @@ describe('StaffWorkspaceShell', () => {
     sessionStorage.setItem('clinicOnePatientName', 'BS. Nguyễn An');
     await TestBed.configureTestingModule({
       imports: [HostComponent],
-      providers: [provideRouter([])],
+      providers: [provideRouter([
+        { path: 'doctor', component: HostComponent },
+        { path: 'doctor/schedule', component: HostComponent },
+        { path: 'doctor/appointments', component: HostComponent },
+        { path: 'doctor/patients/history', component: HostComponent },
+      ])],
     }).compileComponents();
     fixture = TestBed.createComponent(HostComponent);
     fixture.detectChanges();
@@ -38,10 +43,31 @@ describe('StaffWorkspaceShell', () => {
     const links = Array.from(fixture.nativeElement.querySelectorAll('[data-testid="staff-module-nav"] a')) as HTMLAnchorElement[];
     expect(links.map((link) => link.querySelector('span')?.textContent?.trim())).toEqual([
       'Phòng khám của tôi',
+      'Lịch hẹn của tôi',
+      'Bệnh nhân đã khám',
+      'Thời khóa biểu của tôi',
       'Báo vắng & Nghỉ phép',
       'Mẫu bệnh án',
     ]);
     expect(links.some((link) => link.getAttribute('href') === '/home')).toBe(false);
+  });
+
+  it('places the doctor appointment agenda beside the personal clinic workspace', () => {
+    const links = Array.from(fixture.nativeElement.querySelectorAll('[data-testid="staff-module-nav"] a')) as HTMLAnchorElement[];
+    const clinicLink = links.find((link) => new URL(link.href).pathname === '/doctor');
+    const appointmentsLink = links.find((link) => new URL(link.href).pathname === '/doctor/appointments');
+
+    expect(appointmentsLink).not.toBeNull();
+    expect(appointmentsLink?.closest('section')).toBe(clinicLink?.closest('section'));
+  });
+
+  it('places the doctor-only timetable beside leave management in the work-schedule menu', () => {
+    const timetableLink = fixture.nativeElement.querySelector('a[href="/doctor/schedule"]') as HTMLAnchorElement | null;
+    const leaveLink = fixture.nativeElement.querySelector('a[href="/admin/doctor-time-off"]') as HTMLAnchorElement | null;
+
+    expect(timetableLink).not.toBeNull();
+    expect(leaveLink).not.toBeNull();
+    expect(timetableLink?.closest('section')).toBe(leaveLink?.closest('section'));
   });
 
   it('renders a compact window toolbar and projected work area', () => {
@@ -51,6 +77,28 @@ describe('StaffWorkspaceShell', () => {
       .toContain('Làm mới');
     expect(fixture.nativeElement.querySelector('[data-testid="projected-content"]')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('[data-testid="workspace-tabs"]')?.textContent).toContain('Thiết lập');
+  });
+
+  it('shows the parent module once instead of repeating the page title in the breadcrumb', () => {
+    const breadcrumb = fixture.nativeElement.querySelector('[data-testid="staff-breadcrumb"]') as HTMLElement;
+    expect(breadcrumb.textContent).toContain('Khám bệnh');
+    expect(breadcrumb.textContent).not.toContain('Phòng khám của tôi');
+  });
+
+  it('uses readable menu labels with compact navigation rows', () => {
+    const link = fixture.nativeElement.querySelector('[data-testid="staff-module-nav"] a') as HTMLAnchorElement;
+    expect(link.classList.contains('text-sm')).toBe(true);
+    expect(link.classList.contains('h-10')).toBe(true);
+  });
+
+  it('highlights only the exact doctor page in the sidebar', async () => {
+    const router = TestBed.inject(Router);
+    await router.navigateByUrl('/doctor/patients/history');
+    fixture.detectChanges();
+
+    const links = Array.from(fixture.nativeElement.querySelectorAll('[data-testid="staff-module-nav"] a')) as HTMLAnchorElement[];
+    const activeLinks = links.filter((link) => link.classList.contains('bg-sky-50'));
+    expect(activeLinks.map((link) => link.getAttribute('href'))).toEqual(['/doctor/patients/history']);
   });
 
   it('clears pointer focus from a clicked module link without affecting keyboard navigation', () => {
@@ -122,6 +170,7 @@ describe('StaffWorkspaceShell', () => {
     expect(hrefs).toContain('/admin/queues');
     expect(hrefs).toContain('/admin/schedule-templates');
     expect(hrefs).toContain('/admin/doctor-time-off');
+    expect(hrefs).not.toContain('/doctor/schedule');
     expect(hrefs).toContain('/admin/rescheduling');
   });
 });
