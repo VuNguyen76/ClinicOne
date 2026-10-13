@@ -68,6 +68,49 @@ async function fillWalkInDetails(dialog: Locator, phone: string, reason: string)
 }
 
 test.describe('liên thông tiếp nhận và hàng đợi bác sĩ', () => {
+  test('tổng quan tiếp nhận hiện toàn bộ lịch trong ngày và tìm nhanh theo tên không gọi API tìm riêng', async ({ page }) => {
+    await page.addInitScript(() => {
+      sessionStorage.setItem('clinicOneAccessToken', 'staff-e2e-token');
+      sessionStorage.setItem('clinicOneStaffRole', 'RECEPTIONIST');
+    });
+    await mockReceptionApis(page);
+    let searchApiCalled = false;
+    const requestedWorklistDates: string[] = [];
+    await page.route('**/api/v1/reception/appointments**', (route) => {
+      searchApiCalled = true;
+      return json(route, []);
+    });
+    await page.route('**/api/v1/reception/worklist**', (route) => {
+      requestedWorklistDates.push(new URL(route.request().url()).searchParams.get('date') ?? '');
+      return json(route, [
+        { ...walkInAppointment('Nguyễn Thanh Vũ', '0912345678', 1), appointmentCode: 'CL-OVERVIEW-1' },
+        { ...walkInAppointment('Trần Minh An', '0923456789', 2), appointmentCode: 'CL-OVERVIEW-2' },
+        { ...walkInAppointment('Lê Thu Hà', '0934567890', 3), appointmentCode: 'CL-OVERVIEW-3', status: 'COMPLETED', queueStatus: 'COMPLETED' },
+        { ...walkInAppointment('Phạm Quốc Bảo', '0945678901', 4), appointmentCode: 'CL-OVERVIEW-4' },
+        { ...walkInAppointment('Đặng Mai Lan', '0956789012', 5), appointmentCode: 'CL-OVERVIEW-5', status: 'CANCELLED', queueStatus: null },
+        { ...walkInAppointment('Vũ Đình Toàn', '0967890123', 6), appointmentCode: 'CL-OVERVIEW-6' },
+      ]);
+    });
+
+    await page.goto('/reception');
+    const rows = page.getByTestId('overview-appointment');
+    await expect(rows).toHaveCount(6);
+    await expect(page.getByText('6 / 6 lịch')).toBeVisible();
+    await expect(rows.nth(2)).toContainText('Đã khám');
+    await expect(rows.nth(4)).toContainText('Đã hủy');
+    const nextDate = new Date();
+    nextDate.setDate(nextDate.getDate() + 1);
+    const nextDateIso = [nextDate.getFullYear(), String(nextDate.getMonth() + 1).padStart(2, '0'), String(nextDate.getDate()).padStart(2, '0')].join('-');
+    await page.getByTestId('overview-date').fill(nextDateIso);
+    await expect.poll(() => requestedWorklistDates).toContain(nextDateIso);
+
+    await page.getByTestId('overview-search').fill('nguyen thanh');
+    await expect(rows).toHaveCount(1);
+    await expect(rows.first()).toContainText('Nguyễn Thanh Vũ');
+    await expect(page.getByText('1 / 6 lịch')).toBeVisible();
+    expect(searchApiCalled).toBe(false);
+  });
+
   test('receptionist sessions leave the patient home page for the reception workspace', async ({ page }) => {
     await page.addInitScript(() => {
       sessionStorage.setItem('clinicOneAccessToken', 'staff-e2e-token');
@@ -236,17 +279,20 @@ test.describe('liên thông tiếp nhận và hàng đợi bác sĩ', () => {
     await page.getByTestId('queue-row').getByRole('button', { name: 'Vào khám' }).click();
     await expect(page).toHaveURL(/\/doctor\/examinations\/ticket-9$/);
     const form = page.getByTestId('medical-form');
+    await expect(form.getByTestId('patient-summary')).toBeVisible();
     await form.locator('textarea[formcontrolname="reason"]').fill('Đau đầu');
     await form.locator('textarea[formcontrolname="examinationNotes"]').fill('Mạch ổn');
     await form.getByTestId('tab-diagnosis').click();
+    await expect(form.getByTestId('patient-summary')).toBeHidden();
     await form.locator('textarea[formcontrolname="diagnosis"]').fill('Đau đầu căng thẳng');
     await form.locator('textarea[formcontrolname="conclusion"]').fill('Theo dõi thêm');
     await form.getByTestId('save-draft').click();
     await expect(page.getByText('Đã lưu bản nháp')).toBeVisible();
+    await expect(form.getByTestId('sign-record')).toHaveClass(/erp-btn-success/);
     await form.getByTestId('sign-record').click();
     await page.getByTestId('confirm-sign-record').click();
     await expect(page.getByText('Đã ký phiếu khám')).toBeVisible();
     await expect(form.locator('textarea[formcontrolname="reason"]')).toBeDisabled();
-    await expect(page.getByText('Đã hoàn thành')).toBeVisible();
+    await expect(form.getByTestId('patient-summary')).toBeHidden();
   });
 });
