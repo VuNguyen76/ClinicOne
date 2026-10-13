@@ -3,13 +3,25 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
 import { ActivatedRoute } from '@angular/router';
+import { vi } from 'vitest';
 import { DoctorExamination } from './doctor-examination';
+
+const pdfGenerator = vi.hoisted(() => {
+  const worker = { set: vi.fn(), from: vi.fn(), save: vi.fn() };
+  worker.set.mockReturnValue(worker);
+  worker.from.mockReturnValue(worker);
+  worker.save.mockResolvedValue(undefined);
+  return { create: vi.fn(() => worker), worker };
+});
+
+vi.mock('html2pdf.js', () => ({ default: pdfGenerator.create }));
 
 describe('DoctorExamination', () => {
   let fixture: ComponentFixture<DoctorExamination>;
   let http: HttpTestingController;
 
   beforeEach(async () => {
+    vi.clearAllMocks();
     sessionStorage.setItem('clinicOneAccessToken', 'doctor-token');
     sessionStorage.setItem('clinicOneStaffRole', 'DOCTOR');
     await TestBed.configureTestingModule({
@@ -40,8 +52,87 @@ describe('DoctorExamination', () => {
 
     expect(fixture.nativeElement.querySelector('[data-testid="patient-summary"]').textContent)
       .toContain('Nguyễn Thanh Vũ');
+    const vitalSection = fixture.nativeElement.querySelector('[aria-label="Chỉ số sinh hiệu"]') as HTMLElement;
+    expect(vitalSection.querySelector('[data-testid="patient-summary"]')).not.toBeNull();
+    expect(vitalSection.querySelector('[data-testid="patient-summary"]')?.textContent).toContain('CLN-0001');
     expect(fixture.nativeElement.querySelector('[data-testid="medical-form"]')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('[data-testid="draft-saved-at"]')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('[data-testid="official-record-preview"]')).toBeNull();
+
+    fixture.componentInstance['selectTab']('diagnosis');
+    fixture.detectChanges();
+    for (const phase of ['diagnosis', 'prescription', 'preview'] as const) {
+      fixture.componentInstance['selectTab'](phase);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('section[data-testid="patient-summary"]')).toBeNull();
+      const summary = fixture.nativeElement.querySelector('[data-testid="patient-summary"]') as HTMLElement;
+      expect(summary.closest('[aria-label="Chỉ số sinh hiệu"]')).not.toBeNull();
+      expect(summary.closest('.hidden')).not.toBeNull();
+      expect(fixture.nativeElement.querySelector('[data-testid="wrong-profile"]')).not.toBeNull();
+    }
+  });
+
+  it('centers the national motto and uses the A4 record as the single final review', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+    fixture.componentInstance['selectTab']('preview');
+    fixture.detectChanges();
+
+    const motto = fixture.nativeElement.querySelector('[data-testid="exam-national-motto"]') as HTMLElement;
+    expect(motto).not.toBeNull();
+    expect(motto.classList.contains('text-center')).toBe(true);
+    const previewHeader = fixture.nativeElement.querySelector('[data-testid="official-record-preview"] [data-testid="preview-record-header"]') as HTMLElement;
+    expect(previewHeader.querySelector('[data-testid="preview-clinicone-logo"]')).toBeNull();
+    expect(previewHeader.querySelector('[data-testid="preview-clinicone-wordmark"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="clinical-summary-duplicate"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="official-record-preview"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="official-record-preview"]')?.textContent)
+      .toContain('Mẫu tham khảo nội bộ');
+    expect(fixture.nativeElement.querySelector('[data-testid="official-record-preview"]')?.textContent)
+      .not.toContain('Ban hành kèm theo Thông tư số 33/2025/TT-BYT');
+    const previewFooter = fixture.nativeElement.querySelector('[data-testid="record-signature-row"]') as HTMLElement;
+    expect(previewFooter.classList.contains('items-start'))
+      .toBe(true);
+    expect(previewFooter.textContent).toContain('TT 33/2025/TT-BYT');
+    expect(previewFooter.textContent).toContain('Mã liên thông: CL-CLN-0001');
+    expect(previewFooter.querySelector('img[data-testid="preview-clinicone-logo"]')?.getAttribute('src'))
+      .toBe('clinicone-mark-small.png');
+    expect(previewFooter.querySelector('[data-testid="preview-clinicone-wordmark"]')?.textContent)
+      .toContain('CLINICONE');
+    expect(previewFooter.querySelector('[data-testid="preview-clinicone-wordmark"]')?.compareDocumentPosition(
+      previewFooter.querySelector('[data-testid="preview-record-archive-metadata"]') as Node,
+    )).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    const printFooter = fixture.nativeElement.querySelector('[data-testid="print-record-signature-row"]') as HTMLElement;
+    expect(printFooter?.classList.contains('mt-4')).toBe(true);
+    expect(printFooter?.classList.contains('pt-2')).toBe(true);
+    expect(printFooter.querySelector('img[data-testid="print-clinicone-logo"]')?.getAttribute('src'))
+      .toBe('clinicone-mark-small.png');
+    expect(printFooter.querySelector('[data-testid="print-clinicone-wordmark"]')?.textContent)
+      .toContain('CLINICONE');
+    expect(printFooter.textContent).toContain('33/2025/TT-BYT');
+    expect(printFooter.textContent).toContain('Mã liên thông: CL-CLN-0001');
+    const signatureStatus = printFooter.querySelector('[data-testid="print-record-signature-status"]') as HTMLElement;
+    expect(signatureStatus.textContent).toContain('Đã ký số điện tử');
+    expect(signatureStatus.classList.contains('leading-normal')).toBe(true);
+    expect(printFooter.querySelector('[data-testid="print-clinicone-wordmark"]')?.compareDocumentPosition(
+      printFooter.querySelector('[data-testid="print-record-archive-metadata"]') as Node,
+    )).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    const printHeader = fixture.nativeElement.querySelector('#print-full-record-section [data-testid="print-record-header"]') as HTMLElement;
+    expect(printHeader.querySelector('[data-testid="print-clinicone-logo"]')).toBeNull();
+    expect(printHeader.querySelector('[data-testid="print-clinicone-wordmark"]')).toBeNull();
+
+    const previewLocation = fixture.nativeElement.querySelector('[data-testid="preview-record-specialty-room"]') as HTMLElement;
+    const printLocation = fixture.nativeElement.querySelector('[data-testid="print-record-specialty-room"]') as HTMLElement;
+    expect(previewLocation.classList.contains('col-span-2')).toBe(true);
+    expect(printLocation.classList.contains('col-span-2')).toBe(true);
+    expect(previewLocation.parentElement?.previousElementSibling?.textContent).toContain('SĐT:');
+    expect(printLocation.parentElement?.previousElementSibling?.textContent).toContain('SĐT:');
+
+    const printTemplate = fixture.nativeElement.querySelector('#print-full-record-section') as HTMLElement;
+    expect(printTemplate.classList.contains('a4-print-sheet')).toBe(true);
+    fixture.componentInstance['printMode'].set('full');
+    fixture.detectChanges();
+    expect(getComputedStyle(printTemplate).display).toBe('none');
   });
 
   it('shows the clinical content of a signed previous examination', () => {
@@ -66,6 +157,11 @@ describe('DoctorExamination', () => {
     http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
     fixture.detectChanges();
 
+    expect(fixture.nativeElement.querySelector('[data-testid="open-medical-templates"]')).toBeNull();
+    (fixture.nativeElement.querySelector('[data-testid="tab-diagnosis"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const diagnosisHeader = fixture.nativeElement.querySelector('[data-testid="diagnosis-section-header"]') as HTMLElement;
+    expect(diagnosisHeader.querySelector('[data-testid="open-medical-templates"]')).not.toBeNull();
     (fixture.nativeElement.querySelector('[data-testid="open-medical-templates"]') as HTMLButtonElement).click();
     const request = http.expectOne((candidate) => candidate.url === '/api/v1/medical-record-templates'
       && candidate.params.get('specialty') === 'Nội tổng quát'
@@ -77,10 +173,17 @@ describe('DoctorExamination', () => {
 
     expect(fixture.nativeElement.querySelector('[data-testid="medical-template-option-0"]')?.textContent)
       .toContain('Khám nội tổng quát');
+
+    (fixture.nativeElement.querySelector('[data-testid="tab-exam"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-testid="open-medical-templates"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="medical-template-picker"]')).toBeNull();
   });
 
   it('previews and applies template content to an empty draft', () => {
     http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('[data-testid="tab-diagnosis"]') as HTMLButtonElement).click();
     fixture.detectChanges();
     (fixture.nativeElement.querySelector('[data-testid="open-medical-templates"]') as HTMLButtonElement).click();
     http.expectOne((candidate) => candidate.url === '/api/v1/medical-record-templates').flush([medicalTemplate()]);
@@ -100,8 +203,58 @@ describe('DoctorExamination', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="confirm-template-overwrite"]')).toBeNull();
   });
 
+  it('can apply a diagnosis and prescription template while working in the diagnosis phase', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('[data-testid="tab-diagnosis"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('[data-testid="open-medical-templates"]') as HTMLButtonElement).click();
+    http.expectOne((candidate) => candidate.url === '/api/v1/medical-record-templates').flush([medicalTemplate()]);
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('[data-testid="medical-template-option-0"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('[data-testid="apply-medical-template"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect((fixture.nativeElement.querySelector('textarea[formControlName="diagnosis"]') as HTMLTextAreaElement).value)
+      .toBe('J06.9 - Viêm đường hô hấp trên');
+    expect((fixture.nativeElement.querySelector('[data-testid="prescription-name-0"]') as HTMLInputElement).value)
+      .toBe('Paracetamol 500 mg');
+    expect(fixture.nativeElement.querySelector('[data-testid="tab-prescription"]')?.classList.contains('border-[#0284c7]'))
+      .toBe(true);
+  });
+
+  it('asks before replacing an existing prescription with a template prescription', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('[data-testid="tab-prescription"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('[data-testid="add-prescription-line"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('[data-testid="tab-diagnosis"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('[data-testid="open-medical-templates"]') as HTMLButtonElement).click();
+    http.expectOne((candidate) => candidate.url === '/api/v1/medical-record-templates').flush([medicalTemplate()]);
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('[data-testid="medical-template-option-0"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('[data-testid="apply-medical-template"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-testid="confirm-template-overwrite"]')).toBeTruthy();
+
+    (fixture.nativeElement.querySelector('[data-testid="confirm-template-overwrite"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('[data-testid^="prescription-name-"]')).toHaveLength(1);
+    expect((fixture.nativeElement.querySelector('[data-testid="prescription-name-0"]') as HTMLInputElement).value)
+      .toBe('Paracetamol 500 mg');
+  });
+
   it('does not overwrite entered content until the doctor explicitly confirms', () => {
     http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('[data-testid="tab-diagnosis"]') as HTMLButtonElement).click();
     fixture.detectChanges();
     const notes = fixture.nativeElement.querySelector('textarea[formControlName="examinationNotes"]') as HTMLTextAreaElement;
     notes.value = 'Nội dung bác sĩ đang nhập';
@@ -478,7 +631,9 @@ describe('DoctorExamination', () => {
     http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
     fixture.detectChanges();
 
-    (fixture.nativeElement.querySelector('[data-testid="sign-record"]') as HTMLButtonElement).click();
+    const signButton = fixture.nativeElement.querySelector('[data-testid="sign-record"]') as HTMLButtonElement;
+    expect(signButton.classList.contains('erp-btn-success')).toBe(true);
+    signButton.click();
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('[role="alert"]').textContent)
       .toContain('Nhập đủ lý do khám');
@@ -499,6 +654,8 @@ describe('DoctorExamination', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('[data-testid="confirm-sign-record"]')).toBeTruthy();
+    expect((fixture.nativeElement.querySelector('[data-testid="confirm-sign-record"]') as HTMLButtonElement)
+      .classList.contains('erp-btn-success')).toBe(true);
     http.expectNone('/api/v1/doctor/examinations/ticket-1/sign');
     (fixture.nativeElement.querySelector('[data-testid="confirm-sign-record"]') as HTMLButtonElement).click();
 
@@ -688,6 +845,8 @@ describe('DoctorExamination', () => {
     http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
     fixture.detectChanges();
 
+    fixture.componentInstance['selectTab']('diagnosis');
+    fixture.detectChanges();
     fixture.componentInstance['openMedicalTemplates']();
     const req = http.expectOne((r) => r.url.startsWith('/api/v1/medical-record-templates'));
     req.flush([
@@ -731,7 +890,7 @@ describe('DoctorExamination', () => {
     expect(fixture.componentInstance['prescriptionLines'].at(1).value.unit).toBe('Gói');
   });
 
-  it('sets printMode to prescription when printing prescription', () => {
+  it('sets printMode to prescription when printing prescription', async () => {
     http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
     fixture.detectChanges();
 
@@ -741,11 +900,31 @@ describe('DoctorExamination', () => {
     fixture.componentInstance['printPrescription']();
     expect(fixture.componentInstance['printMode']()).toBe('prescription');
 
-    fixture.componentInstance['printFullRecord']();
+    await fixture.componentInstance['printFullRecord']();
     expect(fixture.componentInstance['printMode']()).toBe('full');
 
     fixture.componentInstance['printInvoice']();
     expect(fixture.componentInstance['printMode']()).toBe('invoice');
+  });
+
+  it('generates the medical record as a local A4 PDF instead of opening browser print', async () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
+    fixture.detectChanges();
+
+    await fixture.componentInstance['printFullRecord']();
+
+    expect(pdfGenerator.create).toHaveBeenCalledOnce();
+    const options = pdfGenerator.worker.set.mock.calls[0][0] as {
+      jsPDF: { format: string; orientation: string };
+      margin: number[];
+    };
+    expect(options.jsPDF.format).toBe('a4');
+    expect(options.jsPDF.orientation).toBe('portrait');
+    expect(options.margin).toEqual([8, 8, 8, 8]);
+    const exportedNode = pdfGenerator.worker.from.mock.calls[0][0] as HTMLElement;
+    expect(exportedNode.classList.contains('pdf-export-active')).toBe(true);
+    expect(exportedNode.textContent).toContain('Nguyễn Thanh Vũ');
+    expect(pdfGenerator.worker.save).toHaveBeenCalledOnce();
   });
 
   it('blocks saveDraft and displays error when prescription line has invalid quantity or empty dosage', () => {
@@ -924,7 +1103,9 @@ function medicalTemplate() {
     description: 'Mẫu ghi nhận thường dùng cho khám nội tổng quát.',
     fieldDefinition: JSON.stringify({
       examinationNotes: 'Khám theo trình tự nội tổng quát.',
+      diagnosis: 'J06.9 - Viêm đường hô hấp trên',
       treatmentPlan: 'Tư vấn chăm sóc và tái khám khi cần.',
+      prescriptionLines: [{ medicationName: 'Paracetamol 500 mg', dosage: '1 viên khi sốt', quantity: 6, unit: 'Viên', instructions: 'Uống sau ăn khi cần.' }],
     }),
     active: true,
     createdBy: 'coordinator',

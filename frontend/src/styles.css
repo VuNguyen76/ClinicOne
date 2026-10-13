@@ -233,14 +233,14 @@ input {
 /* 2. Enterprise Button Hierarchy */
 .erp-btn-primary {
   display: inline-flex;
-  min-height: 2.25rem; /* 36px */
+  min-height: 2.125rem; /* 34px */
   align-items: center;
   justify-content: center;
   gap: 0.375rem;
-  border-radius: 0.75rem; /* rounded-xl (12px) */
+  border-radius: 0.625rem; /* 10px */
   border: 1px solid transparent;
   background-color: #0284c7; /* Medical Sky Blue */
-  padding: 0.375rem 0.875rem;
+  padding: 0.3125rem 0.75rem;
   font-size: 0.8125rem; /* 13px */
   font-weight: 600;
   color: #ffffff;
@@ -265,16 +265,50 @@ input {
   cursor: not-allowed;
 }
 
-.erp-btn-secondary {
+.erp-btn-success {
   display: inline-flex;
-  min-height: 2.25rem; /* 36px */
+  min-height: 2.125rem;
   align-items: center;
   justify-content: center;
   gap: 0.375rem;
-  border-radius: 0.75rem; /* rounded-xl (12px) */
+  border: 1px solid transparent;
+  border-radius: 0.625rem;
+  background-color: #059669;
+  padding: 0.3125rem 0.75rem;
+  color: #ffffff;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+}
+
+.erp-btn-success:hover:not(:disabled) {
+  background-color: #047857;
+  box-shadow: 0 2px 4px 0 rgba(5, 150, 105, 0.25);
+}
+
+.erp-btn-success:active:not(:disabled) {
+  background-color: #065f46;
+  transform: translateY(1px);
+}
+
+.erp-btn-success:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.erp-btn-secondary {
+  display: inline-flex;
+  min-height: 2.125rem; /* 34px */
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  border-radius: 0.625rem; /* 10px */
   border: 1px solid #e2e8f0;
   background-color: #ffffff;
-  padding: 0.375rem 0.875rem;
+  padding: 0.3125rem 0.75rem;
   font-size: 0.8125rem; /* 13px */
   font-weight: 600;
   color: #334155;
@@ -301,15 +335,15 @@ input {
 
 .erp-btn-outline {
   display: inline-flex;
-  min-height: 2.25rem; /* 36px */
+  min-height: 2.125rem; /* 34px */
   align-items: center;
   justify-content: center;
   gap: 0.375rem;
-  border-radius: 0.75rem; /* rounded-xl (12px) */
+  border-radius: 0.625rem; /* 10px */
   border: 1px solid #0284c7;
   background-color: transparent;
-  padding: 0.375rem 0.875rem;
-  font-size: 0.875rem;
+  padding: 0.3125rem 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   color: #0284c7;
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* shadow-xs */
@@ -335,15 +369,15 @@ input {
 
 .erp-btn-accent {
   display: inline-flex;
-  min-height: 2.25rem; /* 36px */
+  min-height: 2.125rem; /* 34px */
   align-items: center;
   justify-content: center;
   gap: 0.375rem;
-  border-radius: 0.75rem; /* rounded-xl (12px) */
+  border-radius: 0.625rem; /* 10px */
   border: 1px solid transparent;
   background-color: #0284c7;
-  padding: 0.375rem 0.875rem;
-  font-size: 0.875rem;
+  padding: 0.3125rem 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   color: #ffffff;
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
@@ -367,15 +401,15 @@ input {
 
 .erp-btn-danger {
   display: inline-flex;
-  min-height: 2.25rem; /* 36px */
+  min-height: 2.125rem; /* 34px */
   align-items: center;
   justify-content: center;
   gap: 0.375rem;
-  border-radius: 0.75rem; /* rounded-xl (12px) */
+  border-radius: 0.625rem; /* 10px */
   border: 1px solid #fecdd3;
   background-color: #fff1f2;
-  padding: 0.375rem 0.875rem;
-  font-size: 0.875rem;
+  padding: 0.3125rem 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   color: #be123c;
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
@@ -1018,6 +1052,7 @@ input {
   }
 
   [data-testid="staff-workspace-shell"],
+  [data-testid="staff-workspace-shell"] > div,
   .erp-workspace-canvas,
   [data-testid="doctor-workspace"] {
     display: block !important;

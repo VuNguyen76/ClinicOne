@@ -270,6 +270,7 @@ public class LocalDataInitializer implements CommandLineRunner {
         PatientProfile profile4 = ensureDetailedProfile(patient4, "Hoàng Văn Hải", "Bản thân", LocalDate.of(1988, 9, 14), "Nam",
                 patient4.getPhone(), "079188009988", "12 Đường Nam Kỳ Khởi Nghĩa", "79", "Thành phố Hồ Chí Minh", "760", "Quận 1", "26737", "Phường Nguyễn Thái Bình", true);
 
+
         // 7. Seed Past Signed Medical Records (Full Circular 33/2025/TT-BYT compliance)
         ensurePastSignedRecord(patient1, profile1, docTongQuat.getStaffAccount(), docTongQuat, docTongQuat.getRoom(), 14, "PAST-REC-001",
                 "Đau rát họng 3 ngày, sốt nhẹ 38°C, ho khan nhiều về đêm",
@@ -315,6 +316,36 @@ public class LocalDataInitializer implements CommandLineRunner {
                         new SeedMedication("Acetylcystein 200mg (Long đờm, tiêu nhầy đường hô hấp)", "200mg", 10, "Pha 1 gói với 50ml nước ấm x 2 lần/ngày"),
                         new SeedMedication("Natri Clorid 0.9% 500ml (Nước muối sinh lý đẳng trương súc họng, rửa mũi)", "500ml", 2, "Nhỏ và rửa mũi 3 lần/ngày")
                 ));
+
+        ensurePastSignedRecord(patient2, profile2, docHoHap.getStaffAccount(), docHoHap, docHoHap.getRoom(), 9, "PAST-REC-005",
+                "Ho khan kéo dài, nghẹt mũi và mệt nhẹ",
+                "Họng đỏ nhẹ, phổi thông khí đều, không ran; SpO2 98%.",
+                "J06.9 - Nhiễm trùng đường hô hấp trên cấp, chưa xác định",
+                "Viêm đường hô hấp trên mức độ nhẹ",
+                "Uống đủ nước, nghỉ ngơi, theo dõi sốt và khó thở.",
+                List.of(new SeedMedication("Paracetamol 500mg", "500mg khi đau/sốt", 10,
+                        "Uống khi sốt trên 38.5°C, cách nhau ít nhất 6 giờ"),
+                        new SeedMedication("Loratadine 10mg", "10mg mỗi tối", 7,
+                                "Uống buổi tối nếu còn triệu chứng dị ứng")));
+
+        ensurePastSignedRecord(patient4, profile4, docTMH.getStaffAccount(), docTMH, docTMH.getRoom(), 11, "PAST-REC-006",
+                "Nghẹt mũi, đau vùng mặt và giảm ngửi",
+                "Niêm mạc mũi phù nề, dịch trong; họng sạch, không sốt.",
+                "J01.90 - Viêm xoang cấp, chưa xác định",
+                "Viêm mũi xoang cấp, chưa có dấu hiệu biến chứng",
+                "Rửa mũi bằng nước muối sinh lý, tránh khói bụi và tái khám nếu đau tăng.",
+                List.of(new SeedMedication("Natri Clorid 0.9%", "Rửa mũi 2-3 lần/ngày", 1,
+                        "Dùng vệ sinh mũi theo hướng dẫn"),
+                        new SeedMedication("Paracetamol 500mg", "500mg khi đau", 8,
+                                "Uống khi đau, tối đa theo hướng dẫn trên nhãn")));
+
+        ensurePastSignedRecord(patient3, profile3, docMat.getStaffAccount(), docMat, docMat.getRoom(), 18, "PAST-REC-007",
+                "Mỏi mắt khi đọc gần và nhìn màn hình lâu",
+                "Thị lực hai mắt ổn định, kết mạc hồng, giác mạc trong, không ghi nhận dấu hiệu viêm.",
+                "H53.1 - Rối loạn thị giác chủ quan",
+                "Mỏi điều tiết khi làm việc gần kéo dài",
+                "Nghỉ mắt định kỳ, đủ ánh sáng khi đọc; tái khám nếu nhìn mờ hoặc đau mắt.",
+                List.of());
 
         // 8. Seed Today's Active Clinic Queue Tickets Across Multiple Rooms
         LocalDate today = LocalDate.now(CLINIC_ZONE);

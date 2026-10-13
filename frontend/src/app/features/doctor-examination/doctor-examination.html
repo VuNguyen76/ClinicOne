@@ -22,12 +22,30 @@
     <span>Hàng đợi</span>
   </button>
 
+  @if (examination()?.status === 'IN_PROGRESS' && !examination()?.signedAt) {
+    <button
+      workspace-actions
+      data-testid="wrong-profile"
+      type="button"
+      class="erp-btn-secondary !h-9 !w-9 !min-h-9 !p-0"
+      [disabled]="saving() || signing() || stopping() || returningWrongProfile()"
+      (click)="requestWrongProfile()"
+      title="Báo nhầm hồ sơ người bệnh"
+      aria-label="Báo nhầm hồ sơ người bệnh"
+    >
+      <mat-icon class="!h-5 !w-5 !text-[20px] text-amber-600">person_cancel</mat-icon>
+    </button>
+  }
+
   @if (examination()?.status === 'COMPLETED') {
     <button
       workspace-actions
       type="button"
       class="erp-btn-secondary"
       (click)="printFullRecord()"
+      [disabled]="pdfGenerating()"
+      [attr.aria-busy]="pdfGenerating()"
+      data-testid="print-record-action"
     >
       <mat-icon class="!h-4 !w-4 !text-[16px] text-[#0284c7]">print</mat-icon>
       <span>In phiếu khám</span>
@@ -94,66 +112,11 @@
       }
 
       <!-- TOP SECTION: PATIENT IDENTITY -->
-      <section
-        class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-4.5 sm:p-5 shadow-xs"
-        data-testid="patient-summary"
-      >
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between lg:px-2">
-          <div class="flex flex-wrap items-center gap-4">
-            <!-- Queue Number Badge -->
-            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#0284c7] font-mono text-base font-bold text-white shadow-xs">
-              #{{ exam.queueNumber }}
-            </div>
-
-            <!-- Patient Core Identity -->
-            <div>
-              <div class="flex flex-wrap items-center gap-2.5">
-                <h2 class="text-lg font-bold text-slate-900">{{ exam.patientName }}</h2>
-                <span class="inline-flex items-center rounded-lg bg-sky-50 border border-sky-200/80 px-2.5 py-0.5 font-mono text-xs font-bold text-[#0284c7]">
-                  {{ exam.appointmentCode }}
-                </span>
-                <span
-                  class="erp-badge"
-                  [class]="exam.status === 'COMPLETED' ? 'erp-badge-success' : 'erp-badge-info'"
-                >
-                  <span class="erp-dot" [class]="exam.status === 'COMPLETED' ? 'erp-dot-success' : 'erp-dot-info'"></span>
-                  <span>{{ exam.status === 'COMPLETED' ? 'Đã hoàn thành' : 'Đang khám' }}</span>
-                </span>
-              </div>
-              <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
-                <span>Ngày sinh: <strong class="text-slate-700 font-semibold">{{ patientBirthLabel(exam.patientDateOfBirth) }}</strong></span>
-                <span class="text-slate-300">•</span>
-                <span>Giới tính: <strong class="text-slate-700 font-semibold">{{ exam.patientGender || 'Chưa cập nhật' }}</strong></span>
-                <span class="text-slate-300">•</span>
-                <span>SĐT: <strong class="text-slate-700 font-semibold">{{ exam.patientPhone }}</strong></span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Quick Action: Wrong Profile Icon Button with Confirmation -->
-          @if (!exam.signedAt && exam.status === 'IN_PROGRESS') {
-            <div class="shrink-0 flex items-center">
-              <button
-                data-testid="wrong-profile"
-                type="button"
-                class="group relative inline-flex h-9.5 w-9.5 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-400 transition hover:border-amber-400 hover:bg-amber-50 hover:text-amber-700 focus:outline-hidden focus:ring-2 focus:ring-amber-200 disabled:opacity-50 cursor-pointer shadow-2xs"
-                [disabled]="saving() || signing() || stopping() || returningWrongProfile()"
-                (click)="requestWrongProfile()"
-                title="Báo nhầm hồ sơ người bệnh (Bấm để xác nhận)"
-                aria-label="Báo nhầm hồ sơ người bệnh"
-              >
-                <mat-icon class="!h-5 !w-5 !text-[20px] transition-transform group-hover:scale-110">person_cancel</mat-icon>
-              </button>
-            </div>
-          }
-        </div>
-      </section>
-
       <!-- SPLIT-SCREEN DUAL-PANEL WORKSPACE -->
       <form
         [formGroup]="form"
         data-testid="medical-form"
-        class="space-y-4 pb-20"
+        class="doctor-exam-editor space-y-4 pb-20"
         (submit)="$event.preventDefault()"
         (focusout)="saveDraftOnBlur()"
       >
@@ -206,14 +169,82 @@
                         {{ phase.title }}
                       </span>
                     </div>
-                    <p class="hidden sm:block text-[11px] text-slate-500 truncate mt-0.5">
-                      {{ phase.subtitle }}
-                    </p>
                   </div>
                 </button>
               }
             </div>
           </nav>
+
+          @if (templatesOpen() && activeTab() === 'diagnosis') {
+            <section data-testid="medical-template-picker" class="overflow-hidden rounded-xl border border-sky-200 bg-sky-50/40 shadow-2xs" aria-label="Chọn mẫu bệnh án">
+              <header class="flex items-center justify-between gap-3 border-b border-sky-200 bg-sky-50 px-4 py-2.5">
+                <div class="min-w-0">
+                  <h3 class="text-sm font-bold text-slate-900">Mẫu bệnh án · {{ exam.specialty }}</h3>
+                  <p class="mt-0.5 text-xs text-slate-600">Mẫu có thể điền chẩn đoán, hướng xử trí và đơn thuốc kèm theo.</p>
+                </div>
+                <button type="button" class="erp-btn-icon !h-7 !w-7 shrink-0 cursor-pointer" aria-label="Đóng danh sách mẫu" (click)="closeMedicalTemplates()">
+                  <mat-icon class="!h-4 !w-4 !text-[17px]">close</mat-icon>
+                </button>
+              </header>
+
+              @if (templatesLoading()) {
+                <div class="grid gap-2 p-3 sm:grid-cols-2" aria-label="Đang tải mẫu bệnh án">
+                  <div class="h-12 animate-pulse rounded-md bg-white"></div>
+                  <div class="h-12 animate-pulse rounded-md bg-white"></div>
+                </div>
+              } @else if (medicalTemplates().length) {
+                <div class="grid sm:grid-cols-[220px_minmax(0,1fr)]">
+                  <div class="space-y-1 border-b border-sky-100 p-2 sm:border-b-0 sm:border-r">
+                    @for (template of medicalTemplates(); track template.id; let index = $index) {
+                      <button
+                        [attr.data-testid]="'medical-template-option-' + index"
+                        type="button"
+                        class="w-full rounded-lg border p-2 text-left transition hover:bg-white focus-visible:outline-2 focus-visible:outline-sky-600"
+                        [class.border-sky-500]="selectedTemplate()?.id === template.id"
+                        [class.bg-white]="selectedTemplate()?.id === template.id"
+                        [class.border-transparent]="selectedTemplate()?.id !== template.id"
+                        (click)="previewMedicalTemplate(template)"
+                      >
+                        <span class="block text-sm font-semibold text-slate-800">{{ template.name }}</span>
+                        <span class="mt-0.5 block font-mono text-xs text-slate-500">{{ template.code }}</span>
+                      </button>
+                    }
+                  </div>
+                  <div class="min-h-32 bg-white p-3">
+                    @if (selectedTemplate(); as template) {
+                      <div data-testid="medical-template-preview" class="space-y-3">
+                        <div class="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <h4 class="text-sm font-bold text-slate-900">{{ template.name }}</h4>
+                            @if (template.description) {
+                              <p class="mt-0.5 text-xs text-slate-600">{{ template.description }}</p>
+                            }
+                          </div>
+                          <button data-testid="apply-medical-template" type="button" class="erp-btn-primary !min-h-8 !px-3 !text-xs cursor-pointer" (click)="requestApplyMedicalTemplate()">
+                            Áp dụng mẫu
+                          </button>
+                        </div>
+                        @if (templatePreviewItems().length) {
+                          <dl class="grid gap-2 sm:grid-cols-2">
+                            @for (item of templatePreviewItems(); track item.label) {
+                              <div class="border-l-2 border-sky-400 pl-2">
+                                <dt class="text-[11px] font-bold text-slate-500">{{ item.label }}</dt>
+                                <dd class="mt-0.5 whitespace-pre-line text-sm text-slate-800">{{ item.value }}</dd>
+                              </div>
+                            }
+                          </dl>
+                        }
+                      </div>
+                    } @else {
+                      <div class="grid min-h-28 place-items-center text-center text-sm text-slate-500">Chọn mẫu để xem nội dung trước khi áp dụng.</div>
+                    }
+                  </div>
+                </div>
+              } @else {
+                <div class="p-4 text-center text-sm text-slate-500">Chuyên khoa này chưa có mẫu bệnh án đang hoạt động.</div>
+              }
+            </section>
+          }
 
           <!-- ============================================== -->
           <!-- PHASE 1: THĂM KHÁM & SINH HIỆU                 -->
@@ -221,6 +252,31 @@
           <div [class.hidden]="activeTab() !== 'exam'" class="space-y-4">
             <!-- Card 1: Chỉ số sinh hiệu & Thể trạng -->
             <section class="overflow-hidden rounded-xl border border-slate-200/80 bg-white p-4 shadow-2xs" aria-label="Chỉ số sinh hiệu">
+              <div
+                class="mb-3 flex flex-col gap-3 border-b border-slate-100 pb-3 sm:flex-row sm:items-center sm:justify-between"
+                data-testid="patient-summary"
+              >
+                <div class="flex min-w-0 flex-wrap items-center gap-3">
+                  <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#0284c7] font-mono text-sm font-bold text-white">#{{ exam.queueNumber }}</div>
+                  <div class="min-w-0">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <h2 class="text-base font-bold text-slate-900">{{ exam.patientName }}</h2>
+                      <span class="rounded-md border border-sky-200 bg-sky-50 px-2 py-0.5 font-mono text-[11px] font-bold text-[#0284c7]">{{ exam.appointmentCode }}</span>
+                      <span class="erp-badge" [class]="exam.status === 'COMPLETED' ? 'erp-badge-success' : 'erp-badge-info'">
+                        <span class="erp-dot" [class]="exam.status === 'COMPLETED' ? 'erp-dot-success' : 'erp-dot-info'"></span>
+                        <span>{{ exam.status === 'COMPLETED' ? 'Đã hoàn thành' : 'Đang khám' }}</span>
+                      </span>
+                    </div>
+                    <div class="mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-slate-500">
+                      <span>Ngày sinh: <strong class="font-semibold text-slate-700">{{ patientBirthLabel(exam.patientDateOfBirth) }}</strong></span>
+                      <span class="text-slate-300">•</span>
+                      <span>Giới tính: <strong class="font-semibold text-slate-700">{{ exam.patientGender || 'Chưa cập nhật' }}</strong></span>
+                      <span class="text-slate-300">•</span>
+                      <span>SĐT: <strong class="font-semibold text-slate-700">{{ exam.patientPhone }}</strong></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
               <div class="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
                 <span class="text-xs font-bold uppercase tracking-wider text-slate-700">Chỉ số sinh hiệu &amp; Thể trạng</span>
                 @if (bmi()) {
@@ -380,102 +436,7 @@
             <section class="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-2xs">
               <div class="flex items-center justify-between border-b border-slate-200/80 bg-slate-50/60 px-4 py-2.5">
                 <h3 class="text-xs font-bold uppercase tracking-wider text-slate-800">Khám lâm sàng &amp; Lý do khám</h3>
-                @if (!isReadonly()) {
-                  <button
-                    data-testid="open-medical-templates"
-                    type="button"
-                    class="erp-btn-secondary !min-h-7 !px-2.5 !py-0.5 text-xs shadow-none cursor-pointer"
-                    (click)="openMedicalTemplates()"
-                  >
-                    <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">description</mat-icon>
-                    <span>Mẫu phiếu khám</span>
-                  </button>
-                }
               </div>
-
-              <!-- Template Picker Slide Panel -->
-              @if (templatesOpen()) {
-                <div class="border-b border-slate-200 bg-sky-50/30" aria-label="Chọn mẫu phiếu khám">
-                  <div class="flex items-center justify-between border-b border-slate-200 bg-sky-100/50 px-4 py-2">
-                    <h4 class="text-xs font-bold text-[#0284c7]">Mẫu phiếu khoa {{ exam.specialty }}</h4>
-                    <button
-                      type="button"
-                      class="erp-btn-icon !h-6 !w-6 cursor-pointer"
-                      aria-label="Đóng danh sách mẫu"
-                      (click)="closeMedicalTemplates()"
-                    >
-                      <mat-icon class="!h-3.5 !w-3.5 !text-[16px]">close</mat-icon>
-                    </button>
-                  </div>
-
-                  @if (templatesLoading()) {
-                    <div class="grid gap-2 p-3 sm:grid-cols-2" aria-label="Đang tải mẫu phiếu">
-                      <div class="h-12 animate-pulse rounded-md bg-white"></div>
-                      <div class="h-12 animate-pulse rounded-md bg-white"></div>
-                    </div>
-                  } @else if (medicalTemplates().length) {
-                    <div class="grid min-h-36 sm:grid-cols-[180px_minmax(0,1fr)]">
-                      <div class="border-b border-slate-200 p-2 sm:border-b-0 sm:border-r space-y-1">
-                        @for (template of medicalTemplates(); track template.id; let index = $index) {
-                          <button
-                            [attr.data-testid]="'medical-template-option-' + index"
-                            type="button"
-                            class="w-full rounded-md border p-1.5 text-left transition cursor-pointer"
-                            [class.border-[#0284c7]]="selectedTemplate()?.id === template.id"
-                            [class.bg-sky-50]="selectedTemplate()?.id === template.id"
-                            [class.border-transparent]="selectedTemplate()?.id !== template.id"
-                            [class.hover:bg-white]="selectedTemplate()?.id !== template.id"
-                            (click)="previewMedicalTemplate(template)"
-                          >
-                            <span class="block text-xs font-semibold text-slate-800">{{ template.name }}</span>
-                            <span class="mt-0.5 block font-mono text-[9px] text-slate-500">{{ template.code }}</span>
-                          </button>
-                        }
-                      </div>
-                      <div class="p-3 bg-white">
-                        @if (selectedTemplate(); as template) {
-                          <div data-testid="medical-template-preview" class="space-y-2.5">
-                            <div class="flex flex-wrap items-start justify-between gap-2">
-                              <div>
-                                <h5 class="text-xs font-bold text-slate-900">{{ template.name }}</h5>
-                                @if (template.description) {
-                                  <p class="text-[11px] text-slate-500">{{ template.description }}</p>
-                                }
-                              </div>
-                              <button
-                                data-testid="apply-medical-template"
-                                type="button"
-                                class="erp-btn-primary !min-h-6 !px-2.5 !py-0.5 !text-xs cursor-pointer"
-                                (click)="requestApplyMedicalTemplate()"
-                              >
-                                Áp dụng mẫu
-                              </button>
-                            </div>
-                            @if (templatePreviewItems().length) {
-                              <dl class="grid gap-2 sm:grid-cols-2">
-                                @for (item of templatePreviewItems(); track item.label) {
-                                  <div class="border-l-2 border-sky-400 pl-2">
-                                    <dt class="text-[10px] font-bold uppercase text-slate-500">{{ item.label }}</dt>
-                                    <dd class="mt-0.5 whitespace-pre-line text-xs text-slate-800">{{ item.value }}</dd>
-                                  </div>
-                                }
-                              </dl>
-                            }
-                          </div>
-                        } @else {
-                          <div class="grid min-h-24 place-items-center text-center text-xs text-slate-400">
-                            Chọn một mẫu bên trái để xem trước nội dung.
-                          </div>
-                        }
-                      </div>
-                    </div>
-                  } @else {
-                    <div class="p-4 text-center text-xs text-slate-400">
-                      Chuyên khoa này chưa có mẫu phiếu đang hoạt động.
-                    </div>
-                  }
-                </div>
-              }
 
               <!-- Clinical Fields -->
               <div class="space-y-3.5 p-4">
@@ -562,8 +523,19 @@
           <div [class.hidden]="activeTab() !== 'diagnosis'" class="space-y-4">
             <!-- Card 1: Chẩn đoán bệnh & Mã ICD-10 -->
             <section class="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-2xs">
-              <div class="border-b border-slate-200/80 bg-slate-50/60 px-4 py-2.5">
+              <div data-testid="diagnosis-section-header" class="flex items-center justify-between gap-3 border-b border-slate-200/80 bg-slate-50/60 px-4 py-2.5">
                 <h3 class="text-xs font-bold uppercase tracking-wider text-slate-800">Chẩn đoán bệnh &amp; Mã ICD-10</h3>
+                @if (!isReadonly() && activeTab() === 'diagnosis') {
+                  <button
+                    data-testid="open-medical-templates"
+                    type="button"
+                    class="erp-btn-secondary !min-h-8 !px-3 text-xs shadow-none cursor-pointer"
+                    (click)="openMedicalTemplates()"
+                  >
+                    <mat-icon class="!h-4 !w-4 !text-[17px]">description</mat-icon>
+                    <span>Mẫu bệnh án</span>
+                  </button>
+                }
               </div>
 
               <div class="space-y-3.5 p-4">
@@ -708,7 +680,7 @@
               <!-- Prescription Table -->
               @if (prescriptionLines.length) {
                 <div class="divide-y divide-slate-100 p-2 space-y-2">
-                  @for (line of prescriptionLines.controls; track $index; let index = $index) {
+                  @for (line of prescriptionLines.controls; track line; let index = $index) {
                     <div
                       class="rounded-lg border border-slate-100 bg-slate-50/40 p-2.5 space-y-2"
                       [formGroupName]="index"
@@ -867,109 +839,14 @@
           <!-- ============================================== -->
           <!-- PHASE 4: TỔNG KẾT & KÝ SỐ                      -->
           <!-- ============================================== -->
-          <div [class.hidden]="activeTab() !== 'preview'" class="space-y-4">
-            <!-- Card 1: Clinical Executive Summary -->
-            <section class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-4 sm:p-5 shadow-2xs">
-              <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-                <div class="flex items-center gap-2">
-                  <span class="grid h-8 w-8 place-items-center rounded-xl bg-sky-100 text-[#0284c7]">
-                    <mat-icon class="!h-5 !w-5 !text-[20px]">assignment</mat-icon>
-                  </span>
-                  <div>
-                    <h3 class="text-sm font-bold text-slate-900">Tóm tắt hồ sơ phiên khám</h3>
-                    <p class="text-[11px] text-slate-500">Kiểm tra lại toàn bộ thông tin trước khi thực hiện ký số</p>
-                  </div>
-                </div>
-                <div class="flex items-center gap-2">
-                  <span class="rounded-lg bg-sky-50 border border-sky-200/80 px-2.5 py-1 text-xs font-bold text-[#0284c7]">
-                    Mã BA: {{ exam.appointmentCode }}
-                  </span>
-                </div>
-              </div>
-
-              <!-- Summary Grid -->
-              <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3.5">
-                <!-- Box 1: Sinh hiệu & Khám LS -->
-                <div class="rounded-xl border border-slate-200/80 bg-slate-50/50 p-3.5 text-xs space-y-2">
-                  <div class="flex items-center justify-between border-b border-slate-200/60 pb-1.5">
-                    <span class="font-bold text-slate-700 uppercase text-[10px] tracking-wider">1. Sinh hiệu &amp; Khám</span>
-                    @if (!isReadonly()) {
-                      <button type="button" class="text-[11px] font-semibold text-[#0284c7] hover:underline cursor-pointer" (click)="selectTab('exam')">
-                        Chỉnh sửa
-                      </button>
-                    }
-                  </div>
-                  <div class="space-y-1 text-slate-600">
-                    <p>Huyết áp: <strong class="text-slate-900">{{ form.controls.bloodPressure.value || '—' }} mmHg</strong></p>
-                    <p>Nhịp tim: <strong class="text-slate-900">{{ form.controls.heartRate.value ? form.controls.heartRate.value + ' l/p' : '—' }}</strong> · Thân nhiệt: <strong class="text-slate-900">{{ form.controls.temperature.value ? form.controls.temperature.value + ' °C' : '—' }}</strong></p>
-                    @if (bmi()) {
-                      <p>BMI: <strong class="text-slate-900">{{ bmi() }} kg/m²</strong> ({{ bmi()! < 18.5 ? 'Thiếu cân' : (bmi()! < 25 ? 'Bình thường' : 'Thừa cân') }})</p>
-                    }
-                    <p class="pt-1 border-t border-slate-200/60"><strong class="text-slate-700">Lý do:</strong> {{ form.controls.reason.value || 'Chưa ghi' }}</p>
-                  </div>
-                </div>
-
-                <!-- Box 2: Chẩn đoán & Kết luận -->
-                <div class="rounded-xl border border-slate-200/80 bg-slate-50/50 p-3.5 text-xs space-y-2">
-                  <div class="flex items-center justify-between border-b border-slate-200/60 pb-1.5">
-                    <span class="font-bold text-slate-700 uppercase text-[10px] tracking-wider">2. Chẩn đoán &amp; Xử trí</span>
-                    @if (!isReadonly()) {
-                      <button type="button" class="text-[11px] font-semibold text-[#0284c7] hover:underline cursor-pointer" (click)="selectTab('diagnosis')">
-                        Chỉnh sửa
-                      </button>
-                    }
-                  </div>
-                  <div class="space-y-1 text-slate-600">
-                    <p><strong class="text-slate-700">Chẩn đoán:</strong></p>
-                    <p class="font-bold text-slate-900">{{ form.controls.diagnosis.value || 'Chưa ghi' }}</p>
-                    <p><strong class="text-slate-700">Kết luận:</strong></p>
-                    <p class="text-slate-800">{{ form.controls.conclusion.value || 'Chưa ghi' }}</p>
-                    @if (form.controls.treatmentPlan.value) {
-                      <p class="pt-1 border-t border-slate-200/60 text-[11px]"><strong class="text-slate-700">Phác đồ:</strong> {{ form.controls.treatmentPlan.value }}</p>
-                    }
-                  </div>
-                </div>
-
-                <!-- Box 3: Đơn thuốc & Dặn dò -->
-                <div class="rounded-xl border border-slate-200/80 bg-slate-50/50 p-3.5 text-xs space-y-2">
-                  <div class="flex items-center justify-between border-b border-slate-200/60 pb-1.5">
-                    <span class="font-bold text-slate-700 uppercase text-[10px] tracking-wider">3. Đơn thuốc &amp; Dặn dò</span>
-                    @if (!isReadonly()) {
-                      <button type="button" class="text-[11px] font-semibold text-[#0284c7] hover:underline cursor-pointer" (click)="selectTab('prescription')">
-                        Chỉnh sửa
-                      </button>
-                    }
-                  </div>
-                  <div class="space-y-1 text-slate-600">
-                    <p>Tổng số thuốc: <strong class="text-slate-900 font-bold">{{ prescriptionLines.length }} loại</strong></p>
-                    @if (prescriptionLines.length > 0) {
-                      <ul class="list-disc pl-4 space-y-0.5 max-h-20 overflow-auto text-[11px]">
-                        @for (line of prescriptionLines.controls; track $index) {
-                          <li class="text-slate-800 font-medium">
-                            {{ line.controls.medicationName.value }} ({{ line.controls.quantity.value }} {{ line.controls.unit.value }})
-                          </li>
-                        }
-                      </ul>
-                    } @else {
-                      <p class="italic text-slate-400">Không kê thuốc trong phiên khám này</p>
-                    }
-                    @if (followUpEnabled() && form.controls.followUpDays.value) {
-                      <p class="pt-1 border-t border-slate-200/60 text-emerald-700 font-semibold">
-                        Tái khám sau: {{ form.controls.followUpDays.value }} ngày
-                      </p>
-                    }
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            <!-- Card 2: Live Circular 33/2025/TT-BYT Preview Sheet -->
-            <section class="overflow-hidden rounded-2xl border border-slate-300 bg-white p-6 sm:p-8 shadow-sm">
+          @if (activeTab() === 'preview') {
+          <div class="space-y-4">
+            <section data-testid="official-record-preview" class="overflow-hidden rounded-2xl border border-slate-300 bg-white p-5 sm:p-7 shadow-sm">
               <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-6">
                 <div class="flex items-center gap-2">
                   <mat-icon class="!h-5 !w-5 !text-[20px] text-slate-700">feed</mat-icon>
                   <h4 class="text-xs font-bold uppercase tracking-wider text-slate-800">
-                    Bản xem trước Phiếu khám bệnh ngoại trú (Thông tư 33/2025/TT-BYT)
+                    Bản xem trước hồ sơ khám ngoại trú
                   </h4>
                 </div>
                 <div class="flex items-center gap-2">
@@ -983,22 +860,22 @@
               <!-- Official Circular 33 Document View -->
               <div class="max-w-3xl mx-auto rounded-xl border border-slate-200 bg-white p-6 sm:p-8 shadow-xs text-xs space-y-5 text-slate-900">
                 <!-- Header -->
-                <div class="border-b-2 border-slate-800 pb-3">
+                <div data-testid="preview-record-header" class="border-b-2 border-slate-800 pb-3">
                   <div class="flex items-start justify-between text-xs leading-relaxed">
                     <div>
                       <p class="font-bold uppercase tracking-wide text-xs">PHÒNG KHÁM ĐA KHOA CLINICONE</p>
                       <p class="text-slate-600 text-[11px]">123 Nguyễn Văn Cừ, Phường 4, Quận 5, TP. Hồ Chí Minh</p>
                       <p class="text-slate-600 text-[11px]">Hotline: 1900 0000</p>
                     </div>
-                    <div class="text-right">
+                    <div class="text-center">
                       <p class="font-bold uppercase text-xs">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</p>
-                      <p class="italic text-[11px] text-slate-700">Độc lập - Tự do - Hạnh phúc</p>
+                      <p data-testid="exam-national-motto" class="text-center italic text-[11px] text-slate-700">Độc lập - Tự do - Hạnh phúc</p>
                       <p class="mt-1 font-mono text-[10px] font-bold text-slate-600">Mã BA: {{ exam.appointmentCode }}</p>
                     </div>
                   </div>
                   <div class="mt-3 text-center">
                     <h2 class="text-base font-bold uppercase tracking-wider text-slate-900">PHIẾU KHÁM BỆNH NGOẠI TRÚ</h2>
-                    <p class="text-[10px] italic text-slate-600">(Ban hành kèm theo Thông tư số 33/2025/TT-BYT của Bộ Y tế)</p>
+                    <p class="text-[10px] italic text-slate-600">Mẫu tham khảo nội bộ · cần cơ sở y tế rà soát trước khi sử dụng</p>
                   </div>
                 </div>
 
@@ -1010,7 +887,9 @@
                   </div>
                   <div class="grid grid-cols-2 gap-4">
                     <div><span>SĐT: </span><strong>{{ exam.patientPhone }}</strong></div>
-                    <div><span>Chuyên khoa: </span><strong>{{ exam.specialty }}</strong> · <span>Phòng: </span><strong>{{ exam.roomName }}</strong></div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-4">
+                    <div class="col-span-2" data-testid="preview-record-specialty-room"><span>Chuyên khoa: </span><strong>{{ exam.specialty }}</strong> · <span>Phòng: </span><strong>{{ exam.roomName }}</strong></div>
                   </div>
                   <div class="grid grid-cols-4 gap-2 pt-1 border-t border-slate-100 text-[11px]">
                     <div><span>Huyết áp: </span><strong>{{ form.controls.bloodPressure.value || exam.bloodPressure || '—' }} mmHg</strong></div>
@@ -1056,7 +935,7 @@
                           </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
-                          @for (line of prescriptionLines.controls; track $index; let index = $index) {
+                          @for (line of prescriptionLines.controls; track line; let index = $index) {
                             <tr>
                               <td class="p-1.5 text-center font-mono">{{ index + 1 }}</td>
                               <td class="p-1.5 font-bold text-slate-900">{{ line.controls.medicationName.value }}</td>
@@ -1080,10 +959,16 @@
                 </div>
 
                 <!-- Sign slot -->
-                <div class="mt-6 pt-4 border-t border-slate-200 flex items-end justify-between">
-                  <div class="text-[10px] text-slate-400">
-                    <p>Hồ sơ lưu trữ điện tử theo TT 33/2025/TT-BYT</p>
-                    <p>Mã liên thông: CL-{{ exam.appointmentCode }}</p>
+                <div data-testid="record-signature-row" class="relative mt-4 pt-3 border-t border-slate-200 flex items-start justify-between">
+                  <div class="flex flex-col items-start gap-1">
+                    <div data-testid="preview-clinicone-wordmark" class="flex items-center gap-2 text-sm font-bold tracking-wide text-slate-800">
+                      <img data-testid="preview-clinicone-logo" class="h-12 w-12 object-contain" src="clinicone-mark-small.png" alt="ClinicOne" />
+                      <span>CLINIC<span class="text-[#0284c7]">ONE</span></span>
+                    </div>
+                    <div data-testid="preview-record-archive-metadata" class="text-[10px] text-slate-400">
+                      <p>Hồ sơ lưu trữ điện tử theo TT 33/2025/TT-BYT</p>
+                      <p>Mã liên thông: CL-{{ exam.appointmentCode }}</p>
+                    </div>
                   </div>
                   <div class="text-center min-w-48">
                     <p class="text-[11px] text-slate-600">BÁC SĨ KHÁM BỆNH</p>
@@ -1103,6 +988,7 @@
               </div>
             </section>
           </div>
+          }
 
           <!-- ============================================== -->
           <!-- STICKY ACTION BAR FOR WORKSPACE                -->
@@ -1176,7 +1062,7 @@
                 <button
                   data-testid="sign-record"
                   type="button"
-                  class="erp-btn-primary !h-9 !px-4 text-xs font-bold shadow-xs cursor-pointer"
+                  class="erp-btn-success !h-9 !px-4 text-xs font-bold shadow-xs cursor-pointer"
                   [class.hidden]="activeTab() !== 'preview'"
                   [disabled]="saving() || signing() || stopping()"
                   (click)="requestSign()"
@@ -1201,6 +1087,8 @@
                   type="button"
                   class="erp-btn-secondary !h-9 text-xs font-semibold cursor-pointer"
                   (click)="printFullRecord()"
+                  [disabled]="pdfGenerating()"
+                  [attr.aria-busy]="pdfGenerating()"
                 >
                   <mat-icon class="!h-4 !w-4 !text-[16px] text-[#0284c7]">print</mat-icon>
                   <span>In phiếu khám</span>
@@ -1235,7 +1123,7 @@
                 <button
                   data-testid="complete-examination"
                   type="button"
-                  class="erp-btn-primary mt-5"
+                  class="erp-btn-success mt-5"
                   [disabled]="saving() || signing()"
                   (click)="requestSign()"
                 >
@@ -1409,7 +1297,7 @@
               <button
                 data-testid="confirm-sign-record"
                 type="button"
-                class="erp-btn-primary"
+                class="erp-btn-success"
                 (click)="sign()"
               >
                 Ký phiếu khám
@@ -1569,9 +1457,9 @@
               </div>
             }
             <div>
-              <h3 id="template-overwrite-title" class="text-base font-bold text-slate-900">Thay nội dung đang nhập?</h3>
+              <h3 id="template-overwrite-title" class="text-base font-bold text-slate-900">Áp dụng mẫu lên nội dung hiện tại?</h3>
               <p class="mt-1 text-xs text-slate-600">
-                Mẫu đã chọn có nội dung khác với bản nháp hiện tại. ClinicOne chỉ thay nội dung sau khi bác sĩ xác nhận.
+                Các mục có trong mẫu sẽ được cập nhật. Danh sách thuốc đang kê sẽ được thay bằng thuốc trong mẫu.
               </p>
             </div>
             <div class="flex justify-end gap-2.5 pt-2">
@@ -1588,7 +1476,7 @@
                 class="erp-btn-primary"
                 (click)="confirmApplyMedicalTemplate()"
               >
-                Thay bằng mẫu
+                Áp dụng mẫu
               </button>
             </div>
           </div>
@@ -1615,9 +1503,9 @@
               <p class="text-slate-600">Địa chỉ: 123 Nguyễn Văn Cừ, Phường 4, Quận 5, TP. Hồ Chí Minh</p>
               <p class="text-slate-600">Hotline: 1900 0000 · Giấy phép hoạt động: 01234/SYT-GPHĐ</p>
             </div>
-            <div class="text-right">
+            <div class="text-center">
               <p class="font-bold uppercase">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</p>
-              <p class="italic text-slate-700">Độc lập - Tự do - Hạnh phúc</p>
+              <p class="text-center italic text-slate-700">Độc lập - Tự do - Hạnh phúc</p>
               <p class="mt-1 font-mono text-[11px] font-bold text-slate-600">Mã đơn: DT-CL-{{ exam.appointmentCode }}</p>
             </div>
           </div>
@@ -1680,7 +1568,7 @@
               </tr>
             </thead>
             <tbody>
-              @for (line of prescriptionLines.controls; track $index; let idx = $index) {
+              @for (line of prescriptionLines.controls; track line; let idx = $index) {
                 <tr class="border-t border-slate-300">
                   <td class="border border-slate-300 p-2 text-center font-bold text-slate-500">{{ idx + 1 }}</td>
                   <td class="border border-slate-300 p-2">
@@ -1740,42 +1628,44 @@
         </div>
       </div>
 
-      <!-- TEMPLATE 2: PHIẾU KHÁM BỆNH TOÀN DIỆN (CIRCULAR 33/2025/TT-BYT) -->
+      <!-- TEMPLATE 2: PHIẾU KHÁM BỆNH TOÀN DIỆN (INTERNAL REFERENCE) -->
       <div
         id="print-full-record-section"
-        class="hidden print:p-6 print:text-slate-900 print:bg-white"
-        [class.!block]="printMode() === 'full'"
+        class="a4-print-sheet hidden print:text-slate-900 print:bg-white"
+        [class.print-output-active]="printMode() === 'full'"
         [class.!hidden]="printMode() !== 'full'"
       >
-        <!-- Circular 33/2025 header -->
-        <div class="border-b-2 border-slate-800 pb-3">
+        <!-- Nội dung mẫu nội bộ, không khẳng định là biểu mẫu ban hành theo thông tư -->
+        <div data-testid="print-record-header" class="print-record-header border-b-2 border-slate-800 pb-3">
           <div class="flex items-start justify-between text-xs leading-relaxed">
             <div>
               <p class="font-bold uppercase tracking-wide text-sm">PHÒNG KHÁM ĐA KHOA CLINICONE</p>
               <p class="text-slate-600">Địa chỉ: 123 Nguyễn Văn Cừ, Phường 4, Quận 5, TP. Hồ Chí Minh</p>
               <p class="text-slate-600">Hotline: 1900 0000 · Giấy phép hoạt động: 01234/SYT-GPHĐ</p>
             </div>
-            <div class="text-right">
+            <div class="text-center">
               <p class="font-bold uppercase">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</p>
-              <p class="italic text-slate-700">Độc lập - Tự do - Hạnh phúc</p>
+              <p class="text-center italic text-slate-700">Độc lập - Tự do - Hạnh phúc</p>
               <p class="mt-1 font-mono text-[11px] font-bold text-slate-600">Mã BA: {{ exam.appointmentCode }}</p>
             </div>
           </div>
           <div class="mt-4 text-center">
             <h1 class="text-xl font-bold uppercase tracking-wider text-slate-900">PHIẾU KHÁM BỆNH NGOẠI TRÚ</h1>
-            <p class="text-[11px] italic text-slate-600">(Ban hành kèm theo Thông tư số 33/2025/TT-BYT của Bộ Y tế)</p>
+            <p class="text-[11px] italic text-slate-600">Mẫu tham khảo nội bộ · cần cơ sở y tế rà soát trước khi sử dụng</p>
           </div>
         </div>
 
         <!-- Thông tin hành chính -->
-        <div class="my-4 border-b border-slate-300 pb-3 text-xs leading-relaxed space-y-1.5">
+        <div class="print-record-demographics my-4 border-b border-slate-300 pb-3 text-xs leading-relaxed space-y-1.5">
           <div class="grid grid-cols-2 gap-4">
             <div><span>Họ tên: </span><strong class="uppercase font-bold">{{ exam.patientName }}</strong></div>
             <div><span>Ngày sinh: </span><strong>{{ formatDate(exam.patientDateOfBirth) }}</strong> · <span>Giới tính: </span><strong>{{ exam.patientGender }}</strong></div>
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div><span>SĐT: </span><strong>{{ exam.patientPhone }}</strong></div>
-            <div><span>Chuyên khoa: </span><strong>{{ exam.specialty }}</strong> · <span>Phòng: </span><strong>{{ exam.roomName }}</strong></div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div class="col-span-2" data-testid="print-record-specialty-room"><span>Chuyên khoa: </span><strong>{{ exam.specialty }}</strong> · <span>Phòng: </span><strong>{{ exam.roomName }}</strong></div>
           </div>
           <div class="grid grid-cols-4 gap-2 pt-1 border-t border-slate-100">
             <div><span>Huyết áp: </span><strong>{{ form.controls.bloodPressure.value || exam.bloodPressure || '—' }}</strong></div>
@@ -1786,7 +1676,7 @@
         </div>
 
         <!-- Nội dung khám lâm sàng -->
-        <div class="my-4 space-y-3 text-xs leading-relaxed">
+        <div class="print-record-clinical my-4 space-y-3 text-xs leading-relaxed">
           <div>
             <p class="font-bold text-slate-800 uppercase text-[11px]">1. Lý do khám:</p>
             <p class="text-slate-700 whitespace-pre-line">{{ form.controls.reason.value || exam.reason || 'Không ghi nhận' }}</p>
@@ -1820,7 +1710,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  @for (line of prescriptionLines.controls; track $index; let lidx = $index) {
+                  @for (line of prescriptionLines.controls; track line; let lidx = $index) {
                     <tr>
                       <td class="border border-slate-300 p-1.5 text-center">{{ lidx + 1 }}</td>
                       <td class="border border-slate-300 p-1.5 font-bold">{{ line.controls.medicationName.value }} ({{ line.controls.dosage.value }})</td>
@@ -1835,17 +1725,23 @@
         </div>
 
         <!-- Chữ ký số -->
-        <div class="mt-8 pt-4 text-xs border-t border-slate-200">
+        <div data-testid="print-record-signature-row" class="print-record-footer mt-4 pt-2 text-xs border-t border-slate-200">
           <div class="flex items-start justify-between">
-            <div class="text-[11px] text-slate-500">
-              <p>Lưu trữ hồ sơ điện tử y tế 10 năm theo Thông tư 33/2025/TT-BYT</p>
-              <p>Mã liên thông: CL-{{ exam.appointmentCode }}</p>
+            <div class="flex flex-col items-start gap-1">
+              <div data-testid="print-clinicone-wordmark" class="flex items-center gap-2 text-sm font-bold tracking-wide text-slate-800">
+                <img data-testid="print-clinicone-logo" class="print-clinicone-logo h-12 w-12 object-contain" src="clinicone-mark-small.png" alt="ClinicOne" />
+                <span>CLINIC<span class="text-[#0284c7]">ONE</span></span>
+              </div>
+              <div data-testid="print-record-archive-metadata" class="text-[11px] text-slate-500">
+                <p>Hồ sơ lưu trữ điện tử theo TT 33/2025/TT-BYT</p>
+                <p>Mã liên thông: CL-{{ exam.appointmentCode }}</p>
+              </div>
             </div>
             <div class="text-center space-y-1 min-w-[200px]">
               <p class="italic text-slate-600">Ngày lập: {{ formatDate(exam.signedAt || exam.draftSavedAt) }}</p>
               <p class="font-bold uppercase text-slate-900">Bác sĩ khám bệnh</p>
               <p class="mt-10 font-bold text-slate-900 text-sm">{{ exam.doctorName }}</p>
-              <p class="text-[10px] text-emerald-700 font-semibold">[Đã ký số điện tử]</p>
+              <p data-testid="print-record-signature-status" class="print-record-signature-status text-[10px] leading-normal py-0.5 text-emerald-700 font-semibold">[Đã ký số điện tử]</p>
             </div>
           </div>
         </div>
