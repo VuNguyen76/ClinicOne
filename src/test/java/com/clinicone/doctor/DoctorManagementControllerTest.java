@@ -80,6 +80,31 @@ class DoctorManagementControllerTest {
                 .andExpect(status().isForbidden());
     }
 
+    @Test
+    void doctorCannotReadAnotherDoctorsSchedule() throws Exception {
+        UUID anotherDoctorId = UUID.fromString("1d9e3fb4-1045-4ca4-86d2-7d1fca4c1a13");
+
+        mockMvc.perform(get("/api/v1/admin/doctors/" + anotherDoctorId + "/schedules")
+                        .with(authentication(authenticated("ROLE_DOCTOR"))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void doctorCanReadOwnSchedule() throws Exception {
+        mockMvc.perform(get("/api/v1/admin/doctors/" + DOCTOR_ID + "/schedules")
+                        .with(authentication(authenticated("ROLE_DOCTOR"))))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void coordinatorCanReadAnyDoctorsSchedule() throws Exception {
+        UUID anotherDoctorId = UUID.fromString("1d9e3fb4-1045-4ca4-86d2-7d1fca4c1a13");
+
+        mockMvc.perform(get("/api/v1/admin/doctors/" + anotherDoctorId + "/schedules")
+                        .with(authentication(authenticated("ROLE_COORDINATOR"))))
+                .andExpect(status().isOk());
+    }
+
     private static UsernamePasswordAuthenticationToken authenticated(String role) {
         return UsernamePasswordAuthenticationToken.authenticated(DOCTOR_ID.toString(), null,
                 List.of(new SimpleGrantedAuthority(role)));

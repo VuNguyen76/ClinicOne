@@ -641,7 +641,8 @@ public class DoctorExaminationService {
         boolean requiresRecord = appointment.requiresMedicalRecord();
         String recordDoctorName = record == null ? null : record.getDoctorName();
         List<MedicalRecordResponse> history = profile == null ? List.of() : recordRepository
-                .findTop10BySession_Appointment_PatientProfile_IdAndSignedAtIsNotNullOrderBySignedAtDesc(profile.getId())
+                .findTop10BySession_Appointment_PatientProfile_IdAndSignedAtIsNotNullOrderBySignedAtDescIdDesc(
+                        profile.getId())
                 .stream().map(MedicalRecordResponse::from).toList();
         String patientName = profile != null ? profile.getFullName()
                 : patient == null ? null : patient.getFullName();

@@ -3,6 +3,7 @@ package com.clinicone.audit;
 import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.PageRequest;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -12,6 +13,7 @@ import java.util.List;
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class AccessAuditService {
+    private static final int MAX_RESULTS = 500;
     private static final Instant AUDIT_START = Instant.parse("1900-01-01T00:00:00Z");
     private static final Instant AUDIT_END = Instant.parse("9999-12-31T23:59:59.999999Z");
 
@@ -32,8 +34,7 @@ public class AccessAuditService {
         Instant fromTime = from == null ? AUDIT_START : from;
         Instant toTime = to == null ? AUDIT_END : to;
         return repository.findFiltered(fromTime, toTime, normalizeFilter(actor, 120), normalizeFilter(outcome, 20),
-                        normalizeFilter(eventType, 40)).stream()
-                .limit(500)
+                        normalizeFilter(eventType, 40), PageRequest.of(0, MAX_RESULTS)).stream()
                 .map(AccessAuditResponse::from)
                 .toList();
     }

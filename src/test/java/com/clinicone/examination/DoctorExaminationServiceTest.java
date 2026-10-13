@@ -550,7 +550,7 @@ class DoctorExaminationServiceTest {
         MedicalRecord previousRecord = MedicalRecord.draft(previousSession);
         previousRecord.sign("Bác sĩ cũ", "Đau đầu", "Đã khám", "Đau đầu căng thẳng",
                 "Theo dõi", "Nghỉ ngơi", null, null);
-        when(recordRepository.findTop10BySession_Appointment_PatientProfile_IdAndSignedAtIsNotNullOrderBySignedAtDesc(
+        when(recordRepository.findTop10BySession_Appointment_PatientProfile_IdAndSignedAtIsNotNullOrderBySignedAtDescIdDesc(
                 appointment.getPatientProfile().getId())).thenReturn(List.of(previousRecord));
 
         DoctorExaminationResponse response = service.open(TICKET_ID, DOCTOR_ID.toString());
@@ -559,7 +559,7 @@ class DoctorExaminationServiceTest {
             assertThat(item.doctorName()).isEqualTo("Bác sĩ cũ");
             assertThat(item.diagnosis()).isEqualTo("Đau đầu căng thẳng");
         });
-        verify(recordRepository).findTop10BySession_Appointment_PatientProfile_IdAndSignedAtIsNotNullOrderBySignedAtDesc(
+        verify(recordRepository).findTop10BySession_Appointment_PatientProfile_IdAndSignedAtIsNotNullOrderBySignedAtDescIdDesc(
                 appointment.getPatientProfile().getId());
     }
 

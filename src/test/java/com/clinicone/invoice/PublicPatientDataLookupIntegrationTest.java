@@ -101,6 +101,44 @@ class PublicPatientDataLookupIntegrationTest {
         assertThat(profiles.size()).isEqualTo(2);
     }
 
+    @Test
+    void lookupReturnsHistoryForTemporaryReceptionProfileWithoutAnAccount() throws Exception {
+        PatientProfile temporaryProfile = profileRepository.saveAndFlush(PatientProfile.createTemporary(
+                "Temporary Patient", LocalDate.of(1990, 1, 1), "Nam", PHONE, null,
+                "Viet Nam", "Kinh", null));
+        Appointment appointment = appointmentRepository.saveAndFlush(Appointment.createTemporary(
+                temporaryProfile, UUID.randomUUID(), UUID.randomUUID().toString().substring(0, 24),
+                "Kham Tong quat", "BS. Test", LocalDate.now().plusDays(1), LocalTime.of(8, 30),
+                "Kiem tra temporary profile lookup"));
+        ExaminationSession session = sessionRepository.saveAndFlush(ExaminationSession.create(appointment));
+        MedicalRecord record = MedicalRecord.draft(session);
+        record.sign("BS. Test", "Kiem tra", "Kham", "Chan doan temporary", "On dinh", "Theo doi",
+                null, null, List.of(PrescriptionLine.create(record, null, "Thuoc temporary", "1 vien",
+                        2, "vien", "Sau an", 1)));
+        medicalRecordRepository.saveAndFlush(record);
+        invoiceRepository.saveAndFlush(Invoice.create(session, "INV-TEMPORARY-LOOKUP", 100_000,
+                "Quay tiep nhan"));
+        Instant now = Instant.now();
+        otpChallengeRepository.saveAndFlush(new OtpChallenge("+84900000017", OtpPurpose.RECEIPT_LOOKUP,
+                passwordEncoder.encode(OTP), now, now.plusSeconds(300)));
+
+        var result = mockMvc.perform(post("/api/v1/public/patient-data/lookup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"phone\":\"" + PHONE + "\",\"code\":\"" + OTP + "\"}"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        JsonNode profiles = objectMapper.readTree(result.getResponse().getContentAsString()).path("profiles");
+        JsonNode profileResult = findProfile(profiles, temporaryProfile.getId().toString());
+        assertThat(profileResult.path("fullName").asText()).isEqualTo("Temporary Patient");
+        assertThat(profileResult.path("invoices").get(0).path("invoiceCode").asText())
+                .isEqualTo("INV-TEMPORARY-LOOKUP");
+        assertThat(profileResult.path("medicalRecords").get(0).path("diagnosis").asText())
+                .isEqualTo("Chan doan temporary");
+        assertThat(profileResult.path("medicalRecords").get(0).path("prescriptionLines").get(0)
+                .path("medicationName").asText()).isEqualTo("Thuoc temporary");
+    }
+
     private void createClinicalHistory(PatientAccount account, PatientProfile profile, String invoiceCode,
                                        String diagnosis, String medicationName) {
         Appointment appointment = appointmentRepository.saveAndFlush(Appointment.create(account, profile,

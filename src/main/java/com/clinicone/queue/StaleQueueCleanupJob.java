@@ -12,16 +12,15 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 
 @Component
 public class StaleQueueCleanupJob {
     private static final Logger log = LoggerFactory.getLogger(StaleQueueCleanupJob.class);
-    private static final ZoneId CLINIC_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
+    private static final Duration STALE_AFTER = Duration.ofHours(24);
     private static final String AUTO_REASON = "Tự động dọn sau 24h không hoàn tất";
 
     private final QueueTicketRepository ticketRepository;
@@ -50,9 +49,9 @@ public class StaleQueueCleanupJob {
 
     @Transactional
     public CleanupResult runOnce() {
-        LocalDate today = Instant.now(clock).atZone(CLINIC_ZONE).toLocalDate();
-        List<QueueTicket> stale = ticketRepository.findByStatusInAndQueueDateBefore(
-                List.of(QueueTicketStatus.WAITING, QueueTicketStatus.CALLED, QueueTicketStatus.IN_SERVICE), today);
+        Instant staleBefore = Instant.now(clock).minus(STALE_AFTER);
+        List<QueueTicket> stale = ticketRepository.findByStatusInAndCheckedInAtBefore(
+                List.of(QueueTicketStatus.WAITING, QueueTicketStatus.CALLED, QueueTicketStatus.IN_SERVICE), staleBefore);
         int inspected = stale.size();
         int stopped = 0;
         int leftBefore = 0;

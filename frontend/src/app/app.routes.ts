@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { adminGuard, clinicalStaffGuard, doctorGuard, homeGuard, operationalStaffGuard, patientGuard, queueBoardGuard, queueSupervisorGuard, receptionGuard, roomManagerGuard, staffLandingRedirect } from './core/auth/auth.guard';
+import { adminGuard, clinicalStaffGuard, doctorGuard, homeGuard, patientGuard, queueBoardGuard, queueSupervisorGuard, receptionGuard, roomManagerGuard, staffLandingRedirect } from './core/auth/auth.guard';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'home' },
@@ -40,15 +40,15 @@ export const routes: Routes = [
   { path: 'admin/specialties', loadComponent: () => import('./features/specialty-catalog-management/specialty-catalog-management').then((m) => m.SpecialtyCatalogManagement), canActivate: [roomManagerGuard] },
   { path: 'admin/medical-record-templates', loadComponent: () => import('./features/medical-record-template-management/medical-record-template-management').then((m) => m.MedicalRecordTemplateManagement), canActivate: [clinicalStaffGuard] },
   { path: 'admin/sms-deliveries', loadComponent: () => import('./features/sms-delivery-management/sms-delivery-management').then((m) => m.SmsDeliveryManagement), canActivate: [adminGuard] },
-  { path: 'admin/schedule-templates', loadComponent: () => import('./features/schedule-template-management/schedule-template-management').then((m) => m.ScheduleTemplateManagement), canActivate: [operationalStaffGuard] },
+  { path: 'admin/schedule-templates', loadComponent: () => import('./features/schedule-template-management/schedule-template-management').then((m) => m.ScheduleTemplateManagement), canActivate: [roomManagerGuard] },
   { path: 'admin/staff', loadComponent: () => import('./features/staff-management/staff-management').then((m) => m.StaffManagement), canActivate: [adminGuard] },
   { path: 'admin/statistics', loadComponent: () => import('./features/admin-statistics/admin-statistics').then((m) => m.AdminStatistics), canActivate: [roomManagerGuard] },
   { path: 'admin/rescheduling', loadComponent: () => import('./features/rescheduling/rescheduling').then((m) => m.Rescheduling), canActivate: [roomManagerGuard] },
-  { path: 'admin/doctor-time-off', loadComponent: () => import('./features/doctor-time-off/doctor-time-off').then((m) => m.DoctorTimeOffManagement), canActivate: [operationalStaffGuard] },
+  { path: 'admin/doctor-time-off', loadComponent: () => import('./features/doctor-time-off/doctor-time-off').then((m) => m.DoctorTimeOffManagement), canActivate: [clinicalStaffGuard] },
   { path: 'admin/reconciliations', loadComponent: () => import('./features/reconciliation/reconciliation').then((m) => m.ReconciliationManagement), canActivate: [roomManagerGuard] },
   { path: 'admin/access-audit', loadComponent: () => import('./features/access-audit/access-audit').then((m) => m.AccessAuditManagement), canActivate: [adminGuard] },
-  { path: 'admin/configuration', pathMatch: 'full', redirectTo: 'admin/rooms' },
-  { path: 'admin/reason-catalog', pathMatch: 'full', redirectTo: 'admin/diagnoses' },
+  { path: 'admin/configuration', loadComponent: () => import('./features/clinic-configuration/clinic-configuration').then((m) => m.ClinicConfiguration), canActivate: [adminGuard] },
+  { path: 'admin/reason-catalog', loadComponent: () => import('./features/reason-catalog-management/reason-catalog-management').then((m) => m.ReasonCatalogManagement), canActivate: [adminGuard] },
   { path: 'admin/medications', loadComponent: () => import('./features/medication-catalog-management/medication-catalog-management').then((m) => m.MedicationCatalogManagement), canActivate: [clinicalStaffGuard] },
   { path: 'admin/diagnoses', loadComponent: () => import('./features/diagnosis-catalog-management/diagnosis-catalog-management').then((m) => m.DiagnosisCatalogManagement), canActivate: [clinicalStaffGuard] },
   { path: 'admin/business-audit', loadComponent: () => import('./features/business-audit/business-audit').then((m) => m.BusinessAudit), canActivate: [roomManagerGuard] },

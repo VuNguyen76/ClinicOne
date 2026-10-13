@@ -14,10 +14,15 @@ import java.util.UUID;
 
 public interface MedicalRecordRepository extends JpaRepository<MedicalRecord, UUID> {
     @EntityGraph(attributePaths = {"session", "session.appointment", "prescriptionLines"})
-    List<MedicalRecord> findTop10BySession_Appointment_Patient_IdAndSignedAtIsNotNullOrderBySignedAtDesc(UUID patientId);
+    List<MedicalRecord> findTop10BySession_Appointment_Patient_IdAndSignedAtIsNotNullOrderBySignedAtDescIdDesc(
+            UUID patientId);
 
     @EntityGraph(attributePaths = {"session", "session.appointment", "prescriptionLines"})
-    List<MedicalRecord> findTop10BySession_Appointment_PatientProfile_IdAndSignedAtIsNotNullOrderBySignedAtDesc(
+    List<MedicalRecord> findTop10BySession_Appointment_Patient_IdAndSession_Appointment_PatientProfileIsNullAndSignedAtIsNotNullOrderBySignedAtDescIdDesc(
+            UUID patientId);
+
+    @EntityGraph(attributePaths = {"session", "session.appointment", "prescriptionLines"})
+    List<MedicalRecord> findTop10BySession_Appointment_PatientProfile_IdAndSignedAtIsNotNullOrderBySignedAtDescIdDesc(
             UUID patientProfileId);
 
     @EntityGraph(attributePaths = {"session", "session.appointment", "prescriptionLines"})
@@ -33,7 +38,7 @@ public interface MedicalRecordRepository extends JpaRepository<MedicalRecord, UU
               and appointment.patientProfile.id = :profileId
               and record.signedAt is not null
               and record.signedAt >= :fromAt
-            order by record.signedAt desc
+            order by record.signedAt desc, record.id desc
             """)
     List<MedicalRecord> findSignedForProfileSince(@Param("patientId") UUID patientId,
                                                    @Param("profileId") UUID profileId,
@@ -47,7 +52,7 @@ public interface MedicalRecordRepository extends JpaRepository<MedicalRecord, UU
               and record.signedAt is not null
               and record.signedAt >= :fromAt
               and record.signedAt < :toExclusive
-            order by record.signedAt desc
+            order by record.signedAt desc, record.id desc
             """,
             countQuery = """
             select count(record) from MedicalRecord record
@@ -72,7 +77,7 @@ public interface MedicalRecordRepository extends JpaRepository<MedicalRecord, UU
               and record.signedAt is not null
               and record.signedAt >= :fromAt
               and record.signedAt < :toExclusive
-            order by record.signedAt desc
+            order by record.signedAt desc, record.id desc
             """,
             countQuery = """
             select count(record) from MedicalRecord record

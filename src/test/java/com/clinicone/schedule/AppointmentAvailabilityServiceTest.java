@@ -179,6 +179,69 @@ class AppointmentAvailabilityServiceTest {
     }
 
     @Test
+    void doesNotExposeOpenSlotsOwnedByInactiveTemplates() {
+        ClinicServiceRepository serviceRepository = mock(ClinicServiceRepository.class);
+        GeneratedClinicSlotRepository slotRepository = mock(GeneratedClinicSlotRepository.class);
+        WorkScheduleTemplateRepository templateRepository = mock(WorkScheduleTemplateRepository.class);
+        ClinicService clinicService = mock(ClinicService.class);
+        GeneratedClinicSlot staleSlot = mock(GeneratedClinicSlot.class);
+        UUID serviceId = UUID.randomUUID();
+        UUID doctorId = UUID.randomUUID();
+        LocalDate monday = LocalDate.of(2026, 8, 10);
+        when(serviceRepository.findById(serviceId)).thenReturn(Optional.of(clinicService));
+        when(clinicService.isActive()).thenReturn(true);
+        when(clinicService.getSpecialty()).thenReturn("Khám Tổng Quát");
+        when(clinicService.getDurationMinutes()).thenReturn(30);
+        when(slotRepository.findByClinicServiceIdAndAppointmentDateBetweenOrderByAppointmentDateAscStartTimeAsc(
+                serviceId, monday, monday)).thenReturn(List.of(staleSlot));
+        when(slotRepository.findByClinicServiceIdAndAppointmentDateBetweenAndTemplate_ActiveTrueOrderByAppointmentDateAscStartTimeAsc(
+                serviceId, monday, monday)).thenReturn(List.of());
+        when(staleSlot.getStatus()).thenReturn(GeneratedSlotStatus.OPEN);
+        when(staleSlot.getAppointmentDate()).thenReturn(monday);
+        when(staleSlot.getDoctorStaffId()).thenReturn(doctorId);
+        when(templateRepository.findActiveByServiceAndDateRange(serviceId, monday, monday)).thenReturn(List.of());
+
+        AppointmentAvailabilityService configuredService = new AppointmentAvailabilityService(
+                appointmentRepository, createSpecialtyCatalog(), null, null, null,
+                Clock.fixed(Instant.parse("2026-08-10T00:00:00Z"), ZoneOffset.UTC), serviceRepository,
+                slotRepository, templateRepository);
+
+        assertEquals(List.of(), configuredService.find("Khám Tổng Quát", monday, monday, serviceId));
+    }
+
+    @Test
+    void rejectsBookingAnOpenSlotOwnedByAnInactiveTemplate() {
+        ClinicServiceRepository serviceRepository = mock(ClinicServiceRepository.class);
+        GeneratedClinicSlotRepository slotRepository = mock(GeneratedClinicSlotRepository.class);
+        WorkScheduleTemplateRepository templateRepository = mock(WorkScheduleTemplateRepository.class);
+        ClinicService clinicService = mock(ClinicService.class);
+        GeneratedClinicSlot staleSlot = mock(GeneratedClinicSlot.class);
+        UUID serviceId = UUID.randomUUID();
+        UUID doctorId = UUID.randomUUID();
+        LocalDate monday = LocalDate.of(2026, 8, 10);
+        LocalTime startTime = LocalTime.of(8, 0);
+        when(serviceRepository.findById(serviceId)).thenReturn(Optional.of(clinicService));
+        when(clinicService.isActive()).thenReturn(true);
+        when(clinicService.getSpecialty()).thenReturn("Khám Tổng Quát");
+        when(clinicService.getDurationMinutes()).thenReturn(30);
+        when(slotRepository.findByClinicServiceIdAndDoctorStaffIdAndAppointmentDateAndStartTime(
+                serviceId, doctorId, monday, startTime)).thenReturn(List.of(staleSlot));
+        when(slotRepository.findByClinicServiceIdAndDoctorStaffIdAndAppointmentDateAndStartTimeAndTemplate_ActiveTrue(
+                serviceId, doctorId, monday, startTime)).thenReturn(List.of());
+        when(staleSlot.getStatus()).thenReturn(GeneratedSlotStatus.OPEN);
+
+        AppointmentAvailabilityService configuredService = new AppointmentAvailabilityService(
+                appointmentRepository, createSpecialtyCatalog(), null, null, null,
+                Clock.fixed(Instant.parse("2026-08-10T00:00:00Z"), ZoneOffset.UTC), serviceRepository,
+                slotRepository, templateRepository);
+
+        AuthException exception = assertThrows(AuthException.class, () -> configuredService.ensureBookable(
+                "Khám Tổng Quát", "Bác sĩ An", doctorId, monday, startTime, null, serviceId));
+
+        assertEquals("APPOINTMENT_SLOT_INVALID", exception.getCode());
+    }
+
+    @Test
     void doesNotExposeWeeklyFallbackOnTemplateExceptionDate() {
         ClinicServiceRepository serviceRepository = mock(ClinicServiceRepository.class);
         GeneratedClinicSlotRepository slotRepository = mock(GeneratedClinicSlotRepository.class);

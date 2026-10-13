@@ -23,6 +23,9 @@ public interface GeneratedClinicSlotRepository extends JpaRepository<GeneratedCl
     List<GeneratedClinicSlot> findByClinicServiceIdAndAppointmentDateBetweenOrderByAppointmentDateAscStartTimeAsc(
             UUID clinicServiceId, LocalDate from, LocalDate to);
 
+    List<GeneratedClinicSlot> findByClinicServiceIdAndAppointmentDateBetweenAndTemplate_ActiveTrueOrderByAppointmentDateAscStartTimeAsc(
+            UUID clinicServiceId, LocalDate from, LocalDate to);
+
     List<GeneratedClinicSlot> findByClinicServiceIdAndDoctorStaffIdAndAppointmentDate(
             UUID clinicServiceId, UUID doctorStaffId, LocalDate appointmentDate);
 
@@ -32,6 +35,9 @@ public interface GeneratedClinicSlotRepository extends JpaRepository<GeneratedCl
 
 
     List<GeneratedClinicSlot> findByClinicServiceIdAndDoctorStaffIdAndAppointmentDateAndStartTime(
+            UUID clinicServiceId, UUID doctorStaffId, LocalDate appointmentDate, LocalTime startTime);
+
+    List<GeneratedClinicSlot> findByClinicServiceIdAndDoctorStaffIdAndAppointmentDateAndStartTimeAndTemplate_ActiveTrue(
             UUID clinicServiceId, UUID doctorStaffId, LocalDate appointmentDate, LocalTime startTime);
 
     Optional<GeneratedClinicSlot> findFirstByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(

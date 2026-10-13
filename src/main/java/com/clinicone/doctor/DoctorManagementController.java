@@ -5,6 +5,8 @@ import lombok.RequiredArgsConstructor;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -43,7 +45,16 @@ public class DoctorManagementController {
 
     @GetMapping("/{staffId}/schedules")
     @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR', 'DOCTOR')")
-    public ResponseEntity<List<DoctorScheduleResponse>> schedules(@PathVariable UUID staffId) {
+    public ResponseEntity<List<DoctorScheduleResponse>> schedules(@PathVariable UUID staffId,
+                                                                  Authentication authentication) {
+        boolean doctorOnly = authentication.getAuthorities().stream()
+                .anyMatch(authority -> authority.getAuthority().equals("ROLE_DOCTOR"))
+                && authentication.getAuthorities().stream()
+                .noneMatch(authority -> authority.getAuthority().equals("ROLE_ADMIN")
+                        || authority.getAuthority().equals("ROLE_COORDINATOR"));
+        if (doctorOnly && !staffId.toString().equals(authentication.getName())) {
+            throw new AccessDeniedException("Bác sĩ chỉ được xem lịch làm việc của chính mình.");
+        }
         return ResponseEntity.ok(service.schedules(staffId));
     }
 
