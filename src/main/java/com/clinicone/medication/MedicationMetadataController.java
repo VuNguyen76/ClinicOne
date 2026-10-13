@@ -32,7 +32,9 @@ public class MedicationMetadataController {
     ) {
         List<MedicationDosage> dosages;
         if (unit != null && !unit.isBlank()) {
-            dosages = dosageRepository.findByActiveTrueAndUnitNameIgnoreCaseOrderBySortOrderAsc(unit.trim());
+            dosages = activeOnly
+                    ? dosageRepository.findByActiveTrueAndUnitNameIgnoreCaseOrderBySortOrderAsc(unit.trim())
+                    : dosageRepository.findAllByUnitNameIgnoreCaseOrderBySortOrderAsc(unit.trim());
         } else if (activeOnly) {
             dosages = dosageRepository.findByActiveTrueOrderBySortOrderAsc();
         } else {
