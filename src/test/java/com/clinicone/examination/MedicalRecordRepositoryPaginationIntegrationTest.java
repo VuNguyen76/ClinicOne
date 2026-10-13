@@ -29,6 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ActiveProfiles("test")
 @Transactional
 class MedicalRecordRepositoryPaginationIntegrationTest {
+    private static final UUID DOCTOR_ID = UUID.fromString("1d7f1178-9b9c-4f0b-a7c1-a28a85d93f10");
     private static final Instant SIGNED_AT = Instant.parse("2026-08-01T10:00:00Z");
     private static final Instant FROM = Instant.parse("2026-08-01T00:00:00Z");
     private static final Instant TO = Instant.parse("2026-08-02T00:00:00Z");
@@ -92,5 +93,39 @@ class MedicalRecordRepositoryPaginationIntegrationTest {
                         account.getId()))
                 .extracting(MedicalRecord::getId)
                 .containsExactly(legacyRecord.getId());
+    }
+
+    @Test
+    void doctorHistoryQueryReturnsOnlyItsSignedRecordsAndDetailLoadsPrescriptionLines() {
+        PatientAccount account = accountRepository.saveAndFlush(new PatientAccount(
+                "091" + UUID.randomUUID().toString().replace("-", "").substring(0, 7),
+                "test-hash", "Doctor History Patient", AccountStatus.ACTIVE, false));
+        PatientProfile profile = profileRepository.saveAndFlush(PatientProfile.create(account,
+                "Doctor History Patient", "Báº£n thÃ¢n", LocalDate.of(1990, 1, 1), "Nam", null, null,
+                "Viá»‡t Nam", "Kinh", null, true));
+        Appointment appointment = appointmentRepository.saveAndFlush(Appointment.create(account, DOCTOR_ID,
+                profile, "D" + UUID.randomUUID().toString().replace("-", "").substring(0, 12),
+                "Ná»™i tá»•ng quÃ¡t", "BÃ¡c sÄ© kiá»ƒm thá»­", LocalDate.of(2026, 8, 1), LocalTime.of(8, 0),
+                "LÃ½ do khÃ¡m"));
+        ExaminationSession session = sessionRepository.saveAndFlush(ExaminationSession.create(appointment));
+        MedicalRecord record = recordRepository.saveAndFlush(MedicalRecord.signed(session, "BÃ¡c sÄ© kiá»ƒm thá»­",
+                "LÃ½ do", "Ghi nháº­n", "Cháº©n Ä‘oÃ¡n", "Káº¿t luáº­n", "Äiá»u trá»‹", null, null));
+        jdbcTemplate.update("update medical_records set signed_at = ? where id = ?", SIGNED_AT, record.getId());
+
+        var page = recordRepository.findSignedHistoryForDoctor(DOCTOR_ID, "Doctor History Patient",
+                LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 1),
+                PageRequest.of(0, 20));
+        var unfilteredPage = recordRepository.findSignedHistoryForDoctor(DOCTOR_ID, "", null, null,
+                PageRequest.of(0, 20));
+        var detail = recordRepository.findByIdAndSession_Appointment_DoctorStaffIdAndSignedAtIsNotNull(
+                record.getId(), DOCTOR_ID);
+        var otherDoctorPage = recordRepository.findSignedHistoryForDoctor(UUID.randomUUID(), "",
+                LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 1),
+                PageRequest.of(0, 20));
+
+        assertThat(page.getContent()).extracting(MedicalRecord::getId).containsExactly(record.getId());
+        assertThat(unfilteredPage.getContent()).extracting(MedicalRecord::getId).containsExactly(record.getId());
+        assertThat(detail).isPresent();
+        assertThat(otherDoctorPage.getContent()).isEmpty();
     }
 }

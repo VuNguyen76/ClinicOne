@@ -48,6 +48,13 @@ public class ScheduleTemplateService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<ScheduleTemplateResponse> listForDoctor(UUID doctorStaffId) {
+        return templateRepository.findByDoctorProfile_StaffAccount_IdOrderByStartDateAsc(doctorStaffId).stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
     @Transactional
     public ScheduleTemplateResponse create(CreateScheduleTemplateRequest request) {
         return create(request, false);

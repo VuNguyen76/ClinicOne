@@ -257,6 +257,48 @@ export interface MedicalRecordHistoryQuery {
   size?: number;
 }
 
+export interface DoctorMedicalRecordResponse {
+  id: string;
+  appointmentCode: string | null;
+  patientName: string | null;
+  specialty: string | null;
+  appointmentDate: string | null;
+  reason: string | null;
+  examinationNotes: string | null;
+  diagnosis: string | null;
+  conclusion: string | null;
+  treatmentPlan: string | null;
+  prescription: string | null;
+  prescriptionLines: PrescriptionLineResponse[];
+  followUpDate: string | null;
+  followUpDays: number | null;
+  followUpNote: string | null;
+  signedAt: string | null;
+  bloodPressure: string | null;
+  heartRate: number | null;
+  temperature: number | null;
+  spO2: number | null;
+  weight: number | null;
+  height: number | null;
+  allergySummary: string | null;
+}
+
+export interface DoctorMedicalRecordHistoryPageResponse {
+  items: DoctorMedicalRecordResponse[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+}
+
+export interface DoctorMedicalRecordHistoryQuery {
+  search?: string | null;
+  from?: string | null;
+  to?: string | null;
+  page?: number;
+  size?: number;
+}
+
 export interface ReasonCatalogResponse {
   id: string;
   type: string;
@@ -1146,6 +1188,21 @@ export class AuthApiService {
     return this.http.get<MedicalRecordResponse>(`${this.medicalRecordsRoot}/${id}`);
   }
 
+  getDoctorMedicalRecords(query: DoctorMedicalRecordHistoryQuery = {}): Observable<DoctorMedicalRecordHistoryPageResponse> {
+    const params: Record<string, string> = {
+      page: String(query.page ?? 0),
+      size: String(query.size ?? 20),
+    };
+    if (query.search?.trim()) params['search'] = query.search.trim();
+    if (query.from) params['from'] = query.from;
+    if (query.to) params['to'] = query.to;
+    return this.http.get<DoctorMedicalRecordHistoryPageResponse>('/api/v1/doctor/medical-records', { params });
+  }
+
+  getDoctorMedicalRecord(id: string): Observable<DoctorMedicalRecordResponse> {
+    return this.http.get<DoctorMedicalRecordResponse>(`/api/v1/doctor/medical-records/${encodeURIComponent(id)}`);
+  }
+
   getInvoices(): Observable<InvoiceResponse[]> {
     return this.http.get<InvoiceResponse[]>('/api/v1/invoices');
   }
@@ -1554,6 +1611,14 @@ export class AuthApiService {
 
   getScheduleTemplates(): Observable<ScheduleTemplateResponse[]> {
     return this.http.get<ScheduleTemplateResponse[]>('/api/v1/admin/schedule-templates');
+  }
+
+  getMyScheduleTemplates(): Observable<ScheduleTemplateResponse[]> {
+    return this.http.get<ScheduleTemplateResponse[]>('/api/v1/doctor/schedule-templates');
+  }
+
+  getDoctorAppointments(from: string, to: string): Observable<AppointmentResponse[]> {
+    return this.http.get<AppointmentResponse[]>('/api/v1/doctor/appointments', { params: { from, to } });
   }
 
   createScheduleTemplate(request: ScheduleTemplateRequest): Observable<ScheduleTemplateResponse> {

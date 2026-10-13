@@ -1,0 +1,181 @@
+<app-staff-workspace-shell moduleTitle="Khám bệnh" pageTitle="Bệnh nhân đã khám">
+  <div workspace-actions class="flex items-center gap-2">
+    <span class="hidden text-sm text-slate-500 sm:inline">{{ totalElements() }} ca</span>
+    <button type="button" class="erp-btn-secondary" (click)="searchRecords()" [disabled]="loading()" aria-label="Làm mới danh sách">
+      <mat-icon class="!h-4 !w-4 !text-[18px]">refresh</mat-icon>
+    </button>
+  </div>
+
+  <main class="w-full space-y-4" data-testid="doctor-medical-records">
+    @if (error()) {
+      <div class="flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800" role="alert">
+        <mat-icon class="!h-5 !w-5 !text-[20px]">error_outline</mat-icon>{{ error() }}
+      </div>
+    }
+
+    <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm" aria-label="Tìm bệnh nhân đã khám">
+      <div class="grid gap-3 md:grid-cols-[minmax(220px,1fr)_170px_170px_auto_auto] md:items-end">
+        <label class="grid gap-1.5 text-sm font-semibold text-slate-700">
+          Bệnh nhân / mã lịch hẹn
+          <span class="flex min-h-11 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 focus-within:border-sky-600 focus-within:ring-2 focus-within:ring-sky-100">
+            <mat-icon class="!h-5 !w-5 !text-[19px] text-slate-400">search</mat-icon>
+            <input data-testid="record-search" type="search" class="min-w-0 flex-1 text-base font-normal outline-none placeholder:text-slate-400"
+              placeholder="Tên hoặc mã lịch hẹn" [ngModel]="search()" (ngModelChange)="search.set($event)"
+              (keydown.enter)="searchRecords()" />
+          </span>
+        </label>
+        <label class="grid gap-1.5 text-sm font-semibold text-slate-700">Từ ngày
+          <input data-testid="record-from" type="date" class="min-h-11 rounded-lg border border-slate-300 bg-white px-3 text-base font-normal outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-100"
+            [ngModel]="from()" (ngModelChange)="from.set($event)" />
+        </label>
+        <label class="grid gap-1.5 text-sm font-semibold text-slate-700">Đến ngày
+          <input data-testid="record-to" type="date" class="min-h-11 rounded-lg border border-slate-300 bg-white px-3 text-base font-normal outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-100"
+            [ngModel]="to()" (ngModelChange)="to.set($event)" />
+        </label>
+        <button data-testid="record-search-submit" type="button" class="erp-btn-primary !min-h-11 !px-4" (click)="searchRecords()" [disabled]="loading()">
+          <mat-icon class="!h-5 !w-5 !text-[19px]">search</mat-icon><span>Tìm</span>
+        </button>
+        <button type="button" class="erp-btn-secondary !min-h-11 !px-4" (click)="clearFilters()" [disabled]="loading()">Xóa lọc</button>
+      </div>
+    </section>
+
+    <section class="grid min-h-[min(680px,calc(100dvh-210px))] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm xl:grid-cols-[minmax(300px,0.34fr)_minmax(0,0.66fr)] 2xl:grid-cols-[minmax(340px,0.30fr)_minmax(0,0.70fr)]" aria-label="Danh sách và phiếu khám">
+      <div class="flex min-h-0 flex-col border-b border-slate-200 xl:border-b-0 xl:border-r">
+        <header class="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-5 py-3">
+          <div>
+            <h2 class="text-base font-bold text-slate-900">Lịch sử khám</h2>
+            <p class="text-sm text-slate-500">{{ totalElements() }} hồ sơ</p>
+          </div>
+          <mat-icon class="!h-5 !w-5 !text-[20px] text-slate-500">clinical_notes</mat-icon>
+        </header>
+        <div class="min-h-72 flex-1 overflow-y-auto">
+          @if (loading()) {
+            <div class="grid min-h-64 place-items-center text-sm text-slate-500"><span class="inline-flex items-center gap-2"><mat-icon class="animate-spin">progress_activity</mat-icon>Đang tải</span></div>
+          } @else if (records().length === 0) {
+            <div class="grid min-h-64 place-items-center px-6 text-center">
+              <div><mat-icon class="!h-9 !w-9 !text-[36px] text-slate-300">folder_open</mat-icon><p class="mt-2 text-base font-semibold text-slate-700">Chưa có ca khám phù hợp</p></div>
+            </div>
+          } @else {
+            <div class="divide-y divide-slate-100">
+              @for (record of records(); track record.id) {
+                <button data-testid="doctor-record-row" type="button" (click)="openRecord(record)"
+                  class="flex w-full items-start gap-3 px-5 py-4 text-left transition hover:bg-sky-50/70 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-sky-600"
+                  [class.bg-sky-50]="selectedRecord()?.id === record.id">
+                  <span class="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-sky-100 text-sky-700"><mat-icon>person</mat-icon></span>
+                  <span class="min-w-0 flex-1">
+                    <span class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                      <span class="truncate text-base font-bold text-slate-900">{{ record.patientName || 'Chưa có tên' }}</span>
+                      <span class="text-sm font-medium text-slate-500">{{ formatDate(record.appointmentDate) }}</span>
+                    </span>
+                    <span class="mt-1 block truncate text-sm font-medium text-slate-700">{{ record.diagnosis || record.reason || 'Phiếu khám' }}</span>
+                    <span class="mt-1 flex flex-wrap gap-x-3 text-sm text-slate-500">
+                      <span>{{ record.specialty || 'Chưa phân chuyên khoa' }}</span>
+                      @if (record.appointmentCode) { <span class="font-mono">{{ record.appointmentCode }}</span> }
+                    </span>
+                  </span>
+                  <mat-icon class="mt-2 !h-5 !w-5 !text-[19px] text-slate-400">chevron_right</mat-icon>
+                </button>
+              }
+            </div>
+          }
+        </div>
+        @if (totalPages() > 1) {
+          <footer class="flex items-center justify-between border-t border-slate-200 px-4 py-3 text-sm">
+            <span class="text-slate-500">Trang {{ page() + 1 }} / {{ totalPages() }}</span>
+            <div class="flex gap-2">
+              <button type="button" class="erp-btn-secondary !min-h-9 !px-3" (click)="previous()" [disabled]="loading() || page() === 0">Trước</button>
+              <button type="button" class="erp-btn-secondary !min-h-9 !px-3" (click)="next()" [disabled]="loading() || page() + 1 >= totalPages()">Sau</button>
+            </div>
+          </footer>
+        }
+      </div>
+
+      <article class="min-w-0 bg-white" aria-label="Chi tiết phiếu khám">
+        @if (loadingDetail()) {
+          <div class="grid min-h-80 place-items-center text-sm text-slate-500"><span class="inline-flex items-center gap-2"><mat-icon class="animate-spin">progress_activity</mat-icon>Đang mở phiếu khám</span></div>
+        } @else if (selectedRecord(); as record) {
+          <header class="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 px-5 py-4 lg:px-6">
+            <div class="min-w-0">
+              <p class="text-sm font-semibold uppercase tracking-wide text-sky-700">Phiếu khám</p>
+              <h2 class="mt-1 text-xl font-bold text-slate-900" data-testid="record-diagnosis">{{ record.diagnosis || 'Chưa ghi chẩn đoán' }}</h2>
+              <p class="mt-1 text-sm text-slate-600">{{ record.patientName }} <span class="px-1 text-slate-300">·</span> {{ formatDate(record.appointmentDate) }}</p>
+            </div>
+            <span class="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-sm font-semibold text-emerald-700"><mat-icon class="!h-4 !w-4 !text-[16px]">verified</mat-icon>Đã ký {{ formatDateTime(record.signedAt) }}</span>
+          </header>
+
+          <div class="space-y-5 p-5 lg:p-6">
+            <section class="grid grid-cols-2 gap-2 sm:grid-cols-3 2xl:grid-cols-6" aria-label="Chỉ số khám">
+              <div class="rounded-lg bg-slate-50 p-3"><p class="text-sm text-slate-500">Huyết áp</p><p class="mt-1 text-base font-bold text-slate-900">{{ vital(record.bloodPressure) }}</p></div>
+              <div class="rounded-lg bg-slate-50 p-3"><p class="text-sm text-slate-500">Mạch</p><p class="mt-1 text-base font-bold text-slate-900">{{ vital(record.heartRate, ' bpm') }}</p></div>
+              <div class="rounded-lg bg-slate-50 p-3"><p class="text-sm text-slate-500">Nhiệt độ</p><p class="mt-1 text-base font-bold text-slate-900">{{ vital(record.temperature, ' °C') }}</p></div>
+              <div class="rounded-lg bg-slate-50 p-3"><p class="text-sm text-slate-500">SpO₂</p><p class="mt-1 text-base font-bold text-slate-900">{{ vital(record.spO2, '%') }}</p></div>
+              <div class="rounded-lg bg-slate-50 p-3"><p class="text-sm text-slate-500">Cân nặng</p><p class="mt-1 text-base font-bold text-slate-900">{{ vital(record.weight, ' kg') }}</p></div>
+              <div class="rounded-lg bg-slate-50 p-3"><p class="text-sm text-slate-500">Chiều cao</p><p class="mt-1 text-base font-bold text-slate-900">{{ vital(record.height, ' cm') }}</p></div>
+            </section>
+
+            <section class="grid gap-4 lg:grid-cols-2">
+              <div class="space-y-4">
+                <div><h3 class="text-sm font-bold uppercase tracking-wide text-slate-500">Lý do khám</h3><p class="mt-1 whitespace-pre-wrap text-base text-slate-800">{{ record.reason || '—' }}</p></div>
+                <div><h3 class="text-sm font-bold uppercase tracking-wide text-slate-500">Ghi nhận khám</h3><p class="mt-1 whitespace-pre-wrap text-base leading-6 text-slate-800">{{ record.examinationNotes || '—' }}</p></div>
+                <div><h3 class="text-sm font-bold uppercase tracking-wide text-slate-500">Kết luận</h3><p class="mt-1 whitespace-pre-wrap text-base leading-6 text-slate-800">{{ record.conclusion || '—' }}</p></div>
+              </div>
+              <div class="space-y-4">
+                <div><h3 class="text-sm font-bold uppercase tracking-wide text-slate-500">Hướng điều trị</h3><p class="mt-1 whitespace-pre-wrap text-base leading-6 text-slate-800">{{ record.treatmentPlan || '—' }}</p></div>
+                <div><h3 class="text-sm font-bold uppercase tracking-wide text-slate-500">Dị ứng</h3><p class="mt-1 whitespace-pre-wrap text-base text-slate-800">{{ record.allergySummary || 'Chưa ghi nhận' }}</p></div>
+                @if (record.followUpDate || record.followUpNote) {
+                  <div class="rounded-lg border border-sky-200 bg-sky-50 p-3"><h3 class="text-sm font-bold text-sky-900">Tái khám</h3><p class="mt-1 text-base text-sky-900">{{ formatDate(record.followUpDate) }}<span>{{ record.followUpNote ? ' · ' + record.followUpNote : '' }}</span></p></div>
+                }
+              </div>
+            </section>
+
+            <button data-testid="prescription-open" type="button" class="erp-btn-secondary inline-flex min-h-11 items-center gap-2 !px-4"
+              (click)="openPrescription()" aria-haspopup="dialog">
+              <mat-icon class="!h-5 !w-5 !text-[20px] text-sky-700">medication</mat-icon>
+              <span class="font-semibold">Đơn thuốc</span>
+              <span class="text-sm text-slate-500">{{ record.prescriptionLines.length }} thuốc</span>
+            </button>
+
+            <dialog #prescriptionDialog data-testid="prescription-dialog" aria-labelledby="prescription-title"
+              class="m-auto max-h-[min(82dvh,720px)] w-[min(640px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-slate-200 bg-white p-0 text-slate-800 shadow-2xl backdrop:bg-slate-950/45"
+              (click)="closePrescriptionOnBackdrop($event)">
+              <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+                <div>
+                  <h3 id="prescription-title" class="flex items-center gap-2 text-lg font-bold text-slate-900">
+                    <mat-icon class="!h-5 !w-5 !text-[20px] text-sky-700">medication</mat-icon>Đơn thuốc
+                  </h3>
+                  <p class="mt-1 text-sm text-slate-500">{{ record.patientName }} · {{ formatDate(record.appointmentDate) }}</p>
+                </div>
+                <button data-testid="prescription-close" type="button" class="erp-btn-secondary !min-h-10 !px-3"
+                  (click)="closePrescription()" aria-label="Đóng đơn thuốc">
+                  <mat-icon>close</mat-icon>
+                </button>
+              </div>
+              <div class="max-h-[calc(min(82dvh,720px)-76px)] overflow-y-auto">
+                @if (record.prescriptionLines.length) {
+                  <div class="divide-y divide-slate-100">
+                    @for (line of record.prescriptionLines; track $index) {
+                      <div data-testid="prescription-line" class="grid gap-1 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-4">
+                        <div><p class="text-base font-semibold text-slate-900">{{ line.medicationName }}</p><p class="mt-0.5 text-sm text-slate-600">{{ line.dosage }}<span>{{ line.unit ? ' · ' + line.unit : '' }}</span></p>
+                          @if (line.instructions) { <p class="mt-1 text-sm text-slate-500">{{ line.instructions }}</p> }
+                        </div>
+                        <span class="text-sm font-semibold text-slate-700">SL {{ line.quantity }}</span>
+                      </div>
+                    }
+                  </div>
+                } @else if (record.prescription) {
+                  <p class="whitespace-pre-wrap px-5 py-4 text-base text-slate-800">{{ record.prescription }}</p>
+                } @else {
+                  <p class="px-5 py-8 text-center text-base text-slate-500">Không kê thuốc trong phiếu này.</p>
+                }
+              </div>
+            </dialog>
+          </div>
+        } @else {
+          <div class="grid min-h-80 place-items-center px-6 py-12 text-center">
+            <div><span class="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-sky-50 text-sky-700"><mat-icon class="!h-7 !w-7 !text-[27px]">clinical_notes</mat-icon></span><h2 class="mt-4 text-lg font-bold text-slate-800">Chọn một ca khám</h2><p class="mt-1 text-sm text-slate-500">Phiếu khám và đơn thuốc sẽ hiện tại đây.</p></div>
+          </div>
+        }
+      </article>
+    </section>
+  </main>
+</app-staff-workspace-shell>

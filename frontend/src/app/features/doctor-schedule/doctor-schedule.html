@@ -1,0 +1,82 @@
+<app-staff-workspace-shell moduleTitle="Lịch làm việc" pageTitle="Thời khóa biểu của tôi">
+  <button
+    workspace-actions
+    type="button"
+    class="erp-btn-secondary !h-9 !px-3"
+    aria-label="Tải lại thời khóa biểu"
+    [disabled]="loading()"
+    (click)="load()"
+  >
+    <mat-icon class="!h-4 !w-4 !text-[18px]">refresh</mat-icon>
+  </button>
+
+  @if (!loading() && !error() && doctorProfile(); as doctor) {
+    <section data-testid="doctor-profile" class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+      <img
+        data-testid="doctor-profile-avatar"
+        class="h-12 w-12 shrink-0 rounded-xl border border-slate-200 object-cover"
+        [src]="doctorAvatar(doctor.doctorAvatarUrl)"
+        [alt]="'Ảnh ' + doctor.doctorName"
+        (error)="handleAvatarError($event)"
+      />
+      <div class="min-w-0">
+        <p class="text-sm font-bold text-slate-900">{{ doctor.doctorName }}</p>
+        <p class="mt-0.5 text-sm text-slate-600">{{ doctor.specialty }} <span class="text-slate-300">·</span> Phòng {{ doctor.roomCode }}</p>
+      </div>
+    </section>
+  }
+
+  <section data-testid="doctor-timetable" class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+    @if (loading()) {
+      <div data-testid="doctor-timetable-loading" class="px-4 py-5 text-sm text-slate-500">Đang tải thời khóa biểu…</div>
+    } @else if (error()) {
+      <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-4" role="alert">
+        <p class="text-sm font-medium text-rose-700">{{ error() }}</p>
+        <button type="button" class="erp-btn-secondary !h-9 !px-3" (click)="load()">Thử lại</button>
+      </div>
+    } @else if (activeSchedules().length === 0) {
+      <div class="px-4 py-5 text-sm text-slate-500">Chưa có thời khóa biểu được phân công.</div>
+    } @else {
+      <div class="grid grid-cols-2 divide-x divide-y divide-slate-100 sm:grid-cols-4 xl:grid-cols-7 xl:divide-y-0">
+        @for (day of weeklySchedule(); track day.key) {
+          <article class="min-h-28 bg-white">
+            <h3 data-testid="doctor-day-header" class="border-b border-sky-700 bg-sky-600 px-3 py-2 text-center text-sm font-bold text-white sm:px-4">
+              <span class="block">{{ day.label }}</span>
+              <span class="mt-0.5 block text-xs font-medium text-sky-100">{{ day.dateLabel }}</span>
+              @if (day.isToday) {
+                <span data-testid="doctor-today-marker" class="mt-1 inline-flex rounded bg-white/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide">Hôm nay</span>
+              }
+            </h3>
+            @if (day.schedules.length === 0) {
+              <p class="px-3 py-5 text-center text-sm text-slate-400">Nghỉ</p>
+            } @else {
+              <div class="space-y-2 p-2">
+                @for (schedule of day.schedules; track schedule.id) {
+                  <div data-testid="doctor-shift-card" class="rounded-lg border border-slate-200 bg-white p-2 shadow-sm">
+                    <div class="flex min-w-0 items-center gap-2">
+                      <img
+                        class="h-8 w-8 shrink-0 rounded-full border border-slate-200 object-cover"
+                        [src]="doctorAvatar(schedule.doctorAvatarUrl)"
+                        [alt]="'Ảnh ' + schedule.doctorName"
+                        (error)="handleAvatarError($event)"
+                      />
+                      <div class="min-w-0">
+                        <p class="truncate text-sm font-bold leading-tight text-slate-900">{{ formatTime(schedule.dayStart) }} – {{ formatTime(schedule.dayEnd) }}</p>
+                        <p class="truncate text-xs font-medium text-slate-600">{{ schedule.serviceName }}</p>
+                      </div>
+                    </div>
+                    <p class="mt-2 truncate text-xs text-slate-600">{{ schedule.roomCode }} · {{ schedule.durationMinutes }} phút/lượt</p>
+                    <p class="mt-1 text-[11px] text-slate-500" [attr.aria-label]="'Thời gian áp dụng: ' + formatDateRange(schedule.startDate, schedule.endDate)">Áp dụng {{ formatDateRange(schedule.startDate, schedule.endDate) }}</p>
+                    @for (breakTime of schedule.breaks; track $index) {
+                      <p class="mt-1 text-xs text-slate-500">Nghỉ {{ formatTime(breakTime.startTime) }} – {{ formatTime(breakTime.endTime) }}</p>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </article>
+        }
+      </div>
+    }
+  </section>
+</app-staff-workspace-shell>
