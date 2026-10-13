@@ -143,6 +143,45 @@ describe('AppointmentDetail', () => {
     expect(fixture.nativeElement.textContent).toContain('Đã xác nhận khung giờ thay thế');
   });
 
+  it('lets the patient confirm a clinic-proposed replacement even when the original appointment is late', () => {
+    flushAppointment({
+      id: 'case-1', appointmentId: 'appointment-1', appointmentCode: 'CL-001', specialty: 'Nội tổng quát',
+      oldDoctorName: 'BS. An', oldDoctorId: 'doctor-1', oldAppointmentDate: '2026-08-10', oldStartTime: '08:30:00',
+      reason: 'Bác sĩ nghỉ', status: 'OPEN', newDoctorName: null, newDoctorId: null,
+      newAppointmentDate: null, newStartTime: null, createdAt: '2026-08-01T00:00:00Z', resolvedAt: null,
+    }, [{
+      specialty: 'Nội tổng quát', appointmentDate: '2026-08-11', startTime: '09:30:00', endTime: '10:00:00',
+      doctorName: 'BS. Bình', remainingCapacity: 1, doctorId: 'doctor-2', roomCode: 'NOI-01',
+    }], { ...appointment, appointmentDate: '2020-01-01', startTime: '08:00:00' });
+    (component as any).chooseReplacement((component as any).replacementSlots()[0]);
+    fixture.detectChanges();
+
+    const replacementButton = (Array.from(fixture.nativeElement.querySelectorAll('button')) as HTMLButtonElement[])
+      .find((button) => button.textContent.includes('Xác nhận khung giờ')) as HTMLButtonElement;
+    replacementButton.click();
+
+    const request = http.expectOne('/api/v1/patient/rescheduling/appointment-1/confirm');
+    expect(request.request.method).toBe('POST');
+    request.flush({
+      id: 'case-1', appointmentId: 'appointment-1', appointmentCode: 'CL-001', specialty: 'Nội tổng quát',
+      oldDoctorName: 'BS. An', oldDoctorId: 'doctor-1', oldAppointmentDate: '2026-08-10', oldStartTime: '08:30:00',
+      reason: 'Bác sĩ nghỉ', status: 'RESOLVED', newDoctorName: 'BS. Bình', newDoctorId: 'doctor-2',
+      newAppointmentDate: '2026-08-11', newStartTime: '09:30:00', createdAt: '2026-08-01T00:00:00Z',
+      resolvedAt: '2026-08-02T00:00:00Z',
+    });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Đã xác nhận khung giờ thay thế');
+  });
+
+  it('explains that a not-performed appointment needs follow-up without assuming why it was not performed', () => {
+    flushAppointment(null, [], { ...appointment, status: 'NOT_PERFORMED', statusLabel: 'Không thực hiện' });
+
+    expect(fixture.nativeElement.textContent).toContain('Lịch khám chưa được thực hiện');
+    expect(fixture.nativeElement.textContent).toContain('liên hệ quầy');
+    expect(fixture.nativeElement.textContent).not.toContain('Bạn đã rời trước khi khám');
+  });
+
   it('does not submit a second replacement confirmation while the first request is pending', () => {
     flushAppointment({
       id: 'case-1', appointmentId: 'appointment-1', appointmentCode: 'CL-001', specialty: 'Nội tổng quát',

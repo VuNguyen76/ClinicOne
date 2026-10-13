@@ -113,8 +113,24 @@
               <mat-icon class="!h-5 !w-5 !text-[22px] text-amber-600">warning_amber</mat-icon>
               <div>
                 <strong class="text-sm font-bold text-amber-900">Đã quá giờ check-in</strong>
-                <p class="mt-0.5 text-sm text-amber-800">Không thể hủy trực tuyến. Vui lòng đến quầy để được hỗ trợ.</p>
+                <p class="mt-0.5 text-sm text-amber-800">
+                  Không thể hủy trực tuyến. Vui lòng đến quầy để được hỗ trợ.
+                  @if (hasOpenReschedulingCase()) {
+                    Bạn vẫn có thể xác nhận khung giờ thay thế do phòng khám đề xuất bên dưới.
+                  }
+                </p>
               </div>
+            </div>
+          </div>
+        }
+        @if (current.status === 'NOT_PERFORMED') {
+          <div class="flex items-start gap-3 border-t border-amber-200 bg-amber-50/80 p-5 sm:px-8" role="status">
+            <mat-icon class="!h-5 !w-5 !text-[22px] text-amber-600">info</mat-icon>
+            <div>
+              <strong class="text-sm font-bold text-amber-900">Lịch khám chưa được thực hiện</strong>
+              <p class="mt-0.5 text-sm text-amber-800">
+                Vui lòng liên hệ quầy tiếp nhận để biết thông tin lịch khám và được hướng dẫn bước tiếp theo.
+              </p>
             </div>
           </div>
         }

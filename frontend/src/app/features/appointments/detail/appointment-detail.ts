@@ -181,8 +181,20 @@ export class AppointmentDetail implements OnInit {
     if (this.busy()) return;
     const appointment = this.appointment();
     const selected = this.selectedReplacement();
-    if (!appointment || !this.canCancel() || !this.hasOpenReschedulingCase() || !selected) {
-      if (!selected) this.error.set('Hãy chọn một khung giờ thay thế.');
+    if (!appointment) {
+      this.error.set('Không tìm thấy lịch khám cần xác nhận. Vui lòng tải lại trang.');
+      return;
+    }
+    if (appointment.status !== 'BOOKED') {
+      this.error.set('Lịch khám không còn ở trạng thái có thể xác nhận đổi. Vui lòng tải lại trang.');
+      return;
+    }
+    if (!this.hasOpenReschedulingCase()) {
+      this.error.set('Đề xuất đổi lịch này không còn hiệu lực. Vui lòng tải lại trang.');
+      return;
+    }
+    if (!selected) {
+      this.error.set('Hãy chọn một khung giờ thay thế.');
       return;
     }
     const requestId = ++this.mutationRequestId;
