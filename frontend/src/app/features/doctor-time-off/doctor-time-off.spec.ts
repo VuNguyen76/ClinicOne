@@ -30,6 +30,26 @@ describe('DoctorTimeOffManagement', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="time-off-row"]')).toBeNull();
   });
 
+  it('shows the three leave summary metrics in one compact segmented strip', () => {
+    http.expectOne('/api/v1/admin/doctors').flush([doctor()]);
+    http.expectOne('/api/v1/admin/doctor-time-off').flush([]);
+    fixture.detectChanges();
+
+    const summary = fixture.nativeElement.querySelector('[data-testid="doctor-time-off-summary"]');
+    expect(summary).not.toBeNull();
+    expect(summary.classList.contains('clinic-summary-strip')).toBe(true);
+    const stats = summary.querySelectorAll('[data-testid="doctor-time-off-stat"]');
+    expect(stats.length).toBe(3);
+    const statElements = Array.from(stats as NodeListOf<Element>);
+    expect(statElements.map((stat) => stat.getAttribute('aria-label'))).toEqual([
+      'Tổng số lịch nghỉ: 0',
+      'Bác sĩ xin nghỉ: 0',
+      'Lịch hẹn bị ảnh hưởng: 0',
+    ]);
+    expect(statElements.every((stat) => stat.classList.contains('clinic-summary-cell'))).toBe(true);
+    expect(summary.querySelectorAll('mat-icon').length).toBe(0);
+  });
+
   it('creates time off and shows the affected counts', () => {
     http.expectOne('/api/v1/admin/doctors').flush([doctor()]);
     http.expectOne('/api/v1/admin/doctor-time-off').flush([]);

@@ -131,11 +131,88 @@ describe('StaffDashboard', () => {
       .flush(doctorQueue([ticket('ticket-1', 'CALLED')]));
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('[data-testid="doctor-metrics"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="queue-metrics"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('[data-testid="doctor-current-patient"]')?.textContent)
       .toContain('Nguyễn Thanh Vũ');
     expect(fixture.nativeElement.querySelector('[data-testid="doctor-current-patient"]')?.textContent)
       .toContain('Đang được gọi');
+  });
+
+  it('keeps the timetable out of the queue dashboard and does not fetch it there', () => {
+    createDashboard('DOCTOR');
+    http.expectOne((request) => request.url === '/api/v1/doctor/queue').flush(doctorQueue([]));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[data-testid="doctor-timetable"]')).toBeNull();
+    http.expectNone('/api/v1/doctor/schedule-templates');
+  });
+
+  it('does not request or render a doctor timetable for an operations role', () => {
+    createDashboard('COORDINATOR');
+    http.expectOne('/api/v1/rooms').flush([room('NOI-01')]);
+    http.expectOne((request) => request.url.endsWith('/queue')).flush([]);
+
+    expect(fixture.nativeElement.querySelector('[data-testid="doctor-timetable"]')).toBeNull();
+    http.expectNone('/api/v1/doctor/schedule-templates');
+  });
+
+  it('uses the same four-cell queue summary for operations staff', () => {
+    createDashboard('COORDINATOR');
+    http.expectOne('/api/v1/rooms').flush([room('NOI-01')]);
+    http.expectOne((request) => request.url.endsWith('/queue')).flush([
+      ticket('waiting', 'WAITING'),
+      ticket('called', 'CALLED'),
+      ticket('in-service', 'IN_SERVICE'),
+      ticket('completed', 'COMPLETED'),
+    ]);
+    fixture.detectChanges();
+
+    const summary = fixture.nativeElement.querySelector('[data-testid="queue-metrics"]');
+    expect(summary).not.toBeNull();
+    expect(summary.children).toHaveLength(4);
+    expect(summary.textContent).toContain('1');
+    expect(fixture.nativeElement.querySelectorAll('[data-testid="waiting-count"]')).toHaveLength(1);
+  });
+
+  it('keeps the doctor queue focused and compact when there is no active patient', () => {
+    createDashboard('DOCTOR');
+    http.expectOne((candidate) => candidate.url === '/api/v1/doctor/queue')
+      .flush(doctorQueue([ticket('ticket-1', 'WAITING')]));
+    fixture.detectChanges();
+
+    const root = fixture.nativeElement as HTMLElement;
+    expect(root.querySelector('[data-testid="doctor-empty-current-patient"]')).toBeNull();
+    const emptyState = root.querySelector('[data-testid="queue-empty-state"]');
+    expect(emptyState).toBeNull();
+    expect(root.querySelector('[data-testid="call-next"]')).not.toBeNull();
+    expect(root.querySelector('[data-testid="queue-row"]')).not.toBeNull();
+  });
+
+  it('uses a short empty queue state instead of a large blank panel', () => {
+    createDashboard('DOCTOR');
+    http.expectOne((candidate) => candidate.url === '/api/v1/doctor/queue')
+      .flush(doctorQueue([]));
+    fixture.detectChanges();
+
+    const emptyState = fixture.nativeElement.querySelector('[data-testid="queue-empty-state"]') as HTMLElement;
+    expect(emptyState).not.toBeNull();
+    expect(emptyState.className).not.toContain('min-h-48');
+    expect(emptyState.textContent).toContain('Chưa có lượt khám');
+    expect(fixture.nativeElement.querySelector('[data-testid="doctor-empty-current-patient"]')).toBeNull();
+  });
+
+  it('keeps long doctor queues in a bounded, independently scrollable list', () => {
+    createDashboard('DOCTOR');
+    const tickets = Array.from({ length: 100 }, (_, index) => ticket(`ticket-${index}`, 'WAITING', index + 1));
+    http.expectOne((candidate) => candidate.url === '/api/v1/doctor/queue')
+      .flush(doctorQueue(tickets));
+    fixture.detectChanges();
+
+    const queueViewport = fixture.nativeElement.querySelector('[data-testid="doctor-queue-scroll"]') as HTMLElement;
+    expect(queueViewport).not.toBeNull();
+    expect(queueViewport.style.maxHeight).toBe('min(62vh, 680px)');
+    expect(queueViewport.classList.contains('overflow-y-auto')).toBe(true);
+    expect(fixture.nativeElement.querySelectorAll('[data-testid="queue-row"]')).toHaveLength(100);
   });
 
   it('starts an examination with one retry-safe request key', () => {
@@ -237,18 +314,32 @@ describe('StaffDashboard', () => {
   it('allows a doctor to call a specific waiting ticket from the table', () => {
     createDashboard('DOCTOR');
     http.expectOne((candidate) => candidate.url === '/api/v1/doctor/queue')
-      .flush(doctorQueue([ticket('ticket-1', 'WAITING')]));
+      .flush(doctorQueue([ticket('11111111-1111-4111-8111-111111111111', 'WAITING')]));
     fixture.detectChanges();
 
     const callBtn = fixture.nativeElement.querySelector('button[title="Gọi vào khám"]') as HTMLButtonElement;
     expect(callBtn).not.toBeNull();
     callBtn.click();
 
-    const request = http.expectOne('/api/v1/queue/ticket-1/call');
-    request.flush({ ...ticket('ticket-1', 'CALLED'), statusLabel: 'Đã gọi' });
+    const ticketId = '11111111-1111-4111-8111-111111111111';
+    const request = http.expectOne(`/api/v1/queue/${ticketId}/call`);
+    request.flush({ ...ticket(ticketId, 'CALLED'), statusLabel: 'Đã gọi' });
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Đã gọi');
+  });
+
+  it('does not send a call request for a malformed ticket id', () => {
+    createDashboard('DOCTOR');
+    http.expectOne((candidate) => candidate.url === '/api/v1/doctor/queue')
+      .flush(doctorQueue([ticket('ticket-1', 'WAITING')]));
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('button[title="Gọi vào khám"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    http.expectNone('/api/v1/queue/ticket-1/call');
+    expect(fixture.nativeElement.textContent).toContain('Mã lượt khám không hợp lệ. Vui lòng tải lại hàng đợi.');
   });
 
   it('allows a coordinator to mark a waiting ticket as leaving before exam', () => {
@@ -351,3 +442,4 @@ function ticket(id: string, status: string, queueNumber = 1, priority = false) {
     priority,
   };
 }
+
