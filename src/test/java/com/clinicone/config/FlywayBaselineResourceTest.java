@@ -45,7 +45,8 @@ class FlywayBaselineResourceTest {
     @Test
     void notificationTypeMigrationAllowsEveryPersistedNotificationType() throws IOException {
         String sql;
-        try (InputStream input = getClass().getResourceAsStream("/db/migration/V2__expand_notification_types.sql")) {
+        try (InputStream input = getClass().getResourceAsStream(
+                "/db/migration/V37__add_queue_ticket_called_notification.sql")) {
             assertThat(input).as("notification type migration resource").isNotNull();
             sql = new String(input.readAllBytes(), StandardCharsets.UTF_8);
         }

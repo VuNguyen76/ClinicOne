@@ -19,13 +19,18 @@ import com.clinicone.schedule.GeneratedSlotStatus;
 import com.clinicone.schedule.WorkScheduleTemplate;
 import com.clinicone.schedule.WorkScheduleTemplateRepository;
 import com.clinicone.rescheduling.DoctorTimeOffRepository;
+import com.clinicone.notification.PatientNotificationService;
 import com.clinicone.validation.IdempotencyKeys;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -46,6 +51,7 @@ import java.util.stream.Collectors;
 @Service
 @Transactional(readOnly = true)
 public class QueueService {
+    private static final Logger log = LoggerFactory.getLogger(QueueService.class);
     private static final ZoneId CLINIC_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     private static final int DEFAULT_SLOT_DURATION_MINUTES = 60;
     private static final Comparator<QueueTicket> NEXT_WAITING_ORDER = Comparator
@@ -71,6 +77,7 @@ public class QueueService {
     private final GeneratedClinicSlotRepository generatedSlotRepository;
     private final WorkScheduleTemplateRepository workScheduleTemplateRepository;
     private final DoctorTimeOffRepository doctorTimeOffRepository;
+    private final PatientNotificationService patientNotificationService;
     private final Clock clock;
 
     public QueueService(ClinicRoomRepository roomRepository, QueueTicketRepository ticketRepository,
@@ -124,13 +131,25 @@ public class QueueService {
                 generatedSlotRepository, workScheduleTemplateRepository, clock, null);
     }
 
-    @Autowired
     public QueueService(ClinicRoomRepository roomRepository, QueueTicketRepository ticketRepository,
                         AppointmentRepository appointmentRepository, DoctorProfileRepository doctorProfileRepository,
                         ExaminationSessionRepository examinationSessionRepository, BusinessLogService businessLogService,
                         DoctorScheduleRepository doctorScheduleRepository, GeneratedClinicSlotRepository generatedSlotRepository,
                         WorkScheduleTemplateRepository workScheduleTemplateRepository, Clock clock,
                         DoctorTimeOffRepository doctorTimeOffRepository) {
+        this(roomRepository, ticketRepository, appointmentRepository, doctorProfileRepository,
+                examinationSessionRepository, businessLogService, doctorScheduleRepository, generatedSlotRepository,
+                workScheduleTemplateRepository, clock, doctorTimeOffRepository, null);
+    }
+
+    @Autowired
+    public QueueService(ClinicRoomRepository roomRepository, QueueTicketRepository ticketRepository,
+                        AppointmentRepository appointmentRepository, DoctorProfileRepository doctorProfileRepository,
+                        ExaminationSessionRepository examinationSessionRepository, BusinessLogService businessLogService,
+                        DoctorScheduleRepository doctorScheduleRepository, GeneratedClinicSlotRepository generatedSlotRepository,
+                        WorkScheduleTemplateRepository workScheduleTemplateRepository, Clock clock,
+                        DoctorTimeOffRepository doctorTimeOffRepository,
+                        PatientNotificationService patientNotificationService) {
         this.roomRepository = roomRepository;
         this.ticketRepository = ticketRepository;
         this.appointmentRepository = appointmentRepository;
@@ -142,6 +161,7 @@ public class QueueService {
         this.workScheduleTemplateRepository = workScheduleTemplateRepository;
         this.clock = clock;
         this.doctorTimeOffRepository = doctorTimeOffRepository;
+        this.patientNotificationService = patientNotificationService;
     }
 
     @Transactional
@@ -427,7 +447,36 @@ public class QueueService {
         QueueTicketResponse response = QueueTicketResponse.from(ticketRepository.save(ticket));
         recordTransition(UUID.randomUUID(), "QUEUE_TICKET", ticket.getId(), previousStatus,
                 ticket.getStatus().name(), "CALL_PATIENT", staffId);
+        notifyPatientAfterCallCommits(ticket);
         return response;
+    }
+
+    private void notifyPatientAfterCallCommits(QueueTicket ticket) {
+        if (patientNotificationService == null || ticket.getAppointment().getPatient() == null) return;
+        UUID patientId = ticket.getAppointment().getPatient().getId();
+        UUID ticketId = ticket.getId();
+        int queueNumber = ticket.getQueueNumber();
+        String roomName = ticket.getRoom().getName();
+        String doctorName = ticket.getAppointment().getDoctorName();
+        int callCount = ticket.getCallCount();
+        Runnable notify = () -> {
+            try {
+                patientNotificationService.notifyQueueTicketCalled(patientId, ticketId, queueNumber,
+                        roomName, doctorName, callCount);
+            } catch (RuntimeException exception) {
+                log.warn("Could not create in-app queue call notification for ticket {}", ticketId, exception);
+            }
+        };
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    notify.run();
+                }
+            });
+        } else {
+            notify.run();
+        }
     }
 
     @Transactional

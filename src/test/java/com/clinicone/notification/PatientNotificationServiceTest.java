@@ -85,6 +85,29 @@ class PatientNotificationServiceTest {
     }
 
     @Test
+    void storesQueueCallInAppWithoutSendingSms() {
+        PatientNotificationService notificationService = serviceWithOutbox();
+        UUID patientId = UUID.randomUUID();
+        UUID ticketId = UUID.randomUUID();
+        when(repository.findByEventKey("QUEUE_TICKET_CALLED:" + ticketId + ":2"))
+                .thenReturn(Optional.empty());
+        when(repository.save(any(PatientNotification.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        notificationService.notifyQueueTicketCalled(patientId, ticketId, 5,
+                "Phòng Nội tổng quát 01", "BS. Nguyễn An", 2);
+
+        var captor = org.mockito.ArgumentCaptor.forClass(PatientNotification.class);
+        verify(repository).save(captor.capture());
+        org.assertj.core.api.Assertions.assertThat(captor.getValue().getType())
+                .isEqualTo(PatientNotificationType.QUEUE_TICKET_CALLED);
+        org.assertj.core.api.Assertions.assertThat(captor.getValue().getMessage())
+                .contains("05", "BS. Nguyễn An", "Phòng Nội tổng quát 01");
+        org.assertj.core.api.Assertions.assertThat(captor.getValue().getTargetUrl()).isEqualTo("/home");
+        verify(smsDeliveryService, never()).enqueue(any(), any(), any(), any());
+    }
+
+    @Test
     void rechecksOutboxForExistingNotificationEvent() {
         PatientNotificationService smsService = serviceWithOutbox();
         UUID patientId = UUID.randomUUID();

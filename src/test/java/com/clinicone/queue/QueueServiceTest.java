@@ -22,6 +22,7 @@ import com.clinicone.schedule.GeneratedSlotStatus;
 import com.clinicone.schedule.WorkScheduleTemplate;
 import com.clinicone.schedule.WorkScheduleTemplateRepository;
 import com.clinicone.rescheduling.DoctorTimeOffRepository;
+import com.clinicone.notification.PatientNotificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -51,6 +52,7 @@ class QueueServiceTest {
     private AppointmentRepository appointmentRepository;
     private DoctorProfileRepository doctorProfileRepository;
     private ExaminationSessionRepository examinationSessionRepository;
+    private PatientNotificationService patientNotificationService;
     private QueueService service;
     private ClinicRoom room;
     private Appointment appointment;
@@ -64,9 +66,11 @@ class QueueServiceTest {
         appointmentRepository = mock(AppointmentRepository.class);
         doctorProfileRepository = mock(DoctorProfileRepository.class);
         examinationSessionRepository = mock(ExaminationSessionRepository.class);
+        patientNotificationService = mock(PatientNotificationService.class);
         service = new QueueService(roomRepository, ticketRepository, appointmentRepository,
-                doctorProfileRepository, examinationSessionRepository,
-                Clock.fixed(Instant.parse("2026-08-06T02:00:00Z"), ZoneId.of("Asia/Ho_Chi_Minh")));
+                doctorProfileRepository, examinationSessionRepository, null, null, null, null,
+                Clock.fixed(Instant.parse("2026-08-06T02:00:00Z"), ZoneId.of("Asia/Ho_Chi_Minh")),
+                null, patientNotificationService);
 
         room = ClinicRoom.create("NOI-01", "Phòng Nội tổng quát 01", "Nội tổng quát");
         appointment = appointment("Nội tổng quát", TODAY);
@@ -378,6 +382,8 @@ class QueueServiceTest {
         assertEquals(first.getId(), response.id());
         assertEquals(QueueTicketStatus.CALLED.name(), response.status());
         verify(ticketRepository).save(first);
+        verify(patientNotificationService).notifyQueueTicketCalled(first.getAppointment().getPatient().getId(),
+                first.getId(), first.getQueueNumber(), room.getName(), first.getAppointment().getDoctorName(), 1);
     }
 
     @Test
