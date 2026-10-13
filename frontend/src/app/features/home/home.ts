@@ -61,11 +61,9 @@ export class Home {
 
   readonly services: Service[] = [
     { icon: 'person_search', title: 'Đặt khám theo bác sĩ', description: 'Đội ngũ bác sĩ chuyên khoa giàu kinh nghiệm.', route: '/appointments/new' },
-    { icon: 'medical_services', title: 'Đặt khám theo chuyên khoa', description: 'Đa dạng 7 chuyên khoa lâm sàng.', route: '/appointments/new' },
+    { icon: 'medical_services', title: 'Đặt khám theo chuyên khoa', description: 'Lựa chọn chuyên khoa phù hợp với nhu cầu khám.', route: '/appointments/new' },
     { icon: 'calendar_month', title: 'Đặt khám theo ngày', description: 'Tra cứu khung giờ trống linh hoạt.', route: '/appointments/new' },
-    { icon: 'videocam', title: 'Tư vấn khám online', description: 'Kết nối bác sĩ từ xa tiện lợi.', route: '/support' },
-    { icon: 'home_health', title: 'Xét nghiệm tại nhà', description: 'Lấy mẫu xét nghiệm tận nơi.', route: '/login' },
-    { icon: 'vaccines', title: 'Tiêm chủng – vắc-xin', description: 'Tiêm chủng và tầm soát định kỳ.', route: '/login' },
+    { icon: 'receipt_long', title: 'Tra cứu PTT & đơn thuốc', description: 'Tra cứu phiếu khám và đơn thuốc bằng số điện thoại.', route: '/invoices' },
   ];
 
   readonly commonIssues = [

@@ -61,7 +61,7 @@ class DoctorTimeOffServiceTest {
     void locksOpenGeneratedSlotsReleasesHoldsAndCreatesRescheduleCases() {
         DoctorProfile profile = mock(DoctorProfile.class);
         StaffAccount staff = mock(StaffAccount.class);
-        when(doctorRepository.findByStaffAccount_Id(DOCTOR_ID)).thenReturn(Optional.of(profile));
+        when(doctorRepository.findByStaffAccount_IdForUpdate(DOCTOR_ID)).thenReturn(Optional.of(profile));
         when(profile.isActive()).thenReturn(true);
         when(profile.getId()).thenReturn(PROFILE_ID);
         when(profile.getStaffAccount()).thenReturn(staff);
@@ -94,6 +94,9 @@ class DoctorTimeOffServiceTest {
         verify(free).cancel();
         verify(booked, never()).cancel();
         verify(slotRepository).saveAll(List.of(free));
+        org.mockito.InOrder lockBeforeValidation = org.mockito.Mockito.inOrder(doctorRepository, timeOffRepository);
+        lockBeforeValidation.verify(doctorRepository).findByStaffAccount_IdForUpdate(DOCTOR_ID);
+        lockBeforeValidation.verify(timeOffRepository).existsOverlapping(PROFILE_ID, FROM, TO);
     }
 
     @Test
@@ -108,7 +111,7 @@ class DoctorTimeOffServiceTest {
     @Test
     void rejectsOverlappingTimeOff() {
         DoctorProfile profile = mock(DoctorProfile.class);
-        when(doctorRepository.findByStaffAccount_Id(DOCTOR_ID)).thenReturn(Optional.of(profile));
+        when(doctorRepository.findByStaffAccount_IdForUpdate(DOCTOR_ID)).thenReturn(Optional.of(profile));
         when(profile.isActive()).thenReturn(true);
         when(profile.getId()).thenReturn(PROFILE_ID);
         when(timeOffRepository.existsOverlapping(PROFILE_ID, FROM, TO)).thenReturn(true);

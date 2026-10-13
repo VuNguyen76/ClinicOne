@@ -55,6 +55,8 @@ public class SecurityConfig {
                                 "/api/v1/addresses/**",
                                 "/api/v1/staff/auth/login",
                                 "/actuator/health",
+                                "/actuator/health/liveness",
+                                "/actuator/health/readiness",
                                 "/error"
                         ).permitAll()
                         .anyRequest().authenticated()

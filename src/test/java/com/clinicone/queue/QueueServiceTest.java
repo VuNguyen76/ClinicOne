@@ -21,6 +21,7 @@ import com.clinicone.schedule.GeneratedClinicSlotRepository;
 import com.clinicone.schedule.GeneratedSlotStatus;
 import com.clinicone.schedule.WorkScheduleTemplate;
 import com.clinicone.schedule.WorkScheduleTemplateRepository;
+import com.clinicone.rescheduling.DoctorTimeOffRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -58,6 +59,8 @@ class QueueServiceTest {
     void setUp() {
         roomRepository = mock(ClinicRoomRepository.class);
         ticketRepository = mock(QueueTicketRepository.class);
+        when(ticketRepository.findByIdForUpdate(any())).thenAnswer(invocation ->
+                ticketRepository.findById(invocation.getArgument(0)));
         appointmentRepository = mock(AppointmentRepository.class);
         doctorProfileRepository = mock(DoctorProfileRepository.class);
         examinationSessionRepository = mock(ExaminationSessionRepository.class);
@@ -104,6 +107,21 @@ class QueueServiceTest {
         assertEquals("PASSWORD_CHANGE_REQUIRED", exception.getCode());
         assertEquals(AppointmentStatus.BOOKED, appointment.getStatus());
         verify(ticketRepository, never()).save(any(QueueTicket.class));
+    }
+
+    @Test
+    void queueMutationLoadsTicketUnderWriteLock() {
+        UUID ticketId = UUID.randomUUID();
+        QueueTicket ticket = QueueTicket.create(appointment, room, TODAY, 5);
+        setId(ticket, ticketId);
+        when(ticketRepository.findByIdForUpdate(ticketId)).thenReturn(Optional.of(ticket));
+        when(ticketRepository.save(any(QueueTicket.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        clearInvocations(ticketRepository);
+
+        service.adjust(ticketId, new QueueAdjustmentRequest(QueueAdjustmentAction.SET_PRIORITY,
+                null, null, null, "Priority set by clinic coordinator"), "reception-1");
+
+        verify(ticketRepository).findByIdForUpdate(ticketId);
     }
 
     @Test
@@ -869,6 +887,46 @@ class QueueServiceTest {
         order.verify(doctorProfileRepository).findByStaffAccount_IdForUpdate(targetDoctorId);
         order.verify(appointmentRepository).countByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatusIn(
                 eq(targetDoctorId), eq(TODAY), eq(LocalTime.of(10, 0)), any());
+    }
+
+    @Test
+    void cannotMoveWaitingTicketToDoctorOnLeave() {
+        UUID targetDoctorId = UUID.randomUUID();
+        ClinicRoom targetRoom = ClinicRoom.create("NOI-03", "Phong Noi 03", "Noi tong quat");
+        StaffAccount targetStaff = StaffAccount.create("doctor-time-off", "hash", "BS Time Off", StaffRole.DOCTOR);
+        setId(targetStaff, targetDoctorId);
+        DoctorProfile targetProfile = DoctorProfile.create(targetStaff, "Noi tong quat", targetRoom);
+        DoctorScheduleRepository scheduleRepository = mock(DoctorScheduleRepository.class);
+        DoctorTimeOffRepository timeOffRepository = mock(DoctorTimeOffRepository.class);
+        var schedule = DoctorSchedule.create(targetProfile, TODAY.getDayOfWeek(), LocalTime.of(8, 0),
+                LocalTime.of(17, 0), 30);
+        when(scheduleRepository.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(
+                targetProfile.getId(), TODAY.getDayOfWeek())).thenReturn(List.of(schedule));
+        when(doctorProfileRepository.findByStaffAccount_Id(targetDoctorId)).thenReturn(Optional.of(targetProfile));
+        when(doctorProfileRepository.findByStaffAccount_IdForUpdate(targetDoctorId))
+                .thenReturn(Optional.of(targetProfile));
+        when(timeOffRepository.existsOverlapping(targetProfile.getId(), TODAY, TODAY)).thenReturn(true);
+        PatientAccount patient = new PatientAccount("0912345678", "hash", "A", AccountStatus.ACTIVE, false);
+        Appointment appt = Appointment.create(patient, UUID.randomUUID(), "CL-TIME-OFF", "Noi tong quat", "BS A",
+                TODAY, LocalTime.of(9, 0), "r");
+        QueueTicket ticket = QueueTicket.create(appt, room, TODAY, 1);
+        setId(ticket, UUID.randomUUID());
+        when(ticketRepository.findById(ticket.getId())).thenReturn(Optional.of(ticket));
+        when(doctorProfileRepository.findBySpecialtyIgnoreCaseAndActiveTrue("Noi tong quat"))
+                .thenReturn(List.of(targetProfile));
+        when(roomRepository.findByCodeAndActiveTrueForUpdate(targetRoom.getCode()))
+                .thenReturn(Optional.of(targetRoom));
+        QueueService timeOffAwareService = new QueueService(roomRepository, ticketRepository, appointmentRepository,
+                doctorProfileRepository, examinationSessionRepository, null, scheduleRepository, null, null,
+                Clock.fixed(Instant.parse("2026-08-06T02:00:00Z"), ZoneId.of("Asia/Ho_Chi_Minh")),
+                timeOffRepository);
+
+        AuthException exception = assertThrows(AuthException.class, () -> timeOffAwareService.adjust(ticket.getId(),
+                new QueueAdjustmentRequest(QueueAdjustmentAction.MOVE, targetDoctorId, targetRoom.getCode(),
+                        "Noi tong quat", "Chuyen nguoi benh theo phan cong", "10:00"), "reception-1"));
+
+        assertEquals("DOCTOR_ON_LEAVE", exception.getCode());
+        verify(ticketRepository, never()).save(any(QueueTicket.class));
     }
 
     @Test

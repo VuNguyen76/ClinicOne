@@ -9,6 +9,8 @@ import com.clinicone.doctor.DoctorProfileRepository;
 import com.clinicone.doctor.DoctorSchedule;
 import com.clinicone.doctor.DoctorScheduleRepository;
 import com.clinicone.queue.ClinicRoom;
+import com.clinicone.rescheduling.DoctorTimeOffRepository;
+import com.clinicone.rescheduling.DoctorTimeOffWindow;
 import org.junit.jupiter.api.Test;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -273,6 +275,73 @@ class AppointmentAvailabilityServiceTest {
                 "Khám Tổng Quát", "Bác sĩ An", doctorId, monday, LocalTime.of(8, 30), null, serviceId));
 
         assertEquals("APPOINTMENT_SLOT_INVALID", exception.getCode());
+    }
+
+    @Test
+    void hidesConfiguredDoctorSlotsDuringDoctorTimeOff() {
+        DoctorProfileRepository profileRepository = mock(DoctorProfileRepository.class);
+        DoctorScheduleRepository scheduleRepository = mock(DoctorScheduleRepository.class);
+        DoctorTimeOffRepository timeOffRepository = mock(DoctorTimeOffRepository.class);
+        DoctorProfile profile = mock(DoctorProfile.class);
+        StaffAccount staff = mock(StaffAccount.class);
+        ClinicRoom room = mock(ClinicRoom.class);
+        DoctorSchedule schedule = mock(DoctorSchedule.class);
+        LocalDate monday = LocalDate.of(2026, 8, 10);
+        UUID doctorId = UUID.randomUUID();
+        String specialty = createSpecialtyCatalog().list(null).stream()
+                .filter(item -> item.code().equals("NOI")).findFirst().orElseThrow().name();
+        when(scheduleRepository.findActiveBySpecialtyIgnoreCase(specialty))
+                .thenReturn(List.of(schedule));
+        when(schedule.getDoctorProfile()).thenReturn(profile);
+        when(schedule.getDayOfWeek()).thenReturn(DayOfWeek.MONDAY);
+        when(schedule.getStartTime()).thenReturn(LocalTime.of(8, 30));
+        when(schedule.getEndTime()).thenReturn(LocalTime.of(9, 30));
+        when(schedule.getSlotDurationMinutes()).thenReturn(30);
+        when(profile.getStaffAccount()).thenReturn(staff);
+        when(profile.getSpecialty()).thenReturn(specialty);
+        when(profile.getRoom()).thenReturn(room);
+        when(staff.getId()).thenReturn(doctorId);
+        when(staff.getFullName()).thenReturn("BÃ¡c sÄ© An");
+        when(room.getCode()).thenReturn("TQ-01");
+        when(timeOffRepository.findActiveWindows(List.of(doctorId), monday, monday))
+                .thenReturn(List.of(new DoctorTimeOffWindow(doctorId, monday, monday)));
+        when(appointmentRepository.countBookedByDoctorsAndDateRangeAndStatusIn(
+                List.of(doctorId), monday, monday,
+                List.of(AppointmentStatus.BOOKED, AppointmentStatus.CHECKED_IN))).thenReturn(List.of());
+        AppointmentAvailabilityService configuredService = new AppointmentAvailabilityService(
+                appointmentRepository, createSpecialtyCatalog(), profileRepository, scheduleRepository, null,
+                Clock.fixed(Instant.parse("2026-08-10T00:00:00Z"), ZoneOffset.UTC), null, null, null,
+                timeOffRepository);
+
+        assertEquals(List.of(), configuredService.find(specialty, monday, monday));
+    }
+
+    @Test
+    void rejectsBookingOnDoctorTimeOffBeforeCheckingSchedule() {
+        DoctorProfileRepository profileRepository = mock(DoctorProfileRepository.class);
+        DoctorScheduleRepository scheduleRepository = mock(DoctorScheduleRepository.class);
+        DoctorTimeOffRepository timeOffRepository = mock(DoctorTimeOffRepository.class);
+        DoctorProfile profile = mock(DoctorProfile.class);
+        LocalDate monday = LocalDate.of(2026, 8, 10);
+        UUID doctorId = UUID.randomUUID();
+        UUID profileId = UUID.randomUUID();
+        String specialty = createSpecialtyCatalog().list(null).stream()
+                .filter(item -> item.code().equals("NOI")).findFirst().orElseThrow().name();
+        when(profileRepository.findByStaffAccount_IdForUpdate(doctorId)).thenReturn(Optional.of(profile));
+        when(profile.isActive()).thenReturn(true);
+        when(profile.getId()).thenReturn(profileId);
+        when(timeOffRepository.existsOverlapping(profileId, monday, monday)).thenReturn(true);
+        AppointmentAvailabilityService configuredService = new AppointmentAvailabilityService(
+                appointmentRepository, createSpecialtyCatalog(), profileRepository, scheduleRepository, null,
+                Clock.fixed(Instant.parse("2026-08-10T00:00:00Z"), ZoneOffset.UTC), null, null, null,
+                timeOffRepository);
+
+        AuthException exception = assertThrows(AuthException.class, () -> configuredService.ensureBookable(
+                specialty, "BÃ¡c sÄ© An", doctorId, monday, LocalTime.of(8, 30)));
+
+        assertEquals("DOCTOR_ON_LEAVE", exception.getCode());
+        verify(scheduleRepository, org.mockito.Mockito.never())
+                .findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(profileId, DayOfWeek.MONDAY);
     }
 
     private WorkScheduleTemplate exceptionTemplate(DoctorProfile profile, LocalDate from, LocalDate to) {

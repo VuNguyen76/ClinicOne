@@ -7,6 +7,8 @@ import com.clinicone.doctor.DoctorProfile;
 import com.clinicone.doctor.DoctorProfileRepository;
 import com.clinicone.doctor.DoctorSchedule;
 import com.clinicone.doctor.DoctorScheduleRepository;
+import com.clinicone.rescheduling.DoctorTimeOffRepository;
+import com.clinicone.rescheduling.DoctorTimeOffWindow;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -55,6 +57,7 @@ public class AppointmentAvailabilityService {
     private final ClinicServiceRepository clinicServiceRepository;
     private final GeneratedClinicSlotRepository generatedSlotRepository;
     private final WorkScheduleTemplateRepository templateRepository;
+    private final DoctorTimeOffRepository doctorTimeOffRepository;
 
     public AppointmentAvailabilityService(AppointmentRepository appointmentRepository,
                                           SpecialtyCatalogService specialtyCatalog) {
@@ -102,7 +105,6 @@ public class AppointmentAvailabilityService {
                 holdRepository, clock, clinicServiceRepository, generatedSlotRepository, null);
     }
 
-    @Autowired
     public AppointmentAvailabilityService(AppointmentRepository appointmentRepository,
                                           SpecialtyCatalogService specialtyCatalog,
                                           DoctorProfileRepository doctorProfileRepository,
@@ -112,6 +114,21 @@ public class AppointmentAvailabilityService {
                                           ClinicServiceRepository clinicServiceRepository,
                                           GeneratedClinicSlotRepository generatedSlotRepository,
                                           WorkScheduleTemplateRepository templateRepository) {
+        this(appointmentRepository, specialtyCatalog, doctorProfileRepository, doctorScheduleRepository,
+                holdRepository, clock, clinicServiceRepository, generatedSlotRepository, templateRepository, null);
+    }
+
+    @Autowired
+    public AppointmentAvailabilityService(AppointmentRepository appointmentRepository,
+                                          SpecialtyCatalogService specialtyCatalog,
+                                          DoctorProfileRepository doctorProfileRepository,
+                                          DoctorScheduleRepository doctorScheduleRepository,
+                                          AppointmentHoldRepository holdRepository,
+                                          Clock clock,
+                                          ClinicServiceRepository clinicServiceRepository,
+                                          GeneratedClinicSlotRepository generatedSlotRepository,
+                                          WorkScheduleTemplateRepository templateRepository,
+                                          DoctorTimeOffRepository doctorTimeOffRepository) {
         this.appointmentRepository = appointmentRepository;
         this.specialtyCatalog = specialtyCatalog;
         this.doctorProfileRepository = doctorProfileRepository;
@@ -121,6 +138,7 @@ public class AppointmentAvailabilityService {
         this.clinicServiceRepository = clinicServiceRepository;
         this.generatedSlotRepository = generatedSlotRepository;
         this.templateRepository = templateRepository;
+        this.doctorTimeOffRepository = doctorTimeOffRepository;
     }
 
     @Transactional(readOnly = true)
@@ -211,6 +229,7 @@ public class AppointmentAvailabilityService {
                 .filter(DoctorProfile::isActive)
                 .orElseThrow(() -> new AuthException(HttpStatus.CONFLICT, "DOCTOR_NOT_AVAILABLE",
                         "Bác sĩ không còn lịch làm phù hợp."));
+        ensureDoctorNotOnLeave(profile.getId(), appointmentDate);
         if (!profile.getSpecialty().equalsIgnoreCase(specialty)
                 || (doctorName != null && !profile.getStaffAccount().getFullName().equalsIgnoreCase(doctorName))) {
             throw new AuthException(HttpStatus.CONFLICT, "DOCTOR_SLOT_INVALID",
@@ -255,6 +274,7 @@ public class AppointmentAvailabilityService {
                     .filter(DoctorProfile::isActive)
                     .orElseThrow(() -> new AuthException(HttpStatus.CONFLICT, "DOCTOR_NOT_AVAILABLE",
                             "Bác sĩ không còn lịch làm phù hợp."));
+            ensureDoctorNotOnLeave(lockedProfile.getId(), appointmentDate);
         }
         if (serviceId != null && generatedSlotRepository != null && doctorId != null) {
             List<GeneratedClinicSlot> generatedSlots = generatedSlotRepository
@@ -370,6 +390,7 @@ public class AppointmentAvailabilityService {
         if (doctorStaffIds.isEmpty()) {
             return List.of();
         }
+        Set<DoctorDateKey> doctorTimeOffDates = doctorTimeOffDates(doctorStaffIds, from, to);
         Map<DoctorSlotKey, Long> bookedBySlot = countDoctorBookings(doctorStaffIds, from, to);
         if (holdRepository != null) {
             holdRepository.findActiveByDoctorsAndDateRange(doctorStaffIds, from, to, Instant.now(clock))
@@ -385,6 +406,8 @@ public class AppointmentAvailabilityService {
                         .flatMap(schedule -> slotsFor(schedule, date, bookedBySlot,
                                 serviceDuration).stream()))
                 .filter(slot -> isFutureSlot(slot.appointmentDate(), slot.startTime()))
+                .filter(slot -> !doctorTimeOffDates.contains(
+                        new DoctorDateKey(slot.doctorId(), slot.appointmentDate())))
                 .filter(slot -> slot.remainingCapacity() > 0)
                 .toList();
     }
@@ -393,6 +416,7 @@ public class AppointmentAvailabilityService {
                                                       LocalDate from, LocalDate to) {
         List<UUID> doctorStaffIds = generatedSlots.stream().map(GeneratedClinicSlot::getDoctorStaffId)
                 .distinct().toList();
+        Set<DoctorDateKey> doctorTimeOffDates = doctorTimeOffDates(doctorStaffIds, from, to);
         Map<DoctorSlotKey, Long> bookedBySlot = countDoctorBookings(doctorStaffIds, from, to);
         if (holdRepository != null) {
             holdRepository.findActiveByDoctorsAndDateRange(doctorStaffIds, from, to, Instant.now(clock))
@@ -407,8 +431,33 @@ public class AppointmentAvailabilityService {
                                 slot.getAppointmentDate(), slot.getStartTime()), 0L) == 0 ? 1 : 0,
                         slot.getDoctorStaffId(), slot.getRoomCode()))
                 .filter(slot -> isFutureSlot(slot.appointmentDate(), slot.startTime()))
+                .filter(slot -> !doctorTimeOffDates.contains(
+                        new DoctorDateKey(slot.doctorId(), slot.appointmentDate())))
                 .filter(slot -> slot.remainingCapacity() > 0)
                 .toList();
+    }
+
+    private Set<DoctorDateKey> doctorTimeOffDates(List<UUID> doctorStaffIds, LocalDate from, LocalDate to) {
+        if (doctorTimeOffRepository == null || doctorStaffIds.isEmpty()) {
+            return Set.of();
+        }
+        Set<DoctorDateKey> unavailableDates = new HashSet<>();
+        for (DoctorTimeOffWindow window : doctorTimeOffRepository.findActiveWindows(doctorStaffIds, from, to)) {
+            LocalDate start = window.startDate().isAfter(from) ? window.startDate() : from;
+            LocalDate end = window.endDate().isBefore(to) ? window.endDate() : to;
+            start.datesUntil(end.plusDays(1))
+                    .map(date -> new DoctorDateKey(window.doctorId(), date))
+                    .forEach(unavailableDates::add);
+        }
+        return unavailableDates;
+    }
+
+    private void ensureDoctorNotOnLeave(UUID doctorProfileId, LocalDate appointmentDate) {
+        if (doctorTimeOffRepository != null
+                && doctorTimeOffRepository.existsOverlapping(doctorProfileId, appointmentDate, appointmentDate)) {
+            throw new AuthException(HttpStatus.CONFLICT, "DOCTOR_ON_LEAVE",
+                    "Bác sĩ đang nghỉ trong ngày đã chọn.");
+        }
     }
 
     private Set<DoctorDateKey> governedDates(List<GeneratedClinicSlot> generatedSlots,

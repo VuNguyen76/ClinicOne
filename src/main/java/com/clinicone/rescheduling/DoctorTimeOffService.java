@@ -41,7 +41,9 @@ public class DoctorTimeOffService {
     @Transactional
     public DoctorTimeOffResponse create(CreateDoctorTimeOffRequest request) {
         validate(request);
-        DoctorProfile doctor = doctorRepository.findByStaffAccount_Id(request.doctorId())
+        // Share the same doctor-row lock as appointment booking so a new leave
+        // cannot race with a booking that has already passed availability checks.
+        DoctorProfile doctor = doctorRepository.findByStaffAccount_IdForUpdate(request.doctorId())
                 .filter(DoctorProfile::isActive)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "DOCTOR_NOT_AVAILABLE",
                         "Bác sĩ không tồn tại hoặc đang ngừng hoạt động."));
