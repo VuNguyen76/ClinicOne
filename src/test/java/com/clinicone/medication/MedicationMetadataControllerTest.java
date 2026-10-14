@@ -138,6 +138,21 @@ class MedicationMetadataControllerTest {
     }
 
     @Test
+    void adminCanViewButCannotChangeMedicationMetadata() throws Exception {
+        mockMvc.perform(post("/api/v1/medication-units")
+                        .with(authentication(authenticated("ROLE_ADMIN")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"code\":\"UNIT-CAP\",\"name\":\"Capsule\",\"description\":\"\",\"sortOrder\":20}"))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(patch("/api/v1/medication-dosages/{id}/active", UUID.randomUUID())
+                        .with(authentication(authenticated("ROLE_ADMIN")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"active\":false}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void coordinatorCanEditAndSafelyDeactivateMedicationCatalogMetadata() throws Exception {
         UUID unitId = UUID.randomUUID();
         UUID dosageId = UUID.randomUUID();

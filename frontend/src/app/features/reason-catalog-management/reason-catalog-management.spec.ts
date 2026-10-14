@@ -8,13 +8,25 @@ import { ReasonCatalogManagement } from './reason-catalog-management';
 describe('ReasonCatalogManagement', () => {
   let fixture: ComponentFixture<ReasonCatalogManagement>;
   const api = {
+    getClinicalReasons: vi.fn().mockReturnValue(of([
+      { id: 'clinical-1', specialtyCode: 'CARD', specialtyName: 'Tim mạch', symptomName: 'Đau ngực', sortOrder: 1, active: true },
+    ])),
+    getSpecialties: vi.fn().mockReturnValue(of([{ code: 'CARD', name: 'Tim mạch', description: '' }])),
+    createClinicalReason: vi.fn(),
+    updateClinicalReason: vi.fn(),
+    toggleClinicalReasonActive: vi.fn(),
+    deleteClinicalReason: vi.fn(),
     getAdminCancellationReasons: vi.fn(),
     createCancellationReason: vi.fn(),
     updateCancellationReason: vi.fn(),
     setCancellationReasonActive: vi.fn(),
-  } as unknown as Pick<AuthApiService, 'getAdminCancellationReasons' | 'createCancellationReason' | 'updateCancellationReason' | 'setCancellationReasonActive'>;
+  } as unknown as Pick<AuthApiService, 'getClinicalReasons' | 'getSpecialties' | 'createClinicalReason' | 'updateClinicalReason'
+    | 'toggleClinicalReasonActive' | 'deleteClinicalReason' | 'getAdminCancellationReasons' | 'createCancellationReason'
+    | 'updateCancellationReason' | 'setCancellationReasonActive'>;
 
   beforeEach(async () => {
+    sessionStorage.setItem('clinicOneStaffRole', 'ADMIN');
+    sessionStorage.setItem('clinicOneStaffRoles', JSON.stringify(['ADMIN']));
     vi.mocked(api.getAdminCancellationReasons).mockReturnValue(of([
       { id: 'reason-1', type: 'APPOINTMENT_CANCELLATION', code: 'SCHEDULE_CHANGE', label: 'Thay đổi kế hoạch', active: true },
       { id: 'reason-2', type: 'APPOINTMENT_CANCELLATION', code: 'MEDICAL_EMERGENCY', label: 'Có việc đột xuất', active: true },
@@ -76,5 +88,36 @@ describe('ReasonCatalogManagement', () => {
 
     remove.click();
     expect(api.setCancellationReasonActive).toHaveBeenCalledWith('reason-1', false);
+  });
+
+  it('lets administrators view clinical reasons but not manage them', () => {
+    fixture.componentInstance['switchTab']('clinical');
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Đau ngực');
+    expect(fixture.nativeElement.querySelector('[data-testid="create-clinical-reason"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('button[title="Chỉnh sửa lý do"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('th')?.parentElement?.textContent).not.toContain('Thao tác');
+
+    fixture.componentInstance['openCreateClinical']();
+    expect(fixture.componentInstance['clinicalModalOpen']()).toBe(false);
+    expect(api.createClinicalReason).not.toHaveBeenCalled();
+  });
+
+  it('lets coordinators view cancellation reasons without edit controls and manage clinical reasons', () => {
+    fixture.destroy();
+    sessionStorage.setItem('clinicOneStaffRole', 'COORDINATOR');
+    sessionStorage.setItem('clinicOneStaffRoles', JSON.stringify(['COORDINATOR']));
+    vi.mocked(api.getAdminCancellationReasons).mockClear();
+    fixture = TestBed.createComponent(ReasonCatalogManagement);
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance['activeTab']()).toBe('clinical');
+    expect(fixture.nativeElement.querySelector('[data-testid="create-clinical-reason"]')).toBeTruthy();
+    fixture.componentInstance['switchTab']('cancellation');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Thay đổi kế hoạch');
+    expect(fixture.nativeElement.querySelector('[data-testid="edit-reason-reason-1"]')).toBeNull();
+    expect(api.getAdminCancellationReasons).toHaveBeenCalledOnce();
   });
 });

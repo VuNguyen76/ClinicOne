@@ -11,8 +11,8 @@ describe('MedicalRecordTemplateManagement', () => {
 
   beforeEach(async () => {
     sessionStorage.setItem('clinicOneAccessToken', 'admin-token');
-    sessionStorage.setItem('clinicOneStaffRole', 'ADMIN');
-    sessionStorage.setItem('clinicOneStaffRoles', JSON.stringify(['ADMIN']));
+    sessionStorage.setItem('clinicOneStaffRole', 'COORDINATOR');
+    sessionStorage.setItem('clinicOneStaffRoles', JSON.stringify(['COORDINATOR']));
     await TestBed.configureTestingModule({
       imports: [MedicalRecordTemplateManagement],
       providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
@@ -45,6 +45,29 @@ describe('MedicalRecordTemplateManagement', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('#medication-template-catalog option')?.getAttribute('label'))
       .toContain('MED-OMEP');
+  });
+
+  it('lets administrators view medical templates and diagnoses without edit controls', () => {
+    flushReferenceData();
+    sessionStorage.setItem('clinicOneStaffRole', 'ADMIN');
+    sessionStorage.setItem('clinicOneStaffRoles', JSON.stringify(['ADMIN']));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[data-testid="template-row-0"]')?.textContent).toContain('Khám nội tổng quát');
+    expect(fixture.nativeElement.querySelector('[data-testid="add-template-btn"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[workspace-tabs]')?.textContent).not.toContain('Thiết lập mẫu');
+    expect(fixture.nativeElement.querySelector('[data-testid="tab-diagnoses"]')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('[data-testid="edit-template-template-1"]')).toBeNull();
+
+    (fixture.nativeElement.querySelector('[data-testid="tab-diagnoses"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    http.expectOne((request) => request.url === '/api/v1/admin/diagnoses').flush([
+      { id: 'dx-view', code: 'I10', name: 'Tăng huyết áp', active: true },
+    ]);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-testid="embedded-diagnosis-catalog"]')?.textContent).toContain('Tăng huyết áp');
+    expect(fixture.nativeElement.querySelector('[data-testid="open-create-diagnosis"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="edit-diagnosis-dx-view"]')).toBeNull();
   });
 
   it('presents template setup as three clearly separated full-width sections', () => {

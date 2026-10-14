@@ -32,14 +32,14 @@ class BusinessLogControllerTest {
     private BusinessLogService service;
 
     @Test
-    void coordinatorCanReadAppointmentHistory() throws Exception {
+    void adminCanReadAppointmentHistory() throws Exception {
         UUID appointmentId = UUID.randomUUID();
         when(service.list("APPOINTMENT", appointmentId)).thenReturn(List.of(new BusinessLogResponse(
                 UUID.randomUUID(), UUID.randomUUID(), "APPOINTMENT", appointmentId, "BOOKED", "CHECKED_IN",
                 "CHECK_IN", "patient", null, Instant.parse("2026-08-10T01:00:00Z"))));
 
         mockMvc.perform(get("/api/v1/admin/audit/appointments/{id}", appointmentId)
-                        .with(authentication(authenticated("ROLE_COORDINATOR"))))
+                        .with(authentication(authenticated("ROLE_ADMIN"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].previousStatus").value("BOOKED"))
                 .andExpect(jsonPath("$[0].nextStatus").value("CHECKED_IN"));
@@ -53,7 +53,7 @@ class BusinessLogControllerTest {
     }
 
     @Test
-    void coordinatorCanReadPagedBusinessHistory() throws Exception {
+    void adminCanReadPagedBusinessHistory() throws Exception {
         UUID entityId = UUID.randomUUID();
         when(service.search("APPOINTMENT", entityId.toString(), 0, 50))
                 .thenReturn(new BusinessLogPageResponse(List.of(), 0, 50, 0, 0, true));
@@ -61,7 +61,7 @@ class BusinessLogControllerTest {
         mockMvc.perform(get("/api/v1/admin/audit/search")
                         .param("entityType", "APPOINTMENT")
                         .param("entityId", entityId.toString())
-                        .with(authentication(authenticated("ROLE_COORDINATOR"))))
+                        .with(authentication(authenticated("ROLE_ADMIN"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.page").value(0))
                 .andExpect(jsonPath("$.size").value(50))
@@ -69,25 +69,25 @@ class BusinessLogControllerTest {
     }
 
     @Test
-    void coordinatorCanSearchWithoutParamsForRecentLogs() throws Exception {
+    void adminCanSearchWithoutParamsForRecentLogs() throws Exception {
         when(service.search(null, null, 0, 50))
                 .thenReturn(new BusinessLogPageResponse(List.of(), 0, 50, 0, 0, true));
 
         mockMvc.perform(get("/api/v1/admin/audit/search")
-                        .with(authentication(authenticated("ROLE_COORDINATOR"))))
+                        .with(authentication(authenticated("ROLE_ADMIN"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.page").value(0))
                 .andExpect(jsonPath("$.items").isArray());
     }
 
     @Test
-    void coordinatorCanSearchByAppointmentCodeIdentifier() throws Exception {
+    void adminCanSearchByAppointmentCodeIdentifier() throws Exception {
         when(service.search(null, "CL-20260820-TQ01", 0, 50))
                 .thenReturn(new BusinessLogPageResponse(List.of(), 0, 50, 0, 0, true));
 
         mockMvc.perform(get("/api/v1/admin/audit/search")
                         .param("identifier", "CL-20260820-TQ01")
-                        .with(authentication(authenticated("ROLE_COORDINATOR"))))
+                        .with(authentication(authenticated("ROLE_ADMIN"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.page").value(0))
                 .andExpect(jsonPath("$.items").isArray());

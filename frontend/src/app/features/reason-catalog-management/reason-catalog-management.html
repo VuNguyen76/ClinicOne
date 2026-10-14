@@ -11,10 +11,7 @@
         [class.text-slate-500]="activeTab() !== 'clinical'"
         (click)="switchTab('clinical')"
       >
-        <span class="flex items-center gap-2">
-          <mat-icon class="!h-4 !w-4 !text-[16px]">stethoscope</mat-icon>
-          <span>Lý do khám chuyên khoa ({{ totalClinicalCount() }})</span>
-        </span>
+        Lý do khám chuyên khoa ({{ totalClinicalCount() }})
       </button>
 
       <button
@@ -26,10 +23,7 @@
         [class.text-slate-500]="activeTab() !== 'cancellation'"
         (click)="switchTab('cancellation')"
       >
-        <span class="flex items-center gap-2">
-          <mat-icon class="!h-4 !w-4 !text-[16px]">event_busy</mat-icon>
-          <span>Lý do hủy lịch hẹn ({{ totalReasonsCount() }})</span>
-        </span>
+        Lý do hủy lịch hẹn ({{ totalReasonsCount() }})
       </button>
     </div>
   </div>
@@ -90,14 +84,17 @@
         </div>
 
         <div class="flex items-center gap-2">
-          <button
-            type="button"
-            class="erp-btn-primary cursor-pointer"
-            (click)="openCreateClinical()"
-          >
-            <mat-icon class="!h-4 !w-4 !text-[18px]">add</mat-icon>
-            <span>Thêm lý do khám</span>
-          </button>
+          @if (canManageClinical()) {
+            <button
+              type="button"
+              data-testid="create-clinical-reason"
+              class="erp-btn-primary cursor-pointer"
+              (click)="openCreateClinical()"
+            >
+              <mat-icon class="!h-4 !w-4 !text-[18px]">add</mat-icon>
+              <span>Thêm lý do khám</span>
+            </button>
+          }
           <button
             type="button"
             class="erp-btn-icon !h-10 !w-10 rounded-xl border border-slate-200 bg-white shadow-2xs"
@@ -119,7 +116,9 @@
                 <th class="px-4 py-3.5">Lý do khám / Triệu chứng lâm sàng</th>
                 <th class="px-4 py-3.5 w-24 text-center">Thứ tự</th>
                 <th class="px-4 py-3.5 w-28 text-center">Trạng thái</th>
-                <th class="px-4 py-3.5 w-32 text-center font-semibold">Thao tác</th>
+                @if (canManageClinical()) {
+                  <th class="px-4 py-3.5 w-32 text-center font-semibold">Thao tác</th>
+                }
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-50">
@@ -147,7 +146,8 @@
                       </span>
                     }
                   </td>
-                  <td class="px-4 py-3 text-center">
+                  @if (canManageClinical()) {
+                    <td class="px-4 py-3 text-center">
                     <div class="flex items-center justify-center gap-1.5">
                       <button
                         type="button"
@@ -174,16 +174,19 @@
                         <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">delete_outline</mat-icon>
                       </button>
                     </div>
-                  </td>
+                    </td>
+                  }
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="5" class="px-4 py-12 text-center text-xs text-slate-500">
+                  <td [attr.colspan]="canManageClinical() ? 5 : 4" class="px-4 py-12 text-center text-xs text-slate-500">
                     <p class="font-medium text-slate-700">Chưa có lý do khám nào phù hợp.</p>
-                    <button type="button" class="erp-btn-primary mt-3" (click)="openCreateClinical()">
-                      <mat-icon class="!h-4 !w-4 !text-[18px]">add</mat-icon>
-                      <span>Thêm lý do khám</span>
-                    </button>
+                    @if (canManageClinical()) {
+                      <button type="button" class="erp-btn-primary mt-3" (click)="openCreateClinical()">
+                        <mat-icon class="!h-4 !w-4 !text-[18px]">add</mat-icon>
+                        <span>Thêm lý do khám</span>
+                      </button>
+                    }
                   </td>
                 </tr>
               }
@@ -209,10 +212,12 @@
 
         <div class="flex items-center gap-3">
           <span class="text-xs text-slate-500 font-medium hidden md:inline">Yêu cầu tối thiểu 3 lý do áp dụng</span>
-          <button type="button" class="erp-btn-primary" (click)="openCreate()">
-            <mat-icon class="!h-4 !w-4 !text-[18px]">add</mat-icon>
-            <span>Thêm lý do hủy</span>
-          </button>
+          @if (canManageCancellation()) {
+            <button type="button" class="erp-btn-primary" (click)="openCreate()">
+              <mat-icon class="!h-4 !w-4 !text-[18px]">add</mat-icon>
+              <span>Thêm lý do hủy</span>
+            </button>
+          }
           <button type="button" class="erp-btn-icon !h-10 !w-10 rounded-xl border border-slate-200 bg-white shadow-2xs" (click)="load()" title="Làm mới">
             <mat-icon class="!h-4 !w-4 !text-[18px]">refresh</mat-icon>
           </button>
@@ -227,7 +232,9 @@
                 <th class="px-4 py-3.5 w-56">Mã lý do</th>
                 <th class="px-4 py-3.5">Nội dung hiển thị khi thao tác</th>
                 <th class="px-4 py-3.5 w-32 text-center">Trạng thái</th>
-                <th class="px-4 py-3.5 w-32 text-center font-semibold">Thao tác</th>
+                @if (canManageCancellation()) {
+                  <th class="px-4 py-3.5 w-32 text-center font-semibold">Thao tác</th>
+                }
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-50">
@@ -246,7 +253,8 @@
                       </span>
                     }
                   </td>
-                  <td class="px-4 py-3 text-center">
+                  @if (canManageCancellation()) {
+                    <td class="px-4 py-3 text-center">
                     <div class="flex items-center justify-center gap-1.5">
                       <button
                         type="button"
@@ -269,7 +277,8 @@
                         <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">{{ item.active ? 'delete_outline' : 'restore_from_trash' }}</mat-icon>
                       </button>
                     </div>
-                  </td>
+                    </td>
+                  }
                 </tr>
               }
             </tbody>

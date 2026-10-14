@@ -10,7 +10,7 @@ describe('DiagnosisCatalogManagement', () => {
 
   beforeEach(async () => {
     sessionStorage.setItem('clinicOneAccessToken', 'staff-token');
-    sessionStorage.setItem('clinicOneStaffRoles', JSON.stringify(['ADMIN']));
+    sessionStorage.setItem('clinicOneStaffRoles', JSON.stringify(['COORDINATOR']));
     await TestBed.configureTestingModule({
       imports: [DiagnosisCatalogManagement],
       providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
@@ -25,7 +25,7 @@ describe('DiagnosisCatalogManagement', () => {
     sessionStorage.clear();
   });
 
-  it('lets an administrator add a diagnosis to the suggestion catalog', () => {
+  it('lets a coordinator add a diagnosis to the suggestion catalog', () => {
     http.expectOne((request) => request.url === '/api/v1/admin/diagnoses' && request.params.get('activeOnly') === 'false').flush([]);
     fixture.detectChanges();
 
@@ -40,6 +40,22 @@ describe('DiagnosisCatalogManagement', () => {
     const request = http.expectOne('/api/v1/admin/diagnoses');
     expect(request.request.method).toBe('POST');
     expect(request.request.body).toEqual({ code: 'HEADACHE_TENSION', name: 'Đau đầu căng thẳng' });
+  });
+
+  it('lets an administrator view diagnoses without management actions', () => {
+    http.expectOne((request) => request.url === '/api/v1/admin/diagnoses' && request.params.get('activeOnly') === 'false').flush([]);
+    fixture.destroy();
+    sessionStorage.setItem('clinicOneStaffRoles', JSON.stringify(['ADMIN']));
+    fixture = TestBed.createComponent(DiagnosisCatalogManagement);
+    fixture.detectChanges();
+    http.expectOne((request) => request.url === '/api/v1/admin/diagnoses' && request.params.get('activeOnly') === 'false')
+      .flush([{ id: 'dx-view', code: 'I10', name: 'Tăng huyết áp', active: true }]);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Tăng huyết áp');
+    expect(fixture.nativeElement.querySelector('[data-testid="open-create-diagnosis"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="edit-diagnosis-dx-view"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="toggle-diagnosis-dx-view"]')).toBeNull();
   });
 
   it('renders inside the staff ERP workspace', () => {

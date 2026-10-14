@@ -36,11 +36,11 @@ export class MedicalRecordTemplateManagement implements OnInit {
   }
 
   protected canManageTemplates(): boolean {
-    return hasStaffRole('ADMIN') || hasStaffRole('COORDINATOR');
+    return hasStaffRole('COORDINATOR');
   }
 
   protected canAccessDiagnosisCatalog(): boolean {
-    return this.canManageTemplates() || this.isDoctorRole();
+    return this.canManageTemplates() || hasStaffRole('ADMIN') || this.isDoctorRole();
   }
 
   protected readonly items = signal<MedicalRecordTemplate[]>([]);

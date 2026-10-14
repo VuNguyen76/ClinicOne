@@ -21,7 +21,7 @@ import java.util.UUID;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/reconciliations")
-@PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
+@PreAuthorize("hasRole('ADMIN')")
 public class ReconciliationController {
     private final ReconciliationService service;
 
@@ -31,13 +31,13 @@ public class ReconciliationController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ReconciliationResponse> open(@Valid @RequestBody OpenReconciliationRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.open(request));
     }
 
     @PostMapping("/{id}/close")
-    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ReconciliationResponse close(Authentication authentication, @PathVariable UUID id,
                                         @Valid @RequestBody CloseReconciliationRequest request) {
         return service.close(id, request, authentication.getName());

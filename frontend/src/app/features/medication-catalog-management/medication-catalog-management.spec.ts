@@ -31,7 +31,7 @@ describe('MedicationCatalogManagement', () => {
 
   beforeEach(async () => {
     sessionStorage.setItem('clinicOneAccessToken', 'staff-token');
-    sessionStorage.setItem('clinicOneStaffRoles', JSON.stringify(['ADMIN']));
+    sessionStorage.setItem('clinicOneStaffRoles', JSON.stringify(['COORDINATOR']));
     api.getAdminMedications.mockReturnValue(of([
       { id: 'med-1', code: 'PCM500', name: 'Paracetamol 500 mg', active: true, unitPrice: 5000 },
       { id: 'med-2', code: 'OLD-MED', name: 'Thuốc đã ngừng', active: false },
@@ -112,6 +112,23 @@ describe('MedicationCatalogManagement', () => {
     (fixture.nativeElement.querySelector('[data-testid="tab-dosages"]') as HTMLButtonElement).click();
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('[data-testid="open-create-medication-dosage"]')).toBeTruthy();
+  });
+
+  it('lets an administrator view medication data without management actions', () => {
+    fixture.destroy();
+    sessionStorage.setItem('clinicOneStaffRoles', JSON.stringify(['ADMIN']));
+    fixture = TestBed.createComponent(MedicationCatalogManagement);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Paracetamol 500 mg');
+    expect(fixture.nativeElement.querySelector('[data-testid="open-create-medication"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="edit-medication-med-1"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="toggle-medication-med-1"]')).toBeNull();
+
+    (fixture.nativeElement.querySelector('[data-testid="tab-units"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-testid="open-create-medication-unit"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="edit-medication-unit-unit-1"]')).toBeNull();
   });
 
   it('matches medical-template tab typography and keeps the catalog tabs icon-free', () => {

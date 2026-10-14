@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } 
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
+import { hasStaffRole } from '../../core/auth/auth.guard';
 import {
   ApiErrorResponse,
   AuthApiService,
@@ -29,7 +30,17 @@ export interface ClinicalReasonItem {
 export class ReasonCatalogManagement implements OnInit {
   private readonly authApi = inject(AuthApiService);
 
-  protected readonly activeTab = signal<'clinical' | 'cancellation'>('cancellation');
+  protected canManageClinical(): boolean {
+    return hasStaffRole('COORDINATOR');
+  }
+
+  protected canManageCancellation(): boolean {
+    return hasStaffRole('ADMIN');
+  }
+
+  protected readonly activeTab = signal<'clinical' | 'cancellation'>(
+    hasStaffRole('COORDINATOR') ? 'clinical' : 'cancellation',
+  );
 
   // Clinical reasons state
   protected readonly clinicalReasons = signal<ClinicalReasonItem[]>([]);
@@ -99,7 +110,7 @@ export class ReasonCatalogManagement implements OnInit {
   ngOnInit(): void {
     this.loadSpecialties();
     this.loadClinical();
-    this.load();
+    if (hasStaffRole('ADMIN') || hasStaffRole('COORDINATOR')) this.load();
   }
 
   protected switchTab(tab: 'clinical' | 'cancellation'): void {
@@ -133,6 +144,7 @@ export class ReasonCatalogManagement implements OnInit {
   }
 
   protected openCreateClinical(): void {
+    if (!this.canManageClinical()) return;
     this.error.set('');
     this.notice.set('');
     this.clinicalEditingId.set(null);
@@ -145,6 +157,7 @@ export class ReasonCatalogManagement implements OnInit {
   }
 
   protected openEditClinical(item: ClinicalReasonItem): void {
+    if (!this.canManageClinical()) return;
     this.error.set('');
     this.notice.set('');
     this.clinicalEditingId.set(item.id);
@@ -170,6 +183,7 @@ export class ReasonCatalogManagement implements OnInit {
   }
 
   protected saveClinical(): void {
+    if (!this.canManageClinical()) return;
     const symptom = this.clinicalSymptomName().trim();
     if (symptom.length < 3) {
       this.error.set('Lý do khám / triệu chứng phải từ 3 ký tự trở lên.');
@@ -207,6 +221,7 @@ export class ReasonCatalogManagement implements OnInit {
   }
 
   protected toggleClinicalActive(item: ClinicalReasonItem): void {
+    if (!this.canManageClinical()) return;
     this.authApi.toggleClinicalReasonActive(item.id).subscribe({
       next: (updated) => {
         this.clinicalReasons.update((items) =>
@@ -220,6 +235,7 @@ export class ReasonCatalogManagement implements OnInit {
   }
 
   protected deleteClinical(item: ClinicalReasonItem): void {
+    if (!this.canManageClinical()) return;
     if (!confirm(`Xóa hoàn toàn lý do "${item.symptomName}"?`)) return;
     this.authApi.deleteClinicalReason(item.id).subscribe({
       next: () => {
@@ -233,6 +249,7 @@ export class ReasonCatalogManagement implements OnInit {
 
   // --- CANCELLATION REASONS CRUD (PRESERVED) ---
   protected openCreate(): void {
+    if (!this.canManageCancellation()) return;
     this.error.set('');
     this.notice.set('');
     this.editingId.set(null);
@@ -242,6 +259,7 @@ export class ReasonCatalogManagement implements OnInit {
   }
 
   protected openEdit(item: ReasonCatalogResponse): void {
+    if (!this.canManageCancellation()) return;
     this.error.set('');
     this.notice.set('');
     this.editingId.set(item.id);
@@ -257,6 +275,7 @@ export class ReasonCatalogManagement implements OnInit {
   }
 
   protected save(): void {
+    if (!this.canManageCancellation()) return;
     const code = this.code().trim().toUpperCase();
     const label = this.label().trim();
     if (!/^[A-Z0-9_]{2,50}$/.test(code) || !label) {
@@ -291,6 +310,7 @@ export class ReasonCatalogManagement implements OnInit {
   }
 
   protected toggle(item: ReasonCatalogResponse): void {
+    if (!this.canManageCancellation()) return;
     this.error.set('');
     this.notice.set('');
     this.authApi.setCancellationReasonActive(item.id, !item.active).subscribe({
@@ -303,6 +323,7 @@ export class ReasonCatalogManagement implements OnInit {
   }
 
   protected load(): void {
+    if (!hasStaffRole('ADMIN') && !hasStaffRole('COORDINATOR')) return;
     this.authApi.getAdminCancellationReasons().subscribe({
       next: (items) => {
         this.reasons.set(items);

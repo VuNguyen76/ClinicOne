@@ -21,32 +21,36 @@ import java.util.UUID;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/reason-catalog")
-@PreAuthorize("hasRole('ADMIN')")
 public class ReasonCatalogAdminController {
     private final ReasonCatalogService service;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
     public List<ReasonCatalogResponse> list(@RequestParam(defaultValue = "APPOINTMENT_CANCELLATION") ReasonCatalogType type,
                                             @RequestParam(defaultValue = "false") boolean activeOnly) {
         return service.list(type, activeOnly);
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ReasonCatalogResponse> create(@Valid @RequestBody CreateReasonCatalogRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.create(request));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ReasonCatalogResponse update(@PathVariable UUID id, @Valid @RequestBody UpdateReasonCatalogRequest request) {
         return service.update(id, request);
     }
 
     @PostMapping("/{id}/activate")
+    @PreAuthorize("hasRole('ADMIN')")
     public ReasonCatalogResponse activate(@PathVariable UUID id) {
         return service.setActive(id, true);
     }
 
     @PostMapping("/{id}/deactivate")
+    @PreAuthorize("hasRole('ADMIN')")
     public ReasonCatalogResponse deactivate(@PathVariable UUID id) {
         return service.setActive(id, false);
     }
