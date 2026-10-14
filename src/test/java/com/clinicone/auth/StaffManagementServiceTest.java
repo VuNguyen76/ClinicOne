@@ -118,6 +118,20 @@ class StaffManagementServiceTest {
         verify(accountRepository, never()).findById(any(UUID.class));
     }
 
+    @Test
+    void updatesProfileWithoutChangingUsernameOrEmployeeCode() throws Exception {
+        StaffAccount account = account();
+        when(accountRepository.findById(STAFF_ID)).thenReturn(Optional.of(account));
+
+        StaffAccountResponse response = service.updateProfile(STAFF_ID,
+                new UpdateStaffProfileRequest("Bác sĩ An mới", "ClinicOne", "Khoa Nội"));
+
+        assertEquals("Bác sĩ An mới", response.fullName());
+        assertEquals("bs.an", response.username());
+        assertEquals("bs.an", account.getUsername());
+        verify(accountRepository).save(account);
+    }
+
     private StaffAccount account() throws Exception {
         StaffAccount account = StaffAccount.create("bs.an", "hash", "Bác sĩ An", StaffRole.DOCTOR);
         Field field = StaffAccount.class.getDeclaredField("id");

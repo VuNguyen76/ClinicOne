@@ -11,6 +11,7 @@ import com.clinicone.schedule.AppointmentHoldRepository;
 import com.clinicone.schedule.GeneratedClinicSlot;
 import com.clinicone.schedule.GeneratedClinicSlotRepository;
 import com.clinicone.schedule.GeneratedSlotStatus;
+import com.clinicone.schedule.GeneratedSlotCancellationReason;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -62,7 +63,7 @@ public class DoctorTimeOffService {
                 .filter(slot -> appointmentRepository.countByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
                         request.doctorId(), slot.getAppointmentDate(), slot.getStartTime(), AppointmentStatus.BOOKED) == 0)
                 .toList();
-        lockedSlots.forEach(GeneratedClinicSlot::cancel);
+        lockedSlots.forEach(GeneratedClinicSlot::cancelForDoctorTimeOff);
         if (!lockedSlots.isEmpty()) {
             slotRepository.saveAll(lockedSlots);
         }
@@ -73,6 +74,96 @@ public class DoctorTimeOffService {
         int affectedAppointments = reschedulingService.openForDoctorTimeOff(request.doctorId(), request.startDate(),
                 request.endDate(), request.reason().trim());
         return DoctorTimeOffResponse.from(timeOff, lockedSlots.size(), releasedHolds, affectedAppointments);
+    }
+
+    @Transactional
+    public DoctorTimeOffResponse update(UUID id, CreateDoctorTimeOffRequest request) {
+        DoctorTimeOff current = findEditable(id);
+        validate(request);
+        if (!current.isActive() || !current.getDoctorProfile().getStaffAccount().getId().equals(request.doctorId())) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "DOCTOR_TIME_OFF_IDENTITY_IMMUTABLE",
+                    "Không thể đổi bác sĩ của lịch nghỉ đã ghi nhận.");
+        }
+        if (current.getStartDate().isBefore(LocalDate.now(clock.withZone(CLINIC_ZONE)))) {
+            throw conflict("DOCTOR_TIME_OFF_ALREADY_STARTED", "Không thể sửa lịch nghỉ đã bắt đầu.");
+        }
+        DoctorProfile doctor = lockDoctor(request.doctorId());
+        ensureNoActiveAppointments(current);
+        if (timeOffRepository.existsOverlappingExcept(doctor.getId(), request.startDate(), request.endDate(), id)) {
+            throw conflict("DOCTOR_TIME_OFF_OVERLAP", "Bác sĩ đã có lịch nghỉ trùng với khoảng thời gian này.");
+        }
+        current.setActive(false);
+        timeOffRepository.save(current);
+        reopenSlots(current);
+        return create(request);
+    }
+
+    @Transactional
+    public DoctorTimeOffResponse cancel(UUID id) {
+        DoctorTimeOff current = findEditable(id);
+        if (!current.isActive()) return DoctorTimeOffResponse.from(current, 0, 0, 0);
+        if (current.getStartDate().isBefore(LocalDate.now(clock.withZone(CLINIC_ZONE)))) {
+            throw conflict("DOCTOR_TIME_OFF_ALREADY_STARTED", "Không thể hủy lịch nghỉ đã bắt đầu.");
+        }
+        ensureNoActiveAppointments(current);
+        current.setActive(false);
+        timeOffRepository.save(current);
+        reopenSlots(current);
+        return DoctorTimeOffResponse.from(current, 0, 0, 0);
+    }
+
+    private DoctorTimeOff findEditable(UUID id) {
+        return timeOffRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "DOCTOR_TIME_OFF_NOT_FOUND",
+                        "Không tìm thấy lịch nghỉ."));
+    }
+
+    @Transactional(readOnly = true)
+    public UUID doctorStaffId(UUID id) {
+        return timeOffRepository.findById(id)
+                .map(item -> item.getDoctorProfile().getStaffAccount().getId())
+                .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "DOCTOR_TIME_OFF_NOT_FOUND",
+                        "Không tìm thấy lịch nghỉ."));
+    }
+
+    private DoctorProfile lockDoctor(UUID staffId) {
+        return doctorRepository.findByStaffAccount_IdForUpdate(staffId)
+                .filter(DoctorProfile::isActive)
+                .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "DOCTOR_NOT_AVAILABLE",
+                        "Bác sĩ không tồn tại hoặc đang ngừng hoạt động."));
+    }
+
+    private void ensureNoActiveAppointments(DoctorTimeOff item) {
+        UUID staffId = item.getDoctorProfile().getStaffAccount().getId();
+        boolean hasActive = appointmentRepository.findByDoctorStaffIdAndAppointmentDateBetweenAndStatusIn(staffId,
+                item.getStartDate(), item.getEndDate(), List.of(AppointmentStatus.BOOKED, AppointmentStatus.CHECKED_IN))
+                .stream().anyMatch(appointment -> appointment.getStatus() == AppointmentStatus.BOOKED
+                        || appointment.getStatus() == AppointmentStatus.CHECKED_IN);
+        if (hasActive) {
+            throw conflict("DOCTOR_TIME_OFF_HAS_ACTIVE_APPOINTMENTS",
+                    "Không thể sửa hoặc hủy lịch nghỉ khi còn lượt khám đã đặt hoặc đã tiếp nhận; hãy xử lý lịch bệnh nhân trước.");
+        }
+    }
+
+    private int reopenSlots(DoctorTimeOff item) {
+        UUID staffId = item.getDoctorProfile().getStaffAccount().getId();
+        List<GeneratedClinicSlot> candidates = slotRepository
+                .findByDoctorStaffIdAndAppointmentDateBetweenAndStatusAndCancellationReason(staffId,
+                        item.getStartDate(), item.getEndDate(), GeneratedSlotStatus.CANCELLED,
+                        GeneratedSlotCancellationReason.DOCTOR_TIME_OFF);
+        List<GeneratedClinicSlot> reopened = candidates.stream()
+                .filter(slot -> !timeOffRepository.existsActiveOnDate(item.getDoctorProfile().getId(), slot.getAppointmentDate()))
+                .filter(slot -> appointmentRepository.countByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatusIn(
+                        staffId, slot.getAppointmentDate(), slot.getStartTime(),
+                        List.of(AppointmentStatus.BOOKED, AppointmentStatus.CHECKED_IN)) == 0)
+                .filter(GeneratedClinicSlot::reopenAfterDoctorTimeOff)
+                .toList();
+        if (!reopened.isEmpty()) slotRepository.saveAll(reopened);
+        return reopened.size();
+    }
+
+    private AuthException conflict(String code, String message) {
+        return new AuthException(HttpStatus.CONFLICT, code, message);
     }
 
     @Transactional(readOnly = true)

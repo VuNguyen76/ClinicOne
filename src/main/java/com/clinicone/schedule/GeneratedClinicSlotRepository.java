@@ -14,6 +14,10 @@ public interface GeneratedClinicSlotRepository extends JpaRepository<GeneratedCl
     List<GeneratedClinicSlot> findByDoctorStaffIdAndAppointmentDateBetweenAndStatus(
             UUID doctorStaffId, LocalDate from, LocalDate to, GeneratedSlotStatus status);
 
+    List<GeneratedClinicSlot> findByDoctorStaffIdAndAppointmentDateBetweenAndStatusAndCancellationReason(
+            UUID doctorStaffId, LocalDate from, LocalDate to, GeneratedSlotStatus status,
+            GeneratedSlotCancellationReason cancellationReason);
+
     List<GeneratedClinicSlot> findByRoomIdAndAppointmentDateBetweenAndStatus(
             UUID roomId, LocalDate from, LocalDate to, GeneratedSlotStatus status);
 
@@ -46,6 +50,11 @@ public interface GeneratedClinicSlotRepository extends JpaRepository<GeneratedCl
     Optional<GeneratedClinicSlot> findFirstByClinicServiceIdAndDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
             UUID clinicServiceId, UUID doctorStaffId, LocalDate appointmentDate, LocalTime startTime,
             GeneratedSlotStatus status);
+
+    long countByTemplateId(UUID templateId);
+
+    @org.springframework.data.jpa.repository.Query("SELECT s.template.id, count(s) FROM GeneratedClinicSlot s WHERE s.template.id IN :templateIds GROUP BY s.template.id")
+    List<Object[]> countByTemplateIdIn(@org.springframework.data.repository.query.Param("templateIds") java.util.Collection<UUID> templateIds);
 
     @org.springframework.data.jpa.repository.Modifying
     @org.springframework.data.jpa.repository.Query("DELETE FROM GeneratedClinicSlot s WHERE s.id IN :slotIds")

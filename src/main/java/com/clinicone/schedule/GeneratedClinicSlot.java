@@ -72,6 +72,10 @@ public class GeneratedClinicSlot {
     @Column(nullable = false, length = 16)
     private GeneratedSlotStatus status;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "cancellation_reason", nullable = false, length = 32)
+    private GeneratedSlotCancellationReason cancellationReason = GeneratedSlotCancellationReason.NONE;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -100,7 +104,23 @@ public class GeneratedClinicSlot {
         return new GeneratedClinicSlot(template, appointmentDate, startTime, endTime);
     }
 
-    public void cancel() { this.status = GeneratedSlotStatus.CANCELLED; }
+    public void cancel() {
+        this.status = GeneratedSlotStatus.CANCELLED;
+        this.cancellationReason = GeneratedSlotCancellationReason.OTHER;
+    }
+
+    public void cancelForDoctorTimeOff() {
+        this.status = GeneratedSlotStatus.CANCELLED;
+        this.cancellationReason = GeneratedSlotCancellationReason.DOCTOR_TIME_OFF;
+    }
+
+    public boolean reopenAfterDoctorTimeOff() {
+        if (status != GeneratedSlotStatus.CANCELLED
+                || cancellationReason != GeneratedSlotCancellationReason.DOCTOR_TIME_OFF) return false;
+        this.status = GeneratedSlotStatus.OPEN;
+        this.cancellationReason = GeneratedSlotCancellationReason.NONE;
+        return true;
+    }
 
     @PrePersist
     void onCreate() { if (createdAt == null) createdAt = Instant.now(); }

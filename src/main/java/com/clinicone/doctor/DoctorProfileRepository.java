@@ -16,6 +16,7 @@ public interface DoctorProfileRepository extends JpaRepository<DoctorProfile, UU
     @EntityGraph(attributePaths = {"staffAccount", "room"})
     Optional<DoctorProfile> findByStaffAccount_Id(UUID staffId);
 
+    @EntityGraph(attributePaths = {"staffAccount", "room"})
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select profile from DoctorProfile profile where profile.staffAccount.id = :staffId")
     Optional<DoctorProfile> findByStaffAccount_IdForUpdate(@Param("staffId") UUID staffId);

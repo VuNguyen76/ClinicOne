@@ -9,6 +9,10 @@ import java.util.List;
 import java.util.UUID;
 
 public interface DoctorTimeOffRepository extends JpaRepository<DoctorTimeOff, UUID> {
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select t from DoctorTimeOff t where t.id = :id")
+    java.util.Optional<DoctorTimeOff> findByIdForUpdate(@Param("id") UUID id);
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"doctorProfile", "doctorProfile.staffAccount"})
     List<DoctorTimeOff> findByActiveTrueOrderByStartDateAsc();
 
     @Query("""
@@ -30,4 +34,13 @@ public interface DoctorTimeOffRepository extends JpaRepository<DoctorTimeOff, UU
     boolean existsOverlapping(@Param("profileId") UUID profileId,
                               @Param("startDate") LocalDate startDate,
                               @Param("endDate") LocalDate endDate);
+
+    @Query("select count(t) > 0 from DoctorTimeOff t where t.doctorProfile.id = :profileId "
+            + "and t.active = true and t.startDate <= :date and t.endDate >= :date")
+    boolean existsActiveOnDate(@Param("profileId") UUID profileId, @Param("date") LocalDate date);
+
+    @Query("select count(t) > 0 from DoctorTimeOff t where t.doctorProfile.id = :profileId "
+            + "and t.active = true and t.id <> :excludedId and t.startDate <= :endDate and t.endDate >= :startDate")
+    boolean existsOverlappingExcept(@Param("profileId") UUID profileId, @Param("startDate") LocalDate startDate,
+                                    @Param("endDate") LocalDate endDate, @Param("excludedId") UUID excludedId);
 }

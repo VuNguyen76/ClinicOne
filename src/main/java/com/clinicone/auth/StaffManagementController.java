@@ -66,6 +66,23 @@ public class StaffManagementController {
         }
     }
 
+    @PutMapping("/{staffId}/profile")
+    public ResponseEntity<StaffAccountResponse> updateProfile(@PathVariable @NotNull UUID staffId,
+                                                              @Valid @RequestBody UpdateStaffProfileRequest request,
+                                                              Principal principal, HttpServletRequest httpRequest) {
+        String actor = actor(principal);
+        try {
+            StaffAccountResponse response = service.updateProfile(staffId, request);
+            recordAudit("STAFF_PROFILE_UPDATE", actor, "SUCCESS", "/api/v1/admin/staff/{id}/profile",
+                    httpRequest.getRemoteAddr());
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException failure) {
+            recordAudit("STAFF_PROFILE_UPDATE", actor, "FAILED", "/api/v1/admin/staff/{id}/profile",
+                    httpRequest.getRemoteAddr());
+            throw failure;
+        }
+    }
+
     @PostMapping("/{staffId}/lock")
     public ResponseEntity<StaffAccountResponse> lock(@PathVariable @NotNull UUID staffId, Principal principal,
                                                      HttpServletRequest request) {

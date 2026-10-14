@@ -74,7 +74,7 @@ public class StaffManagementService {
         String employeeCode = normalize(request.employeeCode(), "Mã nhân viên không được để trống.").toUpperCase(Locale.ROOT);
         String unitName = normalize(request.unitName(), "Đơn vị không được để trống.");
         String departmentName = normalize(request.departmentName(), "Phòng ban không được để trống.");
-        Set<StaffRole> roles = validateRoles(request.roles());
+        validateRoles(request.roles());
         if (accountRepository.existsByEmployeeCodeIgnoreCase(employeeCode)) {
             throw new AuthException(HttpStatus.CONFLICT, "STAFF_EMPLOYEE_CODE_TAKEN",
                     "Mã nhân viên đã được sử dụng.");
@@ -97,6 +97,28 @@ public class StaffManagementService {
         StaffAccountResponse response = StaffAccountResponse.from(accountRepository.save(account));
         sessionRepository.revokeActiveByAccountId(staffId, Instant.now(clock));
         return response;
+    }
+
+    @Transactional
+    public StaffAccountResponse updateProfile(UUID staffId, UpdateStaffProfileRequest request) {
+        if (request == null) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "STAFF_PROFILE_REQUIRED",
+                    "Cần cung cấp thông tin hồ sơ nhân viên.");
+        }
+        String fullName = normalize(request.fullName(), "Họ tên nhân viên không được để trống.");
+        String unitName = request.unitName() == null ? null : request.unitName().trim();
+        String departmentName = request.departmentName() == null ? null : request.departmentName().trim();
+        StaffAccount account = find(staffId);
+        if (unitName == null || unitName.isBlank()) unitName = account.getUnitName();
+        if (departmentName == null || departmentName.isBlank()) departmentName = account.getDepartmentName();
+        if (unitName == null || unitName.isBlank()) unitName = "ClinicOne";
+        if (departmentName == null || departmentName.isBlank()) departmentName = "Chưa phân ban";
+        if (fullName.length() > 200 || unitName.length() > 160 || departmentName.length() > 160) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "STAFF_PROFILE_FIELD_TOO_LONG",
+                    "Thông tin hồ sơ nhân viên vượt quá độ dài cho phép.");
+        }
+        account.updateProfile(fullName, unitName, departmentName);
+        return StaffAccountResponse.from(accountRepository.save(account));
     }
 
     private Set<StaffRole> validateRoles(List<StaffRole> requested) {

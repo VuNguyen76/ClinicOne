@@ -66,6 +66,22 @@ class DoctorManagementServiceTest {
     }
 
     @Test
+    void updatesDoctorNameWithoutChangingLoginIdentityOrAssignment() {
+        java.util.UUID staffId = java.util.UUID.randomUUID();
+        StaffAccount doctor = StaffAccount.create("bs.an", "hash", "Bác sĩ An", StaffRole.DOCTOR);
+        when(staffRepository.findById(staffId)).thenReturn(Optional.of(doctor));
+        when(staffRepository.save(doctor)).thenReturn(doctor);
+        when(profileRepository.findByStaffAccount_Id(staffId)).thenReturn(Optional.empty());
+
+        DoctorAccountResponse response = service.updateProfile(staffId, new UpdateDoctorProfileRequest("Bác sĩ Nguyễn An"));
+
+        assertThat(doctor.getUsername()).isEqualTo("bs.an");
+        assertThat(response.fullName()).isEqualTo("Bác sĩ Nguyễn An");
+        assertThat(response.assigned()).isFalse();
+        verify(staffRepository).save(doctor);
+    }
+
+    @Test
     void rejectsScheduleWithNonPositiveSlotDuration() {
         java.util.UUID staffId = java.util.UUID.randomUUID();
         var doctor = StaffAccount.create("bs.an", "hash", "Bác sĩ An", StaffRole.DOCTOR);

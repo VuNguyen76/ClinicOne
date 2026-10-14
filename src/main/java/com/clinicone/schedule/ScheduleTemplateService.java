@@ -22,9 +22,9 @@ import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.Objects;
@@ -43,21 +43,55 @@ public class ScheduleTemplateService {
 
     @Transactional(readOnly = true)
     public List<ScheduleTemplateResponse> list() {
-        return templateRepository.findByActiveTrueOrderByStartDateAsc().stream()
-                .map(this::toResponse)
-                .toList();
+        List<WorkScheduleTemplate> templates = templateRepository.findByActiveTrueOrderByStartDateAsc();
+        return toResponsesBatch(templates);
     }
 
     @Transactional(readOnly = true)
     public List<ScheduleTemplateResponse> listForDoctor(UUID doctorStaffId) {
-        return templateRepository.findByDoctorProfile_StaffAccount_IdOrderByStartDateAsc(doctorStaffId).stream()
-                .map(this::toResponse)
+        List<WorkScheduleTemplate> templates = templateRepository.findByDoctorProfile_StaffAccount_IdOrderByStartDateAsc(doctorStaffId);
+        return toResponsesBatch(templates);
+    }
+
+    private List<ScheduleTemplateResponse> toResponsesBatch(List<WorkScheduleTemplate> templates) {
+        if (templates.isEmpty()) {
+            return List.of();
+        }
+        List<UUID> templateIds = templates.stream().map(WorkScheduleTemplate::getId).filter(Objects::nonNull).toList();
+        Map<UUID, Integer> counts = new java.util.HashMap<>();
+        if (!templateIds.isEmpty()) {
+            for (Object[] row : slotRepository.countByTemplateIdIn(templateIds)) {
+                counts.put((UUID) row[0], ((Number) row[1]).intValue());
+            }
+        }
+        return templates.stream()
+                .map(t -> toResponse(t, counts.getOrDefault(t.getId(), 0)))
                 .toList();
     }
 
     @Transactional
     public ScheduleTemplateResponse create(CreateScheduleTemplateRequest request) {
         return create(request, false);
+    }
+
+    @Transactional
+    public ScheduleTemplateResponse update(UUID templateId, CreateScheduleTemplateRequest request) {
+        WorkScheduleTemplate current = templateRepository.findById(templateId)
+                .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "SCHEDULE_TEMPLATE_NOT_FOUND",
+                        "Không tìm thấy lịch làm việc."));
+        if (!current.isActive()) {
+            throw conflict("SCHEDULE_TEMPLATE_INACTIVE", "Mẫu lịch đã tạm dừng, không thể chỉnh sửa.");
+        }
+        validateAndResolve(request);
+        ensureNoActiveAppointments(current, current.getWeekdays());
+
+        current.setActive(false);
+        templateRepository.save(current);
+        slotRepository.deleteByTemplateIdAndStatus(templateId, GeneratedSlotStatus.OPEN);
+        for (DayOfWeek weekday : current.getWeekdays()) {
+            deactivateDoctorSchedules(current, weekday);
+        }
+        return create(request);
     }
 
     /** Local-only bootstrap path that preserves existing slots and fills other free times. */

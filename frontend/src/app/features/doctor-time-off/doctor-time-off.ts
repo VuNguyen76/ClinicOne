@@ -28,6 +28,7 @@ export class DoctorTimeOffManagement implements OnInit {
   protected readonly error = signal('');
   protected readonly notice = signal('');
   protected readonly modalOpen = signal(false);
+  protected readonly editingId = signal<string | null>(null);
   protected readonly searchTerm = signal('');
 
   protected isDoctorRole(): boolean {
@@ -131,21 +132,29 @@ export class DoctorTimeOffManagement implements OnInit {
     }
     this.saving.set(true);
     this.error.set('');
-    this.authApi.createDoctorTimeOff({
+    const request = {
       doctorId: this.selectedDoctorId(),
       startDate: this.startDate(),
       endDate: this.endDate(),
       reason: this.reason().trim(),
-    }).subscribe({
+    };
+    const saveRequest = this.editingId()
+      ? this.authApi.updateDoctorTimeOff(this.editingId()!, request)
+      : this.authApi.createDoctorTimeOff(request);
+    saveRequest.subscribe({
       next: (item) => {
-        this.records.update((items) => [item, ...items]);
-        this.notice.set(this.isDoctorRole()
-          ? `Đã đăng ký nghỉ phép thành công. Đã khóa ${item.lockedSlotCount} khung giờ chờ điều phối.`
-          : `Đã khóa ${item.lockedSlotCount} khung giờ và mở ${item.affectedAppointmentCount} lịch cần sắp xếp lại.`);
+        const previousId = this.editingId();
+        this.records.update((items) => [item, ...items.filter((record) => record.id !== previousId)]);
+        this.notice.set(previousId
+          ? `Đã cập nhật lịch nghỉ. Đã khóa ${item.lockedSlotCount} khung giờ mới.`
+          : (this.isDoctorRole()
+            ? `Đã đăng ký nghỉ phép thành công. Đã khóa ${item.lockedSlotCount} khung giờ chờ điều phối.`
+            : `Đã khóa ${item.lockedSlotCount} khung giờ và mở ${item.affectedAppointmentCount} lịch cần sắp xếp lại.`));
         setTimeout(() => this.notice.set(''), 5000);
         this.reason.set('');
         this.saving.set(false);
         this.modalOpen.set(false);
+        this.editingId.set(null);
       },
       error: (response) => {
         this.saving.set(false);
@@ -156,6 +165,7 @@ export class DoctorTimeOffManagement implements OnInit {
 
   protected openCreate(): void {
     if (!this.canManageTimeOff()) return;
+    this.editingId.set(null);
     this.error.set('');
     this.notice.set('');
     if (this.isDoctorRole()) {
@@ -181,9 +191,34 @@ export class DoctorTimeOffManagement implements OnInit {
     this.modalOpen.set(true);
   }
 
+  protected openEdit(record: DoctorTimeOffResponse): void {
+    if (!this.canManageTimeOff()) return;
+    this.error.set('');
+    this.notice.set('');
+    this.editingId.set(record.id);
+    this.selectedDoctorId.set(record.doctorId);
+    this.startDate.set(record.startDate);
+    this.endDate.set(record.endDate);
+    this.reason.set(record.reason);
+    this.modalOpen.set(true);
+  }
+
+  protected cancelRecord(record: DoctorTimeOffResponse): void {
+    if (!this.canManageTimeOff() || !window.confirm(`Hủy lịch nghỉ của ${record.doctorName} (${record.startDate} – ${record.endDate})?`)) return;
+    this.error.set('');
+    this.authApi.cancelDoctorTimeOff(record.id).subscribe({
+      next: () => {
+        this.records.update((items) => items.filter((item) => item.id !== record.id));
+        this.notice.set('Đã hủy lịch nghỉ; các khung giờ trống an toàn đã được mở lại.');
+      },
+      error: (response) => this.error.set(apiErrorMessage(response)),
+    });
+  }
+
   protected closeModal(): void {
     if (this.saving()) return;
     this.modalOpen.set(false);
+    this.editingId.set(null);
   }
 
   protected doctorName(id: string): string {

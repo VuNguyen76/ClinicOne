@@ -43,6 +43,12 @@ public class DoctorManagementController {
         return ResponseEntity.ok(service.assign(staffId, request));
     }
 
+    @PutMapping("/{staffId}/profile")
+    public ResponseEntity<DoctorAccountResponse> updateProfile(@PathVariable UUID staffId,
+            @Valid @RequestBody UpdateDoctorProfileRequest request) {
+        return ResponseEntity.ok(service.updateProfile(staffId, request));
+    }
+
     @GetMapping("/{staffId}/schedules")
     @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR', 'DOCTOR')")
     public ResponseEntity<List<DoctorScheduleResponse>> schedules(@PathVariable UUID staffId,

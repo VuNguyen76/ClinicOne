@@ -26,13 +26,6 @@ function getMonday(base: Date): Date {
   return d;
 }
 
-function formatShortDate(d: Date): string {
-  const dd = String(d.getDate()).padStart(2, '0');
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const yyyy = d.getFullYear();
-  return `${dd}/${mm}/${yyyy}`;
-}
-
 function createWeekDays(base: Date): Date[] {
   const monday = getMonday(base);
   const days: Date[] = [];
@@ -72,6 +65,7 @@ export class ScheduleTemplateManagement implements OnInit {
   protected readonly error = signal('');
   protected readonly notice = signal('');
   protected readonly modalOpen = signal(false);
+  protected readonly editingTemplateId = signal<string | null>(null);
   protected readonly activeTab = signal<'grid' | 'list' | 'form'>('grid');
 
   protected readonly selectedServiceId = signal('');
@@ -601,10 +595,17 @@ export class ScheduleTemplateManagement implements OnInit {
     }
     this.saving.set(true);
     this.error.set('');
-    this.authApi.createScheduleTemplate(request).subscribe({
+    const saveRequest = this.editingTemplateId()
+      ? this.authApi.updateScheduleTemplate(this.editingTemplateId()!, request)
+      : this.authApi.createScheduleTemplate(request);
+    saveRequest.subscribe({
       next: (template) => {
-        this.templates.update((items) => [template, ...items]);
-        this.notice.set(`Đã kích hoạt lịch trực cho ${template.doctorName} (${template.generatedSlotCount} khung giờ khám).`);
+        const previousId = this.editingTemplateId();
+        this.templates.update((items) => [template, ...items.filter((item) => item.id !== previousId)]);
+        this.notice.set(previousId
+          ? `Đã cập nhật lịch trực cho ${template.doctorName} (${template.generatedSlotCount} khung giờ khám).`
+          : `Đã kích hoạt lịch trực cho ${template.doctorName} (${template.generatedSlotCount} khung giờ khám).`);
+        this.editingTemplateId.set(null);
         this.saving.set(false);
         this.modalOpen.set(false);
         this.activeTab.set('grid');
@@ -618,8 +619,33 @@ export class ScheduleTemplateManagement implements OnInit {
 
   protected startCreate(): void {
     if (!this.canManageSchedule()) return;
+    this.editingTemplateId.set(null);
     this.error.set('');
     this.notice.set('');
+    this.modalOpen.set(true);
+    this.activeTab.set('form');
+  }
+
+  protected editTemplate(template: ScheduleTemplateResponse): void {
+    if (!this.canManageSchedule()) return;
+    this.closeTemplateDetail();
+    this.error.set('');
+    this.notice.set('');
+    this.editingTemplateId.set(template.id);
+    this.selectedServiceId.set(template.clinicServiceId);
+    this.selectedDoctorId.set(template.doctorId);
+    this.selectedRoomId.set(template.roomId);
+    this.startDate.set(template.startDate);
+    this.endDate.set(template.endDate);
+    this.dayStart.set(template.dayStart.slice(0, 5));
+    this.dayEnd.set(template.dayEnd.slice(0, 5));
+    this.durationMinutes.set(template.durationMinutes);
+    this.selectedWeekdays.set([...template.weekdays]);
+    const firstBreak = template.breaks?.[0];
+    this.hasBreak.set(!!firstBreak);
+    this.breakStart.set(firstBreak?.startTime.slice(0, 5) ?? '');
+    this.breakEnd.set(firstBreak?.endTime.slice(0, 5) ?? '');
+    this.exceptionDatesText.set((template.exceptionDates ?? []).join(', '));
     this.modalOpen.set(true);
     this.activeTab.set('form');
   }
@@ -627,6 +653,7 @@ export class ScheduleTemplateManagement implements OnInit {
   protected cancelEdit(): void {
     if (this.saving()) return;
     this.modalOpen.set(false);
+    this.editingTemplateId.set(null);
     this.activeTab.set('grid');
   }
 

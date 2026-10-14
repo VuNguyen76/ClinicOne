@@ -104,6 +104,20 @@ describe('StaffManagement', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Đã cập nhật vai trò');
   });
+  it('updates a staff profile without changing the account identity', () => {
+    http.expectOne('/api/v1/admin/staff').flush([account('ACTIVE')]);
+    const component = fixture.componentInstance as any;
+    const current = { ...account('ACTIVE'), unitName: 'ClinicOne', departmentName: 'Khoa Nội' };
+    component.openProfileEditor(current);
+    component.profileFullName.set('Bác sĩ Nguyễn An');
+    component.saveProfile();
+
+    const request = http.expectOne('/api/v1/admin/staff/staff-1/profile');
+    expect(request.request.method).toBe('PUT');
+    expect(request.request.body).toEqual({ fullName: 'Bác sĩ Nguyễn An', unitName: 'ClinicOne', departmentName: 'Khoa Nội' });
+    request.flush({ ...current, fullName: 'Bác sĩ Nguyễn An' });
+    expect(component.accounts()[0].fullName).toBe('Bác sĩ Nguyễn An');
+  });
 });
 
 function account(status: string) {
