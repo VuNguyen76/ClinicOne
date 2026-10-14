@@ -7,6 +7,7 @@ import {
   AuthApiService,
   ClinicServiceResponse,
   DiagnosisSuggestionResponse,
+  MedicationSuggestionResponse,
   MedicalRecordTemplate,
   SpecialtyOption,
   apiErrorMessage,
@@ -19,11 +20,12 @@ import {
 } from '../../core/examination/medical-record-template-content';
 import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
 import { hasStaffRole } from '../../core/auth/auth.guard';
+import { DiagnosisCatalogManagement } from '../diagnosis-catalog-management/diagnosis-catalog-management';
 
 @Component({
   selector: 'app-medical-record-template-management',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule, StaffWorkspaceShell],
+  imports: [CommonModule, FormsModule, MatIconModule, StaffWorkspaceShell, DiagnosisCatalogManagement],
   templateUrl: './medical-record-template-management.html',
 })
 export class MedicalRecordTemplateManagement implements OnInit {
@@ -37,11 +39,17 @@ export class MedicalRecordTemplateManagement implements OnInit {
     return hasStaffRole('ADMIN') || hasStaffRole('COORDINATOR');
   }
 
+  protected canAccessDiagnosisCatalog(): boolean {
+    return this.canManageTemplates() || this.isDoctorRole();
+  }
+
   protected readonly items = signal<MedicalRecordTemplate[]>([]);
   protected readonly viewingTemplate = signal<MedicalRecordTemplate | null>(null);
   protected readonly specialties = signal<SpecialtyOption[]>([]);
   protected readonly services = signal<ClinicServiceResponse[]>([]);
   protected readonly diagnoses = signal<DiagnosisSuggestionResponse[]>([]);
+  protected readonly medications = signal<MedicationSuggestionResponse[]>([]);
+  protected readonly catalogError = signal('');
   protected readonly editingId = signal<string | null>(null);
   protected readonly code = signal('');
   protected readonly name = signal('');
@@ -60,7 +68,13 @@ export class MedicalRecordTemplateManagement implements OnInit {
   protected readonly saving = signal(false);
   protected readonly error = signal('');
   protected readonly notice = signal('');
-  protected readonly activeTab = signal<'list' | 'form'>('list');
+  protected readonly activeTab = signal<'list' | 'form' | 'diagnoses'>('list');
+  protected readonly activeSetupStep = signal<1 | 2 | 3>(1);
+  protected readonly setupSteps = [
+    { number: 1 as const, title: 'Thông tin mẫu', icon: 'badge' },
+    { number: 2 as const, title: 'Nội dung khám', icon: 'clinical_notes' },
+    { number: 3 as const, title: 'Đơn thuốc', icon: 'medication' },
+  ];
   protected readonly searchTerm = signal('');
 
   protected readonly filteredServices = computed(() => this.services()
@@ -96,6 +110,20 @@ export class MedicalRecordTemplateManagement implements OnInit {
 
   protected viewTemplate(item: MedicalRecordTemplate): void {
     this.viewingTemplate.set(item);
+  }
+
+  protected goToSetupStep(step: 1 | 2 | 3): void {
+    this.activeSetupStep.set(step);
+  }
+
+  protected nextSetupStep(): void {
+    const current = this.activeSetupStep();
+    if (current < 3) this.activeSetupStep.set((current + 1) as 2 | 3);
+  }
+
+  protected previousSetupStep(): void {
+    const current = this.activeSetupStep();
+    if (current > 1) this.activeSetupStep.set((current - 1) as 1 | 2);
   }
 
   protected closeViewTemplate(): void {
@@ -174,6 +202,7 @@ export class MedicalRecordTemplateManagement implements OnInit {
     this.followUpNote.set(content.followUpNote ?? '');
     this.prescriptionLines.set(content.prescriptionLines ? [...content.prescriptionLines] : []);
     this.clearMessages();
+    this.activeSetupStep.set(1);
     this.activeTab.set('form');
   }
 
@@ -187,6 +216,7 @@ export class MedicalRecordTemplateManagement implements OnInit {
     if (!this.canManageTemplates()) return;
     this.resetForm();
     this.clearMessages();
+    this.activeSetupStep.set(1);
     this.activeTab.set('form');
   }
 
@@ -208,7 +238,30 @@ export class MedicalRecordTemplateManagement implements OnInit {
     this.prescriptionLines.update((lines) => lines.filter((_, i) => i !== index));
   }
 
-  protected updateLineField(index: number, field: keyof TemplatePrescriptionLine, value: any): void {
+  protected updateMedicationLine(index: number, value: string): void {
+    const medicationName = value.trim();
+    const medication = this.medications().find((item) =>
+      item.name.toLocaleLowerCase('vi-VN') === medicationName.toLocaleLowerCase('vi-VN'));
+
+    this.prescriptionLines.update((lines) => lines.map((line, i) => {
+      if (i !== index) return line;
+      return {
+        ...line,
+        medicationId: medication?.id ?? null,
+        medicationName,
+        dosage: medication ? medication.defaultDosage ?? '' : line.dosage,
+        quantity: medication ? 1 : line.quantity,
+        unit: medication ? medication.unit ?? '' : line.unit,
+        instructions: medication ? medication.defaultInstructions ?? '' : line.instructions,
+      };
+    }));
+  }
+
+  protected updateLineField(
+    index: number,
+    field: Exclude<keyof TemplatePrescriptionLine, 'medicationName' | 'medicationId'>,
+    value: string | number,
+  ): void {
     this.prescriptionLines.update((lines) =>
       lines.map((line, i) => (i === index ? { ...line, [field]: value } : line))
     );
@@ -219,14 +272,6 @@ export class MedicalRecordTemplateManagement implements OnInit {
     if (!this.filteredServices().some((service) => service.id === this.clinicServiceId())) {
       this.clinicServiceId.set('');
     }
-  }
-
-  protected loadDiagnoses(): void {
-    if (this.diagnoses().length > 0) return;
-    this.api.getDoctorDiagnosisSuggestions('').subscribe({
-      next: (items) => this.diagnoses.set(items),
-      error: () => {},
-    });
   }
 
   protected deactivate(item: MedicalRecordTemplate): void {
@@ -272,11 +317,24 @@ export class MedicalRecordTemplateManagement implements OnInit {
         this.specialties.set(specialties);
         this.services.set(services);
         this.loading.set(false);
+        if (this.canManageTemplates()) this.loadClinicalCatalogs();
       },
       error: (response) => {
         this.error.set(apiErrorMessage(response));
         this.loading.set(false);
       },
+    });
+  }
+
+  private loadClinicalCatalogs(): void {
+    this.catalogError.set('');
+    this.api.getAdminDiagnoses(true).subscribe({
+      next: (items) => this.diagnoses.set(items.filter((item) => item.active)),
+      error: (response) => this.catalogError.set(apiErrorMessage(response)),
+    });
+    this.api.getAdminMedications(true).subscribe({
+      next: (items) => this.medications.set(items.filter((item) => item.active)),
+      error: (response) => this.catalogError.set(apiErrorMessage(response)),
     });
   }
 
@@ -316,6 +374,7 @@ export class MedicalRecordTemplateManagement implements OnInit {
     this.followUpDays.set(null);
     this.followUpNote.set('');
     this.prescriptionLines.set([]);
+    this.catalogError.set('');
   }
 
   private clearMessages(): void {

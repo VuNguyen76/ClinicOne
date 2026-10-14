@@ -1,4 +1,5 @@
 export type TemplatePrescriptionLine = {
+  medicationId?: string | null;
   medicationName: string;
   dosage: string;
   quantity: number;
@@ -77,6 +78,10 @@ function normalizeContent(value: unknown): MedicalRecordTemplateContent {
       if (isRecord(item) && typeof item['medicationName'] === 'string' && item['medicationName'].trim()) {
         const qty = typeof item['quantity'] === 'number' && item['quantity'] > 0 ? Math.min(Math.floor(item['quantity']), 999) : 1;
         lines.push({
+          medicationId: typeof item['medicationId'] === 'string'
+            && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(item['medicationId'])
+            ? item['medicationId']
+            : null,
           medicationName: item['medicationName'].trim().slice(0, 200),
           dosage: typeof item['dosage'] === 'string' ? item['dosage'].trim().slice(0, 100) : '',
           quantity: qty,

@@ -59,6 +59,8 @@ export class MedicationCatalogManagement implements OnInit {
   protected readonly unit = signal('');
   protected readonly unitPrice = signal(0);
   protected readonly metadataModal = signal<'unit' | 'dosage' | null>(null);
+  protected readonly metadataEditingId = signal<string | null>(null);
+  protected readonly metadataOriginalUnitName = signal('');
   protected readonly metadataCode = signal('');
   protected readonly metadataName = signal('');
   protected readonly metadataDescription = signal('');
@@ -89,6 +91,10 @@ export class MedicationCatalogManagement implements OnInit {
   protected readonly standardDosageFormats = computed<string[]>(() => {
     return this.filteredDosagesForUnit().map((d) => d.dosageFormat);
   });
+
+  protected formatUnitPrice(amount: number | null | undefined): string {
+    return new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 }).format(amount ?? 0);
+  }
 
   protected selectUnit(u: string): void {
     this.unit.set(u);
@@ -155,13 +161,13 @@ export class MedicationCatalogManagement implements OnInit {
       });
     }
     if (this.authApi.getMedicationUnits) {
-      this.authApi.getMedicationUnits().subscribe({
+      this.authApi.getMedicationUnits(!this.canManage()).subscribe({
         next: (items) => this.medicationUnits.set(items || []),
         error: (response: ApiErrorResponse) => this.error.set(apiErrorMessage(response)),
       });
     }
     if (this.authApi.getMedicationDosages) {
-      this.authApi.getMedicationDosages().subscribe({
+      this.authApi.getMedicationDosages(undefined, !this.canManage()).subscribe({
         next: (items) => this.medicationDosages.set(items || []),
         error: (response: ApiErrorResponse) => this.error.set(apiErrorMessage(response)),
       });
@@ -206,6 +212,8 @@ export class MedicationCatalogManagement implements OnInit {
     if (!this.canManage()) return;
     this.loadMetadata();
     this.metadataModal.set(type);
+    this.metadataEditingId.set(null);
+    this.metadataOriginalUnitName.set('');
     this.metadataCode.set('');
     this.metadataName.set('');
     this.metadataDescription.set('');
@@ -214,6 +222,20 @@ export class MedicationCatalogManagement implements OnInit {
     this.metadataSortOrder.set(type === 'unit'
       ? Math.max(0, ...this.medicationUnits().map((item) => item.sortOrder ?? 0)) + 1
       : Math.max(0, ...this.medicationDosages().map((item) => item.sortOrder ?? 0)) + 1);
+    this.error.set('');
+  }
+
+  protected openMetadataEdit(type: 'unit' | 'dosage', item: MedicationUnitOption | MedicationDosageOption): void {
+    if (!this.canManage() || !item.id) return;
+    this.metadataModal.set(type);
+    this.metadataEditingId.set(item.id);
+    this.metadataCode.set(item.code);
+    this.metadataName.set(type === 'unit' ? (item as MedicationUnitOption).name : '');
+    this.metadataDescription.set(item.description || '');
+    this.metadataFormat.set(type === 'dosage' ? (item as MedicationDosageOption).dosageFormat : '');
+    this.metadataUnitName.set(type === 'dosage' ? (item as MedicationDosageOption).unitName : '');
+    this.metadataOriginalUnitName.set(type === 'unit' ? (item as MedicationUnitOption).name : '');
+    this.metadataSortOrder.set(item.sortOrder ?? 0);
     this.error.set('');
   }
 
@@ -243,18 +265,27 @@ export class MedicationCatalogManagement implements OnInit {
     }
     this.saving.set(true);
     this.error.set('');
+    const editingId = this.metadataEditingId();
     if (type === 'unit') {
-      this.authApi.createMedicationUnit({
+      const request = {
         code, name: this.metadataName().trim(), description: this.metadataDescription().trim(), sortOrder,
-      }).subscribe({
+      };
+      const save = editingId
+        ? this.authApi.updateMedicationUnit(editingId, request)
+        : this.authApi.createMedicationUnit(request);
+      save.subscribe({
         next: (saved) => this.finishMetadataSave('unit', saved),
         error: (response: ApiErrorResponse) => { this.saving.set(false); this.error.set(apiErrorMessage(response)); },
       });
     } else {
-      this.authApi.createMedicationDosage({
+      const request = {
         code, unitName: this.metadataUnitName().trim(), dosageFormat: this.metadataFormat().trim(),
         description: this.metadataDescription().trim(), sortOrder,
-      }).subscribe({
+      };
+      const save = editingId
+        ? this.authApi.updateMedicationDosage(editingId, request)
+        : this.authApi.createMedicationDosage(request);
+      save.subscribe({
         next: (saved) => this.finishMetadataSave('dosage', saved),
         error: (response: ApiErrorResponse) => { this.saving.set(false); this.error.set(apiErrorMessage(response)); },
       });
@@ -263,15 +294,61 @@ export class MedicationCatalogManagement implements OnInit {
 
   private finishMetadataSave(type: 'unit' | 'dosage', saved: MedicationUnitOption | MedicationDosageOption): void {
     if (type === 'unit') {
-      this.medicationUnits.update((items) => [...items, saved as MedicationUnitOption]
+      const editingId = this.metadataEditingId();
+      this.medicationUnits.update((items) => (editingId
+        ? items.map((item) => item.id === editingId ? saved as MedicationUnitOption : item)
+        : [...items, saved as MedicationUnitOption])
         .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)));
+      if (editingId) {
+        this.medicationDosages.update((items) => items.map((item) => item.unitName === this.metadataOriginalUnitName() ? { ...item, unitName: (saved as MedicationUnitOption).name } : item));
+      }
     } else {
-      this.medicationDosages.update((items) => [...items, saved as MedicationDosageOption]
+      const editingId = this.metadataEditingId();
+      this.medicationDosages.update((items) => (editingId
+        ? items.map((item) => item.id === editingId ? saved as MedicationDosageOption : item)
+        : [...items, saved as MedicationDosageOption])
         .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)));
     }
     this.saving.set(false);
     this.metadataModal.set(null);
-    this.notice.set(type === 'unit' ? 'Đã thêm đơn vị tính.' : 'Đã thêm liều dùng chuẩn.');
+    this.notice.set(type === 'unit'
+      ? (this.metadataEditingId() ? 'Đã cập nhật đơn vị tính.' : 'Đã thêm đơn vị tính.')
+      : (this.metadataEditingId() ? 'Đã cập nhật liều dùng chuẩn.' : 'Đã thêm liều dùng chuẩn.'));
+    this.metadataEditingId.set(null);
+    setTimeout(() => this.notice.set(''), 4000);
+  }
+
+  protected toggleMetadataActive(type: 'unit' | 'dosage', item: MedicationUnitOption | MedicationDosageOption): void {
+    if (!this.canToggleActive() || !item.id) return;
+    const onError = (response: ApiErrorResponse) => this.error.set(apiErrorMessage(response));
+    if (type === 'unit') {
+      this.authApi.setMedicationUnitActive(item.id, item.active === false).subscribe({
+        next: (saved) => {
+          this.medicationUnits.update((items) => items.map((current) => current.id === saved.id ? saved : current));
+          if (saved.active === false) {
+            this.medicationDosages.update((items) => items.map((current) => current.unitName === saved.name ? { ...current, active: false } : current));
+          }
+          this.setMetadataToggleNotice(type, saved.active !== false);
+        },
+        error: onError,
+      });
+    } else {
+      this.authApi.setMedicationDosageActive(item.id, item.active === false).subscribe({
+        next: (saved) => {
+          this.medicationDosages.update((items) => items.map((current) => current.id === saved.id ? saved : current));
+          this.setMetadataToggleNotice(type, saved.active !== false);
+        },
+        error: onError,
+      });
+    }
+  }
+
+  private setMetadataToggleNotice(type: 'unit' | 'dosage', active: boolean): void {
+    this.notice.set(active
+      ? `Đã kích hoạt lại ${type === 'unit' ? 'đơn vị tính' : 'liều dùng chuẩn'}.`
+      : type === 'unit'
+        ? 'Đã ngừng đơn vị tính và các liều dùng tương ứng; dữ liệu cũ vẫn được giữ.'
+        : 'Đã ngừng liều dùng chuẩn; dữ liệu cũ vẫn được giữ.');
     setTimeout(() => this.notice.set(''), 4000);
   }
 
@@ -338,5 +415,21 @@ export class MedicationCatalogManagement implements OnInit {
       next: (items) => { this.medications.set(items); this.loading.set(false); },
       error: (response: ApiErrorResponse) => { this.error.set(apiErrorMessage(response)); this.loading.set(false); },
     });
+  }
+
+  protected refresh(): void {
+    this.load();
+    if (this.authApi.getMedicationUnits) {
+      this.authApi.getMedicationUnits(!this.canManage()).subscribe({
+        next: (items) => this.medicationUnits.set(items || []),
+        error: (response: ApiErrorResponse) => this.error.set(apiErrorMessage(response)),
+      });
+    }
+    if (this.authApi.getMedicationDosages) {
+      this.authApi.getMedicationDosages(undefined, !this.canManage()).subscribe({
+        next: (items) => this.medicationDosages.set(items || []),
+        error: (response: ApiErrorResponse) => this.error.set(apiErrorMessage(response)),
+      });
+    }
   }
 }

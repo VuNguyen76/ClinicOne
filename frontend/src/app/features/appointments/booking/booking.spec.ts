@@ -23,10 +23,14 @@ describe('Booking calendar', () => {
     http.expectOne('/api/v1/specialties').flush([{ code: 'NOI', name: 'Nội tổng quát', description: 'Khám tổng quát' }]);
     http.expectOne('/api/v1/services').flush([]);
     http.expectOne('/api/v1/patient-profiles').flush([]);
+    http.match((req) => req.url.includes('/api/v1/reasons/clinical')).forEach((req) => req.flush([]));
     fixture.detectChanges();
   });
 
-  afterEach(() => http.verify());
+  afterEach(() => {
+    http.match((req) => req.url.includes('/api/v1/reasons/clinical')).forEach((req) => req.flush([]));
+    http.verify();
+  });
 
   it('keeps the patient session for a business-rule 403 instead of redirecting to login', () => {
     const sessionToken = 'valid-patient-session';

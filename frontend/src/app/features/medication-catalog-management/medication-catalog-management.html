@@ -25,19 +25,18 @@
     }
 
     <!-- 1. Tabs Navigation: Thuốc | Đơn vị tính | Liều dùng chuẩn -->
-    <div class="flex items-center gap-6 border-b border-slate-200">
+    <div class="flex items-center gap-1 border-b border-slate-200">
       <button
         type="button"
         data-testid="tab-medications"
         (click)="setTab('medications')"
-        class="relative flex items-center gap-2 pb-3 text-xs font-bold transition cursor-pointer"
+        class="relative flex items-center gap-2 px-4 py-2 text-xs font-semibold border-b-2 transition cursor-pointer"
         [class.text-[#0284c7]]="activeTab() === 'medications'"
         [class.border-b-2]="activeTab() === 'medications'"
         [class.border-[#0284c7]]="activeTab() === 'medications'"
         [class.text-slate-500]="activeTab() !== 'medications'"
         [class.hover:text-slate-800]="activeTab() !== 'medications'"
       >
-        <mat-icon class="!h-4 !w-4 !text-[16px]">medication</mat-icon>
         <span>Thuốc</span>
         <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600"
               [class.bg-sky-100]="activeTab() === 'medications'"
@@ -50,14 +49,13 @@
         type="button"
         data-testid="tab-units"
         (click)="setTab('units')"
-        class="relative flex items-center gap-2 pb-3 text-xs font-bold transition cursor-pointer"
+        class="relative flex items-center gap-2 px-4 py-2 text-xs font-semibold border-b-2 transition cursor-pointer"
         [class.text-[#0284c7]]="activeTab() === 'units'"
         [class.border-b-2]="activeTab() === 'units'"
         [class.border-[#0284c7]]="activeTab() === 'units'"
         [class.text-slate-500]="activeTab() !== 'units'"
         [class.hover:text-slate-800]="activeTab() !== 'units'"
       >
-        <mat-icon class="!h-4 !w-4 !text-[16px]">straighten</mat-icon>
         <span>Đơn vị tính</span>
         <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600"
               [class.bg-sky-100]="activeTab() === 'units'"
@@ -70,14 +68,13 @@
         type="button"
         data-testid="tab-dosages"
         (click)="setTab('dosages')"
-        class="relative flex items-center gap-2 pb-3 text-xs font-bold transition cursor-pointer"
+        class="relative flex items-center gap-2 px-4 py-2 text-xs font-semibold border-b-2 transition cursor-pointer"
         [class.text-[#0284c7]]="activeTab() === 'dosages'"
         [class.border-b-2]="activeTab() === 'dosages'"
         [class.border-[#0284c7]]="activeTab() === 'dosages'"
         [class.text-slate-500]="activeTab() !== 'dosages'"
         [class.hover:text-slate-800]="activeTab() !== 'dosages'"
       >
-        <mat-icon class="!h-4 !w-4 !text-[16px]">schedule</mat-icon>
         <span>Liều dùng chuẩn</span>
         <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600"
               [class.bg-sky-100]="activeTab() === 'dosages'"
@@ -125,7 +122,7 @@
         <button
           type="button"
           class="erp-btn-icon !h-10 !w-10 rounded-xl border border-slate-200 bg-white shadow-2xs cursor-pointer"
-          (click)="load()"
+          (click)="refresh()"
           [disabled]="loading()"
           title="Làm mới dữ liệu"
         >
@@ -143,14 +140,14 @@
       } @else {
         <section class="rounded-2xl border border-slate-100 bg-white shadow-xs overflow-hidden w-full">
           <div class="overflow-x-auto">
-            <table class="w-full table-fixed text-left text-xs">
+            <table class="w-full min-w-[1080px] table-fixed text-left text-xs">
               <thead>
                 <tr class="border-b border-slate-100 text-[11px] font-semibold text-slate-500 uppercase tracking-wider bg-slate-50/50">
-                  <th class="px-4 py-3.5 w-36 text-right whitespace-nowrap">Giá bán</th>
                   <th class="px-4 py-3.5 w-44 whitespace-nowrap">Mã thuốc</th>
                   <th class="px-4 py-3.5">Tên thuốc</th>
-                  <th class="px-4 py-3.5 w-36 whitespace-nowrap">Nhóm & Đơn vị</th>
+                  <th class="px-4 py-3.5 w-36 whitespace-nowrap">Nhóm &amp; Đơn vị</th>
                   <th class="px-4 py-3.5 w-48">Liều dùng</th>
+                  <th class="px-4 py-3.5 w-32 text-right whitespace-nowrap">Đơn giá</th>
                   <th class="px-4 py-3.5 w-28 text-center whitespace-nowrap">Trạng thái</th>
                   <th class="px-4 py-3.5 w-28 text-center font-semibold whitespace-nowrap">Thao tác</th>
                 </tr>
@@ -158,7 +155,6 @@
               <tbody class="divide-y divide-slate-50">
                 @for (item of filteredMedications(); track item.id) {
                   <tr data-testid="medication-row" class="transition hover:bg-slate-50/70">
-                    <td class="px-4 py-3 text-right whitespace-nowrap font-semibold text-slate-800">{{ item.unitPrice ?? 0 }} đ</td>
                     <td class="px-4 py-3 font-mono font-bold text-slate-800 whitespace-nowrap">{{ item.code }}</td>
                     <td class="px-4 py-3">
                       <span class="font-semibold text-slate-900 text-xs block truncate">{{ item.name }}</span>
@@ -183,6 +179,7 @@
                     <td class="px-4 py-3 text-slate-600 text-xs truncate" [title]="item.defaultDosage || ''">
                       {{ item.defaultDosage || '—' }}
                     </td>
+                    <td class="px-4 py-3 text-right whitespace-nowrap font-semibold tabular-nums text-slate-800">{{ formatUnitPrice(item.unitPrice) }} đ</td>
                     <td class="px-4 py-3 text-center whitespace-nowrap">
                       @if (item.active) {
                         <span class="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[11px] font-medium text-emerald-800">Đang dùng</span>
@@ -193,13 +190,15 @@
                       }
                     </td>
                     <td class="px-4 py-3 text-center whitespace-nowrap">
-                      <div class="flex items-center justify-center gap-2">
+                      <div class="flex items-center justify-center gap-1.5">
                         @if (canManage()) {
                           <button
                             type="button"
-                            class="erp-btn-icon-accent cursor-pointer"
+                            class="erp-btn-icon-accent"
+                            [attr.data-testid]="'edit-medication-' + item.id"
+                            [attr.aria-label]="'Sửa thông tin thuốc ' + item.name"
                             (click)="openEdit(item)"
-                            title="Sửa thông tin thuốc"
+                            [title]="'Sửa thông tin thuốc ' + item.name"
                           >
                             <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">edit</mat-icon>
                           </button>
@@ -207,12 +206,13 @@
                         @if (canToggleActive()) {
                           <button
                             type="button"
-                            class="erp-btn-icon cursor-pointer"
+                            [class]="item.active ? 'erp-btn-icon-danger' : 'erp-btn-icon-accent'"
                             [attr.data-testid]="'toggle-medication-' + item.id"
-                            [title]="item.active ? 'Tạm ngưng dùng' : 'Kích hoạt lại'"
+                            [attr.aria-label]="item.active ? 'Ngừng sử dụng thuốc ' + item.name : 'Kích hoạt lại thuốc ' + item.name"
+                            [title]="item.active ? 'Ngừng sử dụng (giữ hồ sơ)' : 'Kích hoạt lại'"
                             (click)="toggleActive(item)"
                           >
-                            <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">{{ item.active ? 'pause' : 'play_arrow' }}</mat-icon>
+                            <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">{{ item.active ? 'delete_outline' : 'restore_from_trash' }}</mat-icon>
                           </button>
                         }
                       </div>
@@ -248,40 +248,67 @@
     @if (activeTab() === 'units') {
       <section class="rounded-2xl border border-slate-100 bg-white shadow-xs overflow-hidden w-full" data-testid="units-table-container">
         <div class="overflow-x-auto">
-          <table class="w-full table-fixed text-left text-xs">
+          <table class="w-full min-w-[700px] table-fixed text-left text-xs">
             <thead>
               <tr class="border-b border-slate-100 text-[11px] font-semibold text-slate-500 uppercase tracking-wider bg-slate-50/50">
-                <th class="px-4 py-3.5 w-16 text-center whitespace-nowrap">STT</th>
-                <th class="px-4 py-3.5 w-40 whitespace-nowrap">Mã ĐVT</th>
-                <th class="px-4 py-3.5 w-44 whitespace-nowrap">Tên đơn vị</th>
+                <th class="px-3 py-3.5 w-12 text-center whitespace-nowrap">STT</th>
+                <th class="px-3 py-3.5 w-32 whitespace-nowrap">Mã ĐVT</th>
+                <th class="px-3 py-3.5 w-36 whitespace-nowrap">Tên đơn vị</th>
                 <th class="px-4 py-3.5">Mô tả / Dạng bào chế</th>
-                <th class="px-4 py-3.5 w-28 text-center whitespace-nowrap">Trạng thái</th>
+                <th class="px-3 py-3.5 w-24 text-center whitespace-nowrap">Trạng thái</th>
+                <th class="px-3 py-3.5 w-32 text-center whitespace-nowrap">Thao tác</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-50">
-              @for (unitItem of filteredUnits(); track unitItem.code; let idx = $index) {
+              @for (unitItem of filteredUnits(); track unitItem.id || unitItem.code; let idx = $index) {
                 <tr class="transition hover:bg-slate-50/70">
-                  <td class="px-4 py-3 text-center text-slate-400 font-mono">{{ idx + 1 }}</td>
-                  <td class="px-4 py-3 font-mono font-bold text-slate-800 whitespace-nowrap">{{ unitItem.code }}</td>
-                  <td class="px-4 py-3 whitespace-nowrap">
+                  <td class="px-3 py-3 text-center text-slate-400 font-mono">{{ idx + 1 }}</td>
+                  <td class="px-3 py-3 font-mono font-bold text-slate-800 whitespace-nowrap">{{ unitItem.code }}</td>
+                  <td class="px-3 py-3 whitespace-nowrap">
                     <span class="inline-flex items-center rounded-md bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-700 border border-sky-200/60">
                       {{ unitItem.name }}
                     </span>
                   </td>
-                  <td class="px-4 py-3 text-slate-600 text-xs truncate" [title]="unitItem.description || ''">
+                  <td class="px-3 py-3 text-slate-600 text-xs truncate" [title]="unitItem.description || ''">
                     {{ unitItem.description || '—' }}
                   </td>
-                  <td class="px-4 py-3 text-center whitespace-nowrap">
+                  <td class="px-3 py-3 text-center whitespace-nowrap">
                     @if (unitItem.active !== false) {
                       <span class="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[11px] font-medium text-emerald-800">Đang dùng</span>
                     } @else {
                       <span class="inline-flex items-center rounded-full bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-[11px] font-medium text-slate-600">Tạm ngưng</span>
                     }
                   </td>
+                  <td class="px-3 py-3 text-center whitespace-nowrap">
+                    @if (canManage()) {
+                      <div class="flex items-center justify-center gap-1.5">
+                        <button
+                          type="button"
+                          class="erp-btn-icon-accent"
+                          [attr.data-testid]="'edit-medication-unit-' + unitItem.id"
+                          [attr.aria-label]="'Sửa đơn vị tính ' + unitItem.name"
+                          [title]="'Sửa đơn vị tính ' + unitItem.name"
+                          (click)="openMetadataEdit('unit', unitItem)"
+                        >
+                          <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">edit</mat-icon>
+                        </button>
+                        <button
+                          type="button"
+                          [class]="unitItem.active === false ? 'erp-btn-icon-accent' : 'erp-btn-icon-danger'"
+                          [attr.data-testid]="'toggle-medication-unit-' + unitItem.id"
+                          [attr.aria-label]="unitItem.active === false ? 'Kích hoạt lại đơn vị tính ' + unitItem.name : 'Ngừng sử dụng đơn vị tính ' + unitItem.name"
+                          [title]="unitItem.active === false ? 'Kích hoạt lại' : 'Ngừng sử dụng (giữ hồ sơ và liều dùng liên quan)'"
+                          (click)="toggleMetadataActive('unit', unitItem)"
+                        >
+                          <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">{{ unitItem.active === false ? 'restore_from_trash' : 'delete_outline' }}</mat-icon>
+                        </button>
+                      </div>
+                    } @else { — }
+                  </td>
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="5" class="px-4 py-12 text-center text-xs text-slate-500">
+                  <td colspan="6" class="px-4 py-12 text-center text-xs text-slate-500">
                     Không tìm thấy đơn vị tính nào phù hợp.
                   </td>
                 </tr>
@@ -296,7 +323,7 @@
     @if (activeTab() === 'dosages') {
       <section class="rounded-2xl border border-slate-100 bg-white shadow-xs overflow-hidden w-full" data-testid="dosages-table-container">
         <div class="overflow-x-auto">
-          <table class="w-full table-fixed text-left text-xs">
+          <table class="w-full min-w-[980px] table-fixed text-left text-xs">
             <thead>
               <tr class="border-b border-slate-100 text-[11px] font-semibold text-slate-500 uppercase tracking-wider bg-slate-50/50">
                 <th class="px-4 py-3.5 w-40 whitespace-nowrap">Mã liều</th>
@@ -304,10 +331,11 @@
                 <th class="px-4 py-3.5">Định dạng liều chuẩn y tế</th>
                 <th class="px-4 py-3.5 w-64">Ghi chú / Hướng dẫn</th>
                 <th class="px-4 py-3.5 w-28 text-center whitespace-nowrap">Trạng thái</th>
+                <th class="px-4 py-3.5 w-32 text-center whitespace-nowrap">Thao tác</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-50">
-              @for (dosageItem of filteredDosages(); track dosageItem.code) {
+              @for (dosageItem of filteredDosages(); track dosageItem.id || dosageItem.code) {
                 <tr class="transition hover:bg-slate-50/70">
                   <td class="px-4 py-3 font-mono font-bold text-slate-800 whitespace-nowrap">{{ dosageItem.code }}</td>
                   <td class="px-4 py-3 whitespace-nowrap">
@@ -328,10 +356,36 @@
                       <span class="inline-flex items-center rounded-full bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-[11px] font-medium text-slate-600">Tạm ngưng</span>
                     }
                   </td>
+                  <td class="px-4 py-3 text-center whitespace-nowrap">
+                    @if (canManage()) {
+                      <div class="flex items-center justify-center gap-1.5">
+                        <button
+                          type="button"
+                          class="erp-btn-icon-accent"
+                          [attr.data-testid]="'edit-medication-dosage-' + dosageItem.id"
+                          [attr.aria-label]="'Sửa liều dùng chuẩn ' + dosageItem.code"
+                          [title]="'Sửa liều dùng chuẩn ' + dosageItem.code"
+                          (click)="openMetadataEdit('dosage', dosageItem)"
+                        >
+                          <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">edit</mat-icon>
+                        </button>
+                        <button
+                          type="button"
+                          [class]="dosageItem.active === false ? 'erp-btn-icon-accent' : 'erp-btn-icon-danger'"
+                          [attr.data-testid]="'toggle-medication-dosage-' + dosageItem.id"
+                          [attr.aria-label]="dosageItem.active === false ? 'Kích hoạt lại liều dùng ' + dosageItem.code : 'Ngừng sử dụng liều dùng ' + dosageItem.code"
+                          [title]="dosageItem.active === false ? 'Kích hoạt lại' : 'Ngừng sử dụng (giữ hồ sơ)'"
+                          (click)="toggleMetadataActive('dosage', dosageItem)"
+                        >
+                          <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">{{ dosageItem.active === false ? 'restore_from_trash' : 'delete_outline' }}</mat-icon>
+                        </button>
+                      </div>
+                    } @else { — }
+                  </td>
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="5" class="px-4 py-12 text-center text-xs text-slate-500">
+                  <td colspan="6" class="px-4 py-12 text-center text-xs text-slate-500">
                     Không tìm thấy định dạng liều dùng nào phù hợp.
                   </td>
                 </tr>
@@ -536,7 +590,7 @@
       <section class="erp-modal-container max-w-xl" (click)="$event.stopPropagation()">
         <div class="erp-modal-header">
           <h2 id="medication-metadata-dialog-title" class="text-sm font-bold text-slate-900">
-            {{ type === 'unit' ? 'Thêm đơn vị tính' : 'Thêm liều dùng chuẩn' }}
+            {{ metadataEditingId() ? 'Sửa' : 'Thêm' }} {{ type === 'unit' ? 'đơn vị tính' : 'liều dùng chuẩn' }}
           </h2>
           <button type="button" class="erp-btn-icon cursor-pointer" aria-label="Đóng" (click)="closeMetadataModal()">
             <mat-icon class="!h-4 !w-4 !text-[18px]">close</mat-icon>
@@ -583,7 +637,7 @@
           <div class="erp-modal-footer">
             <button type="button" class="erp-btn-secondary cursor-pointer" (click)="closeMetadataModal()">Hủy</button>
             <button type="submit" class="erp-btn-primary cursor-pointer" [disabled]="saving()">
-              {{ saving() ? 'Đang lưu...' : 'Thêm vào danh mục' }}
+              {{ saving() ? 'Đang lưu...' : metadataEditingId() ? 'Lưu thay đổi' : 'Thêm vào danh mục' }}
             </button>
           </div>
         </form>

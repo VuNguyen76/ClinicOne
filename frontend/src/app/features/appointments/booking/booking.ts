@@ -90,6 +90,7 @@ export class Booking implements OnInit {
   private createRequestKey: string | null = null;
   private createRequestFingerprint: string | null = null;
   private availabilityRequestId = 0;
+  private clinicalReasonsCache: Array<{ specialtyName: string; symptomName: string }> = [];
 
   protected readonly patientProfiles = signal<PatientProfileItem[]>([]);
   protected readonly primaryProfile = computed(() => this.patientProfiles().find((p) => p.primaryProfile) ?? this.patientProfiles()[0]);
@@ -99,6 +100,14 @@ export class Booking implements OnInit {
     const id = this.profileIdValue();
     return this.patientProfiles().find((p) => p.id === id) ?? this.primaryProfile();
   });
+
+  protected readonly commonReasons = signal<string[]>([]);
+
+  protected fillQuickReason(reasonText: string): void {
+    this.form.controls.reason.setValue(reasonText);
+    this.form.controls.reason.markAsDirty();
+    this.form.controls.reason.markAsTouched();
+  }
 
   protected readonly form = this.formBuilder.nonNullable.group({
     specialty: ['', [Validators.required, Validators.maxLength(120)]],
@@ -165,6 +174,7 @@ export class Booking implements OnInit {
     this.selectedClinicService.set(service);
     this.selectedSpecialty.set(service.specialty);
     this.form.controls.specialty.setValue(service.specialty);
+    this.loadClinicalReasons(service.specialty);
     this.form.controls.appointmentDate.reset('');
     this.form.controls.startTime.reset('');
     this.selectedDate.set('');
@@ -181,6 +191,7 @@ export class Booking implements OnInit {
     this.selectedClinicService.set(null);
     this.selectedSpecialty.set(specialty.name);
     this.form.controls.specialty.setValue(specialty.name);
+    this.loadClinicalReasons(specialty.name);
     this.form.controls.appointmentDate.reset('');
     this.form.controls.startTime.reset('');
     this.selectedDate.set('');
@@ -491,6 +502,27 @@ export class Booking implements OnInit {
     const end = new Date(today);
     end.setDate(end.getDate() + 30);
     return end;
+  }
+
+  private loadClinicalReasons(specialty: string): void {
+    if (!specialty) return;
+    const matched = this.clinicalReasonsCache
+      .filter((r) => r.specialtyName.trim().toLowerCase() === specialty.trim().toLowerCase())
+      .map((r) => r.symptomName);
+
+    if (matched.length > 0) {
+      this.commonReasons.set(matched);
+      return;
+    }
+
+    this.authApi.getClinicalReasons(specialty).subscribe({
+      next: (reasons) => {
+        this.commonReasons.set(reasons.map((r) => r.symptomName));
+      },
+      error: () => {
+        this.commonReasons.set([]);
+      },
+    });
   }
 
   private toIsoDate(date: Date): string {

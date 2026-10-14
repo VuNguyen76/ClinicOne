@@ -1,7 +1,42 @@
-<app-staff-workspace-shell moduleTitle="Danh mục" pageTitle="Lý do vận hành">
-  <div class="grid gap-6">
+<app-staff-workspace-shell moduleTitle="Dịch vụ & Khoa" pageTitle="Danh mục lý do & Triệu chứng">
+  <!-- Tabs Navigation Header -->
+  <div class="border-b border-slate-200 bg-white px-4 sm:px-6">
+    <div class="flex items-center gap-6">
+      <button
+        type="button"
+        class="border-b-2 py-3.5 text-xs font-bold transition cursor-pointer"
+        [class.border-[#0284c7]]="activeTab() === 'clinical'"
+        [class.text-[#0284c7]]="activeTab() === 'clinical'"
+        [class.border-transparent]="activeTab() !== 'clinical'"
+        [class.text-slate-500]="activeTab() !== 'clinical'"
+        (click)="switchTab('clinical')"
+      >
+        <span class="flex items-center gap-2">
+          <mat-icon class="!h-4 !w-4 !text-[16px]">stethoscope</mat-icon>
+          <span>Lý do khám chuyên khoa ({{ totalClinicalCount() }})</span>
+        </span>
+      </button>
+
+      <button
+        type="button"
+        class="border-b-2 py-3.5 text-xs font-bold transition cursor-pointer"
+        [class.border-[#0284c7]]="activeTab() === 'cancellation'"
+        [class.text-[#0284c7]]="activeTab() === 'cancellation'"
+        [class.border-transparent]="activeTab() !== 'cancellation'"
+        [class.text-slate-500]="activeTab() !== 'cancellation'"
+        (click)="switchTab('cancellation')"
+      >
+        <span class="flex items-center gap-2">
+          <mat-icon class="!h-4 !w-4 !text-[16px]">event_busy</mat-icon>
+          <span>Lý do hủy lịch hẹn ({{ totalReasonsCount() }})</span>
+        </span>
+      </button>
+    </div>
+  </div>
+
+  <div class="grid gap-5 p-4 sm:p-6">
     <!-- Alerts & Notices -->
-    @if (error() && !modalOpen()) {
+    @if (error()) {
       <div class="flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-medium text-rose-800 shadow-xs" role="alert">
         <div class="flex items-center gap-2">
           <mat-icon class="!h-4 !w-4 !text-[18px] text-rose-600">error_outline</mat-icon>
@@ -24,73 +59,82 @@
       </div>
     }
 
-    <!-- Search Bar + Add Button Header -->
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div class="relative w-full max-w-md">
-        <mat-icon class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 !h-4 !w-4 !text-[18px] text-slate-400">search</mat-icon>
-        <input
-          type="text"
-          class="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-8 text-xs text-slate-800 placeholder-slate-400 outline-none transition focus:border-[#0284c7] focus:ring-1 focus:ring-[#0284c7] shadow-2xs"
-          placeholder="Tìm kiếm theo mã hoặc nội dung lý do..."
-          [value]="searchTerm()"
-          (input)="searchTerm.set($any($event.target).value)"
-        />
-        @if (searchTerm()) {
+    <!-- TAB 1: CLINICAL REASONS PER SPECIALTY -->
+    @if (activeTab() === 'clinical') {
+      <!-- Toolbar -->
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex flex-1 flex-wrap items-center gap-2.5">
+          <!-- Specialty Filter Dropdown -->
+          <select
+            class="rounded-xl border border-slate-200 bg-white py-2.5 px-3 text-xs font-semibold text-slate-700 outline-none focus:border-[#0284c7] shadow-2xs"
+            [ngModel]="selectedSpecialtyFilter()"
+            (ngModelChange)="selectedSpecialtyFilter.set($event)"
+          >
+            <option value="">Tất cả chuyên khoa</option>
+            @for (spec of specialties(); track spec.code) {
+              <option [value]="spec.name">{{ spec.name }}</option>
+            }
+          </select>
+
+          <!-- Search Input -->
+          <div class="relative flex-1 min-w-[220px]">
+            <mat-icon class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 !h-4 !w-4 !text-[16px] text-slate-400">search</mat-icon>
+            <input
+              type="text"
+              class="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-8 text-xs text-slate-800 placeholder-slate-400 outline-none transition focus:border-[#0284c7] shadow-2xs"
+              placeholder="Tìm theo triệu chứng, chuyên khoa..."
+              [value]="searchTerm()"
+              (input)="searchTerm.set($any($event.target).value)"
+            />
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
           <button
             type="button"
-            class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-            (click)="searchTerm.set('')"
+            class="erp-btn-primary cursor-pointer"
+            (click)="openCreateClinical()"
           >
-            <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">close</mat-icon>
+            <mat-icon class="!h-4 !w-4 !text-[18px]">add</mat-icon>
+            <span>Thêm lý do khám</span>
           </button>
-        }
+          <button
+            type="button"
+            class="erp-btn-icon !h-10 !w-10 rounded-xl border border-slate-200 bg-white shadow-2xs"
+            (click)="loadClinical()"
+            title="Làm mới"
+          >
+            <mat-icon class="!h-4 !w-4 !text-[18px]">refresh</mat-icon>
+          </button>
+        </div>
       </div>
 
-      <div class="flex items-center gap-3">
-        <span class="text-xs text-slate-500 font-medium hidden md:inline">Yêu cầu tối thiểu 3 lý do áp dụng</span>
-        <button
-          type="button"
-          class="erp-btn-primary"
-          (click)="openCreate()"
-        >
-          <mat-icon class="!h-4 !w-4 !text-[18px]">add</mat-icon>
-          <span>Thêm lý do</span>
-        </button>
-        <button
-          type="button"
-          class="erp-btn-icon !h-10 !w-10 rounded-xl border border-slate-200 bg-white shadow-2xs"
-          (click)="load()"
-          [disabled]="loading()"
-          title="Làm mới dữ liệu"
-        >
-          <mat-icon class="!h-4 !w-4 !text-[18px]">refresh</mat-icon>
-        </button>
-      </div>
-    </div>
-
-    <!-- 3. Main DataGrid Table -->
-    @if (loading()) {
-      <div class="grid min-h-64 place-items-center rounded-2xl border border-slate-100 bg-white text-xs text-slate-500 shadow-xs">
-        Đang tải danh mục lý do vận hành...
-      </div>
-    } @else {
+      <!-- Clinical Table -->
       <section class="rounded-2xl border border-slate-100 bg-white shadow-xs overflow-hidden w-full">
         <div class="overflow-x-auto">
           <table class="w-full text-left text-xs whitespace-nowrap">
             <thead>
               <tr class="border-b border-slate-100 text-[11px] font-semibold text-slate-500 uppercase tracking-wider bg-slate-50/50">
-                <th class="px-4 py-3.5 w-56">Mã lý do</th>
-                <th class="px-4 py-3.5">Nội dung hiển thị khi thao tác</th>
-                <th class="px-4 py-3.5 w-32 text-center">Trạng thái</th>
+                <th class="px-4 py-3.5 w-48">Chuyên khoa</th>
+                <th class="px-4 py-3.5">Lý do khám / Triệu chứng lâm sàng</th>
+                <th class="px-4 py-3.5 w-24 text-center">Thứ tự</th>
+                <th class="px-4 py-3.5 w-28 text-center">Trạng thái</th>
                 <th class="px-4 py-3.5 w-32 text-center font-semibold">Thao tác</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-50">
-              @for (item of filteredReasons(); track item.id) {
-                <tr data-testid="reason-row" class="transition hover:bg-slate-50/70">
-                  <td class="px-4 py-3 font-mono font-bold text-slate-800">{{ item.code }}</td>
+              @for (item of filteredClinicalReasons(); track item.id) {
+                <tr class="transition hover:bg-slate-50/70">
                   <td class="px-4 py-3">
-                    <span class="font-semibold text-slate-900 text-xs">{{ item.label }}</span>
+                    <span class="inline-flex items-center rounded-lg bg-sky-50 border border-sky-100 px-2.5 py-1 text-xs font-bold text-[#0284c7]">
+                      {{ item.specialtyName }}
+                    </span>
+                  </td>
+                  <td class="px-4 py-3 font-semibold text-slate-900 text-xs">
+                    {{ item.symptomName }}
+                  </td>
+                  <td class="px-4 py-3 text-center font-mono text-slate-500">
+                    {{ item.sortOrder }}
                   </td>
                   <td class="px-4 py-3 text-center">
                     @if (item.active) {
@@ -104,30 +148,125 @@
                     }
                   </td>
                   <td class="px-4 py-3 text-center">
-                    <div class="flex items-center justify-center">
+                    <div class="flex items-center justify-center gap-1.5">
                       <button
                         type="button"
-                        class="erp-btn-secondary !min-h-0 !py-1 !px-2.5 text-[11px]"
-                        (click)="toggle(item)"
+                        class="erp-btn-icon-accent"
+                        title="Chỉnh sửa lý do"
+                        (click)="openEditClinical(item)"
                       >
-                        <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">{{ item.active ? 'pause' : 'play_arrow' }}</mat-icon>
-                        <span>{{ item.active ? 'Tạm ngưng' : 'Kích hoạt' }}</span>
+                        <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">edit</mat-icon>
+                      </button>
+                      <button
+                        type="button"
+                        [class]="item.active ? 'erp-btn-icon-danger' : 'erp-btn-icon-accent'"
+                        [title]="item.active ? 'Tạm ngưng sử dụng' : 'Kích hoạt lại'"
+                        (click)="toggleClinicalActive(item)"
+                      >
+                        <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">{{ item.active ? 'pause_circle_outline' : 'play_circle_outline' }}</mat-icon>
+                      </button>
+                      <button
+                        type="button"
+                        class="erp-btn-icon-danger"
+                        title="Xóa lý do"
+                        (click)="deleteClinical(item)"
+                      >
+                        <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">delete_outline</mat-icon>
                       </button>
                     </div>
                   </td>
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="4" class="px-4 py-12 text-center text-xs text-slate-500">
-                    <div>
-                      <p class="font-medium text-slate-700">Không tìm thấy lý do nào phù hợp.</p>
+                  <td colspan="5" class="px-4 py-12 text-center text-xs text-slate-500">
+                    <p class="font-medium text-slate-700">Chưa có lý do khám nào phù hợp.</p>
+                    <button type="button" class="erp-btn-primary mt-3" (click)="openCreateClinical()">
+                      <mat-icon class="!h-4 !w-4 !text-[18px]">add</mat-icon>
+                      <span>Thêm lý do khám</span>
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    }
+
+    <!-- TAB 2: CANCELLATION REASONS -->
+    @if (activeTab() === 'cancellation') {
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="relative w-full max-w-md">
+          <mat-icon class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 !h-4 !w-4 !text-[18px] text-slate-400">search</mat-icon>
+          <input
+            type="text"
+            class="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-8 text-xs text-slate-800 placeholder-slate-400 outline-none transition focus:border-[#0284c7] shadow-2xs"
+            placeholder="Tìm kiếm theo mã hoặc nội dung lý do..."
+            [value]="searchTerm()"
+            (input)="searchTerm.set($any($event.target).value)"
+          />
+        </div>
+
+        <div class="flex items-center gap-3">
+          <span class="text-xs text-slate-500 font-medium hidden md:inline">Yêu cầu tối thiểu 3 lý do áp dụng</span>
+          <button type="button" class="erp-btn-primary" (click)="openCreate()">
+            <mat-icon class="!h-4 !w-4 !text-[18px]">add</mat-icon>
+            <span>Thêm lý do hủy</span>
+          </button>
+          <button type="button" class="erp-btn-icon !h-10 !w-10 rounded-xl border border-slate-200 bg-white shadow-2xs" (click)="load()" title="Làm mới">
+            <mat-icon class="!h-4 !w-4 !text-[18px]">refresh</mat-icon>
+          </button>
+        </div>
+      </div>
+
+      <section class="rounded-2xl border border-slate-100 bg-white shadow-xs overflow-hidden w-full">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs whitespace-nowrap">
+            <thead>
+              <tr class="border-b border-slate-100 text-[11px] font-semibold text-slate-500 uppercase tracking-wider bg-slate-50/50">
+                <th class="px-4 py-3.5 w-56">Mã lý do</th>
+                <th class="px-4 py-3.5">Nội dung hiển thị khi thao tác</th>
+                <th class="px-4 py-3.5 w-32 text-center">Trạng thái</th>
+                <th class="px-4 py-3.5 w-32 text-center font-semibold">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-50">
+              @for (item of filteredReasons(); track item.id) {
+                <tr class="transition hover:bg-slate-50/70">
+                  <td class="px-4 py-3 font-mono font-bold text-slate-800">{{ item.code }}</td>
+                  <td class="px-4 py-3 font-semibold text-slate-900 text-xs">{{ item.label }}</td>
+                  <td class="px-4 py-3 text-center">
+                    @if (item.active) {
+                      <span class="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[11px] font-medium text-emerald-800">
+                        Đang dùng
+                      </span>
+                    } @else {
+                      <span class="inline-flex items-center rounded-full bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-[11px] font-medium text-slate-600">
+                        Tạm ngưng
+                      </span>
+                    }
+                  </td>
+                  <td class="px-4 py-3 text-center">
+                    <div class="flex items-center justify-center gap-1.5">
                       <button
                         type="button"
-                        class="erp-btn-primary mt-3"
-                        (click)="openCreate()"
+                        class="erp-btn-icon-accent"
+                        [attr.data-testid]="'edit-reason-' + item.id"
+                        [attr.aria-label]="'Sửa lý do ' + item.label"
+                        [title]="'Sửa lý do ' + item.label"
+                        (click)="openEdit(item)"
                       >
-                        <mat-icon class="!h-4 !w-4 !text-[18px]">add</mat-icon>
-                        <span>Thêm lý do</span>
+                        <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">edit</mat-icon>
+                      </button>
+                      <button
+                        type="button"
+                        [class]="item.active ? 'erp-btn-icon-danger' : 'erp-btn-icon-accent'"
+                        [attr.data-testid]="'toggle-reason-' + item.id"
+                        [attr.aria-label]="item.active ? 'Ngừng sử dụng lý do ' + item.label : 'Kích hoạt lại lý do ' + item.label"
+                        [title]="item.active ? 'Ngừng sử dụng (giữ lịch sử)' : 'Kích hoạt lại'"
+                        (click)="toggle(item)"
+                      >
+                        <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">{{ item.active ? 'delete_outline' : 'restore_from_trash' }}</mat-icon>
                       </button>
                     </div>
                   </td>
@@ -140,64 +279,91 @@
     }
   </div>
 
-  <!-- Modal: Create Reason -->
-  @if (modalOpen()) {
-    <div class="erp-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="reason-dialog-title" (click)="closeModal()">
+  <!-- MODAL: Create / Edit Clinical Reason -->
+  @if (clinicalModalOpen()) {
+    <div class="erp-modal-overlay" role="dialog" aria-modal="true" (click)="closeClinicalModal()">
       <section class="erp-modal-container max-w-lg" (click)="$event.stopPropagation()">
         <div class="erp-modal-header">
-          <h2 id="reason-dialog-title" class="text-sm font-bold text-slate-900">Thêm lý do thao tác mới</h2>
-          <button type="button" class="erp-btn-icon" aria-label="Đóng" (click)="closeModal()">
-            <mat-icon class="!h-4 !w-4 !text-[18px]">close</mat-icon>
-          </button>
+          <h2 class="text-sm font-bold text-slate-900">{{ clinicalEditingId() ? 'Sửa lý do khám chuyên khoa' : 'Thêm lý do khám lâm sàng mới' }}</h2>
+          <button type="button" class="erp-btn-icon" (click)="closeClinicalModal()"><mat-icon class="!h-4 !w-4 !text-[18px]">close</mat-icon></button>
         </div>
 
-        <form (ngSubmit)="$event.preventDefault(); create()">
-          <div class="erp-modal-body grid gap-3.5">
-            @if (error()) {
-              <div class="flex items-center justify-between gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700" role="alert">
-                <div class="flex items-center gap-2">
-                  <mat-icon class="!h-4 !w-4 !text-[16px] text-rose-600">error_outline</mat-icon>
-                  <span>{{ error() }}</span>
-                </div>
-                <button type="button" class="text-rose-400 hover:text-rose-700" aria-label="Đóng" (click)="error.set('')">
-                  <mat-icon class="!h-4 !w-4 !text-[14px]">close</mat-icon>
-                </button>
-              </div>
-            }
+        <form (ngSubmit)="$event.preventDefault(); saveClinical()">
+          <div class="erp-modal-body grid gap-4">
             <label class="grid gap-1">
-              <span class="erp-label">Mã lý do <span class="erp-label-required">*</span></span>
-              <input
-                class="erp-input font-mono uppercase"
-                [ngModel]="code()"
-                (ngModelChange)="code.set($event)"
-                name="code"
-                placeholder="PATIENT_CHANGE_PLAN"
-              />
+              <span class="erp-label">Chuyên khoa khám <em class="erp-label-required">*</em></span>
+              <select
+                class="erp-select"
+                [ngModel]="clinicalSpecialtyCode()"
+                (ngModelChange)="onSpecialtyChange($event)"
+                name="clinicalSpecialtyCode"
+              >
+                @for (spec of specialties(); track spec.code) {
+                  <option [value]="spec.code">{{ spec.name }} ({{ spec.code }})</option>
+                }
+              </select>
             </label>
 
             <label class="grid gap-1">
-              <span class="erp-label">Tên hiển thị <span class="erp-label-required">*</span></span>
+              <span class="erp-label">Lý do khám / Triệu chứng lâm sàng <em class="erp-label-required">*</em></span>
+              <textarea
+                class="erp-textarea !text-xs"
+                rows="3"
+                placeholder="Ví dụ: Đau tức ngực trái khi gắng sức, hồi hộp đánh trống ngực..."
+                [ngModel]="clinicalSymptomName()"
+                (ngModelChange)="clinicalSymptomName.set($event)"
+                name="clinicalSymptomName"
+                maxlength="200"
+              ></textarea>
+            </label>
+
+            <label class="grid gap-1">
+              <span class="erp-label">Thứ tự ưu tiên hiển thị</span>
               <input
-                class="erp-input"
-                [ngModel]="label()"
-                (ngModelChange)="label.set($event)"
-                name="label"
-                placeholder="Bệnh nhân bận việc đột xuất"
+                type="number"
+                min="0"
+                class="erp-input font-mono"
+                [ngModel]="clinicalSortOrder()"
+                (ngModelChange)="clinicalSortOrder.set($event)"
+                name="clinicalSortOrder"
               />
             </label>
           </div>
 
           <div class="erp-modal-footer">
-            <button type="button" class="erp-btn-secondary" (click)="closeModal()">
-              Hủy
-            </button>
-            <button
-              type="submit"
-              class="erp-btn-primary"
-              [disabled]="saving()"
-            >
-              {{ saving() ? 'Đang lưu...' : 'Thêm lý do' }}
-            </button>
+            <button type="button" class="erp-btn-secondary" (click)="closeClinicalModal()">Hủy</button>
+            <button type="submit" class="erp-btn-primary" [disabled]="saving()">{{ saving() ? 'Đang lưu...' : 'Lưu lý do' }}</button>
+          </div>
+        </form>
+      </section>
+    </div>
+  }
+
+  <!-- MODAL: Create / Edit Cancellation Reason -->
+  @if (modalOpen()) {
+    <div class="erp-modal-overlay" role="dialog" aria-modal="true" (click)="closeModal()">
+      <section class="erp-modal-container max-w-lg" (click)="$event.stopPropagation()">
+        <div class="erp-modal-header">
+          <h2 class="text-sm font-bold text-slate-900">{{ editingId() ? 'Sửa lý do hủy lịch' : 'Thêm lý do hủy lịch mới' }}</h2>
+          <button type="button" class="erp-btn-icon" (click)="closeModal()"><mat-icon class="!h-4 !w-4 !text-[18px]">close</mat-icon></button>
+        </div>
+
+        <form (ngSubmit)="$event.preventDefault(); save()">
+          <div class="erp-modal-body grid gap-3.5">
+            <label class="grid gap-1">
+              <span class="erp-label">Mã lý do <em class="erp-label-required">*</em></span>
+              <input class="erp-input font-mono uppercase" [ngModel]="code()" (ngModelChange)="code.set($event)" name="code" placeholder="RSN_CAN_01" [disabled]="!!editingId()" />
+            </label>
+
+            <label class="grid gap-1">
+              <span class="erp-label">Nội dung hiển thị <em class="erp-label-required">*</em></span>
+              <input class="erp-input" [ngModel]="label()" (ngModelChange)="label.set($event)" name="label" placeholder="Thay đổi kế hoạch công tác..." />
+            </label>
+          </div>
+
+          <div class="erp-modal-footer">
+            <button type="button" class="erp-btn-secondary" (click)="closeModal()">Hủy</button>
+            <button type="submit" class="erp-btn-primary" [disabled]="saving()">{{ saving() ? 'Đang lưu...' : 'Lưu lý do' }}</button>
           </div>
         </form>
       </section>

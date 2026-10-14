@@ -1,13 +1,11 @@
 package com.clinicone.medication;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-@Repository
 public interface MedicationUnitRepository extends JpaRepository<MedicationUnit, UUID> {
     List<MedicationUnit> findByActiveTrueOrderBySortOrderAscNameAsc();
 
@@ -20,4 +18,8 @@ public interface MedicationUnitRepository extends JpaRepository<MedicationUnit, 
     boolean existsByCodeIgnoreCase(String code);
 
     boolean existsByNameIgnoreCase(String name);
+
+    boolean existsByCodeIgnoreCaseAndIdNot(String code, UUID id);
+
+    boolean existsByNameIgnoreCaseAndIdNot(String name, UUID id);
 }

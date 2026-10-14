@@ -1,5 +1,13 @@
-<app-staff-workspace-shell moduleTitle="Chuyên môn" pageTitle="Chẩn đoán">
-  <div class="grid gap-6">
+@if (embedded()) {
+  <ng-container [ngTemplateOutlet]="diagnosisCatalog"></ng-container>
+} @else {
+  <app-staff-workspace-shell moduleTitle="Chuyên môn" pageTitle="Chẩn đoán">
+    <ng-container [ngTemplateOutlet]="diagnosisCatalog"></ng-container>
+  </app-staff-workspace-shell>
+}
+
+<ng-template #diagnosisCatalog>
+  <div data-testid="embedded-diagnosis-catalog" class="grid gap-6">
     <!-- Alerts & Notices -->
     @if (error() && !modalOpen()) {
       <div class="flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-medium text-rose-800 shadow-xs" role="alert">
@@ -112,24 +120,30 @@
                         <button
                           type="button"
                           class="erp-btn-icon-accent"
+                          [attr.data-testid]="'edit-diagnosis-' + item.id"
                           (click)="openEdit(item)"
+                          [attr.aria-label]="'Sửa chẩn đoán ' + item.name"
                           title="Sửa thông tin chẩn đoán"
                         >
                           <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">edit</mat-icon>
                         </button>
                         <button
                           type="button"
-                          class="erp-btn-icon"
+                          [class]="item.active ? 'erp-btn-icon-danger' : 'erp-btn-icon-accent'"
+                          [attr.data-testid]="'toggle-diagnosis-' + item.id"
+                          [attr.aria-label]="item.active ? 'Ngừng sử dụng chẩn đoán ' + item.name : 'Kích hoạt lại chẩn đoán ' + item.name"
                           [title]="item.active ? 'Tạm ngưng dùng' : 'Kích hoạt lại'"
                           (click)="toggleActive(item)"
                         >
-                          <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">{{ item.active ? 'pause' : 'play_arrow' }}</mat-icon>
+                          <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">{{ item.active ? 'delete_outline' : 'restore_from_trash' }}</mat-icon>
                         </button>
                       } @else {
                         <button
                           type="button"
                           class="erp-btn-icon-accent"
+                          [attr.data-testid]="'view-diagnosis-' + item.id"
                           (click)="openEdit(item)"
+                          [attr.aria-label]="'Xem chẩn đoán ' + item.name"
                           title="Xem chi tiết chẩn đoán"
                         >
                           <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">visibility</mat-icon>
@@ -236,4 +250,4 @@
       </section>
     </div>
   }
-</app-staff-workspace-shell>
+</ng-template>

@@ -23,24 +23,28 @@ describe('MedicationCatalogManagement', () => {
     ])),
     createMedicationUnit: vi.fn().mockReturnValue(of({ code: 'UNIT-CAP', name: 'Viên nang', description: '', active: true, sortOrder: 3 })),
     createMedicationDosage: vi.fn().mockReturnValue(of({ code: 'DOS-VIEN-1X', unitName: 'Viên', dosageFormat: '1 viên/lần/ngày', active: true, sortOrder: 3 })),
+    updateMedicationUnit: vi.fn(),
+    setMedicationUnitActive: vi.fn(),
+    updateMedicationDosage: vi.fn(),
+    setMedicationDosageActive: vi.fn(),
   };
 
   beforeEach(async () => {
     sessionStorage.setItem('clinicOneAccessToken', 'staff-token');
     sessionStorage.setItem('clinicOneStaffRoles', JSON.stringify(['ADMIN']));
     api.getAdminMedications.mockReturnValue(of([
-      { id: 'med-1', code: 'PCM500', name: 'Paracetamol 500 mg', active: true },
+      { id: 'med-1', code: 'PCM500', name: 'Paracetamol 500 mg', active: true, unitPrice: 5000 },
       { id: 'med-2', code: 'OLD-MED', name: 'Thuốc đã ngừng', active: false },
     ]));
     api.createMedication.mockReturnValue(of({ id: 'med-3', code: 'AMOX500', name: 'Amoxicillin 500 mg', active: true, unitPrice: 0 }));
     api.updateMedication.mockReturnValue(of({ id: 'med-1', code: 'PCM500', name: 'Paracetamol 500 mg', active: true }));
     api.setMedicationActive.mockReturnValue(of({ id: 'med-1', code: 'PCM500', name: 'Paracetamol 500 mg', active: false }));
     api.getMedicationUnits.mockReturnValue(of([
-      { code: 'UNIT-VIEN', name: 'Viên', description: 'Dạng rắn: viên nén, viên nang', active: true, sortOrder: 1 },
+      { id: 'unit-1', code: 'UNIT-VIEN', name: 'Viên', description: 'Dạng rắn: viên nén, viên nang', active: true, sortOrder: 1 },
       { code: 'UNIT-GOI', name: 'Gói', description: 'Dạng bột hoặc cốm pha', active: true, sortOrder: 2 },
     ]));
     api.getMedicationDosages.mockReturnValue(of([
-      { code: 'DOS-GOI-2X', unitName: 'Gói', dosageFormat: '1 gói/lần x 2 lần/ngày (Sáng 1, Tối 1)', active: true, sortOrder: 1 },
+      { id: 'dosage-1', code: 'DOS-GOI-2X', unitName: 'Gói', dosageFormat: '1 gói/lần x 2 lần/ngày (Sáng 1, Tối 1)', active: true, sortOrder: 1 },
       { code: 'DOS-VIEN-2X', unitName: 'Viên', dosageFormat: '1 viên/lần x 2 lần/ngày (Sáng 1, Tối 1)', active: true, sortOrder: 2 },
     ]));
     await TestBed.configureTestingModule({
@@ -110,6 +114,57 @@ describe('MedicationCatalogManagement', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="open-create-medication-dosage"]')).toBeTruthy();
   });
 
+  it('matches medical-template tab typography and keeps the catalog tabs icon-free', () => {
+    const tabs = ['tab-medications', 'tab-units', 'tab-dosages'];
+    for (const tab of tabs) {
+      const button = fixture.nativeElement.querySelector(`[data-testid="${tab}"]`) as HTMLElement;
+      expect(button.className).toContain('text-xs');
+      expect(button.className).toContain('px-4');
+      expect(button.querySelector('mat-icon')).toBeNull();
+    }
+  });
+
+  it('refreshes all three database-backed catalog lists from the refresh control', () => {
+    api.getAdminMedications.mockClear();
+    api.getMedicationUnits.mockClear();
+    api.getMedicationDosages.mockClear();
+    (fixture.nativeElement.querySelector('[title="Làm mới dữ liệu"]') as HTMLButtonElement).click();
+
+    expect(api.getAdminMedications).toHaveBeenCalledTimes(1);
+    expect(api.getMedicationUnits).toHaveBeenCalledWith(false);
+    expect(api.getMedicationDosages).toHaveBeenCalledWith(undefined, false);
+  });
+
+  it('offers edit and safe deactivate/reactivate actions for units and dosage presets', () => {
+    api.updateMedicationUnit.mockReturnValue(of({ id: 'unit-1', code: 'UNIT-VIEN', name: 'Viên nén', active: true }));
+    api.setMedicationUnitActive.mockReturnValue(of({ id: 'unit-1', code: 'UNIT-VIEN', name: 'Viên', active: false }));
+    api.updateMedicationDosage.mockReturnValue(of({ id: 'dosage-1', code: 'DOS-GOI-2X', unitName: 'Gói', dosageFormat: '2 gói/ngày', active: true }));
+    api.setMedicationDosageActive.mockReturnValue(of({ id: 'dosage-1', code: 'DOS-GOI-2X', unitName: 'Gói', dosageFormat: '1 gói/lần x 2 lần/ngày', active: false }));
+
+    (fixture.nativeElement.querySelector('[data-testid="tab-units"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-testid="edit-medication-unit-unit-1"]')).toBeTruthy();
+    (fixture.nativeElement.querySelector('[data-testid="edit-medication-unit-unit-1"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const component = fixture.componentInstance;
+    component['metadataName'].set('Viên nén');
+    component['saveMetadata']();
+    expect(api.updateMedicationUnit).toHaveBeenCalledWith('unit-1', expect.objectContaining({ name: 'Viên nén' }));
+    (fixture.nativeElement.querySelector('[data-testid="toggle-medication-unit-unit-1"]') as HTMLButtonElement).click();
+    expect(api.setMedicationUnitActive).toHaveBeenCalledWith('unit-1', false);
+
+    (fixture.nativeElement.querySelector('[data-testid="tab-dosages"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-testid="edit-medication-dosage-dosage-1"]')).toBeTruthy();
+    (fixture.nativeElement.querySelector('[data-testid="edit-medication-dosage-dosage-1"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    component['metadataFormat'].set('2 gói/ngày');
+    component['saveMetadata']();
+    expect(api.updateMedicationDosage).toHaveBeenCalledWith('dosage-1', expect.objectContaining({ dosageFormat: '2 gói/ngày' }));
+    (fixture.nativeElement.querySelector('[data-testid="toggle-medication-dosage-dosage-1"]') as HTMLButtonElement).click();
+    expect(api.setMedicationDosageActive).toHaveBeenCalledWith('dosage-1', false);
+  });
+
   it('creates medication metadata through the database-backed API', () => {
     (fixture.nativeElement.querySelector('[data-testid="tab-units"]') as HTMLButtonElement).click();
     fixture.detectChanges();
@@ -171,6 +226,17 @@ describe('MedicationCatalogManagement', () => {
     expect(api.createMedication).toHaveBeenCalledWith('AMOX500', 'Amoxicillin 500 mg', expect.objectContaining({ unitPrice: 1250 }));
   });
 
+  it('places unit price after dosage and formats thousands with Vietnamese separators', () => {
+    const table = fixture.nativeElement.querySelector('table') as HTMLTableElement;
+    const headers = Array.from(table.querySelectorAll('thead th')).map((cell) => cell.textContent?.trim());
+    const firstRowCells = Array.from(table.querySelectorAll('[data-testid="medication-row"] td'));
+
+    expect(headers[3]).toBe('Liều dùng');
+    expect(headers[4]).toBe('Đơn giá');
+    expect(firstRowCells[4]?.textContent?.trim()).toContain('5.000');
+    expect(firstRowCells[4]?.className).toContain('text-right');
+  });
+
   it('rejects negative or fractional medicine sale prices before calling the API', () => {
     api.createMedication.mockClear();
     (fixture.nativeElement.querySelector('[data-testid="open-create-medication"]') as HTMLButtonElement).click();
@@ -189,6 +255,54 @@ describe('MedicationCatalogManagement', () => {
     (fixture.nativeElement.querySelector('[data-testid="toggle-medication-med-1"]') as HTMLButtonElement).click();
 
     expect(api.setMedicationActive).toHaveBeenCalledWith('med-1', false);
+  });
+
+  it('renders accessible icon-only edit and remove actions across all catalog tabs', () => {
+    const add = fixture.nativeElement.querySelector('[data-testid="open-create-medication"]') as HTMLButtonElement;
+    expect(add.querySelector('mat-icon')?.textContent?.trim()).toBe('add');
+
+    const medicationEdit = fixture.nativeElement.querySelector('[data-testid="edit-medication-med-1"]') as HTMLButtonElement;
+    const medicationRemove = fixture.nativeElement.querySelector('[data-testid="toggle-medication-med-1"]') as HTMLButtonElement;
+    expect(medicationEdit.children.length).toBe(1);
+    expect(medicationEdit.firstElementChild?.tagName.toLowerCase()).toBe('mat-icon');
+    expect(medicationEdit.getAttribute('aria-label')).toContain('Sửa');
+    expect(medicationEdit.querySelector('mat-icon')?.textContent?.trim()).toBe('edit');
+    expect(medicationRemove.children.length).toBe(1);
+    expect(medicationRemove.firstElementChild?.tagName.toLowerCase()).toBe('mat-icon');
+    expect(medicationRemove.getAttribute('aria-label')).toContain('Ngừng');
+    expect(medicationRemove.querySelector('mat-icon')?.textContent?.trim()).toBe('delete_outline');
+
+    (fixture.nativeElement.querySelector('[data-testid="tab-units"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const unitEdit = fixture.nativeElement.querySelector('[data-testid="edit-medication-unit-unit-1"]') as HTMLButtonElement;
+    const unitRemove = fixture.nativeElement.querySelector('[data-testid="toggle-medication-unit-unit-1"]') as HTMLButtonElement;
+    expect(unitEdit.children.length).toBe(1);
+    expect(unitEdit.firstElementChild?.tagName.toLowerCase()).toBe('mat-icon');
+    expect(unitEdit.querySelector('mat-icon')?.textContent?.trim()).toBe('edit');
+    expect(unitRemove.children.length).toBe(1);
+    expect(unitRemove.firstElementChild?.tagName.toLowerCase()).toBe('mat-icon');
+    expect(unitRemove.querySelector('mat-icon')?.textContent?.trim()).toBe('delete_outline');
+
+    (fixture.nativeElement.querySelector('[data-testid="tab-dosages"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const dosageEdit = fixture.nativeElement.querySelector('[data-testid="edit-medication-dosage-dosage-1"]') as HTMLButtonElement;
+    const dosageRemove = fixture.nativeElement.querySelector('[data-testid="toggle-medication-dosage-dosage-1"]') as HTMLButtonElement;
+    expect(dosageEdit.children.length).toBe(1);
+    expect(dosageEdit.firstElementChild?.tagName.toLowerCase()).toBe('mat-icon');
+    expect(dosageEdit.querySelector('mat-icon')?.textContent?.trim()).toBe('edit');
+    expect(dosageRemove.children.length).toBe(1);
+    expect(dosageRemove.firstElementChild?.tagName.toLowerCase()).toBe('mat-icon');
+    expect(dosageRemove.querySelector('mat-icon')?.textContent?.trim()).toBe('delete_outline');
+  });
+
+  it('updates a medicine through the edit action API', () => {
+    (fixture.nativeElement.querySelector('[data-testid="edit-medication-med-1"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const component = fixture.componentInstance;
+    component['name'].set('Paracetamol 500 mg - cập nhật');
+    component['save']();
+
+    expect(api.updateMedication).toHaveBeenCalledWith('med-1', 'PCM500', 'Paracetamol 500 mg - cập nhật', expect.any(Object));
   });
 
   it('creates a medicine with clinical presets (unit, specialty select, and standard dosage)', () => {

@@ -437,7 +437,23 @@
 
           <!-- Reason for Visit -->
           <div class="space-y-1.5">
-            <label class="text-sm font-bold text-slate-900">Lý do khám / Triệu chứng *</label>
+            <div class="flex items-center justify-between">
+              <label class="text-sm font-bold text-slate-900">Lý do khám / Triệu chứng *</label>
+            </div>
+            <!-- Quick Suggestion Chips for Auto-fill from Database per Specialty -->
+            @if (commonReasons().length) {
+              <div class="flex flex-wrap gap-1.5 pb-1">
+                @for (quickReason of commonReasons(); track quickReason) {
+                  <button
+                    type="button"
+                    class="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-600 transition hover:border-[#0284c7] hover:bg-sky-50 hover:text-[#0284c7] cursor-pointer"
+                    (click)="fillQuickReason(quickReason)"
+                  >
+                    + {{ quickReason }}
+                  </button>
+                }
+              </div>
+            }
             <textarea
               class="min-h-24 w-full rounded-xl border border-slate-200 px-3.5 py-3 text-sm outline-none transition focus:border-[#0284c7] focus:ring-3 focus:ring-sky-500/10"
               [class.border-rose-400]="form.controls.reason.invalid && form.controls.reason.touched"

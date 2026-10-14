@@ -11,6 +11,20 @@
     >
       Danh sách mẫu
     </button>
+    @if (canAccessDiagnosisCatalog()) {
+      <button
+        data-testid="tab-diagnoses"
+        type="button"
+        class="px-4 py-2 text-xs font-semibold border-b-2 transition cursor-pointer"
+        [class.border-[#0284c7]]="activeTab() === 'diagnoses'"
+        [class.text-[#0284c7]]="activeTab() === 'diagnoses'"
+        [class.border-transparent]="activeTab() !== 'diagnoses'"
+        [class.text-slate-500]="activeTab() !== 'diagnoses'"
+        (click)="activeTab.set('diagnoses')"
+      >
+        Chẩn đoán
+      </button>
+    }
     @if (canManageTemplates()) {
       <button
         type="button"
@@ -26,7 +40,7 @@
     }
   </div>
 
-  <div class="grid gap-6">
+  <div class="grid gap-4">
     <!-- Alerts & Notices -->
     @if (error()) {
       <div class="flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-medium text-rose-800 shadow-xs" role="alert">
@@ -130,6 +144,8 @@
                           <button
                             type="button"
                             class="erp-btn-icon-accent"
+                          [attr.data-testid]="'edit-template-' + item.id"
+                          [attr.aria-label]="'Sửa mẫu ' + item.name"
                             title="Sửa mẫu"
                             (click)="startEdit(item)"
                           >
@@ -138,6 +154,8 @@
                           <button
                             type="button"
                             class="erp-btn-icon-danger"
+                            [attr.data-testid]="'delete-template-' + item.id"
+                            [attr.aria-label]="'Xóa mẫu ' + item.name"
                             title="Xóa mẫu"
                             (click)="delete(item)"
                           >
@@ -148,6 +166,7 @@
                         <button
                           type="button"
                           class="erp-btn-secondary !py-1 !px-2.5 !text-xs cursor-pointer inline-flex items-center gap-1"
+                          [attr.aria-label]="'Xem chi tiết mẫu ' + item.name"
                           title="Xem chi tiết mẫu"
                           (click)="viewTemplate(item)"
                         >
@@ -185,15 +204,14 @@
 
     <!-- 4. Form View (Full width expansive clinical layout) -->
     <div [class.hidden]="activeTab() !== 'form'">
-      <section class="rounded-2xl border border-slate-100 bg-white p-6 sm:p-8 shadow-xs w-full">
-        <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-6">
+      <section class="rounded-xl border border-slate-200/80 bg-white p-4 shadow-2xs w-full">
+        <div class="mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
           <div class="flex items-center gap-3">
-            <div class="grid h-10 w-10 place-items-center rounded-xl bg-sky-50 text-[#0284c7]">
-              <mat-icon class="!h-6 !w-6 !text-[24px]">description</mat-icon>
+            <div class="grid h-9 w-9 place-items-center rounded-lg bg-sky-50 text-[#0284c7]">
+              <mat-icon class="!h-5 !w-5 !text-[20px]">description</mat-icon>
             </div>
             <div>
-              <h3 class="text-lg font-bold text-slate-900">{{ formTitle() }}</h3>
-              <p class="text-xs text-slate-500">Thiết lập cấu trúc mẫu phiếu khám và nội dung lâm sàng mặc định theo Thông tư 33</p>
+              <h3 class="text-base font-bold text-slate-900">{{ formTitle() }}</h3>
             </div>
           </div>
           <button type="button" class="erp-btn-secondary" (click)="cancelEdit()">
@@ -202,16 +220,55 @@
           </button>
         </div>
 
-        <form class="space-y-6" (ngSubmit)="$event.preventDefault(); save()">
-          <div class="grid gap-6 lg:grid-cols-2">
+        <nav data-testid="template-setup-stepper" class="mb-4 overflow-x-auto rounded-2xl border border-slate-200/80 bg-white p-2 shadow-2xs" aria-label="Các bước thiết lập mẫu">
+          <div class="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-3">
+            @for (step of setupSteps; track step.number) {
+              <button
+                type="button"
+                [attr.data-testid]="'template-step-' + step.number"
+                class="group flex min-w-0 items-center gap-3 rounded-xl border p-2.5 text-left transition"
+                [class.border-[#0284c7]]="activeSetupStep() === step.number"
+                [class.bg-sky-50/70]="activeSetupStep() === step.number"
+                [class.shadow-2xs]="activeSetupStep() === step.number"
+                [class.border-slate-200]="activeSetupStep() !== step.number"
+                [class.bg-white]="activeSetupStep() !== step.number"
+                [class.hover:border-slate-300]="activeSetupStep() !== step.number"
+                [class.hover:bg-slate-50/60]="activeSetupStep() !== step.number"
+                [attr.aria-current]="activeSetupStep() === step.number ? 'step' : null"
+                (click)="goToSetupStep(step.number)"
+              >
+                <span
+                  class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl font-mono text-xs font-bold transition-colors"
+                  [class.bg-[#0284c7]]="activeSetupStep() === step.number"
+                  [class.text-white]="activeSetupStep() === step.number"
+                  [class.bg-slate-100]="activeSetupStep() !== step.number"
+                  [class.text-slate-600]="activeSetupStep() !== step.number"
+                  [class.group-hover:bg-slate-200]="activeSetupStep() !== step.number"
+                >
+                  @if (activeSetupStep() > step.number) {
+                    <mat-icon class="!h-4 !w-4 !text-[18px] text-emerald-600">check</mat-icon>
+                  } @else {
+                    {{ step.number }}
+                  }
+                </span>
+                <span class="min-w-0 truncate text-xs font-bold" [class.text-[#0284c7]]="activeSetupStep() === step.number" [class.text-slate-800]="activeSetupStep() !== step.number">
+                  {{ step.title }}
+                </span>
+              </button>
+            }
+          </div>
+        </nav>
+
+        <form class="space-y-4" (ngSubmit)="$event.preventDefault(); save()">
+          <div data-testid="template-form-sections" class="grid gap-4">
             <!-- Left Column: Identity & Scope -->
-            <div class="space-y-5 rounded-2xl border border-slate-200/80 bg-slate-50/50 p-5">
+            <section data-testid="template-identity-section" [class.hidden]="activeSetupStep() !== 1" class="space-y-4 rounded-xl border border-slate-200/80 bg-slate-50/50 p-4">
               <div class="flex items-center gap-2 border-b border-slate-200 pb-3">
                 <mat-icon class="!h-4 !w-4 !text-[18px] text-sky-600">badge</mat-icon>
-                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-800">1. Thông tin định danh & Phạm vi</h4>
+                <h4 class="text-xs font-bold text-slate-800">Thông tin mẫu</h4>
               </div>
 
-              <div class="grid gap-4 sm:grid-cols-2">
+              <div class="grid gap-3 sm:grid-cols-2">
                 <label class="grid gap-1">
                   <span class="erp-label">Mã mẫu phiếu <span class="erp-label-required">*</span></span>
                   <input data-testid="template-code" class="erp-input font-mono uppercase" placeholder="MAU-NOI-01" [ngModel]="code()" (ngModelChange)="code.set($event)" name="code" />
@@ -222,7 +279,7 @@
                 </label>
               </div>
 
-              <div class="grid gap-4 sm:grid-cols-2">
+              <div class="grid gap-3 sm:grid-cols-2">
                 <label class="grid gap-1">
                   <span class="erp-label">Chuyên khoa <span class="erp-label-required">*</span></span>
                   <select data-testid="template-specialty" class="erp-select" [ngModel]="specialty()" (ngModelChange)="selectSpecialty($event)" name="specialty">
@@ -244,16 +301,16 @@
               </div>
 
               <label class="grid gap-1">
-                <span class="erp-label">Mô tả mục đích sử dụng</span>
+                <span class="erp-label">Mô tả</span>
                 <textarea rows="3" class="erp-textarea resize-none" placeholder="Ghi chú thêm về trường hợp áp dụng hoặc mục đích của mẫu phiếu..." [ngModel]="description()" (ngModelChange)="description.set($event)" name="description"></textarea>
               </label>
-            </div>
+            </section>
 
             <!-- Right Column: Clinical Pre-fill Content -->
-            <div class="space-y-5 rounded-2xl border border-slate-200/80 bg-slate-50/50 p-5">
+            <section data-testid="template-clinical-section" [class.hidden]="activeSetupStep() !== 2" class="space-y-4 rounded-xl border border-slate-200/80 bg-slate-50/50 p-4">
               <div class="flex items-center gap-2 border-b border-slate-200 pb-3">
                 <mat-icon class="!h-4 !w-4 !text-[18px] text-sky-600">clinical_notes</mat-icon>
-                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-800">2. Nội dung lâm sàng điền sẵn</h4>
+                <h4 class="text-xs font-bold text-slate-800">Nội dung khám</h4>
               </div>
 
               <label class="grid gap-1">
@@ -266,21 +323,21 @@
                 <textarea data-testid="template-notes" rows="3" class="erp-textarea resize-none" placeholder="Tiền sử bệnh, triệu chứng cơ năng, thăm khám thể lực..." [ngModel]="examinationNotes()" (ngModelChange)="examinationNotes.set($event)" name="examinationNotes"></textarea>
               </label>
 
-              <div class="grid gap-4 sm:grid-cols-2">
+              <div class="grid gap-3 sm:grid-cols-2">
                 <label class="grid gap-1">
                   <span class="erp-label">Chẩn đoán mẫu (ICD-10)</span>
                   <input
+                    data-testid="template-diagnosis"
                     class="erp-input"
                     placeholder="Mã hoặc tên chẩn đoán ICD-10"
                     [ngModel]="diagnosis()"
                     (ngModelChange)="diagnosis.set($event)"
-                    (focus)="loadDiagnoses()"
                     name="diagnosis"
                     list="diagnosis-template-catalog"
                   />
                   <datalist id="diagnosis-template-catalog">
                     @for (d of diagnoses(); track d.id) {
-                      <option [value]="d.name">{{ d.code }} - {{ d.name }}</option>
+                      <option [value]="d.name" [label]="d.code + ' · ' + d.name"></option>
                     }
                   </datalist>
                 </label>
@@ -295,7 +352,7 @@
                 <textarea data-testid="template-plan" rows="3" class="erp-textarea resize-none" placeholder="Chế độ dùng thuốc, dinh dưỡng, nghỉ ngơi..." [ngModel]="treatmentPlan()" (ngModelChange)="treatmentPlan.set($event)" name="treatmentPlan"></textarea>
               </label>
 
-              <div class="grid gap-4 sm:grid-cols-2">
+              <div class="grid gap-3 sm:grid-cols-2">
                 <label class="grid gap-1">
                   <span class="erp-label">Tái khám sau (ngày)</span>
                   <input type="number" min="0" class="erp-input font-mono" placeholder="7, 14, 30" [ngModel]="followUpDays()" (ngModelChange)="followUpDays.set($event)" name="followUpDays" />
@@ -305,129 +362,121 @@
                   <input class="erp-input" placeholder="Mang theo đơn thuốc cũ và kết quả xét nghiệm" [ngModel]="followUpNote()" (ngModelChange)="followUpNote.set($event)" name="followUpNote" />
                 </label>
               </div>
-            </div>
-          </div>
-
-          <!-- Full-width Section: Prescription Lines in Template -->
-          <div class="space-y-4 rounded-2xl border border-slate-200/80 bg-slate-50/50 p-5">
-            <div class="flex items-center justify-between border-b border-slate-200 pb-3">
-              <div class="flex items-center gap-2">
-                <mat-icon class="!h-4 !w-4 !text-[18px] text-sky-600">medication</mat-icon>
-                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-800">3. Đơn thuốc đi kèm trong mẫu (Tùy chọn)</h4>
-                <span class="rounded-full bg-slate-200/70 px-2 py-0.5 text-[11px] font-semibold text-slate-700">
-                  {{ prescriptionLines().length }} thuốc
+            </section>
+            <!-- Medication section -->
+            <section data-testid="template-medications-section" [class.hidden]="activeSetupStep() !== 3" class="space-y-3 rounded-xl border border-slate-200/80 bg-slate-50/50 p-4" aria-labelledby="template-prescription-title">
+            <div class="flex flex-col gap-3 border-b border-slate-200 pb-3 sm:flex-row sm:items-center sm:justify-between">
+              <div class="flex items-start gap-2.5">
+                <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-sky-50 text-sky-700">
+                  <mat-icon class="!h-5 !w-5 !text-[20px]">medication</mat-icon>
                 </span>
+                <div>
+                  <div class="flex flex-wrap items-center gap-2">
+                    <h4 id="template-prescription-title" class="text-sm font-bold text-slate-900">Đơn thuốc</h4>
+                    <span class="rounded-md bg-slate-200/70 px-2 py-0.5 text-xs font-semibold text-slate-700">{{ prescriptionLines().length }}/20</span>
+                  </div>
+                  <p class="mt-0.5 text-xs text-slate-500">Chọn thuốc để tự điền thông tin.</p>
+                </div>
               </div>
               @if (prescriptionLines().length < 20) {
-                <button
-                  type="button"
-                  class="erp-btn-secondary !text-xs !py-1 !px-3 cursor-pointer"
-                  (click)="addPrescriptionLine()"
-                >
-                  <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">add</mat-icon>
-                  <span>Thêm thuốc vào mẫu</span>
+                <button type="button" class="erp-btn-secondary shrink-0" (click)="addPrescriptionLine()">
+                  <mat-icon class="!h-4 !w-4 !text-[16px]">add</mat-icon>
+                  <span>Thêm thuốc</span>
                 </button>
               }
             </div>
 
+            @if (catalogError()) {
+              <p class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800" role="status">
+                Không tải được danh mục. Có thể nhập thủ công.
+              </p>
+            }
+
             @if (prescriptionLines().length > 0) {
-              <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-                <table class="w-full text-left text-xs whitespace-nowrap">
-                  <thead>
-                    <tr class="border-b border-slate-100 bg-slate-50/70 text-[11px] font-semibold text-slate-500 uppercase">
-                      <th class="px-3 py-2.5 w-8 text-center">#</th>
-                      <th class="px-3 py-2.5">Tên thuốc</th>
-                      <th class="px-3 py-2.5">Liều dùng</th>
-                      <th class="px-3 py-2.5 w-20 text-center">SL</th>
-                      <th class="px-3 py-2.5 w-20 text-center">ĐVT</th>
-                      <th class="px-3 py-2.5">Hướng dẫn sử dụng</th>
-                      <th class="px-3 py-2.5 w-12 text-center"></th>
-                    </tr>
-                  </thead>
-                  <tbody class="divide-y divide-slate-100">
-                    @for (line of prescriptionLines(); track $index; let idx = $index) {
-                      <tr>
-                        <td class="px-3 py-2 text-center font-bold text-slate-400">{{ idx + 1 }}</td>
-                        <td class="px-3 py-2 min-w-44">
-                          <input
-                            class="erp-input !text-xs !py-1 !px-2"
-                            placeholder="Tên thuốc..."
-                            [ngModel]="line.medicationName"
-                            (ngModelChange)="updateLineField(idx, 'medicationName', $event)"
-                            [name]="'med-name-' + idx"
-                          />
-                        </td>
-                        <td class="px-3 py-2 min-w-36">
-                          <input
-                            class="erp-input !text-xs !py-1 !px-2"
-                            placeholder="Liều dùng..."
-                            [ngModel]="line.dosage"
-                            (ngModelChange)="updateLineField(idx, 'dosage', $event)"
-                            [name]="'med-dosage-' + idx"
-                          />
-                        </td>
-                        <td class="px-3 py-2 w-20">
-                          <input
-                            type="number"
-                            min="1"
-                            max="999"
-                            class="erp-input !text-xs !py-1 !px-1 text-center font-mono"
-                            [ngModel]="line.quantity"
-                            (ngModelChange)="updateLineField(idx, 'quantity', $event)"
-                            [name]="'med-qty-' + idx"
-                          />
-                        </td>
-                        <td class="px-3 py-2 w-20">
-                          <input
-                            class="erp-input !text-xs !py-1 !px-1 text-center"
-                            placeholder="Viên"
-                            [ngModel]="line.unit"
-                            (ngModelChange)="updateLineField(idx, 'unit', $event)"
-                            [name]="'med-unit-' + idx"
-                          />
-                        </td>
-                        <td class="px-3 py-2 min-w-48">
-                          <input
-                            class="erp-input !text-xs !py-1 !px-2"
-                            placeholder="Cách uống..."
-                            [ngModel]="line.instructions"
-                            (ngModelChange)="updateLineField(idx, 'instructions', $event)"
-                            [name]="'med-instructions-' + idx"
-                          />
-                        </td>
-                        <td class="px-3 py-2 text-center">
-                          <button
-                            type="button"
-                            class="erp-btn-icon-danger !h-7 !w-7"
-                            title="Xóa thuốc"
-                            (click)="removePrescriptionLine(idx)"
-                          >
-                            <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">delete_outline</mat-icon>
-                          </button>
-                        </td>
-                      </tr>
-                    }
-                  </tbody>
-                </table>
+              <datalist id="medication-template-catalog">
+                @for (medication of medications(); track medication.id) {
+                  <option [value]="medication.name" [label]="medication.code + ' · ' + medication.name"></option>
+                }
+              </datalist>
+              <div class="grid gap-3 xl:grid-cols-2">
+                @for (line of prescriptionLines(); track $index; let idx = $index) {
+                  <article class="space-y-2.5 rounded-xl border border-slate-200 bg-white p-3" [attr.data-testid]="'template-prescription-line-' + idx">
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center gap-2">
+                        <span class="grid h-6 w-6 place-items-center rounded-md bg-sky-50 text-xs font-bold text-sky-700">{{ idx + 1 }}</span>
+                        @if (line.medicationId) {
+                          <span class="rounded bg-emerald-50 px-1.5 py-0.5 text-[11px] font-medium text-emerald-700">Danh mục</span>
+                        }
+                      </div>
+                      <button type="button" class="erp-btn-icon-danger !h-8 !w-8" [attr.aria-label]="'Xóa thuốc ' + (idx + 1)" (click)="removePrescriptionLine(idx)">
+                        <mat-icon class="!h-4 !w-4 !text-[17px]">delete_outline</mat-icon>
+                      </button>
+                    </div>
+
+                    <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(150px,0.7fr)]">
+                      <label class="grid gap-1">
+                        <span class="erp-label">Tên thuốc</span>
+                        <input [attr.data-testid]="'template-medication-' + idx" class="erp-input" placeholder="Tìm hoặc nhập tên thuốc" [ngModel]="line.medicationName" (ngModelChange)="updateMedicationLine(idx, $event)" [name]="'med-name-' + idx" list="medication-template-catalog" />
+                      </label>
+                      <label class="grid gap-1">
+                        <span class="erp-label">Liều dùng</span>
+                        <input class="erp-input" placeholder="VD: 1 viên/lần" [ngModel]="line.dosage" (ngModelChange)="updateLineField(idx, 'dosage', $event)" [name]="'med-dosage-' + idx" />
+                      </label>
+                    </div>
+
+                    <div class="grid gap-3 sm:grid-cols-[minmax(90px,0.3fr)_minmax(110px,0.4fr)_minmax(0,1fr)]">
+                      <label class="grid gap-1">
+                        <span class="erp-label">Số lượng</span>
+                        <input type="number" min="1" max="999" class="erp-input font-mono" [ngModel]="line.quantity" (ngModelChange)="updateLineField(idx, 'quantity', $event)" [name]="'med-qty-' + idx" />
+                      </label>
+                      <label class="grid gap-1">
+                        <span class="erp-label">Đơn vị</span>
+                        <input class="erp-input" placeholder="Viên" [ngModel]="line.unit" (ngModelChange)="updateLineField(idx, 'unit', $event)" [name]="'med-unit-' + idx" />
+                      </label>
+                      <label class="grid gap-1">
+                        <span class="erp-label">Cách dùng</span>
+                        <input class="erp-input" placeholder="VD: Uống sau ăn" [ngModel]="line.instructions" (ngModelChange)="updateLineField(idx, 'instructions', $event)" [name]="'med-instructions-' + idx" />
+                      </label>
+                    </div>
+                  </article>
+                }
               </div>
             } @else {
-              <p class="text-xs text-slate-500 italic">Mẫu này chưa thiết lập đơn thuốc đi kèm. Bác sĩ có thể thêm thuốc bằng nút bấm phía trên.</p>
+              <div class="rounded-xl border border-dashed border-slate-300 bg-white/70 px-4 py-5 text-center">
+            <p class="text-xs font-medium text-slate-700">Chưa có thuốc</p>
+              </div>
             }
+            </section>
           </div>
 
           <!-- Bottom Action Bar -->
-          <div class="flex items-center justify-end gap-3 border-t border-slate-100 pt-5">
-            <button type="button" class="erp-btn-secondary" (click)="cancelEdit()">
-              Hủy bỏ
-            </button>
-            <button data-testid="save-medical-template" type="submit" class="erp-btn-primary !min-h-10 !px-6" [disabled]="saving()">
-              <mat-icon class="!h-4 !w-4 !text-[18px]">save</mat-icon>
-              <span>{{ saving() ? 'Đang lưu...' : 'Lưu mẫu phiếu khám' }}</span>
-            </button>
+          <div class="flex items-center justify-between gap-3 border-t border-slate-100 pt-4">
+            @if (activeSetupStep() > 1) {
+              <button data-testid="template-step-previous" type="button" class="erp-btn-secondary" (click)="previousSetupStep()">
+                <mat-icon class="!h-4 !w-4 !text-[16px]">arrow_back</mat-icon>
+                <span>Quay lại</span>
+              </button>
+            } @else {
+              <span></span>
+            }
+            @if (activeSetupStep() < 3) {
+              <button data-testid="template-step-next" type="button" class="erp-btn-primary" (click)="nextSetupStep()">
+                <span>Tiếp theo</span>
+                <mat-icon class="!h-4 !w-4 !text-[16px]">arrow_forward</mat-icon>
+              </button>
+            } @else {
+              <button data-testid="save-medical-template" type="submit" class="erp-btn-primary !min-h-10 !px-6" [disabled]="saving()">
+                <mat-icon class="!h-4 !w-4 !text-[18px]">save</mat-icon>
+                <span>{{ saving() ? 'Đang lưu...' : 'Lưu mẫu' }}</span>
+              </button>
+            }
           </div>
         </form>
       </section>
     </div>
+    @if (activeTab() === 'diagnoses') {
+      <app-diagnosis-catalog-management [embedded]="true" />
+    }
   </div>
 
   <!-- Read-only View Template Modal (Cho Bác sĩ và tra cứu) -->

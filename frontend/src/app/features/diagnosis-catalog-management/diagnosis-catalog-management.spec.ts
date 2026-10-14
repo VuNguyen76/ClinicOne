@@ -26,7 +26,7 @@ describe('DiagnosisCatalogManagement', () => {
   });
 
   it('lets an administrator add a diagnosis to the suggestion catalog', () => {
-    http.expectOne('/api/v1/admin/diagnoses').flush([]);
+    http.expectOne((request) => request.url === '/api/v1/admin/diagnoses' && request.params.get('activeOnly') === 'false').flush([]);
     fixture.detectChanges();
 
     (fixture.nativeElement.querySelector('[data-testid="open-create-diagnosis"]') as HTMLButtonElement).click();
@@ -43,10 +43,35 @@ describe('DiagnosisCatalogManagement', () => {
   });
 
   it('renders inside the staff ERP workspace', () => {
-    http.expectOne('/api/v1/admin/diagnoses').flush([]);
+    http.expectOne((request) => request.url === '/api/v1/admin/diagnoses' && request.params.get('activeOnly') === 'false').flush([]);
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('[data-testid="staff-workspace-shell"]')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('[data-testid="staff-window-title"]')?.textContent)
       .toContain('Chẩn đoán');
+  });
+
+  it('updates and safely removes diagnoses through the admin APIs', () => {
+    http.expectOne((request) => request.url === '/api/v1/admin/diagnoses' && request.params.get('activeOnly') === 'false')
+      .flush([{ id: 'dx-1', code: 'I10', name: 'Tăng huyết áp', active: true }]);
+    fixture.detectChanges();
+
+    const edit = fixture.nativeElement.querySelector('[data-testid="edit-diagnosis-dx-1"]') as HTMLButtonElement;
+    expect(edit.getAttribute('aria-label')).toContain('Sửa');
+    edit.click();
+    fixture.detectChanges();
+    const component = fixture.componentInstance as unknown as {
+      name: { set(value: string): void }; save(): void;
+    };
+    component.name.set('Tăng huyết áp nguyên phát');
+    component.save();
+    const update = http.expectOne('/api/v1/admin/diagnoses/dx-1');
+    expect(update.request.method).toBe('PUT');
+    update.flush({ id: 'dx-1', code: 'I10', name: 'Tăng huyết áp nguyên phát', active: true });
+
+    (fixture.nativeElement.querySelector('[data-testid="toggle-diagnosis-dx-1"]') as HTMLButtonElement).click();
+    const deactivate = http.expectOne((request) => request.url === '/api/v1/admin/diagnoses/dx-1/active'
+      && request.params.get('value') === 'false');
+    expect(deactivate.request.method).toBe('PATCH');
+    deactivate.flush({ id: 'dx-1', code: 'I10', name: 'Tăng huyết áp nguyên phát', active: false });
   });
 });

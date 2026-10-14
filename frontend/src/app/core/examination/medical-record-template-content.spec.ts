@@ -54,7 +54,7 @@ describe('medical record template content', () => {
     const parsed = parseMedicalRecordTemplateContent(JSON.stringify({
       diagnosis: 'Viêm họng cấp',
       prescriptionLines: [
-        { medicationName: 'Paracetamol 500mg', dosage: '1 viên/lần', quantity: 10, unit: 'Viên', instructions: 'Sau ăn' },
+        { medicationId: '11111111-1111-4111-8111-111111111111', medicationName: 'Paracetamol 500mg', dosage: '1 viên/lần', quantity: 10, unit: 'Viên', instructions: 'Sau ăn' },
         { medicationName: '   ', dosage: 'x', quantity: 5 },
       ],
     }));
@@ -62,5 +62,6 @@ describe('medical record template content', () => {
     expect(parsed.prescriptionLines?.[0].medicationName).toBe('Paracetamol 500mg');
     expect(parsed.prescriptionLines?.[0].quantity).toBe(10);
     expect(parsed.prescriptionLines?.[0].unit).toBe('Viên');
+    expect(parsed.prescriptionLines?.[0].medicationId).toBe('11111111-1111-4111-8111-111111111111');
   });
 });
