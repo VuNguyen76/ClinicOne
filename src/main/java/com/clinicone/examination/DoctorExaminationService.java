@@ -207,20 +207,14 @@ public class DoctorExaminationService {
         requireCurrentRecordVersion(record, request);
         validateVitals(request);
         try {
-            if (!record.getPrescriptionLines().isEmpty()) {
-                record.replacePrescriptionLines(List.of());
-                recordRepository.saveAndFlush(record);
-            }
             List<PrescriptionLine> prescriptionLines = prescriptionLines(record, request);
             record.saveDraft(doctorName(staffId, workspace.appointment()), request.reason(), request.examinationNotes(),
                     request.diagnosis(), request.conclusion(), request.treatmentPlan(), request.prescription(),
                     request.followUpDate(), List.of(), request.followUpDays(), normalizeFollowUpNote(request.followUpNote()),
                     request.bloodPressure(), request.heartRate(), request.temperature(), request.spO2(),
                     request.weight(), request.height(), request.allergySummary());
-            record.replacePrescriptionLines(List.of());
-            recordRepository.saveAndFlush(record);
             record.replacePrescriptionLines(prescriptionLines);
-            recordRepository.saveAndFlush(record);
+            recordRepository.save(record);
         } catch (IllegalStateException exception) {
             throw conflict("MEDICAL_RECORD_LOCKED", exception.getMessage());
         }
@@ -274,10 +268,6 @@ public class DoctorExaminationService {
         MedicalRecord record = existingRecord == null ? record(workspace.session()) : existingRecord;
         requireCurrentRecordVersion(record, request);
         try {
-            if (!record.getPrescriptionLines().isEmpty()) {
-                record.replacePrescriptionLines(List.of());
-                recordRepository.saveAndFlush(record);
-            }
             List<PrescriptionLine> prescriptionLines = prescriptionLines(record, request);
             record.saveDraft(doctorName(staffId, workspace.appointment()), request.reason(), request.examinationNotes(),
                     request.diagnosis(), request.conclusion(), request.treatmentPlan(), request.prescription(),
