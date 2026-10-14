@@ -11,6 +11,10 @@ final class LocalDataSafetyPolicy {
     }
 
     static boolean shouldRun(boolean enabled, String datasourceUrl) {
+        return shouldRun(enabled, datasourceUrl, false);
+    }
+
+    static boolean shouldRun(boolean enabled, String datasourceUrl, boolean allowRemote) {
         if (!enabled) {
             return false;
         }
@@ -18,7 +22,7 @@ final class LocalDataSafetyPolicy {
             throw new IllegalStateException("Local data initializer requires an explicit local database URL.");
         }
 
-        if (isLocalDatabaseUrl(datasourceUrl)) {
+        if (allowRemote || isLocalDatabaseUrl(datasourceUrl)) {
             return true;
         }
         throw new IllegalStateException("Refusing to run local data initializer against a non-local database.");

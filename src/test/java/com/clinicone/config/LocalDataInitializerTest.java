@@ -12,6 +12,16 @@ import com.clinicone.schedule.ClinicServiceRepository;
 import com.clinicone.schedule.CreateScheduleTemplateRequest;
 import com.clinicone.schedule.ScheduleTemplateService;
 import com.clinicone.schedule.WorkScheduleTemplateRepository;
+import com.clinicone.appointment.Appointment;
+import com.clinicone.appointment.AppointmentStatus;
+import com.clinicone.queue.QueuePresenceStatus;
+import com.clinicone.queue.QueueTicket;
+import com.clinicone.queue.QueueTicketRepository;
+import com.clinicone.queue.QueueTicketStatus;
+import com.clinicone.queue.QueueClosureOutcome;
+import com.clinicone.examination.ExaminationSessionRepository;
+import com.clinicone.rescheduling.DoctorTimeOffRepository;
+import com.clinicone.rescheduling.RescheduleCaseRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -22,6 +32,9 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 import java.util.Optional;
+import java.time.LocalDate;
+import java.time.DayOfWeek;
+import java.util.ArrayList;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
@@ -44,6 +57,10 @@ class LocalDataInitializerTest {
     @Mock ClinicServiceRepository clinicServiceRepository;
     @Mock WorkScheduleTemplateRepository workScheduleTemplateRepository;
     @Mock ScheduleTemplateService scheduleTemplateService;
+    @Mock DoctorTimeOffRepository doctorTimeOffRepository;
+    @Mock RescheduleCaseRepository rescheduleCaseRepository;
+    @Mock QueueTicketRepository queueTicketRepository;
+    @Mock ExaminationSessionRepository examinationSessionRepository;
 
     @Test
     void skipsAllFixtureWritesWhenInitializerIsNotExplicitlyEnabled() {
@@ -120,5 +137,100 @@ class LocalDataInitializerTest {
         assertThat(passwordCaptor.getAllValues()).contains(
                 "test-admin-password", "test-reception-password", "test-doctor-password", "test-patient-password");
         verifyNoMoreInteractions(passwordEncoder);
+    }
+
+    @Test
+    void seedsDateScopedExamAndRescheduleFlowsWithServiceSnapshotsForTheNextThreeDays() {
+        when(staffRepository.findByUsernameIgnoreCase(any())).thenReturn(Optional.empty());
+        when(staffRepository.save(any(StaffAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(passwordEncoder.encode(any())).thenReturn("encoded");
+        when(roomRepository.findAllByOrderByCodeAsc()).thenReturn(List.of());
+        when(roomRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(profileRepository.findByStaffAccount_Id(any())).thenReturn(Optional.empty());
+        when(profileRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(scheduleRepository.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(any(), any())).thenReturn(List.of());
+        when(scheduleRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(patientRepository.findByPhone(any())).thenReturn(Optional.empty());
+        when(patientRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(patientProfileRepository.findByOwnerIdAndActiveTrueOrderByPrimaryProfileDescCreatedAtAsc(any()))
+                .thenReturn(List.of());
+        when(patientProfileRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(appointmentRepository.findByAppointmentCode(any())).thenReturn(Optional.empty());
+        when(appointmentRepository.findByPatientProfileId(any())).thenReturn(List.of());
+        when(appointmentRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(clinicServiceRepository.findAllByOrderByNameAsc()).thenReturn(List.of());
+        when(clinicServiceRepository.save(any(ClinicService.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(workScheduleTemplateRepository.findByActiveTrueOrderByStartDateAsc()).thenReturn(List.of());
+        when(doctorTimeOffRepository.existsActiveOnDate(any(), any())).thenReturn(false);
+        when(doctorTimeOffRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(rescheduleCaseRepository.findByAppointmentIdAndStatus(any(), any())).thenReturn(Optional.empty());
+        when(rescheduleCaseRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(examinationSessionRepository.findByAppointment_Id(any())).thenReturn(Optional.empty());
+        when(examinationSessionRepository.saveAndFlush(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(queueTicketRepository.findByAppointmentId(any())).thenReturn(Optional.empty());
+
+        LocalDataInitializer initializer = new LocalDataInitializer(staffRepository, roomRepository, profileRepository,
+                scheduleRepository, passwordEncoder, patientRepository, patientProfileRepository,
+                appointmentRepository, clinicServiceRepository,
+                "test-admin-password", "test-reception-password", "test-doctor-password", "test-patient-password",
+                true, "jdbc:postgresql://localhost:5432/clinicone-test");
+        ReflectionTestUtils.setField(initializer, "workScheduleTemplateRepository", workScheduleTemplateRepository);
+        ReflectionTestUtils.setField(initializer, "scheduleTemplateService", scheduleTemplateService);
+        ReflectionTestUtils.setField(initializer, "doctorTimeOffRepository", doctorTimeOffRepository);
+        ReflectionTestUtils.setField(initializer, "rescheduleCaseRepository", rescheduleCaseRepository);
+        ReflectionTestUtils.setField(initializer, "queueTicketRepository", queueTicketRepository);
+        ReflectionTestUtils.setField(initializer, "examinationSessionRepository", examinationSessionRepository);
+
+        initializer.run();
+
+        ArgumentCaptor<Appointment> appointments = ArgumentCaptor.forClass(Appointment.class);
+        verify(appointmentRepository, org.mockito.Mockito.atLeastOnce()).save(appointments.capture());
+        LocalDate today = LocalDate.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh"));
+        List<LocalDate> clinicDates = new ArrayList<>();
+        for (LocalDate date = today; clinicDates.size() < 3; date = date.plusDays(1)) {
+            if (date.getDayOfWeek() != DayOfWeek.SATURDAY && date.getDayOfWeek() != DayOfWeek.SUNDAY) {
+                clinicDates.add(date);
+            }
+        }
+        List<Appointment> demoAppointments = appointments.getAllValues().stream()
+                .filter(item -> item.getAppointmentCode().startsWith("DMO-"))
+                .toList();
+        assertThat(demoAppointments).isNotEmpty().allSatisfy(item -> {
+            assertThat(clinicDates).contains(item.getAppointmentDate());
+            assertThat(item.getServiceName()).isNotBlank();
+            assertThat(item.getServiceDurationMinutes()).isEqualTo(30);
+        });
+        assertThat(demoAppointments).extracting(Appointment::getAppointmentDate)
+                .containsAll(clinicDates);
+        ArgumentCaptor<QueueTicket> tickets = ArgumentCaptor.forClass(QueueTicket.class);
+        verify(queueTicketRepository, org.mockito.Mockito.atLeastOnce()).save(tickets.capture());
+        assertThat(tickets.getAllValues()).extracting(QueueTicket::getStatus)
+                .contains(QueueTicketStatus.WAITING, QueueTicketStatus.CALLED, QueueTicketStatus.IN_SERVICE,
+                        QueueTicketStatus.LEFT_BEFORE_EXAM, QueueTicketStatus.COMPLETED);
+        assertThat(tickets.getAllValues()).anySatisfy(ticket -> {
+            assertThat(ticket.getStatus()).isEqualTo(QueueTicketStatus.WAITING);
+            assertThat(ticket.getPresenceStatus()).isEqualTo(QueuePresenceStatus.RETURN_REQUIRED);
+            assertThat(ticket.getSkipReason()).isNotBlank();
+        });
+        assertThat(tickets.getAllValues()).anySatisfy(ticket -> {
+            assertThat(ticket.getStatus()).isEqualTo(QueueTicketStatus.CALLED);
+            assertThat(ticket.getCallCount()).isEqualTo(2);
+            assertThat(ticket.getPresenceStatus()).isEqualTo(QueuePresenceStatus.READY);
+        });
+        assertThat(tickets.getAllValues()).anySatisfy(ticket -> {
+            assertThat(ticket.getStatus()).isEqualTo(QueueTicketStatus.WAITING);
+            assertThat(ticket.isPriority()).isTrue();
+        });
+        assertThat(tickets.getAllValues()).anySatisfy(ticket ->
+                assertThat(ticket.getClosureOutcome()).isEqualTo(QueueClosureOutcome.FACILITY_UNAVAILABLE));
+        assertThat(tickets.getAllValues()).anySatisfy(ticket ->
+                assertThat(ticket.getClosureOutcome()).isEqualTo(QueueClosureOutcome.LEFT_BEFORE_EXAM));
+        assertThat(tickets.getAllValues()).anySatisfy(ticket ->
+                assertThat(ticket.getClosureOutcome()).isEqualTo(QueueClosureOutcome.EXAMINATION_STOPPED));
+        assertThat(appointments.getAllValues()).extracting(Appointment::getStatus)
+                .contains(AppointmentStatus.BOOKED, AppointmentStatus.CHECKED_IN, AppointmentStatus.COMPLETED,
+                        AppointmentStatus.NOT_PERFORMED, AppointmentStatus.ABSENT, AppointmentStatus.CANCELLED);
+        verify(rescheduleCaseRepository, org.mockito.Mockito.times(3)).save(any());
+        verify(doctorTimeOffRepository, org.mockito.Mockito.times(3)).save(any());
     }
 }

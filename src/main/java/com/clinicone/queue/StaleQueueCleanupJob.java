@@ -7,9 +7,11 @@ import com.clinicone.examination.ExaminationSession;
 import com.clinicone.examination.ExaminationSessionRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -29,6 +31,9 @@ public class StaleQueueCleanupJob {
     private final BusinessLogService businessLogService;
     private final Clock clock;
 
+    @Autowired(required = false)
+    private PlatformTransactionManager transactionManager;
+
     public StaleQueueCleanupJob(QueueTicketRepository ticketRepository,
                                 ExaminationSessionRepository sessionRepository,
                                 AppointmentRepository appointmentRepository,
@@ -42,42 +47,49 @@ public class StaleQueueCleanupJob {
     }
 
     @Scheduled(fixedDelayString = "${app.queue.cleanup-job-delay-ms:3600000}")
-    @Transactional
     public void runScheduled() {
         runOnce();
     }
 
-    @Transactional
     public CleanupResult runOnce() {
         Instant staleBefore = Instant.now(clock).minus(STALE_AFTER);
         List<QueueTicket> stale = ticketRepository.findByStatusInAndCheckedInAtBefore(
                 List.of(QueueTicketStatus.WAITING, QueueTicketStatus.CALLED, QueueTicketStatus.IN_SERVICE), staleBefore);
         int inspected = stale.size();
-        int stopped = 0;
-        int leftBefore = 0;
+        int[] counters = new int[2]; // [0] = stopped, [1] = leftBefore
         for (QueueTicket ticket : stale) {
             try {
-                QueueTicket fresh = ticketRepository.findById(ticket.getId()).orElse(null);
-                if (fresh == null) continue;
-                if (fresh.getStatus() == QueueTicketStatus.COMPLETED
-                        || fresh.getStatus() == QueueTicketStatus.LEFT_BEFORE_EXAM
-                        || fresh.getStatus() == QueueTicketStatus.SKIPPED) continue;
-                Appointment appointment = fresh.getAppointment();
-                ExaminationSession session = sessionRepository.findByAppointment_Id(appointment.getId()).orElse(null);
-
-                if (fresh.getStatus() == QueueTicketStatus.IN_SERVICE) {
-                    if (stopStaleInService(fresh, appointment, session)) stopped++;
+                if (transactionManager != null) {
+                    new TransactionTemplate(transactionManager).executeWithoutResult(status -> processTicket(ticket, counters));
                 } else {
-                    if (closeStaleWaiting(fresh, appointment, session)) leftBefore++;
+                    processTicket(ticket, counters);
                 }
             } catch (Exception e) {
                 log.warn("Stale cleanup failed for ticket {}: {}", ticket.getId(), e.getMessage());
             }
         }
+        int stopped = counters[0];
+        int leftBefore = counters[1];
         if (inspected > 0) {
             log.info("Stale cleanup: inspected={}, stopped={}, leftBefore={}", inspected, stopped, leftBefore);
         }
         return new CleanupResult(inspected, stopped, leftBefore);
+    }
+
+    private void processTicket(QueueTicket ticket, int[] counters) {
+        QueueTicket fresh = ticketRepository.findById(ticket.getId()).orElse(null);
+        if (fresh == null) return;
+        if (fresh.getStatus() == QueueTicketStatus.COMPLETED
+                || fresh.getStatus() == QueueTicketStatus.LEFT_BEFORE_EXAM
+                || fresh.getStatus() == QueueTicketStatus.SKIPPED) return;
+        Appointment appointment = fresh.getAppointment();
+        ExaminationSession session = sessionRepository.findByAppointment_Id(appointment.getId()).orElse(null);
+
+        if (fresh.getStatus() == QueueTicketStatus.IN_SERVICE) {
+            if (stopStaleInService(fresh, appointment, session)) counters[0]++;
+        } else {
+            if (closeStaleWaiting(fresh, appointment, session)) counters[1]++;
+        }
     }
 
     private boolean stopStaleInService(QueueTicket ticket, Appointment appointment, ExaminationSession session) {
