@@ -25,13 +25,13 @@ import java.util.UUID;
 @Validated
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/doctor/examinations")
+@RequestMapping("/api/v1/doctor/examinations/{ticketId}")
 @PreAuthorize("hasRole('DOCTOR')")
 public class DoctorExaminationController {
     private final DoctorExaminationService service;
     private final ObjectProvider<AccessAuditService> accessAudit;
 
-    @GetMapping("/{ticketId}")
+    @GetMapping
     public ResponseEntity<DoctorExaminationResponse> open(Authentication authentication,
                                                           @PathVariable UUID ticketId,
                                                           HttpServletRequest request) {
@@ -47,7 +47,7 @@ public class DoctorExaminationController {
         }
     }
 
-    @PostMapping("/{ticketId}/start")
+    @PostMapping("/start")
     public ResponseEntity<DoctorExaminationResponse> start(Authentication authentication,
                                                             @PathVariable UUID ticketId,
                                                             @IdempotencyKey
@@ -56,14 +56,14 @@ public class DoctorExaminationController {
         return ResponseEntity.ok(service.start(ticketId, authentication.getName(), requestKey));
     }
 
-    @PutMapping("/{ticketId}/draft")
+    @PutMapping("/draft")
     public ResponseEntity<DoctorExaminationResponse> saveDraft(Authentication authentication,
                                                                 @PathVariable UUID ticketId,
                                                                 @Valid @RequestBody DoctorExaminationRequest request) {
         return ResponseEntity.ok(service.saveDraft(ticketId, authentication.getName(), request));
     }
 
-    @PostMapping("/{ticketId}/sign")
+    @PostMapping("/sign")
     public ResponseEntity<DoctorExaminationResponse> sign(Authentication authentication,
                                                            @PathVariable UUID ticketId,
                                                            @IdempotencyKey @RequestHeader("Idempotency-Key") String requestKey,
@@ -71,14 +71,14 @@ public class DoctorExaminationController {
         return ResponseEntity.ok(service.sign(ticketId, authentication.getName(), request, requestKey));
     }
 
-    @PostMapping("/{ticketId}/stop")
+    @PostMapping("/stop")
     public ResponseEntity<DoctorExaminationResponse> stop(Authentication authentication,
                                                            @PathVariable UUID ticketId,
                                                            @Valid @RequestBody StopExaminationRequest request) {
         return ResponseEntity.ok(service.stop(ticketId, authentication.getName(), request));
     }
 
-    @PostMapping("/{ticketId}/wrong-profile")
+    @PostMapping("/wrong-profile")
     public ResponseEntity<DoctorExaminationResponse> wrongProfile(Authentication authentication,
                                                                    @PathVariable UUID ticketId,
                                                                    @Valid @RequestBody WrongProfileRequest request) {

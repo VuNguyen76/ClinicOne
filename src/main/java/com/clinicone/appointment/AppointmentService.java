@@ -12,7 +12,6 @@ import com.clinicone.schedule.AppointmentHold;
 import com.clinicone.schedule.AppointmentHoldService;
 import com.clinicone.schedule.ClinicService;
 import com.clinicone.schedule.ClinicServiceRepository;
-import com.clinicone.schedule.GeneratedClinicSlot;
 import com.clinicone.schedule.GeneratedClinicSlotRepository;
 import com.clinicone.schedule.GeneratedSlotStatus;
 import com.clinicone.config.ClinicConfigurationService;
@@ -21,9 +20,6 @@ import com.clinicone.audit.BusinessLogService;
 import com.clinicone.reason.ReasonCatalog;
 import com.clinicone.reason.ReasonCatalogService;
 import com.clinicone.reason.ReasonCatalogType;
-import com.clinicone.rescheduling.RescheduleCaseRepository;
-import com.clinicone.rescheduling.RescheduleCaseStatus;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -64,11 +60,9 @@ public class AppointmentService {
     private final ReasonCatalogService reasonCatalogService;
     private final Clock clock;
     private final AppointmentCodeGenerator appointmentCodeGenerator;
-    private final RescheduleCaseRepository rescheduleCaseRepository;
     private final GeneratedClinicSlotRepository generatedSlotRepository;
     private final QueueTicketRepository queueTicketRepository;
 
-    @Autowired
     @Builder
     public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
                               PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService,
@@ -76,7 +70,6 @@ public class AppointmentService {
                               AppointmentHoldService holdService, ClinicServiceRepository clinicServiceRepository,
                               ClinicConfigurationService configurationService, ReasonCatalogService reasonCatalogService,
                               Clock clock, AppointmentCodeGenerator appointmentCodeGenerator,
-                              RescheduleCaseRepository rescheduleCaseRepository,
                               GeneratedClinicSlotRepository generatedSlotRepository,
                               QueueTicketRepository queueTicketRepository) {
         this.accountRepository = accountRepository;
@@ -92,7 +85,6 @@ public class AppointmentService {
         this.clock = clock == null ? Clock.systemUTC() : clock;
         this.appointmentCodeGenerator = appointmentCodeGenerator == null
                 ? new AppointmentCodeGenerator() : appointmentCodeGenerator;
-        this.rescheduleCaseRepository = rescheduleCaseRepository;
         this.generatedSlotRepository = generatedSlotRepository;
         this.queueTicketRepository = queueTicketRepository;
     }
@@ -258,12 +250,6 @@ public class AppointmentService {
     public AppointmentResponse createTemporaryReception(PatientProfile temporaryProfile,
                                                          CreateAppointmentRequest request, String requestKey) {
         return createTemporaryInternal(temporaryProfile, request, requestKey, true);
-    }
-
-    private AppointmentResponse createTemporaryInternal(PatientProfile temporaryProfile,
-                                                         CreateAppointmentRequest request,
-                                                         boolean allowOverCapacity) {
-        return createTemporaryInternal(temporaryProfile, request, null, allowOverCapacity);
     }
 
     private AppointmentResponse createTemporaryInternal(PatientProfile temporaryProfile,

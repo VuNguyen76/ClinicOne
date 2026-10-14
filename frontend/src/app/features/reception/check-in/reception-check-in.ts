@@ -4,7 +4,6 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink, Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { ApiErrorResponse, AppointmentSlotResponse, AuthApiService, ReceptionAppointmentResponse, ReceptionDoctorOption, ReceptionPatientProfile, SpecialtyOption, apiErrorMessage } from '../../../core/auth/auth-api.service';
-import { AccountMenu } from '../../../shared/account-menu/account-menu';
 import { StaffWorkspaceShell } from '../../../shared/staff-workspace-shell/staff-workspace-shell';
 import { clinicTodayIso, formatClinicPadDate } from '../../../core/time/clinic-time';
 import { hasStaffRole } from '../../../core/auth/auth.guard';
@@ -278,6 +277,13 @@ export class ReceptionCheckIn implements OnInit {
         this.handleError(response);
       },
     });
+  }
+
+  protected onProfileQueryChange(phone: string): void {
+    this.profileQuery.set(phone);
+    if (/^0\d{9}$/.test(phone.trim())) {
+      this.searchProfiles();
+    }
   }
 
   protected openIntakeForProfile(profile: ReceptionPatientProfile): void {
@@ -1163,6 +1169,11 @@ export class ReceptionCheckIn implements OnInit {
     this.registrationOtpSent.set(false);
     this.walkInOtp.set('');
     this.notice.set('');
+
+    // Auto-search and fill when user enters exactly 10 valid phone digits
+    if (/^0\d{9}$/.test(phone.trim())) {
+      this.loadWalkInProfiles();
+    }
   }
 
   protected loadWalkInSlots(): void {
@@ -1477,17 +1488,6 @@ export class ReceptionCheckIn implements OnInit {
       return 'erp-dot-info';
     }
     return 'erp-dot-info';
-  }
-
-  private noticeTimer: ReturnType<typeof setTimeout> | null = null;
-  private setNotice(msg: string): void {
-    this.notice.set(msg);
-    if (this.noticeTimer) clearTimeout(this.noticeTimer);
-    if (msg) {
-      this.noticeTimer = setTimeout(() => {
-        if (this.notice() === msg) this.notice.set('');
-      }, 4000);
-    }
   }
 
   protected canAdjustQueue(): boolean { return hasStaffRole('RECEPTIONIST'); }

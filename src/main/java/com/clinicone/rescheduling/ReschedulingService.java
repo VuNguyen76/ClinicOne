@@ -10,7 +10,6 @@ import com.clinicone.doctor.DoctorSchedule;
 import com.clinicone.notification.PatientNotificationService;
 import com.clinicone.schedule.AppointmentAvailabilityService;
 import com.clinicone.schedule.AvailableSlotResponse;
-import com.clinicone.schedule.GeneratedClinicSlot;
 import com.clinicone.schedule.GeneratedClinicSlotRepository;
 import com.clinicone.schedule.GeneratedSlotStatus;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -99,7 +98,7 @@ public class ReschedulingService {
             if (caseRepository.findByAppointmentIdAndStatus(appointment.getId(), RescheduleCaseStatus.OPEN).isPresent()) {
                 continue;
             }
-            RescheduleCase item = caseRepository.save(RescheduleCase.open(appointment,
+            caseRepository.save(RescheduleCase.open(appointment,
                     "Giờ làm của bác sĩ đã thay đổi; cần chọn khung giờ thay thế."));
             if (notificationService != null) {
                 notificationService.notifyAppointmentRescheduleRequired(appointment);
@@ -123,7 +122,7 @@ public class ReschedulingService {
             if (caseRepository.findByAppointmentIdAndStatus(appointment.getId(), RescheduleCaseStatus.OPEN).isPresent()) {
                 continue;
             }
-            RescheduleCase item = caseRepository.save(RescheduleCase.open(appointment, reason));
+            caseRepository.save(RescheduleCase.open(appointment, reason));
             if (notificationService != null) {
                 notificationService.notifyAppointmentRescheduleRequired(appointment);
             }

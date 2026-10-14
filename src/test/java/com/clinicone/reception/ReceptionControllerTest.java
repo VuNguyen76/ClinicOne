@@ -38,9 +38,6 @@ class ReceptionControllerTest {
     @Autowired
     private ReceptionService service;
 
-    @Autowired
-    private ReceptionPatientService patientService;
-
     // Nhóm đối chiếu thông tin
     @Test
     void receptionistCanSearchTodaysAppointmentByPhone() throws Exception {

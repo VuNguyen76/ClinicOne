@@ -18,15 +18,9 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Reconciles the append-only journal with the current aggregate state. The
- * check is intentionally read-only for business data; a mismatch creates an
- * open incident, and BusinessLogService blocks later transitions on it.
- */
 @Component
 public class BusinessLogIntegrityJob {
     private static final Logger log = LoggerFactory.getLogger(BusinessLogIntegrityJob.class);

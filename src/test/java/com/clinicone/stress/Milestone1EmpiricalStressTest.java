@@ -3,11 +3,9 @@ package com.clinicone.stress;
 import com.clinicone.appointment.Appointment;
 import com.clinicone.appointment.AppointmentRepository;
 import com.clinicone.appointment.AppointmentStatus;
-import com.clinicone.audit.BusinessLog;
 import com.clinicone.audit.BusinessLogController;
 import com.clinicone.audit.BusinessLogIntegrityJob;
 import com.clinicone.audit.BusinessLogPageResponse;
-import com.clinicone.audit.BusinessLogRepository;
 import com.clinicone.audit.BusinessLogResponse;
 import com.clinicone.audit.BusinessLogService;
 import com.clinicone.auth.AccountStatus;
@@ -21,7 +19,6 @@ import com.clinicone.notification.SmsDeliveryService;
 import com.clinicone.notification.SmsDeliveryStatus;
 import com.clinicone.patientprofile.PatientProfile;
 import com.clinicone.patientprofile.PatientProfileRepository;
-import com.clinicone.queue.QueueTicketRepository;
 import com.clinicone.reconciliation.ReconciliationIncident;
 import com.clinicone.reconciliation.ReconciliationIncidentRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -63,13 +60,7 @@ class Milestone1EmpiricalStressTest {
     private PatientProfileRepository patientProfileRepository;
 
     @Autowired
-    private BusinessLogRepository businessLogRepository;
-
-    @Autowired
     private ReconciliationIncidentRepository reconciliationIncidentRepository;
-
-    @Autowired
-    private QueueTicketRepository queueTicketRepository;
 
     @Autowired
     private SmsDeliveryRepository smsDeliveryRepository;

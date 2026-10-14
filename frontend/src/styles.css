@@ -749,6 +749,12 @@ input {
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* shadow-xs */
 }
 
+/* Filter labels already include their own input. Their form-control margin
+   must not push aligned action buttons below the input baseline. */
+.erp-filter-bar .erp-label {
+  margin-bottom: 0;
+}
+
 /* 6. Tabs & Multi-Tab Bars */
 .erp-tab-bar {
   display: flex;
@@ -939,117 +945,6 @@ input {
 .erp-workspace-canvas .text-\[11px\] {
   font-size: 0.8125rem;
   line-height: 1.2rem;
-}
-
-/* Admin and coordinator workspaces use a deliberate compact density. Keep
-   patient, reception, and doctor screens at their existing comfortable scale. */
-.operations-compact .staff-shell-header {
-  height: 3.25rem;
-}
-
-.operations-compact .staff-brand-link {
-  gap: 0.5rem;
-  padding-inline: 0.75rem;
-}
-
-.operations-compact .staff-module-navigation {
-  padding-block: 0.5rem;
-}
-
-.operations-compact .staff-module-navigation section {
-  margin-bottom: 0.625rem;
-}
-
-.operations-compact .staff-module-link {
-  height: 2.25rem;
-  font-size: 0.8125rem;
-}
-
-.operations-compact .staff-window-header {
-  min-height: 3rem;
-  padding-block: 0.375rem;
-}
-
-.operations-compact .erp-workspace-canvas {
-  padding: 0.5rem;
-}
-
-.operations-compact .text-\[10px\] {
-  font-size: 0.6875rem;
-  line-height: 0.95rem;
-}
-
-.operations-compact .text-\[11px\] {
-  font-size: 0.75rem;
-  line-height: 1rem;
-}
-
-.operations-compact .text-xs {
-  font-size: 0.75rem;
-  line-height: 1rem;
-}
-
-.operations-compact .text-sm {
-  font-size: 0.8125rem;
-  line-height: 1.2rem;
-}
-
-.operations-compact .text-base {
-  font-size: 0.875rem;
-  line-height: 1.3rem;
-}
-
-.operations-compact .text-lg {
-  font-size: 1rem;
-  line-height: 1.5rem;
-}
-
-.operations-compact .text-xl {
-  font-size: 1.125rem;
-  line-height: 1.65rem;
-}
-
-.operations-compact .erp-workspace-canvas .erp-btn-primary,
-.operations-compact .erp-workspace-canvas .erp-btn-success,
-.operations-compact .erp-workspace-canvas .erp-btn-secondary,
-.operations-compact .erp-workspace-canvas .erp-btn-outline,
-.operations-compact .erp-workspace-canvas .erp-btn-accent,
-.operations-compact .erp-workspace-canvas .erp-btn-danger {
-  min-height: 1.875rem;
-  padding: 0.25rem 0.625rem;
-  font-size: 0.75rem;
-}
-
-.operations-compact .erp-workspace-canvas .erp-input,
-.operations-compact .erp-workspace-canvas .erp-select {
-  min-height: 2.125rem;
-  padding: 0.3rem 0.625rem;
-  font-size: 0.75rem;
-}
-
-.operations-compact .erp-workspace-canvas .erp-filter-bar {
-  padding: 0.5rem;
-}
-
-.operations-compact .erp-workspace-canvas .erp-card-header,
-.operations-compact .erp-workspace-canvas .erp-toolbar {
-  padding: 0.5rem 0.75rem;
-}
-
-.operations-compact .erp-workspace-canvas .erp-kpi-card {
-  padding: 0.625rem 0.75rem;
-}
-
-@media (min-width: 640px) {
-  .operations-compact .erp-workspace-canvas {
-    padding: 0.75rem;
-  }
-}
-
-@media (min-width: 1024px) {
-  .operations-compact .erp-workspace-canvas {
-    padding: 1rem;
-  }
 }
 
 .erp-modal-header {

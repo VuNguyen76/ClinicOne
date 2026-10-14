@@ -59,7 +59,6 @@ const NAVIGATION: StaffNavigationGroup[] = [
     label: 'Chuyên môn',
     items: [
       { label: 'Dược phẩm & Thuốc', route: '/admin/medications', icon: 'medication', roles: ['ADMIN', 'COORDINATOR'] },
-      { label: 'Chẩn đoán', route: '/admin/diagnoses', icon: 'clinical_notes', roles: ['ADMIN', 'COORDINATOR'] },
       { label: 'Mẫu bệnh án', route: '/admin/medical-record-templates', icon: 'assignment', roles: ['ADMIN', 'COORDINATOR', 'DOCTOR'] },
     ],
   },
@@ -68,6 +67,7 @@ const NAVIGATION: StaffNavigationGroup[] = [
     items: [
       { label: 'Dịch vụ', route: '/admin/services', icon: 'medical_information', roles: ['ADMIN', 'COORDINATOR'] },
       { label: 'Chuyên khoa', route: '/admin/specialties', icon: 'local_hospital', roles: ['ADMIN', 'COORDINATOR'] },
+      { label: 'Lý do khám lâm sàng', route: '/admin/reason-catalog', icon: 'playlist_add_check', roles: ['ADMIN', 'COORDINATOR'] },
     ],
   },
   {
@@ -102,7 +102,6 @@ export class StaffWorkspaceShell {
   protected readonly navigationOpen = signal(false);
   protected readonly functionQuery = signal('');
   private readonly roles = readStaffRoles();
-  protected readonly compactOperations = this.roles.some((role) => role === 'ADMIN' || role === 'COORDINATOR');
   protected readonly roleLabel = roleLabel(this.roles[0]);
   protected readonly landingRoute = staffLandingRoute(this.roles);
   protected readonly visibleNavigation = computed(() => {

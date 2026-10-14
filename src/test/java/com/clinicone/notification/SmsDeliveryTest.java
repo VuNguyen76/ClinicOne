@@ -1,6 +1,7 @@
 package com.clinicone.notification;
 
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.support.StaticListableBeanFactory;
 import org.junit.jupiter.api.Test;
 import org.springframework.transaction.annotation.Transactional;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -87,8 +88,8 @@ class SmsDeliveryTest {
 
         SmsDeliveryRepository repository = mock(SmsDeliveryRepository.class);
         SmsSender sender = mock(SmsSender.class);
-        ObjectProvider<SmsSender> senders = mock(ObjectProvider.class);
-        when(senders.getIfAvailable()).thenReturn(sender);
+        ObjectProvider<SmsSender> senders = new StaticListableBeanFactory(java.util.Map.of("smsSender", sender))
+                .getBeanProvider(SmsSender.class);
         UUID deliveryId = UUID.randomUUID();
         when(repository.findByIdForUpdate(deliveryId)).thenReturn(Optional.of(delivery));
         SmsDeliveryService service = new SmsDeliveryService(repository, senders, new SmsContentPolicy(),

@@ -2,7 +2,6 @@ package com.clinicone.config;
 
 import com.clinicone.auth.StaffAccount;
 import com.clinicone.auth.StaffAccountRepository;
-import com.clinicone.auth.StaffRole;
 import com.clinicone.auth.PatientAccountRepository;
 import com.clinicone.appointment.AppointmentRepository;
 import com.clinicone.doctor.DoctorProfileRepository;

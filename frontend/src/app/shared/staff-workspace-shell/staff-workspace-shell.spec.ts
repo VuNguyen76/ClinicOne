@@ -81,7 +81,7 @@ describe('StaffWorkspaceShell', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="workspace-tabs"]')?.textContent).toContain('Thiết lập');
   });
 
-  it('applies compact density to administrator and coordinator shells only', () => {
+  it('uses the same workspace density for staff roles', () => {
     const shell = fixture.nativeElement.querySelector('[data-testid="staff-workspace-shell"]') as HTMLElement;
     expect(shell.classList.contains('operations-compact')).toBe(false);
 
@@ -91,7 +91,7 @@ describe('StaffWorkspaceShell', () => {
     fixture = TestBed.createComponent(HostComponent);
     fixture.detectChanges();
     expect((fixture.nativeElement.querySelector('[data-testid="staff-workspace-shell"]') as HTMLElement)
-      .classList.contains('operations-compact')).toBe(true);
+      .classList.contains('operations-compact')).toBe(false);
   });
 
   it('shows the parent module once instead of repeating the page title in the breadcrumb', () => {
@@ -184,7 +184,7 @@ describe('StaffWorkspaceShell', () => {
 
     const links = Array.from(fixture.nativeElement.querySelectorAll('[data-testid="staff-module-nav"] a')) as HTMLAnchorElement[];
     const hrefs = links.map((link) => link.getAttribute('href'));
-    expect(hrefs).toContain('/admin/diagnoses');
+    expect(hrefs).not.toContain('/admin/diagnoses');
     expect(hrefs).not.toContain('/admin/reason-catalog');
     expect(hrefs).not.toContain('/coordinator');
   });

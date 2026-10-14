@@ -311,7 +311,6 @@ class Milestone1AdversarialVerificationTest {
 
         @Test
         void businessLogResponseMapsHashField() {
-            UUID id = UUID.randomUUID();
             UUID eventId = UUID.randomUUID();
             UUID entityId = UUID.randomUUID();
 

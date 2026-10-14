@@ -63,8 +63,11 @@ public class PatientProfileService {
         return profiles.stream().map(PatientProfileResponse::from).toList();
     }
 
+    private static final LocalDate MIN_DATE_OF_BIRTH = LocalDate.of(1900, 1, 1);
+
     @Transactional
     public PatientProfileResponse create(String accountId, CreatePatientProfileRequest request) {
+        validateDateOfBirth(request.dateOfBirth());
         UUID ownerId = AuthenticatedIds.patient(accountId);
         PatientAccount owner = accountRepository.findByIdForUpdate(ownerId).orElseThrow(this::authenticationRequired);
         int maxActiveProfiles = maxActiveProfiles();
@@ -83,6 +86,7 @@ public class PatientProfileService {
 
     @Transactional
     public PatientProfileResponse update(String accountId, String profileId, UpdatePatientProfileRequest request) {
+        validateDateOfBirth(request.dateOfBirth());
         UUID ownerId = AuthenticatedIds.patient(accountId);
         PatientProfile profile = findOwned(profileId, ownerId);
         profile.update(normalize(request.fullName()), normalize(request.relationship()), request.dateOfBirth(),
@@ -210,6 +214,13 @@ public class PatientProfileService {
 
     private AuthException authenticationRequired() {
         return new AuthException(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_REQUIRED", "Phiên đăng nhập không hợp lệ.");
+    }
+
+    private void validateDateOfBirth(LocalDate dateOfBirth) {
+        if (dateOfBirth != null && dateOfBirth.isBefore(MIN_DATE_OF_BIRTH)) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "DATE_OF_BIRTH_INVALID",
+                    "Ngày sinh phải từ 01/01/1900 đến hôm nay.");
+        }
     }
 
     private int maxActiveProfiles() {

@@ -24,7 +24,6 @@ import com.clinicone.schedule.WorkScheduleTemplate;
 import com.clinicone.schedule.WorkScheduleTemplateRepository;
 import com.clinicone.patientprofile.PatientProfileRepository;
 import com.clinicone.patientprofile.PatientProfile;
-import com.clinicone.reception.TemporaryProfileCreationLock;
 import com.clinicone.queue.ClinicRoom;
 import com.clinicone.queue.QueueService;
 import com.clinicone.queue.QueueTicket;
@@ -1039,7 +1038,6 @@ class ReceptionServiceTest {
         var profile = com.clinicone.doctor.DoctorProfile.create(staff, "Kham Mat", room);
         when(doctorProfileRepository.findAllByOrderByCreatedAtDesc()).thenReturn(List.of(profile));
         when(scheduleRepo.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(profile.getId(), TODAY.getDayOfWeek())).thenReturn(List.of());
-        var patient = mock(PatientProfile.class);
         var appt1 = Appointment.create(new PatientAccount("0912345678","hash","A", AccountStatus.ACTIVE,false), DOCTOR_ID, "CL-001", "Kham Mat", "BS A", TODAY, LocalTime.of(9,0), "r");
         var t1 = QueueTicket.create(appt1, room, TODAY, 1);
         var appt2 = Appointment.create(new PatientAccount("0912345678","hash","A", AccountStatus.ACTIVE,false), UUID.randomUUID(), "CL-002", "Kham Mat", "BS B", TODAY, LocalTime.of(9,30), "r");

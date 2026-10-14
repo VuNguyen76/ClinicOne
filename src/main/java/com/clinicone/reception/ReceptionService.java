@@ -676,11 +676,6 @@ public ReceptionAppointmentResponse checkIn(UUID appointmentId, ReceptionCheckIn
         }).toList();
     }
 
-    private ReceptionAppointmentResponse toResponse(Appointment appointment) {
-        return toResponse(appointment, ticketRepository.findByAppointmentId(appointment.getId())
-                .map(QueueTicketResponse::from).orElse(null));
-    }
-
     private ReceptionAppointmentResponse toResponse(Appointment appointment, QueueTicketResponse ticket) {
         DoctorProfile profile = appointment.getDoctorStaffId() == null ? null
                 : doctorProfileRepository.findByStaffAccount_Id(appointment.getDoctorStaffId())
