@@ -88,6 +88,8 @@ export interface AppointmentResponse {
   visitType?: string | null;
   serviceDurationMinutes?: number | null;
   requiresMedicalRecord?: boolean;
+  roomCode?: string | null;
+  roomName?: string | null;
 }
 
 export interface ExaminationSessionResponse {

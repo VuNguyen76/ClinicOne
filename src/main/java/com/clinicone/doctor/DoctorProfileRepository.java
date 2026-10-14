@@ -28,5 +28,8 @@ public interface DoctorProfileRepository extends JpaRepository<DoctorProfile, UU
     List<DoctorProfile> findAllByStaffAccount_IdInAndActiveTrue(Collection<UUID> staffIds);
 
     @EntityGraph(attributePaths = {"staffAccount", "room"})
+    List<DoctorProfile> findAllByStaffAccount_IdIn(Collection<UUID> staffIds);
+
+    @EntityGraph(attributePaths = {"staffAccount", "room"})
     List<DoctorProfile> findAllByOrderByCreatedAtDesc();
 }

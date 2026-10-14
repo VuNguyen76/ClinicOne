@@ -12,6 +12,8 @@ import com.clinicone.schedule.GeneratedClinicSlot;
 import com.clinicone.schedule.GeneratedClinicSlotRepository;
 import com.clinicone.schedule.GeneratedSlotStatus;
 import com.clinicone.doctor.DoctorProfile;
+import com.clinicone.doctor.DoctorProfileRepository;
+import com.clinicone.queue.ClinicRoom;
 import com.clinicone.auth.StaffAccount;
 import com.clinicone.patientprofile.PatientProfile;
 import com.clinicone.patientprofile.PatientProfileRepository;
@@ -62,6 +64,7 @@ class AppointmentServiceTest {
     private com.clinicone.schedule.GeneratedClinicSlotRepository generatedSlotRepository;
     private PatientProfileRepository profileRepository;
     private com.clinicone.queue.QueueTicketRepository queueTicketRepository;
+    private DoctorProfileRepository doctorProfileRepository;
     private PatientProfile defaultPatientProfile;
     private AppointmentService service;
 
@@ -79,6 +82,7 @@ class AppointmentServiceTest {
         generatedSlotRepository = mock(GeneratedClinicSlotRepository.class);
         profileRepository = mock(PatientProfileRepository.class);
         queueTicketRepository = mock(com.clinicone.queue.QueueTicketRepository.class);
+        doctorProfileRepository = mock(DoctorProfileRepository.class);
         defaultPatientProfile = mock(PatientProfile.class);
         when(defaultPatientProfile.getId()).thenReturn(UUID.randomUUID());
         when(profileRepository.findByOwnerIdAndActiveTrueOrderByPrimaryProfileDescCreatedAtAsc(ACCOUNT_ID))
@@ -102,7 +106,8 @@ class AppointmentServiceTest {
                 .clock(Clock.fixed(Instant.parse("2026-08-10T00:00:00Z"), ZoneOffset.UTC))
                 .appointmentCodeGenerator(new AppointmentCodeGenerator())
                 .generatedSlotRepository(null)
-                .queueTicketRepository(queueTicketRepository);
+                .queueTicketRepository(queueTicketRepository)
+                .doctorProfileRepository(doctorProfileRepository);
     }
 
     @Test
@@ -122,6 +127,27 @@ class AppointmentServiceTest {
         assertEquals("Đã đặt", response.statusLabel());
         verify(appointmentRepository).save(any(Appointment.class));
         verify(notificationService).notifyAppointmentCreated(any(Appointment.class));
+    }
+
+    @Test
+    void includesAssignedClinicRoomInAppointmentResponse() {
+        PatientAccount account = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
+        setId(account, ACCOUNT_ID);
+        UUID doctorId = UUID.randomUUID();
+        ClinicRoom room = ClinicRoom.create("NOI-01", "PhÃ²ng Ná»™i tá»•ng quáº­t 01", "Ná»™i tá»•ng quáº­t");
+        DoctorProfile doctor = DoctorProfile.create(mock(StaffAccount.class), "Ná»™i tá»•ng quáº­t", room);
+        when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
+        when(doctorProfileRepository.findByStaffAccount_Id(doctorId)).thenReturn(Optional.of(doctor));
+        when(appointmentRepository.findByPatientIdAndAppointmentDateAndStartTimeAndStatus(
+                ACCOUNT_ID, LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), AppointmentStatus.BOOKED))
+                .thenReturn(Optional.empty());
+
+        AppointmentResponse response = service.create(ACCOUNT_ID.toString(), new CreateAppointmentRequest(
+                "Ná»™i tá»•ng quáº­t", "BS. Nguyá»…n An", LocalDate.of(2026, 8, 10), LocalTime.of(8, 30),
+                "Äau Ä‘áº§u", null, doctorId));
+
+        assertEquals("NOI-01", response.roomCode());
+        assertEquals("PhÃ²ng Ná»™i tá»•ng quáº­t 01", response.roomName());
     }
 
     @Test
