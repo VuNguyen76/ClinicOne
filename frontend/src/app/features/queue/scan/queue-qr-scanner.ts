@@ -74,7 +74,8 @@ export class QueueQrScanner implements OnDestroy {
     try {
       const url = new URL(value, window.location.origin);
       const validPath = /^\/queue\/check-in\/[^/]+$/.test(url.pathname);
-      if (url.origin !== window.location.origin || !validPath) {
+      const supportedProtocol = url.protocol === 'http:' || url.protocol === 'https:';
+      if (!supportedProtocol || !validPath) {
         this.error.set('Mã QR này không thuộc ClinicOne. Hãy quét đúng mã đặt trước phòng bác sĩ.');
         return;
       }

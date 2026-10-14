@@ -59,7 +59,7 @@
         </div>
 
         <!-- 4-Grid Information -->
-        <div class="grid gap-6 p-6 sm:grid-cols-2 lg:grid-cols-4 sm:p-8">
+        <div class="grid gap-6 p-6 sm:grid-cols-2 lg:grid-cols-3 sm:p-8">
           <div class="flex items-start gap-3">
             <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-sky-50 text-[#0284c7]">
               <mat-icon class="!h-5 !w-5 !text-[20px]">medical_services</mat-icon>
@@ -100,7 +100,20 @@
             </div>
           </div>
 
-          <div class="border-t border-slate-100 pt-5 sm:col-span-2 lg:col-span-4">
+          <div class="flex items-start gap-3" data-testid="appointment-room">
+            <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-sky-50 text-[#0284c7]">
+              <mat-icon class="!h-5 !w-5 !text-[20px]">meeting_room</mat-icon>
+            </span>
+            <div class="min-w-0">
+              <span class="text-xs text-slate-400">Phòng khám</span>
+              <p class="mt-0.5 font-bold text-slate-900">{{ current.roomName || 'Đang cập nhật' }}</p>
+              @if (current.roomCode) {
+                <p class="mt-0.5 text-xs font-medium text-slate-500">Mã phòng: {{ current.roomCode }}</p>
+              }
+            </div>
+          </div>
+
+          <div class="border-t border-slate-100 pt-5 sm:col-span-2 lg:col-span-3">
             <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Lý do khám / Triệu chứng</span>
             <p class="mt-1 text-sm leading-relaxed text-slate-700">{{ current.reason }}</p>
           </div>

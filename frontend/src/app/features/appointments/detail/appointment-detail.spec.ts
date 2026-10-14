@@ -244,10 +244,15 @@ describe('AppointmentDetail', () => {
       ...appointment,
       appointmentDate: clinicTodayIso(),
       startTime: '23:59:00',
+      roomCode: 'NOI-01',
+      roomName: 'Phòng Nội tổng quát 01',
     });
 
     const scanLink = fixture.nativeElement.querySelector('[data-testid="qr-scan-action"]') as HTMLAnchorElement;
     expect(scanLink.getAttribute('href')).toBe('/queue/scan');
+    expect(fixture.nativeElement.textContent).toContain('Phòng khám');
+    expect(fixture.nativeElement.textContent).toContain('NOI-01');
+    expect(fixture.nativeElement.textContent).toContain('Phòng Nội tổng quát 01');
     expect(fixture.nativeElement.querySelector('input[type="date"]')).toBeNull();
     expect(fixture.nativeElement.querySelector('input[type="time"]')).toBeNull();
     expect((component as any).rescheduleCase()).toBeNull();

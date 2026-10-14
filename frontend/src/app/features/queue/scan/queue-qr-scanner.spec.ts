@@ -24,7 +24,7 @@ describe('QueueQrScanner', () => {
     expect(fixture.nativeElement.textContent).toContain('Quét mã trước phòng khám');
   });
 
-  it('accepts only ClinicOne room check-in links', () => {
+  it('accepts a ClinicOne room check-in path even when the QR was generated on another host', () => {
     const navigate = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
 
     (component as any).acceptScannedValue(`${window.location.origin}/queue/check-in/room-token-123`);
@@ -32,6 +32,10 @@ describe('QueueQrScanner', () => {
 
     navigate.mockClear();
     (component as any).acceptScannedValue('https://example.com/queue/check-in/room-token-123');
+    expect(navigate).toHaveBeenCalledWith('/queue/check-in/room-token-123');
+
+    navigate.mockClear();
+    (component as any).acceptScannedValue('https://example.com/not-a-clinicone-route/room-token-123');
     expect(navigate).not.toHaveBeenCalled();
     expect((component as any).error()).toContain('không thuộc ClinicOne');
   });

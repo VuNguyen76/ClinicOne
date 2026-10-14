@@ -42,6 +42,9 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import com.clinicone.queue.QueueTicket;
 import com.clinicone.queue.QueueTicketRepository;
+import com.clinicone.queue.ClinicRoom;
+import com.clinicone.doctor.DoctorProfile;
+import com.clinicone.doctor.DoctorProfileRepository;
 
 @Service
 @Transactional(readOnly = true)
@@ -62,6 +65,7 @@ public class AppointmentService {
     private final AppointmentCodeGenerator appointmentCodeGenerator;
     private final GeneratedClinicSlotRepository generatedSlotRepository;
     private final QueueTicketRepository queueTicketRepository;
+    private final DoctorProfileRepository doctorProfileRepository;
 
     @Builder
     public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
@@ -71,7 +75,8 @@ public class AppointmentService {
                               ClinicConfigurationService configurationService, ReasonCatalogService reasonCatalogService,
                               Clock clock, AppointmentCodeGenerator appointmentCodeGenerator,
                               GeneratedClinicSlotRepository generatedSlotRepository,
-                              QueueTicketRepository queueTicketRepository) {
+                              QueueTicketRepository queueTicketRepository,
+                              DoctorProfileRepository doctorProfileRepository) {
         this.accountRepository = accountRepository;
         this.appointmentRepository = appointmentRepository;
         this.profileRepository = profileRepository;
@@ -87,6 +92,7 @@ public class AppointmentService {
                 ? new AppointmentCodeGenerator() : appointmentCodeGenerator;
         this.generatedSlotRepository = generatedSlotRepository;
         this.queueTicketRepository = queueTicketRepository;
+        this.doctorProfileRepository = doctorProfileRepository;
     }
 
     @Transactional(readOnly = true)
@@ -103,8 +109,16 @@ public class AppointmentService {
                         t -> t.getAppointment().getId(),
                         Function.identity(),
                         (existing, replacement) -> replacement));
+        Set<UUID> doctorIds = appointments.stream().map(Appointment::getDoctorStaffId)
+                .filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<UUID, ClinicRoom> roomMap = doctorProfileRepository == null || doctorIds.isEmpty()
+                ? Map.of()
+                : doctorProfileRepository.findAllByStaffAccount_IdIn(doctorIds).stream()
+                        .filter(profile -> profile.getStaffAccount() != null && profile.getRoom() != null)
+                        .collect(Collectors.toMap(profile -> profile.getStaffAccount().getId(),
+                                DoctorProfile::getRoom, (existing, ignored) -> existing));
         return appointments.stream()
-                .map(a -> AppointmentResponse.from(a, ticketMap.get(a.getId())))
+                .map(a -> AppointmentResponse.from(a, ticketMap.get(a.getId()), roomMap.get(a.getDoctorStaffId())))
                 .toList();
     }
 
@@ -114,7 +128,7 @@ public class AppointmentService {
         UUID id = parseAppointmentId(appointmentId);
         Appointment appointment = findOwned(id, patientId);
         QueueTicket ticket = queueTicketRepository.findByAppointmentId(id).orElse(null);
-        return AppointmentResponse.from(appointment, ticket);
+        return AppointmentResponse.from(appointment, ticket, assignedRoom(appointment));
     }
 
     @Transactional
@@ -156,7 +170,7 @@ public class AppointmentService {
                     throw new AuthException(HttpStatus.CONFLICT, "IDEMPOTENCY_KEY_REUSED",
                             "Khóa chống trùng đã được dùng cho một yêu cầu đặt lịch khác.");
                 }
-                return AppointmentResponse.from(existing.get());
+                return toResponse(existing.get());
             }
         }
         if (patient.isMustChangePassword()) {
@@ -226,7 +240,7 @@ public class AppointmentService {
         if (notificationService != null) {
             notificationService.notifyAppointmentCreated(saved);
         }
-        return AppointmentResponse.from(saved);
+        return toResponse(saved);
     }
 
     @Transactional
@@ -274,7 +288,7 @@ public class AppointmentService {
                     throw new AuthException(HttpStatus.CONFLICT, "IDEMPOTENCY_KEY_REUSED",
                             "Khóa chống trùng đã được dùng cho một yêu cầu tiếp nhận khác.");
                 }
-                return AppointmentResponse.from(existing.get());
+                return toResponse(existing.get());
             }
         }
         ClinicService selectedService = resolveService(request);
@@ -313,7 +327,7 @@ public class AppointmentService {
         Appointment saved = appointmentRepository.save(appointment);
         recordTransition(UUID.randomUUID(), saved.getId(), null, saved.getStatus().name(),
                 "CREATE_TEMPORARY_APPOINTMENT", "STAFF", null);
-        return AppointmentResponse.from(saved);
+        return toResponse(saved);
     }
 
     private boolean sameCreateRequest(Appointment existing, CreateAppointmentRequest request) {
@@ -483,7 +497,7 @@ public class AppointmentService {
         if (notificationService != null) {
             notificationService.notifyAppointmentRescheduled(saved, previousDate, previousTime);
         }
-        return AppointmentResponse.from(saved);
+        return toResponse(saved);
     }
 
     private boolean isWithinLateRescheduleWindow(Appointment appointment) {
@@ -498,6 +512,17 @@ public class AppointmentService {
     private int effectiveDurationMinutes(Appointment appointment) {
         Integer duration = appointment.getServiceDurationMinutes();
         return duration == null || duration <= 0 ? 60 : duration;
+    }
+
+    private AppointmentResponse toResponse(Appointment appointment) {
+        return AppointmentResponse.from(appointment, null, assignedRoom(appointment));
+    }
+
+    private ClinicRoom assignedRoom(Appointment appointment) {
+        if (doctorProfileRepository == null || appointment.getDoctorStaffId() == null) return null;
+        return doctorProfileRepository.findByStaffAccount_Id(appointment.getDoctorStaffId())
+                .map(DoctorProfile::getRoom)
+                .orElse(null);
     }
 
     private LocalDate today() {
