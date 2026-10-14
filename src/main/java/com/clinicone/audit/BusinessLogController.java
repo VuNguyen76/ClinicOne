@@ -16,7 +16,7 @@ import java.util.UUID;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/audit")
-@PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
+@PreAuthorize("hasRole('ADMIN')")
 public class BusinessLogController {
     private final BusinessLogService service;
     private final BusinessLogIntegrityJob integrityJob;

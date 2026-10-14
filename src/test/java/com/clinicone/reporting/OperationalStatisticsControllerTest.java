@@ -32,7 +32,7 @@ class OperationalStatisticsControllerTest {
     private OperationalStatisticsService service;
 
     @Test
-    void coordinatorCanReadStatistics() throws Exception {
+    void adminCanReadStatistics() throws Exception {
         when(service.summarize(any(), any(), any(), any(), any())).thenReturn(new OperationalStatisticsResponse(
                 LocalDate.of(2026, 8, 10), LocalDate.of(2026, 8, 10), "Khám Tổng Quát", null,
                 4, 3, 1, 0, 2, 1, null, null));
@@ -42,10 +42,20 @@ class OperationalStatisticsControllerTest {
                         .param("to", "2026-08-10")
                         .param("specialty", "Khám Tổng Quát")
                         .param("groupBy", "WEEK")
-                        .with(authentication(authenticated("ROLE_COORDINATOR"))))
+                        .with(authentication(authenticated("ROLE_ADMIN"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalAppointments").value(4))
                 .andExpect(jsonPath("$.checkedInAppointments").value(3));
+    }
+
+    @Test
+    void coordinatorCannotReadAdminStatistics() throws Exception {
+        mockMvc.perform(get("/api/v1/admin/statistics")
+                        .param("from", "2026-08-10")
+                        .param("to", "2026-08-10")
+                        .param("specialty", "Khám Tổng Quát")
+                        .with(authentication(authenticated("ROLE_COORDINATOR"))))
+                .andExpect(status().isForbidden());
     }
 
     @Test

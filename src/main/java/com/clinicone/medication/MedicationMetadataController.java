@@ -32,7 +32,7 @@ public class MedicationMetadataController {
 
     @GetMapping("/medication-units")
     public List<MedicationUnitResponse> listUnits(@RequestParam(defaultValue = "true") boolean activeOnly) {
-        List<MedicationUnit> units = activeOnly || !canManageCatalog()
+        List<MedicationUnit> units = activeOnly || !canViewInactiveCatalog()
                 ? unitRepository.findByActiveTrueOrderBySortOrderAscNameAsc()
                 : unitRepository.findAllByOrderBySortOrderAscNameAsc();
         return units.stream().map(MedicationUnitResponse::from).toList();
@@ -44,7 +44,7 @@ public class MedicationMetadataController {
             @RequestParam(defaultValue = "true") boolean activeOnly
     ) {
         List<MedicationDosage> dosages;
-        boolean showActiveOnly = activeOnly || !canManageCatalog();
+        boolean showActiveOnly = activeOnly || !canViewInactiveCatalog();
         if (unit != null && !unit.isBlank()) {
             dosages = showActiveOnly
                     ? dosageRepository.findByActiveTrueAndUnitNameIgnoreCaseOrderBySortOrderAsc(unit.trim())
@@ -59,7 +59,7 @@ public class MedicationMetadataController {
 
     @PostMapping("/medication-units")
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
+    @PreAuthorize("hasRole('COORDINATOR')")
     @Transactional
     public MedicationUnitResponse createUnit(@Valid @RequestBody CreateMedicationUnitRequest request) {
         String code = request.code().trim().toUpperCase(java.util.Locale.ROOT);
@@ -76,7 +76,7 @@ public class MedicationMetadataController {
     }
 
     @PutMapping("/medication-units/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
+    @PreAuthorize("hasRole('COORDINATOR')")
     @Transactional
     public MedicationUnitResponse updateUnit(@PathVariable UUID id, @Valid @RequestBody CreateMedicationUnitRequest request) {
         MedicationUnit unit = unitRepository.findById(id)
@@ -102,7 +102,7 @@ public class MedicationMetadataController {
     }
 
     @PatchMapping("/medication-units/{id}/active")
-    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
+    @PreAuthorize("hasRole('COORDINATOR')")
     @Transactional
     public MedicationUnitResponse setUnitActive(@PathVariable UUID id, @Valid @RequestBody SetCatalogActiveRequest request) {
         MedicationUnit unit = unitRepository.findById(id)
@@ -119,7 +119,7 @@ public class MedicationMetadataController {
 
     @PostMapping("/medication-dosages")
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
+    @PreAuthorize("hasRole('COORDINATOR')")
     @Transactional
     public MedicationDosageResponse createDosage(@Valid @RequestBody CreateMedicationDosageRequest request) {
         String code = request.code().trim().toUpperCase(java.util.Locale.ROOT);
@@ -137,7 +137,7 @@ public class MedicationMetadataController {
     }
 
     @PutMapping("/medication-dosages/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
+    @PreAuthorize("hasRole('COORDINATOR')")
     @Transactional
     public MedicationDosageResponse updateDosage(@PathVariable UUID id, @Valid @RequestBody CreateMedicationDosageRequest request) {
         MedicationDosage dosage = dosageRepository.findById(id)
@@ -156,7 +156,7 @@ public class MedicationMetadataController {
     }
 
     @PatchMapping("/medication-dosages/{id}/active")
-    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
+    @PreAuthorize("hasRole('COORDINATOR')")
     @Transactional
     public MedicationDosageResponse setDosageActive(@PathVariable UUID id, @Valid @RequestBody SetCatalogActiveRequest request) {
         MedicationDosage dosage = dosageRepository.findById(id)
@@ -175,9 +175,10 @@ public class MedicationMetadataController {
         return value == null ? "" : value.trim();
     }
 
-    private boolean canManageCatalog() {
+    private boolean canViewInactiveCatalog() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         return authentication != null && authentication.getAuthorities().stream()
-                .anyMatch(authority -> authority.getAuthority().equals("ROLE_ADMIN") || authority.getAuthority().equals("ROLE_COORDINATOR"));
+                .anyMatch(authority -> authority.getAuthority().equals("ROLE_COORDINATOR")
+                        || authority.getAuthority().equals("ROLE_ADMIN"));
     }
 }

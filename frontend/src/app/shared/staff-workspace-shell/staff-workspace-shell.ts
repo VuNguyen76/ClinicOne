@@ -67,14 +67,14 @@ const NAVIGATION: StaffNavigationGroup[] = [
     items: [
       { label: 'Dịch vụ', route: '/admin/services', icon: 'medical_information', roles: ['ADMIN', 'COORDINATOR'] },
       { label: 'Chuyên khoa', route: '/admin/specialties', icon: 'local_hospital', roles: ['ADMIN', 'COORDINATOR'] },
-      { label: 'Lý do khám lâm sàng', route: '/admin/reason-catalog', icon: 'playlist_add_check', roles: ['ADMIN', 'COORDINATOR'] },
+      { label: 'Lý do khám lâm sàng', route: '/admin/reason-catalog', icon: 'playlist_add_check', roles: ['COORDINATOR'] },
     ],
   },
   {
     label: 'Báo cáo & Kiểm soát',
     items: [
-      { label: 'Báo cáo thống kê', route: '/admin/statistics', icon: 'analytics', roles: ['ADMIN', 'COORDINATOR'] },
-      { label: 'Đối soát dữ liệu', route: '/admin/reconciliations', icon: 'fact_check', roles: ['ADMIN', 'COORDINATOR'] },
+      { label: 'Báo cáo thống kê', route: '/admin/statistics', icon: 'analytics', roles: ['ADMIN'] },
+      { label: 'Đối soát dữ liệu', route: '/admin/reconciliations', icon: 'fact_check', roles: ['ADMIN'] },
       { label: 'Nhật ký thao tác', route: '/admin/business-audit', icon: 'history', roles: ['ADMIN'] },
       { label: 'Nhật ký bảo mật', route: '/admin/access-audit', icon: 'security', roles: ['ADMIN'] },
     ],
@@ -110,7 +110,7 @@ export class StaffWorkspaceShell {
       ...group,
       items: group.items
         .filter((item) => item.roles.some((role) => this.roles.includes(role)))
-        .map((item) => this.roles.includes('COORDINATOR')
+        .map((item) => this.roles.includes('COORDINATOR') && !this.roles.includes('ADMIN')
           ? { ...item, route: item.route.replace(/^\/admin\//, '/coordinator/') }
           : item)
         .filter((item) => !query || item.label.toLocaleLowerCase('vi-VN').includes(query)),

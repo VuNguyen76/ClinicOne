@@ -14,10 +14,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 import java.util.UUID;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -26,9 +25,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class ReconciliationControllerTest {
     @Autowired
     private MockMvc mockMvc;
-
-    @Autowired
-    private ReconciliationService service;
 
     @Test
     void adminCanCloseReconciliation() throws Exception {
@@ -40,15 +36,23 @@ class ReconciliationControllerTest {
     }
 
     @Test
-    void coordinatorCanOpenReconciliation() throws Exception {
-        when(service.open(any())).thenReturn(new ReconciliationResponse(UUID.randomUUID(), "INC-TEST", "QUEUE_TICKET",
-                UUID.randomUUID(), null, "Thiếu dữ liệu hàng đợi", "coordinator", ReconciliationStatus.OPEN,
-                null, null, null, null, null, null, null));
+    void coordinatorCannotReadOpenOrCloseReconciliation() throws Exception {
+        UUID incidentId = UUID.randomUUID();
+        mockMvc.perform(get("/api/v1/admin/reconciliations")
+                        .with(authentication(authenticated("ROLE_COORDINATOR"))))
+                .andExpect(status().isForbidden());
+
         mockMvc.perform(post("/api/v1/admin/reconciliations")
                         .with(authentication(authenticated("ROLE_COORDINATOR")))
                         .contentType("application/json")
                         .content("{\"entityType\":\"QUEUE_TICKET\",\"entityId\":\"" + UUID.randomUUID() + "\",\"reason\":\"Thiếu dữ liệu hàng đợi\",\"assignee\":\"coordinator\"}"))
-                .andExpect(status().isCreated());
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(post("/api/v1/admin/reconciliations/{id}/close", incidentId)
+                        .with(authentication(authenticated("ROLE_COORDINATOR")))
+                        .contentType("application/json")
+                        .content("{\"action\":\"RETRY_BUSINESS_ACTION\",\"referenceType\":\"INCIDENT\",\"referenceValue\":\"INC-TEST\",\"resultNote\":\"Đã kiểm tra lại\"}"))
+                .andExpect(status().isForbidden());
     }
 
     private static UsernamePasswordAuthenticationToken authenticated(String role) {

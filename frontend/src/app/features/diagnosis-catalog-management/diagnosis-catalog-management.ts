@@ -18,7 +18,7 @@ export class DiagnosisCatalogManagement implements OnInit {
   readonly embedded = input(false);
 
   protected canManage(): boolean {
-    return hasStaffRole('ADMIN') || hasStaffRole('COORDINATOR');
+    return hasStaffRole('COORDINATOR');
   }
 
   protected isDoctorRole(): boolean {

@@ -153,7 +153,7 @@ export const queueSupervisorGuard: CanActivateFn = (_route, state) => {
 /** Keeps coordinator navigation in its own URL namespace when an old admin URL is opened. */
 export const coordinatorRouteGuard: CanActivateFn = (_route, state) => {
   const roles = staffRoles();
-  if (!roles.includes('COORDINATOR') || !state.url.startsWith('/admin/')) return true;
+  if (!roles.includes('COORDINATOR') || roles.includes('ADMIN') || !state.url.startsWith('/admin/')) return true;
   const router = inject(Router);
   return router.parseUrl(state.url.replace(/^\/admin(?=\/)/, '/coordinator'));
 };

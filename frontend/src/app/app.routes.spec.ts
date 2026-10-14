@@ -14,19 +14,25 @@ describe('ClinicOne route-to-API role contracts', () => {
     const coordinatorPaths = [
       'coordinator/rooms', 'coordinator/doctors', 'coordinator/services', 'coordinator/specialties',
       'coordinator/medical-record-templates', 'coordinator/schedule-templates', 'coordinator/doctor-time-off',
-      'coordinator/statistics', 'coordinator/rescheduling', 'coordinator/reconciliations', 'coordinator/business-audit',
+      'coordinator/rescheduling',
       'coordinator/medications', 'coordinator/diagnoses',
     ];
     const protectedLegacyPaths = [
       'admin/rooms', 'admin/doctors', 'admin/services', 'admin/specialties',
       'admin/medical-record-templates', 'admin/schedule-templates', 'admin/doctor-time-off',
-      'admin/statistics', 'admin/rescheduling', 'admin/reconciliations', 'admin/business-audit', 'admin/medications', 'admin/diagnoses',
+      'admin/rescheduling', 'admin/medications', 'admin/diagnoses',
     ];
 
     for (const path of coordinatorPaths) expect(routes.some((route) => route.path === path)).toBe(true);
     for (const path of protectedLegacyPaths) {
       expect(routes.find((route) => route.path === path)?.canActivate).toContain(coordinatorRouteGuard);
     }
+    expect(routes.some((route) => route.path === 'coordinator/reconciliations')).toBe(false);
+    expect(routes.find((route) => route.path === 'admin/reconciliations')?.canActivate).toContain(adminGuard);
+    expect(routes.find((route) => route.path === 'admin/statistics')?.canActivate).toContain(adminGuard);
+    expect(routes.find((route) => route.path === 'admin/business-audit')?.canActivate).toContain(adminGuard);
+    expect(routes.some((route) => route.path === 'coordinator/statistics')).toBe(false);
+    expect(routes.some((route) => route.path === 'coordinator/business-audit')).toBe(false);
   });
 
   it('restricts schedule-template management to roles allowed to load the doctor directory', () => {
@@ -53,7 +59,8 @@ describe('ClinicOne route-to-API role contracts', () => {
     const route = routes.find((item) => item.path === 'admin/reason-catalog');
 
     expect(route?.redirectTo).toBeUndefined();
-    expect(route?.canActivate).toContain(adminGuard);
+    expect(route?.canActivate).toContain(coordinatorRouteGuard);
+    expect(route?.canActivate).toContain(roomManagerGuard);
     expect(route?.loadComponent).toBeDefined();
     const component = await route?.loadComponent?.();
     expect((component as { name?: string } | undefined)?.name).toContain('ReasonCatalogManagement');

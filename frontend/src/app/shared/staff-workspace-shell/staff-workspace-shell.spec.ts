@@ -187,6 +187,9 @@ describe('StaffWorkspaceShell', () => {
     expect(hrefs).not.toContain('/admin/diagnoses');
     expect(hrefs).not.toContain('/admin/reason-catalog');
     expect(hrefs).not.toContain('/coordinator');
+    expect(hrefs).toContain('/admin/medications');
+    expect(hrefs).toContain('/admin/medical-record-templates');
+    expect(hrefs).toContain('/admin/reconciliations');
   });
 
   it('shows operational queue supervision and management links for coordinator', () => {
@@ -204,5 +207,6 @@ describe('StaffWorkspaceShell', () => {
     expect(hrefs).toContain('/coordinator/doctor-time-off');
     expect(hrefs).not.toContain('/doctor/schedule');
     expect(hrefs).toContain('/coordinator/rescheduling');
+    expect(hrefs).not.toContain('/coordinator/reconciliations');
   });
 });

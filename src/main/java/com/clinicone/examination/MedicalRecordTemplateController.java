@@ -38,21 +38,21 @@ public class MedicalRecordTemplateController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('COORDINATOR', 'ADMIN')")
+    @PreAuthorize("hasRole('COORDINATOR')")
     public ResponseEntity<MedicalRecordTemplateResponse> create(Authentication authentication,
                                                                  @Valid @RequestBody MedicalRecordTemplateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.create(request, authentication.getName()));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('COORDINATOR', 'ADMIN')")
+    @PreAuthorize("hasRole('COORDINATOR')")
     public MedicalRecordTemplateResponse update(@PathVariable UUID id,
                                                 @Valid @RequestBody MedicalRecordTemplateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('COORDINATOR', 'ADMIN')")
+    @PreAuthorize("hasRole('COORDINATOR')")
     public ResponseEntity<Void> deactivate(@PathVariable UUID id) {
         service.deactivate(id);
         return ResponseEntity.noContent().build();

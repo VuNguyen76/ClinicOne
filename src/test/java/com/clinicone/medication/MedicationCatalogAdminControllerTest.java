@@ -38,9 +38,8 @@ class MedicationCatalogAdminControllerTest {
     private MedicationCatalogService service;
 
     @Test
-    void adminCanListAndCreateMedication() throws Exception {
+    void adminCanListMedicationButCannotCreateIt() throws Exception {
         when(service.list(false)).thenReturn(List.of(response(true)));
-        when(service.create(any())).thenReturn(response(true));
 
         mockMvc.perform(get("/api/v1/admin/medications").with(authentication(authenticated("ROLE_ADMIN"))))
                 .andExpect(status().isOk())
@@ -50,9 +49,19 @@ class MedicationCatalogAdminControllerTest {
                         .with(authentication(authenticated("ROLE_ADMIN")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"code\":\"PCM500\",\"name\":\"Paracetamol 500 mg\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void coordinatorCanCreateMedication() throws Exception {
+        when(service.create(any())).thenReturn(response(true));
+
+        mockMvc.perform(post("/api/v1/admin/medications")
+                        .with(authentication(authenticated("ROLE_COORDINATOR")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"code\":\"PCM500\",\"name\":\"Paracetamol 500 mg\"}"))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.active").value(true))
-                .andExpect(jsonPath("$.unitPrice").value(0));
+                .andExpect(jsonPath("$.active").value(true));
     }
 
     @Test
@@ -67,7 +76,7 @@ class MedicationCatalogAdminControllerTest {
     @Test
     void rejectsNegativeMedicationPrice() throws Exception {
         mockMvc.perform(post("/api/v1/admin/medications")
-                        .with(authentication(authenticated("ROLE_ADMIN")))
+                        .with(authentication(authenticated("ROLE_COORDINATOR")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"code\":\"PCM500\",\"name\":\"Paracetamol 500 mg\",\"unitPrice\":-1}"))
                 .andExpect(status().isBadRequest());
@@ -82,12 +91,20 @@ class MedicationCatalogAdminControllerTest {
     }
 
     @Test
-    void adminCanSuspendInsteadOfDeletingMedication() throws Exception {
+    void adminCannotSuspendMedication() throws Exception {
+        mockMvc.perform(patch("/api/v1/admin/medications/" + MEDICATION_ID + "/active")
+                        .param("value", "false")
+                        .with(authentication(authenticated("ROLE_ADMIN"))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void coordinatorCanSuspendInsteadOfDeletingMedication() throws Exception {
         when(service.setActive(eq(MEDICATION_ID), eq(false))).thenReturn(response(false));
 
         mockMvc.perform(patch("/api/v1/admin/medications/" + MEDICATION_ID + "/active")
                         .param("value", "false")
-                        .with(authentication(authenticated("ROLE_ADMIN"))))
+                        .with(authentication(authenticated("ROLE_COORDINATOR"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.active").value(false));
     }

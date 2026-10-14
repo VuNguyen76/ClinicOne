@@ -51,7 +51,7 @@ public class ReasonCatalogController {
     }
 
     @PostMapping("/clinical")
-    @PreAuthorize("hasAnyRole('COORDINATOR', 'ADMIN')")
+    @PreAuthorize("hasRole('COORDINATOR')")
     public ResponseEntity<ClinicalReasonResponse> createClinicalReason(
             @Valid @RequestBody CreateClinicalReasonRequest request) {
         if (clinicalReasonRepository.existsBySpecialtyNameIgnoreCaseAndSymptomNameIgnoreCase(
@@ -67,7 +67,7 @@ public class ReasonCatalogController {
     }
 
     @org.springframework.web.bind.annotation.PutMapping("/clinical/{id}")
-    @PreAuthorize("hasAnyRole('COORDINATOR', 'ADMIN')")
+    @PreAuthorize("hasRole('COORDINATOR')")
     public ResponseEntity<ClinicalReasonResponse> updateClinicalReason(
             @PathVariable UUID id,
             @Valid @RequestBody UpdateClinicalReasonRequest request) {
@@ -80,7 +80,7 @@ public class ReasonCatalogController {
     }
 
     @org.springframework.web.bind.annotation.DeleteMapping("/clinical/{id}")
-    @PreAuthorize("hasAnyRole('COORDINATOR', 'ADMIN')")
+    @PreAuthorize("hasRole('COORDINATOR')")
     public ResponseEntity<Void> deleteClinicalReason(@PathVariable UUID id) {
         ClinicalReason reason = clinicalReasonRepository.findById(id)
                 .orElseThrow(() -> new com.clinicone.auth.AuthException(org.springframework.http.HttpStatus.NOT_FOUND,
@@ -90,7 +90,7 @@ public class ReasonCatalogController {
     }
 
     @PostMapping("/clinical/{id}/toggle-active")
-    @PreAuthorize("hasAnyRole('COORDINATOR', 'ADMIN')")
+    @PreAuthorize("hasRole('COORDINATOR')")
     public ResponseEntity<ClinicalReasonResponse> toggleActive(@PathVariable UUID id) {
         ClinicalReason reason = clinicalReasonRepository.findById(id)
                 .orElseThrow(() -> new com.clinicone.auth.AuthException(org.springframework.http.HttpStatus.NOT_FOUND,
