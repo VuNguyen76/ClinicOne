@@ -18,7 +18,9 @@ import org.springframework.util.StringUtils;
 import java.time.Duration;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
@@ -50,11 +52,24 @@ public class DoctorManagementService {
 
     @Transactional(readOnly = true)
     public List<DoctorAccountResponse> list() {
-        return staffRepository.findAllByOrderByFullNameAsc().stream()
+        List<StaffAccount> doctors = staffRepository.findAllByOrderByFullNameAsc().stream()
                 .filter(staff -> staff.hasRole(StaffRole.DOCTOR))
-                .map(staff -> profileRepository.findByStaffAccount_Id(staff.getId())
-                        .map(profile -> DoctorAccountResponse.from(staff, profile))
-                        .orElseGet(() -> DoctorAccountResponse.unassigned(staff)))
+                .toList();
+        if (doctors.isEmpty()) {
+            return List.of();
+        }
+        List<DoctorProfile> allProfiles = profileRepository.findAllByOrderByCreatedAtDesc();
+        Map<UUID, DoctorProfile> profileMap = allProfiles.stream()
+                .filter(p -> p.getStaffAccount() != null && p.getStaffAccount().getId() != null)
+                .collect(Collectors.toMap(p -> p.getStaffAccount().getId(), p -> p, (a, b) -> a));
+
+        return doctors.stream()
+                .map(staff -> {
+                    DoctorProfile profile = profileMap.get(staff.getId());
+                    return profile != null
+                            ? DoctorAccountResponse.from(staff, profile)
+                            : DoctorAccountResponse.unassigned(staff);
+                })
                 .toList();
     }
 
@@ -90,6 +105,23 @@ public class DoctorManagementService {
             profile.updateAssignment(specialty, room);
         }
         return DoctorProfileResponse.from(profileRepository.save(profile));
+    }
+
+    @Transactional
+    public DoctorAccountResponse updateProfile(UUID staffId, UpdateDoctorProfileRequest request) {
+        if (request == null || request.fullName() == null || request.fullName().trim().length() < 2
+                || request.fullName().trim().length() > 200) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "DOCTOR_NAME_INVALID",
+                    "Họ tên bác sĩ phải có từ 2 đến 200 ký tự.");
+        }
+        StaffAccount staff = findDoctor(staffId);
+        staff.updateProfile(request.fullName().trim(),
+                staff.getUnitName() == null ? "ClinicOne" : staff.getUnitName(),
+                staff.getDepartmentName() == null ? "Chưa phân ban" : staff.getDepartmentName());
+        StaffAccount saved = staffRepository.save(staff);
+        return profileRepository.findByStaffAccount_Id(staffId)
+                .map(profile -> DoctorAccountResponse.from(saved, profile))
+                .orElseGet(() -> DoctorAccountResponse.unassigned(saved));
     }
 
     @Transactional(readOnly = true)

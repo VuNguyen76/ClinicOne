@@ -4,7 +4,6 @@ import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { forkJoin } from 'rxjs';
 import {
-  ApiErrorResponse,
   AuthApiService,
   ClinicRoomResponse,
   CreateDoctorRequest,
@@ -31,6 +30,8 @@ export class DoctorManagement implements OnInit {
   protected readonly rooms = signal<ClinicRoomResponse[]>([]);
   protected readonly specialties = signal<SpecialtyOption[]>([]);
   protected readonly selectedDoctor = signal<DoctorAccountResponse | null>(null);
+  protected readonly doctorProfileEditing = signal<DoctorAccountResponse | null>(null);
+  protected readonly doctorProfileName = signal('');
   protected readonly schedules = signal<DoctorScheduleResponse[]>([]);
   protected readonly loading = signal(true);
   protected readonly saving = signal(false);
@@ -202,6 +203,37 @@ export class DoctorManagement implements OnInit {
     this.notice.set('');
     this.createDoctorForm.reset({ username: '', fullName: '', password: '' });
     this.createDoctorOpen.set(true);
+  }
+
+  protected openDoctorProfileEditor(doctor: DoctorAccountResponse): void {
+    this.error.set('');
+    this.doctorProfileEditing.set(doctor);
+    this.doctorProfileName.set(doctor.fullName);
+  }
+
+  protected saveDoctorProfile(): void {
+    const doctor = this.doctorProfileEditing();
+    const fullName = this.doctorProfileName().trim();
+    if (!doctor || fullName.length < 2 || fullName.length > 200) {
+      this.error.set('Họ tên bác sĩ phải có từ 2 đến 200 ký tự.');
+      return;
+    }
+    this.saving.set(true);
+    this.error.set('');
+    this.authApi.updateDoctorProfile(doctor.staffId, fullName).subscribe({
+      next: (updated) => {
+        this.doctors.update((items) => items.map((item) => item.staffId === doctor.staffId ? updated : item));
+        if (this.selectedDoctor()?.staffId === doctor.staffId) this.selectedDoctor.set(updated);
+        this.doctorProfileEditing.set(null);
+        this.saving.set(false);
+        this.showNotice(`Đã cập nhật hồ sơ ${updated.fullName}.`);
+      },
+      error: (response) => { this.saving.set(false); this.error.set(apiErrorMessage(response)); },
+    });
+  }
+
+  protected closeDoctorProfileEditor(): void {
+    if (!this.saving()) this.doctorProfileEditing.set(null);
   }
 
   protected closeCreateDoctor(): void {

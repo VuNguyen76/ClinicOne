@@ -1,42 +1,39 @@
 <app-staff-workspace-shell moduleTitle="Lịch làm việc" [pageTitle]="isDoctorRole() ? 'Thời khóa biểu của tôi' : 'Thời khóa biểu'">
   <!-- Top Segmented View Tabs (Only for Coordinator managing schedules) -->
   @if (canManageSchedule()) {
-    <div workspace-tabs class="flex items-center gap-2 border-b border-slate-200">
+    <div workspace-tabs class="flex items-center gap-1.5 border-b border-slate-200">
       <button
         type="button"
-        class="px-4 py-2 text-xs font-medium border-b-2 transition cursor-pointer flex items-center gap-1.5"
+        class="px-4 py-2 text-xs font-semibold border-b-2 transition cursor-pointer"
         [class.border-[#0284c7]]="activeTab() === 'grid'"
         [class.text-[#0284c7]]="activeTab() === 'grid'"
         [class.border-transparent]="activeTab() !== 'grid'"
         [class.text-slate-500]="activeTab() !== 'grid'"
         (click)="activeTab.set('grid')"
       >
-        <mat-icon class="!h-4 !w-4 !text-[18px]">calendar_view_week</mat-icon>
-        <span>Thời khóa biểu</span>
+        Thời khóa biểu
       </button>
       <button
         type="button"
-        class="px-4 py-2 text-xs font-medium border-b-2 transition cursor-pointer flex items-center gap-1.5"
+        class="px-4 py-2 text-xs font-semibold border-b-2 transition cursor-pointer"
         [class.border-[#0284c7]]="activeTab() === 'list'"
         [class.text-[#0284c7]]="activeTab() === 'list'"
         [class.border-transparent]="activeTab() !== 'list'"
         [class.text-slate-500]="activeTab() !== 'list'"
         (click)="activeTab.set('list')"
       >
-        <mat-icon class="!h-4 !w-4 !text-[18px]">format_list_bulleted</mat-icon>
-        <span>Danh sách ca trực</span>
+        Danh sách ca trực
       </button>
       <button
         type="button"
-        class="px-4 py-2.5 text-xs font-semibold border-b-2 transition cursor-pointer flex items-center gap-1.5"
+        class="px-4 py-2 text-xs font-semibold border-b-2 transition cursor-pointer"
         [class.border-[#0284c7]]="activeTab() === 'form'"
         [class.text-[#0284c7]]="activeTab() === 'form'"
         [class.border-transparent]="activeTab() !== 'form'"
         [class.text-slate-500]="activeTab() !== 'form'"
         (click)="activeTab.set('form')"
       >
-        <mat-icon class="!h-4 !w-4 !text-[18px]">add_circle_outline</mat-icon>
-        <span>Thiết lập ca trực</span>
+        Thiết lập ca trực
       </button>
     </div>
   }
@@ -334,6 +331,15 @@
                         <div class="flex items-center justify-center">
                           <button
                             type="button"
+                            class="erp-btn-icon"
+                            title="Sửa lịch trực"
+                            [attr.aria-label]="'Sửa lịch trực của ' + template.doctorName"
+                            (click)="editTemplate(template)"
+                          >
+                            <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">edit</mat-icon>
+                          </button>
+                          <button
+                            type="button"
                             class="erp-btn-secondary !text-rose-600 !hover:bg-rose-50 !py-1 !px-2.5"
                             (click)="deleteTemplate(template)"
                             title="Xóa lịch trực"
@@ -626,7 +632,7 @@
                   [disabled]="saving()"
                 >
                   <mat-icon class="!h-4 !w-4 !text-[18px]">{{ saving() ? 'sync' : 'save' }}</mat-icon>
-                  <span>{{ saving() ? 'Đang kích hoạt...' : 'Lưu & Kích hoạt lịch trực' }}</span>
+                  <span>{{ saving() ? 'Đang lưu...' : (editingTemplateId() ? 'Lưu thay đổi lịch trực' : 'Lưu & Kích hoạt lịch trực') }}</span>
                 </button>
               </div>
             </section>
@@ -755,6 +761,10 @@
             Đóng
           </button>
           @if (canManageSchedule()) {
+            <button type="button" class="erp-btn-secondary" (click)="editTemplate(selectedTemplateForDetail()!)">
+              <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">edit</mat-icon>
+              <span>Chỉnh sửa</span>
+            </button>
             <button
               type="button"
               class="erp-btn-secondary !text-rose-600 !hover:bg-rose-50 !border-rose-200"

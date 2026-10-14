@@ -129,6 +129,7 @@
                 <th class="px-4 py-3.5">Lý do nghỉ đột xuất</th>
                 <th class="px-4 py-3.5 text-center">Bị ảnh hưởng</th>
                 <th class="px-4 py-3.5 text-right">Khung giờ đã khóa</th>
+                <th class="px-4 py-3.5 text-right">Thao tác</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-50">
@@ -171,10 +172,22 @@
                   <td class="px-4 py-3 text-right font-mono text-slate-600 text-[11px]">
                     {{ record.lockedSlotCount }} khung giờ đã khóa
                   </td>
+                  <td class="px-4 py-3 text-right">
+                    @if (canManageTimeOff()) {
+                      <div class="inline-flex items-center gap-1">
+                        <button type="button" class="erp-btn-icon" title="Sửa lịch nghỉ" [attr.aria-label]="'Sửa lịch nghỉ của ' + record.doctorName" (click)="openEdit(record)">
+                          <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">edit</mat-icon>
+                        </button>
+                        <button type="button" class="erp-btn-icon !text-rose-600" title="Hủy lịch nghỉ" [attr.aria-label]="'Hủy lịch nghỉ của ' + record.doctorName" (click)="cancelRecord(record)">
+                          <mat-icon class="!h-3.5 !w-3.5 !text-[15px]">delete_outline</mat-icon>
+                        </button>
+                      </div>
+                    }
+                  </td>
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="5" class="px-4 py-12 text-center text-xs text-slate-500">
+                  <td colspan="6" class="px-4 py-12 text-center text-xs text-slate-500">
                     <div>
                       <p class="font-medium text-slate-700">Chưa có lịch nghỉ đột xuất nào.</p>
                       @if (canManageTimeOff()) {
@@ -203,7 +216,7 @@
     <div class="erp-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="time-off-dialog-title" (click)="closeModal()">
       <section class="erp-modal-container max-w-lg" (click)="$event.stopPropagation()">
         <div class="erp-modal-header">
-          <h2 id="time-off-dialog-title" class="text-sm font-bold text-slate-900">{{ isDoctorRole() ? 'Đăng ký báo vắng / Nghỉ phép' : 'Ghi nhận bác sĩ nghỉ đột xuất' }}</h2>
+          <h2 id="time-off-dialog-title" class="text-sm font-bold text-slate-900">{{ editingId() ? 'Sửa lịch nghỉ' : (isDoctorRole() ? 'Đăng ký báo vắng / Nghỉ phép' : 'Ghi nhận bác sĩ nghỉ đột xuất') }}</h2>
           <button type="button" class="erp-btn-icon" aria-label="Đóng" (click)="closeModal()">
             <mat-icon class="!h-4 !w-4 !text-[18px]">close</mat-icon>
           </button>
@@ -287,7 +300,7 @@
               class="erp-btn-primary"
               [disabled]="saving()"
             >
-              {{ saving() ? 'Đang gửi...' : (isDoctorRole() ? 'Gửi đăng ký nghỉ phép' : 'Xác nhận ghi nhận') }}
+              {{ saving() ? 'Đang lưu...' : (editingId() ? 'Lưu thay đổi' : (isDoctorRole() ? 'Gửi đăng ký nghỉ phép' : 'Xác nhận ghi nhận')) }}
             </button>
           </div>
         </form>

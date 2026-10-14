@@ -114,6 +114,11 @@ public class StaffAccount {
     public void lock() { status = AccountStatus.LOCKED; }
     public void unlock() { status = AccountStatus.ACTIVE; }
     public void changePassword(String nextPasswordHash) { this.passwordHash = nextPasswordHash; }
+    public void updateProfile(String fullName, String unitName, String departmentName) {
+        this.fullName = fullName.trim();
+        this.unitName = unitName.trim();
+        this.departmentName = departmentName.trim();
+    }
 
     @PrePersist
     void onCreate() {

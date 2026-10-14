@@ -91,7 +91,7 @@ class DoctorTimeOffServiceTest {
         assertEquals(1, response.lockedSlotCount());
         assertEquals(2, response.releasedHoldCount());
         assertEquals(1, response.affectedAppointmentCount());
-        verify(free).cancel();
+        verify(free).cancelForDoctorTimeOff();
         verify(booked, never()).cancel();
         verify(slotRepository).saveAll(List.of(free));
         org.mockito.InOrder lockBeforeValidation = org.mockito.Mockito.inOrder(doctorRepository, timeOffRepository);

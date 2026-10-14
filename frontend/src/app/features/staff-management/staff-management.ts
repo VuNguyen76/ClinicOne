@@ -36,6 +36,10 @@ export class StaffManagement implements OnInit {
   protected readonly searchTerm = signal('');
   protected readonly editingAccount = signal<StaffAccountResponse | null>(null);
   protected readonly editingRoles = signal<string[]>([]);
+  protected readonly profileAccount = signal<StaffAccountResponse | null>(null);
+  protected readonly profileFullName = signal('');
+  protected readonly profileUnitName = signal('');
+  protected readonly profileDepartmentName = signal('');
 
   protected filteredAccounts(): StaffAccountResponse[] {
     const q = this.searchTerm().trim().toLowerCase();
@@ -83,9 +87,9 @@ export class StaffManagement implements OnInit {
     this.createdCredentials.set(null);
     this.newFullName.set('');
     this.newEmployeeCode.set('');
-    this.newUnitName.set('');
-    this.newDepartmentName.set('');
-    this.newRoles.set([]);
+    this.newUnitName.set('ClinicOne');
+    this.newDepartmentName.set('Khoa Khám bệnh');
+    this.newRoles.set(['DOCTOR']);
     this.error.set('');
     this.createOpen.set(true);
   }
@@ -98,6 +102,42 @@ export class StaffManagement implements OnInit {
     this.error.set('');
     this.editingAccount.set(account);
     this.editingRoles.set([...(account.roles?.length ? account.roles : [account.role])]);
+  }
+
+  protected openProfileEditor(account: StaffAccountResponse): void {
+    this.error.set('');
+    this.profileAccount.set(account);
+    this.profileFullName.set(account.fullName);
+    this.profileUnitName.set(account.unitName ?? 'ClinicOne');
+    this.profileDepartmentName.set(account.departmentName ?? '');
+  }
+
+  protected closeProfileEditor(): void {
+    if (!this.updatingId()) this.profileAccount.set(null);
+  }
+
+  protected saveProfile(): void {
+    const account = this.profileAccount();
+    const request = {
+      fullName: this.profileFullName().trim(),
+      unitName: this.profileUnitName().trim(),
+      departmentName: this.profileDepartmentName().trim(),
+    };
+    if (!account || !request.fullName || !request.unitName || !request.departmentName) {
+      this.error.set('Nhập đầy đủ họ tên, đơn vị và phòng ban.');
+      return;
+    }
+    this.updatingId.set(`profile:${account.staffId}`);
+    this.error.set('');
+    this.authApi.updateStaffProfile(account.staffId, request).subscribe({
+      next: (updated) => {
+        this.accounts.update((items) => items.map((item) => item.staffId === updated.staffId ? updated : item));
+        this.updatingId.set(null);
+        this.profileAccount.set(null);
+        this.notice.set(`Đã cập nhật hồ sơ ${updated.fullName}.`);
+      },
+      error: (response: ApiErrorResponse) => { this.updatingId.set(null); this.error.set(apiErrorMessage(response)); },
+    });
   }
 
   protected closeRoleEditor(): void {

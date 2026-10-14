@@ -31,6 +31,9 @@ describe('ScheduleTemplateManagement', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Thời khóa biểu');
+    const workspaceTabs = fixture.nativeElement.querySelector('[workspace-tabs]');
+    expect(workspaceTabs.querySelectorAll('button').length).toBe(3);
+    expect(workspaceTabs.querySelectorAll('mat-icon').length).toBe(0);
     expect(fixture.nativeElement.querySelectorAll('[data-testid="template-row"]').length).toBe(0);
   });
 
@@ -60,6 +63,25 @@ describe('ScheduleTemplateManagement', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelectorAll('[data-testid="template-row"]').length).toBe(1);
+  });
+
+  it('prefills and saves an edited template through the update endpoint', () => {
+    http.expectOne('/api/v1/admin/services/active').flush([service()]);
+    http.expectOne('/api/v1/admin/doctors').flush([doctor()]);
+    http.expectOne('/api/v1/rooms').flush([room()]);
+    http.expectOne('/api/v1/admin/schedule-templates').flush([template()]);
+    const component = fixture.componentInstance as any;
+    component.editTemplate(template());
+    expect(component.editingTemplateId()).toBe('template-1');
+    expect(component.selectedDoctorId()).toBe('doctor-1');
+    component.dayStart.set('09:00');
+    component.submit();
+
+    const request = http.expectOne('/api/v1/admin/schedule-templates/template-1');
+    expect(request.request.method).toBe('PUT');
+    expect(request.request.body.dayStart).toBe('09:00');
+    request.flush({ ...template(), id: 'template-2', dayStart: '09:00' });
+    expect(component.templates().map((item: { id: string }) => item.id)).toEqual(['template-2']);
   });
 
   it('shows schedules as read-only to an admin', () => {
