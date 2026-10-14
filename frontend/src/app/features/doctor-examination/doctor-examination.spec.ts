@@ -878,7 +878,7 @@ describe('DoctorExamination', () => {
           reason: 'Đau âm ỉ vùng thượng vị',
           diagnosis: 'K21 - Bệnh trào ngược dạ dày - thực quản',
           prescriptionLines: [
-            { medicationName: 'Omeprazole 20mg', dosage: '20mg x 2 lần/ngày', quantity: 28, unit: 'Viên', instructions: 'Uống trước ăn 30 phút' },
+            { medicationId: '11111111-1111-4111-8111-111111111111', medicationName: 'Omeprazole 20mg', dosage: '20mg x 2 lần/ngày', quantity: 28, unit: 'Viên', instructions: 'Uống trước ăn 30 phút' },
             { medicationName: 'Phosphalugel', dosage: '1 gói x 2 lần/ngày', quantity: 20, unit: 'Gói', instructions: 'Uống sau ăn 1 giờ' }
           ]
         }),
@@ -904,6 +904,8 @@ describe('DoctorExamination', () => {
     expect(fixture.componentInstance['form'].controls.diagnosis.value).toBe('K21 - Bệnh trào ngược dạ dày - thực quản');
     expect(fixture.componentInstance['prescriptionLines'].length).toBe(2);
     expect(fixture.componentInstance['prescriptionLines'].at(0).value.medicationName).toBe('Omeprazole 20mg');
+    expect(fixture.componentInstance['prescriptionLines'].at(0).value.medicationId)
+      .toBe('11111111-1111-4111-8111-111111111111');
     expect(fixture.componentInstance['prescriptionLines'].at(0).value.unit).toBe('Viên');
     expect(fixture.componentInstance['prescriptionLines'].at(1).value.medicationName).toBe('Phosphalugel');
     expect(fixture.componentInstance['prescriptionLines'].at(1).value.unit).toBe('Gói');

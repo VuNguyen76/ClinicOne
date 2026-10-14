@@ -20,9 +20,6 @@ import com.clinicone.audit.BusinessLogService;
 import com.clinicone.reason.ReasonCatalog;
 import com.clinicone.reason.ReasonCatalogService;
 import com.clinicone.reason.ReasonCatalogType;
-import com.clinicone.rescheduling.RescheduleCase;
-import com.clinicone.rescheduling.RescheduleCaseRepository;
-import com.clinicone.rescheduling.RescheduleCaseStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -49,7 +46,6 @@ import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 
@@ -63,7 +59,6 @@ class AppointmentServiceTest {
     private AppointmentHoldService holdService;
     private com.clinicone.schedule.ClinicServiceRepository clinicServiceRepository;
     private ReasonCatalogService reasonCatalogService;
-    private RescheduleCaseRepository rescheduleCaseRepository;
     private com.clinicone.schedule.GeneratedClinicSlotRepository generatedSlotRepository;
     private PatientProfileRepository profileRepository;
     private com.clinicone.queue.QueueTicketRepository queueTicketRepository;
@@ -81,7 +76,6 @@ class AppointmentServiceTest {
         holdService = mock(AppointmentHoldService.class);
         clinicServiceRepository = mock(com.clinicone.schedule.ClinicServiceRepository.class);
         reasonCatalogService = mock(ReasonCatalogService.class);
-        rescheduleCaseRepository = mock(RescheduleCaseRepository.class);
         generatedSlotRepository = mock(GeneratedClinicSlotRepository.class);
         profileRepository = mock(PatientProfileRepository.class);
         queueTicketRepository = mock(com.clinicone.queue.QueueTicketRepository.class);
@@ -107,7 +101,6 @@ class AppointmentServiceTest {
                 .reasonCatalogService(null)
                 .clock(Clock.fixed(Instant.parse("2026-08-10T00:00:00Z"), ZoneOffset.UTC))
                 .appointmentCodeGenerator(new AppointmentCodeGenerator())
-                .rescheduleCaseRepository(null)
                 .generatedSlotRepository(null)
                 .queueTicketRepository(queueTicketRepository);
     }
@@ -561,7 +554,6 @@ class AppointmentServiceTest {
                 .thenReturn(Optional.of(oldSlot));
         AppointmentService configuredService = serviceBuilder()
                 .clock(Clock.fixed(Instant.parse("2026-08-10T02:00:00Z"), ZoneOffset.UTC))
-                .rescheduleCaseRepository(rescheduleCaseRepository)
                 .generatedSlotRepository(generatedSlotRepository)
                 .build();
 
@@ -684,12 +676,8 @@ class AppointmentServiceTest {
         UUID appointmentId = UUID.randomUUID();
         setId(appointment, appointmentId);
         when(appointmentRepository.findByIdAndPatientId(appointmentId, ACCOUNT_ID)).thenReturn(Optional.of(appointment));
-        when(rescheduleCaseRepository.findByAppointmentIdAndStatus(appointmentId, RescheduleCaseStatus.OPEN))
-                .thenReturn(Optional.of(RescheduleCase.open(appointment, "Bác sĩ nghỉ")));
-
         AppointmentService guardedService = serviceBuilder()
                 .reasonCatalogService(reasonCatalogService)
-                .rescheduleCaseRepository(rescheduleCaseRepository)
                 .build();
 
         AuthException exception = assertThrows(AuthException.class, () -> guardedService.reschedule(

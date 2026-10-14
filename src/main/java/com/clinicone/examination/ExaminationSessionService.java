@@ -1,8 +1,6 @@
 package com.clinicone.examination;
 
 import com.clinicone.auth.AuthenticatedIds;
-import com.clinicone.auth.AuthException;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;

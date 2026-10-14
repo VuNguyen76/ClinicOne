@@ -14,7 +14,6 @@ import com.clinicone.doctor.DoctorProfile;
 import com.clinicone.doctor.DoctorProfileRepository;
 import com.clinicone.doctor.DoctorSchedule;
 import com.clinicone.doctor.DoctorScheduleRepository;
-import com.clinicone.examination.DoctorExaminationService;
 import com.clinicone.examination.ExaminationSession;
 import com.clinicone.examination.ExaminationSessionRepository;
 import com.clinicone.examination.MedicalRecord;
@@ -60,7 +59,6 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
 import java.time.LocalTime;
@@ -79,8 +77,6 @@ import java.util.Set;
 @Profile("local")
 public class LocalDataInitializer implements CommandLineRunner {
     private static final Logger log = LoggerFactory.getLogger(LocalDataInitializer.class);
-    private static final String DEFAULT_SPECIALTY = "Khám Tổng Quát";
-    private static final String DEFAULT_ROOM_CODE = "TQ-01";
     private static final ZoneId CLINIC_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
     private final StaffAccountRepository staffRepository;
@@ -180,9 +176,9 @@ public class LocalDataInitializer implements CommandLineRunner {
             return;
         }
         // 1. Staff Accounts & Operational Roles
-        StaffAccount admin = ensureStaff("admin", adminPassword, "Quản trị viên Hệ thống", StaffRole.ADMIN);
-        StaffAccount coordinator = ensureStaff("coordinator", adminPassword, "Điều phối viên Trần Hoàng", StaffRole.COORDINATOR);
-        StaffAccount receptionist = ensureStaff("reception", receptionistPassword, "Tiếp đón Lê Thu Thảo", StaffRole.RECEPTIONIST);
+        ensureStaff("admin", adminPassword, "Quản trị viên Hệ thống", StaffRole.ADMIN);
+        ensureStaff("coordinator", adminPassword, "Điều phối viên Trần Hoàng", StaffRole.COORDINATOR);
+        ensureStaff("reception", receptionistPassword, "Tiếp đón Lê Thu Thảo", StaffRole.RECEPTIONIST);
 
         // 2. Specialty Catalogs, Reason Catalogs, Medications, ICD-10, and Medical Record Templates
         ensureSpecialties();
@@ -263,7 +259,7 @@ public class LocalDataInitializer implements CommandLineRunner {
         PatientAccount patient3 = ensurePatient("0900000004", "Phạm Minh Đức");
         PatientProfile profile3 = ensureDetailedProfile(patient3, "Phạm Minh Đức", "Bản thân", LocalDate.of(1958, 11, 12), "Nam",
                 patient3.getPhone(), "079158003344", "789 Đường Hai Bà Trưng", "79", "Thành phố Hồ Chí Minh", "760", "Quận 1", "26740", "Phường Tân Định", true);
-        PatientProfile spouseProfile = ensureDetailedProfile(patient3, "Lê Thị Ngọc", "Vợ", LocalDate.of(1962, 7, 25), "Nữ",
+        ensureDetailedProfile(patient3, "Lê Thị Ngọc", "Vợ", LocalDate.of(1962, 7, 25), "Nữ",
                 "0909334455", "079162007788", "789 Đường Hai Bà Trưng", "79", "Thành phố Hồ Chí Minh", "760", "Quận 1", "26740", "Phường Tân Định", false);
 
         PatientAccount patient4 = ensurePatient("0912345678", "Hoàng Văn Hải");

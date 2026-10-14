@@ -753,7 +753,6 @@ class QueueServiceTest {
     void reassignedWaitingTicketCanBeCalledByTargetDoctorEvenWhenSourceRoomDiffers() {
         UUID sourceDoctorId = UUID.randomUUID();
         UUID targetDoctorId = UUID.randomUUID();
-        ClinicRoom sourceRoom = ClinicRoom.create("NOI-01", "Phòng Nội tổng quát 01", "Nội tổng quát");
         ClinicRoom targetRoom = ClinicRoom.create("NOI-02", "Phòng Nội tổng quát 02", "Nội tổng quát");
         StaffAccount targetStaff = StaffAccount.create("doctor-target", "hash", "BS. Trần Bình", StaffRole.DOCTOR);
         setId(targetStaff, targetDoctorId);
@@ -1103,7 +1102,7 @@ class QueueServiceTest {
         when(ticketRepository.save(any(QueueTicket.class))).thenAnswer(inv -> inv.getArgument(0));
         when(appointmentRepository.save(any(Appointment.class))).thenAnswer(inv -> inv.getArgument(0));
         QueueService svc = new QueueService(roomRepository, ticketRepository, appointmentRepository, doctorProfileRepository, examinationSessionRepository, null, scheduleRepo, null, Clock.fixed(Instant.parse("2026-08-06T02:00:00Z"), ZoneId.of("Asia/Ho_Chi_Minh")));
-        QueueTicketResponse resp = svc.adjust(ticket.getId(), new QueueAdjustmentRequest(QueueAdjustmentAction.MOVE, targetDoctorId, targetRoom.getCode(), "Noi tong quat", "Ly do hop le", "09:00"), "reception-1");
+        svc.adjust(ticket.getId(), new QueueAdjustmentRequest(QueueAdjustmentAction.MOVE, targetDoctorId, targetRoom.getCode(), "Noi tong quat", "Ly do hop le", "09:00"), "reception-1");
         assertEquals("09:00", appt.getStartTime().toString()); // same start time, slot should be hidden in FE
     }
 

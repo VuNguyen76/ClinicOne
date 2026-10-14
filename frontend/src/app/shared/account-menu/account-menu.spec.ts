@@ -71,7 +71,7 @@ describe('AccountMenu', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('a[href="/admin/medications"]')?.textContent).toContain('Danh mục thuốc');
-    expect(fixture.nativeElement.querySelector('a[href="/admin/diagnoses"]')?.textContent).toContain('Danh mục chẩn đoán');
+    expect(fixture.nativeElement.querySelector('a[href="/admin/diagnoses"]')).toBeNull();
   });
 
   it('shows catalog links to a coordinator as well', async () => {
@@ -87,7 +87,7 @@ describe('AccountMenu', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('a[href="/coordinator/medications"]')?.textContent).toContain('Danh mục thuốc');
-    expect(fixture.nativeElement.querySelector('a[href="/coordinator/diagnoses"]')?.textContent).toContain('Danh mục chẩn đoán');
+    expect(fixture.nativeElement.querySelector('a[href="/coordinator/diagnoses"]')).toBeNull();
   });
 
   it('keeps the compact staff menu focused on account actions', async () => {

@@ -2,7 +2,6 @@ package com.clinicone.audit;
 
 import com.clinicone.appointment.Appointment;
 import com.clinicone.appointment.AppointmentRepository;
-import com.clinicone.appointment.AppointmentStatus;
 import com.clinicone.auth.AccountStatus;
 import com.clinicone.auth.PatientAccount;
 import com.clinicone.examination.ExaminationSessionRepository;
@@ -25,7 +24,6 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;

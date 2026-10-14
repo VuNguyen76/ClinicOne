@@ -13,7 +13,6 @@ import com.clinicone.doctor.DoctorProfileRepository;
 import com.clinicone.doctor.DoctorScheduleRepository;
 import com.clinicone.examination.ExaminationSession;
 import com.clinicone.examination.ExaminationSessionRepository;
-import com.clinicone.schedule.GeneratedClinicSlot;
 import com.clinicone.schedule.GeneratedClinicSlotRepository;
 import com.clinicone.schedule.GeneratedSlotStatus;
 import com.clinicone.schedule.WorkScheduleTemplate;
@@ -39,7 +38,6 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Comparator;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -252,19 +250,6 @@ public class QueueService {
         String normalizedActor = actor == null || actor.isBlank() ? "STAFF" : actor.trim();
         return checkInAppointment(roomCode, appointment, normalizeExceptionReason(exceptionReason), normalizedActor,
                 requestKey);
-    }
-
-    private QueueTicketResponse checkInAppointment(String roomCode, Appointment appointment) {
-        return checkInAppointment(roomCode, appointment, null, "SYSTEM");
-    }
-
-    private QueueTicketResponse checkInAppointment(String roomCode, Appointment appointment, String exceptionReason) {
-        return checkInAppointment(roomCode, appointment, exceptionReason, "SYSTEM");
-    }
-
-    private QueueTicketResponse checkInAppointment(String roomCode, Appointment appointment, String exceptionReason,
-                                                   String actor) {
-        return checkInAppointment(roomCode, appointment, exceptionReason, actor, null);
     }
 
     private QueueTicketResponse checkInAppointment(String roomCode, Appointment appointment, String exceptionReason,

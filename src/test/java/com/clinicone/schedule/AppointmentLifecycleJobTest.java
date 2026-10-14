@@ -5,8 +5,6 @@ import com.clinicone.appointment.AppointmentRepository;
 import com.clinicone.appointment.AppointmentStatus;
 import com.clinicone.audit.BusinessLogService;
 import com.clinicone.notification.PatientNotificationService;
-import com.clinicone.schedule.GeneratedClinicSlot;
-import com.clinicone.schedule.GeneratedClinicSlotRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.transaction.annotation.Transactional;
 

@@ -88,16 +88,16 @@ class PublicPatientDataLookupIntegrationTest {
         JsonNode profiles = objectMapper.readTree(result.getResponse().getContentAsString()).path("profiles");
         JsonNode selfResult = findProfile(profiles, self.getId().toString());
         JsonNode childResult = findProfile(profiles, child.getId().toString());
-        assertThat(selfResult.path("fullName").asText()).isEqualTo("Nguyen Test");
-        assertThat(selfResult.path("invoices").get(0).path("invoiceCode").asText()).isEqualTo("INV-LOOKUP-SELF");
-        assertThat(selfResult.path("medicalRecords").get(0).path("diagnosis").asText()).isEqualTo("Chan doan self");
+        assertThat(selfResult.path("fullName").asString()).isEqualTo("Nguyen Test");
+        assertThat(selfResult.path("invoices").get(0).path("invoiceCode").asString()).isEqualTo("INV-LOOKUP-SELF");
+        assertThat(selfResult.path("medicalRecords").get(0).path("diagnosis").asString()).isEqualTo("Chan doan self");
         assertThat(selfResult.path("medicalRecords").get(0).path("prescriptionLines").get(0)
-                .path("medicationName").asText()).isEqualTo("Thuoc self");
-        assertThat(childResult.path("fullName").asText()).isEqualTo("Nguyen Child");
-        assertThat(childResult.path("invoices").get(0).path("invoiceCode").asText()).isEqualTo("INV-LOOKUP-CHILD");
-        assertThat(childResult.path("medicalRecords").get(0).path("diagnosis").asText()).isEqualTo("Chan doan child");
+                .path("medicationName").asString()).isEqualTo("Thuoc self");
+        assertThat(childResult.path("fullName").asString()).isEqualTo("Nguyen Child");
+        assertThat(childResult.path("invoices").get(0).path("invoiceCode").asString()).isEqualTo("INV-LOOKUP-CHILD");
+        assertThat(childResult.path("medicalRecords").get(0).path("diagnosis").asString()).isEqualTo("Chan doan child");
         assertThat(childResult.path("medicalRecords").get(0).path("prescriptionLines").get(0)
-                .path("medicationName").asText()).isEqualTo("Thuoc child");
+                .path("medicationName").asString()).isEqualTo("Thuoc child");
         assertThat(profiles.size()).isEqualTo(2);
     }
 
@@ -130,13 +130,13 @@ class PublicPatientDataLookupIntegrationTest {
 
         JsonNode profiles = objectMapper.readTree(result.getResponse().getContentAsString()).path("profiles");
         JsonNode profileResult = findProfile(profiles, temporaryProfile.getId().toString());
-        assertThat(profileResult.path("fullName").asText()).isEqualTo("Temporary Patient");
-        assertThat(profileResult.path("invoices").get(0).path("invoiceCode").asText())
+        assertThat(profileResult.path("fullName").asString()).isEqualTo("Temporary Patient");
+        assertThat(profileResult.path("invoices").get(0).path("invoiceCode").asString())
                 .isEqualTo("INV-TEMPORARY-LOOKUP");
-        assertThat(profileResult.path("medicalRecords").get(0).path("diagnosis").asText())
+        assertThat(profileResult.path("medicalRecords").get(0).path("diagnosis").asString())
                 .isEqualTo("Chan doan temporary");
         assertThat(profileResult.path("medicalRecords").get(0).path("prescriptionLines").get(0)
-                .path("medicationName").asText()).isEqualTo("Thuoc temporary");
+                .path("medicationName").asString()).isEqualTo("Thuoc temporary");
     }
 
     private void createClinicalHistory(PatientAccount account, PatientProfile profile, String invoiceCode,
@@ -154,7 +154,7 @@ class PublicPatientDataLookupIntegrationTest {
 
     private JsonNode findProfile(JsonNode profiles, String profileId) {
         return StreamSupport.stream(profiles.spliterator(), false)
-                .filter(profile -> profile.path("profileId").asText().equals(profileId))
+                .filter(profile -> profile.path("profileId").asString().equals(profileId))
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("Profile not returned: " + profileId));
     }

@@ -22,18 +22,18 @@ import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/patient/rescheduling")
+@RequestMapping("/api/v1/patient/rescheduling/{appointmentId}")
 @PreAuthorize("hasRole('PATIENT')")
 public class PatientReschedulingController {
     private final ReschedulingService service;
 
-    @GetMapping("/{appointmentId}")
+    @GetMapping
     public ResponseEntity<RescheduleCaseResponse> find(Authentication authentication,
                                                         @PathVariable UUID appointmentId) {
         return ResponseEntity.ok(service.findForPatient(authentication.getName(), appointmentId));
     }
 
-    @GetMapping("/{appointmentId}/alternatives")
+    @GetMapping("/alternatives")
     public ResponseEntity<List<AvailableSlotResponse>> alternatives(
             Authentication authentication,
             @PathVariable UUID appointmentId,
@@ -42,7 +42,7 @@ public class PatientReschedulingController {
         return ResponseEntity.ok(service.alternativesForPatient(authentication.getName(), appointmentId, from, to));
     }
 
-    @PostMapping("/{appointmentId}/confirm")
+    @PostMapping("/confirm")
     public ResponseEntity<RescheduleCaseResponse> confirm(Authentication authentication,
                                                           @PathVariable UUID appointmentId,
                                                           @Valid @RequestBody ResolveRescheduleRequest request) {

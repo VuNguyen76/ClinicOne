@@ -19,7 +19,6 @@ import { formatClinicDate, formatClinicTime } from '../../core/time/clinic-time'
 import {
   MedicalRecordTemplateContent,
   parseMedicalRecordTemplateContent,
-  TemplatePrescriptionLine,
 } from '../../core/examination/medical-record-template-content';
 import { ElectronicInvoiceComponent } from '../../shared/electronic-invoice/electronic-invoice.component';
 import { ElectronicInvoiceData } from '../../core/invoice/vietnamese-currency';
@@ -935,7 +934,7 @@ export class DoctorExamination implements OnInit {
       this.prescriptionLines.clear();
       content.prescriptionLines.forEach((line) => {
         this.prescriptionLines.push(this.fb.group({
-          medicationId: [null],
+          medicationId: [line.medicationId ?? null],
           medicationName: [line.medicationName, [Validators.required, Validators.maxLength(200)]],
           dosage: [line.dosage, [Validators.required, Validators.maxLength(100)]],
           quantity: [line.quantity, [Validators.required, Validators.min(1), Validators.max(999), Validators.pattern(/^[1-9]\d*$/)]],

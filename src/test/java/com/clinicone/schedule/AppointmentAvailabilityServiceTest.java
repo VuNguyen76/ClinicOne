@@ -12,7 +12,6 @@ import com.clinicone.queue.ClinicRoom;
 import com.clinicone.rescheduling.DoctorTimeOffRepository;
 import com.clinicone.rescheduling.DoctorTimeOffWindow;
 import org.junit.jupiter.api.Test;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -252,7 +251,6 @@ class AppointmentAvailabilityServiceTest {
         LocalDate monday = LocalDate.of(2026, 8, 10);
         UUID serviceId = UUID.randomUUID();
         UUID doctorId = UUID.randomUUID();
-        UUID profileId = UUID.randomUUID();
         DoctorProfile profile = mock(DoctorProfile.class);
         StaffAccount staff = mock(StaffAccount.class);
         ClinicRoom room = mock(ClinicRoom.class);

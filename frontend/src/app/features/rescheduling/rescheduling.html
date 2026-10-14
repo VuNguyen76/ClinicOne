@@ -94,7 +94,7 @@
                         class="w-full rounded border border-slate-300 bg-white py-1.5 px-2.5 text-xs text-slate-800 outline-none focus:border-slate-800"
                         (change)="onSlotDropdownChange($event)"
                       >
-                        @for (slot of alternatives(); track slot.appointmentDate + slot.startTime) {
+                        @for (slot of alternatives(); track slot.appointmentDate + slot.startTime + slot.doctorId) {
                           <option [value]="$index" [selected]="isSlotSelected(slot)">
                             {{ formatDate(slot.appointmentDate) }} {{ formatTime(slot.startTime) }} - {{ slot.doctorName }} ({{ slot.roomCode || 'Phòng khám' }})
                           </option>
