@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, input, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-workspace-shell';
@@ -8,12 +9,13 @@ import { hasStaffRole } from '../../core/auth/auth.guard';
 @Component({
   selector: 'app-diagnosis-catalog-management',
   standalone: true,
-  imports: [FormsModule, MatIconModule, StaffWorkspaceShell],
+  imports: [CommonModule, FormsModule, MatIconModule, StaffWorkspaceShell],
   templateUrl: './diagnosis-catalog-management.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DiagnosisCatalogManagement implements OnInit {
   private readonly authApi = inject(AuthApiService);
+  readonly embedded = input(false);
 
   protected canManage(): boolean {
     return hasStaffRole('ADMIN') || hasStaffRole('COORDINATOR');

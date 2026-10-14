@@ -1090,10 +1090,28 @@ export class AuthApiService {
     return this.http.post<MedicationUnitOption>('/api/v1/medication-units', request);
   }
 
+  updateMedicationUnit(id: string, request: { code: string; name: string; description: string; sortOrder: number }): Observable<MedicationUnitOption> {
+    return this.http.put<MedicationUnitOption>(`/api/v1/medication-units/${id}`, request);
+  }
+
+  setMedicationUnitActive(id: string, active: boolean): Observable<MedicationUnitOption> {
+    return this.http.patch<MedicationUnitOption>(`/api/v1/medication-units/${id}/active`, { active });
+  }
+
   createMedicationDosage(request: {
     code: string; unitName: string; dosageFormat: string; description: string; sortOrder: number;
   }): Observable<MedicationDosageOption> {
     return this.http.post<MedicationDosageOption>('/api/v1/medication-dosages', request);
+  }
+
+  updateMedicationDosage(id: string, request: {
+    code: string; unitName: string; dosageFormat: string; description: string; sortOrder: number;
+  }): Observable<MedicationDosageOption> {
+    return this.http.put<MedicationDosageOption>(`/api/v1/medication-dosages/${id}`, request);
+  }
+
+  setMedicationDosageActive(id: string, active: boolean): Observable<MedicationDosageOption> {
+    return this.http.patch<MedicationDosageOption>(`/api/v1/medication-dosages/${id}/active`, { active });
   }
 
   logoutPatient(): Observable<void> {
@@ -1152,6 +1170,28 @@ export class AuthApiService {
 
   getCancellationReasons(): Observable<ReasonCatalogResponse[]> {
     return this.http.get<ReasonCatalogResponse[]>('/api/v1/reasons', { params: { type: 'APPOINTMENT_CANCELLATION' } });
+  }
+
+  getClinicalReasons(specialty?: string, activeOnly = true): Observable<Array<{ id: string; specialtyCode: string; specialtyName: string; symptomName: string; sortOrder: number; active: boolean }>> {
+    const params: Record<string, string> = { activeOnly: String(activeOnly) };
+    if (specialty) params['specialty'] = specialty;
+    return this.http.get<Array<{ id: string; specialtyCode: string; specialtyName: string; symptomName: string; sortOrder: number; active: boolean }>>('/api/v1/reasons/clinical', { params });
+  }
+
+  createClinicalReason(request: { specialtyCode: string; specialtyName: string; symptomName: string; sortOrder?: number }): Observable<{ id: string; specialtyCode: string; specialtyName: string; symptomName: string; sortOrder: number; active: boolean }> {
+    return this.http.post<{ id: string; specialtyCode: string; specialtyName: string; symptomName: string; sortOrder: number; active: boolean }>('/api/v1/reasons/clinical', request);
+  }
+
+  updateClinicalReason(id: string, request: { specialtyCode: string; specialtyName: string; symptomName: string; sortOrder?: number }): Observable<{ id: string; specialtyCode: string; specialtyName: string; symptomName: string; sortOrder: number; active: boolean }> {
+    return this.http.put<{ id: string; specialtyCode: string; specialtyName: string; symptomName: string; sortOrder: number; active: boolean }>(`/api/v1/reasons/clinical/${encodeURIComponent(id)}`, request);
+  }
+
+  deleteClinicalReason(id: string): Observable<void> {
+    return this.http.delete<void>(`/api/v1/reasons/clinical/${encodeURIComponent(id)}`);
+  }
+
+  toggleClinicalReasonActive(id: string): Observable<{ id: string; specialtyCode: string; specialtyName: string; symptomName: string; sortOrder: number; active: boolean }> {
+    return this.http.post<{ id: string; specialtyCode: string; specialtyName: string; symptomName: string; sortOrder: number; active: boolean }>(`/api/v1/reasons/clinical/${encodeURIComponent(id)}/toggle-active`, {});
   }
 
   cancelAppointment(id: string, reasonCode?: string, requestKey?: string): Observable<void> {
@@ -1486,8 +1526,10 @@ export class AuthApiService {
     return this.http.get<DiagnosisSuggestionResponse[]>('/api/v1/doctor/diagnoses/suggestions', { params: { query } });
   }
 
-  getAdminMedications(): Observable<MedicationSuggestionResponse[]> {
-    return this.http.get<MedicationSuggestionResponse[]>('/api/v1/admin/medications');
+  getAdminMedications(activeOnly = false): Observable<MedicationSuggestionResponse[]> {
+    return this.http.get<MedicationSuggestionResponse[]>('/api/v1/admin/medications', {
+      params: { activeOnly: String(activeOnly) },
+    });
   }
 
   createMedication(
@@ -1531,8 +1573,10 @@ export class AuthApiService {
     });
   }
 
-  getAdminDiagnoses(): Observable<DiagnosisSuggestionResponse[]> {
-    return this.http.get<DiagnosisSuggestionResponse[]>('/api/v1/admin/diagnoses');
+  getAdminDiagnoses(activeOnly = false): Observable<DiagnosisSuggestionResponse[]> {
+    return this.http.get<DiagnosisSuggestionResponse[]>('/api/v1/admin/diagnoses', {
+      params: { activeOnly: String(activeOnly) },
+    });
   }
 
   createDiagnosis(code: string, name: string): Observable<DiagnosisSuggestionResponse> {
@@ -1635,6 +1679,10 @@ export class AuthApiService {
     return this.http.post<ScheduleTemplateResponse>('/api/v1/admin/schedule-templates', request);
   }
 
+  updateScheduleTemplate(id: string, request: ScheduleTemplateRequest): Observable<ScheduleTemplateResponse> {
+    return this.http.put<ScheduleTemplateResponse>(`/api/v1/admin/schedule-templates/${id}`, request);
+  }
+
   regenerateScheduleTemplate(id: string): Observable<ScheduleTemplateResponse> {
     return this.http.post<ScheduleTemplateResponse>(`/api/v1/admin/schedule-templates/${id}/regenerate`, {});
   }
@@ -1676,6 +1724,14 @@ export class AuthApiService {
     return this.http.put<StaffAccountResponse>(`/api/v1/admin/staff/${staffId}/roles`, { roles });
   }
 
+  updateStaffProfile(staffId: string, request: { fullName: string; unitName?: string; departmentName?: string }): Observable<StaffAccountResponse> {
+    return this.http.put<StaffAccountResponse>(`/api/v1/admin/staff/${staffId}/profile`, request);
+  }
+
+  updateDoctorProfile(staffId: string, fullName: string): Observable<DoctorAccountResponse> {
+    return this.http.put<DoctorAccountResponse>(`/api/v1/admin/doctors/${staffId}/profile`, { fullName });
+  }
+
   lockStaffAccount(staffId: string): Observable<StaffAccountResponse> {
     return this.http.post<StaffAccountResponse>(`/api/v1/admin/staff/${staffId}/lock`, {});
   }
@@ -1694,6 +1750,14 @@ export class AuthApiService {
 
   createDoctorTimeOff(request: { doctorId: string; startDate: string; endDate: string; reason: string }): Observable<DoctorTimeOffResponse> {
     return this.http.post<DoctorTimeOffResponse>('/api/v1/admin/doctor-time-off', request);
+  }
+
+  updateDoctorTimeOff(id: string, request: { doctorId: string; startDate: string; endDate: string; reason: string }): Observable<DoctorTimeOffResponse> {
+    return this.http.put<DoctorTimeOffResponse>(`/api/v1/admin/doctor-time-off/${id}`, request);
+  }
+
+  cancelDoctorTimeOff(id: string): Observable<DoctorTimeOffResponse> {
+    return this.http.delete<DoctorTimeOffResponse>(`/api/v1/admin/doctor-time-off/${id}`);
   }
 
   getReconciliations(status?: string): Observable<ReconciliationResponse[]> {
