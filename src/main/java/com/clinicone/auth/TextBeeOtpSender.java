@@ -3,10 +3,13 @@ package com.clinicone.auth;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import com.clinicone.notification.SmsSender;
 
+import java.net.http.HttpClient;
+import java.time.Duration;
 import java.util.List;
 
 @Component
@@ -24,7 +27,16 @@ public class TextBeeOtpSender implements OtpSender, SmsSender {
     ) {
         this.apiKey = apiKey;
         this.deviceId = deviceId;
+
+        JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(
+                HttpClient.newBuilder()
+                        .connectTimeout(Duration.ofSeconds(5))
+                        .build()
+        );
+        requestFactory.setReadTimeout(Duration.ofSeconds(8));
+
         this.client = RestClient.builder()
+                .requestFactory(requestFactory)
                 .baseUrl(baseUrl)
                 .defaultHeader("x-api-key", apiKey)
                 .build();
