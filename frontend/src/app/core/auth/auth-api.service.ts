@@ -984,9 +984,9 @@ export function apiErrorMessage(response: ApiErrorResponse): string {
     ?? payload?.detail
     ?? payload?.error?.message
     ?? payload?.error?.detail
-    ?? (typeof response.error === 'string' && !response.error.startsWith('Http failure') ? response.error : undefined)
-    ?? (response.message && !response.message.startsWith('Http failure') ? response.message : undefined)
-    ?? (response.detail && !response.detail.startsWith('Http failure') ? response.detail : undefined);
+    ?? (typeof response.error === 'string' && !response.error.startsWith('Http failure') && !response.error.trim().startsWith('<') ? response.error : undefined)
+    ?? (response.message && !response.message.startsWith('Http failure') && !response.message.trim().startsWith('<') ? response.message : undefined)
+    ?? (response.detail && !response.detail.startsWith('Http failure') && !response.detail.trim().startsWith('<') ? response.detail : undefined);
 
   if (specificMessage) return specificMessage;
 
@@ -994,6 +994,7 @@ export function apiErrorMessage(response: ApiErrorResponse): string {
   if (status === 401) return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
   if (status === 403) return 'Bạn không có quyền thực hiện thao tác này hoặc phiên làm việc đã hết hạn.';
   if (status === 404) return 'Không tìm thấy dữ liệu yêu cầu.';
+  if (status === 502 || status === 504) return 'Hệ thống đang khởi động hoặc kết nối máy chủ tạm thời bị gián đoạn. Vui lòng nhấn gửi lại sau vài giây.';
   if (status && status >= 500) return 'Máy chủ đang bận hoặc gặp sự cố tạm thời. Vui lòng thử lại sau.';
   if (status === 0) return 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.';
 
