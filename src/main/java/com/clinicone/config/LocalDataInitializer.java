@@ -752,7 +752,7 @@ public class LocalDataInitializer implements CommandLineRunner {
     private DoctorProfile ensureDoctorProfile(String username, String fullName, String specialty, String roomCode, String roomName) {
         String avatarUrl = switch (username.toLowerCase()) {
             case "doctor" -> "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=150&auto=format&fit=crop&q=80";
-            case "doctor2" -> "https://images.unsplash.com/photo-1594824813589-32212356c382?w=150&auto=format&fit=crop&q=80";
+            case "doctor2" -> null;
             case "doctor3" -> "https://images.unsplash.com/photo-1537368910025-700350fe46c7?w=150&auto=format&fit=crop&q=80";
             case "doctor4" -> "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=150&auto=format&fit=crop&q=80";
             case "doctor5" -> "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=150&auto=format&fit=crop&q=80";
@@ -765,6 +765,9 @@ public class LocalDataInitializer implements CommandLineRunner {
         ClinicRoom room = ensureRoom(roomCode, roomName, specialty);
         if (docProfile == null) {
             docProfile = profileRepository.save(DoctorProfile.create(staff, specialty, room, avatarUrl));
+        } else if ("doctor2".equalsIgnoreCase(username) || (docProfile.getAvatarUrl() != null && docProfile.getAvatarUrl().contains("1594824813589"))) {
+            docProfile.updateAssignment(specialty, room, null);
+            docProfile = profileRepository.save(docProfile);
         }
         ensureWeekdaySchedules(docProfile);
         return docProfile;
