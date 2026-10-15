@@ -24,6 +24,16 @@ export class Dashboard implements OnInit {
   protected readonly appointmentsLoading = signal(true);
   protected readonly error = signal('');
 
+  protected upcomingAppointments() {
+    const today = clinicTodayIso();
+    return this.appointments()
+      .filter((appointment) => appointment.appointmentDate >= today
+        && (appointment.status === 'BOOKED' || appointment.status === 'CHECKED_IN'))
+      .sort((first, second) => first.appointmentDate.localeCompare(second.appointmentDate)
+        || first.startTime.localeCompare(second.startTime))
+      .slice(0, 5);
+  }
+
   ngOnInit(): void {
     this.authApi.getProfile()
       .pipe(finalize(() => this.loading.set(false)))

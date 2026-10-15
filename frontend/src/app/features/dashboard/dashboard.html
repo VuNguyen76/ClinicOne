@@ -31,22 +31,22 @@
     @if (loading()) {
       <div class="mt-8 grid min-h-48 place-items-center rounded-xl border border-slate-200 bg-white text-sm text-slate-500">Đang tải thông tin tổng quan...</div>
     } @else {
-      <div class="mt-8 grid gap-6 lg:grid-cols-[1fr_330px]">
+      <div class="mt-8 grid gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(19rem,0.9fr)]">
         <section class="rounded-xl border border-slate-200 bg-white shadow-xs" aria-labelledby="appointments-heading">
-          <div data-testid="appointments-header" class="flex items-center justify-between gap-4 border-b border-slate-100 px-6 py-4">
+          <div data-testid="appointments-header" class="flex items-center justify-between gap-4 border-b border-slate-100 px-5 py-3.5">
             <div class="min-w-0"><h2 id="appointments-heading" class="text-base font-bold text-slate-900">Lịch hẹn sắp tới</h2></div>
             <div data-testid="appointments-actions" class="flex shrink-0 items-center gap-4"><a routerLink="/appointments" class="hidden items-center gap-1.5 text-xs font-semibold text-[#0284c7] hover:underline sm:inline-flex"><span>Xem tất cả</span><mat-icon class="!h-3.5 !w-3.5 !text-[15px] !leading-none">arrow_forward</mat-icon></a><mat-icon class="!h-5 !w-5 !text-[20px] text-[#0284c7]">event_available</mat-icon></div>
           </div>
           @if (appointmentsLoading()) {
-            <div class="grid min-h-56 place-items-center px-6 py-10 text-sm text-slate-500">Đang tải lịch hẹn...</div>
-          } @else if (appointments().length === 0) {
-            <div class="grid min-h-56 place-items-center px-6 py-10 text-center"><div class="max-w-sm"><span class="mx-auto grid h-12 w-12 place-items-center rounded-full bg-sky-50 text-[#0284c7]"><mat-icon>calendar_month</mat-icon></span><h3 class="mt-4 font-semibold text-slate-800">Bạn chưa có lịch hẹn</h3><a routerLink="/appointments/new" class="mt-5 inline-flex min-h-9 items-center justify-center rounded-lg bg-[#0284c7] px-4 text-xs font-semibold text-white transition hover:bg-[#0369a1]">Tìm lịch khám</a></div></div>
+            <div class="grid min-h-40 place-items-center px-6 py-8 text-sm text-slate-500">Đang tải lịch hẹn...</div>
+          } @else if (upcomingAppointments().length === 0) {
+            <div class="grid min-h-40 place-items-center px-6 py-8 text-center"><div class="max-w-sm"><span class="mx-auto grid h-10 w-10 place-items-center rounded-xl bg-sky-50 text-[#0284c7]"><mat-icon>calendar_month</mat-icon></span><h3 class="mt-3 font-semibold text-slate-800">Bạn không có lịch khám sắp tới</h3><a routerLink="/appointments/new" class="mt-4 inline-flex min-h-9 items-center justify-center rounded-lg bg-[#0284c7] px-4 text-xs font-semibold text-white transition hover:bg-[#0369a1]">Đặt lịch khám</a></div></div>
           } @else {
-            <div class="divide-y divide-slate-100">
-              @for (appointment of appointments(); track appointment.id) {
-                <article class="flex flex-col gap-4 px-6 py-4 sm:flex-row sm:items-center sm:justify-between transition hover:bg-slate-50/80">
-                  <a [routerLink]="['/appointments', appointment.id]" class="flex items-start gap-4 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-[#0284c7]"><span class="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-sky-50 text-[#0284c7]"><mat-icon class="!text-[20px]">event</mat-icon></span><div><p class="font-semibold text-slate-900 hover:text-[#0284c7]">{{ appointment.specialty }}</p><p class="mt-0.5 text-xs text-slate-500">{{ appointment.doctorName }}</p><p class="mt-1.5 text-xs font-medium text-slate-700">{{ formatDate(appointment.appointmentDate) }} · {{ formatTime(appointment.startTime) }}</p></div></a>
-                  <div class="text-left sm:text-right"><span class="erp-badge" [class]="queueStatusClass(appointment.status)">{{ appointment.statusLabel }}</span><p class="mt-1.5 font-mono text-xs text-slate-500">Mã: <span class="font-semibold text-slate-700">{{ appointment.appointmentCode }}</span></p></div>
+            <div data-testid="upcoming-appointments" class="divide-y divide-slate-100">
+              @for (appointment of upcomingAppointments(); track appointment.id) {
+                <article class="flex flex-col gap-2.5 px-4 py-3 transition hover:bg-slate-50/80 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                  <a [routerLink]="['/appointments', appointment.id]" class="flex min-w-0 items-center gap-3 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-[#0284c7]"><span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-sky-50 text-[#0284c7]"><mat-icon class="!h-5 !w-5 !text-[18px]">event</mat-icon></span><div class="min-w-0"><p class="truncate text-sm font-semibold text-slate-900 hover:text-[#0284c7]">{{ appointment.specialty }}</p><p class="mt-0.5 truncate text-xs text-slate-500">{{ appointment.doctorName }}</p><p class="mt-1 text-xs font-medium text-slate-700">{{ formatDate(appointment.appointmentDate) }} · {{ formatTime(appointment.startTime) }}</p></div></a>
+                  <div class="flex items-center justify-between gap-3 pl-12 sm:shrink-0 sm:flex-col sm:items-end sm:gap-1 sm:pl-0"><span class="erp-badge" [class]="queueStatusClass(appointment.status)">{{ appointment.statusLabel }}</span><p class="max-w-full truncate font-mono text-[11px] text-slate-500">{{ appointment.appointmentCode }}</p></div>
                 </article>
               }
             </div>
@@ -56,14 +56,14 @@
         <div class="grid content-start gap-6">
         @if (queueTickets().length > 0) {
           <section data-testid="my-queue-card" class="rounded-xl border border-sky-200 bg-white shadow-xs" aria-labelledby="my-queue-heading">
-            <div class="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4 bg-sky-50/40">
-              <div><h2 id="my-queue-heading" class="text-sm font-bold text-slate-900">Lượt khám hôm nay</h2></div>
+            <div class="flex items-center justify-between gap-3 border-b border-slate-100 bg-sky-50/40 px-4 py-3.5 sm:px-5">
+              <div><h2 id="my-queue-heading" class="text-sm font-bold text-slate-900">Lượt khám hôm nay</h2><p class="mt-0.5 text-[11px] text-slate-500">Số thứ tự tính riêng theo từng phòng</p></div>
               <mat-icon class="text-[#0284c7]">confirmation_number</mat-icon>
             </div>
             <div class="divide-y divide-slate-100">
               @for (ticket of queueTickets(); track ticket.id) {
-                <a routerLink="/appointments" class="flex items-center gap-4 px-5 py-4 transition hover:bg-slate-50">
-                  <span class="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-sky-50 text-xl font-bold font-mono text-[#0284c7] border border-sky-200">{{ formatQueueNumber(ticket.queueNumber) }}</span>
+                <a routerLink="/appointments" class="flex items-center gap-3 px-4 py-3 transition hover:bg-slate-50 sm:px-5">
+                  <span class="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-sky-200 bg-sky-50 font-mono text-lg font-bold text-[#0284c7]">{{ formatQueueNumber(ticket.queueNumber) }}</span>
                   <span class="min-w-0 flex-1"><strong class="block truncate text-xs font-bold text-slate-900">{{ ticket.specialty }}</strong><span class="mt-0.5 block truncate text-xs text-slate-500">{{ ticket.roomName }} · {{ ticket.doctorName }}</span></span>
                   <span class="erp-badge shrink-0" [class]="queueStatusClass(ticket.status)">{{ ticket.statusLabel }}</span>
                 </a>
