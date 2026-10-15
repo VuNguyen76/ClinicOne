@@ -298,13 +298,28 @@ export class ScheduleTemplateManagement implements OnInit {
 
   protected readonly availableDoctors = computed<DoctorAccountResponse[]>(() => {
     const service = this.services().find((item) => item.id === this.selectedServiceId());
-    const eligible = new Set(service?.eligibleDoctors.map((item) => item.staffId) ?? []);
-    return this.doctors().filter((doctor) => doctor.assigned && doctor.active && eligible.has(doctor.staffId));
+    if (!service) return [];
+    const eligible = new Set(service.eligibleDoctors?.map((item) => item.staffId) ?? []);
+    return this.doctors().filter((doctor) => {
+      if (!doctor.assigned || !doctor.active) return false;
+      if (eligible.size > 0) {
+        return eligible.has(doctor.staffId);
+      }
+      return !service.specialty || doctor.specialty?.trim().toLowerCase() === service.specialty.trim().toLowerCase();
+    });
   });
 
   protected readonly availableRooms = computed<ClinicRoomResponse[]>(() => {
     const doctor = this.doctors().find((item) => item.staffId === this.selectedDoctorId());
-    return this.rooms().filter((room) => room.active && (!doctor?.roomId || room.id === doctor.roomId));
+    const service = this.services().find((item) => item.id === this.selectedServiceId());
+    if (doctor?.roomId) {
+      return this.rooms().filter((room) => room.active && room.id === doctor.roomId);
+    }
+    if (service?.specialty) {
+      const specRooms = this.rooms().filter((room) => room.active && room.specialty?.trim().toLowerCase() === service.specialty.trim().toLowerCase());
+      if (specRooms.length > 0) return specRooms;
+    }
+    return this.rooms().filter((room) => room.active);
   });
 
   protected readonly selectedDoctor = computed<DoctorAccountResponse | undefined>(() => {
