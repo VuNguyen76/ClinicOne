@@ -39,6 +39,17 @@ class ReasonCatalogServiceTest {
     }
 
     @Test
+    void resolvesSeededCancellationReasonCodeWithHyphens() {
+        ReasonCatalog reason = ReasonCatalog.create(ReasonCatalogType.APPOINTMENT_CANCELLATION,
+                "RSN-CAN-05", "Lý do cá nhân / Gia đình có việc riêng");
+        when(repository.findByTypeAndCodeIgnoreCaseAndActiveTrue(ReasonCatalogType.APPOINTMENT_CANCELLATION,
+                "RSN-CAN-05")).thenReturn(Optional.of(reason));
+
+        assertEquals("Lý do cá nhân / Gia đình có việc riêng",
+                service.requireActive(ReasonCatalogType.APPOINTMENT_CANCELLATION, "RSN-CAN-05").getLabel());
+    }
+
+    @Test
     void rejectsDeactivatingLastThreeCancellationReasons() {
         ReasonCatalog reason = ReasonCatalog.create(ReasonCatalogType.APPOINTMENT_CANCELLATION,
                 "SCHEDULE_CHANGE", "Đổi kế hoạch");
