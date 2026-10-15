@@ -49,6 +49,7 @@ import com.clinicone.rescheduling.RescheduleCaseRepository;
 import com.clinicone.schedule.ClinicService;
 import com.clinicone.schedule.ClinicServiceRepository;
 import com.clinicone.schedule.CreateScheduleTemplateRequest;
+import com.clinicone.schedule.ScheduleBreak;
 import com.clinicone.schedule.ScheduleBreakRequest;
 import com.clinicone.schedule.ScheduleTemplateService;
 import com.clinicone.schedule.SpecialtyCatalogEntry;
@@ -73,6 +74,7 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -249,36 +251,39 @@ public class LocalDataInitializer implements CommandLineRunner {
         ClinicService srvTMH = ensureOneService("Khám & Nội soi Tai Mũi Họng", "Khám Tai Mũi Họng", "Khám chuyên khoa", 30, 250_000L, List.of(docTMH));
         ClinicService srvMAT = ensureOneService("Khám khúc xạ & Mắt chuyên sâu", "Khám Mắt", "Khám chuyên khoa", 30, 220_000L, List.of(docMat));
 
-        // 5. Work Schedule Templates & Slot Generation for all 7 Specialty Doctors
-        List<ScheduleBreakRequest> standardLunch = List.of(new ScheduleBreakRequest(LocalTime.of(12, 0), LocalTime.of(13, 0)));
+        // 5. Work Schedule Templates & Slot Generation for all 7 Specialty Doctors (Active through Evening 20h - 22h)
+        List<ScheduleBreakRequest> clinicBreaks = List.of(
+                new ScheduleBreakRequest(LocalTime.of(12, 0), LocalTime.of(13, 0)),
+                new ScheduleBreakRequest(LocalTime.of(18, 0), LocalTime.of(19, 0))
+        );
 
         ensureScheduleTemplates(srvTQ, docTongQuat, docTongQuat.getRoom(),
                 Set.of(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY),
-                LocalTime.of(8, 0), LocalTime.of(17, 0), standardLunch);
+                LocalTime.of(8, 0), LocalTime.of(22, 0), clinicBreaks);
 
         ensureScheduleTemplates(srvTM, docTimMach, docTimMach.getRoom(),
                 Set.of(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY),
-                LocalTime.of(8, 0), LocalTime.of(17, 0), standardLunch);
+                LocalTime.of(8, 0), LocalTime.of(22, 0), clinicBreaks);
 
         ensureScheduleTemplates(srvHH, docHoHap, docHoHap.getRoom(),
                 Set.of(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY),
-                LocalTime.of(8, 0), LocalTime.of(17, 0), standardLunch);
+                LocalTime.of(8, 0), LocalTime.of(22, 0), clinicBreaks);
 
         ensureScheduleTemplates(srvTH, docTieuHoa, docTieuHoa.getRoom(),
                 Set.of(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY),
-                LocalTime.of(8, 0), LocalTime.of(17, 0), standardLunch);
+                LocalTime.of(8, 0), LocalTime.of(22, 0), clinicBreaks);
 
         ensureScheduleTemplates(srvNK, docNhiKhoa, docNhiKhoa.getRoom(),
                 Set.of(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY),
-                LocalTime.of(8, 0), LocalTime.of(12, 0), List.of());
+                LocalTime.of(8, 0), LocalTime.of(22, 0), clinicBreaks);
 
         ensureScheduleTemplates(srvTMH, docTMH, docTMH.getRoom(),
                 Set.of(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY),
-                LocalTime.of(13, 0), LocalTime.of(17, 0), List.of());
+                LocalTime.of(8, 0), LocalTime.of(22, 0), clinicBreaks);
 
         ensureScheduleTemplates(srvMAT, docMat, docMat.getRoom(),
                 Set.of(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY),
-                LocalTime.of(8, 0), LocalTime.of(17, 0), standardLunch);
+                LocalTime.of(8, 0), LocalTime.of(22, 0), clinicBreaks);
 
         // 6. Patients & Comprehensive Family Sub-Profiles
         PatientAccount patient1 = ensurePatient("0900000001", "Nguyễn Thanh Vũ");
@@ -288,22 +293,32 @@ public class LocalDataInitializer implements CommandLineRunner {
                 patient1.getPhone(), null, "123 Đường Nguyễn Huệ", "79", "Thành phố Hồ Chí Minh", "760", "Quận 1", "26734", "Phường Bến Nghé", false);
         PatientProfile motherProfile = ensureDetailedProfile(patient1, "Nguyễn Thị Mai Lan", "Mẹ", LocalDate.of(1965, 3, 10), "Nữ",
                 "0903112233", "079165009876", "123 Đường Nguyễn Huệ", "79", "Thành phố Hồ Chí Minh", "760", "Quận 1", "26734", "Phường Bến Nghé", false);
+        PatientProfile sisterProfile = ensureDetailedProfile(patient1, "Nguyễn Thanh Trúc", "Em gái", LocalDate.of(2003, 8, 14), "Nữ",
+                "0903112288", "079303004567", "123 Đường Nguyễn Huệ", "79", "Thành phố Hồ Chí Minh", "760", "Quận 1", "26734", "Phường Bến Nghé", false);
 
         PatientAccount patient2 = ensurePatient("0900000002", "Trần Thị Mai");
         PatientProfile profile2 = ensureDetailedProfile(patient2, "Trần Thị Mai", "Bản thân", LocalDate.of(1994, 8, 20), "Nữ",
                 patient2.getPhone(), "079194005432", "456 Đường Lê Duẩn", "79", "Thành phố Hồ Chí Minh", "760", "Quận 1", "26734", "Phường Bến Nghé", true);
         PatientProfile fatherProfile = ensureDetailedProfile(patient2, "Trần Văn Hùng", "Bố", LocalDate.of(1955, 12, 4), "Nam",
                 "0908776655", "079155001122", "456 Đường Lê Duẩn", "79", "Thành phố Hồ Chí Minh", "760", "Quận 1", "26734", "Phường Bến Nghé", false);
+        PatientProfile motherProfile2 = ensureDetailedProfile(patient2, "Lê Thị Cúc", "Mẹ", LocalDate.of(1959, 4, 10), "Nữ",
+                "0908776699", "079159008877", "456 Đường Lê Duẩn", "79", "Thành phố Hồ Chí Minh", "760", "Quận 1", "26734", "Phường Bến Nghé", false);
 
         PatientAccount patient3 = ensurePatient("0900000004", "Phạm Minh Đức");
         PatientProfile profile3 = ensureDetailedProfile(patient3, "Phạm Minh Đức", "Bản thân", LocalDate.of(1958, 11, 12), "Nam",
                 patient3.getPhone(), "079158003344", "789 Đường Hai Bà Trưng", "79", "Thành phố Hồ Chí Minh", "760", "Quận 1", "26740", "Phường Tân Định", true);
         PatientProfile wifeProfile = ensureDetailedProfile(patient3, "Lê Thị Ngọc", "Vợ", LocalDate.of(1962, 7, 25), "Nữ",
                 "0909334455", "079162007788", "789 Đường Hai Bà Trưng", "79", "Thành phố Hồ Chí Minh", "760", "Quận 1", "26740", "Phường Tân Định", false);
+        PatientProfile daughterProfile = ensureDetailedProfile(patient3, "Phạm Ngọc Hân", "Con gái", LocalDate.of(1995, 10, 22), "Nữ",
+                "0909334499", "079195006655", "789 Đường Hai Bà Trưng", "79", "Thành phố Hồ Chí Minh", "760", "Quận 1", "26740", "Phường Tân Định", false);
 
         PatientAccount patient4 = ensurePatient("0912345678", "Hoàng Văn Hải");
         PatientProfile profile4 = ensureDetailedProfile(patient4, "Hoàng Văn Hải", "Bản thân", LocalDate.of(1988, 9, 14), "Nam",
                 patient4.getPhone(), "079188009988", "12 Đường Nam Kỳ Khởi Nghĩa", "79", "Thành phố Hồ Chí Minh", "760", "Quận 1", "26737", "Phường Nguyễn Thái Bình", true);
+        PatientProfile wifeProfile4 = ensureDetailedProfile(patient4, "Bùi Thúy Hằng", "Vợ", LocalDate.of(1990, 3, 15), "Nữ",
+                "0912345699", "079190004433", "12 Đường Nam Kỳ Khởi Nghĩa", "79", "Thành phố Hồ Chí Minh", "760", "Quận 1", "26737", "Phường Nguyễn Thái Bình", false);
+        PatientProfile childProfile4 = ensureDetailedProfile(patient4, "Bé Hoàng Gia Khang", "Con trai", LocalDate.of(2018, 7, 9), "Nam",
+                patient4.getPhone(), null, "12 Đường Nam Kỳ Khởi Nghĩa", "79", "Thành phố Hồ Chí Minh", "760", "Quận 1", "26737", "Phường Nguyễn Thái Bình", false);
 
         // 7. Seed Past Signed Medical Records & Paid Electronic Invoices (Full Circular 33/2025/TT-BYT compliance)
         ensurePastSignedRecord(patient1, profile1, docTongQuat.getStaffAccount(), docTongQuat, docTongQuat.getRoom(), srvTQ, 14, "PAST-REC-001",
@@ -388,45 +403,90 @@ public class LocalDataInitializer implements CommandLineRunner {
                 new VitalsRecord("130/80 mmHg", 72, new BigDecimal("36.5"), 98, new BigDecimal("70.0"), new BigDecimal("165.0"), "Không"),
                 List.of());
 
-        // 8. Seed Today's Active Clinic Queue Tickets Across ALL 7 Doctors
+        // 8. Seed Today's Active Clinic Queue Tickets Across ALL 7 Doctors (Full Day: Morning, Afternoon, Evening 20h-22h)
         LocalDate today = LocalDate.now(CLINIC_ZONE);
         List<LocalDate> clinicDates = nextClinicDates(today, 4);
 
-        // General Medicine Doctor (docTongQuat)
-        ensureActiveQueueScenario(patient1, profile1, docTongQuat.getStaffAccount(), docTongQuat, docTongQuat.getRoom(), srvTQ, today, 1, LocalTime.of(8, 30), demoAppointmentCode(today, "TQ-001"), QueueScenario.IN_SERVICE, "Khám sức khỏe tổng quát định kỳ");
-        ensureActiveQueueScenario(patient2, profile2, docTongQuat.getStaffAccount(), docTongQuat, docTongQuat.getRoom(), srvTQ, today, 2, LocalTime.of(9, 0), demoAppointmentCode(today, "TQ-002"), QueueScenario.WAITING, "Kiểm tra sức khỏe tổng quát");
-        ensureActiveQueueScenario(patient3, profile3, docTongQuat.getStaffAccount(), docTongQuat, docTongQuat.getRoom(), srvTQ, today, 3, LocalTime.of(9, 30), demoAppointmentCode(today, "TQ-003"), QueueScenario.PRIORITY_WAITING, "Khám kiểm tra định kỳ người cao tuổi");
-        ensureActiveQueueScenario(patient1, childProfile, docTongQuat.getStaffAccount(), docTongQuat, docTongQuat.getRoom(), srvTQ, today, 4, LocalTime.of(8, 0), demoAppointmentCode(today, "TQ-004"), QueueScenario.COMPLETED, "Khám tổng quát học đường");
+        // General Medicine Doctor (docTongQuat - Room TQ-01)
+        ensureActiveQueueScenario(patient1, childProfile, docTongQuat.getStaffAccount(), docTongQuat, docTongQuat.getRoom(), srvTQ, today, 1, LocalTime.of(8, 0), demoAppointmentCode(today, "TQ-004"), QueueScenario.COMPLETED, "Khám tổng quát học đường");
+        ensureActiveQueueScenario(patient1, profile1, docTongQuat.getStaffAccount(), docTongQuat, docTongQuat.getRoom(), srvTQ, today, 2, LocalTime.of(8, 30), demoAppointmentCode(today, "TQ-001"), QueueScenario.IN_SERVICE, "Khám sức khỏe tổng quát định kỳ");
+        ensureActiveQueueScenario(patient2, profile2, docTongQuat.getStaffAccount(), docTongQuat, docTongQuat.getRoom(), srvTQ, today, 3, LocalTime.of(9, 0), demoAppointmentCode(today, "TQ-002"), QueueScenario.WAITING, "Kiểm tra sức khỏe tổng quát");
+        ensureActiveQueueScenario(patient3, profile3, docTongQuat.getStaffAccount(), docTongQuat, docTongQuat.getRoom(), srvTQ, today, 4, LocalTime.of(9, 30), demoAppointmentCode(today, "TQ-003"), QueueScenario.PRIORITY_WAITING, "Khám kiểm tra định kỳ người cao tuổi");
         ensureActiveQueueScenario(patient4, profile4, docTongQuat.getStaffAccount(), docTongQuat, docTongQuat.getRoom(), srvTQ, today, 5, LocalTime.of(10, 0), demoAppointmentCode(today, "TQ-005"), QueueScenario.CALLED, "Khám tổng quát trước khi đi công tác");
         ensureActiveQueueScenario(patient3, wifeProfile, docTongQuat.getStaffAccount(), docTongQuat, docTongQuat.getRoom(), srvTQ, today, 6, LocalTime.of(10, 30), demoAppointmentCode(today, "TQ-006"), QueueScenario.RETURN_REQUIRED, "Bệnh nhân chưa có mặt khi được gọi");
-        ensureActiveQueueScenario(patient2, profile2, docTongQuat.getStaffAccount(), docTongQuat, docTongQuat.getRoom(), srvTQ, today, 7, LocalTime.of(11, 0), demoAppointmentCode(today, "TQ-007"), QueueScenario.RETURNED_AND_RECALLED, "Bệnh nhân đã quay lại sau khi được gọi");
-        ensureActiveQueueScenario(patient4, profile4, docTongQuat.getStaffAccount(), docTongQuat, docTongQuat.getRoom(), srvTQ, today, 8, LocalTime.of(11, 30), demoAppointmentCode(today, "TQ-008"), QueueScenario.LEFT_BEFORE_EXAM, "Bệnh nhân có việc đột xuất, xin rời trước khi khám");
-        ensureActiveQueueScenario(patient3, profile3, docTongQuat.getStaffAccount(), docTongQuat, docTongQuat.getRoom(), srvTQ, today, 9, LocalTime.of(15, 0), demoAppointmentCode(today, "TQ-009"), QueueScenario.STOPPED_DURING_EXAM, "Tạm dừng buổi khám để kiểm tra lại thông tin");
+        ensureActiveQueueScenario(patient1, sisterProfile, docTongQuat.getStaffAccount(), docTongQuat, docTongQuat.getRoom(), srvTQ, today, 7, LocalTime.of(11, 0), demoAppointmentCode(today, "TQ-007"), QueueScenario.RETURNED_AND_RECALLED, "Bệnh nhân đã quay lại sau khi được gọi");
+        ensureActiveQueueScenario(patient2, motherProfile2, docTongQuat.getStaffAccount(), docTongQuat, docTongQuat.getRoom(), srvTQ, today, 8, LocalTime.of(11, 30), demoAppointmentCode(today, "TQ-008"), QueueScenario.LEFT_BEFORE_EXAM, "Bệnh nhân có việc đột xuất, xin rời trước khi khám");
+        ensureActiveQueueScenario(patient3, daughterProfile, docTongQuat.getStaffAccount(), docTongQuat, docTongQuat.getRoom(), srvTQ, today, 9, LocalTime.of(15, 0), demoAppointmentCode(today, "TQ-009"), QueueScenario.STOPPED_DURING_EXAM, "Tạm dừng buổi khám để kiểm tra lại thông tin");
+        ensureActiveQueueScenario(patient1, sisterProfile, docTongQuat.getStaffAccount(), docTongQuat, docTongQuat.getRoom(), srvTQ, today, 10, LocalTime.of(20, 0), demoAppointmentCode(today, "TQ-010"), QueueScenario.WAITING, "Khám tổng quát buổi tối sau giờ làm");
+        ensureActiveQueueScenario(patient2, motherProfile2, docTongQuat.getStaffAccount(), docTongQuat, docTongQuat.getRoom(), srvTQ, today, 11, LocalTime.of(20, 30), demoAppointmentCode(today, "TQ-011"), QueueScenario.CALLED, "Tư vấn sức khỏe tổng quát ca tối");
+        ensureActiveQueueScenario(patient4, profile4, docTongQuat.getStaffAccount(), docTongQuat, docTongQuat.getRoom(), srvTQ, today, 12, LocalTime.of(21, 0), demoAppointmentCode(today, "TQ-012"), QueueScenario.WAITING, "Kiểm tra tổng quát ngoài giờ");
 
-        // Cardiology Doctor (docTimMach)
+        // Cardiology Doctor (docTimMach - Room TM-01)
         ensureActiveQueueScenario(patient2, fatherProfile, docTimMach.getStaffAccount(), docTimMach, docTimMach.getRoom(), srvTM, today, 1, LocalTime.of(8, 30), demoAppointmentCode(today, "TM-001"), QueueScenario.IN_SERVICE, "Tái khám theo dõi tăng huyết áp và đau ngực");
-        ensureActiveQueueScenario(patient3, profile3, docTimMach.getStaffAccount(), docTimMach, docTimMach.getRoom(), srvTM, today, 2, LocalTime.of(14, 0), demoAppointmentCode(today, "TM-002"), QueueScenario.WAITING, "Kiểm tra nhịp tim và huyết áp");
+        ensureActiveQueueScenario(patient1, profile1, docTimMach.getStaffAccount(), docTimMach, docTimMach.getRoom(), srvTM, today, 2, LocalTime.of(9, 0), demoAppointmentCode(today, "TM-003"), QueueScenario.COMPLETED, "Khám tim mạch định kỳ");
+        ensureActiveQueueScenario(patient1, motherProfile, docTimMach.getStaffAccount(), docTimMach, docTimMach.getRoom(), srvTM, today, 3, LocalTime.of(10, 0), demoAppointmentCode(today, "TM-004"), QueueScenario.WAITING, "Tư vấn bệnh lý tim mạch");
+        ensureActiveQueueScenario(patient3, profile3, docTimMach.getStaffAccount(), docTimMach, docTimMach.getRoom(), srvTM, today, 4, LocalTime.of(14, 0), demoAppointmentCode(today, "TM-002"), QueueScenario.WAITING, "Kiểm tra nhịp tim và huyết áp");
+        ensureActiveQueueScenario(patient4, wifeProfile4, docTimMach.getStaffAccount(), docTimMach, docTimMach.getRoom(), srvTM, today, 5, LocalTime.of(14, 30), demoAppointmentCode(today, "TM-005"), QueueScenario.CALLED, "Đo điện tâm đồ và kiểm tra huyết áp");
+        ensureActiveQueueScenario(patient4, profile4, docTimMach.getStaffAccount(), docTimMach, docTimMach.getRoom(), srvTM, today, 6, LocalTime.of(15, 30), demoAppointmentCode(today, "TM-006"), QueueScenario.WAITING, "Tái khám bệnh van tim");
+        ensureActiveQueueScenario(patient3, wifeProfile, docTimMach.getStaffAccount(), docTimMach, docTimMach.getRoom(), srvTM, today, 7, LocalTime.of(20, 0), demoAppointmentCode(today, "TM-007"), QueueScenario.WAITING, "Khám tim mạch ca tối sau giờ làm");
+        ensureActiveQueueScenario(patient3, daughterProfile, docTimMach.getStaffAccount(), docTimMach, docTimMach.getRoom(), srvTM, today, 8, LocalTime.of(20, 30), demoAppointmentCode(today, "TM-008"), QueueScenario.CALLED, "Kiểm tra hồi hộp đánh trống ngực");
+        ensureActiveQueueScenario(patient1, sisterProfile, docTimMach.getStaffAccount(), docTimMach, docTimMach.getRoom(), srvTM, today, 9, LocalTime.of(21, 0), demoAppointmentCode(today, "TM-009"), QueueScenario.WAITING, "Tư vấn điều hòa nhịp tim ngoài giờ");
 
-        // Respiratory Doctor (docHoHap)
-        ensureActiveQueueScenario(patient1, motherProfile, docHoHap.getStaffAccount(), docHoHap, docHoHap.getRoom(), srvHH, today, 1, LocalTime.of(9, 0), demoAppointmentCode(today, "HH-001"), QueueScenario.IN_SERVICE, "Khám ho đờm và khó thở nhẹ");
-        ensureActiveQueueScenario(patient2, profile2, docHoHap.getStaffAccount(), docHoHap, docHoHap.getRoom(), srvHH, today, 2, LocalTime.of(10, 0), demoAppointmentCode(today, "HH-002"), QueueScenario.WAITING, "Tái khám viêm phế quản mạn");
+        // Respiratory Doctor (docHoHap - Room HH-01)
+        ensureActiveQueueScenario(patient1, sisterProfile, docHoHap.getStaffAccount(), docHoHap, docHoHap.getRoom(), srvHH, today, 1, LocalTime.of(8, 30), demoAppointmentCode(today, "HH-003"), QueueScenario.COMPLETED, "Khám kiểm tra phế quản đầu giờ sáng");
+        ensureActiveQueueScenario(patient1, motherProfile, docHoHap.getStaffAccount(), docHoHap, docHoHap.getRoom(), srvHH, today, 2, LocalTime.of(9, 0), demoAppointmentCode(today, "HH-001"), QueueScenario.IN_SERVICE, "Khám ho đờm và khó thở nhẹ");
+        ensureActiveQueueScenario(patient2, profile2, docHoHap.getStaffAccount(), docHoHap, docHoHap.getRoom(), srvHH, today, 3, LocalTime.of(10, 0), demoAppointmentCode(today, "HH-002"), QueueScenario.WAITING, "Tái khám viêm phế quản mạn");
+        ensureActiveQueueScenario(patient3, wifeProfile, docHoHap.getStaffAccount(), docHoHap, docHoHap.getRoom(), srvHH, today, 4, LocalTime.of(11, 0), demoAppointmentCode(today, "HH-004"), QueueScenario.WAITING, "Khám viêm đường hô hấp trên");
+        ensureActiveQueueScenario(patient4, profile4, docHoHap.getStaffAccount(), docHoHap, docHoHap.getRoom(), srvHH, today, 5, LocalTime.of(14, 0), demoAppointmentCode(today, "HH-005"), QueueScenario.WAITING, "Kiểm tra chức năng hô hấp");
+        ensureActiveQueueScenario(patient2, motherProfile2, docHoHap.getStaffAccount(), docHoHap, docHoHap.getRoom(), srvHH, today, 6, LocalTime.of(15, 0), demoAppointmentCode(today, "HH-006"), QueueScenario.CALLED, "Tái khám hen phế quản");
+        ensureActiveQueueScenario(patient1, motherProfile, docHoHap.getStaffAccount(), docHoHap, docHoHap.getRoom(), srvHH, today, 7, LocalTime.of(20, 0), demoAppointmentCode(today, "HH-007"), QueueScenario.IN_SERVICE, "Khám khó thở và ho về đêm");
+        ensureActiveQueueScenario(patient2, profile2, docHoHap.getStaffAccount(), docHoHap, docHoHap.getRoom(), srvHH, today, 8, LocalTime.of(20, 30), demoAppointmentCode(today, "HH-008"), QueueScenario.WAITING, "Tái khám hô hấp ca tối");
+        ensureActiveQueueScenario(patient4, childProfile4, docHoHap.getStaffAccount(), docHoHap, docHoHap.getRoom(), srvHH, today, 9, LocalTime.of(21, 0), demoAppointmentCode(today, "HH-009"), QueueScenario.WAITING, "Bé ho có đờm về đêm");
 
-        // Gastroenterology Doctor (docTieuHoa)
-        ensureActiveQueueScenario(patient1, profile1, docTieuHoa.getStaffAccount(), docTieuHoa, docTieuHoa.getRoom(), srvTH, today, 1, LocalTime.of(10, 0), demoAppointmentCode(today, "TH-001"), QueueScenario.IN_SERVICE, "Đau rát vùng thượng vị, ợ chua nhiều");
-        ensureActiveQueueScenario(patient4, profile4, docTieuHoa.getStaffAccount(), docTieuHoa, docTieuHoa.getRoom(), srvTH, today, 2, LocalTime.of(11, 0), demoAppointmentCode(today, "TH-002"), QueueScenario.WAITING, "Nội soi dạ dày kiểm tra vi khuẩn HP");
-        ensureActiveQueueScenario(patient3, wifeProfile, docTieuHoa.getStaffAccount(), docTieuHoa, docTieuHoa.getRoom(), srvTH, today, 3, LocalTime.of(14, 30), demoAppointmentCode(today, "TH-003"), QueueScenario.FACILITY_UNAVAILABLE, "Phòng khám tạm dừng phục vụ do sự cố thiết bị");
+        // Gastroenterology Doctor (docTieuHoa - Room TH-01)
+        ensureActiveQueueScenario(patient2, motherProfile2, docTieuHoa.getStaffAccount(), docTieuHoa, docTieuHoa.getRoom(), srvTH, today, 1, LocalTime.of(8, 30), demoAppointmentCode(today, "TH-004"), QueueScenario.COMPLETED, "Nội soi tiêu hóa buổi sáng");
+        ensureActiveQueueScenario(patient1, sisterProfile, docTieuHoa.getStaffAccount(), docTieuHoa, docTieuHoa.getRoom(), srvTH, today, 2, LocalTime.of(9, 30), demoAppointmentCode(today, "TH-005"), QueueScenario.WAITING, "Đau bụng âm ỉ vùng quanh rốn");
+        ensureActiveQueueScenario(patient1, profile1, docTieuHoa.getStaffAccount(), docTieuHoa, docTieuHoa.getRoom(), srvTH, today, 3, LocalTime.of(10, 0), demoAppointmentCode(today, "TH-001"), QueueScenario.IN_SERVICE, "Đau rát vùng thượng vị, ợ chua nhiều");
+        ensureActiveQueueScenario(patient4, profile4, docTieuHoa.getStaffAccount(), docTieuHoa, docTieuHoa.getRoom(), srvTH, today, 4, LocalTime.of(11, 0), demoAppointmentCode(today, "TH-002"), QueueScenario.WAITING, "Nội soi dạ dày kiểm tra vi khuẩn HP");
+        ensureActiveQueueScenario(patient3, daughterProfile, docTieuHoa.getStaffAccount(), docTieuHoa, docTieuHoa.getRoom(), srvTH, today, 5, LocalTime.of(14, 0), demoAppointmentCode(today, "TH-006"), QueueScenario.WAITING, "Rối loạn tiêu hóa sau ăn");
+        ensureActiveQueueScenario(patient3, wifeProfile, docTieuHoa.getStaffAccount(), docTieuHoa, docTieuHoa.getRoom(), srvTH, today, 6, LocalTime.of(14, 30), demoAppointmentCode(today, "TH-003"), QueueScenario.FACILITY_UNAVAILABLE, "Phòng khám tạm dừng phục vụ do sự cố thiết bị");
+        ensureActiveQueueScenario(patient2, profile2, docTieuHoa.getStaffAccount(), docTieuHoa, docTieuHoa.getRoom(), srvTH, today, 7, LocalTime.of(15, 30), demoAppointmentCode(today, "TH-007"), QueueScenario.CALLED, "Tư vấn chế độ ăn trào ngược dạ dày");
+        ensureActiveQueueScenario(patient1, profile1, docTieuHoa.getStaffAccount(), docTieuHoa, docTieuHoa.getRoom(), srvTH, today, 8, LocalTime.of(20, 0), demoAppointmentCode(today, "TH-008"), QueueScenario.WAITING, "Ợ nóng rát sau bữa tối");
+        ensureActiveQueueScenario(patient4, wifeProfile4, docTieuHoa.getStaffAccount(), docTieuHoa, docTieuHoa.getRoom(), srvTH, today, 9, LocalTime.of(20, 30), demoAppointmentCode(today, "TH-009"), QueueScenario.IN_SERVICE, "Khám viêm dạ dày ca tối");
+        ensureActiveQueueScenario(patient3, profile3, docTieuHoa.getStaffAccount(), docTieuHoa, docTieuHoa.getRoom(), srvTH, today, 10, LocalTime.of(21, 0), demoAppointmentCode(today, "TH-010"), QueueScenario.WAITING, "Đau tức hạ sườn phải ngoài giờ");
 
-        // Pediatrics Doctor (docNhiKhoa)
+        // Pediatrics Doctor (docNhiKhoa - Room NK-01)
         ensureActiveQueueScenario(patient1, childProfile, docNhiKhoa.getStaffAccount(), docNhiKhoa, docNhiKhoa.getRoom(), srvNK, today, 1, LocalTime.of(8, 30), demoAppointmentCode(today, "NK-001"), QueueScenario.WAITING, "Bé ho sốt và biếng ăn");
-        ensureActiveQueueScenario(patient2, profile2, docNhiKhoa.getStaffAccount(), docNhiKhoa, docNhiKhoa.getRoom(), srvNK, today, 2, LocalTime.of(9, 30), demoAppointmentCode(today, "NK-002"), QueueScenario.CALLED, "Tư vấn dinh dưỡng và tiêm chủng cho trẻ");
+        ensureActiveQueueScenario(patient4, childProfile4, docNhiKhoa.getStaffAccount(), docNhiKhoa, docNhiKhoa.getRoom(), srvNK, today, 2, LocalTime.of(9, 0), demoAppointmentCode(today, "NK-003"), QueueScenario.COMPLETED, "Khám kiểm tra sức khỏe bé định kỳ");
+        ensureActiveQueueScenario(patient2, profile2, docNhiKhoa.getStaffAccount(), docNhiKhoa, docNhiKhoa.getRoom(), srvNK, today, 3, LocalTime.of(9, 30), demoAppointmentCode(today, "NK-002"), QueueScenario.CALLED, "Tư vấn dinh dưỡng và tiêm chủng cho trẻ");
+        ensureActiveQueueScenario(patient1, childProfile, docNhiKhoa.getStaffAccount(), docNhiKhoa, docNhiKhoa.getRoom(), srvNK, today, 4, LocalTime.of(10, 30), demoAppointmentCode(today, "NK-004"), QueueScenario.WAITING, "Khám theo dõi viêm mũi họng trẻ em");
+        ensureActiveQueueScenario(patient4, childProfile4, docNhiKhoa.getStaffAccount(), docNhiKhoa, docNhiKhoa.getRoom(), srvNK, today, 5, LocalTime.of(14, 0), demoAppointmentCode(today, "NK-005"), QueueScenario.IN_SERVICE, "Tái khám viêm họng cấp ở trẻ");
+        ensureActiveQueueScenario(patient1, childProfile, docNhiKhoa.getStaffAccount(), docNhiKhoa, docNhiKhoa.getRoom(), srvNK, today, 6, LocalTime.of(15, 0), demoAppointmentCode(today, "NK-006"), QueueScenario.WAITING, "Kiểm tra cân nặng chiều cao trẻ nhỏ");
+        ensureActiveQueueScenario(patient4, childProfile4, docNhiKhoa.getStaffAccount(), docNhiKhoa, docNhiKhoa.getRoom(), srvNK, today, 7, LocalTime.of(20, 0), demoAppointmentCode(today, "NK-007"), QueueScenario.WAITING, "Bé sốt nhẹ quấy khóc ban đêm");
+        ensureActiveQueueScenario(patient1, childProfile, docNhiKhoa.getStaffAccount(), docNhiKhoa, docNhiKhoa.getRoom(), srvNK, today, 8, LocalTime.of(20, 30), demoAppointmentCode(today, "NK-008"), QueueScenario.IN_SERVICE, "Khám cấp cứu nhi ca tối");
+        ensureActiveQueueScenario(patient3, daughterProfile, docNhiKhoa.getStaffAccount(), docNhiKhoa, docNhiKhoa.getRoom(), srvNK, today, 9, LocalTime.of(21, 0), demoAppointmentCode(today, "NK-009"), QueueScenario.WAITING, "Tư vấn sức khỏe trẻ vị thành niên ngoài giờ");
 
-        // ENT Doctor (docTMH)
-        ensureActiveQueueScenario(patient4, profile4, docTMH.getStaffAccount(), docTMH, docTMH.getRoom(), srvTMH, today, 1, LocalTime.of(13, 30), demoAppointmentCode(today, "TMH-001"), QueueScenario.WAITING, "Nội soi kiểm tra viêm xoang và nghẹt mũi");
-        ensureActiveQueueScenario(patient2, profile2, docTMH.getStaffAccount(), docTMH, docTMH.getRoom(), srvTMH, today, 2, LocalTime.of(14, 30), demoAppointmentCode(today, "TMH-002"), QueueScenario.CALLED, "Đau rát họng nuốt vướng kéo dài");
+        // ENT Doctor (docTMH - Room TMH-01)
+        ensureActiveQueueScenario(patient3, daughterProfile, docTMH.getStaffAccount(), docTMH, docTMH.getRoom(), srvTMH, today, 1, LocalTime.of(8, 30), demoAppointmentCode(today, "TMH-003"), QueueScenario.COMPLETED, "Nội soi tai mũi họng kiểm tra amidan");
+        ensureActiveQueueScenario(patient2, fatherProfile, docTMH.getStaffAccount(), docTMH, docTMH.getRoom(), srvTMH, today, 2, LocalTime.of(9, 30), demoAppointmentCode(today, "TMH-004"), QueueScenario.WAITING, "Ù tai và nghe kém một bên");
+        ensureActiveQueueScenario(patient4, wifeProfile4, docTMH.getStaffAccount(), docTMH, docTMH.getRoom(), srvTMH, today, 3, LocalTime.of(10, 30), demoAppointmentCode(today, "TMH-005"), QueueScenario.WAITING, "Viêm mũi dị ứng thời tiết");
+        ensureActiveQueueScenario(patient4, profile4, docTMH.getStaffAccount(), docTMH, docTMH.getRoom(), srvTMH, today, 4, LocalTime.of(13, 30), demoAppointmentCode(today, "TMH-001"), QueueScenario.WAITING, "Nội soi kiểm tra viêm xoang và nghẹt mũi");
+        ensureActiveQueueScenario(patient2, profile2, docTMH.getStaffAccount(), docTMH, docTMH.getRoom(), srvTMH, today, 5, LocalTime.of(14, 30), demoAppointmentCode(today, "TMH-002"), QueueScenario.CALLED, "Đau rát họng nuốt vướng kéo dài");
+        ensureActiveQueueScenario(patient1, profile1, docTMH.getStaffAccount(), docTMH, docTMH.getRoom(), srvTMH, today, 6, LocalTime.of(15, 0), demoAppointmentCode(today, "TMH-006"), QueueScenario.WAITING, "Khám vòm họng và kiểm tra hạt xơ thanh quản");
+        ensureActiveQueueScenario(patient4, profile4, docTMH.getStaffAccount(), docTMH, docTMH.getRoom(), srvTMH, today, 7, LocalTime.of(20, 0), demoAppointmentCode(today, "TMH-007"), QueueScenario.IN_SERVICE, "Khám nội soi mũi xoang ca tối");
+        ensureActiveQueueScenario(patient2, fatherProfile, docTMH.getStaffAccount(), docTMH, docTMH.getRoom(), srvTMH, today, 8, LocalTime.of(20, 30), demoAppointmentCode(today, "TMH-008"), QueueScenario.WAITING, "Nghẹt mũi khó thở ban đêm");
+        ensureActiveQueueScenario(patient4, wifeProfile4, docTMH.getStaffAccount(), docTMH, docTMH.getRoom(), srvTMH, today, 9, LocalTime.of(21, 0), demoAppointmentCode(today, "TMH-009"), QueueScenario.WAITING, "Đau rát tai ngoài giờ hành chính");
 
-        // Ophthalmology Doctor (docMat)
+        // Ophthalmology Doctor (docMat - Room MAT-01)
         ensureActiveQueueScenario(patient3, profile3, docMat.getStaffAccount(), docMat, docMat.getRoom(), srvMAT, today, 1, LocalTime.of(8, 30), demoAppointmentCode(today, "MAT-001"), QueueScenario.IN_SERVICE, "Khám kiểm tra đáy mắt và đo nhãn áp");
-        ensureActiveQueueScenario(patient1, profile1, docMat.getStaffAccount(), docMat, docMat.getRoom(), srvMAT, today, 2, LocalTime.of(10, 30), demoAppointmentCode(today, "MAT-002"), QueueScenario.WAITING, "Đo khúc xạ kiểm tra độ cận thị");
+        ensureActiveQueueScenario(patient3, wifeProfile, docMat.getStaffAccount(), docMat, docMat.getRoom(), srvMAT, today, 2, LocalTime.of(9, 0), demoAppointmentCode(today, "MAT-003"), QueueScenario.COMPLETED, "Khám tầm soát mộng thịt và đục thủy tinh thể");
+        ensureActiveQueueScenario(patient1, profile1, docMat.getStaffAccount(), docMat, docMat.getRoom(), srvMAT, today, 3, LocalTime.of(10, 30), demoAppointmentCode(today, "MAT-002"), QueueScenario.WAITING, "Đo khúc xạ kiểm tra độ cận thị");
+        ensureActiveQueueScenario(patient3, daughterProfile, docMat.getStaffAccount(), docMat, docMat.getRoom(), srvMAT, today, 4, LocalTime.of(11, 0), demoAppointmentCode(today, "MAT-004"), QueueScenario.WAITING, "Khám mỏi mắt và khô mắt văn phòng");
+        ensureActiveQueueScenario(patient2, motherProfile2, docMat.getStaffAccount(), docMat, docMat.getRoom(), srvMAT, today, 5, LocalTime.of(14, 0), demoAppointmentCode(today, "MAT-005"), QueueScenario.WAITING, "Kiểm tra thị lực người lớn tuổi");
+        ensureActiveQueueScenario(patient4, profile4, docMat.getStaffAccount(), docMat, docMat.getRoom(), srvMAT, today, 6, LocalTime.of(15, 0), demoAppointmentCode(today, "MAT-006"), QueueScenario.CALLED, "Đo khúc xạ điều chỉnh kính cận loạn");
+        ensureActiveQueueScenario(patient3, profile3, docMat.getStaffAccount(), docMat, docMat.getRoom(), srvMAT, today, 7, LocalTime.of(20, 0), demoAppointmentCode(today, "MAT-007"), QueueScenario.WAITING, "Khám mắt mờ và cộm rát ca tối");
+        ensureActiveQueueScenario(patient1, profile1, docMat.getStaffAccount(), docMat, docMat.getRoom(), srvMAT, today, 8, LocalTime.of(20, 30), demoAppointmentCode(today, "MAT-008"), QueueScenario.IN_SERVICE, "Khám mắt chuyên sâu ngoài giờ");
+        ensureActiveQueueScenario(patient2, fatherProfile, docMat.getStaffAccount(), docMat, docMat.getRoom(), srvMAT, today, 9, LocalTime.of(21, 0), demoAppointmentCode(today, "MAT-009"), QueueScenario.WAITING, "Tái khám mắt định kỳ ca tối");
 
         // 9. Seed Future Booked Appointments (For patient appointment lists and booking tests)
         LocalDate tomorrow = clinicDates.get(1);
@@ -463,7 +523,7 @@ public class LocalDataInitializer implements CommandLineRunner {
         // 12. Seed Patient Notifications
         ensureNotifications(patient1);
 
-        log.info("Local bootstrap complete: 10 staff accounts, 7 specialty doctors, 10 rooms, 7 services, 8 patient profiles, active queue tickets, templates, catalogs, invoices, and notifications successfully initialized");
+        log.info("Local bootstrap complete: 10 staff accounts, 7 specialty doctors, 10 rooms, 7 services, 13 patient profiles, full-day and evening active queue tickets, templates, catalogs, invoices, and notifications successfully initialized");
     }
 
     private void ensureSpecialties() {
@@ -742,11 +802,14 @@ public class LocalDataInitializer implements CommandLineRunner {
         List<DayOfWeek> weekdays = List.of(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY,
                 DayOfWeek.THURSDAY, DayOfWeek.FRIDAY);
         for (DayOfWeek day : weekdays) {
-            boolean exists = scheduleRepository.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(profile.getId(), day)
-                    .stream().findAny().isPresent();
-            if (!exists) {
+            DoctorSchedule schedule = scheduleRepository.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(profile.getId(), day)
+                    .stream().findFirst().orElse(null);
+            if (schedule == null) {
                 scheduleRepository.save(DoctorSchedule.create(profile, day,
-                        LocalTime.of(8, 0), LocalTime.of(17, 0), 30));
+                        LocalTime.of(8, 0), LocalTime.of(22, 0), 30));
+            } else if (schedule.getEndTime() == null || schedule.getEndTime().isBefore(LocalTime.of(22, 0))) {
+                schedule.setEndTime(LocalTime.of(22, 0));
+                scheduleRepository.save(schedule);
             }
         }
     }
@@ -774,9 +837,41 @@ public class LocalDataInitializer implements CommandLineRunner {
                     }
                 }
             } else {
+                WorkScheduleTemplate primary = doctorTemplates.stream()
+                        .max(java.util.Comparator.comparing(WorkScheduleTemplate::getEndDate))
+                        .orElse(doctorTemplates.get(0));
+
                 for (WorkScheduleTemplate t : doctorTemplates) {
-                    if (t.getExceptionDates() != null && t.getExceptionDates().remove(startDate)) {
+                    if (!t.getId().equals(primary.getId())) {
+                        log.info("Deactivating redundant template {} for doctor {}", t.getId(), doctorProfile.getStaffAccount().getFullName());
+                        t.setActive(false);
                         workScheduleTemplateRepository.save(t);
+                        continue;
+                    }
+
+                    boolean needsUpgrade = t.getDayEnd() == null || t.getDayEnd().isBefore(dayEnd)
+                            || !t.getWeekdays().containsAll(weekdays);
+                    if (needsUpgrade) {
+                        t.setDayStart(dayStart);
+                        t.setDayEnd(dayEnd);
+                        t.setDurationMinutes(30);
+                        Set<DayOfWeek> mergedWeekdays = new LinkedHashSet<>(t.getWeekdays());
+                        mergedWeekdays.addAll(weekdays);
+                        t.setWeekdays(mergedWeekdays);
+                        if (breaks != null) {
+                            t.setBreaks(breaks.stream().map(b -> ScheduleBreak.create(b.startTime(), b.endTime())).toList());
+                        }
+                    }
+                    if (t.getExceptionDates() != null) {
+                        t.getExceptionDates().remove(startDate);
+                    }
+                    workScheduleTemplateRepository.save(t);
+                    if (needsUpgrade) {
+                        try {
+                            scheduleTemplateService.regenerateForLocalBootstrap(t.getId());
+                        } catch (Exception e) {
+                            log.warn("Could not regenerate template {}: {}", t.getId(), e.getMessage());
+                        }
                     }
                 }
                 return;
@@ -1032,7 +1127,7 @@ public class LocalDataInitializer implements CommandLineRunner {
                 }
 
                 if (invoiceRepository != null && !invoiceRepository.existsBySession_Id(session.getId())) {
-                    String invCode = "INV-" + date.format(DateTimeFormatter.ofPattern("yyMMdd")) + "-TODAY-001";
+                    String invCode = "INV-" + date.format(DateTimeFormatter.ofPattern("yyMMdd")) + "-" + code;
                     long fee = service.getConsultationFee() > 0 ? service.getConsultationFee() : 150_000L;
                     Invoice invoice = Invoice.create(session, invCode, fee, "Tiếp đón Lê Thu Thảo");
                     invoice.addItem(InvoiceItem.consultation(service.getName(), fee));

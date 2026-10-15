@@ -71,6 +71,10 @@ public class DoctorSchedule {
 
     public void setActive(boolean active) { this.active = active; }
 
+    public void setStartTime(LocalTime startTime) { this.startTime = startTime; }
+
+    public void setEndTime(LocalTime endTime) { this.endTime = endTime; }
+
     @PrePersist
     void onCreate() {
         if (createdAt == null) createdAt = Instant.now();

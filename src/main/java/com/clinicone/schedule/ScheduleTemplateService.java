@@ -100,6 +100,20 @@ public class ScheduleTemplateService {
         return create(request, true);
     }
 
+    /** Local-only bootstrap path that regenerates slots and skips existing conflicts. */
+    @Transactional
+    public ScheduleTemplateResponse regenerateForLocalBootstrap(UUID templateId) {
+        WorkScheduleTemplate template = templateRepository.findById(templateId)
+                .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "SCHEDULE_TEMPLATE_NOT_FOUND",
+                        "Không tìm thấy lịch làm việc."));
+        if (!template.isActive()) {
+            throw conflict("SCHEDULE_TEMPLATE_INACTIVE", "Mẫu lịch đã tạm dừng, không thể sinh lại khung giờ.");
+        }
+        List<GeneratedClinicSlot> generated = generate(template, true, true);
+        upsertDoctorSchedules(template);
+        return toResponse(template, generated.size());
+    }
+
     private ScheduleTemplateResponse create(CreateScheduleTemplateRequest request, boolean skipExistingConflicts) {
         ValidatedInput input = validateAndResolve(request);
         WorkScheduleTemplate template = WorkScheduleTemplate.create(input.clinicService(), input.doctor(), input.room(),

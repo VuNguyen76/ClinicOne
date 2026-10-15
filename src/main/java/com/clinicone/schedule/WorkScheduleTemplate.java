@@ -135,6 +135,21 @@ public class WorkScheduleTemplate {
 
     public void setActive(boolean active) { this.active = active; }
 
+    public void setDayStart(LocalTime dayStart) { this.dayStart = dayStart; }
+
+    public void setDayEnd(LocalTime dayEnd) { this.dayEnd = dayEnd; }
+
+    public void setDurationMinutes(int durationMinutes) { this.durationMinutes = durationMinutes; }
+
+    public void setEndDate(LocalDate endDate) { this.endDate = endDate; }
+
+    public void setBreaks(Collection<ScheduleBreak> breaks) {
+        this.breaks.clear();
+        if (breaks != null) {
+            this.breaks.addAll(breaks);
+        }
+    }
+
     public void setWeekdays(Collection<DayOfWeek> weekdays) {
         this.weekdays.clear();
         if (weekdays != null) {
