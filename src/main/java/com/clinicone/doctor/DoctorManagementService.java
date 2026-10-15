@@ -99,11 +99,8 @@ public class DoctorManagementService {
         }
         DoctorProfile profile = profileRepository.findByStaffAccount_Id(staffId)
                 .orElseGet(() -> DoctorProfile.create(staff, specialty, room, request.avatarUrl()));
-        if (StringUtils.hasText(request.avatarUrl())) {
-            profile.updateAssignment(specialty, room, request.avatarUrl().trim());
-        } else {
-            profile.updateAssignment(specialty, room);
-        }
+        String cleanAvatarUrl = StringUtils.hasText(request.avatarUrl()) ? request.avatarUrl().trim() : null;
+        profile.updateAssignment(specialty, room, cleanAvatarUrl);
         return DoctorProfileResponse.from(profileRepository.save(profile));
     }
 
