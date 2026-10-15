@@ -263,6 +263,7 @@ export interface DoctorMedicalRecordResponse {
   id: string;
   appointmentCode: string | null;
   patientName: string | null;
+  doctorName: string | null;
   specialty: string | null;
   appointmentDate: string | null;
   reason: string | null;

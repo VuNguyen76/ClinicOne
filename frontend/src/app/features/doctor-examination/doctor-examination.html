@@ -43,8 +43,8 @@
       type="button"
       class="erp-btn-secondary"
       (click)="printFullRecord()"
-      [disabled]="pdfGenerating()"
-      [attr.aria-busy]="pdfGenerating()"
+      [disabled]="printingRecord()"
+      [attr.aria-busy]="printingRecord()"
       data-testid="print-record-action"
     >
       <mat-icon class="!h-4 !w-4 !text-[16px] text-[#0284c7]">print</mat-icon>
@@ -1087,8 +1087,8 @@
                   type="button"
                   class="erp-btn-secondary !h-9 text-xs font-semibold cursor-pointer"
                   (click)="printFullRecord()"
-                  [disabled]="pdfGenerating()"
-                  [attr.aria-busy]="pdfGenerating()"
+                  [disabled]="printingRecord()"
+                  [attr.aria-busy]="printingRecord()"
                 >
                   <mat-icon class="!h-4 !w-4 !text-[16px] text-[#0284c7]">print</mat-icon>
                   <span>In phiếu khám</span>

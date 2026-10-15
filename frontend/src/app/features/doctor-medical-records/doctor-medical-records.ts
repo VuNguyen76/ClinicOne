@@ -15,6 +15,7 @@ import { StaffWorkspaceShell } from '../../shared/staff-workspace-shell/staff-wo
   standalone: true,
   imports: [FormsModule, MatIconModule, StaffWorkspaceShell],
   templateUrl: './doctor-medical-records.html',
+  styleUrl: './doctor-medical-records.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DoctorMedicalRecords implements OnInit {
@@ -33,7 +34,18 @@ export class DoctorMedicalRecords implements OnInit {
   protected readonly totalElements = signal(0);
   protected readonly loading = signal(true);
   protected readonly loadingDetail = signal(false);
+  protected readonly printing = signal(false);
   protected readonly error = signal('');
+
+  protected printSelectedRecord(): void {
+    const record = this.selectedRecord();
+    if (!record?.signedAt || this.printing()) return;
+
+    this.printing.set(true);
+    const finishPrinting = () => this.printing.set(false);
+    window.addEventListener('afterprint', finishPrinting, { once: true });
+    window.setTimeout(() => window.print(), 50);
+  }
 
   protected openPrescription(): void {
     const dialog = this.prescriptionDialog?.nativeElement;

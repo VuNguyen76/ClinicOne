@@ -47,6 +47,7 @@ class DoctorMedicalRecordControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].id").value(RECORD_ID.toString()))
                 .andExpect(jsonPath("$.items[0].patientName").value("Nguyễn Thị Mai"))
+                .andExpect(jsonPath("$.items[0].doctorName").value("BS. CKII Nguyễn An"))
                 .andExpect(jsonPath("$.items[0].prescriptionLines").isEmpty());
     }
 
@@ -74,7 +75,7 @@ class DoctorMedicalRecordControllerTest {
 
     private static DoctorMedicalRecordResponse record() {
         return new DoctorMedicalRecordResponse(RECORD_ID, "CL-20261012-0001", "Nguyễn Thị Mai",
-                "Khám Tim Mạch", LocalDate.of(2026, 10, 12), "Tái khám", "Sinh hiệu ổn",
+                "BS. CKII Nguyễn An", "Khám Tim Mạch", LocalDate.of(2026, 10, 12), "Tái khám", "Sinh hiệu ổn",
                 "Theo dõi định kỳ", "Ổn định", "Duy trì điều trị", null, List.of(), null,
                 null, null, Instant.parse("2026-10-12T02:30:00Z"), "120/80", 72, null, 98,
                 null, null, null);

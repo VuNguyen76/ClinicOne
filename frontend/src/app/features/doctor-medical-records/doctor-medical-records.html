@@ -8,12 +8,12 @@
 
   <main class="w-full space-y-4" data-testid="doctor-medical-records">
     @if (error()) {
-      <div class="flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800" role="alert">
+      <div class="print:hidden flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800" role="alert">
         <mat-icon class="!h-5 !w-5 !text-[20px]">error_outline</mat-icon>{{ error() }}
       </div>
     }
 
-    <section class="erp-filter-bar" aria-label="Tìm bệnh nhân đã khám">
+    <section class="erp-filter-bar print:hidden" aria-label="Tìm bệnh nhân đã khám">
       <div class="grid gap-3 md:grid-cols-[minmax(220px,1fr)_160px_160px_auto_auto] md:items-end">
         <label class="erp-label">
           Bệnh nhân / mã lịch hẹn
@@ -39,7 +39,7 @@
       </div>
     </section>
 
-    <section class="grid min-h-[min(680px,calc(100dvh-210px))] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm xl:grid-cols-[minmax(300px,0.34fr)_minmax(0,0.66fr)] 2xl:grid-cols-[minmax(340px,0.30fr)_minmax(0,0.70fr)]" aria-label="Danh sách và phiếu khám">
+    <section class="print:hidden grid min-h-[min(680px,calc(100dvh-210px))] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm xl:grid-cols-[minmax(300px,0.34fr)_minmax(0,0.66fr)] 2xl:grid-cols-[minmax(340px,0.30fr)_minmax(0,0.70fr)]" aria-label="Danh sách và phiếu khám">
       <div class="flex min-h-0 flex-col border-b border-slate-200 xl:border-b-0 xl:border-r">
         <header class="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-5 py-3">
           <div>
@@ -100,7 +100,13 @@
               <h2 class="mt-1 text-xl font-bold text-slate-900" data-testid="record-diagnosis">{{ record.diagnosis || 'Chưa ghi chẩn đoán' }}</h2>
               <p class="mt-1 text-sm text-slate-600">{{ record.patientName }} <span class="px-1 text-slate-300">·</span> {{ formatDate(record.appointmentDate) }}</p>
             </div>
-            <span class="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-sm font-semibold text-emerald-700"><mat-icon class="!h-4 !w-4 !text-[16px]">verified</mat-icon>Đã ký {{ formatDateTime(record.signedAt) }}</span>
+            <div class="flex items-center gap-2 print:hidden">
+              <button data-testid="record-print" type="button" class="erp-btn-secondary" (click)="printSelectedRecord()"
+                [disabled]="printing() || !record.signedAt" [attr.aria-busy]="printing()">
+                <mat-icon class="!h-4 !w-4 !text-[16px]">print</mat-icon><span>In phiếu khám</span>
+              </button>
+              <span class="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-sm font-semibold text-emerald-700"><mat-icon class="!h-4 !w-4 !text-[16px]">verified</mat-icon>Đã ký {{ formatDateTime(record.signedAt) }}</span>
+            </div>
           </header>
 
           <div class="space-y-5 p-5 lg:p-6">
@@ -136,7 +142,7 @@
             </button>
 
             <dialog #prescriptionDialog data-testid="prescription-dialog" aria-labelledby="prescription-title"
-              class="m-auto max-h-[min(82dvh,720px)] w-[min(640px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-slate-200 bg-white p-0 text-slate-800 shadow-2xl backdrop:bg-slate-950/45"
+              class="print:hidden m-auto max-h-[min(82dvh,720px)] w-[min(640px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-slate-200 bg-white p-0 text-slate-800 shadow-2xl backdrop:bg-slate-950/45"
               (click)="closePrescriptionOnBackdrop($event)">
               <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
                 <div>
@@ -177,5 +183,85 @@
         }
       </article>
     </section>
+
+    @if (selectedRecord(); as record) {
+      <article class="history-print-sheet" data-testid="history-print-sheet" aria-hidden="true">
+        <header class="history-print-header">
+          <div class="history-print-clinic">
+            <img src="clinicone-mark-small.png" alt="" />
+            <div>
+              <p class="history-print-brand">CLINICONE</p>
+              <p class="history-print-clinic-name">PHÒNG KHÁM ĐA KHOA CLINICONE</p>
+              <p>123 Nguyễn Văn Cừ, Phường 4, Quận 5, TP. Hồ Chí Minh</p>
+              <p>Hotline: 1900 0000</p>
+            </div>
+          </div>
+          <div class="history-print-national">
+            <p>CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</p>
+            <em>Độc lập - Tự do - Hạnh phúc</em>
+            <strong>Mã hồ sơ: {{ record.appointmentCode || record.id }}</strong>
+          </div>
+        </header>
+
+        <div class="history-print-title">
+          <h1>PHIẾU KHÁM BỆNH NGOẠI TRÚ</h1>
+          <p>Hồ sơ khám đã ký số</p>
+        </div>
+
+        <section class="history-print-patient">
+          <p><strong>Họ tên:</strong> {{ record.patientName || 'Bệnh nhân' }}</p>
+          <p><strong>Ngày khám:</strong> {{ formatDate(record.appointmentDate) }}</p>
+          <p><strong>Chuyên khoa:</strong> {{ record.specialty || '—' }}</p>
+          <p><strong>Bác sĩ:</strong> {{ record.doctorName || '—' }}</p>
+          @if (record.appointmentCode) { <p><strong>Mã lịch hẹn:</strong> {{ record.appointmentCode }}</p> }
+        </section>
+
+        <section class="history-print-vitals">
+          <p><strong>Huyết áp:</strong> {{ vital(record.bloodPressure, ' mmHg') }}</p>
+          <p><strong>Mạch:</strong> {{ vital(record.heartRate, ' bpm') }}</p>
+          <p><strong>Nhiệt độ:</strong> {{ vital(record.temperature, ' °C') }}</p>
+          <p><strong>SpO₂:</strong> {{ vital(record.spO2, '%') }}</p>
+          <p><strong>Cân nặng:</strong> {{ vital(record.weight, ' kg') }}</p>
+          <p><strong>Chiều cao:</strong> {{ vital(record.height, ' cm') }}</p>
+        </section>
+
+        <section class="history-print-clinical">
+          <div><h2>1. LÝ DO KHÁM</h2><p>{{ record.reason || 'Không ghi nhận' }}</p></div>
+          <div><h2>2. GHI NHẬN LÂM SÀNG / TRIỆU CHỨNG</h2><p>{{ record.examinationNotes || 'Không ghi nhận' }}</p></div>
+          <div><h2>3. CHẨN ĐOÁN XÁC ĐỊNH</h2><p class="history-print-diagnosis">{{ record.diagnosis || 'Không ghi nhận' }}</p></div>
+          <div><h2>4. KẾT LUẬN</h2><p>{{ record.conclusion || 'Không ghi nhận' }}</p></div>
+          <div><h2>5. HƯỚNG XỬ TRÍ &amp; PHÁC ĐỒ</h2><p>{{ record.treatmentPlan || 'Không ghi nhận' }}</p></div>
+          @if (record.prescriptionLines.length) {
+            <div>
+              <h2>6. ĐƠN THUỐC CHỈ ĐỊNH</h2>
+              <table>
+                <thead><tr><th>#</th><th>Thuốc</th><th>Số lượng</th><th>Cách dùng</th></tr></thead>
+                <tbody>
+                  @for (line of record.prescriptionLines; track $index) {
+                    <tr><td>{{ $index + 1 }}</td><td>{{ line.medicationName }} — {{ line.dosage }}</td><td>{{ line.quantity }} {{ line.unit || 'Viên' }}</td><td>{{ line.instructions || '—' }}</td></tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else if (record.prescription) {
+            <div><h2>6. ĐƠN THUỐC</h2><p>{{ record.prescription }}</p></div>
+          }
+          @if (record.allergySummary) { <div><h2>DỊ ỨNG</h2><p>{{ record.allergySummary }}</p></div> }
+          @if (record.followUpDate || record.followUpNote) {
+            <div><h2>HẸN TÁI KHÁM</h2><p>{{ formatDate(record.followUpDate) }}{{ record.followUpNote ? ' · ' + record.followUpNote : '' }}</p></div>
+          }
+        </section>
+
+        <footer class="history-print-signature">
+          <p>Hồ sơ lưu trữ điện tử theo TT 33/2025/TT-BYT</p>
+          <div>
+            <em>Ngày ký: {{ formatDateTime(record.signedAt) }}</em>
+            <strong>BÁC SĨ KHÁM BỆNH</strong>
+            <b>{{ record.doctorName || 'Bác sĩ điều trị' }}</b>
+            <span>[Đã ký số điện tử]</span>
+          </div>
+        </footer>
+      </article>
+    }
   </main>
 </app-staff-workspace-shell>
