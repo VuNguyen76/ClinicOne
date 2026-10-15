@@ -1,0 +1,17 @@
+name: Keep Azure Backend Warm
+
+on:
+  schedule:
+    # Run every 10 minutes to prevent Azure App Service cold start (sleep after 20 mins idle)
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  keepalive:
+    name: Ping Azure Health Endpoint
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Ping Actuator Health
+        run: |
+          curl -s -m 15 -f https://app-clinicone-api.azurewebsites.net/actuator/health || echo "Warmup ping sent"
