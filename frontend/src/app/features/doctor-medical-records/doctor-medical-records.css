@@ -1,0 +1,178 @@
+.history-print-sheet {
+  display: none;
+}
+
+@page doctorHistoryA4 {
+  size: A4 portrait;
+  margin: 0;
+}
+
+@media print {
+  .history-print-sheet {
+    page: doctorHistoryA4;
+    display: block !important;
+    box-sizing: border-box;
+    width: 190mm;
+    max-width: 190mm;
+    margin: 0 auto;
+    padding: 12mm 0;
+    background: #fff;
+    color: #0f172a;
+    font-family: Arial, sans-serif;
+    font-size: 9pt;
+    line-height: 1.35;
+  }
+
+  .history-print-sheet p,
+  .history-print-sheet h1,
+  .history-print-sheet h2 {
+    margin: 0;
+  }
+
+  .history-print-header {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8mm;
+    align-items: start;
+    padding-bottom: 4mm;
+    border-bottom: 1.5pt solid #0f172a;
+    font-size: 8pt;
+  }
+
+  .history-print-clinic {
+    display: flex;
+    gap: 3mm;
+    align-items: center;
+  }
+
+  .history-print-clinic img {
+    width: 14mm;
+    height: 14mm;
+    object-fit: contain;
+  }
+
+  .history-print-brand {
+    margin-bottom: 1mm !important;
+    color: #0284c7;
+    font-size: 12pt;
+    font-weight: 700;
+  }
+
+  .history-print-clinic-name,
+  .history-print-national p,
+  .history-print-national strong {
+    font-weight: 700;
+  }
+
+  .history-print-national {
+    display: grid;
+    gap: 1.2mm;
+    text-align: center;
+  }
+
+  .history-print-title {
+    padding: 4mm 0 3mm;
+    text-align: center;
+  }
+
+  .history-print-title h1 {
+    font-size: 14pt;
+    font-weight: 700;
+  }
+
+  .history-print-title p {
+    margin-top: 1mm;
+    color: #475569;
+    font-style: italic;
+    font-size: 8pt;
+  }
+
+  .history-print-patient {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2mm 6mm;
+    padding: 3mm 0;
+    border-top: 1pt solid #334155;
+    border-bottom: 1pt solid #cbd5e1;
+  }
+
+  .history-print-vitals {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2mm 5mm;
+    padding: 3mm 0;
+    border-bottom: 1pt solid #cbd5e1;
+  }
+
+  .history-print-clinical {
+    display: grid;
+    gap: 3mm;
+    padding-top: 4mm;
+  }
+
+  .history-print-clinical > div,
+  .history-print-header,
+  .history-print-patient,
+  .history-print-vitals,
+  .history-print-signature {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .history-print-clinical h2 {
+    margin-bottom: 1mm;
+    font-size: 8.5pt;
+    font-weight: 700;
+  }
+
+  .history-print-clinical p {
+    white-space: pre-wrap;
+  }
+
+  .history-print-diagnosis {
+    font-weight: 700;
+  }
+
+  .history-print-sheet table {
+    width: 100%;
+    margin-top: 1.5mm;
+    border-collapse: collapse;
+    font-size: 8pt;
+  }
+
+  .history-print-sheet th,
+  .history-print-sheet td {
+    padding: 1.5mm;
+    border: 0.5pt solid #cbd5e1;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .history-print-signature {
+    display: flex;
+    justify-content: space-between;
+    gap: 8mm;
+    margin-top: 5mm;
+    padding-top: 3mm;
+    border-top: 1pt solid #cbd5e1;
+    color: #475569;
+    font-size: 8pt;
+  }
+
+  .history-print-signature > div {
+    display: grid;
+    justify-items: center;
+    gap: 1.5mm;
+    min-width: 55mm;
+    color: #0f172a;
+  }
+
+  .history-print-signature em {
+    color: #475569;
+  }
+
+  .history-print-signature span {
+    color: #047857;
+    font-weight: 700;
+  }
+}

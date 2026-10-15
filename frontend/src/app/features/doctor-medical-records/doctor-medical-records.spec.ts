@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
+import { vi } from 'vitest';
 import { DoctorMedicalRecords } from './doctor-medical-records';
 
 describe('DoctorMedicalRecords', () => {
@@ -60,6 +61,37 @@ describe('DoctorMedicalRecords', () => {
     expect((fixture.nativeElement.querySelector('[data-testid="prescription-dialog"]') as HTMLDialogElement).open).toBe(false);
   });
 
+  it('prints the selected signed medical record from patient history', async () => {
+    const printSpy = vi.spyOn(window, 'print').mockImplementation(() => undefined);
+    http.expectOne((request) => request.url === '/api/v1/doctor/medical-records'
+      && request.params.get('page') === '0' && request.params.get('size') === '20').flush({
+      items: [summaryRecord()], page: 0, size: 20, totalElements: 1, totalPages: 1,
+    });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-testid="record-print"]')).toBeNull();
+
+    (fixture.nativeElement.querySelector('[data-testid="doctor-record-row"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    http.expectOne('/api/v1/doctor/medical-records/record-1').flush(detailRecord());
+    fixture.detectChanges();
+
+    const printSheet = fixture.nativeElement.querySelector('[data-testid="history-print-sheet"]') as HTMLElement;
+    expect(printSheet.textContent).toContain('BS. CKII Nguyễn An');
+    expect(printSheet.textContent).toContain('PHIẾU KHÁM BỆNH NGOẠI TRÚ');
+    expect(printSheet.textContent).not.toContain('localhost');
+    const printButton = fixture.nativeElement.querySelector('[data-testid="record-print"]') as HTMLButtonElement;
+    expect(printButton.disabled).toBe(false);
+    printButton.click();
+    fixture.detectChanges();
+    await new Promise((resolve) => setTimeout(resolve, 60));
+
+    expect(printSpy).toHaveBeenCalledOnce();
+    expect(fixture.componentInstance['printing']()).toBe(true);
+    window.dispatchEvent(new Event('afterprint'));
+    expect(fixture.componentInstance['printing']()).toBe(false);
+    printSpy.mockRestore();
+  });
+
   it('submits search and date filters to the doctor-scoped history API', () => {
     http.expectOne((request) => request.url === '/api/v1/doctor/medical-records').flush({
       items: [], page: 0, size: 20, totalElements: 0, totalPages: 0,
@@ -103,7 +135,7 @@ describe('DoctorMedicalRecords', () => {
 
 function summaryRecord() {
   return {
-    id: 'record-1', appointmentCode: 'CL-20261012-0001', patientName: 'Nguyễn Thị Mai',
+    id: 'record-1', appointmentCode: 'CL-20261012-0001', patientName: 'Nguyễn Thị Mai', doctorName: 'BS. CKII Nguyễn An',
     specialty: 'Nội tổng quát', appointmentDate: '2026-10-12', reason: 'Đau đầu',
     examinationNotes: null, diagnosis: 'Tăng huyết áp', conclusion: null, treatmentPlan: null,
     prescription: null, prescriptionLines: [], followUpDate: null, followUpDays: null,

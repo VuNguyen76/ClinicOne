@@ -2,72 +2,20 @@
   display: none !important;
 }
 
-.doctor-record-pdf-host {
-  position: fixed;
-  top: 0;
-  left: -10000px;
-  width: 190mm;
-  background: #fff;
-  pointer-events: none;
-}
-
-[data-pdf-export-root] {
-  display: block !important;
-  box-sizing: border-box;
-  width: 190mm;
-  max-width: 190mm;
+@page clinicExaminationRecord {
+  size: A4 portrait;
   margin: 0;
-  padding: 2mm 0 8mm !important;
-  background: #fff;
-  color: #0f172a;
-  font-family: Arial, sans-serif;
-  font-size: 8pt;
-  line-height: 1.15;
-}
-
-[data-pdf-export-root] .print-clinicone-logo {
-  width: 12mm;
-  height: 12mm;
-}
-
-[data-pdf-export-root] .print-record-demographics,
-[data-pdf-export-root] .print-record-clinical {
-  margin-block: 2mm !important;
-}
-
-[data-pdf-export-root] .print-record-clinical > :not([hidden]) ~ :not([hidden]) {
-  margin-top: 1.5mm !important;
-}
-
-[data-pdf-export-root] .print-record-footer {
-  margin-top: 2mm !important;
-  padding-bottom: 2mm !important;
-  overflow: visible !important;
-}
-
-[data-pdf-export-root] .print-record-signature-status {
-  display: block;
-  line-height: 1.35 !important;
-  padding-block: 1mm !important;
-}
-
-[data-pdf-export-root] table {
-  font-size: 7.5pt;
-}
-
-[data-pdf-export-root] th,
-[data-pdf-export-root] td {
-  padding: 1mm !important;
 }
 
 @media print {
   #print-full-record-section.print-output-active {
+    page: clinicExaminationRecord;
     display: block !important;
     box-sizing: border-box;
     width: 190mm;
     max-width: 100%;
-    margin: 0;
-    padding: 0 !important;
+    margin: 0 auto;
+    padding: 12mm 0 !important;
     font-family: Arial, sans-serif;
     font-size: 8pt;
     line-height: 1.15;

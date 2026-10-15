@@ -318,7 +318,7 @@ export class DoctorExamination implements OnInit {
 
   // Print Mode ('full' = Phiếu khám bệnh ngoại trú, 'prescription' = Đơn thuốc điện tử, 'invoice' = Hóa đơn điện tử)
   protected readonly printMode = signal<'full' | 'prescription' | 'invoice'>('full');
-  protected readonly pdfGenerating = signal(false);
+  protected readonly printingRecord = signal(false);
 
   protected readonly invoice = computed((): ElectronicInvoiceData | null => {
     // Invoice issuance is not implemented by BE; never synthesize invoice data in FE.
@@ -1177,99 +1177,22 @@ export class DoctorExamination implements OnInit {
   }
 
   // Print Handlers
-  protected async printFullRecord(): Promise<void> {
+  protected printFullRecord(): void {
     const exam = this.examination();
     const printSource = document.getElementById('print-full-record-section');
-    if (!exam || !printSource || this.pdfGenerating()) return;
+    if (!exam || !printSource || this.printingRecord()) return;
 
     this.printMode.set('full');
-    this.pdfGenerating.set(true);
+    this.printingRecord.set(true);
     this.error.set('');
-    this.notice.set('Đang tạo phiếu khám PDF khổ A4…');
+    this.notice.set('Đang mở hộp thoại in phiếu khám khổ A4…');
 
-    const exportHost = document.createElement('div');
-    exportHost.className = 'doctor-record-pdf-host';
-    exportHost.setAttribute('aria-hidden', 'true');
-    const exportNode = printSource.cloneNode(true) as HTMLElement;
-    exportNode.removeAttribute('id');
-    exportNode.classList.remove('hidden', '!hidden', 'print-output-active');
-    exportNode.classList.add('pdf-export-active');
-    exportNode.setAttribute('data-pdf-export-root', '');
-    const exportElements = [exportNode, ...exportNode.querySelectorAll<HTMLElement>('*')];
-    for (const element of exportElements) {
-      const computed = getComputedStyle(element);
-      for (let index = 0; index < computed.length; index += 1) {
-        const property = computed.item(index);
-        const value = computed.getPropertyValue(property);
-        if (property.startsWith('--') && element !== exportNode) continue;
-        if (!value.includes('oklch(')) continue;
-        element.style.setProperty(property, value.replace(
-          /oklch\(\s*([\d.]+)(%)?[^)]*\)/gi,
-          (_match, lightness: string, percent: string | undefined) => {
-            const normalizedLightness = Number(lightness) * (percent ? 1 : 100);
-            const channel = Math.max(0, Math.min(255, Math.round(normalizedLightness * 2.55)));
-            return `#${channel.toString(16).padStart(2, '0').repeat(3)}`;
-          },
-        ));
-      }
-    }
-    exportHost.append(exportNode);
-    document.body.append(exportHost);
-
-    try {
-      const { default: html2pdf } = await import('html2pdf.js');
-      const filenameCode = exam.appointmentCode.replace(/[^a-z0-9_-]/gi, '-');
-      const pdfOptions = {
-        margin: [8, 8, 8, 8],
-        filename: `ClinicOne-Phieu-kham-${filenameCode}.pdf`,
-        image: { type: 'png' as const },
-        html2canvas: {
-          scale: 2,
-          useCORS: true,
-          backgroundColor: '#ffffff',
-          scrollX: 0,
-          scrollY: 0,
-          onclone: (clonedDocument: Document) => {
-            const clonedView = clonedDocument.defaultView;
-            if (!clonedView) return;
-            for (const element of clonedDocument.querySelectorAll<HTMLElement>('*')) {
-              const computed = clonedView.getComputedStyle(element);
-              for (let index = 0; index < computed.length; index += 1) {
-                const property = computed.item(index);
-                const value = computed.getPropertyValue(property);
-                if (!value.includes('oklch(')) continue;
-                element.style.setProperty(property, value.replace(
-                  /oklch\(\s*([\d.]+)(%)?[^)]*\)/gi,
-                  (_match, lightness: string, percent: string | undefined) => {
-                    const normalizedLightness = Number(lightness) * (percent ? 1 : 100);
-                    const channel = Math.max(0, Math.min(255, Math.round(normalizedLightness * 2.55)));
-                    return `#${channel.toString(16).padStart(2, '0').repeat(3)}`;
-                  },
-                ));
-              }
-            }
-          },
-        },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
-        pagebreak: {
-          mode: ['css', 'legacy'],
-          avoid: ['.print-record-header', '.print-record-demographics', '.print-record-footer', '.print-record-clinical > div', 'tr'],
-        },
-      };
-      await html2pdf()
-        .set(pdfOptions as unknown as Parameters<InstanceType<typeof html2pdf.Worker>['set']>[0])
-        .from(exportNode)
-        .save();
-      this.notice.set('Đã tải phiếu khám PDF khổ A4.');
-      setTimeout(() => this.notice.set(''), 4000);
-    } catch (error) {
-      console.error('Failed to generate the examination PDF.', error);
+    const finishPrinting = () => {
+      this.printingRecord.set(false);
       this.notice.set('');
-      this.error.set('Không thể tạo PDF phiếu khám. Vui lòng thử lại.');
-    } finally {
-      exportHost.remove();
-      this.pdfGenerating.set(false);
-    }
+    };
+    window.addEventListener('afterprint', finishPrinting, { once: true });
+    window.setTimeout(() => window.print(), 50);
   }
 
   protected printPrescription(): void {

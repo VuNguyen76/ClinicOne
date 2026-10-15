@@ -10,6 +10,7 @@ public record DoctorMedicalRecordResponse(
         UUID id,
         String appointmentCode,
         String patientName,
+        String doctorName,
         String specialty,
         LocalDate appointmentDate,
         String reason,
@@ -46,6 +47,7 @@ public record DoctorMedicalRecordResponse(
                 : appointment == null || appointment.getPatient() == null ? null : appointment.getPatient().getFullName();
         return new DoctorMedicalRecordResponse(record.getId(),
                 appointment == null ? null : appointment.getAppointmentCode(), patientName,
+                record.getDoctorName(),
                 appointment == null ? null : appointment.getSpecialty(),
                 appointment == null ? null : appointment.getAppointmentDate(), record.getReason(),
                 record.getExaminationNotes(), record.getDiagnosis(), record.getConclusion(), record.getTreatmentPlan(),

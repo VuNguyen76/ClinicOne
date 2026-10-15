@@ -6,16 +6,6 @@ import { ActivatedRoute } from '@angular/router';
 import { vi } from 'vitest';
 import { DoctorExamination } from './doctor-examination';
 
-const pdfGenerator = vi.hoisted(() => {
-  const worker = { set: vi.fn(), from: vi.fn(), save: vi.fn() };
-  worker.set.mockReturnValue(worker);
-  worker.from.mockReturnValue(worker);
-  worker.save.mockResolvedValue(undefined);
-  return { create: vi.fn(() => worker), worker };
-});
-
-vi.mock('html2pdf.js', () => ({ default: pdfGenerator.create }));
-
 describe('DoctorExamination', () => {
   let fixture: ComponentFixture<DoctorExamination>;
   let http: HttpTestingController;
@@ -911,41 +901,41 @@ describe('DoctorExamination', () => {
     expect(fixture.componentInstance['prescriptionLines'].at(1).value.unit).toBe('Gói');
   });
 
-  it('sets printMode to prescription when printing prescription', async () => {
+  it('sets printMode for prescription and invoice printing', async () => {
     http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
     fixture.detectChanges();
 
     fixture.componentInstance['addPrescriptionLine']();
     fixture.detectChanges();
 
+    const printSpy = vi.spyOn(window, 'print').mockImplementation(() => undefined);
     fixture.componentInstance['printPrescription']();
     expect(fixture.componentInstance['printMode']()).toBe('prescription');
 
-    await fixture.componentInstance['printFullRecord']();
-    expect(fixture.componentInstance['printMode']()).toBe('full');
-
     fixture.componentInstance['printInvoice']();
     expect(fixture.componentInstance['printMode']()).toBe('invoice');
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    expect(printSpy).toHaveBeenCalledTimes(2);
+    printSpy.mockRestore();
   });
 
-  it('generates the medical record as a local A4 PDF instead of opening browser print', async () => {
+  it('uses native browser printing for the A4 medical record without generating a client-side PDF', async () => {
     http.expectOne('/api/v1/doctor/examinations/ticket-1').flush(examination());
     fixture.detectChanges();
 
-    await fixture.componentInstance['printFullRecord']();
+    const printSpy = vi.spyOn(window, 'print').mockImplementation(() => undefined);
+    fixture.componentInstance['printFullRecord']();
+    fixture.detectChanges();
 
-    expect(pdfGenerator.create).toHaveBeenCalledOnce();
-    const options = pdfGenerator.worker.set.mock.calls[0][0] as {
-      jsPDF: { format: string; orientation: string };
-      margin: number[];
-    };
-    expect(options.jsPDF.format).toBe('a4');
-    expect(options.jsPDF.orientation).toBe('portrait');
-    expect(options.margin).toEqual([8, 8, 8, 8]);
-    const exportedNode = pdfGenerator.worker.from.mock.calls[0][0] as HTMLElement;
-    expect(exportedNode.classList.contains('pdf-export-active')).toBe(true);
-    expect(exportedNode.textContent).toContain('Nguyễn Thanh Vũ');
-    expect(pdfGenerator.worker.save).toHaveBeenCalledOnce();
+    expect(printSpy).not.toHaveBeenCalled();
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    expect(printSpy).toHaveBeenCalledOnce();
+    expect(fixture.componentInstance['printMode']()).toBe('full');
+    expect(fixture.componentInstance['printingRecord']()).toBe(true);
+
+    window.dispatchEvent(new Event('afterprint'));
+    expect(fixture.componentInstance['printingRecord']()).toBe(false);
+    printSpy.mockRestore();
   });
 
   it('blocks saveDraft and displays error when prescription line has invalid quantity or empty dosage', () => {
