@@ -108,11 +108,8 @@ export class PublicPage {
     this.contactBusy.set(true);
     setTimeout(() => {
       this.contactBusy.set(false);
-      this.contactNotice.set('Cảm ơn bạn! Yêu cầu hỗ trợ đã được gửi thành công. Đội ngũ ClinicOne sẽ liên hệ sớm nhất.');
-      nameInput.value = '';
-      phoneInput.value = '';
-      textInput.value = '';
-      setTimeout(() => this.contactNotice.set(''), 5000);
-    }, 600);
+      this.contactNotice.set('Hệ thống tiếp nhận trực tuyến đang bảo trì. Vui lòng liên hệ trực tiếp hotline 1900 0000 để được hỗ trợ ngay!');
+      setTimeout(() => this.contactNotice.set(''), 8000);
+    }, 400);
   }
 }

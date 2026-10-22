@@ -5,9 +5,11 @@ import com.clinicone.appointment.AppointmentRepository;
 import com.clinicone.auth.AccountStatus;
 import com.clinicone.auth.PatientAccount;
 import com.clinicone.examination.ExaminationSessionRepository;
+import com.clinicone.invoice.InvoiceRepository;
 import com.clinicone.queue.QueueTicketRepository;
 import com.clinicone.reconciliation.ReconciliationIncidentRepository;
 import com.clinicone.reconciliation.ReconciliationStatus;
+import com.clinicone.rescheduling.RescheduleCaseRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,14 +37,17 @@ class BusinessLogIntegrityJobTest {
     private final AppointmentRepository appointmentRepository = mock(AppointmentRepository.class);
     private final QueueTicketRepository queueTicketRepository = mock(QueueTicketRepository.class);
     private final ExaminationSessionRepository examinationSessionRepository = mock(ExaminationSessionRepository.class);
+    private final InvoiceRepository invoiceRepository = mock(InvoiceRepository.class);
+    private final RescheduleCaseRepository rescheduleCaseRepository = mock(RescheduleCaseRepository.class);
     private BusinessLogIntegrityJob job;
 
     @BeforeEach
     void setUp() {
         job = new BusinessLogIntegrityJob(businessLogRepository, incidentRepository, appointmentRepository,
-                queueTicketRepository, examinationSessionRepository,
+                queueTicketRepository, examinationSessionRepository, invoiceRepository, rescheduleCaseRepository,
                 Clock.fixed(Instant.parse("2026-08-10T01:00:00Z"), ZoneOffset.UTC));
         when(incidentRepository.existsByEntityTypeAndEntityIdAndStatus(any(), any(), any())).thenReturn(false);
+        when(incidentRepository.existsByEntityTypeAndEntityId(any(), any())).thenReturn(false);
     }
 
     @Test
@@ -88,6 +93,53 @@ class BusinessLogIntegrityJobTest {
                 .isAnnotationPresent(Transactional.class));
         assertEquals(true, BusinessLogIntegrityJob.class.getMethod("runAfterRecovery")
                 .isAnnotationPresent(Transactional.class));
+    }
+
+    @Test
+    void doesNotOpenIncidentForReconciliationActivityEvent() {
+        UUID id = UUID.randomUUID();
+        BusinessLog entry = BusinessLog.transition(UUID.randomUUID(), "APPOINTMENT", id,
+                null, "RECONCILED", "RECONCILIATION_NO_ACTION_REQUIRED", "admin", "Resolved");
+        when(businessLogRepository.findAllByOrderByOccurredAtAscIdAsc()).thenReturn(List.of(entry));
+
+        BusinessLogIntegrityJob.IntegrityCheckResult result = job.runOnce();
+
+        assertEquals(0, result.inspected());
+        assertEquals(0, result.incidentsOpened());
+        verify(incidentRepository, never()).save(any());
+    }
+
+    @Test
+    void doesNotOpenIncidentForUnsupportedAuxiliaryEntityType() {
+        UUID id = UUID.randomUUID();
+        BusinessLog entry = BusinessLog.transition(UUID.randomUUID(), "UNKNOWN_SYSTEM_METRIC", id,
+                null, "UPDATED", "UPDATE_CONFIG", "system", null);
+        when(businessLogRepository.findAllByOrderByOccurredAtAscIdAsc()).thenReturn(List.of(entry));
+
+        BusinessLogIntegrityJob.IntegrityCheckResult result = job.runOnce();
+
+        assertEquals(1, result.inspected());
+        assertEquals(0, result.incidentsOpened());
+        verify(incidentRepository, never()).save(any());
+    }
+
+    @Test
+    void doesNotOpenDuplicateIncidentForAlreadyRecordedBusinessLogHash() throws Exception {
+        UUID appointmentId = UUID.randomUUID();
+        BusinessLog entry = BusinessLog.transition(UUID.randomUUID(), "APPOINTMENT", appointmentId,
+                "BOOKED", "BOOKED", "CHECK_IN", "patient", null);
+        PatientAccount patient = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
+        Appointment appointment = Appointment.create(patient, "CL-1", "Nội tổng quát", "BS. An",
+                LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), "Đau đầu");
+        setId(appointment, appointmentId);
+        when(appointmentRepository.findById(appointmentId)).thenReturn(Optional.of(appointment));
+
+        when(businessLogRepository.findAllByOrderByOccurredAtAscIdAsc()).thenReturn(List.of(entry));
+        when(incidentRepository.existsByEntityTypeAndEntityId("BUSINESS_LOG", entry.getId())).thenReturn(true);
+
+        BusinessLogIntegrityJob.IntegrityCheckResult result = job.runOnce();
+
+        assertEquals(0, result.incidentsOpened());
     }
 
     private static void setId(Appointment appointment, UUID id) throws Exception {

@@ -23,16 +23,20 @@ export function clinicTodayDate(now: Date = new Date()): Date {
   return new Date(year, month - 1, day);
 }
 
-const VI_DATE_FORMATTER = new Intl.DateTimeFormat('vi-VN');
+const VI_DATE_FORMATTER = new Intl.DateTimeFormat('vi-VN', {
+  timeZone: CLINIC_TIME_ZONE,
+});
 
 const VI_DATETIME_FORMATTER = new Intl.DateTimeFormat('vi-VN', {
   dateStyle: 'short',
   timeStyle: 'short',
+  timeZone: CLINIC_TIME_ZONE,
 });
 
 const VI_MEDIUM_DATETIME_FORMATTER = new Intl.DateTimeFormat('vi-VN', {
   dateStyle: 'medium',
   timeStyle: 'short',
+  timeZone: CLINIC_TIME_ZONE,
 });
 
 /** Formats an ISO date or YYYY-MM-DD string into Vietnamese dd/MM/yyyy format. */
@@ -64,10 +68,23 @@ export function formatClinicPadDate(value?: string | null): string {
   return `${d}/${m}/${date.getFullYear()}`;
 }
 
-/** Formats a time string (HH:mm:ss or HH:mm) into HH:mm. */
+/** Formats a time string (HH:mm:ss or HH:mm) into HH:mm; parses ISO timestamp into clinic HH:mm. */
 export function formatClinicTime(value?: string | null): string {
   if (!value) return '';
-  return value.trim().slice(0, 5);
+  const trimmed = value.trim();
+  if (/^\d{2}:\d{2}(:\d{2})?$/.test(trimmed)) {
+    return trimmed.slice(0, 5);
+  }
+  const date = new Date(trimmed);
+  if (!isNaN(date.getTime())) {
+    return new Intl.DateTimeFormat('vi-VN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      timeZone: CLINIC_TIME_ZONE,
+    }).format(date);
+  }
+  return trimmed;
 }
 
 /** Formats a timestamp into short Vietnamese date & time string. */

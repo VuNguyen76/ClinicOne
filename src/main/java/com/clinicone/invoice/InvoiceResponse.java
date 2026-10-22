@@ -14,9 +14,14 @@ public record InvoiceResponse(UUID id, String invoiceCode, String appointmentCod
         var appointment = invoice.getAppointment();
         var profile = appointment.getPatientProfile();
         var patient = appointment.getPatient();
+        String patientName = invoice.getPatientName() != null && !invoice.getPatientName().isBlank()
+                ? invoice.getPatientName()
+                : (profile == null ? patient.getFullName() : profile.getFullName());
+        String patientPhone = invoice.getPatientPhone() != null && !invoice.getPatientPhone().isBlank()
+                ? invoice.getPatientPhone()
+                : (profile == null ? patient.getPhone() : profile.getPhone());
         return new InvoiceResponse(invoice.getId(), invoice.getInvoiceCode(), appointment.getAppointmentCode(),
-                profile == null ? patient.getFullName() : profile.getFullName(),
-                profile == null ? patient.getPhone() : profile.getPhone(), invoice.getDoctorName(),
+                patientName, patientPhone, invoice.getDoctorName(),
                 invoice.getSpecialty(), invoice.getExamFee(), invoice.getLabFee(), invoice.getMedicationFee(),
                 invoice.getDiscountAmount(), invoice.getTotalAmount(), invoice.getPaidAmount(),
                 invoice.getPaymentMethod(), invoice.getStatus(), invoice.getCashierName(), invoice.getCreatedAt(),

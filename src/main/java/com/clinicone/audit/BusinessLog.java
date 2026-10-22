@@ -94,7 +94,7 @@ public class BusinessLog {
     @PrePersist
     void onCreate() {
         if (occurredAt == null) {
-            occurredAt = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+            occurredAt = Instant.now();
         }
         if (hash == null) {
             hash = calculateHash(previousHash);
@@ -103,7 +103,7 @@ public class BusinessLog {
 
     void seal(String previousHash) {
         this.previousHash = previousHash;
-        this.occurredAt = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+        this.occurredAt = Instant.now();
         this.hash = calculateHash(previousHash);
     }
 

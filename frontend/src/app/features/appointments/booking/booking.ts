@@ -85,8 +85,21 @@ export class Booking implements OnInit {
   });
   protected profiles: PatientProfileItem[] = [];
   protected profilesLoading = true;
-  protected busy = false;
-  protected error = '';
+  private readonly _busy = signal(false);
+  protected get busy(): boolean {
+    return this._busy();
+  }
+  protected set busy(value: boolean) {
+    this._busy.set(value);
+  }
+
+  private readonly _error = signal('');
+  protected get error(): string {
+    return this._error();
+  }
+  protected set error(value: string) {
+    this._error.set(value);
+  }
   private createRequestKey: string | null = null;
   private createRequestFingerprint: string | null = null;
   private availabilityRequestId = 0;

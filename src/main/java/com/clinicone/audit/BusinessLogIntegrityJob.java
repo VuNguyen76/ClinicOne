@@ -2,14 +2,17 @@ package com.clinicone.audit;
 
 import com.clinicone.appointment.AppointmentRepository;
 import com.clinicone.examination.ExaminationSessionRepository;
+import com.clinicone.invoice.InvoiceRepository;
 import com.clinicone.queue.QueueTicketRepository;
 import com.clinicone.reconciliation.ReconciliationIncident;
 import com.clinicone.reconciliation.ReconciliationIncidentRepository;
 import com.clinicone.reconciliation.ReconciliationStatus;
+import com.clinicone.rescheduling.RescheduleCaseRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.context.event.EventListener;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +34,8 @@ public class BusinessLogIntegrityJob {
     private final AppointmentRepository appointmentRepository;
     private final QueueTicketRepository queueTicketRepository;
     private final ExaminationSessionRepository examinationSessionRepository;
+    private final InvoiceRepository invoiceRepository;
+    private final RescheduleCaseRepository rescheduleCaseRepository;
     private final Clock clock;
 
     public BusinessLogIntegrityJob(BusinessLogRepository businessLogRepository,
@@ -39,11 +44,26 @@ public class BusinessLogIntegrityJob {
                                    QueueTicketRepository queueTicketRepository,
                                    ExaminationSessionRepository examinationSessionRepository,
                                    Clock clock) {
+        this(businessLogRepository, incidentRepository, appointmentRepository, queueTicketRepository,
+                examinationSessionRepository, null, null, clock);
+    }
+
+    @Autowired
+    public BusinessLogIntegrityJob(BusinessLogRepository businessLogRepository,
+                                   ReconciliationIncidentRepository incidentRepository,
+                                   AppointmentRepository appointmentRepository,
+                                   QueueTicketRepository queueTicketRepository,
+                                   ExaminationSessionRepository examinationSessionRepository,
+                                   InvoiceRepository invoiceRepository,
+                                   RescheduleCaseRepository rescheduleCaseRepository,
+                                   Clock clock) {
         this.businessLogRepository = businessLogRepository;
         this.incidentRepository = incidentRepository;
         this.appointmentRepository = appointmentRepository;
         this.queueTicketRepository = queueTicketRepository;
         this.examinationSessionRepository = examinationSessionRepository;
+        this.invoiceRepository = invoiceRepository;
+        this.rescheduleCaseRepository = rescheduleCaseRepository;
         this.clock = clock;
     }
 
@@ -68,8 +88,8 @@ public class BusinessLogIntegrityJob {
         for (BusinessLog entry : businessLogRepository.findAllByOrderByOccurredAtAscIdAsc()) {
             if (entry.getHash() != null && !entry.isHashValid(previousHash)
                     && entry.getId() != null
-                    && !incidentRepository.existsByEntityTypeAndEntityIdAndStatus(
-                    "BUSINESS_LOG", entry.getId(), ReconciliationStatus.OPEN)) {
+                    && !incidentRepository.existsByEntityTypeAndEntityId(
+                    "BUSINESS_LOG", entry.getId())) {
                 ReconciliationIncident incident = ReconciliationIncident.open(
                         generateIncidentCode(),
                         "BUSINESS_LOG", entry.getId(), entry.getEventId(),
@@ -80,6 +100,12 @@ public class BusinessLogIntegrityJob {
             if (entry.getHash() != null) {
                 previousHash = entry.getHash();
             }
+            if (entry.getEventType() != null && entry.getEventType().startsWith("RECONCILIATION")) {
+                continue;
+            }
+            if ("RECONCILED".equalsIgnoreCase(entry.getNextStatus())) {
+                continue;
+            }
             latestByEntity.put(new EntityKey(entry.getEntityType(), entry.getEntityId()), entry);
         }
         int inspected = 0;
@@ -88,6 +114,9 @@ public class BusinessLogIntegrityJob {
             inspected++;
             EntityKey key = item.getKey();
             BusinessLog latest = item.getValue();
+            if (!isSupportedEntityType(key.entityType())) {
+                continue;
+            }
             String actual = currentStatus(key);
             if (actual != null && actual.equals(latest.getNextStatus())) {
                 continue;
@@ -155,12 +184,30 @@ public class BusinessLogIntegrityJob {
                 return "Không tìm thấy phiên khám tương ứng với thao tác " + latest.getEventType();
             }
             return "Lệch trạng thái phiên khám: Thực tế là " + actual + ", nhật ký ghi nhận " + latest.getNextStatus();
+        } else if ("INVOICE".equals(entityType)) {
+            if (actual == null) {
+                return "Không tìm thấy hóa đơn tương ứng với thao tác " + latest.getEventType();
+            }
+            return "Lệch trạng thái hóa đơn: Thực tế là " + actual + ", nhật ký ghi nhận " + latest.getNextStatus();
+        } else if ("RESCHEDULE_CASE".equals(entityType)) {
+            if (actual == null) {
+                return "Không tìm thấy ca đổi lịch tương ứng với thao tác " + latest.getEventType();
+            }
+            return "Lệch trạng thái ca đổi lịch: Thực tế là " + actual + ", nhật ký ghi nhận " + latest.getNextStatus();
         } else {
             if (actual == null) {
                 return "Không tìm thấy dữ liệu " + key.entityType() + " cho thao tác nghiệp vụ " + latest.getEventType();
             }
             return "Trạng thái hiện tại " + actual + " không khớp nhật ký " + latest.getNextStatus();
         }
+    }
+
+    private boolean isSupportedEntityType(String entityType) {
+        if (entityType == null) return false;
+        return switch (entityType.toUpperCase()) {
+            case "APPOINTMENT", "QUEUE_TICKET", "EXAMINATION", "INVOICE", "RESCHEDULE_CASE" -> true;
+            default -> false;
+        };
     }
 
     private String currentStatus(EntityKey key) {
@@ -171,6 +218,12 @@ public class BusinessLogIntegrityJob {
                     .map(item -> item.getStatus().name()).orElse(null);
             case "EXAMINATION" -> examinationSessionRepository.findById(key.entityId())
                     .map(item -> item.getStatus().name()).orElse(null);
+            case "INVOICE" -> invoiceRepository != null
+                    ? invoiceRepository.findById(key.entityId()).map(item -> item.getStatus().name()).orElse(null)
+                    : null;
+            case "RESCHEDULE_CASE" -> rescheduleCaseRepository != null
+                    ? rescheduleCaseRepository.findById(key.entityId()).map(item -> item.getStatus().name()).orElse(null)
+                    : null;
             default -> null;
         };
     }

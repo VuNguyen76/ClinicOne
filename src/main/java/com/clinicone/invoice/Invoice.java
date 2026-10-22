@@ -139,14 +139,28 @@ public class Invoice {
     public void addItem(InvoiceItem item) {
         items.add(item);
         item.attachTo(this);
+        recalculateTotal();
+    }
+
+    public void recalculateTotal() {
+        if (items != null && !items.isEmpty()) {
+            long sum = 0;
+            for (InvoiceItem item : items) {
+                sum = Math.addExact(sum, item.getTotalPrice());
+            }
+            this.totalAmount = Math.max(0, sum - discountAmount);
+        } else {
+            this.totalAmount = Math.max(0, examFee - discountAmount);
+        }
     }
 
     public void markPaid(long amount, PaymentMethod method, String cashier) {
         if (status != InvoiceStatus.PENDING) {
             throw new IllegalStateException("Chỉ có thể thanh toán hóa đơn đang chờ.");
         }
+        recalculateTotal();
         if (amount != totalAmount || method == null) {
-            throw new IllegalStateException("Số tiền hoặc phương thức thanh toán không hợp lệ.");
+            throw new IllegalStateException("Số tiền không khớp (cần " + totalAmount + ", nhận " + amount + ") hoặc phương thức thanh toán không hợp lệ.");
         }
         paidAmount = amount;
         paymentMethod = method;

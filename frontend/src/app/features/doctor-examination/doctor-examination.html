@@ -262,9 +262,9 @@
                     <div class="flex flex-wrap items-center gap-2">
                       <h2 class="text-base font-bold text-slate-900">{{ exam.patientName }}</h2>
                       <span class="rounded-md border border-sky-200 bg-sky-50 px-2 py-0.5 font-mono text-[11px] font-bold text-[#0284c7]">{{ exam.appointmentCode }}</span>
-                      <span class="erp-badge" [class]="exam.status === 'COMPLETED' ? 'erp-badge-success' : 'erp-badge-info'">
-                        <span class="erp-dot" [class]="exam.status === 'COMPLETED' ? 'erp-dot-success' : 'erp-dot-info'"></span>
-                        <span>{{ exam.status === 'COMPLETED' ? 'Đã hoàn thành' : 'Đang khám' }}</span>
+                      <span class="erp-badge" [class]="examinationStatusBadgeClass(exam.status)">
+                        <span class="erp-dot" [class]="examinationStatusDotClass(exam.status)"></span>
+                        <span>{{ examinationStatusLabel(exam.status) }}</span>
                       </span>
                     </div>
                     <div class="mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-slate-500">
@@ -892,10 +892,10 @@
                     <div class="col-span-2" data-testid="preview-record-specialty-room"><span>Chuyên khoa: </span><strong>{{ exam.specialty }}</strong> · <span>Phòng: </span><strong>{{ exam.roomName }}</strong></div>
                   </div>
                   <div class="grid grid-cols-4 gap-2 pt-1 border-t border-slate-100 text-[11px]">
-                    <div><span>Huyết áp: </span><strong>{{ form.controls.bloodPressure.value || exam.bloodPressure || '—' }} mmHg</strong></div>
-                    <div><span>Mạch: </span><strong>{{ (form.controls.heartRate.value || exam.heartRate) ? (form.controls.heartRate.value || exam.heartRate) + ' l/p' : '—' }}</strong></div>
-                    <div><span>Thân nhiệt: </span><strong>{{ (form.controls.temperature.value || exam.temperature) ? (form.controls.temperature.value || exam.temperature) + ' °C' : '—' }}</strong></div>
-                    <div><span>SpO2: </span><strong>{{ (form.controls.spO2.value || exam.spO2) ? (form.controls.spO2.value || exam.spO2) + ' %' : '—' }}</strong></div>
+                    <div><span>Huyết áp: </span><strong>{{ previewVital('bloodPressure', exam.bloodPressure) }} mmHg</strong></div>
+                    <div><span>Mạch: </span><strong>{{ previewVital('heartRate', exam.heartRate) !== '—' ? previewVital('heartRate', exam.heartRate) + ' l/p' : '—' }}</strong></div>
+                    <div><span>Thân nhiệt: </span><strong>{{ previewVital('temperature', exam.temperature) !== '—' ? previewVital('temperature', exam.temperature) + ' °C' : '—' }}</strong></div>
+                    <div><span>SpO2: </span><strong>{{ previewVital('spO2', exam.spO2) !== '—' ? previewVital('spO2', exam.spO2) + ' %' : '—' }}</strong></div>
                   </div>
                 </div>
 
@@ -941,7 +941,7 @@
                               <td class="p-1.5 font-bold text-slate-900">{{ line.controls.medicationName.value }}</td>
                               <td class="p-1.5 text-center font-mono font-bold">{{ line.controls.quantity.value }}</td>
                               <td class="p-1.5">{{ line.controls.unit.value }}</td>
-                              <td class="p-1.5 text-slate-600">{{ line.controls.instructions.value || line.controls.dosage.value }}</td>
+                              <td class="p-1.5 text-slate-600">{{ line.controls.dosage.value ? (line.controls.instructions.value ? line.controls.dosage.value + ' · ' + line.controls.instructions.value : line.controls.dosage.value) : (line.controls.instructions.value || '—') }}</td>
                             </tr>
                           }
                         </tbody>

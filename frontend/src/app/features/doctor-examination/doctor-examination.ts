@@ -864,6 +864,51 @@ export class DoctorExamination implements OnInit {
     return formatClinicTime(value);
   }
 
+  protected examinationStatusBadgeClass(status?: string): string {
+    switch (status) {
+      case 'COMPLETED': return 'erp-badge-success';
+      case 'IN_PROGRESS': return 'erp-badge-info';
+      case 'CHECKED_IN': return 'erp-badge-info';
+      case 'SCHEDULED': return 'erp-badge-neutral';
+      case 'ABSENT': return 'erp-badge-warning';
+      case 'CANCELLED': return 'erp-badge-danger';
+      default: return 'erp-badge-info';
+    }
+  }
+
+  protected examinationStatusDotClass(status?: string): string {
+    switch (status) {
+      case 'COMPLETED': return 'erp-dot-success';
+      case 'IN_PROGRESS': return 'erp-dot-info';
+      case 'CHECKED_IN': return 'erp-dot-info';
+      case 'SCHEDULED': return 'erp-dot-neutral';
+      case 'ABSENT': return 'erp-dot-warning';
+      case 'CANCELLED': return 'erp-dot-danger';
+      default: return 'erp-dot-info';
+    }
+  }
+
+  protected examinationStatusLabel(status?: string): string {
+    switch (status) {
+      case 'COMPLETED': return 'Đã hoàn thành';
+      case 'IN_PROGRESS': return 'Đang khám';
+      case 'CHECKED_IN': return 'Đã tiếp nhận';
+      case 'SCHEDULED': return 'Đã tạo';
+      case 'ABSENT': return 'Vắng mặt';
+      case 'CANCELLED': return 'Đã hủy';
+      default: return status || 'Đang khám';
+    }
+  }
+
+  protected previewVital(field: 'bloodPressure' | 'heartRate' | 'temperature' | 'spO2', fallback?: string | number | null): string {
+    const ctrl = this.form.get(field);
+    if (ctrl?.dirty) {
+      const v = ctrl.value;
+      return (v !== null && v !== undefined && v !== '') ? String(v) : '—';
+    }
+    return (fallback !== null && fallback !== undefined && fallback !== '') ? String(fallback) : '—';
+  }
+
   protected formatDraftSavedAt(value: string | null | undefined): string {
     if (!value) return '';
     return new Intl.DateTimeFormat('vi-VN', {
