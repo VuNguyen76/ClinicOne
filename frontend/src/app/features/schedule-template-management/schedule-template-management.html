@@ -440,6 +440,12 @@
                       <option [value]="doctor.staffId">{{ doctor.fullName }}</option>
                     }
                   </select>
+                  @if (unlinkedDoctorCount() > 0) {
+                    <p class="mt-1 text-[11px] leading-snug text-amber-600">
+                      {{ unlinkedDoctorCount() }} bác sĩ cùng chuyên khoa chưa có trong danh sách phụ trách của dịch vụ này.
+                      Lưu lịch trực sẽ tự động gán bác sĩ vào dịch vụ.
+                    </p>
+                  }
                 </div>
               </div>
 

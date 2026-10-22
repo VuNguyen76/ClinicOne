@@ -30,6 +30,7 @@ class DoctorManagementServiceTest {
     @Mock ClinicRoomRepository roomRepository;
     @Mock SpecialtyCatalogService specialtyCatalog;
     @Mock PasswordEncoder passwordEncoder;
+    @Mock com.clinicone.schedule.ClinicServiceRepository clinicServiceRepository;
 
     private DoctorManagementService service;
 
@@ -42,6 +43,7 @@ class DoctorManagementServiceTest {
                 .roomRepository(roomRepository)
                 .specialtyCatalog(specialtyCatalog)
                 .passwordEncoder(passwordEncoder)
+                .clinicServiceRepository(clinicServiceRepository)
                 .build();
     }
 
@@ -106,5 +108,33 @@ class DoctorManagementServiceTest {
         assertThatThrownBy(() -> service.createDoctor(new DoctorCreateRequest("bs.an", "Bác sĩ mới", "doctor123")))
                 .isInstanceOf(AuthException.class)
                 .hasMessage("Tên đăng nhập đã được sử dụng.");
+    }
+
+    @Test
+    void linksAnOrphanDoctorToTheSameSpecialtyServiceOnAssignment() {
+        java.util.UUID staffId = java.util.UUID.randomUUID();
+        java.util.UUID roomId = java.util.UUID.randomUUID();
+        StaffAccount account = StaffAccount.create("bs.a", "hash", "Nguyễn Thị A", StaffRole.DOCTOR);
+        when(staffRepository.findById(staffId)).thenReturn(Optional.of(account));
+        when(specialtyCatalog.require("Khám Hô Hấp"))
+                .thenReturn(new com.clinicone.schedule.SpecialtyResponse("HH", "Khám Hô Hấp", null));
+
+        com.clinicone.queue.ClinicRoom room = org.mockito.Mockito.mock(com.clinicone.queue.ClinicRoom.class);
+        when(room.isActive()).thenReturn(true);
+        when(room.getSpecialty()).thenReturn("Khám Hô Hấp");
+        when(roomRepository.findById(roomId)).thenReturn(Optional.of(room));
+
+        when(profileRepository.findByStaffAccount_Id(staffId)).thenReturn(Optional.empty());
+        when(profileRepository.save(any(DoctorProfile.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        DoctorProfile peer = org.mockito.Mockito.mock(DoctorProfile.class);
+        com.clinicone.schedule.ClinicService hopService = com.clinicone.schedule.ClinicService.create(
+                "Khám chuyên khoa Hô hấp", "Khám Hô Hấp", "Khám chuyên khoa", 30, java.util.List.of(peer));
+        when(clinicServiceRepository.findByActiveTrueOrderByNameAsc()).thenReturn(java.util.List.of(hopService));
+
+        service.assign(staffId, new DoctorAssignmentRequest("Khám Hô Hấp", roomId, null));
+
+        assertThat(hopService.getEligibleDoctors()).hasSize(2);
+        verify(clinicServiceRepository).save(hopService);
     }
 }

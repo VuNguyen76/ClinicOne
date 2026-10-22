@@ -827,18 +827,30 @@ public class LocalDataInitializer implements CommandLineRunner {
         LocalDate startDate = LocalDate.now(CLINIC_ZONE);
         LocalDate endDate = startDate.plusDays(45);
         if (!doctorTemplates.isEmpty()) {
-            boolean hasCorrupt = doctorTemplates.stream().anyMatch(t -> t.getDayStart() != null && t.getDayStart().isBefore(LocalTime.of(7, 0)));
-            boolean isExpired = doctorTemplates.stream().allMatch(t -> t.getEndDate() != null && t.getEndDate().isBefore(startDate));
-            if (hasCorrupt || isExpired) {
+            // Purge only the individual templates that are unusable (midnight start
+            // or expired). Deleting every template of the doctor because one row was
+            // corrupt wiped good shifts and left the doctor without any bookable slot.
+            List<WorkScheduleTemplate> obsolete = doctorTemplates.stream()
+                    .filter(t -> (t.getDayStart() != null && t.getDayStart().isBefore(LocalTime.of(7, 0)))
+                            || (t.getEndDate() != null && t.getEndDate().isBefore(startDate)))
+                    .toList();
+            if (!obsolete.isEmpty()) {
                 log.info("Purging or replacing obsolete schedule template for doctor {}: upgrading to {} - {}",
                         doctorProfile.getStaffAccount().getFullName(), dayStart, dayEnd);
-                for (WorkScheduleTemplate dt : doctorTemplates) {
+                for (WorkScheduleTemplate dt : obsolete) {
                     try {
                         scheduleTemplateService.delete(dt.getId());
                     } catch (Exception e) {
                         log.warn("Could not delete legacy template: {}", e.getMessage());
                     }
                 }
+                doctorTemplates = workScheduleTemplateRepository.findByActiveTrueOrderByStartDateAsc().stream()
+                        .filter(t -> t.getDoctorProfile().getId().equals(doctorProfile.getId()))
+                        .toList();
+            }
+            if (doctorTemplates.isEmpty()) {
+                log.info("No active schedule template left for doctor {} after the purge, creating a new one",
+                        doctorProfile.getStaffAccount().getFullName());
             } else {
                 WorkScheduleTemplate primary = doctorTemplates.stream()
                         .max(java.util.Comparator.comparing(WorkScheduleTemplate::getEndDate))
@@ -897,6 +909,12 @@ public class LocalDataInitializer implements CommandLineRunner {
             ));
         } catch (Exception e) {
             log.warn("Could not create schedule template for doctor {}: {}", doctorProfile.getStaffAccount().getFullName(), e.getMessage());
+        }
+        boolean stillMissingTemplate = workScheduleTemplateRepository.findByActiveTrueOrderByStartDateAsc().stream()
+                .noneMatch(t -> t.getDoctorProfile().getId().equals(doctorProfile.getId()));
+        if (stillMissingTemplate) {
+            log.error("Doctor {} has no active schedule template: the scheduling screen and slot search will hide them",
+                    doctorProfile.getStaffAccount().getFullName());
         }
     }
 

@@ -95,6 +95,23 @@ describe('ScheduleTemplateManagement', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="save-template"]')).toBeNull();
     expect(fixture.nativeElement.textContent).not.toContain('Chế độ xem');
   });
+
+  it('keeps a same-specialty doctor selectable when the service list predates them', () => {
+    http.expectOne('/api/v1/admin/services/active').flush([service()]);
+    http.expectOne('/api/v1/admin/doctors').flush([doctor(), lateDoctor()]);
+    http.expectOne('/api/v1/rooms').flush([room()]);
+    http.expectOne('/api/v1/admin/schedule-templates').flush([]);
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance as any;
+    component.selectedServiceId.set('service-1');
+    fixture.detectChanges();
+
+    expect(component.availableDoctors().map((item: { staffId: string }) => item.staffId))
+      .toEqual(['doctor-1', 'doctor-a']);
+    expect(component.unlinkedDoctorCount()).toBe(1);
+    expect(fixture.nativeElement.textContent).toContain('chưa có trong danh sách phụ trách của dịch vụ này');
+  });
 });
 
 function service() {
@@ -116,4 +133,9 @@ function template() {
     visitType: 'Khám thường', durationMinutes: 30, doctorId: 'doctor-1', doctorName: 'Bác sĩ Nguyễn An', roomId: 'room-1',
     roomCode: 'TQ-01', startDate: '2026-09-07', endDate: '2026-09-13', weekdays: ['MONDAY'], dayStart: '08:00', dayEnd: '17:00',
     breaks: [], exceptionDates: [], generatedSlotCount: 16, active: true };
+}
+
+function lateDoctor() {
+  return { staffId: 'doctor-a', username: 'doctor-a', fullName: 'Bác sĩ Nguyễn Thị A', specialty: 'Khám Tổng Quát',
+    roomId: 'room-1', roomCode: 'TQ-01', roomName: 'Phòng Tổng Quát 01', assigned: true, active: true };
 }

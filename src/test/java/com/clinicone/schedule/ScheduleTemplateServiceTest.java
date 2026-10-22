@@ -601,4 +601,52 @@ class ScheduleTemplateServiceTest {
         field.set(template, templateId);
         return template;
     }
+
+    @Test
+    void linksTheDoctorToTheServiceInsteadOfHidingThem() {
+        ClinicService clinicService = mock(ClinicService.class);
+        DoctorProfile doctor = mock(DoctorProfile.class);
+        DoctorProfile peer = mock(DoctorProfile.class);
+        StaffAccount staff = mock(StaffAccount.class);
+        ClinicRoom room = mock(ClinicRoom.class);
+        Set<DoctorProfile> eligible = new java.util.LinkedHashSet<>();
+        eligible.add(peer);
+        when(serviceRepository.findById(SERVICE_ID)).thenReturn(Optional.of(clinicService));
+        when(doctorRepository.findByStaffAccount_Id(DOCTOR_ID)).thenReturn(Optional.of(doctor));
+        when(roomRepository.findById(ROOM_ID)).thenReturn(Optional.of(room));
+        when(clinicService.isActive()).thenReturn(true);
+        when(clinicService.getId()).thenReturn(SERVICE_ID);
+        when(clinicService.getSpecialty()).thenReturn("Khám Hô Hấp");
+        when(clinicService.getName()).thenReturn("Khám chuyên khoa Hô hấp");
+        when(clinicService.getVisitType()).thenReturn("Khám chuyên khoa");
+        when(clinicService.getDurationMinutes()).thenReturn(30);
+        when(clinicService.getEligibleDoctors()).thenReturn(eligible);
+        when(doctor.getId()).thenReturn(UUID.randomUUID());
+        when(doctor.getStaffAccount()).thenReturn(staff);
+        when(staff.getId()).thenReturn(DOCTOR_ID);
+        when(doctor.getSpecialty()).thenReturn("Khám Hô Hấp");
+        when(doctor.isActive()).thenReturn(true);
+        when(doctor.getRoom()).thenReturn(room);
+        when(room.getId()).thenReturn(ROOM_ID);
+        when(room.isActive()).thenReturn(true);
+        when(room.getSpecialty()).thenReturn("Khám Hô Hấp");
+        when(room.getCode()).thenReturn("HH-02");
+        when(templateRepository.save(any(WorkScheduleTemplate.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(slotRepository.findByDoctorStaffIdAndAppointmentDateBetweenAndStatus(
+                any(), any(), any(), any())).thenReturn(List.of());
+        when(slotRepository.findByRoomIdAndAppointmentDateBetweenAndStatus(
+                any(), any(), any(), any())).thenReturn(List.of());
+        when(slotRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.create(new CreateScheduleTemplateRequest(
+                SERVICE_ID, DOCTOR_ID, ROOM_ID,
+                LocalDate.of(2026, 8, 10), LocalDate.of(2026, 8, 10),
+                Set.of(DayOfWeek.MONDAY), LocalTime.of(8, 0), LocalTime.of(10, 0), 30,
+                List.of(), Set.of()));
+
+        org.junit.jupiter.api.Assertions.assertTrue(eligible.contains(doctor),
+                "Doctor must be linked to the service instead of being rejected");
+        assertEquals(2, eligible.size());
+    }
 }

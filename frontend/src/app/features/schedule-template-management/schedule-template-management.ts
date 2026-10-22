@@ -300,13 +300,33 @@ export class ScheduleTemplateManagement implements OnInit {
     const service = this.services().find((item) => item.id === this.selectedServiceId());
     if (!service) return [];
     const eligible = new Set(service.eligibleDoctors?.map((item) => item.staffId) ?? []);
+    const serviceSpecialty = service.specialty?.trim().toLowerCase();
     return this.doctors().filter((doctor) => {
       if (!doctor.assigned || !doctor.active) return false;
+      const doctorSpecialty = doctor.specialty?.trim().toLowerCase();
+      const sameSpecialty = !serviceSpecialty || doctorSpecialty === serviceSpecialty;
       if (eligible.size > 0) {
-        return eligible.has(doctor.staffId);
+        // Keep a same-specialty doctor selectable even when the service keeps an
+        // explicit list that predates that doctor. Hiding them made the doctor
+        // silently disappear from this picker; saving the shift links them.
+        return eligible.has(doctor.staffId) || sameSpecialty;
       }
-      return !service.specialty || doctor.specialty?.trim().toLowerCase() === service.specialty.trim().toLowerCase();
+      return sameSpecialty;
     });
+  });
+
+  protected readonly unlinkedDoctorCount = computed<number>(() => {
+    const service = this.services().find((item) => item.id === this.selectedServiceId());
+    if (!service) return 0;
+    const eligible = new Set(service.eligibleDoctors?.map((item) => item.staffId) ?? []);
+    if (eligible.size === 0) return 0;
+    const serviceSpecialty = service.specialty?.trim().toLowerCase();
+    return this.doctors().filter((doctor) => {
+      if (!doctor.assigned || !doctor.active) return false;
+      const doctorSpecialty = doctor.specialty?.trim().toLowerCase();
+      const sameSpecialty = !serviceSpecialty || doctorSpecialty === serviceSpecialty;
+      return sameSpecialty && !eligible.has(doctor.staffId);
+    }).length;
   });
 
   protected readonly availableRooms = computed<ClinicRoomResponse[]>(() => {
@@ -722,8 +742,11 @@ export class ScheduleTemplateManagement implements OnInit {
   }
 
   private addDays(value: string, days: number): string {
-    const date = new Date(`${value}T00:00:00`);
-    date.setDate(date.getDate() + days);
-    return date.toISOString().slice(0, 10);
+    const [year, month, day] = value.split('-').map(Number);
+    const date = new Date(year, month - 1, day + days);
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
   }
 }

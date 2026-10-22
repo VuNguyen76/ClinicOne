@@ -376,11 +376,14 @@ public class ScheduleTemplateService {
         if (!doctor.getSpecialty().equalsIgnoreCase(clinicService.getSpecialty())) {
             throw conflict("SCHEDULE_SPECIALTY_MISMATCH", "Bác sĩ không thuộc chuyên khoa của dịch vụ.");
         }
+        // A doctor who is actively assigned to this service's specialty must never
+        // silently disappear from the scheduling screen. Legacy data keeps explicit
+        // doctor lists that predate the doctor, so link them instead of rejecting.
         var eligibleDoctors = clinicService.getEligibleDoctors();
         if (eligibleDoctors != null && !eligibleDoctors.isEmpty()
                 && eligibleDoctors.stream().noneMatch(item -> item.getId() != null
                 && item.getId().equals(doctor.getId()))) {
-            throw conflict("SCHEDULE_DOCTOR_NOT_ELIGIBLE", "Bác sĩ chưa được cấu hình cho dịch vụ này.");
+            eligibleDoctors.add(doctor);
         }
         ClinicRoom room = roomRepository.findById(request.roomId())
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "ROOM_NOT_FOUND",

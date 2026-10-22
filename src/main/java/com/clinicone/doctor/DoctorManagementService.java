@@ -8,12 +8,15 @@ import lombok.Builder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import com.clinicone.queue.ClinicRoom;
 import com.clinicone.queue.ClinicRoomRepository;
+import com.clinicone.schedule.ClinicService;
+import com.clinicone.schedule.ClinicServiceRepository;
 import com.clinicone.schedule.SpecialtyCatalogService;
 import com.clinicone.rescheduling.ReschedulingService;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.Duration;
 import java.time.LocalTime;
@@ -24,12 +27,14 @@ import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
+@Slf4j
 public class DoctorManagementService {
     private final StaffAccountRepository staffRepository;
     private final DoctorProfileRepository profileRepository;
     private final DoctorScheduleRepository scheduleRepository;
     private final ClinicRoomRepository roomRepository;
     private final SpecialtyCatalogService specialtyCatalog;
+    private final ClinicServiceRepository clinicServiceRepository;
     private final PasswordEncoder passwordEncoder;
     private final ReschedulingService reschedulingService;
 
@@ -39,6 +44,7 @@ public class DoctorManagementService {
                                    DoctorScheduleRepository scheduleRepository,
                                    ClinicRoomRepository roomRepository,
                                    SpecialtyCatalogService specialtyCatalog,
+                                   ClinicServiceRepository clinicServiceRepository,
                                    PasswordEncoder passwordEncoder,
                                    ReschedulingService reschedulingService) {
         this.staffRepository = staffRepository;
@@ -46,6 +52,7 @@ public class DoctorManagementService {
         this.scheduleRepository = scheduleRepository;
         this.roomRepository = roomRepository;
         this.specialtyCatalog = specialtyCatalog;
+        this.clinicServiceRepository = clinicServiceRepository;
         this.passwordEncoder = passwordEncoder;
         this.reschedulingService = reschedulingService;
     }
@@ -101,7 +108,9 @@ public class DoctorManagementService {
                 .orElseGet(() -> DoctorProfile.create(staff, specialty, room, request.avatarUrl()));
         String cleanAvatarUrl = StringUtils.hasText(request.avatarUrl()) ? request.avatarUrl().trim() : null;
         profile.updateAssignment(specialty, room, cleanAvatarUrl);
-        return DoctorProfileResponse.from(profileRepository.save(profile));
+        DoctorProfile saved = profileRepository.save(profile);
+        linkOrphanDoctorToSameSpecialtyServices(saved);
+        return DoctorProfileResponse.from(saved);
     }
 
     @Transactional
@@ -161,6 +170,45 @@ public class DoctorManagementService {
         scheduleRepository.save(schedule);
         if (reschedulingService != null) {
             reschedulingService.openForScheduleRemoval(schedule);
+        }
+    }
+
+    /**
+     * A freshly assigned doctor used to stay invisible for scheduling and booking,
+     * because {@code clinic_service_doctors} was only ever written by the service
+     * management screen. Link an orphan doctor (one linked to no service at all) to
+     * every active service of the same specialty that already keeps an explicit
+     * doctor list. Services with an empty list already accept every doctor of the
+     * specialty, so they need no row.
+     */
+    private void linkOrphanDoctorToSameSpecialtyServices(DoctorProfile profile) {
+        if (clinicServiceRepository == null || profile == null) {
+            return;
+        }
+        String specialty = profile.getSpecialty();
+        if (specialty == null || specialty.isBlank()) {
+            return;
+        }
+        List<ClinicService> services = clinicServiceRepository.findByActiveTrueOrderByNameAsc();
+        boolean alreadyLinked = services.stream()
+                .anyMatch(service -> service.getEligibleDoctors().stream()
+                        .anyMatch(doctor -> doctor == profile || (doctor != null
+                                && profile.getId() != null && profile.getId().equals(doctor.getId()))));
+        if (alreadyLinked) {
+            return;
+        }
+        for (ClinicService service : services) {
+            if (service.getSpecialty() == null || !service.getSpecialty().equalsIgnoreCase(specialty)) {
+                continue;
+            }
+            if (service.getEligibleDoctors().isEmpty()) {
+                continue;
+            }
+            service.getEligibleDoctors().add(profile);
+            clinicServiceRepository.save(service);
+            log.info("Linked doctor {} to service {} because its explicit doctor list did not include them",
+                    profile.getStaffAccount() == null ? profile.getId() : profile.getStaffAccount().getFullName(),
+                    service.getName());
         }
     }
 
