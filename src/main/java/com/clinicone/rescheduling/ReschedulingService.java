@@ -22,6 +22,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -131,11 +132,21 @@ public class ReschedulingService {
         return opened;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<RescheduleCaseResponse> listOpen() {
-        return caseRepository.findByStatusOrderByCreatedAtAsc(RescheduleCaseStatus.OPEN).stream()
-                .map(RescheduleCaseResponse::from)
-                .toList();
+        List<RescheduleCase> openCases = caseRepository.findByStatusOrderByCreatedAtAsc(RescheduleCaseStatus.OPEN);
+        List<RescheduleCaseResponse> result = new ArrayList<>();
+        for (RescheduleCase item : openCases) {
+            Appointment appt = item.getAppointment();
+            if (appt == null || appt.getStatus() != AppointmentStatus.BOOKED) {
+                String outcome = appt == null ? "DELETED" : appt.getStatus().name();
+                item.closeAsObsolete(outcome, Instant.now(clock));
+                caseRepository.save(item);
+            } else {
+                result.add(RescheduleCaseResponse.from(item));
+            }
+        }
+        return result;
     }
 
     @Transactional(readOnly = true)
@@ -144,14 +155,14 @@ public class ReschedulingService {
         return alternatives(item, from, to);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public RescheduleCaseResponse findForPatient(String accountId, UUID appointmentId) {
         UUID patientId = AuthenticatedIds.patient(accountId);
         RescheduleCase item = findOpenCaseForPatient(appointmentId, patientId);
         return RescheduleCaseResponse.from(item);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<AvailableSlotResponse> alternativesForPatient(String accountId, UUID appointmentId,
                                                               LocalDate from, LocalDate to) {
         UUID patientId = AuthenticatedIds.patient(accountId);
@@ -247,6 +258,11 @@ public class ReschedulingService {
         RescheduleCase item = caseRepository.findByAppointmentIdAndStatus(appointmentId, RescheduleCaseStatus.OPEN)
                 .orElseThrow(this::notFound);
         ensurePatientOwns(item, patientId);
+        if (item.getAppointment().getStatus() != AppointmentStatus.BOOKED) {
+            item.closeAsObsolete(item.getAppointment().getStatus().name(), Instant.now(clock));
+            caseRepository.save(item);
+            throw notFound();
+        }
         return item;
     }
 

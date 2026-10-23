@@ -114,6 +114,20 @@ public class RescheduleCase {
         this.status = RescheduleCaseStatus.RESOLVED;
     }
 
+    public void closeAsObsolete(String outcomeStatus, Instant closedAt) {
+        if (status != RescheduleCaseStatus.OPEN) {
+            return;
+        }
+        this.status = RescheduleCaseStatus.RESOLVED;
+        this.resolvedAt = closedAt == null ? Instant.now() : closedAt;
+        String suffix = " [Tự động đóng do lịch gốc đã kết thúc: " + outcomeStatus + "]";
+        if (this.reason.length() + suffix.length() <= 500) {
+            this.reason = this.reason + suffix;
+        } else {
+            this.reason = this.reason.substring(0, 500 - suffix.length()) + suffix;
+        }
+    }
+
     @PrePersist
     void onCreate() {
         if (createdAt == null) createdAt = Instant.now();

@@ -65,3 +65,13 @@ JOIN appointments a ON a.id = es.appointment_id
 WHERE mr.examination_session_id = es.id
   AND mr.follow_up_days IS NOT NULL
   AND mr.follow_up_date IS NULL;
+
+-- 6. Close stale reschedule cases where the underlying appointment has ended
+UPDATE appointment_reschedule_cases rc
+SET status = 'RESOLVED',
+    resolved_at = CURRENT_TIMESTAMP,
+    reason = SUBSTRING(CONCAT(rc.reason, ' [Tự động đóng do lịch gốc đã kết thúc: ', a.status, ']') FROM 1 FOR 500)
+FROM appointments a
+WHERE rc.appointment_id = a.id
+  AND rc.status = 'OPEN'
+  AND a.status <> 'BOOKED';

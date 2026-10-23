@@ -78,6 +78,9 @@ public class QueueService {
     private final PatientNotificationService patientNotificationService;
     private final Clock clock;
 
+    @Autowired(required = false)
+    private com.clinicone.rescheduling.RescheduleCaseRepository rescheduleCaseRepository;
+
     public QueueService(ClinicRoomRepository roomRepository, QueueTicketRepository ticketRepository,
                         AppointmentRepository appointmentRepository) {
         this(roomRepository, ticketRepository, appointmentRepository, null, null, null, null, null, Clock.systemUTC());
@@ -564,6 +567,7 @@ public class QueueService {
         try {
             ticket.leaveBeforeExam(normalizedReason);
             ticket.getAppointment().markNotPerformed();
+            closeObsoleteRescheduleCase(ticket.getAppointment(), "NOT_PERFORMED");
             appointmentRepository.save(ticket.getAppointment());
             if (session != null) {
                 session.cancel();
@@ -598,6 +602,7 @@ public class QueueService {
         try {
             ticket.closeFacilityUnavailable(normalizedReason);
             ticket.getAppointment().markNotPerformed();
+            closeObsoleteRescheduleCase(ticket.getAppointment(), "NOT_PERFORMED");
             if (session != null) {
                 session.cancel();
                 examinationSessionRepository.save(session);
@@ -615,6 +620,16 @@ public class QueueService {
             return response;
         } catch (IllegalStateException exception) {
             throw queueStateConflict(exception.getMessage());
+        }
+    }
+
+    private void closeObsoleteRescheduleCase(Appointment appointment, String outcome) {
+        if (rescheduleCaseRepository != null && appointment != null && appointment.getId() != null) {
+            rescheduleCaseRepository.findByAppointmentIdAndStatus(appointment.getId(), com.clinicone.rescheduling.RescheduleCaseStatus.OPEN)
+                    .ifPresent(rc -> {
+                        rc.closeAsObsolete(outcome, Instant.now(clock));
+                        rescheduleCaseRepository.save(rc);
+                    });
         }
     }
 
@@ -993,12 +1008,16 @@ public class QueueService {
                     "Lịch hẹn chưa được gắn bác sĩ và phòng khám hợp lệ.");
         }
         if (doctorProfileRepository == null) return;
-        doctorProfileRepository.findByStaffAccount_Id(appointment.getDoctorStaffId())
-                .filter(profile -> profile.isActive()
-                        && profile.getRoom() != null
-                        && profile.getRoom().getCode().equalsIgnoreCase(room.getCode()))
+        DoctorProfile profile = doctorProfileRepository.findByStaffAccount_Id(appointment.getDoctorStaffId())
+                .filter(p -> p.isActive()
+                        && p.getRoom() != null
+                        && p.getRoom().getCode().equalsIgnoreCase(room.getCode()))
                 .orElseThrow(() -> new AuthException(HttpStatus.CONFLICT, "QUEUE_ROOM_MISMATCH",
                         "Vui lòng quét mã tại đúng phòng của bác sĩ trong lịch hẹn."));
+        if (doctorTimeOffRepository != null && doctorTimeOffRepository.existsActiveOnDate(profile.getId(), appointment.getAppointmentDate())) {
+            throw new AuthException(HttpStatus.CONFLICT, "DOCTOR_ON_LEAVE",
+                    "Bác sĩ phụ trách đang trong thời gian nghỉ phép; vui lòng liên hệ quầy tiếp đón để được hỗ trợ sắp xếp lại.");
+        }
     }
 
     private void ensureDoctorOwnsTicket(QueueTicket ticket, String staffId) {

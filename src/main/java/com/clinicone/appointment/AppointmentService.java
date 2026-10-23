@@ -67,6 +67,9 @@ public class AppointmentService {
     private final QueueTicketRepository queueTicketRepository;
     private final DoctorProfileRepository doctorProfileRepository;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.clinicone.rescheduling.RescheduleCaseRepository rescheduleCaseRepository;
+
     @Builder
     public AppointmentService(PatientAccountRepository accountRepository, AppointmentRepository appointmentRepository,
                               PatientProfileRepository profileRepository, AppointmentAvailabilityService availabilityService,
@@ -433,6 +436,13 @@ public class AppointmentService {
         // A past slot can no longer be offered again. Future cancellations leave
         // the generated slot open so another patient may book it.
         markCancelledSlotUnavailableIfPast(appointment);
+        if (rescheduleCaseRepository != null) {
+            rescheduleCaseRepository.findByAppointmentIdAndStatus(appointment.getId(), com.clinicone.rescheduling.RescheduleCaseStatus.OPEN)
+                    .ifPresent(rc -> {
+                        rc.closeAsObsolete("CANCELLED", Instant.now(clock));
+                        rescheduleCaseRepository.save(rc);
+                    });
+        }
         appointmentRepository.save(appointment);
         recordTransition(eventId, appointment.getId(), previousStatus, appointment.getStatus().name(), "CANCEL_APPOINTMENT",
                 accountId, cancellationReason);

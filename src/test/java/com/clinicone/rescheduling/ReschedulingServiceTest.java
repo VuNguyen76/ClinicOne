@@ -273,6 +273,22 @@ class ReschedulingServiceTest {
         assertEquals("APPOINTMENT_DUPLICATE", exception.getCode());
     }
 
+    @Test
+    void listOpenAutoClosesCasesWhoseAppointmentIsNotBooked() throws Exception {
+        Appointment appointment = appointment();
+        RescheduleCase item = openCase(appointment);
+        appointment.markAbsent();
+        when(caseRepository.findByStatusOrderByCreatedAtAsc(RescheduleCaseStatus.OPEN))
+                .thenReturn(List.of(item));
+
+        List<RescheduleCaseResponse> open = service.listOpen();
+
+        assertEquals(0, open.size());
+        assertEquals(RescheduleCaseStatus.RESOLVED, item.getStatus());
+        org.junit.jupiter.api.Assertions.assertTrue(item.getReason().contains("ABSENT"));
+        verify(caseRepository).save(item);
+    }
+
     private Appointment appointment() throws Exception {
         PatientAccount patient = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
         Appointment appointment = Appointment.create(patient, DOCTOR_ID, "CL-20260810-AB12", "Nội tổng quát",

@@ -36,6 +36,9 @@ public class StaleQueueCleanupJob {
     @Autowired(required = false)
     private PlatformTransactionManager transactionManager;
 
+    @Autowired(required = false)
+    private com.clinicone.rescheduling.RescheduleCaseRepository rescheduleCaseRepository;
+
     public StaleQueueCleanupJob(QueueTicketRepository ticketRepository,
                                 ExaminationSessionRepository sessionRepository,
                                 AppointmentRepository appointmentRepository,
@@ -112,6 +115,7 @@ public class StaleQueueCleanupJob {
         try {
             String prevAppt = appointment.getStatus().name();
             appointment.markNotPerformed();
+            closeObsoleteRescheduleCase(appointment, "NOT_PERFORMED");
             appointmentRepository.save(appointment);
             businessLogService.recordTransition(UUID.randomUUID(), "APPOINTMENT", appointment.getId(),
                     prevAppt, appointment.getStatus().name(), "AUTO_CLEANUP_STALE", "SYSTEM", AUTO_REASON);
@@ -141,6 +145,7 @@ public class StaleQueueCleanupJob {
         try {
             String prevAppt = appointment.getStatus().name();
             appointment.markNotPerformed();
+            closeObsoleteRescheduleCase(appointment, "NOT_PERFORMED");
             appointmentRepository.save(appointment);
             businessLogService.recordTransition(UUID.randomUUID(), "APPOINTMENT", appointment.getId(),
                     prevAppt, appointment.getStatus().name(), "AUTO_CLEANUP_STALE", "SYSTEM", AUTO_REASON);
@@ -155,6 +160,16 @@ public class StaleQueueCleanupJob {
             } catch (IllegalStateException ignored) {}
         }
         return true;
+    }
+
+    private void closeObsoleteRescheduleCase(Appointment appointment, String outcome) {
+        if (rescheduleCaseRepository != null && appointment != null && appointment.getId() != null) {
+            rescheduleCaseRepository.findByAppointmentIdAndStatus(appointment.getId(), com.clinicone.rescheduling.RescheduleCaseStatus.OPEN)
+                    .ifPresent(rc -> {
+                        rc.closeAsObsolete(outcome, Instant.now(clock));
+                        rescheduleCaseRepository.save(rc);
+                    });
+        }
     }
 
     public record CleanupResult(int inspected, int stopped, int leftBefore) {}

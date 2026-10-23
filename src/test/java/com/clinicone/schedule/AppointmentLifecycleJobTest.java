@@ -150,6 +150,33 @@ class AppointmentLifecycleJobTest {
     }
 
     @Test
+    void closesOpenRescheduleCaseWhenAppointmentBecomesAbsent() {
+        Instant now = Instant.parse("2026-08-10T01:45:00Z");
+        Appointment appointment = appointment(AppointmentStatus.BOOKED, LocalDate.of(2026, 8, 9),
+                LocalTime.of(8, 0), now.minusSeconds(30 * 3600L), 30);
+        AtomicBoolean marked = new AtomicBoolean();
+        when(appointment.getStatus()).thenAnswer(invocation -> marked.get()
+                ? AppointmentStatus.ABSENT : AppointmentStatus.BOOKED);
+        doAnswer(invocation -> { marked.set(true); return null; }).when(appointment).markAbsent();
+        when(appointmentRepository.findByStatusAndAppointmentDateBetweenOrderByAppointmentDateAscStartTimeAsc(
+                eq(AppointmentStatus.BOOKED), any(), any())).thenReturn(List.of(appointment));
+        when(appointmentRepository.findByIdForUpdate(appointment.getId())).thenReturn(Optional.of(appointment));
+        when(appointmentRepository.save(appointment)).thenReturn(appointment);
+
+        com.clinicone.rescheduling.RescheduleCaseRepository caseRepo = mock(com.clinicone.rescheduling.RescheduleCaseRepository.class);
+        com.clinicone.rescheduling.RescheduleCase rescheduleCase = mock(com.clinicone.rescheduling.RescheduleCase.class);
+        when(caseRepo.findByAppointmentIdAndStatus(appointment.getId(), com.clinicone.rescheduling.RescheduleCaseStatus.OPEN))
+                .thenReturn(Optional.of(rescheduleCase));
+
+        AppointmentLifecycleJob result = new AppointmentLifecycleJob(appointmentRepository, notificationService,
+                businessLogService, Clock.fixed(now, ZoneOffset.UTC), null, null, caseRepo);
+
+        assertThat(result.runOnce().absentTransitions()).isEqualTo(1);
+        verify(rescheduleCase).closeAsObsolete(eq("ABSENT"), any());
+        verify(caseRepo).save(rescheduleCase);
+    }
+
+    @Test
     void skipsAbsentTransitionWhenAppointmentWasChangedBeforeTheLifecycleLock() {
         Instant now = Instant.parse("2026-08-10T01:45:00Z");
         Appointment listed = appointment(AppointmentStatus.BOOKED, LocalDate.of(2026, 8, 9),

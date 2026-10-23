@@ -37,18 +37,27 @@ public class AppointmentLifecycleJob {
     private final Clock clock;
     private final AppointmentHoldService holdService;
     private final GeneratedClinicSlotRepository generatedSlotRepository;
+    private final com.clinicone.rescheduling.RescheduleCaseRepository rescheduleCaseRepository;
 
     public AppointmentLifecycleJob(AppointmentRepository appointmentRepository,
                                    PatientNotificationService notificationService,
                                    BusinessLogService businessLogService, Clock clock) {
-        this(appointmentRepository, notificationService, businessLogService, clock, null, null);
+        this(appointmentRepository, notificationService, businessLogService, clock, null, null, null);
     }
 
     public AppointmentLifecycleJob(AppointmentRepository appointmentRepository,
                                    PatientNotificationService notificationService,
                                    BusinessLogService businessLogService, Clock clock,
                                    AppointmentHoldService holdService) {
-        this(appointmentRepository, notificationService, businessLogService, clock, holdService, null);
+        this(appointmentRepository, notificationService, businessLogService, clock, holdService, null, null);
+    }
+
+    public AppointmentLifecycleJob(AppointmentRepository appointmentRepository,
+                                   PatientNotificationService notificationService,
+                                   BusinessLogService businessLogService, Clock clock,
+                                   AppointmentHoldService holdService,
+                                   GeneratedClinicSlotRepository generatedSlotRepository) {
+        this(appointmentRepository, notificationService, businessLogService, clock, holdService, generatedSlotRepository, null);
     }
 
     @Autowired
@@ -56,13 +65,15 @@ public class AppointmentLifecycleJob {
                                    PatientNotificationService notificationService,
                                    BusinessLogService businessLogService, Clock clock,
                                    AppointmentHoldService holdService,
-                                   GeneratedClinicSlotRepository generatedSlotRepository) {
+                                   GeneratedClinicSlotRepository generatedSlotRepository,
+                                   com.clinicone.rescheduling.RescheduleCaseRepository rescheduleCaseRepository) {
         this.appointmentRepository = appointmentRepository;
         this.notificationService = notificationService;
         this.businessLogService = businessLogService;
         this.clock = clock;
         this.holdService = holdService;
         this.generatedSlotRepository = generatedSlotRepository;
+        this.rescheduleCaseRepository = rescheduleCaseRepository;
     }
 
     @Transactional
@@ -123,6 +134,13 @@ public class AppointmentLifecycleJob {
         UUID eventId = UUID.randomUUID();
         appointment.markAbsent();
         markAppointmentSlotUnavailable(appointment);
+        if (rescheduleCaseRepository != null) {
+            rescheduleCaseRepository.findByAppointmentIdAndStatus(appointment.getId(), com.clinicone.rescheduling.RescheduleCaseStatus.OPEN)
+                    .ifPresent(rc -> {
+                        rc.closeAsObsolete("ABSENT", Instant.now(clock));
+                        rescheduleCaseRepository.save(rc);
+                    });
+        }
         appointmentRepository.save(appointment);
         businessLogService.recordTransition(eventId, "APPOINTMENT", appointment.getId(), previousStatus,
                 appointment.getStatus().name(), "MARK_ABSENT", "SYSTEM", "Tự động sau quá thời hạn vắng mặt");
