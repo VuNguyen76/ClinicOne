@@ -13,6 +13,8 @@ import {
 } from '../../core/auth/auth-api.service';
 import { hasStaffRole } from '../../core/auth/auth.guard';
 
+const VI_CURRENCY_FORMATTER = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 });
+
 @Component({
   selector: 'app-medication-catalog-management',
   standalone: true,
@@ -93,7 +95,7 @@ export class MedicationCatalogManagement implements OnInit {
   });
 
   protected formatUnitPrice(amount: number | null | undefined): string {
-    return new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 }).format(amount ?? 0);
+    return VI_CURRENCY_FORMATTER.format(amount ?? 0);
   }
 
   protected selectUnit(u: string): void {

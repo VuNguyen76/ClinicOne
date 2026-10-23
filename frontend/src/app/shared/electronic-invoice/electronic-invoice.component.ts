@@ -3,6 +3,8 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
 import { MatIconModule } from '@angular/material/icon';
 import { ElectronicInvoiceData } from '../../core/invoice/vietnamese-currency';
 
+const VI_CURRENCY_FORMATTER = new Intl.NumberFormat('vi-VN');
+
 @Component({
   selector: 'app-electronic-invoice',
   standalone: true,
@@ -69,6 +71,6 @@ export class ElectronicInvoiceComponent {
   });
 
   formatCurrency(value: number): string {
-    return new Intl.NumberFormat('vi-VN').format(value);
+    return VI_CURRENCY_FORMATTER.format(value);
   }
 }

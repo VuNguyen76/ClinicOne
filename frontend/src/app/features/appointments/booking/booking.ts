@@ -8,6 +8,9 @@ import { PatientHeader } from '../../../shared/patient-header/patient-header';
 import { clinicTodayDate, clinicTodayIso, formatClinicDate } from '../../../core/time/clinic-time';
 import { interval } from 'rxjs';
 
+const MONTH_LABEL_FORMATTER = new Intl.DateTimeFormat('vi-VN', { month: 'long', year: 'numeric' });
+const WEEKDAY_SHORT_FORMATTER = new Intl.DateTimeFormat('vi-VN', { weekday: 'short' });
+
 type BookingStep = 1 | 2 | 3;
 
 interface DateOption {
@@ -217,7 +220,7 @@ export class Booking implements OnInit {
   }
 
   protected monthLabel(): string {
-    return new Intl.DateTimeFormat('vi-VN', { month: 'long', year: 'numeric' }).format(this.calendarMonth());
+    return MONTH_LABEL_FORMATTER.format(this.calendarMonth());
   }
 
   protected isPreviousMonthDisabled(): boolean {
@@ -495,7 +498,7 @@ export class Booking implements OnInit {
         iso: this.toIsoDate(date),
         day: String(date.getDate()).padStart(2, '0'),
         month: String(date.getMonth() + 1).padStart(2, '0'),
-        weekday: new Intl.DateTimeFormat('vi-VN', { weekday: 'short' }).format(date).replace('.', ''),
+        weekday: WEEKDAY_SHORT_FORMATTER.format(date).replace('.', ''),
         inCurrentMonth: date.getMonth() === month.getMonth() && date.getFullYear() === month.getFullYear(),
       });
     }

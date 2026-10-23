@@ -2,6 +2,7 @@ package com.clinicone.config;
 
 import com.clinicone.appointment.Appointment;
 import com.clinicone.appointment.AppointmentRepository;
+import com.clinicone.audit.BusinessLogService;
 import com.clinicone.auth.AccountStatus;
 import com.clinicone.auth.PatientAccount;
 import com.clinicone.auth.PatientAccountRepository;
@@ -150,6 +151,9 @@ public class LocalDataInitializer implements CommandLineRunner {
 
     @Autowired(required = false)
     private InvoiceRepository invoiceRepository;
+
+    @Autowired(required = false)
+    private BusinessLogService businessLogService;
 
     @Autowired
     public LocalDataInitializer(StaffAccountRepository staffRepository,
@@ -1061,6 +1065,10 @@ public class LocalDataInitializer implements CommandLineRunner {
             }
             app = appointmentRepository.save(app);
         }
+        if (businessLogService != null) {
+            businessLogService.recordTransition(UUID.randomUUID(), "APPOINTMENT", app.getId(),
+                    null, app.getStatus().name(), "SEED_INITIALIZATION", "SYSTEM", "Dữ liệu mẫu khởi tạo");
+        }
 
         if (queueTicketRepository != null && examinationSessionRepository != null) {
             final Appointment finalActiveApp = app;
@@ -1079,7 +1087,12 @@ public class LocalDataInitializer implements CommandLineRunner {
                         if (scenario == QueueScenario.COMPLETED) {
                             createdSession.complete();
                         }
-                        return examinationSessionRepository.saveAndFlush(createdSession);
+                        ExaminationSession savedSession = examinationSessionRepository.saveAndFlush(createdSession);
+                        if (businessLogService != null) {
+                            businessLogService.recordTransition(UUID.randomUUID(), "EXAMINATION", savedSession.getId(),
+                                    null, savedSession.getStatus().name(), "SEED_INITIALIZATION", "SYSTEM", "Dữ liệu mẫu khởi tạo");
+                        }
+                        return savedSession;
                     });
 
             if (queueTicketRepository.findByAppointmentId(app.getId()).isEmpty()) {
@@ -1118,6 +1131,10 @@ public class LocalDataInitializer implements CommandLineRunner {
                     }
                 }
                 queueTicketRepository.save(ticket);
+                if (businessLogService != null) {
+                    businessLogService.recordTransition(UUID.randomUUID(), "QUEUE_TICKET", ticket.getId(),
+                            null, ticket.getStatus().name(), "SEED_INITIALIZATION", "SYSTEM", "Dữ liệu mẫu khởi tạo");
+                }
             }
 
             // For IN_SERVICE: Seed a draft medical record so the doctor sees partially filled notes & vitals
@@ -1176,7 +1193,11 @@ public class LocalDataInitializer implements CommandLineRunner {
                 code, doctorProfile.getSpecialty(), doctorProfile.getStaffAccount().getFullName(), date, time, reason);
         appointment.applyServiceSnapshot(service.getId(), service.getName(), service.getVisitType(),
                 service.getDurationMinutes(), service.requiresMedicalRecord());
-        appointmentRepository.save(appointment);
+        appointment = appointmentRepository.save(appointment);
+        if (businessLogService != null) {
+            businessLogService.recordTransition(UUID.randomUUID(), "APPOINTMENT", appointment.getId(),
+                    null, appointment.getStatus().name(), "CREATE_APPOINTMENT", "SYSTEM", reason);
+        }
     }
 
     private void ensureRescheduleScenario(PatientAccount patient, PatientProfile profile, DoctorProfile doc,
@@ -1191,6 +1212,10 @@ public class LocalDataInitializer implements CommandLineRunner {
             app.applyServiceSnapshot(service.getId(), service.getName(), service.getVisitType(),
                     service.getDurationMinutes(), service.requiresMedicalRecord());
             app = appointmentRepository.save(app);
+            if (businessLogService != null) {
+                businessLogService.recordTransition(UUID.randomUUID(), "APPOINTMENT", app.getId(),
+                        null, app.getStatus().name(), "CREATE_APPOINTMENT", "SYSTEM", "Khám kiểm tra chuyên khoa");
+            }
         }
 
         if (!doctorTimeOffRepository.existsActiveOnDate(doc.getId(), targetDate)) {
@@ -1221,7 +1246,11 @@ public class LocalDataInitializer implements CommandLineRunner {
         } else {
             appointment.markAbsent();
         }
-        appointmentRepository.save(appointment);
+        appointment = appointmentRepository.save(appointment);
+        if (businessLogService != null) {
+            businessLogService.recordTransition(UUID.randomUUID(), "APPOINTMENT", appointment.getId(),
+                    null, appointment.getStatus().name(), "SEED_INITIALIZATION", "SYSTEM", reason);
+        }
     }
 
     private LocalDate previousClinicDate(LocalDate date) {

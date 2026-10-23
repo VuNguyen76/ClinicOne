@@ -35,7 +35,10 @@ describe('Empirical Adversarial Stress Suite - Challenger 1', () => {
       fixture.detectChanges();
     });
 
-    afterEach(() => http.verify());
+    afterEach(() => {
+      http.match((req) => req.url.includes('/api/v1/reasons/clinical')).forEach((req) => req.flush([]));
+      http.verify();
+    });
 
     it('adversarial test: hold countdown formats mm:ss accurately across various remaining seconds', () => {
       // Test zero seconds
@@ -142,12 +145,15 @@ describe('Empirical Adversarial Stress Suite - Challenger 1', () => {
       http = TestBed.inject(HttpTestingController);
       fixture.detectChanges();
 
-      http.expectOne('/api/v1/admin/medications').flush([
+      http.expectOne('/api/v1/admin/medications?activeOnly=false').flush([
         { id: 'm1', code: 'PARA-500', name: 'Paracetamol 500mg', active: true },
         { id: 'm2', code: 'AMOX-500', name: 'Amoxicillin 500mg', active: true },
         { id: 'm3', code: 'IBU-400', name: 'Ibuprofen 400mg', active: false },
         { id: 'm4', code: 'CEF-200', name: 'Cefixime 200mg (Kháng sinh)', active: true },
       ]);
+      http.expectOne('/api/v1/specialties').flush([]);
+      http.expectOne('/api/v1/medication-units?activeOnly=true').flush([]);
+      http.expectOne('/api/v1/medication-dosages?activeOnly=true').flush([]);
       fixture.detectChanges();
     });
 

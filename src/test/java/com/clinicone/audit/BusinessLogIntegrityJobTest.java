@@ -48,6 +48,7 @@ class BusinessLogIntegrityJobTest {
                 Clock.fixed(Instant.parse("2026-08-10T01:00:00Z"), ZoneOffset.UTC));
         when(incidentRepository.existsByEntityTypeAndEntityIdAndStatus(any(), any(), any())).thenReturn(false);
         when(incidentRepository.existsByEntityTypeAndEntityId(any(), any())).thenReturn(false);
+        when(incidentRepository.findByEntityTypeAndEntityIdAndStatus(any(), any(), any())).thenReturn(List.of());
     }
 
     @Test
@@ -140,6 +141,31 @@ class BusinessLogIntegrityJobTest {
         BusinessLogIntegrityJob.IntegrityCheckResult result = job.runOnce();
 
         assertEquals(0, result.incidentsOpened());
+    }
+
+    @Test
+    void autoClosesOpenIncidentWhenStateMatchesLatestJournal() throws Exception {
+        UUID appointmentId = UUID.randomUUID();
+        BusinessLog entry = BusinessLog.transition(UUID.randomUUID(), "APPOINTMENT", appointmentId,
+                "BOOKED", "CHECKED_IN", "CHECK_IN", "patient", null);
+        PatientAccount patient = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
+        Appointment appointment = Appointment.create(patient, "CL-1", "Nội tổng quát", "BS. An",
+                LocalDate.of(2026, 8, 10), LocalTime.of(8, 30), "Đau đầu");
+        appointment.checkIn();
+        setId(appointment, appointmentId);
+        when(appointmentRepository.findById(appointmentId)).thenReturn(Optional.of(appointment));
+        when(businessLogRepository.findAllByOrderByOccurredAtAscIdAsc()).thenReturn(List.of(entry));
+
+        com.clinicone.reconciliation.ReconciliationIncident openIncident = mock(com.clinicone.reconciliation.ReconciliationIncident.class);
+        when(incidentRepository.findByEntityTypeAndEntityIdAndStatus("APPOINTMENT", appointmentId, ReconciliationStatus.OPEN))
+                .thenReturn(List.of(openIncident));
+
+        BusinessLogIntegrityJob.IntegrityCheckResult result = job.runOnce();
+
+        assertEquals(1, result.inspected());
+        assertEquals(0, result.incidentsOpened());
+        verify(openIncident).close(any(), any(), any(), any(), any(), any());
+        verify(incidentRepository).save(openIncident);
     }
 
     private static void setId(Appointment appointment, UUID id) throws Exception {

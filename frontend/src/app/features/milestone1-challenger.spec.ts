@@ -39,7 +39,10 @@ describe('Milestone 1 Empirical Challenger Verification Suite', () => {
       fixture.detectChanges();
     });
 
-    afterEach(() => http.verify());
+    afterEach(() => {
+      http.match((req) => req.url.includes('/api/v1/reasons/clinical')).forEach((req) => req.flush([]));
+      http.verify();
+    });
 
     it('EMPIRICAL: summary panel displays single clinic brand and zero "cơ sở"', () => {
       const compiled = fixture.nativeElement as HTMLElement;

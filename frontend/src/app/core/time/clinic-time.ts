@@ -6,13 +6,22 @@
  */
 export const CLINIC_TIME_ZONE = 'Asia/Ho_Chi_Minh';
 
+const EN_CA_DATE_FORMATTER = new Intl.DateTimeFormat('en-CA', {
+  timeZone: CLINIC_TIME_ZONE,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+
+const VI_TIME_FORMATTER = new Intl.DateTimeFormat('vi-VN', {
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+  timeZone: CLINIC_TIME_ZONE,
+});
+
 export function clinicTodayIso(now: Date = new Date()): string {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: CLINIC_TIME_ZONE,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(now);
+  const parts = EN_CA_DATE_FORMATTER.formatToParts(now);
   const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
   return `${values['year']}-${values['month']}-${values['day']}`;
 }
@@ -77,12 +86,7 @@ export function formatClinicTime(value?: string | null): string {
   }
   const date = new Date(trimmed);
   if (!isNaN(date.getTime())) {
-    return new Intl.DateTimeFormat('vi-VN', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-      timeZone: CLINIC_TIME_ZONE,
-    }).format(date);
+    return VI_TIME_FORMATTER.format(date);
   }
   return trimmed;
 }

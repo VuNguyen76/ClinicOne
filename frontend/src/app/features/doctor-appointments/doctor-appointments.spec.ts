@@ -71,6 +71,32 @@ describe('DoctorAppointments', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('[role="alert"]')?.textContent).toContain('Ngày bắt đầu');
   });
+
+  it('filters appointments by status and allows switching to past history', () => {
+    http.expectOne((req) => req.url === '/api/v1/doctor/appointments').flush([
+      appointment(),
+      { ...appointment(), id: 'appointment-2', status: 'COMPLETED', statusLabel: 'Đã khám', appointmentCode: 'CL-COMPLETED' },
+      { ...appointment(), id: 'appointment-3', status: 'ABSENT', statusLabel: 'Vắng', appointmentCode: 'CL-ABSENT' },
+    ]);
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance as any;
+    expect(component.visibleAppointments().length).toBe(3);
+
+    component.setFilter('COMPLETED');
+    fixture.detectChanges();
+    expect(component.visibleAppointments().length).toBe(1);
+    expect(component.visibleAppointments()[0].appointmentCode).toBe('CL-COMPLETED');
+
+    component.setFilter('ABSENT');
+    fixture.detectChanges();
+    expect(component.visibleAppointments().length).toBe(1);
+    expect(component.visibleAppointments()[0].appointmentCode).toBe('CL-ABSENT');
+
+    component.setFilter('ALL');
+    fixture.detectChanges();
+    expect(component.visibleAppointments().length).toBe(3);
+  });
 });
 
 function appointment() {

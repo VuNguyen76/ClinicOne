@@ -145,9 +145,22 @@ public class Invoice {
     public void recalculateTotal() {
         if (items != null && !items.isEmpty()) {
             long sum = 0;
+            long calculatedExamFee = 0;
+            long calculatedLabFee = 0;
+            long calculatedMedicationFee = 0;
             for (InvoiceItem item : items) {
                 sum = Math.addExact(sum, item.getTotalPrice());
+                if ("MEDICATION".equalsIgnoreCase(item.getItemType())) {
+                    calculatedMedicationFee = Math.addExact(calculatedMedicationFee, item.getTotalPrice());
+                } else if ("LAB_TEST".equalsIgnoreCase(item.getItemType()) || "LAB".equalsIgnoreCase(item.getItemType())) {
+                    calculatedLabFee = Math.addExact(calculatedLabFee, item.getTotalPrice());
+                } else {
+                    calculatedExamFee = Math.addExact(calculatedExamFee, item.getTotalPrice());
+                }
             }
+            this.examFee = calculatedExamFee > 0 ? calculatedExamFee : this.examFee;
+            this.labFee = calculatedLabFee;
+            this.medicationFee = calculatedMedicationFee;
             this.totalAmount = Math.max(0, sum - discountAmount);
         } else {
             this.totalAmount = Math.max(0, examFee - discountAmount);

@@ -1071,6 +1071,31 @@ describe('DoctorExamination', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="sign-record"]')).toBeNull();
     expect(fixture.nativeElement.querySelector('[data-testid="save-draft"]')).toBeNull();
   });
+
+  it('renders structured prescription lines in patient examination history', () => {
+    http.expectOne('/api/v1/doctor/examinations/ticket-1').flush({
+      ...examination(),
+      history: [
+        {
+          id: 'hist-1',
+          diagnosis: 'J00 - Cảm cúm',
+          doctorName: 'BS. Lê Thu Hà',
+          signedAt: '2026-10-15T08:00:00Z',
+          prescription: '',
+          prescriptionLines: [
+            { medicationName: 'Amoxicillin 500mg', dosage: '1 viên x 2 lần/ngày', quantity: 14, unit: 'Viên' },
+          ],
+        },
+      ],
+    });
+    fixture.detectChanges();
+
+    const historySection = fixture.nativeElement.querySelector('[data-testid="medical-history-hist-1"]');
+    expect(historySection).not.toBeNull();
+    expect(historySection.textContent).toContain('Amoxicillin 500mg');
+    expect(historySection.textContent).toContain('1 viên x 2 lần/ngày');
+    expect(historySection.textContent).toContain('SL: 14 Viên');
+  });
 });
 
 function examination() {

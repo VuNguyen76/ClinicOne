@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { finalize } from 'rxjs';
@@ -21,8 +21,16 @@ export class DoctorAppointments implements OnInit {
   protected readonly from = signal(this.today);
   protected readonly to = signal(addDays(this.today, 30));
   protected readonly appointments = signal<AppointmentResponse[]>([]);
+  protected readonly statusFilter = signal<string>('ALL');
   protected readonly loading = signal(true);
   protected readonly error = signal('');
+
+  protected readonly visibleAppointments = computed(() => {
+    const filter = this.statusFilter();
+    const list = this.appointments();
+    if (filter === 'ALL') return list;
+    return list.filter((a) => a.status === filter);
+  });
 
   ngOnInit(): void {
     this.load();
@@ -47,6 +55,22 @@ export class DoctorAppointments implements OnInit {
     this.load();
   }
 
+  protected setTodayRange(): void {
+    this.from.set(this.today);
+    this.to.set(this.today);
+    this.load();
+  }
+
+  protected setPastRange(days = 30): void {
+    this.from.set(addDays(this.today, -days));
+    this.to.set(this.today);
+    this.load();
+  }
+
+  protected setFilter(filter: string): void {
+    this.statusFilter.set(filter);
+  }
+
   protected formatDate(value: string): string {
     return formatClinicPadDate(value);
   }
@@ -58,10 +82,11 @@ export class DoctorAppointments implements OnInit {
   protected statusClass(status: string): string {
     switch (status) {
       case 'BOOKED': return 'border-sky-200 bg-sky-50 text-sky-700';
-      case 'CHECKED_IN': return 'border-amber-200 bg-amber-50 text-amber-800';
+      case 'CHECKED_IN': return 'border-sky-200 bg-sky-100 text-sky-800';
       case 'COMPLETED': return 'border-emerald-200 bg-emerald-50 text-emerald-700';
       case 'CANCELLED': return 'border-slate-200 bg-slate-100 text-slate-600';
       case 'ABSENT': return 'border-rose-200 bg-rose-50 text-rose-700';
+      case 'NOT_PERFORMED': return 'border-amber-200 bg-amber-50 text-amber-800';
       default: return 'border-slate-200 bg-slate-50 text-slate-600';
     }
   }

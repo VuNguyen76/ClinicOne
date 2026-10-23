@@ -151,7 +151,10 @@ public class MedicalRecord {
         this.conclusion = conclusion;
         this.treatmentPlan = treatmentPlan;
         this.prescription = prescription;
-        this.followUpDate = followUpDate;
+        this.followUpDate = followUpDate != null ? followUpDate
+                : (followUpDays != null && followUpDays > 0 && session != null && session.getAppointment() != null
+                        && session.getAppointment().getAppointmentDate() != null
+                        ? session.getAppointment().getAppointmentDate().plusDays(followUpDays) : null);
         this.followUpDays = followUpDays;
         this.followUpNote = followUpNote;
         this.draftSavedAt = Instant.now();

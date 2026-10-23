@@ -501,7 +501,19 @@
                           <div><dt class="font-bold text-slate-500">Ghi nhận:</dt><dd class="whitespace-pre-wrap text-slate-800">{{ record.examinationNotes }}</dd></div>
                           <div><dt class="font-bold text-slate-500">Kết luận:</dt><dd class="whitespace-pre-wrap text-slate-800">{{ record.conclusion }}</dd></div>
                           <div><dt class="font-bold text-slate-500">Hướng xử trí:</dt><dd class="whitespace-pre-wrap text-slate-800">{{ record.treatmentPlan }}</dd></div>
-                          @if (record.prescription) {
+                          @if (record.prescriptionLines && record.prescriptionLines.length > 0) {
+                            <div>
+                              <dt class="font-bold text-slate-500">Đơn thuốc ({{ record.prescriptionLines.length }} loại):</dt>
+                              <dd class="mt-1 space-y-1">
+                                @for (line of record.prescriptionLines; track $index) {
+                                  <div class="flex items-baseline justify-between gap-2 rounded bg-slate-100/70 px-2 py-1 text-slate-800 font-mono text-[11px]">
+                                    <span><strong>{{ line.medicationName }}</strong> ({{ line.dosage }})</span>
+                                    <span class="font-semibold text-slate-600">SL: {{ line.quantity }} {{ line.unit || 'viên' }}</span>
+                                  </div>
+                                }
+                              </dd>
+                            </div>
+                          } @else if (record.prescription) {
                             <div><dt class="font-bold text-slate-500">Đơn thuốc:</dt><dd class="whitespace-pre-wrap text-slate-800 font-mono">{{ record.prescription }}</dd></div>
                           }
                         </dl>
@@ -935,7 +947,7 @@
                           </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
-                          @for (line of prescriptionLines.controls; track line; let index = $index) {
+                          @for (line of prescriptionLines.controls; track $index; let index = $index) {
                             <tr>
                               <td class="p-1.5 text-center font-mono">{{ index + 1 }}</td>
                               <td class="p-1.5 font-bold text-slate-900">{{ line.controls.medicationName.value }}</td>
@@ -1568,7 +1580,7 @@
               </tr>
             </thead>
             <tbody>
-              @for (line of prescriptionLines.controls; track line; let idx = $index) {
+              @for (line of prescriptionLines.controls; track $index; let idx = $index) {
                 <tr class="border-t border-slate-300">
                   <td class="border border-slate-300 p-2 text-center font-bold text-slate-500">{{ idx + 1 }}</td>
                   <td class="border border-slate-300 p-2">
@@ -1710,7 +1722,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  @for (line of prescriptionLines.controls; track line; let lidx = $index) {
+                  @for (line of prescriptionLines.controls; track $index; let lidx = $index) {
                     <tr>
                       <td class="border border-slate-300 p-1.5 text-center">{{ lidx + 1 }}</td>
                       <td class="border border-slate-300 p-1.5 font-bold">{{ line.controls.medicationName.value }} ({{ line.controls.dosage.value }})</td>

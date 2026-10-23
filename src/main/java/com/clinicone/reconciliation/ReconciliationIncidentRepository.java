@@ -17,6 +17,8 @@ public interface ReconciliationIncidentRepository extends JpaRepository<Reconcil
 
     boolean existsByEntityTypeAndEntityIdAndStatus(String entityType, UUID entityId, ReconciliationStatus status);
 
+    List<ReconciliationIncident> findByEntityTypeAndEntityIdAndStatus(String entityType, UUID entityId, ReconciliationStatus status);
+
     boolean existsByEntityTypeAndEntityId(String entityType, UUID entityId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

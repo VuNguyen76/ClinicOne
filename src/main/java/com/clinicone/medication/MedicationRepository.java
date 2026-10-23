@@ -11,6 +11,7 @@ public interface MedicationRepository extends JpaRepository<Medication, UUID> {
     List<Medication> findByActiveTrueOrderByNameAsc();
     List<Medication> findAllByOrderByNameAsc();
     Optional<Medication> findByIdAndActiveTrue(UUID id);
+    Optional<Medication> findFirstByNameIgnoreCase(String name);
     boolean existsByCodeIgnoreCase(String code);
     boolean existsByCodeIgnoreCaseAndIdNot(String code, UUID id);
 }

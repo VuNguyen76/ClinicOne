@@ -225,6 +225,11 @@
             <span class="rounded-full bg-slate-100 px-2.5 py-0.5 font-mono text-xs font-bold text-slate-600">
               {{ queue().length }} lượt
             </span>
+            @if (leftOrSkippedCount() > 0) {
+              <span class="rounded-full bg-rose-50 border border-rose-200/80 px-2 py-0.5 text-[11px] font-semibold text-rose-700" title="Số lượt rời trước khám hoặc bỏ qua">
+                {{ leftOrSkippedCount() }} vắng/rời
+              </span>
+            }
           </div>
           <div class="flex items-center gap-2">
             @if (isOwnDoctor() && nextWaitingTicket()) {

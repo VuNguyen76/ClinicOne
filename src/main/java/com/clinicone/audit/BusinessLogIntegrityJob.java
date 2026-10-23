@@ -4,8 +4,10 @@ import com.clinicone.appointment.AppointmentRepository;
 import com.clinicone.examination.ExaminationSessionRepository;
 import com.clinicone.invoice.InvoiceRepository;
 import com.clinicone.queue.QueueTicketRepository;
+import com.clinicone.reconciliation.ReconciliationAction;
 import com.clinicone.reconciliation.ReconciliationIncident;
 import com.clinicone.reconciliation.ReconciliationIncidentRepository;
+import com.clinicone.reconciliation.ReconciliationReferenceType;
 import com.clinicone.reconciliation.ReconciliationStatus;
 import com.clinicone.rescheduling.RescheduleCaseRepository;
 import org.slf4j.Logger;
@@ -18,9 +20,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -106,6 +110,9 @@ public class BusinessLogIntegrityJob {
             if ("RECONCILED".equalsIgnoreCase(entry.getNextStatus())) {
                 continue;
             }
+            if ("LATE_WARNING".equalsIgnoreCase(entry.getEventType())) {
+                continue;
+            }
             latestByEntity.put(new EntityKey(entry.getEntityType(), entry.getEntityId()), entry);
         }
         int inspected = 0;
@@ -119,6 +126,19 @@ public class BusinessLogIntegrityJob {
             }
             String actual = currentStatus(key);
             if (actual != null && actual.equals(latest.getNextStatus())) {
+                List<ReconciliationIncident> openIncidents = incidentRepository
+                        .findByEntityTypeAndEntityIdAndStatus(key.entityType(), key.entityId(), ReconciliationStatus.OPEN);
+                for (ReconciliationIncident open : openIncidents) {
+                    open.close(ReconciliationAction.NO_ACTION_REQUIRED,
+                            ReconciliationReferenceType.BUSINESS_LOG,
+                            latest.getEventId() == null ? null : latest.getEventId().toString(),
+                            "Trạng thái thực tế (" + actual + ") đã khớp với nhật ký mới nhất.",
+                            "SYSTEM",
+                            Instant.now(clock));
+                    incidentRepository.save(open);
+                    log.info("Auto-closed resolved integrity incident {} for {} {}",
+                            open.getIncidentCode(), key.entityType(), key.entityId());
+                }
                 continue;
             }
             if (incidentRepository.existsByEntityTypeAndEntityIdAndStatus(key.entityType(), key.entityId(),

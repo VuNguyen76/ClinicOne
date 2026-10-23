@@ -5,6 +5,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { InvoiceResponse, PaymentMethod, apiErrorMessage, AuthApiService } from '../../../core/auth/auth-api.service';
 import { StaffWorkspaceShell } from '../../../shared/staff-workspace-shell/staff-workspace-shell';
 
+const VI_AMOUNT_FORMATTER = new Intl.NumberFormat('vi-VN');
+
 @Component({
   selector: 'app-reception-payments',
   standalone: true,
@@ -76,7 +78,7 @@ export class ReceptionPayments {
   }
 
   protected formatAmount(amount: number): string {
-    return new Intl.NumberFormat('vi-VN').format(amount);
+    return VI_AMOUNT_FORMATTER.format(amount);
   }
 
   protected paymentMethodLabel(method: PaymentMethod | null): string {

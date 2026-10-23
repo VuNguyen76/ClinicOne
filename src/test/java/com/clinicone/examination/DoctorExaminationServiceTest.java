@@ -626,6 +626,22 @@ class DoctorExaminationServiceTest {
                 });
     }
 
+    @Test
+    void rejectsPastFollowUpDateOnSigning() {
+        DoctorExaminationRequest pastFollowUp = new DoctorExaminationRequest(
+                "Đau đầu", "Mạch ổn", "Đau đầu căng thẳng", "Theo dõi thêm",
+                "Nghỉ ngơi", null, appointment.getAppointmentDate().minusDays(1), 0L,
+                List.of(new PrescriptionLineRequest(null, "Paracetamol", "500 mg", 10, "Uống khi đau")),
+                null, null, null, null, null, null, null, null, null);
+
+        assertThatThrownBy(() -> service.sign(TICKET_ID, DOCTOR_ID.toString(), pastFollowUp, "sign-past-followup"))
+                .isInstanceOf(AuthException.class)
+                .satisfies(error -> {
+                    AuthException exception = (AuthException) error;
+                    assertThat(exception.getCode()).isEqualTo("FOLLOW_UP_DATE_INVALID");
+                });
+    }
+
     private void stubCurrentGeneratedSlot() {
         when(generatedSlotRepository.findFirstByClinicServiceIdAndDoctorStaffIdAndAppointmentDateAndStartTimeAndStatus(
                 appointment.getServiceId(), DOCTOR_ID, appointment.getAppointmentDate(), appointment.getStartTime(),

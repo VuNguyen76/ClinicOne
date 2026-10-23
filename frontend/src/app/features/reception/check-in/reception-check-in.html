@@ -743,18 +743,29 @@
             <div class="erp-toolbar flex-wrap gap-3">
               <h2 class="mr-auto text-sm font-bold text-slate-900">Lịch hẹn trong ngày</h2>
               <form class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center" (ngSubmit)="$event.preventDefault(); searchOverviewAppointments()" aria-label="Tìm lịch trong tổng quan">
-                <label class="min-w-40 sm:w-44">
-                  <span class="sr-only">Ngày khám</span>
-                  <input
-                    data-testid="overview-date"
-                    type="date"
-                    aria-label="Ngày khám"
-                    class="erp-input font-mono !min-h-9 !text-sm"
-                    [ngModel]="selectedDate()"
-                    (ngModelChange)="onSelectedDateChange($event)"
-                    name="overviewDate"
-                  />
-                </label>
+                <div class="flex items-center gap-1">
+                  <label class="min-w-36 sm:w-40">
+                    <span class="sr-only">Ngày khám</span>
+                    <input
+                      data-testid="overview-date"
+                      type="date"
+                      aria-label="Ngày khám"
+                      class="erp-input font-mono !min-h-9 !text-sm"
+                      [ngModel]="selectedDate()"
+                      (ngModelChange)="onSelectedDateChange($event)"
+                      name="overviewDate"
+                    />
+                  </label>
+                  <button type="button" class="erp-btn-secondary !min-h-9 !px-2" title="Hôm trước" (click)="stepDate(-1)">
+                    <mat-icon class="!h-4 !w-4 !text-[16px]">chevron_left</mat-icon>
+                  </button>
+                  <button type="button" class="erp-btn-secondary !min-h-9 !px-2.5 !text-xs font-semibold" (click)="setTodayDate()">
+                    Hôm nay
+                  </button>
+                  <button type="button" class="erp-btn-secondary !min-h-9 !px-2" title="Hôm sau" (click)="stepDate(1)">
+                    <mat-icon class="!h-4 !w-4 !text-[16px]">chevron_right</mat-icon>
+                  </button>
+                </div>
                 <label class="relative min-w-56 flex-1 sm:w-72">
                   <span class="sr-only">Tìm theo tên, số điện thoại, mã lịch hoặc bác sĩ</span>
                   <mat-icon class="pointer-events-none absolute left-3 top-1/2 !h-4 !w-4 -translate-y-1/2 !text-[16px] text-slate-400">search</mat-icon>

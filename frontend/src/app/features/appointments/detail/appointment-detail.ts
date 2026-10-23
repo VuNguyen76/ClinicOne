@@ -15,6 +15,8 @@ import {
 import { PatientHeader } from '../../../shared/patient-header/patient-header';
 import { clinicTodayIso, formatClinicDate, formatClinicTime } from '../../../core/time/clinic-time';
 
+const WEEKDAY_LONG_FORMATTER = new Intl.DateTimeFormat('vi-VN', { weekday: 'long' });
+
 @Component({
   selector: 'app-appointment-detail',
   standalone: true,
@@ -104,7 +106,7 @@ export class AppointmentDetail implements OnInit {
 
   protected formatWeekday(value: string): string {
     const [year, month, day] = value.split('-').map(Number);
-    return new Intl.DateTimeFormat('vi-VN', { weekday: 'long' }).format(new Date(year, month - 1, day));
+    return WEEKDAY_LONG_FORMATTER.format(new Date(year, month - 1, day));
   }
 
   protected formatTime(value: string): string {

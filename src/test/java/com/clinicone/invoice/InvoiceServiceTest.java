@@ -14,6 +14,9 @@ import com.clinicone.examination.ExaminationSessionRepository;
 import com.clinicone.examination.ExaminationSessionStatus;
 import com.clinicone.examination.MedicalRecord;
 import com.clinicone.examination.MedicalRecordRepository;
+import com.clinicone.examination.PrescriptionLine;
+import com.clinicone.medication.Medication;
+import com.clinicone.medication.MedicationRepository;
 import com.clinicone.patientprofile.PatientProfile;
 import com.clinicone.schedule.ClinicService;
 import com.clinicone.schedule.ClinicServiceRepository;
@@ -25,6 +28,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -34,6 +38,7 @@ class InvoiceServiceTest {
     @Mock private ExaminationSessionRepository sessionRepository;
     @Mock private MedicalRecordRepository medicalRecordRepository;
     @Mock private ClinicServiceRepository clinicServiceRepository;
+    @Mock private MedicationRepository medicationRepository;
     @Mock private BusinessLogService businessLogService;
     @InjectMocks private InvoiceService service;
 
@@ -122,6 +127,54 @@ class InvoiceServiceTest {
 
         assertThat(response.totalAmount()).isEqualTo(100_000L);
         assertThat(response.status()).isEqualTo(InvoiceStatus.PENDING);
+    }
+
+    @Test
+    void createsPendingPaymentReceiptIncludingPrescriptions() {
+        ExaminationSession session = completedSession();
+        when(session.getId()).thenReturn(sessionId);
+        PatientProfile profile = mock(PatientProfile.class);
+        when(profile.getFullName()).thenReturn("Patient B");
+        when(profile.getPhone()).thenReturn("0912345678");
+        when(appointment.getPatientProfile()).thenReturn(profile);
+        when(appointment.getServiceName()).thenReturn("Khám hô hấp");
+        when(appointment.getAppointmentCode()).thenReturn("APT-002");
+        when(appointment.getDoctorName()).thenReturn("Doctor B");
+        when(appointment.getSpecialty()).thenReturn("Hô hấp");
+
+        PrescriptionLine pl = mock(PrescriptionLine.class);
+        when(pl.getMedicationName()).thenReturn("Paracetamol 500mg");
+        when(pl.getUnit()).thenReturn("Viên");
+        when(pl.getQuantity()).thenReturn(10);
+        when(pl.getSourceMedicationId()).thenReturn(null);
+
+        MedicalRecord record = mock(MedicalRecord.class);
+        when(record.getSignedAt()).thenReturn(Instant.parse("2026-10-10T02:00:00Z"));
+        when(record.getPrescriptionLines()).thenReturn(List.of(pl));
+
+        ClinicService clinicService = mock(ClinicService.class);
+        when(clinicService.getConsultationFee()).thenReturn(200_000L);
+
+        Medication med = mock(Medication.class);
+        when(med.getUnitPrice()).thenReturn(5_000L);
+        when(medicationRepository.findFirstByNameIgnoreCase("Paracetamol 500mg")).thenReturn(Optional.of(med));
+
+        when(sessionRepository.findByIdForUpdate(sessionId)).thenReturn(Optional.of(session));
+        when(invoiceRepository.findBySession_Id(sessionId)).thenReturn(Optional.empty());
+        when(medicalRecordRepository.findBySession_Id(sessionId)).thenReturn(Optional.of(record));
+        when(clinicServiceRepository.findById(serviceId)).thenReturn(Optional.of(clinicService));
+        when(invoiceRepository.save(any(Invoice.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        InvoiceResponse response = service.createPaymentReceipt(sessionId, "cashier-1");
+
+        assertThat(response.status()).isEqualTo(InvoiceStatus.PENDING);
+        assertThat(response.examFee()).isEqualTo(200_000L);
+        assertThat(response.medicationFee()).isEqualTo(50_000L);
+        assertThat(response.totalAmount()).isEqualTo(250_000L);
+        assertThat(response.items()).hasSize(2);
+        assertThat(response.items().get(0).itemName()).isEqualTo("Khám hô hấp");
+        assertThat(response.items().get(1).itemName()).isEqualTo("Paracetamol 500mg");
+        assertThat(response.items().get(1).totalPrice()).isEqualTo(50_000L);
     }
 
     private ExaminationSession completedSession() {

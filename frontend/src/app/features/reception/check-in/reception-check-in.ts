@@ -220,6 +220,17 @@ export class ReceptionCheckIn implements OnInit {
     }
   }
 
+  protected stepDate(deltaDays: number): void {
+    const current = new Date(`${this.selectedDate()}T00:00:00Z`);
+    current.setUTCDate(current.getUTCDate() + deltaDays);
+    const newDate = current.toISOString().slice(0, 10);
+    this.onSelectedDateChange(newDate);
+  }
+
+  protected setTodayDate(): void {
+    this.onSelectedDateChange(clinicTodayIso());
+  }
+
   protected selectTab(tab: ReceptionTab | string): void {
     if (!['overview', 'search', 'intake', 'queue', 'exceptions', 'profiles'].includes(tab)) return;
     const previousTab = this.activeTab();
@@ -1451,7 +1462,7 @@ export class ReceptionCheckIn implements OnInit {
       case 'BOOKED': return 'Chờ tiếp nhận';
       case 'CHECKED_IN': return appointment.queueNumber == null ? 'Đã tiếp nhận' : this.queueLabel(appointment);
       case 'CANCELLED': return 'Đã hủy';
-      case 'ABSENT': return appointment.queuePresenceLabel || 'Vắng mặt';
+      case 'ABSENT': return 'Vắng mặt';
       case 'COMPLETED': return 'Đã khám';
       case 'NOT_PERFORMED': return appointment.queueClosureOutcomeLabel || 'Không thực hiện';
       default: return this.queueLabel(appointment);

@@ -558,16 +558,16 @@ public class QueueService {
         UUID eventId = UUID.randomUUID();
         String previousTicketStatus = ticket.getStatus().name();
         String previousAppointmentStatus = ticket.getAppointment().getStatus().name();
+        ExaminationSession session = examinationSessionRepository == null ? null
+                : examinationSessionRepository.findByAppointment_Id(ticket.getAppointment().getId()).orElse(null);
+        String previousSessionStatus = session == null ? null : session.getStatus().name();
         try {
             ticket.leaveBeforeExam(normalizedReason);
             ticket.getAppointment().markNotPerformed();
             appointmentRepository.save(ticket.getAppointment());
-            if (examinationSessionRepository != null) {
-                examinationSessionRepository.findByAppointment_Id(ticket.getAppointment().getId())
-                        .ifPresent(session -> {
-                            session.cancel();
-                            examinationSessionRepository.save(session);
-                        });
+            if (session != null) {
+                session.cancel();
+                examinationSessionRepository.save(session);
             }
         } catch (IllegalStateException exception) {
             throw queueStateConflict(exception.getMessage());
@@ -577,6 +577,10 @@ public class QueueService {
                 ticket.getStatus().name(), "LEAVE_BEFORE_EXAM", normalizedActor, normalizedReason);
         recordTransition(eventId, "APPOINTMENT", ticket.getAppointment().getId(), previousAppointmentStatus,
                 ticket.getAppointment().getStatus().name(), "LEAVE_BEFORE_EXAM", normalizedActor, normalizedReason);
+        if (session != null) {
+            recordTransition(eventId, "EXAMINATION", session.getId(), previousSessionStatus,
+                    session.getStatus().name(), "LEAVE_BEFORE_EXAM", normalizedActor, normalizedReason);
+        }
         return response;
     }
 
@@ -713,6 +717,10 @@ public class QueueService {
                 throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_SLOT_FULL", "Khung giờ đã có người đặt.");
             }
             ticket.getAppointment().reschedule(ticket.getQueueDate(), newTime, targetDoctor.getStaffAccount().getId(), targetDoctor.getStaffAccount().getFullName());
+            appointmentRepository.save(ticket.getAppointment());
+        } else {
+            ticket.getAppointment().reschedule(ticket.getAppointment().getAppointmentDate(), ticket.getAppointment().getStartTime(),
+                    targetDoctor.getStaffAccount().getId(), targetDoctor.getStaffAccount().getFullName());
             appointmentRepository.save(ticket.getAppointment());
         }
         // A reassignment always receives a fresh number in the destination queue,

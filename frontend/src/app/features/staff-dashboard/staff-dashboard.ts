@@ -47,6 +47,8 @@ export class StaffDashboard implements OnInit, OnDestroy {
   protected readonly calledCount = computed(() => this.queue().filter((ticket) => ticket.status === 'CALLED').length);
   protected readonly inServiceCount = computed(() => this.queue().filter((ticket) => ticket.status === 'IN_SERVICE').length);
   protected readonly completedCount = computed(() => this.queue().filter((ticket) => ticket.status === 'COMPLETED').length);
+  protected readonly leftOrSkippedCount = computed(() => this.queue().filter((ticket) =>
+    ticket.status === 'LEFT_BEFORE_EXAM' || ticket.status === 'SKIPPED').length);
   protected readonly currentDoctorTicket = computed(() =>
     this.queue().find((ticket) => ticket.status === 'IN_SERVICE')
       ?? this.queue().find((ticket) => ticket.status === 'CALLED'));

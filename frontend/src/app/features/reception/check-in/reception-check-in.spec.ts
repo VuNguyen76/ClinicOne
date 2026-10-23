@@ -244,7 +244,6 @@ describe('ReceptionCheckIn', () => {
     const oldPhoneRequest = http.expectOne('/api/v1/reception/profiles?phone=0912345678');
 
     component.onWalkInPhoneChange('0987654321');
-    component.loadWalkInProfiles();
     const currentPhoneRequest = http.expectOne('/api/v1/reception/profiles?phone=0987654321');
     currentPhoneRequest.flush([{ id: 'p-2', fullName: 'Nguyễn Thị An', relationship: 'Bản thân', phone: '0987654321', primaryProfile: true }]);
     oldPhoneRequest.flush([{ id: 'p-1', fullName: 'Nguyễn Thanh Vũ', relationship: 'Bản thân', phone: '0912345678', primaryProfile: true }]);
@@ -264,6 +263,7 @@ describe('ReceptionCheckIn', () => {
     const oldPhoneRequest = http.expectOne('/api/v1/reception/patients/request-otp');
 
     component.onWalkInPhoneChange('0987654321');
+    http.expectOne('/api/v1/reception/profiles?phone=0987654321').flush([]);
     component.requestRegistrationOtp();
     const currentPhoneRequest = http.expectOne('/api/v1/reception/patients/request-otp');
     oldPhoneRequest.flush({ expiresInSeconds: 300, retryAfterSeconds: 60 });

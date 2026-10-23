@@ -171,10 +171,17 @@
             </div>
           }
 
-          @if (item.followUpDate) {
+          @if (item.followUpDate || item.followUpDays) {
             <div class="sm:col-span-2">
               <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 print:text-slate-600">7. Hẹn tái khám</p>
-              <p class="mt-1 font-semibold text-slate-900">{{ formatDate(item.followUpDate) }}</p>
+              <p class="mt-1 font-semibold text-slate-900">
+                @if (item.followUpDate) {
+                  {{ formatDate(item.followUpDate) }}
+                } @else {
+                  Sau {{ item.followUpDays }} ngày
+                }
+                {{ item.followUpNote ? ' · ' + item.followUpNote : '' }}
+              </p>
             </div>
           }
         </div>

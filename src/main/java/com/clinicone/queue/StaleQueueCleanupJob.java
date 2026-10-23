@@ -8,6 +8,8 @@ import com.clinicone.examination.ExaminationSessionRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -48,6 +50,11 @@ public class StaleQueueCleanupJob {
 
     @Scheduled(fixedDelayString = "${app.queue.cleanup-job-delay-ms:3600000}")
     public void runScheduled() {
+        runOnce();
+    }
+
+    @EventListener(ApplicationReadyEvent.class)
+    public void runAfterStartup() {
         runOnce();
     }
 

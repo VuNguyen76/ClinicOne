@@ -343,16 +343,29 @@ public class AppointmentService {
     }
 
     private ClinicService resolveService(CreateAppointmentRequest request) {
-        if (request.serviceId() == null) {
+        if (clinicServiceRepository == null) {
+            if (request.serviceId() != null) {
+                throw new AuthException(HttpStatus.CONFLICT, "CLINIC_SERVICE_UNAVAILABLE",
+                        "Danh mục dịch vụ khám chưa sẵn sàng.");
+            }
             return null;
         }
-        if (clinicServiceRepository == null) {
-            throw new AuthException(HttpStatus.CONFLICT, "CLINIC_SERVICE_UNAVAILABLE",
-                    "Danh mục dịch vụ khám chưa sẵn sàng.");
+        ClinicService service = null;
+        if (request.serviceId() != null) {
+            service = clinicServiceRepository.findById(request.serviceId())
+                    .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "CLINIC_SERVICE_NOT_FOUND",
+                            "Không tìm thấy dịch vụ khám đã chọn."));
+        } else if (StringUtils.hasText(request.specialty())) {
+            service = clinicServiceRepository.findByActiveTrueOrderByNameAsc().stream()
+                    .filter(s -> s.getSpecialty().equalsIgnoreCase(request.specialty().trim()))
+                    .findFirst()
+                    .orElse(null);
+            if (service == null) {
+                return null;
+            }
+        } else {
+            return null;
         }
-        ClinicService service = clinicServiceRepository.findById(request.serviceId())
-                .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "CLINIC_SERVICE_NOT_FOUND",
-                        "Không tìm thấy dịch vụ khám đã chọn."));
         if (!service.isActive()) {
             throw new AuthException(HttpStatus.CONFLICT, "CLINIC_SERVICE_INACTIVE",
                     "Dịch vụ khám đã tạm ngưng nhận lịch.");

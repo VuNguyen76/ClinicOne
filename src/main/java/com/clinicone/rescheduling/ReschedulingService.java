@@ -202,6 +202,11 @@ public class ReschedulingService {
             availabilityService.ensureBookable(appointment.getSpecialty(), request.doctorName(), request.doctorId(),
                     request.appointmentDate(), request.startTime(), null, appointment.getServiceId());
         }
+        if (appointment.getPatientProfile() != null
+                && hasActiveAppointmentForProfile(appointment.getPatientProfile().getId(), request.appointmentDate(), request.startTime())) {
+            throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_DUPLICATE",
+                    "Hồ sơ này đã có lịch hẹn tại khung giờ này.");
+        }
         markPreviousGeneratedSlotUnavailable(appointment);
         String previousDate = appointment.getAppointmentDate().toString();
         String previousTime = appointment.getStartTime().toString();
@@ -259,6 +264,12 @@ public class ReschedulingService {
         LocalTime start = appointment.getStartTime();
         return !start.isBefore(schedule.getStartTime())
                 && !start.plusMinutes(schedule.getSlotDurationMinutes()).isAfter(schedule.getEndTime());
+    }
+
+    private boolean hasActiveAppointmentForProfile(UUID profileId, LocalDate appointmentDate, LocalTime startTime) {
+        return appointmentRepository.findByPatientProfileIdAndAppointmentDateAndStartTimeAndStatusIn(
+                profileId, appointmentDate, startTime,
+                java.util.Set.of(AppointmentStatus.BOOKED, AppointmentStatus.CHECKED_IN)).isPresent();
     }
 
     private RescheduleCase findCase(UUID id) {

@@ -37,6 +37,7 @@ import java.util.UUID;
 @Service
 @Transactional(readOnly = true)
 public class DoctorExaminationService {
+    private static final ZoneId CLINIC_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     private final QueueTicketRepository ticketRepository;
     private final ExaminationSessionRepository sessionRepository;
     private final MedicalRecordRepository recordRepository;
@@ -263,7 +264,7 @@ public class DoctorExaminationService {
             return response(workspace.ticket(), workspace.session(), null);
         }
         requireRequiredFields(request);
-        validateFollowUpForSigning(request);
+        validateFollowUpForSigning(request, workspace.appointment());
         validateVitals(request);
         MedicalRecord record = existingRecord == null ? record(workspace.session()) : existingRecord;
         requireCurrentRecordVersion(record, request);
@@ -554,7 +555,7 @@ public class DoctorExaminationService {
         }
     }
 
-    private void validateFollowUpForSigning(DoctorExaminationRequest request) {
+    private void validateFollowUpForSigning(DoctorExaminationRequest request, Appointment appointment) {
         String followUpNote = normalizeFollowUpNote(request.followUpNote());
         Integer followUpDays = request.followUpDays();
         if (followUpDays == null) {
@@ -562,11 +563,21 @@ public class DoctorExaminationService {
                 throw new AuthException(HttpStatus.BAD_REQUEST, "FOLLOW_UP_DAYS_REQUIRED",
                         "Số ngày tái khám là bắt buộc khi có ghi chú tái khám.");
             }
-            return;
-        }
-        if (followUpDays < 1 || followUpDays > 365) {
+        } else if (followUpDays < 1 || followUpDays > 365) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "FOLLOW_UP_DAYS_INVALID",
                     "Số ngày tái khám phải từ 1 đến 365.");
+        }
+        if (request.followUpDate() != null) {
+            LocalDate baseDate = appointment != null && appointment.getAppointmentDate() != null
+                    ? appointment.getAppointmentDate() : LocalDate.now(CLINIC_ZONE);
+            if (!request.followUpDate().isAfter(baseDate)) {
+                throw new AuthException(HttpStatus.BAD_REQUEST, "FOLLOW_UP_DATE_INVALID",
+                        "Ngày tái khám phải sau ngày khám bệnh.");
+            }
+            if (request.followUpDate().isAfter(baseDate.plusDays(365))) {
+                throw new AuthException(HttpStatus.BAD_REQUEST, "FOLLOW_UP_DATE_INVALID",
+                        "Ngày tái khám không được vượt quá 365 ngày kể từ ngày khám.");
+            }
         }
     }
 

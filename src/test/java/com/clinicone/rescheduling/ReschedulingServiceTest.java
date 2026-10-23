@@ -244,6 +244,35 @@ class ReschedulingServiceTest {
         verify(notificationService).notifyAppointmentRescheduled(appointment, "2026-08-10", "08:30");
     }
 
+    @Test
+    void rejectsResolvingCaseWhenProfileAlreadyHasAppointmentAtNewSlot() throws Exception {
+        Appointment appointment = appointment();
+        com.clinicone.patientprofile.PatientProfile profile = mock(com.clinicone.patientprofile.PatientProfile.class);
+        UUID profileId = UUID.randomUUID();
+        when(profile.getId()).thenReturn(profileId);
+        Field pField = Appointment.class.getDeclaredField("patientProfile");
+        pField.setAccessible(true);
+        pField.set(appointment, profile);
+
+        RescheduleCase item = openCase(appointment);
+        UUID caseId = item.getId();
+        when(caseRepository.findByIdForUpdate(caseId)).thenReturn(Optional.of(item));
+        when(appointmentRepository.findByIdForUpdate(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
+
+        LocalDate targetDate = LocalDate.of(2026, 8, 12);
+        LocalTime targetTime = LocalTime.of(9, 30);
+        Appointment existingAppt = mock(Appointment.class);
+        when(appointmentRepository.findByPatientProfileIdAndAppointmentDateAndStartTimeAndStatusIn(
+                org.mockito.ArgumentMatchers.eq(profileId), org.mockito.ArgumentMatchers.eq(targetDate),
+                org.mockito.ArgumentMatchers.eq(targetTime), any()))
+                .thenReturn(Optional.of(existingAppt));
+
+        AuthException exception = assertThrows(AuthException.class, () -> service.resolve(caseId,
+                new ResolveRescheduleRequest(targetDate, targetTime, "Bác sĩ An", DOCTOR_ID), "coordinator"));
+
+        assertEquals("APPOINTMENT_DUPLICATE", exception.getCode());
+    }
+
     private Appointment appointment() throws Exception {
         PatientAccount patient = new PatientAccount("0912345678", "hash", "Nguyen Van A", AccountStatus.ACTIVE, false);
         Appointment appointment = Appointment.create(patient, DOCTOR_ID, "CL-20260810-AB12", "Nội tổng quát",

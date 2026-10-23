@@ -66,6 +66,15 @@ public class InvoiceItem {
         return new InvoiceItem("CONSULTATION", itemName.trim(), "Lượt", 1, fee, 1);
     }
 
+    public static InvoiceItem medication(String itemName, String unit, int quantity, long unitPrice, int lineNumber) {
+        if (itemName == null || itemName.isBlank() || quantity <= 0) {
+            throw new IllegalArgumentException("Chi tiết đơn thuốc không hợp lệ.");
+        }
+        String cleanUnit = unit == null || unit.isBlank() ? "Viên" : unit.trim();
+        long price = Math.max(0, unitPrice);
+        return new InvoiceItem("MEDICATION", itemName.trim(), cleanUnit, quantity, price, lineNumber);
+    }
+
     void attachTo(Invoice invoice) {
         this.invoice = invoice;
     }

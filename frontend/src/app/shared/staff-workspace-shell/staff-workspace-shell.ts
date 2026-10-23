@@ -106,11 +106,13 @@ export class StaffWorkspaceShell {
   protected readonly landingRoute = staffLandingRoute(this.roles);
   protected readonly visibleNavigation = computed(() => {
     const query = this.functionQuery().trim().toLocaleLowerCase('vi-VN');
+    const roleSet = new Set(this.roles);
+    const isCoordinatorOnly = roleSet.has('COORDINATOR') && !roleSet.has('ADMIN');
     return NAVIGATION.map((group) => ({
       ...group,
       items: group.items
-        .filter((item) => item.roles.some((role) => this.roles.includes(role)))
-        .map((item) => this.roles.includes('COORDINATOR') && !this.roles.includes('ADMIN')
+        .filter((item) => item.roles.some((role) => roleSet.has(role)))
+        .map((item) => isCoordinatorOnly
           ? { ...item, route: item.route.replace(/^\/admin\//, '/coordinator/') }
           : item)
         .filter((item) => !query || item.label.toLocaleLowerCase('vi-VN').includes(query)),

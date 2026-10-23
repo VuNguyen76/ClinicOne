@@ -7,6 +7,7 @@ import com.clinicone.examination.ExaminationSession;
 import com.clinicone.examination.ExaminationSessionRepository;
 import com.clinicone.examination.ExaminationSessionStatus;
 import com.clinicone.examination.MedicalRecordRepository;
+import com.clinicone.medication.MedicationRepository;
 import com.clinicone.schedule.ClinicService;
 import com.clinicone.schedule.ClinicServiceRepository;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,7 @@ public class InvoiceService {
     private final ExaminationSessionRepository sessionRepository;
     private final MedicalRecordRepository medicalRecordRepository;
     private final ClinicServiceRepository clinicServiceRepository;
+    private final MedicationRepository medicationRepository;
     private final BusinessLogService businessLogService;
 
     @Transactional
@@ -106,13 +108,25 @@ public class InvoiceService {
                     .orElseThrow(() -> new AuthException(HttpStatus.CONFLICT, "SIGNED_RECORD_REQUIRED",
                             "Lượt khám chưa có phiếu khám đã ký."));
         }
-        if (appointment.getServiceId() == null) {
-            throw new AuthException(HttpStatus.CONFLICT, "SERVICE_TARIFF_REQUIRED",
-                    "Lịch khám chưa được gắn dịch vụ có biểu phí.");
+        ClinicService clinicService = null;
+        if (appointment.getServiceId() != null) {
+            clinicService = clinicServiceRepository.findById(appointment.getServiceId()).orElse(null);
         }
-        ClinicService clinicService = clinicServiceRepository.findById(appointment.getServiceId())
-                .orElseThrow(() -> new AuthException(HttpStatus.CONFLICT, "SERVICE_TARIFF_REQUIRED",
-                        "Không tìm thấy dịch vụ khám để tính phí."));
+        if (clinicService == null && StringUtils.hasText(appointment.getSpecialty())) {
+            clinicService = clinicServiceRepository.findByActiveTrueOrderByNameAsc().stream()
+                    .filter(s -> s.getSpecialty().equalsIgnoreCase(appointment.getSpecialty().trim()))
+                    .findFirst()
+                    .orElse(null);
+            if (clinicService != null && appointment.getServiceId() == null) {
+                appointment.applyServiceSnapshot(clinicService.getId(), clinicService.getName(),
+                        clinicService.getVisitType(), clinicService.getDurationMinutes(),
+                        clinicService.requiresMedicalRecord());
+            }
+        }
+        if (clinicService == null) {
+            throw new AuthException(HttpStatus.CONFLICT, "SERVICE_TARIFF_REQUIRED",
+                    "Không tìm thấy dịch vụ khám để tính phí.");
+        }
         long fee = clinicService.getConsultationFee();
         if (fee <= 0) {
             throw new AuthException(HttpStatus.CONFLICT, "SERVICE_TARIFF_NOT_CONFIGURED",
@@ -122,6 +136,21 @@ public class InvoiceService {
         String itemName = StringUtils.hasText(appointment.getServiceName())
                 ? appointment.getServiceName() : clinicService.getName();
         invoice.addItem(InvoiceItem.consultation(itemName, fee));
+
+        medicalRecordRepository.findBySession_Id(session.getId()).ifPresent(record -> {
+            int lineNumber = 2;
+            for (var pl : record.getPrescriptionLines()) {
+                int quantity = pl.getQuantity() <= 0 ? 1 : pl.getQuantity();
+                long unitPrice = resolveMedicationPrice(pl);
+                invoice.addItem(InvoiceItem.medication(
+                        pl.getMedicationName(),
+                        pl.getUnit(),
+                        quantity,
+                        unitPrice,
+                        lineNumber++));
+            }
+        });
+
         Invoice saved = invoiceRepository.save(invoice);
         if (saved.getId() != null) {
             businessLogService.recordActivity(UUID.randomUUID(), "INVOICE", saved.getId(), null,
@@ -129,6 +158,23 @@ public class InvoiceService {
                     "Lịch hẹn: " + appointment.getAppointmentCode());
         }
         return InvoiceResponse.from(saved);
+    }
+
+    private long resolveMedicationPrice(com.clinicone.examination.PrescriptionLine pl) {
+        if (medicationRepository == null || pl == null) return 5_000L;
+        if (pl.getSourceMedicationId() != null) {
+            var med = medicationRepository.findById(pl.getSourceMedicationId());
+            if (med.isPresent() && med.get().getUnitPrice() > 0) {
+                return med.get().getUnitPrice();
+            }
+        }
+        if (StringUtils.hasText(pl.getMedicationName())) {
+            var byName = medicationRepository.findFirstByNameIgnoreCase(pl.getMedicationName().trim());
+            if (byName.isPresent() && byName.get().getUnitPrice() > 0) {
+                return byName.get().getUnitPrice();
+            }
+        }
+        return 5_000L;
     }
 
     private String nextInvoiceCode() {

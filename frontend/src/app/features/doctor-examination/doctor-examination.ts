@@ -23,6 +23,15 @@ import {
 import { ElectronicInvoiceComponent } from '../../shared/electronic-invoice/electronic-invoice.component';
 import { ElectronicInvoiceData } from '../../core/invoice/vietnamese-currency';
 
+const DRAFT_SAVED_AT_FORMATTER = new Intl.DateTimeFormat('vi-VN', {
+  timeZone: 'Asia/Ho_Chi_Minh',
+  hour: '2-digit',
+  minute: '2-digit',
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+});
+
 type PrescriptionLineForm = FormGroup<{
   medicationId: FormControl<string | null>;
   medicationName: FormControl<string | null>;
@@ -233,14 +242,14 @@ export class DoctorExamination implements OnInit {
         names.set(name, (names.get(name) ?? 0) + 1);
       }
     });
-    const duplicates: string[] = [];
+    const duplicates = new Set<string>();
     names.forEach((count, name) => {
       if (count > 1) {
         const orig = lines.find((c) => c.controls.medicationName.value?.trim().toLowerCase() === name)?.controls.medicationName.value?.trim();
-        if (orig && !duplicates.includes(orig)) duplicates.push(orig);
+        if (orig) duplicates.add(orig);
       }
     });
-    return duplicates;
+    return Array.from(duplicates);
   });
 
   protected readonly allergyWarnings = computed(() => {
@@ -911,9 +920,7 @@ export class DoctorExamination implements OnInit {
 
   protected formatDraftSavedAt(value: string | null | undefined): string {
     if (!value) return '';
-    return new Intl.DateTimeFormat('vi-VN', {
-      timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric',
-    }).format(new Date(value));
+    return DRAFT_SAVED_AT_FORMATTER.format(new Date(value));
   }
 
   protected fieldInvalid(name: 'reason' | 'examinationNotes' | 'diagnosis' | 'conclusion'): boolean {
