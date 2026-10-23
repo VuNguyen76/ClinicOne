@@ -126,19 +126,7 @@ public class BusinessLogIntegrityJob {
             }
             String actual = currentStatus(key);
             if (actual != null && actual.equals(latest.getNextStatus())) {
-                List<ReconciliationIncident> openIncidents = incidentRepository
-                        .findByEntityTypeAndEntityIdAndStatus(key.entityType(), key.entityId(), ReconciliationStatus.OPEN);
-                for (ReconciliationIncident open : openIncidents) {
-                    open.close(ReconciliationAction.NO_ACTION_REQUIRED,
-                            ReconciliationReferenceType.BUSINESS_LOG,
-                            latest.getEventId() == null ? null : latest.getEventId().toString(),
-                            "Trạng thái thực tế (" + actual + ") đã khớp với nhật ký mới nhất.",
-                            "SYSTEM",
-                            Instant.now(clock));
-                    incidentRepository.save(open);
-                    log.info("Auto-closed resolved integrity incident {} for {} {}",
-                            open.getIncidentCode(), key.entityType(), key.entityId());
-                }
+                autoCloseResolvedIncidents(key, latest, actual);
                 continue;
             }
             if (incidentRepository.existsByEntityTypeAndEntityIdAndStatus(key.entityType(), key.entityId(),
@@ -154,6 +142,22 @@ public class BusinessLogIntegrityJob {
             opened++;
         }
         return new IntegrityCheckResult(inspected, opened);
+    }
+
+    private void autoCloseResolvedIncidents(EntityKey key, BusinessLog latest, String actual) {
+        List<ReconciliationIncident> openIncidents = incidentRepository
+                .findByEntityTypeAndEntityIdAndStatus(key.entityType(), key.entityId(), ReconciliationStatus.OPEN);
+        for (ReconciliationIncident open : openIncidents) {
+            open.close(ReconciliationAction.NO_ACTION_REQUIRED,
+                    ReconciliationReferenceType.BUSINESS_LOG,
+                    latest.getEventId() == null ? null : latest.getEventId().toString(),
+                    "Trạng thái thực tế (" + actual + ") đã khớp với nhật ký mới nhất.",
+                    "SYSTEM",
+                    Instant.now(clock));
+            incidentRepository.save(open);
+            log.info("Auto-closed resolved integrity incident {} for {} {}",
+                    open.getIncidentCode(), key.entityType(), key.entityId());
+        }
     }
 
     private String generateIncidentCode() {

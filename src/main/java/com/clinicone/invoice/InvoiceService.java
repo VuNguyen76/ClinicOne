@@ -108,6 +108,29 @@ public class InvoiceService {
                     .orElseThrow(() -> new AuthException(HttpStatus.CONFLICT, "SIGNED_RECORD_REQUIRED",
                             "Lượt khám chưa có phiếu khám đã ký."));
         }
+        ClinicService clinicService = resolveClinicServiceForInvoice(appointment);
+        long fee = clinicService.getConsultationFee();
+        if (fee <= 0) {
+            throw new AuthException(HttpStatus.CONFLICT, "SERVICE_TARIFF_NOT_CONFIGURED",
+                    "Dịch vụ khám chưa được cấu hình phí.");
+        }
+        Invoice invoice = Invoice.create(session, nextInvoiceCode(), fee, cashierId);
+        String itemName = StringUtils.hasText(appointment.getServiceName())
+                ? appointment.getServiceName() : clinicService.getName();
+        invoice.addItem(InvoiceItem.consultation(itemName, fee));
+
+        attachPrescriptionItems(session, invoice);
+
+        Invoice saved = invoiceRepository.save(invoice);
+        if (saved.getId() != null) {
+            businessLogService.recordActivity(UUID.randomUUID(), "INVOICE", saved.getId(), null,
+                    InvoiceStatus.PENDING.name(), "PAYMENT_RECEIPT_CREATED", cashierId,
+                    "Lịch hẹn: " + appointment.getAppointmentCode());
+        }
+        return InvoiceResponse.from(saved);
+    }
+
+    private ClinicService resolveClinicServiceForInvoice(com.clinicone.appointment.Appointment appointment) {
         ClinicService clinicService = null;
         if (appointment.getServiceId() != null) {
             clinicService = clinicServiceRepository.findById(appointment.getServiceId()).orElse(null);
@@ -127,16 +150,10 @@ public class InvoiceService {
             throw new AuthException(HttpStatus.CONFLICT, "SERVICE_TARIFF_REQUIRED",
                     "Không tìm thấy dịch vụ khám để tính phí.");
         }
-        long fee = clinicService.getConsultationFee();
-        if (fee <= 0) {
-            throw new AuthException(HttpStatus.CONFLICT, "SERVICE_TARIFF_NOT_CONFIGURED",
-                    "Dịch vụ khám chưa được cấu hình phí.");
-        }
-        Invoice invoice = Invoice.create(session, nextInvoiceCode(), fee, cashierId);
-        String itemName = StringUtils.hasText(appointment.getServiceName())
-                ? appointment.getServiceName() : clinicService.getName();
-        invoice.addItem(InvoiceItem.consultation(itemName, fee));
+        return clinicService;
+    }
 
+    private void attachPrescriptionItems(ExaminationSession session, Invoice invoice) {
         medicalRecordRepository.findBySession_Id(session.getId()).ifPresent(record -> {
             int lineNumber = 2;
             for (var pl : record.getPrescriptionLines()) {
@@ -150,14 +167,6 @@ public class InvoiceService {
                         lineNumber++));
             }
         });
-
-        Invoice saved = invoiceRepository.save(invoice);
-        if (saved.getId() != null) {
-            businessLogService.recordActivity(UUID.randomUUID(), "INVOICE", saved.getId(), null,
-                    InvoiceStatus.PENDING.name(), "PAYMENT_RECEIPT_CREATED", cashierId,
-                    "Lịch hẹn: " + appointment.getAppointmentCode());
-        }
-        return InvoiceResponse.from(saved);
     }
 
     private long resolveMedicationPrice(com.clinicone.examination.PrescriptionLine pl) {
