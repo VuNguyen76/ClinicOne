@@ -73,6 +73,9 @@ public class ReceptionService {
     private final GeneratedClinicSlotRepository generatedSlotRepository;
     private final TemporaryProfileCreationLock temporaryProfileCreationLock;
 
+    @Autowired(required = false)
+    private com.clinicone.rescheduling.DoctorTimeOffRepository doctorTimeOffRepository;
+
     public ReceptionService(AppointmentRepository appointmentRepository,
                             DoctorProfileRepository doctorProfileRepository,
                             QueueTicketRepository ticketRepository,
@@ -397,6 +400,9 @@ public ReceptionAppointmentResponse checkIn(UUID appointmentId, ReceptionCheckIn
 
     private String computeShiftStatus(DoctorProfile profile, LocalDate date) {
         if (!date.equals(today())) return "NONE";
+        if (doctorTimeOffRepository != null && doctorTimeOffRepository.existsActiveOnDate(profile.getId(), date)) {
+            return "NONE";
+        }
         var now = LocalTime.now(clock.withZone(CLINIC_ZONE));
         if (workScheduleTemplateRepository != null) {
             List<WorkScheduleTemplate> templates = workScheduleTemplateRepository
@@ -427,6 +433,9 @@ public ReceptionAppointmentResponse checkIn(UUID appointmentId, ReceptionCheckIn
     }
 
     private List<ReceptionDoctorOptionResponse.SlotInfo> computeSlots(DoctorProfile profile, LocalDate date) {
+        if (doctorTimeOffRepository != null && doctorTimeOffRepository.existsActiveOnDate(profile.getId(), date)) {
+            return List.of();
+        }
         if (workScheduleTemplateRepository != null && generatedSlotRepository != null) {
             List<WorkScheduleTemplate> templates = workScheduleTemplateRepository
                     .findByDoctorStaffIdAndDateRange(profile.getStaffAccount().getId(), date, date);

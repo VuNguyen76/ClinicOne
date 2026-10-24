@@ -52,6 +52,9 @@ public class DoctorExaminationService {
     private final DoctorScheduleRepository doctorScheduleRepository;
     private final Clock clock;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.clinicone.rescheduling.DoctorTimeOffRepository doctorTimeOffRepository;
+
     public DoctorExaminationService(QueueTicketRepository ticketRepository,
                                     ExaminationSessionRepository sessionRepository,
                                     MedicalRecordRepository recordRepository,
@@ -446,6 +449,9 @@ public class DoctorExaminationService {
                 .filter(DoctorProfile::isActive)
                 .orElseThrow(() -> conflict("DOCTOR_ASSIGNMENT_REQUIRED",
                         "Bác sĩ chưa được gán đúng chuyên khoa và phòng khám."));
+        if (doctorTimeOffRepository != null && doctorTimeOffRepository.existsActiveOnDate(profile.getId(), today)) {
+            throw conflict("DOCTOR_SHIFT_INACTIVE", "Bác sĩ đang trong thời gian nghỉ phép, không thể thực hiện khám.");
+        }
         var schedulesToday = doctorScheduleRepository
                 .findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(profile.getId(), today.getDayOfWeek());
         if (schedulesToday.isEmpty()) {

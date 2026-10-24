@@ -725,6 +725,17 @@ public class QueueService {
             }
         }
         if (newTime != null) {
+            if (ticket.getAppointment().getPatientProfile() != null) {
+                UUID profileId = ticket.getAppointment().getPatientProfile().getId();
+                if (appointmentRepository.findByPatientProfileIdAndAppointmentDateAndStartTimeAndStatusIn(
+                                profileId, ticket.getQueueDate(), newTime,
+                                Set.of(AppointmentStatus.BOOKED, AppointmentStatus.CHECKED_IN))
+                        .filter(a -> !a.getId().equals(ticket.getAppointment().getId()))
+                        .isPresent()) {
+                    throw new AuthException(HttpStatus.CONFLICT, "APPOINTMENT_DUPLICATE",
+                            "Hồ sơ này đã có lịch hẹn tại khung giờ này.");
+                }
+            }
             long booked = appointmentRepository.countByDoctorStaffIdAndAppointmentDateAndStartTimeAndStatusIn(
                     targetDoctorStaffId, ticket.getQueueDate(), newTime,
                     List.of(AppointmentStatus.BOOKED, AppointmentStatus.CHECKED_IN));
@@ -860,11 +871,14 @@ public class QueueService {
     }
 
     private String doctorShiftStatus(DoctorProfile profile, LocalDate date) {
-        if (workScheduleTemplateRepository == null && doctorScheduleRepository == null) {
-            return "ACTIVE";
-        }
         if (!date.equals(today())) {
             return "NONE";
+        }
+        if (doctorTimeOffRepository != null && doctorTimeOffRepository.existsActiveOnDate(profile.getId(), date)) {
+            return "NONE";
+        }
+        if (workScheduleTemplateRepository == null && doctorScheduleRepository == null) {
+            return "ACTIVE";
         }
         if (workScheduleTemplateRepository != null) {
             List<WorkScheduleTemplate> templates = workScheduleTemplateRepository

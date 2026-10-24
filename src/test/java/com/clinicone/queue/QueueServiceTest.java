@@ -1106,6 +1106,43 @@ class QueueServiceTest {
         assertEquals("09:00", appt.getStartTime().toString()); // same start time, slot should be hidden in FE
     }
 
+    @Test
+    void adjustMoveWhenPatientProfileAlreadyHasAppointmentAtTargetSlotThrowsConflict() {
+        UUID targetDoctorId = UUID.randomUUID();
+        ClinicRoom targetRoom = ClinicRoom.create("NOI-02", "Phong Noi 02", "Noi tong quat");
+        StaffAccount targetStaff = StaffAccount.create("doctor-target-dup", "hash", "BS Dup", StaffRole.DOCTOR);
+        setId(targetStaff, targetDoctorId);
+        DoctorProfile targetProfile = DoctorProfile.create(targetStaff, "Noi tong quat", targetRoom);
+        DoctorScheduleRepository scheduleRepo = mock(DoctorScheduleRepository.class);
+        var schedule = com.clinicone.doctor.DoctorSchedule.create(targetProfile, TODAY.getDayOfWeek(), LocalTime.of(8, 0), LocalTime.of(17, 0), 30);
+        when(scheduleRepo.findByDoctorProfile_IdAndDayOfWeekAndActiveTrue(targetProfile.getId(), TODAY.getDayOfWeek())).thenReturn(List.of(schedule));
+        when(doctorProfileRepository.findByStaffAccount_Id(targetDoctorId)).thenReturn(Optional.of(targetProfile));
+        when(doctorProfileRepository.findByStaffAccount_IdForUpdate(targetDoctorId)).thenReturn(Optional.of(targetProfile));
+        when(roomRepository.findByCodeAndActiveTrueForUpdate(targetRoom.getCode())).thenReturn(Optional.of(targetRoom));
+
+        PatientAccount patient = new PatientAccount("0912345678", "hash", "A", AccountStatus.ACTIVE, false);
+        PatientProfile profile = mock(PatientProfile.class);
+        UUID profileId = UUID.randomUUID();
+        when(profile.getId()).thenReturn(profileId);
+        Appointment appt = Appointment.create(patient, UUID.randomUUID(), profile, "CL-DUP-01", "Noi tong quat", "BS A", TODAY, LocalTime.of(9, 0), "r");
+        setId(appt, UUID.randomUUID());
+        QueueTicket ticket = QueueTicket.create(appt, targetRoom, TODAY, 1);
+        when(ticketRepository.findById(ticket.getId())).thenReturn(Optional.of(ticket));
+
+        Appointment conflictAppt = mock(Appointment.class);
+        when(conflictAppt.getId()).thenReturn(UUID.randomUUID());
+        when(appointmentRepository.findByPatientProfileIdAndAppointmentDateAndStartTimeAndStatusIn(
+                eq(profileId), eq(TODAY), eq(LocalTime.of(10, 0)), any()))
+                .thenReturn(Optional.of(conflictAppt));
+
+        QueueService svc = new QueueService(roomRepository, ticketRepository, appointmentRepository, doctorProfileRepository,
+                examinationSessionRepository, null, scheduleRepo, null, Clock.fixed(Instant.parse("2026-08-06T02:00:00Z"), ZoneId.of("Asia/Ho_Chi_Minh")));
+
+        AuthException ex = assertThrows(AuthException.class, () -> svc.adjust(ticket.getId(),
+                new QueueAdjustmentRequest(QueueAdjustmentAction.MOVE, targetDoctorId, targetRoom.getCode(), "Noi tong quat", "Chuyen gio", "10:00"), "reception-1"));
+        assertEquals("APPOINTMENT_DUPLICATE", ex.getCode());
+    }
+
     private static void setField(Object target, String name, Object value) {
         try {
             var field = target.getClass().getDeclaredField(name);

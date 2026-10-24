@@ -117,6 +117,28 @@ class PatientProfileServiceTest {
     }
 
     @Test
+    void rejectsDeletingDependentProfileWhenItHasActiveAppointments() throws Exception {
+        PatientAccountRepository accountRepository = mock(PatientAccountRepository.class);
+        PatientProfileRepository profileRepository = mock(PatientProfileRepository.class);
+        com.clinicone.appointment.AppointmentRepository appointmentRepository = mock(com.clinicone.appointment.AppointmentRepository.class);
+        PatientAccount account = mock(PatientAccount.class);
+        PatientProfile profile = PatientProfile.forTest(PROFILE_ID, account, "Nguyễn An", "Con",
+                LocalDate.of(2015, 1, 1), "Nam", false);
+        when(profileRepository.findByIdAndOwnerIdAndActiveTrue(PROFILE_ID, ACCOUNT_ID)).thenReturn(Optional.of(profile));
+        when(appointmentRepository.existsByPatientProfile_IdAndStatusIn(org.mockito.ArgumentMatchers.eq(PROFILE_ID), any())).thenReturn(true);
+
+        PatientProfileService service = new PatientProfileService(accountRepository, profileRepository);
+        java.lang.reflect.Field field = PatientProfileService.class.getDeclaredField("appointmentRepository");
+        field.setAccessible(true);
+        field.set(service, appointmentRepository);
+
+        AuthException ex = assertThrows(AuthException.class, () ->
+                service.delete(ACCOUNT_ID.toString(), PROFILE_ID.toString()));
+        assertEquals("PROFILE_HAS_ACTIVE_APPOINTMENTS", ex.getCode());
+        org.mockito.Mockito.verify(profileRepository, org.mockito.Mockito.never()).save(any());
+    }
+
+    @Test
     void updatingThePrimaryProfileUpdatesTheAccountSummary() {
         PatientAccountRepository accountRepository = mock(PatientAccountRepository.class);
         PatientProfileRepository profileRepository = mock(PatientProfileRepository.class);

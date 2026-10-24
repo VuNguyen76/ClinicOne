@@ -28,6 +28,9 @@ public class PatientProfileService {
     private final ClinicConfigurationService clinicConfigurationService;
     private final AppointmentHoldService appointmentHoldService;
 
+    @Autowired(required = false)
+    private com.clinicone.appointment.AppointmentRepository appointmentRepository;
+
     public PatientProfileService(PatientAccountRepository accountRepository, PatientProfileRepository profileRepository) {
         this(accountRepository, profileRepository, null);
     }
@@ -175,6 +178,13 @@ public class PatientProfileService {
         if (profile.isPrimaryProfile()) {
             throw new AuthException(HttpStatus.CONFLICT, "PRIMARY_PROFILE_CANNOT_DELETE",
                     "Hồ sơ bản thân không thể xóa.");
+        }
+        if (appointmentRepository != null
+                && appointmentRepository.existsByPatientProfile_IdAndStatusIn(profile.getId(),
+                        List.of(com.clinicone.appointment.AppointmentStatus.BOOKED,
+                                com.clinicone.appointment.AppointmentStatus.CHECKED_IN))) {
+            throw new AuthException(HttpStatus.CONFLICT, "PROFILE_HAS_ACTIVE_APPOINTMENTS",
+                    "Không thể xóa hồ sơ khi còn lịch hẹn chưa khám hoặc đang tiếp nhận; vui lòng hủy hoặc đổi lịch trước.");
         }
         if (appointmentHoldService != null) {
             appointmentHoldService.releaseForProfile(profile.getId());

@@ -187,21 +187,22 @@ class LocalDataInitializerTest {
         verify(appointmentRepository, org.mockito.Mockito.atLeastOnce()).save(appointments.capture());
         LocalDate today = LocalDate.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh"));
         List<LocalDate> clinicDates = new ArrayList<>();
-        for (LocalDate date = today; clinicDates.size() < 3; date = date.plusDays(1)) {
+        for (LocalDate date = today; clinicDates.size() < 4; date = date.plusDays(1)) {
             if (date.getDayOfWeek() != DayOfWeek.SATURDAY && date.getDayOfWeek() != DayOfWeek.SUNDAY) {
                 clinicDates.add(date);
             }
         }
+        List<LocalDate> seededDates = List.of(today, clinicDates.get(1), clinicDates.get(2));
         List<Appointment> demoAppointments = appointments.getAllValues().stream()
                 .filter(item -> item.getAppointmentCode().startsWith("DMO-"))
                 .toList();
         assertThat(demoAppointments).isNotEmpty().allSatisfy(item -> {
-            assertThat(clinicDates).contains(item.getAppointmentDate());
+            assertThat(seededDates).contains(item.getAppointmentDate());
             assertThat(item.getServiceName()).isNotBlank();
             assertThat(item.getServiceDurationMinutes()).isEqualTo(30);
         });
         assertThat(demoAppointments).extracting(Appointment::getAppointmentDate)
-                .containsAll(clinicDates);
+                .containsAll(seededDates);
         ArgumentCaptor<QueueTicket> tickets = ArgumentCaptor.forClass(QueueTicket.class);
         verify(queueTicketRepository, org.mockito.Mockito.atLeastOnce()).save(tickets.capture());
         assertThat(tickets.getAllValues()).extracting(QueueTicket::getStatus)

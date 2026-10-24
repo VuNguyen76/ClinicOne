@@ -118,6 +118,8 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
 
     List<Appointment> findByPatientProfileId(UUID patientProfileId);
 
+    boolean existsByPatientProfile_IdAndStatusIn(UUID patientProfileId, Collection<AppointmentStatus> statuses);
+
     boolean existsByPatientProfile_IdAndAppointmentDateAndStartTimeAndStatusIn(
             UUID patientProfileId, LocalDate appointmentDate, LocalTime startTime,
             Collection<AppointmentStatus> statuses);
